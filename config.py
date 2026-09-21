@@ -34,6 +34,7 @@ class Settings:
     test_days: int
     test_traffic_gb: int
     test_ip_limit: int
+    vless_flow: str
     db_path: str
     verify_tls: bool
 
@@ -79,6 +80,7 @@ def load_settings() -> Settings:
         test_days=int(os.getenv("TEST_DAYS", "7")),
         test_traffic_gb=int(os.getenv("TEST_TRAFFIC_GB", "10")),
         test_ip_limit=int(os.getenv("TEST_IP_LIMIT", "2")),
+        vless_flow=os.getenv("VLESS_FLOW", "xtls-rprx-vision").strip(),
         db_path=os.getenv("DB_PATH", "bot.sqlite3"),
         verify_tls=env_bool(os.getenv("VERIFY_TLS"), True),
     )

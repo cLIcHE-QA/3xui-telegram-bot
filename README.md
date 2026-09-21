@@ -183,3 +183,27 @@ Raw subscription mode is unchanged: `vpn://` is still converted to
 `amneziawg://` for INCY compatibility. Thus the same `/compat/{sub_id}` URL
 serves the native 3x-ui page in a browser and the adapted subscription to VPN
 clients.
+
+
+## v3.5.3 — VLESS XTLS flow synchronization
+
+Adds `VLESS_FLOW` (default `xtls-rprx-vision`). New clients are created with this
+flow and then normalized through the current 3x-ui `POST /panel/api/clients/bulkAdjust`
+endpoint. The same endpoint is also called by both the per-user and global inbound
+synchronization buttons, so existing bot users can be fixed without deletion/recreation.
+
+Add to `.env`:
+
+```env
+VLESS_FLOW=xtls-rprx-vision
+```
+
+Set `VLESS_FLOW=` to leave existing flow values untouched. Current 3x-ui applies the
+flow only where the inbound supports the requested XTLS flow.
+
+After upgrading, use either:
+
+- `/admin` -> user -> `Синхронизировать inbound'ы` for one user; or
+- `/admin` -> `Синхронизировать всех` for every user in the bot SQLite database.
+
+The admin user card also shows the client's current stored flow.

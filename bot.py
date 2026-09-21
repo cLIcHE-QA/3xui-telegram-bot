@@ -117,7 +117,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v3.5", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v3.5.3", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -169,11 +169,13 @@ async def admin_sync_all_ask(call: CallbackQuery):
         await call.answer()
         return
 
+    flow_note = settings.vless_flow or "не менять"
     await call.message.answer(
         "Глобальная синхронизация добавит всем пользователям из локальной БД "
-        "все разрешённые inbound'ы, которых у них ещё нет.\n\n"
+        "все разрешённые inbound'ы, которых у них ещё нет, и синхронизирует VLESS flow.\n\n"
         f"Пользователей: {len(users)}\n"
-        f"Целевые inbound ID: {', '.join(map(str, target_ids))}",
+        f"Целевые inbound ID: {', '.join(map(str, target_ids))}\n"
+        f"VLESS flow: {flow_note}",
         reply_markup=confirm_sync_all_keyboard(),
     )
     await call.answer()
@@ -205,6 +207,13 @@ async def admin_sync_all_run(call: CallbackQuery):
         result = await xui.bulk_attach_clients(emails, target_ids)
         obj = result.get("obj") or {}
 
+        flow_result = None
+        if settings.vless_flow:
+            flow_result = await xui.bulk_adjust_clients(
+                emails,
+                flow=settings.vless_flow,
+            )
+
         attached = obj.get("attached") or {}
         skipped = obj.get("skipped") or {}
         errors = obj.get("errors") or {}
@@ -233,6 +242,13 @@ async def admin_sync_all_run(call: CallbackQuery):
             f"Уже было привязано: {skipped_count}",
             f"Ошибок: {error_count}",
         ]
+        if settings.vless_flow:
+            lines.append(f"VLESS flow: {settings.vless_flow}")
+            if flow_result is not None:
+                flow_obj = flow_result.get("obj") or {}
+                adjusted = flow_obj.get("adjusted")
+                if adjusted is not None:
+                    lines.append(f"Flow обработано: {adjusted}")
 
         if errors:
             preview = []
@@ -296,6 +312,7 @@ async def admin_user(call: CallbackQuery):
         total = int(client.get("totalGB") or 0)
         inbound_ids = obj.get("inboundIds") or []
         inbound_text = ", ".join(str(x) for x in inbound_ids) if inbound_ids else "нет"
+        flow = str(client.get("flow") or "none")
         text = (
             f"👤 {rec.email}\n"
             f"Telegram ID: {rec.telegram_id}\n"
@@ -303,6 +320,7 @@ async def admin_user(call: CallbackQuery):
             f"Срок: {fmt_date(int(client.get('expiryTime') or rec.expiry_time))}\n"
             f"Лимит: {human_bytes(total) if total else 'без лимита'}\n"
             f"Использовано: {human_bytes(up + down)}\n"
+            f"Flow: {flow}\n"
             f"Inbound ID: {inbound_text}\n"
             f"subId: {rec.sub_id}"
         )
@@ -350,18 +368,21 @@ async def admin_sync_inbounds(call: CallbackQuery):
         current_set = set(current_ids)
         missing_ids = [x for x in target_ids if x not in current_set]
 
-        if not missing_ids:
-            await call.message.answer(
-                f"✅ {rec.email} уже подключён ко всем разрешённым inbound'ам.\n\n"
-                f"Текущие ID: {', '.join(map(str, current_ids)) or 'нет'}"
-            )
-            await call.answer()
-            return
+        if missing_ids:
+            await xui.attach_client(rec.email, missing_ids)
 
-        await xui.attach_client(rec.email, missing_ids)
+        flow_synced = False
+        if settings.vless_flow:
+            await xui.bulk_adjust_clients(
+                [rec.email],
+                flow=settings.vless_flow,
+            )
+            flow_synced = True
 
         updated = await xui.get_client(rec.email)
         updated_ids = sorted({int(x) for x in (updated.get("inboundIds") or [])})
+        updated_client = updated.get("client", updated)
+        updated_flow = str(updated_client.get("flow") or "none")
 
         by_id = {i.id: i for i in available}
         details = []
@@ -372,14 +393,19 @@ async def admin_sync_inbounds(call: CallbackQuery):
             else:
                 details.append(f"• #{inbound_id}")
 
-        await call.message.answer(
-            f"✅ Inbound'ы синхронизированы для {rec.email}.\n\n"
-            "Добавлены:\n" + "\n".join(details) + "\n\n"
-            f"Теперь привязан к ID: {', '.join(map(str, updated_ids))}"
-        )
+        lines = [f"✅ Синхронизация завершена для {rec.email}.", ""]
+        if details:
+            lines += ["Добавлены inbound'ы:"] + details + [""]
+        else:
+            lines += ["Новых inbound'ов не было — все уже привязаны.", ""]
+        lines.append(f"Теперь привязан к ID: {', '.join(map(str, updated_ids))}")
+        if flow_synced:
+            lines.append(f"VLESS flow: {updated_flow}")
+
+        await call.message.answer("\n".join(lines))
     except XUIError as e:
         await call.message.answer(
-            "Не удалось синхронизировать inbound'ы.\n\n"
+            "Не удалось синхронизировать inbound'ы/flow.\n\n"
             f"Ошибка 3x-ui: {e}"
         )
 
@@ -540,8 +566,12 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=settings.test_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram bot v3"
+            comment="Created by Telegram bot v3.5.3",
+            flow=settings.vless_flow,
         )
+        # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.
+        if settings.vless_flow:
+            await xui.bulk_adjust_clients([email], flow=settings.vless_flow)
         await db.put(UserRecord(tg_id, email, sid, expiry, now))
         await message.answer(f"✅ Создан\n\n{sub_url(sid)}")
     except XUIError as e:

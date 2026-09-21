@@ -92,6 +92,7 @@ class XUIClient:
                 "limitIp": kwargs["limit_ip"],
                 "enable": True,
                 "comment": kwargs["comment"],
+                "flow": kwargs.get("flow", ""),
                 "reset": 0,
             },
             "inboundIds": kwargs["inbound_ids"],
@@ -152,6 +153,29 @@ class XUIClient:
             "POST",
             "/panel/api/clients/bulkAttach",
             json={"emails": emails, "inboundIds": inbound_ids},
+        )
+
+    async def bulk_adjust_clients(
+        self,
+        emails: list[str],
+        *,
+        add_days: int = 0,
+        add_bytes: int = 0,
+        flow: str = "",
+    ) -> dict[str, Any]:
+        if not emails:
+            return {"success": True, "obj": {"adjusted": 0, "skipped": {}}}
+        payload: dict[str, Any] = {
+            "emails": emails,
+            "addDays": add_days,
+            "addBytes": add_bytes,
+        }
+        if flow:
+            payload["flow"] = flow
+        return await self._request(
+            "POST",
+            "/panel/api/clients/bulkAdjust",
+            json=payload,
         )
 
     async def delete_client(self, email: str) -> dict[str, Any]:
