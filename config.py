@@ -21,6 +21,9 @@ class Settings:
     panel_url: str
     panel_api_token: str
     subscription_url_template: str
+    compat_subscription_url_template: str
+    subscription_proxy_host: str
+    subscription_proxy_port: int
     allowed_telegram_ids: tuple[int, ...]
     admin_telegram_ids: tuple[int, ...]
     allowed_ports: tuple[int, ...]
@@ -54,11 +57,18 @@ def load_settings() -> Settings:
     if "{sub_id}" not in required["SUBSCRIPTION_URL_TEMPLATE"]:
         raise RuntimeError("SUBSCRIPTION_URL_TEMPLATE must contain {sub_id}")
 
+    compat_template = os.getenv("COMPAT_SUBSCRIPTION_URL_TEMPLATE", "").strip()
+    if compat_template and "{sub_id}" not in compat_template:
+        raise RuntimeError("COMPAT_SUBSCRIPTION_URL_TEMPLATE must contain {sub_id}")
+
     return Settings(
         bot_token=required["BOT_TOKEN"],
         panel_url=required["PANEL_URL"].rstrip("/"),
         panel_api_token=required["PANEL_API_TOKEN"],
         subscription_url_template=required["SUBSCRIPTION_URL_TEMPLATE"],
+        compat_subscription_url_template=compat_template,
+        subscription_proxy_host=os.getenv("SUBSCRIPTION_PROXY_HOST", "0.0.0.0"),
+        subscription_proxy_port=int(os.getenv("SUBSCRIPTION_PROXY_PORT", "8080")),
         allowed_telegram_ids=allowed_ids,
         admin_telegram_ids=admin_ids,
         allowed_ports=csv_ints(os.getenv("ALLOWED_PORTS", "2053,2083,443")),

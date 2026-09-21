@@ -40,6 +40,13 @@ class Database:
             row = await cur.fetchone()
             return UserRecord(**dict(row)) if row else None
 
+    async def get_by_sub_id(self, sub_id: str) -> UserRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM users WHERE sub_id = ?", (sub_id,))
+            row = await cur.fetchone()
+            return UserRecord(**dict(row)) if row else None
+
     async def list_users(self) -> list[UserRecord]:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row

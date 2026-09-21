@@ -11,6 +11,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKe
 from config import load_settings
 from db import Database, UserRecord
 from xui import XUIClient, XUIError
+from subscription_proxy import SubscriptionProxy
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -97,7 +98,8 @@ def choose_inbounds(inbounds):
     return chosen
 
 def sub_url(sub_id: str) -> str:
-    return settings.subscription_url_template.format(sub_id=sub_id)
+    template = settings.compat_subscription_url_template or settings.subscription_url_template
+    return template.format(sub_id=sub_id)
 
 def fmt_date(ms: int) -> str:
     if not ms:
@@ -567,10 +569,23 @@ async def sub_cb(call: CallbackQuery):
 async def main():
     logging.basicConfig(level=logging.INFO)
     await db.init()
+
+    proxy = SubscriptionProxy(
+        db=db,
+        upstream_template=settings.subscription_url_template,
+        verify_tls=settings.verify_tls,
+        host=settings.subscription_proxy_host,
+        port=settings.subscription_proxy_port,
+    )
+    await proxy.start()
+
     bot = Bot(settings.bot_token)
     dp = Dispatcher()
     dp.include_router(router)
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await proxy.stop()
 
 if __name__ == "__main__":
     asyncio.run(main())
