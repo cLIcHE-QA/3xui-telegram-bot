@@ -45,6 +45,7 @@ def user_admin_keyboard(tg_id: int, enabled: bool = True) -> InlineKeyboardMarku
     )
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔗 Подписка", callback_data=f"adminsub:{tg_id}")],
+        [InlineKeyboardButton(text="🔄 Синхронизировать inbound'ы", callback_data=f"adminsync:{tg_id}")],
         [InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}")],
         [state_btn],
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admindelask:{tg_id}")],
@@ -171,6 +172,8 @@ async def admin_user(call: CallbackQuery):
         up = int(traffic.get("up") or traffic.get("uplink") or 0)
         down = int(traffic.get("down") or traffic.get("downlink") or 0)
         total = int(client.get("totalGB") or 0)
+        inbound_ids = obj.get("inboundIds") or []
+        inbound_text = ", ".join(str(x) for x in inbound_ids) if inbound_ids else "нет"
         text = (
             f"👤 {rec.email}\n"
             f"Telegram ID: {rec.telegram_id}\n"
@@ -178,6 +181,7 @@ async def admin_user(call: CallbackQuery):
             f"Срок: {fmt_date(int(client.get('expiryTime') or rec.expiry_time))}\n"
             f"Лимит: {human_bytes(total) if total else 'без лимита'}\n"
             f"Использовано: {human_bytes(up + down)}\n"
+            f"Inbound ID: {inbound_text}\n"
             f"subId: {rec.sub_id}"
         )
     except XUIError as e:
@@ -195,6 +199,70 @@ async def admin_sub(call: CallbackQuery):
     if rec:
         await call.message.answer(f"🔗 {rec.email}\n{sub_url(rec.sub_id)}")
     await call.answer()
+
+@router.callback_query(F.data.startswith("adminsync:"))
+async def admin_sync_inbounds(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+
+    try:
+        available = choose_inbounds(await xui.inbound_options())
+        target_ids = sorted({i.id for i in available})
+
+        if not target_ids:
+            await call.message.answer(
+                "После фильтрации в .env нет ни одного доступного inbound. "
+                "Проверь ALLOWED_PORTS, ALLOWED_PROTOCOLS и INBOUND_IDS."
+            )
+            await call.answer()
+            return
+
+        obj = await xui.get_client(rec.email)
+        current_ids = sorted({int(x) for x in (obj.get("inboundIds") or [])})
+        current_set = set(current_ids)
+        missing_ids = [x for x in target_ids if x not in current_set]
+
+        if not missing_ids:
+            await call.message.answer(
+                f"✅ {rec.email} уже подключён ко всем разрешённым inbound'ам.\n\n"
+                f"Текущие ID: {', '.join(map(str, current_ids)) or 'нет'}"
+            )
+            await call.answer()
+            return
+
+        await xui.attach_client(rec.email, missing_ids)
+
+        updated = await xui.get_client(rec.email)
+        updated_ids = sorted({int(x) for x in (updated.get("inboundIds") or [])})
+
+        by_id = {i.id: i for i in available}
+        details = []
+        for inbound_id in missing_ids:
+            i = by_id.get(inbound_id)
+            if i:
+                details.append(f"• #{i.id} — {i.port}/{i.protocol} — {i.remark}")
+            else:
+                details.append(f"• #{inbound_id}")
+
+        await call.message.answer(
+            f"✅ Inbound'ы синхронизированы для {rec.email}.\n\n"
+            "Добавлены:\n" + "\n".join(details) + "\n\n"
+            f"Теперь привязан к ID: {', '.join(map(str, updated_ids))}"
+        )
+    except XUIError as e:
+        await call.message.answer(
+            "Не удалось синхронизировать inbound'ы.\n\n"
+            f"Ошибка 3x-ui: {e}"
+        )
+
+    await call.answer()
+
 
 @router.callback_query(F.data.startswith("adminextend:"))
 async def admin_extend(call: CallbackQuery):

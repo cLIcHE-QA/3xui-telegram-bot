@@ -136,6 +136,15 @@ class XUIClient:
             "POST", f"/panel/api/clients/update/{quote(email, safe='')}", json=payload
         )
 
+    async def attach_client(self, email: str, inbound_ids: list[int]) -> dict[str, Any]:
+        if not inbound_ids:
+            return {"success": True, "obj": {"attached": [], "skipped": []}}
+        return await self._request(
+            "POST",
+            f"/panel/api/clients/{quote(email, safe='')}/attach",
+            json={"inboundIds": inbound_ids},
+        )
+
     async def delete_client(self, email: str) -> dict[str, Any]:
         return await self._request("POST", f"/panel/api/clients/del/{quote(email, safe='')}")
 
