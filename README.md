@@ -223,3 +223,29 @@ Other behavior is unchanged:
 - AmneziaWG raw links are still converted from `vpn://` to `amneziawg://`.
 
 No nginx changes and no new `.env` variables are required.
+
+## v3.5.5: server health + bounded Docker logs
+
+The `/admin` menu now includes `🩺 Состояние сервера`. It checks:
+
+- the 3x-ui API through the configured panel route;
+- the local subscription compatibility proxy;
+- the public subscription `/healthz` route through nginx/TLS;
+- managed inbound enable/disable state reported by 3x-ui;
+- disk usage, RAM usage, uptime, and local bot-user count.
+
+Inbound status is intentionally reported from the 3x-ui API. UDP/TCP socket probing is
+not used because a successful TCP connect does not validate REALITY/XHTTP and UDP
+services cannot be reliably health-checked with a generic connect probe.
+
+Docker json-file logs are also capped in `docker-compose.yml`:
+
+```yaml
+logging:
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+```
+
+The limit applies after the container is recreated with the new Compose configuration.

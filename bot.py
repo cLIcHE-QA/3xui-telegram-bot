@@ -1,8 +1,12 @@
 import asyncio
 import logging
 import secrets
+import shutil
 import time
 from datetime import datetime, timezone
+from urllib.parse import urlsplit, urlunsplit
+
+import aiohttp
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
@@ -36,6 +40,7 @@ def admin_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users")],
         [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats")],
+        [InlineKeyboardButton(text="🩺 Состояние сервера", callback_data="admin:health")],
         [InlineKeyboardButton(text="🧪 Inbound'ы", callback_data="inbounds")],
     ])
 
@@ -78,24 +83,22 @@ async def guard_admin_call(call: CallbackQuery) -> bool:
         return False
     return True
 
-def choose_inbounds(inbounds):
-    chosen = []
+def is_managed_inbound(i) -> bool:
     exact_ids = set(settings.inbound_ids)
-    for i in inbounds:
-        if not i.enable:
-            continue
-        if i.protocol in set(settings.ignored_protocols):
-            continue
-        if i.tag.lower() in set(settings.ignored_tags) or i.tag.lower().startswith("api"):
-            continue
-        if exact_ids and i.id not in exact_ids:
-            continue
-        if settings.allowed_ports and i.port not in set(settings.allowed_ports):
-            continue
-        if settings.allowed_protocols and i.protocol not in set(settings.allowed_protocols):
-            continue
-        chosen.append(i)
-    return chosen
+    if i.protocol in set(settings.ignored_protocols):
+        return False
+    if i.tag.lower() in set(settings.ignored_tags) or i.tag.lower().startswith("api"):
+        return False
+    if exact_ids and i.id not in exact_ids:
+        return False
+    if settings.allowed_ports and i.port not in set(settings.allowed_ports):
+        return False
+    if settings.allowed_protocols and i.protocol not in set(settings.allowed_protocols):
+        return False
+    return True
+
+def choose_inbounds(inbounds):
+    return [i for i in inbounds if i.enable and is_managed_inbound(i)]
 
 def sub_url(sub_id: str) -> str:
     template = settings.compat_subscription_url_template or settings.subscription_url_template
@@ -117,7 +120,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v3.5.3", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v3.5.5", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -285,6 +288,153 @@ async def admin_stats(call: CallbackQuery):
         reply_markup=admin_menu()
     )
     await call.answer()
+
+def _public_health_url() -> str | None:
+    template = settings.compat_subscription_url_template.strip()
+    if not template:
+        return None
+    try:
+        parts = urlsplit(template.format(sub_id="health-probe"))
+    except ValueError:
+        return None
+    if not parts.scheme or not parts.netloc:
+        return None
+    return urlunsplit((parts.scheme, parts.netloc, "/healthz", "", ""))
+
+
+async def _check_http(url: str, *, verify_tls: bool = True) -> tuple[bool, str]:
+    timeout = aiohttp.ClientTimeout(total=6)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(
+                url,
+                ssl=None if verify_tls else False,
+                allow_redirects=True,
+            ) as resp:
+                body = (await resp.text()).strip()
+                if resp.status == 200:
+                    return True, body[:80] or "HTTP 200"
+                return False, f"HTTP {resp.status}"
+    except (aiohttp.ClientError, asyncio.TimeoutError, TimeoutError) as exc:
+        return False, type(exc).__name__
+
+
+def _memory_stats() -> tuple[int, int] | None:
+    values: dict[str, int] = {}
+    try:
+        with open("/proc/meminfo", "r", encoding="utf-8") as fh:
+            for line in fh:
+                key, raw = line.split(":", 1)
+                if key in {"MemTotal", "MemAvailable"}:
+                    values[key] = int(raw.strip().split()[0]) * 1024
+    except (OSError, ValueError):
+        return None
+    total = values.get("MemTotal", 0)
+    available = values.get("MemAvailable", 0)
+    if not total:
+        return None
+    return total - available, total
+
+
+def _uptime_text() -> str | None:
+    try:
+        seconds = int(float(open("/proc/uptime", "r", encoding="utf-8").read().split()[0]))
+    except (OSError, ValueError, IndexError):
+        return None
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes = rem // 60
+    if days:
+        return f"{days}д {hours}ч {minutes}м"
+    return f"{hours}ч {minutes}м"
+
+
+def _usage_line(label: str, used: int, total: int) -> str:
+    pct = (used / total * 100) if total else 0
+    return f"{label}: {human_bytes(used)} / {human_bytes(total)} ({pct:.0f}%)"
+
+
+@router.callback_query(F.data == "admin:health")
+async def admin_health(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+
+    await call.answer("Проверяю…")
+
+    local_url = f"http://127.0.0.1:{settings.subscription_proxy_port}/healthz"
+    public_url = _public_health_url()
+
+    local_task = asyncio.create_task(_check_http(local_url, verify_tls=False))
+    public_task = (
+        asyncio.create_task(_check_http(public_url, verify_tls=settings.verify_tls))
+        if public_url else None
+    )
+
+    inbounds = None
+    xui_error = None
+    try:
+        inbounds = await xui.inbound_options()
+    except XUIError as exc:
+        xui_error = str(exc)
+
+    local_ok, local_detail = await local_task
+    if public_task:
+        public_ok, public_detail = await public_task
+    else:
+        public_ok, public_detail = False, "COMPAT URL не настроен"
+
+    users = await db.list_users()
+    lines = ["🩺 Состояние сервера", ""]
+
+    if inbounds is not None:
+        lines.append("🟢 3x-ui API / panel route")
+    else:
+        detail = (xui_error or "unknown error")[:160]
+        lines.append(f"🔴 3x-ui API / panel route — {detail}")
+
+    lines.append(
+        f"{'🟢' if local_ok else '🔴'} Subscription proxy (локально)"
+        + ("" if local_ok else f" — {local_detail}")
+    )
+    lines.append(
+        f"{'🟢' if public_ok else '🔴'} Subscription через nginx/TLS"
+        + ("" if public_ok else f" — {public_detail}")
+    )
+
+    if inbounds is not None:
+        managed = sorted(
+            (i for i in inbounds if is_managed_inbound(i)),
+            key=lambda i: (i.port, i.protocol, i.id),
+        )
+        lines += ["", "Inbound'ы по данным 3x-ui:"]
+        if managed:
+            for i in managed:
+                icon = "🟢" if i.enable else "🔴"
+                proto = i.protocol.upper()
+                lines.append(f"{icon} #{i.id} — {i.port} — {proto} — {i.remark}")
+        else:
+            lines.append("⚪ Нет inbound'ов после фильтров .env")
+
+    try:
+        disk = shutil.disk_usage("/")
+        lines += ["", _usage_line("💽 Disk", disk.used, disk.total)]
+    except OSError:
+        pass
+
+    mem = _memory_stats()
+    if mem:
+        used, total = mem
+        lines.append(_usage_line("🧠 RAM", used, total))
+
+    uptime = _uptime_text()
+    if uptime:
+        lines.append(f"⏱ Uptime: {uptime}")
+
+    lines.append(f"👥 Пользователей в БД: {len(users)}")
+    lines += ["", "ℹ️ Inbound-статус здесь — enable/disable из 3x-ui API, не отдельный socket probe UDP/TCP."]
+
+    await call.message.answer("\n".join(lines), reply_markup=admin_menu())
+
 
 @router.callback_query(F.data == "admin:home")
 async def admin_home(call: CallbackQuery):
@@ -566,7 +716,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=settings.test_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram bot v3.5.3",
+            comment="Created by Telegram bot v3.5.5",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.

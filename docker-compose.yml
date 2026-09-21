@@ -10,3 +10,8 @@ services:
       DB_PATH: /app/data/bot.sqlite3
     ports:
       - "127.0.0.1:18080:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
