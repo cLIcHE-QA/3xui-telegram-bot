@@ -340,7 +340,10 @@ async def create_user(tg_id: int, message: Message):
             return
         now = int(time.time())
         expiry = (now + settings.test_days * 86400) * 1000
-        email = f"tg_{tg_id}"
+        username = ""
+        if getattr(message, "chat", None) and getattr(message.chat, "username", None):
+            username = message.chat.username.strip().lower()
+        email = f"tg_{username}" if username else f"tg_{tg_id}"
         sid = secrets.token_urlsafe(18)
         await xui.create_client(
             email=email, telegram_id=tg_id, sub_id=sid,

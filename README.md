@@ -35,3 +35,12 @@ The v3 SQLite schema is compatible with v2.
 The 3x-ui client update API replaces the client row rather than patching it.
 This bot first fetches the complete client object, preserves the common fields,
 then changes only expiry or enable state.
+
+## Username-based 3x-ui client names
+
+New users are named:
+
+- `tg_<telegram_username>` when the Telegram user has a username;
+- `tg_<telegram_id>` as a fallback when no username is set.
+
+The local database still uses the numeric Telegram ID as the stable identifier.
