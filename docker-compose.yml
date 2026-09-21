@@ -6,6 +6,12 @@ services:
       - .env
     volumes:
       - ./data:/app/data
+      # Exact bot .env is included in full backups, but is no longer baked into the image.
+      - ./.env:/app/backup_sources/bot.env:ro
+      # 3x-ui default SQLite directory. Override the host path in .env if needed.
+      - ${BACKUP_XUI_DIR_HOST_PATH:-/etc/x-ui}:/app/backup_sources/x-ui:ro
+      # This deployment keeps nginx configuration here. Override if your path differs.
+      - ${BACKUP_NGINX_CONF_HOST_PATH:-/opt/mtproxyl-nginx/conf}:/app/backup_sources/nginx:ro
     environment:
       DB_PATH: /app/data/bot.sqlite3
     ports:

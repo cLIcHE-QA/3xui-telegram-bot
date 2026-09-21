@@ -3,15 +3,16 @@ import logging
 import secrets
 import shutil
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlsplit, urlunsplit
 
 import aiohttp
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
 
+from backup_manager import BackupManager
 from config import load_settings
 from db import Database, UserRecord
 from xui import XUIClient, XUIError
@@ -21,6 +22,7 @@ settings = load_settings()
 db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 router = Router()
+backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
 
 def is_allowed(tg_id: int) -> bool:
     return tg_id in settings.allowed_telegram_ids or tg_id in settings.admin_telegram_ids
@@ -41,6 +43,7 @@ def admin_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton(text="🩺 Состояние сервера", callback_data="admin:health")],
+        [InlineKeyboardButton(text="💾 Резервные копии", callback_data="admin:backups")],
         [InlineKeyboardButton(text="🧪 Inbound'ы", callback_data="inbounds")],
     ])
 
@@ -69,6 +72,15 @@ def confirm_sync_all_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Синхронизировать всех", callback_data="admin:syncall:run")],
         [InlineKeyboardButton(text="Отмена", callback_data="admin:home")],
+    ])
+
+
+def backup_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💾 Создать сейчас", callback_data="admin:backup:create")],
+        [InlineKeyboardButton(text="📥 Скачать bot.sqlite3", callback_data="admin:backup:botdb")],
+        [InlineKeyboardButton(text="📦 Скачать полный backup", callback_data="admin:backup:full")],
+        [InlineKeyboardButton(text="⬅ Админка", callback_data="admin:home")],
     ])
 
 async def guard_message(message: Message) -> bool:
@@ -120,7 +132,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v3.5.5", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v3.6.0", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -354,6 +366,96 @@ def _usage_line(label: str, used: int, total: int) -> str:
     return f"{label}: {human_bytes(used)} / {human_bytes(total)} ({pct:.0f}%)"
 
 
+def _backup_status_text() -> str:
+    items = backup_manager.list_backups()
+    latest = items[0] if items else None
+    lines = ["💾 Резервные копии", ""]
+    if latest:
+        ts = latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
+        lines.append(f"Последняя: {ts}")
+        lines.append(f"Размер: {human_bytes(latest.size)}")
+    else:
+        lines.append("Последняя: ещё не создана")
+    lines.append(f"Хранится полных копий: {len(items)} / {settings.backup_keep}")
+    lines.append(f"Автоматически: {'включено' if settings.backup_enabled else 'выключено'}")
+    if settings.backup_enabled:
+        lines.append(f"Ежедневно: {settings.backup_hour_utc:02d}:00 UTC")
+        if settings.backup_send_to_admins:
+            lines.append("Отправка администраторам: включена")
+    lines += ["", "⚠️ Полный архив содержит секреты (.env и x-ui.db)."]
+    return "\n".join(lines)
+
+
+@router.callback_query(F.data == "admin:backups")
+async def admin_backups(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.message.answer(_backup_status_text(), reply_markup=backup_menu())
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:backup:create")
+async def admin_backup_create(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.answer("Создаю backup…")
+    try:
+        result = await asyncio.to_thread(backup_manager.create_full_backup)
+        lines = [
+            "✅ Полный backup создан.",
+            f"Файл: {result.info.path.name}",
+            f"Размер: {human_bytes(result.info.size)}",
+            f"Включено: {', '.join(result.included) or 'нет'}",
+        ]
+        if result.missing:
+            lines.append(f"⚠️ Не найдено: {', '.join(result.missing)}")
+        await call.message.answer("\n".join(lines), reply_markup=backup_menu())
+    except Exception as exc:
+        logging.exception("Manual backup failed")
+        await call.message.answer(
+            f"🔴 Не удалось создать backup: {type(exc).__name__}: {exc}",
+            reply_markup=backup_menu(),
+        )
+
+
+@router.callback_query(F.data == "admin:backup:botdb")
+async def admin_backup_botdb(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.answer("Готовлю SQLite…")
+    try:
+        path = await asyncio.to_thread(backup_manager.create_bot_snapshot)
+        await call.message.answer_document(
+            FSInputFile(path),
+            caption="Свежая консистентная копия bot.sqlite3",
+        )
+    except Exception as exc:
+        logging.exception("Bot DB snapshot failed")
+        await call.message.answer(f"🔴 Ошибка backup SQLite: {type(exc).__name__}: {exc}")
+
+
+@router.callback_query(F.data == "admin:backup:full")
+async def admin_backup_full(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.answer("Готовлю архив…")
+    try:
+        info = await asyncio.to_thread(backup_manager.latest_backup)
+        if info is None:
+            result = await asyncio.to_thread(backup_manager.create_full_backup)
+            info = result.info
+        await call.message.answer_document(
+            FSInputFile(info.path),
+            caption=(
+                "Полный backup. Содержит секреты; храните файл в защищённом месте.\n"
+                f"Создан: {info.created_at.strftime('%Y-%m-%d %H:%M UTC')}"
+            ),
+        )
+    except Exception as exc:
+        logging.exception("Full backup download failed")
+        await call.message.answer(f"🔴 Ошибка отправки backup: {type(exc).__name__}: {exc}")
+
+
 @router.callback_query(F.data == "admin:health")
 async def admin_health(call: CallbackQuery):
     if not await guard_admin_call(call):
@@ -431,6 +533,15 @@ async def admin_health(call: CallbackQuery):
         lines.append(f"⏱ Uptime: {uptime}")
 
     lines.append(f"👥 Пользователей в БД: {len(users)}")
+    latest_backup = await asyncio.to_thread(backup_manager.latest_backup)
+    if latest_backup:
+        lines.append(
+            "💾 Последний backup: "
+            + latest_backup.created_at.strftime("%Y-%m-%d %H:%M UTC")
+            + f" ({human_bytes(latest_backup.size)})"
+        )
+    else:
+        lines.append("⚠️ Backup: ещё не создан")
     lines += ["", "ℹ️ Inbound-статус здесь — enable/disable из 3x-ui API, не отдельный socket probe UDP/TCP."]
 
     await call.message.answer("\n".join(lines), reply_markup=admin_menu())
@@ -716,7 +827,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=settings.test_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram bot v3.5.5",
+            comment="Created by Telegram bot v3.6.0",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.
@@ -746,6 +857,48 @@ async def sub_cb(call: CallbackQuery):
     await call.message.answer(sub_url(rec.sub_id) if rec else "Сначала создай доступ.")
     await call.answer()
 
+async def _seconds_until_backup_hour() -> float:
+    now = datetime.now(timezone.utc)
+    target = now.replace(
+        hour=settings.backup_hour_utc,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    if target <= now:
+        target += timedelta(days=1)
+    return max(1.0, (target - now).total_seconds())
+
+
+async def automatic_backup_loop(bot: Bot):
+    while True:
+        await asyncio.sleep(await _seconds_until_backup_hour())
+        try:
+            result = await asyncio.to_thread(backup_manager.create_full_backup)
+            logging.info(
+                "Automatic backup created: %s (%d bytes)",
+                result.info.path,
+                result.info.size,
+            )
+            if settings.backup_send_to_admins:
+                for admin_id in settings.admin_telegram_ids:
+                    try:
+                        await bot.send_document(
+                            admin_id,
+                            FSInputFile(result.info.path),
+                            caption=(
+                                "💾 Ежедневный backup 3x-ui bot. "
+                                "Архив содержит секреты."
+                            ),
+                        )
+                    except Exception:
+                        logging.exception("Could not send automatic backup to admin %s", admin_id)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logging.exception("Automatic backup failed")
+
+
 async def main():
     logging.basicConfig(level=logging.INFO)
     await db.init()
@@ -763,9 +916,19 @@ async def main():
     bot = Bot(settings.bot_token)
     dp = Dispatcher()
     dp.include_router(router)
+    backup_task = (
+        asyncio.create_task(automatic_backup_loop(bot))
+        if settings.backup_enabled else None
+    )
     try:
         await dp.start_polling(bot)
     finally:
+        if backup_task:
+            backup_task.cancel()
+            try:
+                await backup_task
+            except asyncio.CancelledError:
+                pass
         await proxy.stop()
 
 if __name__ == "__main__":

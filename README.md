@@ -249,3 +249,61 @@ logging:
 ```
 
 The limit applies after the container is recreated with the new Compose configuration.
+
+## v3.6.0: admin backups
+
+`/admin` now includes `💾 Резервные копии` with:
+
+- create a full backup immediately;
+- download a fresh consistent `bot.sqlite3` snapshot;
+- download the latest full `.tar.gz` backup;
+- automatic daily backups with retention.
+
+The full archive can contain:
+
+- `bot.sqlite3` — consistent SQLite backup of the bot database;
+- `x-ui.db` — consistent SQLite backup of 3x-ui;
+- `bot.env` — the current bot `.env` file;
+- `docker-compose.yml`;
+- `nginx/` — the mounted nginx configuration directory;
+- `manifest.json` and restore notes.
+
+**The full archive contains secrets. Treat it like a password/credential file.**
+Only Telegram IDs listed in `ADMIN_TELEGRAM_IDS` can use the backup buttons.
+
+Default backup settings:
+
+```env
+BACKUP_ENABLED=true
+BACKUP_DIR=/app/data/backups
+BACKUP_KEEP=14
+BACKUP_HOUR_UTC=2
+BACKUP_SEND_TO_ADMINS=false
+```
+
+Automatic full backups are created daily at `BACKUP_HOUR_UTC`. The latest
+`BACKUP_KEEP` full archives are retained. Manual SQLite download snapshots keep
+only the latest three files.
+
+For this deployment, Compose mounts the standard 3x-ui database directory and
+the custom nginx configuration directory read-only:
+
+```env
+BACKUP_XUI_DIR_HOST_PATH=/etc/x-ui
+BACKUP_NGINX_CONF_HOST_PATH=/opt/mtproxyl-nginx/conf
+```
+
+If nginx lives elsewhere, set `BACKUP_NGINX_CONF_HOST_PATH` in `.env` before
+starting v3.6.0. 3x-ui uses `/etc/x-ui/x-ui.db` by default.
+
+Optional off-server copy via Telegram:
+
+```env
+BACKUP_SEND_TO_ADMINS=true
+```
+
+When enabled, each automatic full backup is sent to every admin chat. This is
+disabled by default because the archive contains secrets.
+
+v3.6.0 also adds `.dockerignore`, so `.env`, databases and the `data/` directory
+are no longer copied into the Docker image during `docker compose build`.

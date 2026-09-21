@@ -37,6 +37,11 @@ class Settings:
     vless_flow: str
     db_path: str
     verify_tls: bool
+    backup_enabled: bool
+    backup_dir: str
+    backup_keep: int
+    backup_hour_utc: int
+    backup_send_to_admins: bool
 
 def load_settings() -> Settings:
     required = {
@@ -83,4 +88,9 @@ def load_settings() -> Settings:
         vless_flow=os.getenv("VLESS_FLOW", "xtls-rprx-vision").strip(),
         db_path=os.getenv("DB_PATH", "bot.sqlite3"),
         verify_tls=env_bool(os.getenv("VERIFY_TLS"), True),
+        backup_enabled=env_bool(os.getenv("BACKUP_ENABLED"), True),
+        backup_dir=os.getenv("BACKUP_DIR", "/app/data/backups"),
+        backup_keep=max(1, int(os.getenv("BACKUP_KEEP", "14"))),
+        backup_hour_utc=max(0, min(23, int(os.getenv("BACKUP_HOUR_UTC", "2")))),
+        backup_send_to_admins=env_bool(os.getenv("BACKUP_SEND_TO_ADMINS"), False),
     )
