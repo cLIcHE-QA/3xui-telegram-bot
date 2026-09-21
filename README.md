@@ -1,92 +1,92 @@
-# Telegram bot for 3x-ui — single-node test
+# 3x-ui Telegram bot v2 — single-node test
 
-Minimal test bot for one 3x-ui panel.
+This build is pre-tuned for the current node layout:
 
-## What it does
+- 2053/tcp — VLESS
+- 2083/tcp — VLESS
+- 443/udp — Hysteria
+- service `api/tunnel` inbound is ignored
 
-- authenticates to 3x-ui with a Bearer API token;
-- reads enabled inbounds from `/panel/api/inbounds/list`;
-- creates one 3x-ui client and attaches it to all allowed inbounds;
-- stores `Telegram ID -> email -> subId` in SQLite;
-- returns your existing subscription-page URL;
-- checks generated protocol links via `/panel/api/clients/subLinks/{subId}`;
-- can remove the test user.
-
-## 1. 3x-ui
-
-Create an API token in **Settings -> Security -> API Token**.
-
-For tests, use a dedicated token and revoke it after testing.
-
-Make sure the subscription page is already enabled and you know its public URL format.
-
-## 2. Telegram
-
-Create a bot using BotFather and obtain `BOT_TOKEN`.
-
-Find your numeric Telegram ID and add it to `ALLOWED_TELEGRAM_IDS`.
-
-## 3. Configure
+## First test
 
 ```bash
 cp .env.example .env
 nano .env
-```
-
-Important variables:
-
-```env
-BOT_TOKEN=...
-PANEL_URL=https://panel.example.com
-PANEL_API_TOKEN=...
-SUBSCRIPTION_URL_TEMPLATE=https://sub.example.com/sub/{sub_id}
-ALLOWED_TELEGRAM_IDS=123456789
-```
-
-If you want the test client to be added only to selected inbounds:
-
-```env
-INBOUND_IDS=1,3,7
-```
-
-If `INBOUND_IDS` is empty, the bot selects every enabled inbound whose protocol is in `ALLOWED_PROTOCOLS`.
-
-## 4. Run with Docker
-
-```bash
 docker compose up -d --build
 docker compose logs -f bot
 ```
 
-Or without Docker:
+Then in Telegram:
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python bot.py
+```text
+/inbounds
 ```
 
-## Commands
+The bot prints:
 
-- `/start` — menu
-- `/inbounds` — show inbounds that will receive the client
-- `/create` — create/recover the test client
-- `/subscription` — show subscription URL and detected protocol links
-- `/delete_test` — delete the test client
+- numeric 3x-ui inbound ID
+- port
+- protocol
+- tag
+- remark
 
-## Test order
+At the bottom it prints the exact subset that will be assigned to the new client.
 
-1. Start bot.
-2. Run `/inbounds` and verify the exact inbound list.
-3. Run `/create`.
-4. Open 3x-ui and verify that `tg_<telegram_id>` is attached to the expected inbounds.
-5. Run `/subscription`.
-6. Import the subscription URL into your client.
-7. After testing, run `/delete_test`.
+Once you confirm the IDs, pin them in `.env`:
 
-## Security
+```env
+INBOUND_IDS=1,2,3
+```
 
-The 3x-ui API token is an administrative credential. Keep `.env` private.
-The bot refuses all Telegram IDs that are not explicitly listed in
-`ALLOWED_TELEGRAM_IDS`.
+Then rebuild/restart:
+
+```bash
+docker compose up -d --build
+```
+
+Create a client:
+
+```text
+/create
+```
+
+Check subscription:
+
+```text
+/subscription
+```
+
+Delete test client:
+
+```text
+/delete_test
+```
+
+## Filtering
+
+The initial filter is:
+
+```env
+ALLOWED_PORTS=2053,2083,443
+ALLOWED_PROTOCOLS=vless,hysteria
+IGNORED_TAGS=api
+IGNORED_PROTOCOLS=tunnel
+```
+
+`INBOUND_IDS` has the highest precision. After the first `/inbounds` test it is recommended to set exact IDs.
+
+## API behavior
+
+The bot first tries:
+
+```text
+GET /panel/api/inbounds/options
+```
+
+and falls back to:
+
+```text
+GET /panel/api/inbounds/list
+```
+
+if the installed 3x-ui build does not expose the lightweight endpoint.

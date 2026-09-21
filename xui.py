@@ -2,16 +2,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 import aiohttp
-import ssl
 
 class XUIError(RuntimeError):
     pass
 
 @dataclass
-class Inbound:
+class InboundOption:
     id: int
     remark: str
+    tag: str
     protocol: str
+    port: int
     enable: bool
 
 class XUIClient:
@@ -19,9 +20,6 @@ class XUIClient:
         self.base_url = base_url.rstrip("/")
         self.token = token
         self.verify_tls = verify_tls
-
-    def _ssl(self):
-        return None if self.verify_tls else False
 
     async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
         headers = kwargs.pop("headers", {})
@@ -36,7 +34,7 @@ class XUIClient:
                 method,
                 f"{self.base_url}{path}",
                 headers=headers,
-                ssl=self._ssl(),
+                ssl=None if self.verify_tls else False,
                 **kwargs,
             ) as resp:
                 text = await resp.text()
@@ -50,23 +48,33 @@ class XUIClient:
                     raise XUIError(data.get("msg") or str(data))
                 return data
 
-    async def list_inbounds(self) -> list[Inbound]:
+    async def inbound_options(self) -> list[InboundOption]:
+        # Current 3x-ui exposes a lightweight inbound options endpoint.
+        # If a build does not support it, fall back to /inbounds/list.
+        try:
+            data = await self._request("GET", "/panel/api/inbounds/options")
+            obj = data.get("obj") or []
+            if obj:
+                return [self._parse_option(x) for x in obj]
+        except XUIError:
+            pass
+
         data = await self._request("GET", "/panel/api/inbounds/list")
-        result = []
-        for item in data.get("obj") or []:
-            result.append(Inbound(
-                id=int(item["id"]),
-                remark=str(item.get("remark") or f"Inbound {item['id']}"),
-                protocol=str(item.get("protocol") or "").lower(),
-                enable=bool(item.get("enable", True)),
-            ))
-        return result
+        return [self._parse_option(x) for x in (data.get("obj") or [])]
+
+    @staticmethod
+    def _parse_option(item: dict[str, Any]) -> InboundOption:
+        return InboundOption(
+            id=int(item["id"]),
+            remark=str(item.get("remark") or f"Inbound {item['id']}"),
+            tag=str(item.get("tag") or ""),
+            protocol=str(item.get("protocol") or "").lower(),
+            port=int(item.get("port") or 0),
+            enable=bool(item.get("enable", True)),
+        )
 
     async def get_client_by_tg_id(self, telegram_id: int) -> list[dict[str, Any]]:
-        data = await self._request(
-            "GET",
-            f"/panel/api/clients/get/tgId/{telegram_id}",
-        )
+        data = await self._request("GET", f"/panel/api/clients/get/tgId/{telegram_id}")
         return data.get("obj") or []
 
     async def create_client(
@@ -95,21 +103,11 @@ class XUIClient:
             },
             "inboundIds": inbound_ids,
         }
-        return await self._request(
-            "POST",
-            "/panel/api/clients/add",
-            json=payload,
-        )
+        return await self._request("POST", "/panel/api/clients/add", json=payload)
 
     async def delete_client(self, email: str) -> dict[str, Any]:
-        return await self._request(
-            "POST",
-            f"/panel/api/clients/del/{email}",
-        )
+        return await self._request("POST", f"/panel/api/clients/del/{email}")
 
     async def sub_links(self, sub_id: str) -> list[str]:
-        data = await self._request(
-            "GET",
-            f"/panel/api/clients/subLinks/{sub_id}",
-        )
+        data = await self._request("GET", f"/panel/api/clients/subLinks/{sub_id}")
         return data.get("obj") or []

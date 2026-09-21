@@ -29,10 +29,7 @@ class Database:
     async def get(self, telegram_id: int) -> UserRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
-            cur = await db.execute(
-                "SELECT * FROM users WHERE telegram_id = ?",
-                (telegram_id,),
-            )
+            cur = await db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,))
             row = await cur.fetchone()
             return UserRecord(**dict(row)) if row else None
 
@@ -42,23 +39,17 @@ class Database:
                 INSERT INTO users(telegram_id, email, sub_id, expiry_time, created_at)
                 VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(telegram_id) DO UPDATE SET
-                    email = excluded.email,
-                    sub_id = excluded.sub_id,
-                    expiry_time = excluded.expiry_time,
-                    created_at = excluded.created_at
+                    email=excluded.email,
+                    sub_id=excluded.sub_id,
+                    expiry_time=excluded.expiry_time,
+                    created_at=excluded.created_at
             """, (
-                rec.telegram_id,
-                rec.email,
-                rec.sub_id,
-                rec.expiry_time,
-                rec.created_at,
+                rec.telegram_id, rec.email, rec.sub_id,
+                rec.expiry_time, rec.created_at
             ))
             await db.commit()
 
     async def delete(self, telegram_id: int):
         async with aiosqlite.connect(self.path) as db:
-            await db.execute(
-                "DELETE FROM users WHERE telegram_id = ?",
-                (telegram_id,),
-            )
+            await db.execute("DELETE FROM users WHERE telegram_id = ?", (telegram_id,))
             await db.commit()
