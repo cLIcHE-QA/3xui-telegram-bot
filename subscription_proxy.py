@@ -124,20 +124,37 @@ def _wants_html(request: web.Request) -> bool:
     return "text/html" in accept or html_flag or view_flag
 
 
-def _rewrite_default_page(html: str, upstream_url: str, public_url: str) -> str:
-    """Keep 3x-ui's default page, changing only compatibility-facing URLs.
+def _rewrite_default_page(
+    html: str,
+    upstream_url: str,
+    public_url: str,
+    upstream_asset_path: str,
+    upstream_origin: str,
+) -> str:
+    """Keep 3x-ui's built-in page while routing its assets through /compat/.
 
-    - AWG direct links become amneziawg:// for INCY mobile.
-    - The raw subscription URL shown by 3x-ui becomes the public compat URL.
-    - Vite /assets/* requests are moved under /compat/assets/* so the existing
-      nginx `location ^~ /compat/` continues to route them to this proxy.
+    Current 3x-ui serves the subscription SPA assets below the subscription
+    path itself, e.g. /clichegamesub/assets/app-XYZ.js rather than /assets/*.
     """
     html = html.replace("vpn://", "amneziawg://")
     if upstream_url and public_url:
         html = html.replace(upstream_url, public_url)
         html = html.replace(upstream_url.replace("/", "\\/"), public_url.replace("/", "\\/"))
 
-    # Vite production bundles use root-absolute /assets/... URLs.
+    # Rewrite the real 3x-ui subscription asset prefix first.
+    if upstream_asset_path:
+        source = upstream_asset_path.rstrip("/") + "/"
+        html = html.replace(source, "/compat/assets/")
+        html = html.replace(source.replace("/", "\\/"), "/compat/assets/".replace("/", "\\/"))
+
+        absolute_source = upstream_origin.rstrip("/") + source
+        html = html.replace(absolute_source, "/compat/assets/")
+        html = html.replace(
+            absolute_source.replace("/", "\\/"),
+            "/compat/assets/".replace("/", "\\/"),
+        )
+
+    # Compatibility fallback for versions/themes that use root /assets/*.
     html = html.replace('src="/assets/', 'src="/compat/assets/')
     html = html.replace("src='/assets/", "src='/compat/assets/")
     html = html.replace('href="/assets/', 'href="/compat/assets/')
@@ -166,6 +183,9 @@ class SubscriptionProxy:
         sample = upstream_template.format(sub_id="__subid__")
         parts = urlsplit(sample)
         self.upstream_origin = f"{parts.scheme}://{parts.netloc}"
+        # Example: /clichegamesub/__subid__ -> /clichegamesub/assets
+        subscription_dir = parts.path.rsplit("/", 1)[0].rstrip("/")
+        self.upstream_asset_path = f"{subscription_dir}/assets" if subscription_dir else "/assets"
 
     async def health(self, request: web.Request) -> web.Response:
         return web.Response(text="ok\n", content_type="text/plain")
@@ -253,7 +273,13 @@ class SubscriptionProxy:
             except UnicodeDecodeError:
                 raise web.HTTPBadGateway(text="invalid subscription HTML\n")
 
-            html = _rewrite_default_page(html, upstream_url, public_url)
+            html = _rewrite_default_page(
+                html,
+                upstream_url,
+                public_url,
+                self.upstream_asset_path,
+                self.upstream_origin,
+            )
             headers = self._response_headers(upstream_headers)
             headers["Content-Type"] = "text/html; charset=utf-8"
             return web.Response(body=html.encode("utf-8"), headers=headers)
@@ -288,8 +314,8 @@ class SubscriptionProxy:
         if not tail or any(part == ".." for part in tail.split("/")):
             raise web.HTTPNotFound()
 
-        # /compat/assets/foo.js -> upstream /assets/foo.js
-        upstream_url = f"{self.upstream_origin}/assets/{tail}"
+        # /compat/assets/foo.js -> upstream /<subPath>/assets/foo.js
+        upstream_url = f"{self.upstream_origin}{self.upstream_asset_path}/{tail}"
         try:
             status, body, upstream_headers = await self._fetch(
                 upstream_url,

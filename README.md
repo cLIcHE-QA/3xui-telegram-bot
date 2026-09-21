@@ -160,3 +160,14 @@ curl -fsS -H 'Accept: text/html' 'https://sub.example.com/compat/SUB_ID' | head
 # Raw VPN subscription
 curl -fsS 'https://sub.example.com/compat/SUB_ID' | base64 -d
 ```
+
+
+## v3.5.1 fix: built-in 3x-ui page assets
+
+3x-ui serves its built-in subscription SPA assets below the configured subscription path,
+for example `/clichegamesub/assets/...`. v3.5 incorrectly fetched `/assets/...`, which could
+produce a white page while the HTML itself loaded. v3.5.1 derives the asset prefix directly
+from `SUBSCRIPTION_URL_TEMPLATE` and proxies it through `/compat/assets/...`.
+
+For nginx, keep `proxy_buffering off;`. With current 3x-ui large Vite bundles it is also safe
+to add `proxy_max_temp_file_size 0;` inside the `/compat/` location.
