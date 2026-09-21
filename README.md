@@ -130,3 +130,33 @@ amneziawg://...
 Important: the old subscription URL already stored in a VPN client does not
 magically change. Add the new `/compat/{sub_id}` URL once, or replace the old
 subscription in the client. Future refreshes then use the compatibility proxy.
+
+## v3.5 — default 3x-ui page + INCY-compatible AmneziaWG
+
+The same public URL now has two modes:
+
+- Browser (`Accept: text/html`, `?html=1`, or `?view=html`) -> the **default 3x-ui subscription page**.
+- VPN app -> raw subscription, preserving the upstream Base64 wrapping while converting only `vpn://` AmneziaWG links to `amneziawg://`.
+
+The default 3x-ui page is fetched from the original subscription server rather than recreated. Its Vite `/assets/...` references are routed through `/compat/assets/...`, so the existing nginx `location ^~ /compat/` continues to work without another public location.
+
+The proxy also passes through `?format=info`, which the current 3x-ui subscription page uses for live status/traffic updates.
+
+Recommended settings remain:
+
+```env
+SUBSCRIPTION_URL_TEMPLATE=https://panel.example.com:2096/sub/{sub_id}
+COMPAT_SUBSCRIPTION_URL_TEMPLATE=https://sub.example.com/compat/{sub_id}
+SUBSCRIPTION_PROXY_HOST=0.0.0.0
+SUBSCRIPTION_PROXY_PORT=8080
+```
+
+Quick checks:
+
+```bash
+# Browser-mode HTML
+curl -fsS -H 'Accept: text/html' 'https://sub.example.com/compat/SUB_ID' | head
+
+# Raw VPN subscription
+curl -fsS 'https://sub.example.com/compat/SUB_ID' | base64 -d
+```

@@ -117,7 +117,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v3", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v3.5", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -573,6 +573,7 @@ async def main():
     proxy = SubscriptionProxy(
         db=db,
         upstream_template=settings.subscription_url_template,
+        public_template=settings.compat_subscription_url_template,
         verify_tls=settings.verify_tls,
         host=settings.subscription_proxy_host,
         port=settings.subscription_proxy_port,
