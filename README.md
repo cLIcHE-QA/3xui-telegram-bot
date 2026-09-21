@@ -1,92 +1,37 @@
-# 3x-ui Telegram bot v2 — single-node test
+# 3x-ui Telegram bot v3
 
-This build is pre-tuned for the current node layout:
+Adds a Telegram admin panel to the single-node test bot.
 
-- 2053/tcp — VLESS
-- 2083/tcp — VLESS
-- 443/udp — Hysteria
-- service `api/tunnel` inbound is ignored
+## Admin commands
 
-## First test
+`/admin`
 
-```bash
-cp .env.example .env
-nano .env
-docker compose up -d --build
-docker compose logs -f bot
-```
+Features:
+- list local bot users;
+- open a user card;
+- show subscription;
+- show expiry and traffic (when returned by 3x-ui);
+- extend expiry by 30 days;
+- enable / disable;
+- delete from 3x-ui and local SQLite.
 
-Then in Telegram:
+## Upgrade from v2 without losing users
 
-```text
-/inbounds
-```
+1. Stop old project:
+   `docker compose down`
+2. Back up DB:
+   `cp data/bot.sqlite3 data/bot.sqlite3.backup`
+3. Copy v3 files over the project directory, but keep your `.env` and `data/`.
+4. Add to `.env`:
+   `ADMIN_TELEGRAM_IDS=YOUR_TELEGRAM_ID`
+5. Start:
+   `docker compose up -d --build`
+6. Open Telegram and send `/admin`.
 
-The bot prints:
+The v3 SQLite schema is compatible with v2.
 
-- numeric 3x-ui inbound ID
-- port
-- protocol
-- tag
-- remark
+## Important
 
-At the bottom it prints the exact subset that will be assigned to the new client.
-
-Once you confirm the IDs, pin them in `.env`:
-
-```env
-INBOUND_IDS=1,2,3
-```
-
-Then rebuild/restart:
-
-```bash
-docker compose up -d --build
-```
-
-Create a client:
-
-```text
-/create
-```
-
-Check subscription:
-
-```text
-/subscription
-```
-
-Delete test client:
-
-```text
-/delete_test
-```
-
-## Filtering
-
-The initial filter is:
-
-```env
-ALLOWED_PORTS=2053,2083,443
-ALLOWED_PROTOCOLS=vless,hysteria
-IGNORED_TAGS=api
-IGNORED_PROTOCOLS=tunnel
-```
-
-`INBOUND_IDS` has the highest precision. After the first `/inbounds` test it is recommended to set exact IDs.
-
-## API behavior
-
-The bot first tries:
-
-```text
-GET /panel/api/inbounds/options
-```
-
-and falls back to:
-
-```text
-GET /panel/api/inbounds/list
-```
-
-if the installed 3x-ui build does not expose the lightweight endpoint.
+The 3x-ui client update API replaces the client row rather than patching it.
+This bot first fetches the complete client object, preserves the common fields,
+then changes only expiry or enable state.

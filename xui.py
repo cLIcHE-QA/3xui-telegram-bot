@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import quote
 import aiohttp
 
 class XUIError(RuntimeError):
@@ -31,11 +32,10 @@ class XUIClient:
         timeout = aiohttp.ClientTimeout(total=20)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.request(
-                method,
-                f"{self.base_url}{path}",
+                method, f"{self.base_url}{path}",
                 headers=headers,
                 ssl=None if self.verify_tls else False,
-                **kwargs,
+                **kwargs
             ) as resp:
                 text = await resp.text()
                 try:
@@ -44,13 +44,11 @@ class XUIClient:
                     raise XUIError(f"3x-ui returned HTTP {resp.status}: {text[:500]}")
                 if resp.status >= 400:
                     raise XUIError(f"3x-ui HTTP {resp.status}: {data}")
-                if data.get("success") is False:
+                if isinstance(data, dict) and data.get("success") is False:
                     raise XUIError(data.get("msg") or str(data))
                 return data
 
     async def inbound_options(self) -> list[InboundOption]:
-        # Current 3x-ui exposes a lightweight inbound options endpoint.
-        # If a build does not support it, fall back to /inbounds/list.
         try:
             data = await self._request("GET", "/panel/api/inbounds/options")
             obj = data.get("obj") or []
@@ -58,7 +56,6 @@ class XUIClient:
                 return [self._parse_option(x) for x in obj]
         except XUIError:
             pass
-
         data = await self._request("GET", "/panel/api/inbounds/list")
         return [self._parse_option(x) for x in (data.get("obj") or [])]
 
@@ -77,37 +74,75 @@ class XUIClient:
         data = await self._request("GET", f"/panel/api/clients/get/tgId/{telegram_id}")
         return data.get("obj") or []
 
-    async def create_client(
-        self,
-        *,
-        email: str,
-        telegram_id: int,
-        sub_id: str,
-        inbound_ids: list[int],
-        total_bytes: int,
-        expiry_time_ms: int,
-        limit_ip: int,
-        comment: str,
-    ) -> dict[str, Any]:
+    async def get_client(self, email: str) -> dict[str, Any]:
+        data = await self._request("GET", f"/panel/api/clients/get/{quote(email, safe='')}")
+        obj = data.get("obj")
+        if not obj:
+            raise XUIError(f"Client not found: {email}")
+        return obj
+
+    async def create_client(self, **kwargs) -> dict[str, Any]:
         payload = {
             "client": {
-                "email": email,
-                "tgId": telegram_id,
-                "subId": sub_id,
-                "totalGB": total_bytes,
-                "expiryTime": expiry_time_ms,
-                "limitIp": limit_ip,
+                "email": kwargs["email"],
+                "tgId": kwargs["telegram_id"],
+                "subId": kwargs["sub_id"],
+                "totalGB": kwargs["total_bytes"],
+                "expiryTime": kwargs["expiry_time_ms"],
+                "limitIp": kwargs["limit_ip"],
                 "enable": True,
-                "comment": comment,
+                "comment": kwargs["comment"],
                 "reset": 0,
             },
-            "inboundIds": inbound_ids,
+            "inboundIds": kwargs["inbound_ids"],
         }
         return await self._request("POST", "/panel/api/clients/add", json=payload)
 
+    @staticmethod
+    def _full_update_payload(client: dict[str, Any], **changes) -> dict[str, Any]:
+        # 3x-ui update replaces the row; preserve all commonly used fields.
+        payload = {
+            "email": client.get("email", ""),
+            "subId": client.get("subId", ""),
+            "id": client.get("uuid") or client.get("id") or "",
+            "password": client.get("password") or "",
+            "auth": client.get("auth") or "",
+            "flow": client.get("flow") or "",
+            "security": client.get("security") or "auto",
+            "totalGB": int(client.get("totalGB") or 0),
+            "expiryTime": int(client.get("expiryTime") or 0),
+            "limitIp": int(client.get("limitIp") or 0),
+            "limitHwid": int(client.get("limitHwid") or 0),
+            "tgId": int(client.get("tgId") or 0),
+            "reset": int(client.get("reset") or 0),
+            "resetDay": int(client.get("resetDay") or 0),
+            "resetMax": int(client.get("resetMax") or 0),
+            "trafficReset": client.get("trafficReset") or "never",
+            "trafficResetDay": int(client.get("trafficResetDay") or 1),
+            "group": client.get("group") or "",
+            "comment": client.get("comment") or "",
+            "enable": bool(client.get("enable", True)),
+        }
+        if isinstance(client.get("reverse"), dict) and client["reverse"].get("tag"):
+            payload["reverse"] = {"tag": client["reverse"]["tag"]}
+        payload.update(changes)
+        return payload
+
+    async def update_client(self, email: str, **changes) -> dict[str, Any]:
+        obj = await self.get_client(email)
+        client = obj.get("client", obj)
+        payload = self._full_update_payload(client, **changes)
+        return await self._request(
+            "POST", f"/panel/api/clients/update/{quote(email, safe='')}", json=payload
+        )
+
     async def delete_client(self, email: str) -> dict[str, Any]:
-        return await self._request("POST", f"/panel/api/clients/del/{email}")
+        return await self._request("POST", f"/panel/api/clients/del/{quote(email, safe='')}")
 
     async def sub_links(self, sub_id: str) -> list[str]:
-        data = await self._request("GET", f"/panel/api/clients/subLinks/{sub_id}")
+        data = await self._request("GET", f"/panel/api/clients/subLinks/{quote(sub_id, safe='')}")
         return data.get("obj") or []
+
+    async def traffic(self, email: str) -> dict[str, Any]:
+        data = await self._request("GET", f"/panel/api/clients/traffic/{quote(email, safe='')}")
+        return data.get("obj") or {}

@@ -18,270 +18,360 @@ xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tl
 router = Router()
 
 def is_allowed(tg_id: int) -> bool:
-    return tg_id in settings.allowed_telegram_ids
+    return tg_id in settings.allowed_telegram_ids or tg_id in settings.admin_telegram_ids
 
-def menu() -> InlineKeyboardMarkup:
+def is_admin(tg_id: int) -> bool:
+    return tg_id in settings.admin_telegram_ids
+
+def user_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Проверить inbound'ы", callback_data="inbounds")],
         [InlineKeyboardButton(text="Создать тестовый доступ", callback_data="create")],
         [InlineKeyboardButton(text="Моя подписка", callback_data="subscription")],
-        [InlineKeyboardButton(text="Удалить тестового пользователя", callback_data="delete")],
+    ])
+
+def admin_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users")],
+        [InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats")],
+        [InlineKeyboardButton(text="🧪 Inbound'ы", callback_data="inbounds")],
+    ])
+
+def user_admin_keyboard(tg_id: int, enabled: bool = True) -> InlineKeyboardMarkup:
+    state_btn = (
+        InlineKeyboardButton(text="⛔ Отключить", callback_data=f"admindisable:{tg_id}")
+        if enabled else
+        InlineKeyboardButton(text="✅ Включить", callback_data=f"adminenable:{tg_id}")
+    )
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔗 Подписка", callback_data=f"adminsub:{tg_id}")],
+        [InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}")],
+        [state_btn],
+        [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admindelask:{tg_id}")],
+        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
+    ])
+
+def confirm_delete_keyboard(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admindel:{tg_id}")],
+        [InlineKeyboardButton(text="Отмена", callback_data=f"adminuser:{tg_id}")],
     ])
 
 async def guard_message(message: Message) -> bool:
     if not message.from_user or not is_allowed(message.from_user.id):
-        await message.answer("Этот бот работает только для тестовых Telegram ID.")
+        await message.answer("Нет доступа.")
         return False
     return True
 
-async def guard_callback(call: CallbackQuery) -> bool:
-    if not call.from_user or not is_allowed(call.from_user.id):
-        await call.answer("Нет доступа к тестовому боту.", show_alert=True)
+async def guard_admin_call(call: CallbackQuery) -> bool:
+    if not call.from_user or not is_admin(call.from_user.id):
+        await call.answer("Только для администратора.", show_alert=True)
         return False
     return True
 
 def choose_inbounds(inbounds):
     chosen = []
     exact_ids = set(settings.inbound_ids)
-    allowed_ports = set(settings.allowed_ports)
-    allowed_protocols = set(settings.allowed_protocols)
-    ignored_tags = set(settings.ignored_tags)
-    ignored_protocols = set(settings.ignored_protocols)
-
     for i in inbounds:
-        tag_lower = i.tag.lower()
-
         if not i.enable:
             continue
-        if i.protocol in ignored_protocols:
+        if i.protocol in set(settings.ignored_protocols):
             continue
-        if tag_lower in ignored_tags:
+        if i.tag.lower() in set(settings.ignored_tags) or i.tag.lower().startswith("api"):
             continue
-        if tag_lower.startswith("api"):
-            continue
-
         if exact_ids and i.id not in exact_ids:
             continue
-        if allowed_ports and i.port not in allowed_ports:
+        if settings.allowed_ports and i.port not in set(settings.allowed_ports):
             continue
-        if allowed_protocols and i.protocol not in allowed_protocols:
+        if settings.allowed_protocols and i.protocol not in set(settings.allowed_protocols):
             continue
-
         chosen.append(i)
-
     return chosen
 
 def sub_url(sub_id: str) -> str:
     return settings.subscription_url_template.format(sub_id=sub_id)
 
-def format_inbound(i) -> str:
-    return (
-        f"• ID #{i.id} | {i.port} | {i.protocol}\n"
-        f"  tag: {i.tag or '-'}\n"
-        f"  name: {i.remark}"
-    )
+def fmt_date(ms: int) -> str:
+    if not ms:
+        return "без срока"
+    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+def human_bytes(n: int) -> str:
+    n = int(n or 0)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024 or unit == "TB":
+            return f"{n:.1f} {unit}" if unit != "B" else f"{n} B"
+        n /= 1024
 
 @router.message(CommandStart())
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer(
-        "Тестовый бот для одной 3x-ui ноды.\n\n"
-        "Текущий фильтр рассчитан на порты 2053, 2083 и 443.",
-        reply_markup=menu(),
-    )
+    await message.answer("3x-ui Telegram bot v3", reply_markup=user_menu())
 
-async def show_inbounds_to(message: Message):
+@router.message(Command("admin"))
+async def admin(message: Message):
+    if not message.from_user or not is_admin(message.from_user.id):
+        await message.answer("Команда доступна только администратору.")
+        return
+    await message.answer("⚙️ Админ-панель", reply_markup=admin_menu())
+
+@router.callback_query(F.data == "admin:users")
+async def admin_users(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    users = await db.list_users()
+    rows = []
+    for u in users[:40]:
+        rows.append([InlineKeyboardButton(
+            text=f"👤 {u.email} | TG {u.telegram_id}",
+            callback_data=f"adminuser:{u.telegram_id}"
+        )])
+    rows.append([InlineKeyboardButton(text="⬅ Админка", callback_data="admin:home")])
+    kb = InlineKeyboardMarkup(inline_keyboard=rows)
+    await call.message.answer(f"Пользователи в БД бота: {len(users)}", reply_markup=kb)
+    await call.answer()
+
+@router.callback_query(F.data == "admin:stats")
+async def admin_stats(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    users = await db.list_users()
+    now_ms = int(time.time() * 1000)
+    active = sum(1 for u in users if not u.expiry_time or u.expiry_time > now_ms)
+    soon = sum(1 for u in users if u.expiry_time and now_ms < u.expiry_time <= now_ms + 3*86400*1000)
+    await call.message.answer(
+        f"📊 Локальная БД\n\nВсего: {len(users)}\n"
+        f"Не истекли: {active}\nИстекают за 3 дня: {soon}",
+        reply_markup=admin_menu()
+    )
+    await call.answer()
+
+@router.callback_query(F.data == "admin:home")
+async def admin_home(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.message.answer("⚙️ Админ-панель", reply_markup=admin_menu())
+    await call.answer()
+
+@router.callback_query(F.data.startswith("adminuser:"))
+async def admin_user(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        enabled = bool(client.get("enable", True))
+        traffic = await xui.traffic(rec.email)
+        up = int(traffic.get("up") or traffic.get("uplink") or 0)
+        down = int(traffic.get("down") or traffic.get("downlink") or 0)
+        total = int(client.get("totalGB") or 0)
+        text = (
+            f"👤 {rec.email}\n"
+            f"Telegram ID: {rec.telegram_id}\n"
+            f"Статус: {'✅ включён' if enabled else '⛔ отключён'}\n"
+            f"Срок: {fmt_date(int(client.get('expiryTime') or rec.expiry_time))}\n"
+            f"Лимит: {human_bytes(total) if total else 'без лимита'}\n"
+            f"Использовано: {human_bytes(up + down)}\n"
+            f"subId: {rec.sub_id}"
+        )
+    except XUIError as e:
+        enabled = True
+        text = f"👤 {rec.email}\nTelegram ID: {rec.telegram_id}\n\nОшибка 3x-ui: {e}"
+    await call.message.answer(text, reply_markup=user_admin_keyboard(tg_id, enabled))
+    await call.answer()
+
+@router.callback_query(F.data.startswith("adminsub:"))
+async def admin_sub(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if rec:
+        await call.message.answer(f"🔗 {rec.email}\n{sub_url(rec.sub_id)}")
+    await call.answer()
+
+@router.callback_query(F.data.startswith("adminextend:"))
+async def admin_extend(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Не найден.", show_alert=True)
+        return
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        current = int(client.get("expiryTime") or 0)
+        now_ms = int(time.time() * 1000)
+        base = max(current, now_ms)
+        new_expiry = base + 30 * 86400 * 1000
+        await xui.update_client(rec.email, expiryTime=new_expiry, enable=True)
+        await db.update_expiry(tg_id, new_expiry)
+        await call.message.answer(f"✅ {rec.email} продлён до {fmt_date(new_expiry)}")
+    except XUIError as e:
+        await call.message.answer(f"Ошибка 3x-ui: {e}")
+    await call.answer()
+
+@router.callback_query(F.data.startswith("admindisable:"))
+async def admin_disable(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    try:
+        await xui.update_client(rec.email, enable=False)
+        await call.message.answer(f"⛔ {rec.email} отключён.")
+    except (XUIError, AttributeError) as e:
+        await call.message.answer(f"Ошибка: {e}")
+    await call.answer()
+
+@router.callback_query(F.data.startswith("adminenable:"))
+async def admin_enable(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    try:
+        await xui.update_client(rec.email, enable=True)
+        await call.message.answer(f"✅ {rec.email} включён.")
+    except (XUIError, AttributeError) as e:
+        await call.message.answer(f"Ошибка: {e}")
+    await call.answer()
+
+@router.callback_query(F.data.startswith("admindelask:"))
+async def admin_del_ask(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if rec:
+        await call.message.answer(
+            f"Удалить {rec.email} из 3x-ui и локальной БД?",
+            reply_markup=confirm_delete_keyboard(tg_id)
+        )
+    await call.answer()
+
+@router.callback_query(F.data.startswith("admindel:"))
+async def admin_del(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Не найден.", show_alert=True)
+        return
+    try:
+        await xui.delete_client(rec.email)
+        await db.delete(tg_id)
+        await call.message.answer(f"🗑 {rec.email} удалён.")
+    except XUIError as e:
+        await call.message.answer(f"Ошибка 3x-ui, локальная запись сохранена: {e}")
+    await call.answer()
+
+@router.message(Command("inbounds"))
+async def inbounds_cmd(message: Message):
+    if not await guard_message(message):
+        return
+    await show_inbounds(message)
+
+@router.callback_query(F.data == "inbounds")
+async def inbounds_cb(call: CallbackQuery):
+    if not call.from_user or not is_allowed(call.from_user.id):
+        await call.answer("Нет доступа.", show_alert=True)
+        return
+    await show_inbounds(call.message)
+    await call.answer()
+
+async def show_inbounds(message: Message):
     try:
         all_inbounds = await xui.inbound_options()
         chosen = choose_inbounds(all_inbounds)
-
-        all_text = "\n\n".join(format_inbound(i) for i in all_inbounds) or "Нет inbound'ов."
-        chosen_text = "\n\n".join(format_inbound(i) for i in chosen) or "Ничего не выбрано."
-
-        await message.answer(
-            "Все inbound'ы, которые видит API:\n\n"
-            f"{all_text}\n\n"
-            "--------------------\n"
-            "Будут выданы новому клиенту:\n\n"
-            f"{chosen_text}",
-            reply_markup=menu(),
-        )
+        lines = [
+            f"• ID #{i.id} | {i.port} | {i.protocol}\n  tag: {i.tag}\n  name: {i.remark}"
+            for i in chosen
+        ]
+        await message.answer("Будут выданы:\n\n" + ("\n\n".join(lines) or "Ничего"))
     except XUIError as e:
-        await message.answer(f"Ошибка 3x-ui API:\n{e}", reply_markup=menu())
-
-@router.message(Command("inbounds"))
-async def cmd_inbounds(message: Message):
-    if await guard_message(message):
-        await show_inbounds_to(message)
-
-@router.callback_query(F.data == "inbounds")
-async def cb_inbounds(call: CallbackQuery):
-    if not await guard_callback(call):
-        return
-    await call.answer()
-    await show_inbounds_to(call.message)
+        await message.answer(f"Ошибка 3x-ui: {e}")
 
 @router.message(Command("create"))
-async def cmd_create(message: Message):
-    if await guard_message(message):
-        await create_user(message.from_user.id, message)
+async def create_cmd(message: Message):
+    if not await guard_message(message):
+        return
+    await create_user(message.from_user.id, message)
 
 @router.callback_query(F.data == "create")
-async def cb_create(call: CallbackQuery):
-    if not await guard_callback(call):
+async def create_cb(call: CallbackQuery):
+    if not call.from_user or not is_allowed(call.from_user.id):
+        await call.answer("Нет доступа.", show_alert=True)
         return
-    await call.answer()
     await create_user(call.from_user.id, call.message)
+    await call.answer()
 
 async def create_user(tg_id: int, message: Message):
     existing = await db.get(tg_id)
     if existing:
-        await message.answer(
-            f"Пользователь уже создан.\n\n{sub_url(existing.sub_id)}",
-            reply_markup=menu(),
-        )
+        await message.answer(f"Уже создан:\n{sub_url(existing.sub_id)}")
         return
-
     try:
         panel_matches = await xui.get_client_by_tg_id(tg_id)
         if panel_matches:
             item = panel_matches[0]
             client = item.get("client", item)
-            email = client.get("email")
-            sid = client.get("subId")
-            expiry = int(client.get("expiryTime") or 0)
-            if email and sid:
-                await db.put(UserRecord(
-                    telegram_id=tg_id,
-                    email=email,
-                    sub_id=sid,
-                    expiry_time=expiry,
-                    created_at=int(time.time()),
-                ))
-                await message.answer(
-                    "Нашёл существующего клиента в 3x-ui и восстановил локальную запись.\n\n"
-                    f"{sub_url(sid)}",
-                    reply_markup=menu(),
+            if client.get("email") and client.get("subId"):
+                rec = UserRecord(
+                    tg_id, client["email"], client["subId"],
+                    int(client.get("expiryTime") or 0), int(time.time())
                 )
+                await db.put(rec)
+                await message.answer(f"Восстановлен:\n{sub_url(rec.sub_id)}")
                 return
 
-        all_inbounds = await xui.inbound_options()
-        chosen = choose_inbounds(all_inbounds)
+        chosen = choose_inbounds(await xui.inbound_options())
         if not chosen:
-            await message.answer(
-                "После фильтрации не осталось ни одного inbound.\n"
-                "Сначала выполни /inbounds и проверь ID/порты.",
-                reply_markup=menu(),
-            )
+            await message.answer("Нет подходящих inbound'ов.")
             return
-
         now = int(time.time())
-        expiry_ms = (now + settings.test_days * 86400) * 1000
+        expiry = (now + settings.test_days * 86400) * 1000
         email = f"tg_{tg_id}"
         sid = secrets.token_urlsafe(18)
-
         await xui.create_client(
-            email=email,
-            telegram_id=tg_id,
-            sub_id=sid,
+            email=email, telegram_id=tg_id, sub_id=sid,
             inbound_ids=[i.id for i in chosen],
             total_bytes=settings.test_traffic_gb * 1024**3,
-            expiry_time_ms=expiry_ms,
-            limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram single-node test bot",
+            expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
+            comment="Created by Telegram bot v3"
         )
-
-        await db.put(UserRecord(
-            telegram_id=tg_id,
-            email=email,
-            sub_id=sid,
-            expiry_time=expiry_ms,
-            created_at=now,
-        ))
-
-        inbound_lines = "\n".join(
-            f"• #{i.id} {i.port}/{i.protocol} {i.tag}" for i in chosen
-        )
-        expiry_text = datetime.fromtimestamp(
-            expiry_ms / 1000, tz=timezone.utc
-        ).strftime("%Y-%m-%d %H:%M UTC")
-
-        await message.answer(
-            "Клиент создан ✅\n\n"
-            f"Email: {email}\n"
-            f"До: {expiry_text}\n"
-            f"Трафик: {settings.test_traffic_gb} GB\n"
-            f"IP limit: {settings.test_ip_limit}\n\n"
-            f"Inbound'ы:\n{inbound_lines}\n\n"
-            f"Subscription:\n{sub_url(sid)}",
-            reply_markup=menu(),
-        )
+        await db.put(UserRecord(tg_id, email, sid, expiry, now))
+        await message.answer(f"✅ Создан\n\n{sub_url(sid)}")
     except XUIError as e:
-        await message.answer(f"Ошибка создания клиента:\n{e}", reply_markup=menu())
+        await message.answer(f"Ошибка 3x-ui: {e}")
 
 @router.message(Command("subscription"))
-async def cmd_subscription(message: Message):
-    if await guard_message(message):
-        await show_subscription(message.from_user.id, message)
+async def sub_cmd(message: Message):
+    if not await guard_message(message):
+        return
+    rec = await db.get(message.from_user.id)
+    if rec:
+        await message.answer(sub_url(rec.sub_id))
+    else:
+        await message.answer("Сначала /create")
 
 @router.callback_query(F.data == "subscription")
-async def cb_subscription(call: CallbackQuery):
-    if not await guard_callback(call):
+async def sub_cb(call: CallbackQuery):
+    if not call.from_user or not is_allowed(call.from_user.id):
+        await call.answer("Нет доступа.", show_alert=True)
         return
+    rec = await db.get(call.from_user.id)
+    await call.message.answer(sub_url(rec.sub_id) if rec else "Сначала создай доступ.")
     await call.answer()
-    await show_subscription(call.from_user.id, call.message)
-
-async def show_subscription(tg_id: int, message: Message):
-    rec = await db.get(tg_id)
-    if not rec:
-        await message.answer("Сначала создай тестовый доступ.", reply_markup=menu())
-        return
-
-    try:
-        links = await xui.sub_links(rec.sub_id)
-        detected = []
-        for link in links:
-            scheme = link.split(":", 1)[0] if ":" in link else "unknown"
-            detected.append(scheme)
-        detected = sorted(set(detected))
-        details = ", ".join(detected) if detected else "нет protocol links"
-    except XUIError as e:
-        details = f"ошибка проверки: {e}"
-
-    await message.answer(
-        f"Subscription:\n{sub_url(rec.sub_id)}\n\n"
-        f"Обнаруженные схемы: {details}",
-        reply_markup=menu(),
-    )
-
-@router.message(Command("delete_test"))
-async def cmd_delete(message: Message):
-    if await guard_message(message):
-        await delete_user(message.from_user.id, message)
-
-@router.callback_query(F.data == "delete")
-async def cb_delete(call: CallbackQuery):
-    if not await guard_callback(call):
-        return
-    await call.answer()
-    await delete_user(call.from_user.id, call.message)
-
-async def delete_user(tg_id: int, message: Message):
-    rec = await db.get(tg_id)
-    if not rec:
-        await message.answer("Тестового пользователя в БД бота нет.", reply_markup=menu())
-        return
-    try:
-        await xui.delete_client(rec.email)
-        await db.delete(tg_id)
-        await message.answer("Тестовый клиент удалён.", reply_markup=menu())
-    except XUIError as e:
-        await message.answer(
-            "3x-ui вернул ошибку, локальная запись сохранена:\n"
-            f"{e}",
-            reply_markup=menu(),
-        )
 
 async def main():
     logging.basicConfig(level=logging.INFO)

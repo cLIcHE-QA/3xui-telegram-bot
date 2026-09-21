@@ -22,6 +22,7 @@ class Settings:
     panel_api_token: str
     subscription_url_template: str
     allowed_telegram_ids: tuple[int, ...]
+    admin_telegram_ids: tuple[int, ...]
     allowed_ports: tuple[int, ...]
     allowed_protocols: tuple[str, ...]
     inbound_ids: tuple[int, ...]
@@ -45,9 +46,11 @@ def load_settings() -> Settings:
         raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
 
     allowed_ids = csv_ints(os.getenv("ALLOWED_TELEGRAM_IDS", ""))
+    admin_ids = csv_ints(os.getenv("ADMIN_TELEGRAM_IDS", ""))
     if not allowed_ids:
-        raise RuntimeError("ALLOWED_TELEGRAM_IDS must not be empty in test mode.")
-
+        raise RuntimeError("ALLOWED_TELEGRAM_IDS must not be empty.")
+    if not admin_ids:
+        raise RuntimeError("ADMIN_TELEGRAM_IDS must not be empty.")
     if "{sub_id}" not in required["SUBSCRIPTION_URL_TEMPLATE"]:
         raise RuntimeError("SUBSCRIPTION_URL_TEMPLATE must contain {sub_id}")
 
@@ -57,6 +60,7 @@ def load_settings() -> Settings:
         panel_api_token=required["PANEL_API_TOKEN"],
         subscription_url_template=required["SUBSCRIPTION_URL_TEMPLATE"],
         allowed_telegram_ids=allowed_ids,
+        admin_telegram_ids=admin_ids,
         allowed_ports=csv_ints(os.getenv("ALLOWED_PORTS", "2053,2083,443")),
         allowed_protocols=csv_strings(os.getenv("ALLOWED_PROTOCOLS", "vless,hysteria")),
         inbound_ids=csv_ints(os.getenv("INBOUND_IDS", "")),
