@@ -207,3 +207,19 @@ After upgrading, use either:
 - `/admin` -> `Синхронизировать всех` for every user in the bot SQLite database.
 
 The admin user card also shows the client's current stored flow.
+
+
+## v3.5.4: Shadowrocket XHTTP Reality compatibility
+
+The compatibility subscription endpoint now detects Shadowrocket from its
+`User-Agent`. For Shadowrocket only, it removes the `fp` query parameter from
+`vless://` links where both `type=xhttp` and `security=reality` are present.
+
+Other behavior is unchanged:
+
+- browser requests still receive the default 3x-ui subscription page;
+- INCY and other clients keep the original XHTTP fingerprint;
+- VLESS TCP Reality links keep their fingerprint;
+- AmneziaWG raw links are still converted from `vpn://` to `amneziawg://`.
+
+No nginx changes and no new `.env` variables are required.

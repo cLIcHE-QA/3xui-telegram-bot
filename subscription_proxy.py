@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 import logging
-from urllib.parse import quote, urlsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import aiohttp
 from aiohttp import web
@@ -107,6 +107,49 @@ def convert_vpn_to_amneziawg(text: str) -> str:
             suffix = "#" + quote(remark, safe="") if remark else ""
 
         out.append(f"amneziawg://{payload}{suffix}")
+    return "\n".join(out)
+
+
+def _is_shadowrocket(request: web.Request) -> bool:
+    """Detect Shadowrocket subscription requests without changing nginx config."""
+    user_agent = request.headers.get("User-Agent", "")
+    return "shadowrocket" in user_agent.lower()
+
+
+def remove_shadowrocket_xhttp_reality_fp(text: str) -> str:
+    """Remove fp only from VLESS + XHTTP + Reality links.
+
+    Shadowrocket can time out on this combination when fp is present, while
+    other links (including VLESS TCP Reality) must stay unchanged.
+    """
+    out: list[str] = []
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line.lower().startswith("vless://"):
+            out.append(raw_line)
+            continue
+
+        try:
+            parts = urlsplit(line)
+            params = parse_qsl(parts.query, keep_blank_values=True)
+        except ValueError:
+            out.append(raw_line)
+            continue
+
+        values = {key.lower(): value.lower() for key, value in params}
+        if values.get("type") != "xhttp" or values.get("security") != "reality":
+            out.append(raw_line)
+            continue
+
+        filtered = [(key, value) for key, value in params if key.lower() != "fp"]
+        if len(filtered) == len(params):
+            out.append(raw_line)
+            continue
+
+        new_query = urlencode(filtered, doseq=True)
+        out.append(urlunsplit((parts.scheme, parts.netloc, parts.path, new_query, parts.fragment)))
+
     return "\n".join(out)
 
 
@@ -306,6 +349,13 @@ class SubscriptionProxy:
 
         plain, was_base64 = _try_decode_subscription(upstream_body)
         converted = convert_vpn_to_amneziawg(plain)
+
+        # Shadowrocket-specific compatibility: for VLESS + XHTTP + Reality,
+        # remove only the fp query parameter. INCY and other clients keep the
+        # original fingerprint. VLESS TCP Reality is never modified here.
+        if _is_shadowrocket(request):
+            converted = remove_shadowrocket_xhttp_reality_fp(converted)
+
         body = _encode_like_upstream(converted, was_base64)
 
         headers = self._response_headers(upstream_headers)
