@@ -33,6 +33,7 @@ def user_menu() -> InlineKeyboardMarkup:
 def admin_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users")],
+        [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats")],
         [InlineKeyboardButton(text="🧪 Inbound'ы", callback_data="inbounds")],
     ])
@@ -56,6 +57,12 @@ def confirm_delete_keyboard(tg_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admindel:{tg_id}")],
         [InlineKeyboardButton(text="Отмена", callback_data=f"adminuser:{tg_id}")],
+    ])
+
+def confirm_sync_all_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Синхронизировать всех", callback_data="admin:syncall:run")],
+        [InlineKeyboardButton(text="Отмена", callback_data="admin:home")],
     ])
 
 async def guard_message(message: Message) -> bool:
@@ -132,6 +139,119 @@ async def admin_users(call: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     await call.message.answer(f"Пользователи в БД бота: {len(users)}", reply_markup=kb)
     await call.answer()
+
+@router.callback_query(F.data == "admin:syncall:ask")
+async def admin_sync_all_ask(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+
+    users = await db.list_users()
+    try:
+        available = choose_inbounds(await xui.inbound_options())
+        target_ids = sorted({i.id for i in available})
+    except XUIError as e:
+        await call.message.answer(f"Ошибка 3x-ui: {e}", reply_markup=admin_menu())
+        await call.answer()
+        return
+
+    if not users:
+        await call.message.answer("В локальной БД нет пользователей.", reply_markup=admin_menu())
+        await call.answer()
+        return
+    if not target_ids:
+        await call.message.answer(
+            "После фильтрации в .env нет доступных inbound'ов. "
+            "Проверь ALLOWED_PORTS, ALLOWED_PROTOCOLS и INBOUND_IDS.",
+            reply_markup=admin_menu(),
+        )
+        await call.answer()
+        return
+
+    await call.message.answer(
+        "Глобальная синхронизация добавит всем пользователям из локальной БД "
+        "все разрешённые inbound'ы, которых у них ещё нет.\n\n"
+        f"Пользователей: {len(users)}\n"
+        f"Целевые inbound ID: {', '.join(map(str, target_ids))}",
+        reply_markup=confirm_sync_all_keyboard(),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:syncall:run")
+async def admin_sync_all_run(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+
+    users = await db.list_users()
+    if not users:
+        await call.message.answer("В локальной БД нет пользователей.", reply_markup=admin_menu())
+        await call.answer()
+        return
+
+    try:
+        available = choose_inbounds(await xui.inbound_options())
+        target_ids = sorted({i.id for i in available})
+        if not target_ids:
+            await call.message.answer(
+                "Нет разрешённых inbound'ов после фильтрации .env.",
+                reply_markup=admin_menu(),
+            )
+            await call.answer()
+            return
+
+        emails = [u.email for u in users]
+        result = await xui.bulk_attach_clients(emails, target_ids)
+        obj = result.get("obj") or {}
+
+        attached = obj.get("attached") or {}
+        skipped = obj.get("skipped") or {}
+        errors = obj.get("errors") or {}
+
+        def count_entries(value):
+            if isinstance(value, dict):
+                return len(value)
+            if isinstance(value, list):
+                return len(value)
+            return 0
+
+        attached_count = count_entries(attached)
+        skipped_count = count_entries(skipped)
+        error_count = count_entries(errors)
+
+        # Fallback summary for older response shapes.
+        if attached_count == skipped_count == error_count == 0:
+            attached_count = len(users)
+
+        lines = [
+            "✅ Глобальная синхронизация завершена.",
+            "",
+            f"Пользователей в БД: {len(users)}",
+            f"Целевые inbound ID: {', '.join(map(str, target_ids))}",
+            f"Обновлено/обработано: {attached_count}",
+            f"Уже было привязано: {skipped_count}",
+            f"Ошибок: {error_count}",
+        ]
+
+        if errors:
+            preview = []
+            if isinstance(errors, dict):
+                for email, value in list(errors.items())[:10]:
+                    preview.append(f"• {email}: {value}")
+            elif isinstance(errors, list):
+                preview = [f"• {x}" for x in errors[:10]]
+            if preview:
+                lines += ["", "Первые ошибки:"] + preview
+
+        await call.message.answer("\n".join(lines), reply_markup=admin_menu())
+    except XUIError as e:
+        await call.message.answer(
+            "Не удалось выполнить глобальную синхронизацию.\n\n"
+            f"Ошибка 3x-ui: {e}",
+            reply_markup=admin_menu(),
+        )
+
+    await call.answer()
+
 
 @router.callback_query(F.data == "admin:stats")
 async def admin_stats(call: CallbackQuery):

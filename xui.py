@@ -145,6 +145,15 @@ class XUIClient:
             json={"inboundIds": inbound_ids},
         )
 
+    async def bulk_attach_clients(self, emails: list[str], inbound_ids: list[int]) -> dict[str, Any]:
+        if not emails or not inbound_ids:
+            return {"success": True, "obj": {"attached": {}, "skipped": {}, "errors": {}}}
+        return await self._request(
+            "POST",
+            "/panel/api/clients/bulkAttach",
+            json={"emails": emails, "inboundIds": inbound_ids},
+        )
+
     async def delete_client(self, email: str) -> dict[str, Any]:
         return await self._request("POST", f"/panel/api/clients/del/{quote(email, safe='')}")
 

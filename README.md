@@ -46,18 +46,13 @@ New users are named:
 The local database still uses the numeric Telegram ID as the stable identifier.
 
 
-## v3.2: synchronize allowed inbounds
+## v3.3: global inbound sync
 
-The admin user card now has a `Синхронизировать inbound'ы` button. It compares the
-client's current `inboundIds` with the inbound set allowed by `.env`, and attaches
-only missing IDs using `POST /panel/api/clients/{email}/attach`.
+The `/admin` menu now has `🔄 Синхронизировать всех`.
 
-For AmneziaWG, make sure its port/protocol and, if used, exact inbound ID are in `.env`:
+After confirmation, the bot reads the allowed inbound set from `.env` and calls
+`POST /panel/api/clients/bulkAttach` for every user stored in the bot SQLite DB.
+Existing client/inbound pairs are skipped by 3x-ui; missing pairs are attached.
 
-```env
-ALLOWED_PORTS=2053,2083,443,51820
-ALLOWED_PROTOCOLS=vless,hysteria,amneziawg
-INBOUND_IDS=1,2,3,4
-```
-
-Use the actual IDs shown by `/inbounds`.
+This is useful after adding a new inbound or protocol such as AmneziaWG.
+The global action affects only users present in the bot's local SQLite database.
