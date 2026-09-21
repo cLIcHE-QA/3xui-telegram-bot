@@ -171,3 +171,15 @@ from `SUBSCRIPTION_URL_TEMPLATE` and proxies it through `/compat/assets/...`.
 
 For nginx, keep `proxy_buffering off;`. With current 3x-ui large Vite bundles it is also safe
 to add `proxy_max_temp_file_size 0;` inside the `/compat/` location.
+
+
+## v3.5.2 — preserve native 3x-ui AmneziaWG page rendering
+
+HTML mode now leaves 3x-ui `vpn://` AmneziaWG links untouched. This preserves
+the built-in AmneziaWG card, remark, QR/copy actions and the separate
+AmneziaWG config row on the default subscription page.
+
+Raw subscription mode is unchanged: `vpn://` is still converted to
+`amneziawg://` for INCY compatibility. Thus the same `/compat/{sub_id}` URL
+serves the native 3x-ui page in a browser and the adapted subscription to VPN
+clients.

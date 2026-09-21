@@ -136,7 +136,10 @@ def _rewrite_default_page(
     Current 3x-ui serves the subscription SPA assets below the subscription
     path itself, e.g. /clichegamesub/assets/app-XYZ.js rather than /assets/*.
     """
-    html = html.replace("vpn://", "amneziawg://")
+    # IMPORTANT: keep 3x-ui's native vpn:// AmneziaWG links untouched in HTML.
+    # The built-in frontend recognizes that scheme and uses it to render the
+    # AmneziaWG card plus the downloadable config row. Raw subscriptions are
+    # converted separately for INCY in subscription().
     if upstream_url and public_url:
         html = html.replace(upstream_url, public_url)
         html = html.replace(upstream_url.replace("/", "\\/"), public_url.replace("/", "\\/"))
