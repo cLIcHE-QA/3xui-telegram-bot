@@ -15,6 +15,7 @@ from config import load_settings
 from db import Database, HostRecord, PlanRecord, ServerGroupRecord
 from xui import XUIClient, XUIError
 from audit import audit_from_call, audit_from_message
+from admin_auth import authorize_callback, authorize_message
 
 
 settings = load_settings()
@@ -54,19 +55,17 @@ HOST_ROLE_LABELS = {
 }
 
 
-def is_admin(tg_id: int) -> bool:
-    return tg_id in settings.admin_telegram_ids
-
-
 async def guard_call(call: CallbackQuery) -> bool:
-    if not call.from_user or not is_admin(call.from_user.id):
-        await call.answer("Недостаточно прав.", show_alert=True)
-        return False
-    return True
+    ok, _ = await authorize_callback(db, settings, call)
+    return ok
 
 
 async def guard_message(message: Message, state: FSMContext) -> bool:
-    if not message.from_user or not is_admin(message.from_user.id):
+    if not message.from_user:
+        await state.clear()
+        return False
+    ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
+    if not ok:
         await state.clear()
         await message.answer("Недостаточно прав.")
         return False
@@ -100,12 +99,12 @@ def _money(plan: PlanRecord) -> str:
     return f"{amount} {plan.currency}"
 
 
-def _parse_price(raw: str) -> tuple[int, str]:
+def _parse_price(raw: str, default_currency: str = "RUB") -> tuple[int, str]:
     text = raw.strip().upper().replace(",", ".")
     parts = text.split()
     if not parts:
         raise ValueError("empty")
-    currency = "RUB" if len(parts) == 1 else parts[1]
+    currency = default_currency.upper() if len(parts) == 1 else parts[1]
     if not re.fullmatch(r"[A-Z]{3}", currency):
         raise ValueError("currency")
     try:
@@ -297,7 +296,8 @@ async def plan_add_price(message: Message, state: FSMContext):
     if not await guard_message(message, state):
         return
     try:
-        price_minor, currency = _parse_price(message.text or "")
+        default_currency = str(await db.get_runtime_setting("default_currency", "RUB") or "RUB").upper()
+        price_minor, currency = _parse_price(message.text or "", default_currency)
     except ValueError:
         await message.answer("Не понял цену. Пример: 499 RUB, 4.99 EUR или 0.")
         return

@@ -8,6 +8,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 from audit import audit_from_call
+from admin_auth import authorize_callback
 from backup_manager import BackupManager
 from config import load_settings
 from db import AuditRecord, Database, JobRunRecord
@@ -23,15 +24,9 @@ system_backup = SystemBackupService(backup_manager, settings.node_backup_targets
 observability_router = Router(name="admin_observability")
 
 
-def is_admin(tg_id: int) -> bool:
-    return tg_id in settings.admin_telegram_ids
-
-
 async def guard(call: CallbackQuery) -> bool:
-    if not call.from_user or not is_admin(call.from_user.id):
-        await call.answer("Недостаточно прав.", show_alert=True)
-        return False
-    return True
+    ok, _ = await authorize_callback(db, settings, call)
+    return ok
 
 
 def human_bytes(value: int | float) -> str:
@@ -364,6 +359,17 @@ ACTION_LABELS = {
     "host.create": "create host",
     "host.toggle": "toggle host",
     "host.delete": "delete host",
+    "payment.create": "create payment",
+    "payment.status": "change payment status",
+    "promo.create": "create promo code",
+    "promo.toggle": "toggle promo code",
+    "promo.delete": "delete promo code",
+    "administrator.upsert": "add administrator",
+    "administrator.role": "change administrator role",
+    "administrator.toggle": "toggle administrator",
+    "administrator.delete": "delete administrator",
+    "settings.set": "change setting",
+    "settings.reset": "reset setting",
 }
 
 

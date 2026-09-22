@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v4.0.0
+# 3x-ui Telegram bot v4.1.0
 
 Production-oriented Telegram admin panel for 3x-ui.
 
@@ -615,3 +615,121 @@ Then check:
 
 No new `.env` variables are required for v4.0.0.
 
+
+
+## v4.1.0 — Payments, Promo Codes, Administrators/Roles, Safe Settings
+
+v4.1.0 is additive on top of v4.0.0. Existing user provisioning, 3x-ui
+operations, subscriptions, compatibility proxy, Nodes, Backups, Monitoring,
+Jobs and Audit Log are kept in place.
+
+### Payments
+
+`/admin -> Payments` now provides an internal production ledger:
+
+- list recent payments and paid/pending/refunded totals;
+- create a manual payment for an existing bot user;
+- optionally link it to a Plan;
+- amount + 3-letter currency;
+- `pending`, `paid`, `refunded`, `cancelled` states;
+- optional external/reference ID;
+- paid totals grouped by currency;
+- audit entries for creation and status changes.
+
+This release intentionally does not pretend that an external payment provider is
+connected. Provider integrations can later write into the same ledger without
+rewriting payment history.
+
+### Promo Codes
+
+`/admin -> Promo Codes` supports:
+
+- percentage or fixed-value discounts;
+- optional Plan restriction;
+- max-use limit (`0` = unlimited);
+- optional UTC expiry date;
+- enable/disable and delete;
+- audit entries.
+
+The catalog is ready for a future checkout flow. Promo codes are **not** applied
+to the existing `/create` trial automatically in v4.1.0.
+
+### Administrators and roles
+
+`/admin -> System -> Administrators` adds database-backed administrators.
+`ADMIN_TELEGRAM_IDS` remain immutable break-glass Owners and cannot be disabled
+from Telegram.
+
+Roles:
+
+- `Owner` — full access, including administrator management;
+- `Administrator` — production operations + safe runtime settings;
+- `Support` — read access across the admin panel plus common user operations
+  (extend, sync, enable/disable);
+- `Read-only` — view-only administration/monitoring.
+
+The existing environment administrator IDs keep full access after upgrade.
+
+### Safe runtime Settings
+
+`/admin -> System -> Settings` exposes only non-secret runtime settings:
+
+- Trial days;
+- Trial traffic in GB;
+- Trial IP/device limit;
+- default currency.
+
+Trial settings apply to **new** `/create` operations immediately. Default currency
+is used when a Plan, Payment or fixed-value Promo Code is entered without an
+explicit currency.
+
+Secrets such as `BOT_TOKEN`, `PANEL_API_TOKEN`, node API tokens, TLS policy,
+backup bind mounts and other infrastructure settings remain outside the Telegram
+UI. Backup schedule/retention and TLS verification are displayed read-only from
+`.env`.
+
+### Database migration
+
+No existing table is rewritten. `db.init()` adds only:
+
+```text
+payments
+promo_codes
+administrators
+runtime_settings
+```
+
+Existing data from v4.0.0 remains compatible.
+
+### Upgrade from v4.0.0
+
+No new `.env` variables are required.
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v4.0.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v4.0.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v4.1.0/.env
+
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.1.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v4.0.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v4.1.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v4.1.0
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 bot
+```
+
+Then verify:
+
+```text
+/admin
+ -> Payments
+ -> Promo Codes
+ -> System -> Administrators
+ -> System -> Settings
+```

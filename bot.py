@@ -22,6 +22,8 @@ from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
 from catalog_admin import catalog_router
 from admin_observability import observability_router
+from business_admin import business_router
+from admin_auth import authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_system
 from runtime_jobs import backup_lock
 
@@ -67,11 +69,11 @@ def admin_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🔗 Subscriptions", callback_data="admin:subscriptions"),
         ],
         [
-            InlineKeyboardButton(text="💳 Payments", callback_data="admin:coming:payments"),
+            InlineKeyboardButton(text="💳 Payments", callback_data="admin:payments"),
             InlineKeyboardButton(text="💎 Plans", callback_data="admin:plans"),
         ],
         [
-            InlineKeyboardButton(text="🎟 Promo Codes", callback_data="admin:coming:promo"),
+            InlineKeyboardButton(text="🎟 Promo Codes", callback_data="admin:promo"),
             InlineKeyboardButton(text="🌐 Infrastructure", callback_data="admin:section:infrastructure"),
         ],
         [
@@ -115,8 +117,8 @@ def system_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="💾 Backups", callback_data="admin:backups"),
         ],
         [InlineKeyboardButton(text="🧾 Audit Log", callback_data="admin:audit")],
-        [InlineKeyboardButton(text="👮 Administrators", callback_data="admin:coming:administrators")],
-        [InlineKeyboardButton(text="🔧 Settings", callback_data="admin:coming:settings")],
+        [InlineKeyboardButton(text="👮 Administrators", callback_data="admin:administrators")],
+        [InlineKeyboardButton(text="🔧 Settings", callback_data="admin:settings")],
         [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
     ])
 
@@ -345,10 +347,8 @@ async def guard_message(message: Message) -> bool:
     return True
 
 async def guard_admin_call(call: CallbackQuery) -> bool:
-    if not call.from_user or not is_admin(call.from_user.id):
-        await call.answer("Только для администратора.", show_alert=True)
-        return False
-    return True
+    ok, _ = await authorize_callback(db, settings, call)
+    return ok
 
 def is_managed_inbound(i) -> bool:
     exact_ids = set(settings.inbound_ids)
@@ -387,14 +387,17 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v4.0.0", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v4.1.0", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
-    if not message.from_user or not is_admin(message.from_user.id):
+    if not message.from_user:
+        return
+    role = await get_admin_role(db, settings, message.from_user.id)
+    if role is None:
         await message.answer("Команда доступна только администратору.")
         return
-    await message.answer("⚙️ Admin Panel", reply_markup=admin_menu())
+    await message.answer(f"⚙️ Admin Panel · {role}", reply_markup=admin_menu())
 
 def _section_header(title: str, subtitle: str) -> str:
     return f"{title}\n\n{subtitle}"
@@ -468,6 +471,15 @@ async def admin_dashboard(call: CallbackQuery):
     hosts = await db.list_hosts()
     active_plans = sum(1 for p in plans if p.active)
     enabled_hosts = sum(1 for h in hosts if h.enabled)
+    payment_summary = await db.payment_summary()
+    promo_codes = await db.list_promo_codes()
+    now_s = int(time.time())
+    active_promos = sum(
+        1 for promo in promo_codes
+        if promo.active
+        and (not promo.expires_at or promo.expires_at >= now_s)
+        and (not promo.max_uses or promo.uses_count < promo.max_uses)
+    )
 
     latest = backup_manager.latest_backup()
     if latest:
@@ -499,6 +511,10 @@ async def admin_dashboard(call: CallbackQuery):
         f"💎 Plans: {active_plans}/{len(plans)} active",
         f"🗂 Server Groups: {len(server_groups)}",
         f"🌐 Hosts: {enabled_hosts}/{len(hosts)} enabled",
+        "",
+        "Business",
+        f"💳 Payments: {sum(payment_summary.get(k, 0) for k in ('pending', 'paid', 'refunded', 'cancelled'))} · paid {payment_summary.get('paid', 0)}",
+        f"🎟 Promo Codes: {active_promos}/{len(promo_codes)} active",
         "",
         "Monitoring",
     ]
@@ -641,6 +657,10 @@ async def admin_legacy_catalog_callback(call: CallbackQuery):
 @router.callback_query(F.data == "admin:coming:online")
 @router.callback_query(F.data == "admin:coming:jobs")
 @router.callback_query(F.data == "admin:coming:audit")
+@router.callback_query(F.data == "admin:coming:payments")
+@router.callback_query(F.data == "admin:coming:promo")
+@router.callback_query(F.data == "admin:coming:administrators")
+@router.callback_query(F.data == "admin:coming:settings")
 async def admin_legacy_v4_callback(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
@@ -649,9 +669,13 @@ async def admin_legacy_v4_callback(call: CallbackQuery):
         "admin:coming:online": ("🟢 Online", "admin:online"),
         "admin:coming:jobs": ("⚙️ Jobs", "admin:jobs"),
         "admin:coming:audit": ("🧾 Audit Log", "admin:audit"),
+        "admin:coming:payments": ("💳 Payments", "admin:payments"),
+        "admin:coming:promo": ("🎟 Promo Codes", "admin:promo"),
+        "admin:coming:administrators": ("👮 Administrators", "admin:administrators"),
+        "admin:coming:settings": ("🔧 Settings", "admin:settings"),
     }[call.data]
     await call.message.answer(
-        "Этот раздел уже доступен в v4.0.",
+        "Этот раздел уже доступен в текущей версии.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text=target[0], callback_data=target[1])
         ]]),
@@ -660,16 +684,16 @@ async def admin_legacy_v4_callback(call: CallbackQuery):
 
 
 COMING_SOON = {
-    "payments": ("💳 Payments", "Платёжный модуль запланирован следующим этапом после production-каталога."),
-    "promo": ("🎟 Promo Codes", "Промокоды будут добавлены отдельным этапом поверх готовой модели тарифов."),
+    "payments": ("💳 Payments", "Раздел Payments уже доступен."),
+    "promo": ("🎟 Promo Codes", "Раздел Promo Codes уже доступен."),
     "panels": ("🖥 Panels", "Раздел панелей зарезервирован. Текущий Master продолжает работать без изменений."),
     "traffic": ("📊 Traffic", "Агрегация трафика будет добавлена на этапе Monitoring."),
     "online": ("🟢 Online", "Online-клиенты будут добавлены на этапе Monitoring."),
     "logs": ("📜 Logs", "Просмотр журналов будет добавлен без изменения текущего Docker logging."),
     "jobs": ("⚙️ Jobs", "Планировщик и история фоновых задач будут добавлены отдельно."),
     "audit": ("🧾 Audit Log", "Аудит административных действий будет добавлен отдельным модулем."),
-    "administrators": ("👮 Administrators", "Роли и управление администраторами будут добавлены отдельно."),
-    "settings": ("🔧 Settings", "Безопасные runtime-настройки будут вынесены сюда позже. Секреты останутся вне UI."),
+    "administrators": ("👮 Administrators", "Раздел Administrators уже доступен."),
+    "settings": ("🔧 Settings", "Раздел safe runtime Settings уже доступен."),
 }
 
 
@@ -1167,7 +1191,12 @@ async def admin_node_add_start(call: CallbackQuery, state: FSMContext):
 
 @router.message(AddNodeStates.name)
 async def admin_node_add_name(message: Message, state: FSMContext):
-    if not message.from_user or not is_admin(message.from_user.id):
+    if not message.from_user:
+        return
+    ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
+    if not ok:
+        await state.clear()
+        await message.answer("Недостаточно прав.")
         return
     name = (message.text or "").strip()
     if not name or len(name) > 64:
@@ -1186,7 +1215,12 @@ async def admin_node_add_name(message: Message, state: FSMContext):
 
 @router.message(AddNodeStates.url)
 async def admin_node_add_url(message: Message, state: FSMContext):
-    if not message.from_user or not is_admin(message.from_user.id):
+    if not message.from_user:
+        return
+    ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
+    if not ok:
+        await state.clear()
+        await message.answer("Недостаточно прав.")
         return
     try:
         parsed = _parse_node_url(message.text or "")
@@ -1204,7 +1238,12 @@ async def admin_node_add_url(message: Message, state: FSMContext):
 
 @router.message(AddNodeStates.token)
 async def admin_node_add_token(message: Message, state: FSMContext):
-    if not message.from_user or not is_admin(message.from_user.id):
+    if not message.from_user:
+        return
+    ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
+    if not ok:
+        await state.clear()
+        await message.answer("Недостаточно прав.")
         return
     token = (message.text or "").strip()
     if len(token) < 8:
@@ -1947,7 +1986,15 @@ async def create_user(tg_id: int, message: Message):
             await message.answer("Нет подходящих inbound'ов.")
             return
         now = int(time.time())
-        expiry = (now + settings.test_days * 86400) * 1000
+        try:
+            trial_days = int(await db.get_runtime_setting("trial_days", str(settings.test_days)) or settings.test_days)
+            trial_traffic_gb = int(await db.get_runtime_setting("trial_traffic_gb", str(settings.test_traffic_gb)) or settings.test_traffic_gb)
+            trial_ip_limit = int(await db.get_runtime_setting("trial_ip_limit", str(settings.test_ip_limit)) or settings.test_ip_limit)
+        except (TypeError, ValueError):
+            trial_days = settings.test_days
+            trial_traffic_gb = settings.test_traffic_gb
+            trial_ip_limit = settings.test_ip_limit
+        expiry = (now + trial_days * 86400) * 1000
         username = ""
         if getattr(message, "chat", None) and getattr(message.chat, "username", None):
             username = message.chat.username.strip().lower()
@@ -1956,9 +2003,9 @@ async def create_user(tg_id: int, message: Message):
         await xui.create_client(
             email=email, telegram_id=tg_id, sub_id=sid,
             inbound_ids=[i.id for i in chosen],
-            total_bytes=settings.test_traffic_gb * 1024**3,
-            expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram bot v4.0.0",
+            total_bytes=trial_traffic_gb * 1024**3,
+            expiry_time_ms=expiry, limit_ip=trial_ip_limit,
+            comment="Created by Telegram bot v4.1.0",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.
@@ -2077,6 +2124,7 @@ async def main():
     dp.include_router(router)
     dp.include_router(catalog_router)
     dp.include_router(observability_router)
+    dp.include_router(business_router)
     backup_task = (
         asyncio.create_task(automatic_backup_loop(bot))
         if settings.backup_enabled else None

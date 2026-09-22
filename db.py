@@ -71,6 +71,56 @@ class JobRunRecord:
     details: str
 
 
+@dataclass
+class PaymentRecord:
+    id: int
+    telegram_id: int
+    plan_id: int | None
+    amount_minor: int
+    currency: str
+    status: str
+    provider: str
+    external_id: str
+    note: str
+    created_by: int
+    created_at: int
+    updated_at: int
+    paid_at: int
+
+
+@dataclass
+class PromoCodeRecord:
+    id: int
+    code: str
+    discount_type: str
+    value: int
+    currency: str
+    plan_id: int | None
+    max_uses: int
+    uses_count: int
+    expires_at: int
+    active: int
+    created_at: int
+
+
+@dataclass
+class AdministratorRecord:
+    telegram_id: int
+    role: str
+    enabled: int
+    added_by: int
+    created_at: int
+    updated_at: int
+
+
+@dataclass
+class RuntimeSettingRecord:
+    key: str
+    value: str
+    updated_by: int
+    updated_at: int
+
+
 class Database:
     def __init__(self, path: str):
         self.path = path
@@ -158,6 +208,65 @@ class Database:
             await db.execute(
                 "CREATE INDEX IF NOT EXISTS idx_job_runs_name_started ON job_runs(name, started_at DESC)"
             )
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    telegram_id INTEGER NOT NULL,
+                    plan_id INTEGER,
+                    amount_minor INTEGER NOT NULL,
+                    currency TEXT NOT NULL DEFAULT 'RUB',
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    provider TEXT NOT NULL DEFAULT 'manual',
+                    external_id TEXT NOT NULL DEFAULT '',
+                    note TEXT NOT NULL DEFAULT '',
+                    created_by INTEGER NOT NULL DEFAULT 0,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    paid_at INTEGER NOT NULL DEFAULT 0
+                )
+            """)
+            await db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_payments_user_created ON payments(telegram_id, created_at DESC)"
+            )
+            await db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_payments_status_created ON payments(status, created_at DESC)"
+            )
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS promo_codes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    code TEXT COLLATE NOCASE NOT NULL UNIQUE,
+                    discount_type TEXT NOT NULL,
+                    value INTEGER NOT NULL,
+                    currency TEXT NOT NULL DEFAULT 'RUB',
+                    plan_id INTEGER,
+                    max_uses INTEGER NOT NULL DEFAULT 0,
+                    uses_count INTEGER NOT NULL DEFAULT 0,
+                    expires_at INTEGER NOT NULL DEFAULT 0,
+                    active INTEGER NOT NULL DEFAULT 1,
+                    created_at INTEGER NOT NULL
+                )
+            """)
+            await db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_promo_active_code ON promo_codes(active, code COLLATE NOCASE)"
+            )
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS administrators (
+                    telegram_id INTEGER PRIMARY KEY,
+                    role TEXT NOT NULL,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    added_by INTEGER NOT NULL DEFAULT 0,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS runtime_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_by INTEGER NOT NULL DEFAULT 0,
+                    updated_at INTEGER NOT NULL
+                )
+            """)
             await db.commit()
 
     async def get(self, telegram_id: int) -> UserRecord | None:
@@ -400,6 +509,224 @@ class Database:
     async def delete_host(self, host_id: int):
         async with aiosqlite.connect(self.path) as db:
             await db.execute("DELETE FROM hosts WHERE id = ?", (int(host_id),))
+            await db.commit()
+
+    # --- Payments ------------------------------------------------------
+
+    async def list_payments(self, *, limit: int = 50, offset: int = 0) -> list[PaymentRecord]:
+        limit = max(1, min(200, int(limit)))
+        offset = max(0, int(offset))
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM payments ORDER BY id DESC LIMIT ? OFFSET ?",
+                (limit, offset),
+            )
+            rows = await cur.fetchall()
+            return [PaymentRecord(**dict(r)) for r in rows]
+
+    async def count_payments(self) -> int:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute("SELECT COUNT(*) FROM payments")
+            row = await cur.fetchone()
+            return int(row[0] if row else 0)
+
+    async def get_payment(self, payment_id: int) -> PaymentRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM payments WHERE id = ?", (int(payment_id),))
+            row = await cur.fetchone()
+            return PaymentRecord(**dict(row)) if row else None
+
+    async def create_payment(
+        self, *, telegram_id: int, plan_id: int | None, amount_minor: int,
+        currency: str, status: str, provider: str = "manual", external_id: str = "",
+        note: str = "", created_by: int = 0,
+    ) -> int:
+        now = int(time.time())
+        paid_at = now if status == "paid" else 0
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                INSERT INTO payments(
+                    telegram_id, plan_id, amount_minor, currency, status, provider,
+                    external_id, note, created_by, created_at, updated_at, paid_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    int(telegram_id), plan_id, int(amount_minor), currency.upper(), status,
+                    provider[:32], external_id[:160], note[:1000], int(created_by), now, now, paid_at,
+                ),
+            )
+            await db.commit()
+            return int(cur.lastrowid)
+
+    async def set_payment_status(self, payment_id: int, status: str) -> None:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                UPDATE payments
+                SET status = ?, updated_at = ?,
+                    paid_at = CASE WHEN ? = 'paid' AND paid_at = 0 THEN ? ELSE paid_at END
+                WHERE id = ?
+                """,
+                (status, now, status, now, int(payment_id)),
+            )
+            await db.commit()
+
+    async def payment_summary(self) -> dict[str, int]:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                "SELECT status, COUNT(*) FROM payments GROUP BY status"
+            )
+            counts = {str(k): int(v) for k, v in await cur.fetchall()}
+            cur = await db.execute(
+                "SELECT COUNT(*) FROM payments WHERE status = 'paid'"
+            )
+            row = await cur.fetchone()
+            counts['paid_total'] = int(row[0] if row else 0)
+            return counts
+
+    async def paid_totals_by_currency(self) -> dict[str, int]:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                "SELECT currency, COALESCE(SUM(amount_minor), 0) FROM payments WHERE status = 'paid' GROUP BY currency"
+            )
+            return {str(currency): int(total) for currency, total in await cur.fetchall()}
+
+    # --- Promo codes ---------------------------------------------------
+
+    async def list_promo_codes(self) -> list[PromoCodeRecord]:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM promo_codes ORDER BY active DESC, id DESC"
+            )
+            rows = await cur.fetchall()
+            return [PromoCodeRecord(**dict(r)) for r in rows]
+
+    async def get_promo_code(self, promo_id: int) -> PromoCodeRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM promo_codes WHERE id = ?", (int(promo_id),))
+            row = await cur.fetchone()
+            return PromoCodeRecord(**dict(row)) if row else None
+
+    async def create_promo_code(
+        self, *, code: str, discount_type: str, value: int, currency: str = "RUB",
+        plan_id: int | None = None, max_uses: int = 0, expires_at: int = 0,
+    ) -> int:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                INSERT INTO promo_codes(
+                    code, discount_type, value, currency, plan_id, max_uses,
+                    uses_count, expires_at, active, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, 1, ?)
+                """,
+                (
+                    code.strip().upper(), discount_type, int(value), currency.upper(), plan_id,
+                    max(0, int(max_uses)), max(0, int(expires_at)), int(time.time()),
+                ),
+            )
+            await db.commit()
+            return int(cur.lastrowid)
+
+    async def set_promo_active(self, promo_id: int, active: bool) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "UPDATE promo_codes SET active = ? WHERE id = ?",
+                (1 if active else 0, int(promo_id)),
+            )
+            await db.commit()
+
+    async def delete_promo_code(self, promo_id: int) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute("DELETE FROM promo_codes WHERE id = ?", (int(promo_id),))
+            await db.commit()
+
+    # --- Administrators -----------------------------------------------
+
+    async def list_administrators(self) -> list[AdministratorRecord]:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM administrators ORDER BY enabled DESC, role, telegram_id"
+            )
+            rows = await cur.fetchall()
+            return [AdministratorRecord(**dict(r)) for r in rows]
+
+    async def get_administrator(self, telegram_id: int) -> AdministratorRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM administrators WHERE telegram_id = ?", (int(telegram_id),)
+            )
+            row = await cur.fetchone()
+            return AdministratorRecord(**dict(row)) if row else None
+
+    async def upsert_administrator(
+        self, *, telegram_id: int, role: str, enabled: bool = True, added_by: int = 0,
+    ) -> None:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                INSERT INTO administrators(telegram_id, role, enabled, added_by, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(telegram_id) DO UPDATE SET
+                    role=excluded.role, enabled=excluded.enabled, updated_at=excluded.updated_at
+                """,
+                (int(telegram_id), role, 1 if enabled else 0, int(added_by), now, now),
+            )
+            await db.commit()
+
+    async def set_administrator_enabled(self, telegram_id: int, enabled: bool) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "UPDATE administrators SET enabled = ?, updated_at = ? WHERE telegram_id = ?",
+                (1 if enabled else 0, int(time.time()), int(telegram_id)),
+            )
+            await db.commit()
+
+    async def delete_administrator(self, telegram_id: int) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute("DELETE FROM administrators WHERE telegram_id = ?", (int(telegram_id),))
+            await db.commit()
+
+    # --- Runtime settings ---------------------------------------------
+
+    async def list_runtime_settings(self) -> list[RuntimeSettingRecord]:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM runtime_settings ORDER BY key")
+            rows = await cur.fetchall()
+            return [RuntimeSettingRecord(**dict(r)) for r in rows]
+
+    async def get_runtime_setting(self, key: str, default: str | None = None) -> str | None:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute("SELECT value FROM runtime_settings WHERE key = ?", (key,))
+            row = await cur.fetchone()
+            return str(row[0]) if row else default
+
+    async def set_runtime_setting(self, key: str, value: str, *, updated_by: int = 0) -> None:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                INSERT INTO runtime_settings(key, value, updated_by, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value=excluded.value, updated_by=excluded.updated_by, updated_at=excluded.updated_at
+                """,
+                (key, str(value), int(updated_by), now),
+            )
+            await db.commit()
+
+    async def delete_runtime_setting(self, key: str) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute("DELETE FROM runtime_settings WHERE key = ?", (key,))
             await db.commit()
 
     # --- Audit log -----------------------------------------------------
