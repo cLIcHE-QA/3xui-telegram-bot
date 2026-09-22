@@ -20,6 +20,7 @@ from db import Database, UserRecord
 from xui import XUIClient, XUIError, NodeInfo
 from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
+from catalog_admin import catalog_router
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -64,7 +65,7 @@ def admin_menu() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="💳 Payments", callback_data="admin:coming:payments"),
-            InlineKeyboardButton(text="💎 Plans", callback_data="admin:coming:plans"),
+            InlineKeyboardButton(text="💎 Plans", callback_data="admin:plans"),
         ],
         [
             InlineKeyboardButton(text="🎟 Promo Codes", callback_data="admin:coming:promo"),
@@ -85,9 +86,9 @@ def infrastructure_menu() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds"),
-            InlineKeyboardButton(text="🌐 Hosts", callback_data="admin:coming:hosts"),
+            InlineKeyboardButton(text="🌐 Hosts", callback_data="admin:hosts"),
         ],
-        [InlineKeyboardButton(text="🗂 Server Groups", callback_data="admin:coming:servergroups")],
+        [InlineKeyboardButton(text="🗂 Server Groups", callback_data="admin:servergroups")],
         [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
     ])
 
@@ -440,6 +441,12 @@ async def admin_dashboard(call: CallbackQuery):
     managed = [i for i in inbounds if is_managed_inbound(i)]
     managed_enabled = sum(1 for i in managed if i.enable)
 
+    plans = await db.list_plans()
+    server_groups = await db.list_server_groups()
+    hosts = await db.list_hosts()
+    active_plans = sum(1 for p in plans if p.active)
+    enabled_hosts = sum(1 for h in hosts if h.enabled)
+
     latest = backup_manager.latest_backup()
     if latest:
         backup_text = latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
@@ -465,6 +472,11 @@ async def admin_dashboard(call: CallbackQuery):
     if nodes_error:
         lines.append(f"⚠️ Nodes API: {nodes_error}")
     lines += [
+        "",
+        "Catalog",
+        f"💎 Plans: {active_plans}/{len(plans)} active",
+        f"🗂 Server Groups: {len(server_groups)}",
+        f"🌐 Hosts: {enabled_hosts}/{len(hosts)} enabled",
         "",
         "System",
         f"💾 Last backup: {backup_text}",
@@ -567,13 +579,30 @@ async def admin_infrastructure_inbounds(call: CallbackQuery):
     await call.answer()
 
 
+@router.callback_query(F.data == "admin:coming:plans")
+@router.callback_query(F.data == "admin:coming:hosts")
+@router.callback_query(F.data == "admin:coming:servergroups")
+async def admin_legacy_catalog_callback(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    target = {
+        "admin:coming:plans": ("💎 Plans", "admin:plans"),
+        "admin:coming:hosts": ("🌐 Hosts", "admin:hosts"),
+        "admin:coming:servergroups": ("🗂 Server Groups", "admin:servergroups"),
+    }[call.data]
+    await call.message.answer(
+        "Этот раздел уже доступен в v3.9.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text=target[0], callback_data=target[1])
+        ]]),
+    )
+    await call.answer()
+
+
 COMING_SOON = {
-    "payments": ("💳 Payments", "Платежи будут добавлены отдельным этапом после Plans."),
-    "plans": ("💎 Plans", "Тарифы будут добавлены в следующем этапе production admin."),
-    "promo": ("🎟 Promo Codes", "Промокоды будут добавлены после модели тарифов."),
+    "payments": ("💳 Payments", "Платёжный модуль запланирован следующим этапом после production-каталога."),
+    "promo": ("🎟 Promo Codes", "Промокоды будут добавлены отдельным этапом поверх готовой модели тарифов."),
     "panels": ("🖥 Panels", "Раздел панелей зарезервирован. Текущий Master продолжает работать без изменений."),
-    "hosts": ("🌐 Hosts", "Централизованное управление доменами/hosts будет добавлено отдельно."),
-    "servergroups": ("🗂 Server Groups", "Группы серверов будут добавлены вместе с Plans."),
     "traffic": ("📊 Traffic", "Агрегация трафика будет добавлена на этапе Monitoring."),
     "online": ("🟢 Online", "Online-клиенты будут добавлены на этапе Monitoring."),
     "logs": ("📜 Logs", "Просмотр журналов будет добавлен без изменения текущего Docker logging."),
@@ -1861,6 +1890,7 @@ async def main():
     bot = Bot(settings.bot_token)
     dp = Dispatcher()
     dp.include_router(router)
+    dp.include_router(catalog_router)
     backup_task = (
         asyncio.create_task(automatic_backup_loop(bot))
         if settings.backup_enabled else None

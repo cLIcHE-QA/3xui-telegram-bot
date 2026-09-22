@@ -1,6 +1,6 @@
-# 3x-ui Telegram bot v3.8.0
+# 3x-ui Telegram bot v3.9.0
 
-Adds a Telegram admin panel to the single-node test bot.
+Production-oriented Telegram admin panel for 3x-ui.
 
 ## Admin commands
 
@@ -424,6 +424,84 @@ Implemented in this foundation release:
 - System contains the existing Backups implementation.
 
 Reserved modules are visible but explicitly marked as not implemented yet:
-Payments, Plans, Promo Codes, Panels, Hosts, Server Groups, Traffic, Online,
-Logs, Jobs, Audit Log, Administrators and Settings. They do not perform mock
-or destructive operations.
+Payments, Promo Codes, Panels, Traffic, Online, Logs, Jobs, Audit Log,
+Administrators and Settings. They do not perform mock or destructive operations.
+
+
+## v3.9.0 — Plans + Server Groups + Hosts
+
+This release adds three production admin catalog modules without changing the
+existing provisioning/subscription/node/backup behavior. Dashboard also shows
+active/total Plans, Server Group count, and enabled/total Hosts.
+
+### Plans
+
+`/admin -> Plans` now supports:
+
+- create a plan;
+- duration in days;
+- traffic limit in GB (`0` = unlimited);
+- IP/device limit (`0` = unlimited);
+- price + 3-letter currency;
+- optional Server Group assignment;
+- enable/disable;
+- delete.
+
+Important: in v3.9 Plans are a control-plane catalog only. The existing `/create`
+flow still uses `TEST_DAYS`, `TEST_TRAFFIC_GB` and `TEST_IP_LIMIT`. Wiring Plans
+into provisioning is intentionally deferred so the already-working user flow is
+not changed without explicit approval.
+
+### Server Groups
+
+`/admin -> Infrastructure -> Server Groups` supports:
+
+- create/delete groups;
+- optional description;
+- add/remove the Master server;
+- add/remove native 3x-ui nodes discovered from the Master panel;
+- assign a group to a Plan.
+
+Group membership is stored in the bot SQLite database. It does not yet rewrite
+subscriptions or client inbound assignments automatically.
+
+### Hosts
+
+`/admin -> Infrastructure -> Hosts` is a central metadata registry for domains
+and IPs. It supports roles such as Panel, Subscription, VPN endpoint and
+Reality/SNI, enable/disable, delete, and discovery of the hosts already present
+in the current `PANEL_URL`, public compatibility subscription URL and upstream
+3x-ui subscription URL.
+
+The Hosts registry does not edit DNS, nginx, certificates, or 3x-ui settings in
+v3.9. That separation is intentional for safe production rollout.
+
+### Database migration
+
+No manual migration is required. On startup the bot creates the additional
+SQLite tables (`plans`, `server_groups`, `server_group_members`, `hosts`) with
+`CREATE TABLE IF NOT EXISTS`. Existing `users` rows remain unchanged.
+
+### Upgrade from v3.8.0
+
+No new environment variables are required.
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v3.8.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v3.8.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v3.9.0/.env
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v3.9.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v3.8.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v3.9.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v3.9.0
+docker compose up -d --build
+```
+
+The first startup performs only additive `CREATE TABLE IF NOT EXISTS` schema
+initialization for the new catalog tables. The existing `users` table and all
+current 3x-ui behavior are preserved.
