@@ -50,14 +50,70 @@ def user_menu() -> InlineKeyboardMarkup:
     ])
 
 def admin_menu() -> InlineKeyboardMarkup:
+    """Production admin navigation.
+
+    Existing operational callbacks remain unchanged; v3.8 only places them under
+    stable top-level sections so later releases can fill the remaining modules
+    without reshuffling the working actions again.
+    """
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users")],
-        [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
-        [InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats")],
-        [InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:health")],
-        [InlineKeyboardButton(text="🌍 Ноды", callback_data="admin:nodes")],
-        [InlineKeyboardButton(text="💾 Резервные копии", callback_data="admin:backups")],
-        [InlineKeyboardButton(text="🧪 Inbound'ы", callback_data="inbounds")],
+        [InlineKeyboardButton(text="📊 Dashboard", callback_data="admin:dashboard")],
+        [
+            InlineKeyboardButton(text="👥 Users", callback_data="admin:users"),
+            InlineKeyboardButton(text="🔗 Subscriptions", callback_data="admin:subscriptions"),
+        ],
+        [
+            InlineKeyboardButton(text="💳 Payments", callback_data="admin:coming:payments"),
+            InlineKeyboardButton(text="💎 Plans", callback_data="admin:coming:plans"),
+        ],
+        [
+            InlineKeyboardButton(text="🎟 Promo Codes", callback_data="admin:coming:promo"),
+            InlineKeyboardButton(text="🌐 Infrastructure", callback_data="admin:section:infrastructure"),
+        ],
+        [
+            InlineKeyboardButton(text="📈 Monitoring", callback_data="admin:section:monitoring"),
+            InlineKeyboardButton(text="⚙️ System", callback_data="admin:section:system"),
+        ],
+    ])
+
+
+def infrastructure_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🖥 Panels", callback_data="admin:coming:panels"),
+            InlineKeyboardButton(text="🌍 Nodes", callback_data="admin:nodes"),
+        ],
+        [
+            InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds"),
+            InlineKeyboardButton(text="🌐 Hosts", callback_data="admin:coming:hosts"),
+        ],
+        [InlineKeyboardButton(text="🗂 Server Groups", callback_data="admin:coming:servergroups")],
+        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+    ])
+
+
+def monitoring_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📊 Traffic", callback_data="admin:coming:traffic"),
+            InlineKeyboardButton(text="🟢 Online", callback_data="admin:coming:online"),
+        ],
+        [InlineKeyboardButton(text="🩺 System Health", callback_data="admin:health")],
+        [InlineKeyboardButton(text="📜 Logs", callback_data="admin:coming:logs")],
+        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+    ])
+
+
+def system_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="⚙️ Jobs", callback_data="admin:coming:jobs"),
+            InlineKeyboardButton(text="💾 Backups", callback_data="admin:backups"),
+        ],
+        [InlineKeyboardButton(text="🧾 Audit Log", callback_data="admin:coming:audit")],
+        [InlineKeyboardButton(text="👮 Administrators", callback_data="admin:coming:administrators")],
+        [InlineKeyboardButton(text="🔧 Settings", callback_data="admin:coming:settings")],
+        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
     ])
 
 def user_admin_keyboard(tg_id: int, enabled: bool = True) -> InlineKeyboardMarkup:
@@ -93,7 +149,7 @@ def backup_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="💾 Создать сейчас", callback_data="admin:backup:create")],
         [InlineKeyboardButton(text="📥 Скачать bot.sqlite3", callback_data="admin:backup:botdb")],
         [InlineKeyboardButton(text="📦 Скачать полный backup", callback_data="admin:backup:full")],
-        [InlineKeyboardButton(text="⬅ Админка", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
     ])
 
 def _node_status_icon(node: NodeInfo) -> str:
@@ -261,7 +317,7 @@ def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeybo
             rows.append([InlineKeyboardButton(text=text, callback_data="admin:nodes:noop")])
     rows.append([InlineKeyboardButton(text="➕ Добавить ноду", callback_data="admin:nodeadd:start")])
     rows.append([InlineKeyboardButton(text="🔄 Проверить все", callback_data="admin:nodes:refresh")])
-    rows.append([InlineKeyboardButton(text="⬅ Админка", callback_data="admin:home")])
+    rows.append([InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -327,14 +383,224 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v3.7.2", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v3.8.0", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
     if not message.from_user or not is_admin(message.from_user.id):
         await message.answer("Команда доступна только администратору.")
         return
-    await message.answer("⚙️ Админ-панель", reply_markup=admin_menu())
+    await message.answer("⚙️ Admin Panel", reply_markup=admin_menu())
+
+def _section_header(title: str, subtitle: str) -> str:
+    return f"{title}\n\n{subtitle}"
+
+
+@router.callback_query(F.data == "admin:dashboard")
+async def admin_dashboard(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+
+    users = await db.list_users()
+    now_ms = int(time.time() * 1000)
+    active = sum(1 for u in users if not u.expiry_time or u.expiry_time > now_ms)
+    soon = sum(
+        1 for u in users
+        if u.expiry_time and now_ms < u.expiry_time <= now_ms + 3 * 86400 * 1000
+    )
+
+    master_online = False
+    master_detail = "offline"
+    nodes: list[NodeInfo] = []
+    nodes_error = None
+    inbounds = []
+    inbounds_error = None
+
+    try:
+        await xui.server_status()
+        master_online = True
+        master_detail = "online"
+    except XUIError as exc:
+        master_detail = str(exc)[:120]
+
+    try:
+        nodes = await xui.nodes_list()
+    except XUIError as exc:
+        nodes_error = str(exc)[:120]
+
+    try:
+        inbounds = await xui.inbound_options()
+    except XUIError as exc:
+        inbounds_error = str(exc)[:120]
+
+    remote_online = sum(1 for n in nodes if n.enable and n.status == "online")
+    servers_total = 1 + len(nodes)
+    servers_online = (1 if master_online else 0) + remote_online
+
+    managed = [i for i in inbounds if is_managed_inbound(i)]
+    managed_enabled = sum(1 for i in managed if i.enable)
+
+    latest = backup_manager.latest_backup()
+    if latest:
+        backup_text = latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
+    else:
+        backup_text = "ещё не создан"
+
+    lines = [
+        "📊 Dashboard",
+        "",
+        "Users",
+        f"👥 Всего: {len(users)}",
+        f"🟢 Активные: {active}",
+        f"⏳ Истекают < 3 дней: {soon}",
+        "",
+        "Infrastructure",
+        f"{'🟢' if master_online else '🔴'} {settings.master_flag} {settings.master_name}: {master_detail}",
+        f"🌍 Servers: {servers_online}/{servers_total} online",
+    ]
+    if inbounds_error:
+        lines.append(f"⚠️ Inbounds: {inbounds_error}")
+    else:
+        lines.append(f"📡 Inbounds: {managed_enabled}/{len(managed)} enabled")
+    if nodes_error:
+        lines.append(f"⚠️ Nodes API: {nodes_error}")
+    lines += [
+        "",
+        "System",
+        f"💾 Last backup: {backup_text}",
+    ]
+
+    await call.message.answer("\n".join(lines), reply_markup=admin_menu())
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:subscriptions")
+async def admin_subscriptions(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    users = await db.list_users()
+    rows: list[list[InlineKeyboardButton]] = []
+    for u in users[:40]:
+        rows.append([InlineKeyboardButton(
+            text=f"🔗 {u.email}",
+            callback_data=f"adminsub:{u.telegram_id}",
+        )])
+    rows.append([InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")])
+    text = (
+        "🔗 Subscriptions\n\n"
+        f"Всего подписок в локальной БД: {len(users)}\n"
+        "Открой запись, чтобы получить текущий compatibility URL."
+    )
+    await call.message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:section:infrastructure")
+async def admin_infrastructure(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.message.answer(
+        _section_header(
+            "🌐 Infrastructure",
+            "Управление панелями, нодами, inbound'ами, hosts и группами серверов.",
+        ),
+        reply_markup=infrastructure_menu(),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:section:monitoring")
+async def admin_monitoring(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.message.answer(
+        _section_header(
+            "📈 Monitoring",
+            "Трафик, online-состояние, здоровье системы и журналы.",
+        ),
+        reply_markup=monitoring_menu(),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:section:system")
+async def admin_system(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.message.answer(
+        _section_header(
+            "⚙️ System",
+            "Фоновые задачи, backups, аудит, администраторы и настройки.",
+        ),
+        reply_markup=system_menu(),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:infra:inbounds")
+async def admin_infrastructure_inbounds(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    try:
+        all_inbounds = await xui.inbound_options()
+        managed = [i for i in all_inbounds if is_managed_inbound(i)]
+        lines = ["📡 Inbounds", ""]
+        if managed:
+            for i in managed:
+                icon = "🟢" if i.enable else "🔴"
+                lines.append(
+                    f"{icon} #{i.id} · {i.port}/{i.protocol}\n"
+                    f"   {i.remark or i.tag}"
+                )
+        else:
+            lines.append("Управляемых inbound'ов не найдено.")
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
+            [InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")],
+        ])
+        await call.message.answer("\n".join(lines), reply_markup=kb)
+    except XUIError as exc:
+        await call.message.answer(
+            f"📡 Inbounds\n\nОшибка 3x-ui: {exc}",
+            reply_markup=infrastructure_menu(),
+        )
+    await call.answer()
+
+
+COMING_SOON = {
+    "payments": ("💳 Payments", "Платежи будут добавлены отдельным этапом после Plans."),
+    "plans": ("💎 Plans", "Тарифы будут добавлены в следующем этапе production admin."),
+    "promo": ("🎟 Promo Codes", "Промокоды будут добавлены после модели тарифов."),
+    "panels": ("🖥 Panels", "Раздел панелей зарезервирован. Текущий Master продолжает работать без изменений."),
+    "hosts": ("🌐 Hosts", "Централизованное управление доменами/hosts будет добавлено отдельно."),
+    "servergroups": ("🗂 Server Groups", "Группы серверов будут добавлены вместе с Plans."),
+    "traffic": ("📊 Traffic", "Агрегация трафика будет добавлена на этапе Monitoring."),
+    "online": ("🟢 Online", "Online-клиенты будут добавлены на этапе Monitoring."),
+    "logs": ("📜 Logs", "Просмотр журналов будет добавлен без изменения текущего Docker logging."),
+    "jobs": ("⚙️ Jobs", "Планировщик и история фоновых задач будут добавлены отдельно."),
+    "audit": ("🧾 Audit Log", "Аудит административных действий будет добавлен отдельным модулем."),
+    "administrators": ("👮 Administrators", "Роли и управление администраторами будут добавлены отдельно."),
+    "settings": ("🔧 Settings", "Безопасные runtime-настройки будут вынесены сюда позже. Секреты останутся вне UI."),
+}
+
+
+@router.callback_query(F.data.startswith("admin:coming:"))
+async def admin_coming_soon(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    key = call.data.rsplit(":", 1)[-1]
+    title, body = COMING_SOON.get(key, ("Раздел", "Раздел зарезервирован для следующего этапа."))
+    if key in {"panels", "hosts", "servergroups"}:
+        back = infrastructure_menu()
+    elif key in {"traffic", "online", "logs"}:
+        back = monitoring_menu()
+    elif key in {"jobs", "audit", "administrators", "settings"}:
+        back = system_menu()
+    else:
+        back = admin_menu()
+    await call.message.answer(f"{title}\n\n{body}", reply_markup=back)
+    await call.answer()
+
 
 @router.callback_query(F.data == "admin:users")
 async def admin_users(call: CallbackQuery):
@@ -347,9 +613,11 @@ async def admin_users(call: CallbackQuery):
             text=f"👤 {u.email} | TG {u.telegram_id}",
             callback_data=f"adminuser:{u.telegram_id}"
         )])
-    rows.append([InlineKeyboardButton(text="⬅ Админка", callback_data="admin:home")])
+    rows.append([InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")])
+    rows.append([InlineKeyboardButton(text="📊 Статистика пользователей", callback_data="admin:stats")])
+    rows.append([InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")])
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.answer(f"Пользователи в БД бота: {len(users)}", reply_markup=kb)
+    await call.message.answer(f"👥 Users\n\nПользователи в БД бота: {len(users)}", reply_markup=kb)
     await call.answer()
 
 @router.callback_query(F.data == "admin:syncall:ask")
@@ -1221,14 +1489,14 @@ async def admin_health(call: CallbackQuery):
     elif nodes:
         lines.append("⚠️ Backup БД нод: не настроен")
 
-    await call.message.answer("\n".join(lines), reply_markup=admin_menu())
+    await call.message.answer("\n".join(lines), reply_markup=monitoring_menu())
 
 
 @router.callback_query(F.data == "admin:home")
 async def admin_home(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
-    await call.message.answer("⚙️ Админ-панель", reply_markup=admin_menu())
+    await call.message.answer("⚙️ Admin Panel", reply_markup=admin_menu())
     await call.answer()
 
 @router.callback_query(F.data.startswith("adminuser:"))
@@ -1504,7 +1772,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=settings.test_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram bot v3.7.2",
+            comment="Created by Telegram bot v3.8.0",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.

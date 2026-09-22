@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v3
+# 3x-ui Telegram bot v3.8.0
 
 Adds a Telegram admin panel to the single-node test bot.
 
@@ -393,3 +393,37 @@ Server totals and online counts include Master.
 Before saving, the bot calls the master 3x-ui `/panel/api/nodes/test` endpoint and shows panel/Xray health and latency. The final save uses `/panel/api/nodes/add`; credentials remain stored by the master 3x-ui, not in the bot SQLite database.
 
 When no remote nodes exist, the hint is intentionally neutral: use the **➕ Добавить ноду** button to connect a server.
+
+## v3.8.0 — Production Admin UI foundation
+
+The existing v3.7.2 behavior is frozen: node management, backups, health checks,
+subscriptions, user operations and compatibility-proxy logic are not rewritten.
+v3.8.0 adds a stable navigation layer on top of those callbacks.
+
+Top-level `/admin` navigation:
+
+- `Dashboard`
+- `Users`
+- `Subscriptions`
+- `Payments`
+- `Plans`
+- `Promo Codes`
+- `Infrastructure`
+- `Monitoring`
+- `System`
+
+Implemented in this foundation release:
+
+- Dashboard summary for users, expiring users, master/node availability,
+  managed inbound state and latest backup;
+- Users keeps the existing user cards, bulk inbound sync and user statistics;
+- Subscriptions lists local bot subscriptions without exposing their URL until
+  the administrator opens a specific record;
+- Infrastructure contains the existing Nodes UI and a managed Inbounds view;
+- Monitoring contains the existing System Health implementation;
+- System contains the existing Backups implementation.
+
+Reserved modules are visible but explicitly marked as not implemented yet:
+Payments, Plans, Promo Codes, Panels, Hosts, Server Groups, Traffic, Online,
+Logs, Jobs, Audit Log, Administrators and Settings. They do not perform mock
+or destructive operations.
