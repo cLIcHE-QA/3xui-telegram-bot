@@ -124,8 +124,14 @@ def _epoch_text(seconds: int) -> str:
         return str(seconds)
 
 
-def nodes_menu(nodes: list[NodeInfo]) -> InlineKeyboardMarkup:
-    rows: list[list[InlineKeyboardButton]] = []
+def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeyboardMarkup:
+    master_icon = "🟢" if master_online else "🔴"
+    rows: list[list[InlineKeyboardButton]] = [
+        [InlineKeyboardButton(
+            text=f"{settings.master_flag} {settings.master_name} · {master_icon} {'Online' if master_online else 'Offline'}",
+            callback_data="admin:master",
+        )]
+    ]
     for node in nodes[:40]:
         suffix = " ↳" if node.transitive else ""
         text = f"{_node_status_icon(node)} {node.name}{suffix}"
@@ -136,6 +142,13 @@ def nodes_menu(nodes: list[NodeInfo]) -> InlineKeyboardMarkup:
     rows.append([InlineKeyboardButton(text="🔄 Проверить все", callback_data="admin:nodes:refresh")])
     rows.append([InlineKeyboardButton(text="⬅ Админка", callback_data="admin:home")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def master_detail_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Проверить", callback_data="admin:master")],
+        [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
+    ])
 
 
 def node_detail_keyboard(node_id: int) -> InlineKeyboardMarkup:
@@ -193,7 +206,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v3.7.0", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v3.7.1", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -563,27 +576,120 @@ def _node_detail_text(node: NodeInfo) -> str:
 async def admin_nodes(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
+
+    master_online = False
+    master_error = None
+    try:
+        await xui.server_status()
+        master_online = True
+    except XUIError as exc:
+        master_error = str(exc)
+
+    nodes: list[NodeInfo] = []
+    nodes_error = None
     try:
         nodes = await xui.nodes_list()
     except XUIError as exc:
-        await call.message.answer(
-            f"🔴 Не удалось получить список нод: {exc}",
-            reply_markup=admin_menu(),
-        )
-        await call.answer()
-        return
+        nodes_error = str(exc)
 
-    if not nodes:
-        text = (
-            "🌍 Ноды\n\n"
-            "В master 3x-ui пока нет зарегистрированных нод. "
-            "Добавь Finland в 3x-ui → Nodes, после чего она появится здесь автоматически."
+    online = (1 if master_online else 0) + sum(
+        1 for n in nodes if n.enable and n.status == "online"
+    )
+    total = 1 + len(nodes)
+    text = f"🌍 Ноды\n\nСерверов: {total} · online: {online}"
+    if not nodes and not nodes_error:
+        text += (
+            "\n\nПока подключён только Master. "
+            "Добавь Finland в 3x-ui → Nodes, после чего она появится второй строкой."
+        )
+    if master_error:
+        text += f"\n\n⚠️ Master: {master_error[:180]}"
+    if nodes_error:
+        text += f"\n⚠️ Nodes API: {nodes_error[:180]}"
+
+    await call.message.answer(text, reply_markup=nodes_menu(nodes, master_online))
+    await call.answer()
+
+
+
+
+@router.callback_query(F.data == "admin:master")
+async def admin_master_detail(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.answer("Проверяю Master…")
+
+    local_url = f"http://127.0.0.1:{settings.subscription_proxy_port}/healthz"
+    public_url = _public_health_url()
+    local_task = asyncio.create_task(_check_http(local_url, verify_tls=False))
+    public_task = (
+        asyncio.create_task(_check_http(public_url, verify_tls=settings.verify_tls))
+        if public_url else None
+    )
+
+    status = None
+    inbounds = None
+    api_error = None
+    try:
+        status = await xui.server_status()
+        inbounds = await xui.inbound_options()
+    except XUIError as exc:
+        api_error = str(exc)
+
+    local_ok, local_detail = await local_task
+    if public_task:
+        public_ok, public_detail = await public_task
+    else:
+        public_ok, public_detail = False, "COMPAT URL не настроен"
+
+    lines = [f"{settings.master_flag} {settings.master_name}"]
+    lines.append(
+        "🟢 Online · 3x-ui API" if status is not None else
+        f"🔴 Offline · 3x-ui API — {(api_error or 'unknown error')[:160]}"
+    )
+
+    if status:
+        xray = status.get("xray") or {}
+        xray_state = str(xray.get("state") or "unknown").lower()
+        xray_ok = xray_state in {"running", "started", "online"}
+        xray_version = str(xray.get("version") or "")
+        lines.append(
+            f"{'🟢' if xray_ok else '🔴'} Xray: {xray_state}"
+            + (f" {xray_version}" if xray_version else "")
+        )
+        cpu = status.get("cpu")
+        if cpu is not None:
+            lines.append(f"🧮 CPU: {float(cpu):.1f}%")
+        mem = status.get("mem") or {}
+        if mem.get("total"):
+            lines.append(_usage_line("🧠 RAM", int(mem.get("current") or 0), int(mem["total"])))
+        disk = status.get("disk") or {}
+        if disk.get("total"):
+            lines.append(_usage_line("💽 Disk", int(disk.get("current") or 0), int(disk["total"])))
+        if status.get("uptime") is not None:
+            lines.append(f"⏱ Uptime: {_duration_text(int(status.get('uptime') or 0))}")
+
+    lines.append(f"{'🟢' if local_ok else '🔴'} Subscription proxy" + ("" if local_ok else f" — {local_detail}"))
+    lines.append(f"{'🟢' if public_ok else '🔴'} Public subscription" + ("" if public_ok else f" — {public_detail}"))
+
+    if inbounds is not None:
+        managed = [i for i in inbounds if is_managed_inbound(i)]
+        enabled = sum(1 for i in managed if i.enable)
+        lines.append(f"🌐 Inbound'ы: {enabled}/{len(managed)} включено")
+
+    users = await db.list_users()
+    lines.append(f"👥 Пользователей в БД бота: {len(users)}")
+    latest = await asyncio.to_thread(backup_manager.latest_backup)
+    if latest:
+        lines.append(
+            "💾 Backup: "
+            + latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
+            + f" ({human_bytes(latest.size)})"
         )
     else:
-        online = sum(1 for n in nodes if n.enable and n.status == "online")
-        text = f"🌍 Ноды\n\nВсего: {len(nodes)} · online: {online}"
-    await call.message.answer(text, reply_markup=nodes_menu(nodes))
-    await call.answer()
+        lines.append("⚠️ Backup: ещё не создан")
+
+    await call.message.answer("\n".join(lines), reply_markup=master_detail_keyboard())
 
 
 @router.callback_query(F.data == "admin:nodes:noop")
@@ -597,7 +703,15 @@ async def admin_nodes_noop(call: CallbackQuery):
 async def admin_nodes_refresh(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
-    await call.answer("Проверяю ноды…")
+    await call.answer("Проверяю серверы…")
+
+    master_online = False
+    try:
+        await xui.server_status()
+        master_online = True
+    except XUIError:
+        pass
+
     try:
         current = await xui.nodes_list()
         direct = [n for n in current if n.id > 0 and not n.transitive]
@@ -607,13 +721,21 @@ async def admin_nodes_refresh(call: CallbackQuery):
                 return_exceptions=True,
             )
         nodes = await xui.nodes_list()
-        online = sum(1 for n in nodes if n.enable and n.status == "online")
+        online = (1 if master_online else 0) + sum(
+            1 for n in nodes if n.enable and n.status == "online"
+        )
         await call.message.answer(
-            f"🌍 Ноды обновлены\n\nВсего: {len(nodes)} · online: {online}",
-            reply_markup=nodes_menu(nodes),
+            f"🌍 Ноды обновлены\n\nСерверов: {1 + len(nodes)} · online: {online}",
+            reply_markup=nodes_menu(nodes, master_online),
         )
     except XUIError as exc:
-        await call.message.answer(f"🔴 Ошибка проверки нод: {exc}", reply_markup=admin_menu())
+        await call.message.answer(
+            f"🌍 Ноды обновлены\n\n"
+            f"{settings.master_flag} {settings.master_name}: "
+            f"{'🟢 Online' if master_online else '🔴 Offline'}\n"
+            f"⚠️ Nodes API: {str(exc)[:180]}",
+            reply_markup=nodes_menu([], master_online),
+        )
 
 
 @router.callback_query(F.data.startswith("admin:node:"))
@@ -690,7 +812,7 @@ async def admin_health(call: CallbackQuery):
         public_ok, public_detail = False, "COMPAT URL не настроен"
 
     users = await db.list_users()
-    lines = ["🩺 Состояние системы", "", "Master"]
+    lines = ["🩺 Состояние системы", "", f"{settings.master_flag} {settings.master_name}"]
 
     if inbounds is not None or server_status is not None:
         lines.append("🟢 3x-ui API / panel route")
@@ -1068,7 +1190,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=settings.test_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram bot v3.7.0",
+            comment="Created by Telegram bot v3.7.1",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.

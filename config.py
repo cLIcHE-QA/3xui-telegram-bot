@@ -94,6 +94,8 @@ class Settings:
     backup_hour_utc: int
     backup_send_to_admins: bool
     node_backup_targets: tuple[NodeBackupTarget, ...]
+    master_name: str
+    master_flag: str
 
 
 def load_settings() -> Settings:
@@ -147,4 +149,6 @@ def load_settings() -> Settings:
         backup_hour_utc=max(0, min(23, int(os.getenv("BACKUP_HOUR_UTC", "2")))),
         backup_send_to_admins=env_bool(os.getenv("BACKUP_SEND_TO_ADMINS"), False),
         node_backup_targets=_load_node_backup_targets(),
+        master_name=os.getenv("MASTER_NAME", "Master").strip() or "Master",
+        master_flag=os.getenv("MASTER_FLAG", "🇳🇱").strip() or "🇳🇱",
     )

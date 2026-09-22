@@ -308,9 +308,9 @@ disabled by default because the archive contains secrets.
 v3.6.0 also adds `.dockerignore`, so `.env`, databases and the `data/` directory
 are no longer copied into the Docker image during `docker compose build`.
 
-## v3.7.0: native 3x-ui multi-node foundation
+## v3.7.1: native 3x-ui multi-node foundation
 
-v3.7.0 integrates the bot with the **native 3x-ui Nodes API** on the master panel.
+v3.7.1 integrates the bot with the **native 3x-ui Nodes API** on the master panel.
 The bot does not keep a second copy of the node registry and does not need the
 node-sync tokens which the master stores internally.
 
@@ -371,3 +371,11 @@ nodes/
 
 A failed node backup does not discard the master backup. The archive is still
 created and the failed node is listed in the `missing` section and manifest.
+
+
+### v3.7.1: Master card in Nodes
+
+`/admin -> 🌍 Ноды` now always shows the master server as the first clickable row.
+By default it is rendered as `🇳🇱 Master · 🟢 Online`; the label can be changed with `MASTER_NAME` and `MASTER_FLAG`.
+The Master card opens a compact health view with 3x-ui/Xray, CPU/RAM/disk/uptime, subscription proxy, managed inbounds, bot users and latest backup.
+Server totals and online counts include Master.
