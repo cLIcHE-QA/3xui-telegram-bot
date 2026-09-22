@@ -1,0 +1,115 @@
+name: Publish verified v4.9.0
+on:
+  push:
+    branches: ['chore/publish-v4.9.0']
+    paths: ['.github/workflows/publish-v490.yml']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: publish-v4.9.0
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.repository == 'cLIcHE-QA/3xui-telegram-bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify merge CI and create release without changing any branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          REPO = 'cLIcHE-QA/3xui-telegram-bot'
+          SHA = '9c9f534fe318ede5aff0885743566362cbfc341a'
+          TAG = 'v4.9.0'
+          BASE = f'https://api.github.com/repos/{REPO}'
+
+          def api(path, payload=None, allow_missing=False):
+              request = urllib.request.Request(
+                  BASE + path,
+                  data=None if payload is None else json.dumps(payload).encode(),
+                  headers={
+                      'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                      'Accept': 'application/vnd.github+json',
+                      'Content-Type': 'application/json',
+                      'User-Agent': '3xui-bot-release-publisher',
+                  },
+                  method='GET' if payload is None else 'POST',
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as exc:
+                  if allow_missing and exc.code == 404:
+                      return None
+                  raise RuntimeError(f'GitHub API request failed: HTTP {exc.code}') from None
+
+          def tag_commit(ref):
+              obj = ref['object']
+              for _ in range(4):
+                  if obj['type'] == 'commit':
+                      return obj['sha']
+                  if obj['type'] != 'tag':
+                      raise RuntimeError('Unexpected tag object type')
+                  obj = api('/git/tags/' + obj['sha'])['object']
+              raise RuntimeError('Excessive annotated tag indirection')
+
+          if api('/branches/main')['commit']['sha'] != SHA:
+              raise RuntimeError('Main moved; release needs another review')
+          run = api('/actions/runs/35795363302')
+          if (run['head_sha'], run['status'], run['conclusion'], run['event']) != (
+                  SHA, 'completed', 'success', 'push'):
+              raise RuntimeError('Expected successful post-merge CI is missing')
+          pr = api('/pulls/1')
+          if not pr['merged'] or pr['merge_commit_sha'] != SHA:
+              raise RuntimeError('PR #1 is not merged at the expected commit')
+          ref = api('/git/ref/tags/' + TAG, allow_missing=True)
+          if ref is not None and tag_commit(ref) != SHA:
+              raise RuntimeError('Existing tag points elsewhere; it will NOT be moved')
+          release = api('/releases/tags/' + TAG, allow_missing=True)
+          if release is None:
+              notes = '''## Versions & Updates
+
+          - Shared System > Versions & Updates dashboard and Master/Node shortcuts.
+          - Manual stable-channel 3x-ui updates and exact Xray version selection, including downgrade.
+          - Fresh validated backup, expiring single-use confirmation, permission/target checks and read-only post-update verification.
+          - Durable uncertainty tracking; no automatic retries, updates or rollback.
+          - Existing audit/job tables, centralized APP_VERSION and corrected backup manifest versions.
+          - 66 automated tests plus read-only pull-request/main CI.
+
+          Reviewed PR: #1
+          Release commit: 9c9f534fe318ede5aff0885743566362cbfc341a
+          Post-merge CI: https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/35795363302
+
+          ## Deployment conditions
+
+          This release publishes source code only. No production VPS, panel or Xray was updated.
+          Tests use local fake APIs and temporary databases; live VPN connectivity still requires a maintenance-window check.
+          Preserve .env and data/. Node updates require the existing NODE_BACKUP_TARGETS direct admin connection.
+          Master updates require a complete validated full backup. Backups do not contain previous executables.
+          Do not run parallel restore/restart/configuration operations on a target during an update.
+          See docs/VERSIONS_UPDATES.md for recovery and deployment limits.
+          '''
+              release = api('/releases', {
+                  'tag_name': TAG,
+                  'target_commitish': SHA,
+                  'name': 'v4.9.0 - Versions & Updates',
+                  'body': notes,
+                  'draft': False,
+                  'prerelease': False,
+                  'make_latest': 'true',
+              })
+          if release['draft'] or release['prerelease']:
+              raise RuntimeError('Existing release is not the expected published stable release')
+          ref = api('/git/ref/tags/' + TAG)
+          if tag_commit(ref) != SHA:
+              raise RuntimeError('Published tag did not match the reviewed commit')
+          print('Verified release:', release['html_url'])
+          print('Verified tag:', TAG, SHA)
+          PY
