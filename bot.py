@@ -33,6 +33,7 @@ from provisioning import ProvisioningEngine
 from logs_alerts import logs_alerts_router, alert_monitor_loop
 from logging_setup import configure_logging
 from disaster_recovery import disaster_recovery_router, send_boot_restore_notice
+from admin_ui import AdminPanelSessionMiddleware, register_panel_message, render_callback, render_input
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -414,7 +415,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v4.5.0", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v4.8.0", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -424,7 +425,8 @@ async def admin(message: Message):
     if role is None:
         await message.answer("Команда доступна только администратору.")
         return
-    await message.answer(f"⚙️ Admin Panel · {role}", reply_markup=admin_menu())
+    panel = await message.answer(f"⚙️ Admin Panel · {role}", reply_markup=admin_menu())
+    register_panel_message(message.from_user.id, panel)
 
 def _section_header(title: str, subtitle: str) -> str:
     return f"{title}\n\n{subtitle}"
@@ -567,7 +569,7 @@ async def admin_dashboard(call: CallbackQuery):
         f"💾 Last backup: {backup_text}",
     ]
 
-    await call.message.answer("\n".join(lines), reply_markup=admin_menu())
+    await render_callback(call, "\n".join(lines), reply_markup=admin_menu())
     await call.answer()
 
 
@@ -588,7 +590,7 @@ async def admin_subscriptions(call: CallbackQuery):
         f"Всего подписок в локальной БД: {len(users)}\n"
         "Открой запись, чтобы получить текущий compatibility URL."
     )
-    await call.message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -596,7 +598,7 @@ async def admin_subscriptions(call: CallbackQuery):
 async def admin_infrastructure(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
-    await call.message.answer(
+    await render_callback(call, 
         _section_header(
             "🌐 Infrastructure",
             "Управление панелями, нодами, inbound'ами, hosts и группами серверов.",
@@ -610,7 +612,7 @@ async def admin_infrastructure(call: CallbackQuery):
 async def admin_monitoring(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
-    await call.message.answer(
+    await render_callback(call, 
         _section_header(
             "📈 Monitoring",
             "Трафик, online-состояние, здоровье системы и журналы.",
@@ -624,7 +626,7 @@ async def admin_monitoring(call: CallbackQuery):
 async def admin_system(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
-    await call.message.answer(
+    await render_callback(call, 
         _section_header(
             "⚙️ System",
             "Фоновые задачи, backups, аудит, администраторы и настройки.",
@@ -640,9 +642,9 @@ async def admin_infrastructure_inbounds(call: CallbackQuery):
         return
     try:
         text, kb = await inbound_list_view()
-        await call.message.answer(text, reply_markup=kb)
+        await render_callback(call, text, reply_markup=kb)
     except XUIError as exc:
-        await call.message.answer(
+        await render_callback(call, 
             f"📡 Inbounds\n\nОшибка 3x-ui: {exc}",
             reply_markup=infrastructure_menu(),
         )
@@ -660,7 +662,7 @@ async def admin_legacy_catalog_callback(call: CallbackQuery):
         "admin:coming:hosts": ("🌐 Hosts", "admin:hosts"),
         "admin:coming:servergroups": ("🗂 Server Groups", "admin:servergroups"),
     }[call.data]
-    await call.message.answer(
+    await render_callback(call, 
         "Этот раздел уже доступен в v3.9.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text=target[0], callback_data=target[1])
@@ -690,7 +692,7 @@ async def admin_legacy_v4_callback(call: CallbackQuery):
         "admin:coming:administrators": ("👮 Administrators", "admin:administrators"),
         "admin:coming:settings": ("🔧 Settings", "admin:settings"),
     }[call.data]
-    await call.message.answer(
+    await render_callback(call, 
         "Этот раздел уже доступен в текущей версии.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text=target[0], callback_data=target[1])
@@ -703,7 +705,7 @@ async def admin_legacy_v4_callback(call: CallbackQuery):
 async def admin_legacy_logs_callback(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
-    await call.message.answer(
+    await render_callback(call, 
         "Раздел Logs уже доступен в текущей версии.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="📜 Logs", callback_data="admin:logs")
@@ -739,7 +741,7 @@ async def admin_coming_soon(call: CallbackQuery):
         back = system_menu()
     else:
         back = admin_menu()
-    await call.message.answer(f"{title}\n\n{body}", reply_markup=back)
+    await render_callback(call, f"{title}\n\n{body}", reply_markup=back)
     await call.answer()
 
 
@@ -760,7 +762,7 @@ async def admin_users(call: CallbackQuery):
     rows.append([InlineKeyboardButton(text="📊 Статистика пользователей", callback_data="admin:stats")])
     rows.append([InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")])
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
-    await call.message.answer(f"👥 Users\n\nПользователи в БД бота: {len(users)}", reply_markup=kb)
+    await render_callback(call, f"👥 Users\n\nПользователи в БД бота: {len(users)}", reply_markup=kb)
     await call.answer()
 
 @router.callback_query(F.data == "admin:provision:all:ask")
@@ -769,7 +771,7 @@ async def admin_provision_all_ask(call: CallbackQuery):
     if not ok:
         return
     users = await db.list_users()
-    await call.message.answer(
+    await render_callback(call, 
         "🚀 Safe reconcile provisioning для всех пользователей\n\n"
         f"Пользователей: {len(users)}\n"
         "Для каждого пользователя будет рассчитан desired scope по User Profile → Plan → Server Group. "
@@ -825,12 +827,12 @@ async def admin_provision_all_run(call: CallbackQuery):
             lines += ["", "Первые ошибки:"]
             for tg_id, err in list(failed.items())[:8]:
                 lines.append(f"• TG {tg_id}: {err[:140]}")
-        await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Users", callback_data="admin:users")]]))
+        await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Users", callback_data="admin:users")]]))
     except Exception as exc:
         duration_ms = int((time.monotonic() - started) * 1000)
         await db.finish_job_run(run_id, status="failed", duration_ms=duration_ms, details=f"{type(exc).__name__}: {exc}")
         await audit_from_call(db, call, "users.provision_all", target_type="users", details=f"error={type(exc).__name__}: {exc}", success=False)
-        await call.message.answer(f"🔴 Provisioning job failed: {type(exc).__name__}: {exc}")
+        await render_callback(call, f"🔴 Provisioning job failed: {type(exc).__name__}: {exc}")
 
 
 @router.callback_query(F.data == "admin:syncall:ask")
@@ -843,16 +845,16 @@ async def admin_sync_all_ask(call: CallbackQuery):
         available = choose_inbounds(await xui.inbound_options())
         target_ids = sorted({i.id for i in available})
     except XUIError as e:
-        await call.message.answer(f"Ошибка 3x-ui: {e}", reply_markup=admin_menu())
+        await render_callback(call, f"Ошибка 3x-ui: {e}", reply_markup=admin_menu())
         await call.answer()
         return
 
     if not users:
-        await call.message.answer("В локальной БД нет пользователей.", reply_markup=admin_menu())
+        await render_callback(call, "В локальной БД нет пользователей.", reply_markup=admin_menu())
         await call.answer()
         return
     if not target_ids:
-        await call.message.answer(
+        await render_callback(call, 
             "После фильтрации в .env нет доступных inbound'ов. "
             "Проверь ALLOWED_PORTS, ALLOWED_PROTOCOLS и INBOUND_IDS.",
             reply_markup=admin_menu(),
@@ -861,7 +863,7 @@ async def admin_sync_all_ask(call: CallbackQuery):
         return
 
     flow_note = settings.vless_flow or "не менять"
-    await call.message.answer(
+    await render_callback(call, 
         "Глобальная синхронизация добавит всем пользователям из локальной БД "
         "все разрешённые inbound'ы, которых у них ещё нет, и синхронизирует VLESS flow.\n\n"
         f"Пользователей: {len(users)}\n"
@@ -879,7 +881,7 @@ async def admin_sync_all_run(call: CallbackQuery):
 
     users = await db.list_users()
     if not users:
-        await call.message.answer("В локальной БД нет пользователей.", reply_markup=admin_menu())
+        await render_callback(call, "В локальной БД нет пользователей.", reply_markup=admin_menu())
         await call.answer()
         return
 
@@ -887,7 +889,7 @@ async def admin_sync_all_run(call: CallbackQuery):
         available = choose_inbounds(await xui.inbound_options())
         target_ids = sorted({i.id for i in available})
         if not target_ids:
-            await call.message.answer(
+            await render_callback(call, 
                 "Нет разрешённых inbound'ов после фильтрации .env.",
                 reply_markup=admin_menu(),
             )
@@ -951,7 +953,7 @@ async def admin_sync_all_run(call: CallbackQuery):
             if preview:
                 lines += ["", "Первые ошибки:"] + preview
 
-        await call.message.answer("\n".join(lines), reply_markup=admin_menu())
+        await render_callback(call, "\n".join(lines), reply_markup=admin_menu())
         await audit_from_call(
             db, call, "users.sync_all", target_type="users", target_id=str(len(users)),
             details=f"inbounds={target_ids}; errors={error_count}; flow={settings.vless_flow or 'unchanged'}",
@@ -962,7 +964,7 @@ async def admin_sync_all_run(call: CallbackQuery):
             db, call, "users.sync_all", target_type="users", target_id=str(len(users)),
             details=f"3x-ui error: {e}", success=False,
         )
-        await call.message.answer(
+        await render_callback(call, 
             "Не удалось выполнить глобальную синхронизацию.\n\n"
             f"Ошибка 3x-ui: {e}",
             reply_markup=admin_menu(),
@@ -979,7 +981,7 @@ async def admin_stats(call: CallbackQuery):
     now_ms = int(time.time() * 1000)
     active = sum(1 for u in users if not u.expiry_time or u.expiry_time > now_ms)
     soon = sum(1 for u in users if u.expiry_time and now_ms < u.expiry_time <= now_ms + 3*86400*1000)
-    await call.message.answer(
+    await render_callback(call, 
         f"📊 Локальная БД\n\nВсего: {len(users)}\n"
         f"Не истекли: {active}\nИстекают за 3 дня: {soon}",
         reply_markup=admin_menu()
@@ -1080,7 +1082,7 @@ def _backup_status_text() -> str:
 async def admin_backups(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
-    await call.message.answer(_backup_status_text(), reply_markup=backup_menu())
+    await render_callback(call, _backup_status_text(), reply_markup=backup_menu())
     await call.answer()
 
 
@@ -1118,7 +1120,7 @@ async def admin_backup_create(call: CallbackQuery):
         ]
         if result.missing:
             lines.append(f"⚠️ Не найдено: {', '.join(result.missing)}")
-        await call.message.answer("\n".join(lines), reply_markup=backup_menu())
+        await render_callback(call, "\n".join(lines), reply_markup=backup_menu())
     except Exception as exc:
         duration_ms = int((time.monotonic() - started) * 1000)
         await db.finish_job_run(
@@ -1130,7 +1132,7 @@ async def admin_backup_create(call: CallbackQuery):
             details=f"{type(exc).__name__}: {exc}", success=False,
         )
         logging.exception("Manual backup failed")
-        await call.message.answer(
+        await render_callback(call, 
             f"🔴 Не удалось создать backup: {type(exc).__name__}: {exc}",
             reply_markup=backup_menu(),
         )
@@ -1157,7 +1159,7 @@ async def admin_backup_botdb(call: CallbackQuery):
             details=f"{type(exc).__name__}: {exc}", success=False,
         )
         logging.exception("Bot DB snapshot failed")
-        await call.message.answer(f"🔴 Ошибка backup SQLite: {type(exc).__name__}: {exc}")
+        await render_callback(call, f"🔴 Ошибка backup SQLite: {type(exc).__name__}: {exc}")
 
 
 @router.callback_query(F.data == "admin:backup:full")
@@ -1169,7 +1171,7 @@ async def admin_backup_full(call: CallbackQuery):
         info = await asyncio.to_thread(backup_manager.latest_backup)
         if info is None:
             if backup_lock.locked():
-                await call.message.answer("Backup уже создаётся. Повтори скачивание чуть позже.")
+                await render_callback(call, "Backup уже создаётся. Повтори скачивание чуть позже.")
                 return
             async with backup_lock:
                 result = await system_backup.create_full_backup()
@@ -1191,7 +1193,7 @@ async def admin_backup_full(call: CallbackQuery):
             details=f"{type(exc).__name__}: {exc}", success=False,
         )
         logging.exception("Full backup download failed")
-        await call.message.answer(f"🔴 Ошибка отправки backup: {type(exc).__name__}: {exc}")
+        await render_callback(call, f"🔴 Ошибка отправки backup: {type(exc).__name__}: {exc}")
 
 
 def _node_detail_text(node: NodeInfo) -> str:
@@ -1274,7 +1276,7 @@ async def admin_nodes(call: CallbackQuery):
     if nodes_error:
         text += f"\n⚠️ Nodes API: {nodes_error[:180]}"
 
-    await call.message.answer(text, reply_markup=nodes_menu(nodes, master_online))
+    await render_callback(call, text, reply_markup=nodes_menu(nodes, master_online))
     await call.answer()
 
 
@@ -1286,7 +1288,7 @@ async def admin_node_add_start(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.set_state(AddNodeStates.name)
-    await call.message.answer(
+    await render_callback(call, 
         "➕ Добавление ноды\n\n"
         "Шаг 1/4. Отправь имя ноды.\n"
         "Например: Finland",
@@ -1304,15 +1306,15 @@ async def admin_node_add_name(message: Message, state: FSMContext):
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
     if not ok:
         await state.clear()
-        await message.answer("Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.")
         return
     name = (message.text or "").strip()
     if not name or len(name) > 64:
-        await message.answer("Имя должно содержать от 1 до 64 символов.")
+        await render_input(message, "Имя должно содержать от 1 до 64 символов.")
         return
     await state.update_data(name=name)
     await state.set_state(AddNodeStates.url)
-    await message.answer(
+    await render_input(message, 
         "Шаг 2/4. Отправь URL панели 3x-ui на ноде.\n\n"
         "Можно целиком, например:\n"
         "https://fi.example.com:2053/my-base/panel/\n\n"
@@ -1328,16 +1330,16 @@ async def admin_node_add_url(message: Message, state: FSMContext):
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
     if not ok:
         await state.clear()
-        await message.answer("Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.")
         return
     try:
         parsed = _parse_node_url(message.text or "")
     except ValueError as exc:
-        await message.answer(f"Не удалось разобрать URL: {exc}\nПопробуй ещё раз.")
+        await render_input(message, f"Не удалось разобрать URL: {exc}\nПопробуй ещё раз.")
         return
     await state.update_data(**parsed)
     await state.set_state(AddNodeStates.token)
-    await message.answer(
+    await render_input(message, 
         "Шаг 3/4. Отправь API token этой ноды.\n\n"
         "Токен 3x-ui является полным административным секретом. "
         "Сообщение с токеном бот попробует удалить сразу после получения."
@@ -1351,11 +1353,11 @@ async def admin_node_add_token(message: Message, state: FSMContext):
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
     if not ok:
         await state.clear()
-        await message.answer("Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.")
         return
     token = (message.text or "").strip()
     if len(token) < 8:
-        await message.answer("Токен выглядит слишком коротким. Отправь API token ноды ещё раз.")
+        await render_input(message, "Токен выглядит слишком коротким. Отправь API token ноды ещё раз.")
         return
     await state.update_data(apiToken=token)
     try:
@@ -1363,7 +1365,7 @@ async def admin_node_add_token(message: Message, state: FSMContext):
     except Exception:
         pass
     await state.set_state(AddNodeStates.review)
-    await message.answer(
+    await render_input(message, 
         "Шаг 4/4. Как проверять TLS-сертификат ноды?\n\n"
         "Рекомендуется «Проверять TLS». Режим без проверки нужен только для "
         "временного теста или собственного сертификата.",
@@ -1375,7 +1377,7 @@ async def _node_add_test_and_show(call: CallbackQuery, state: FSMContext, tls_mo
     data = await state.get_data()
     if not data.get("apiToken"):
         await state.clear()
-        await call.message.answer("Сессия добавления ноды истекла. Начни добавление заново.", reply_markup=admin_menu())
+        await render_callback(call, "Сессия добавления ноды истекла. Начни добавление заново.", reply_markup=admin_menu())
         return
     if tls_mode:
         await state.update_data(tlsVerifyMode=tls_mode)
@@ -1386,7 +1388,7 @@ async def _node_add_test_and_show(call: CallbackQuery, state: FSMContext, tls_mo
         result = await xui.node_test(payload)
     except XUIError as exc:
         mode = str(data.get("tlsVerifyMode") or "verify")
-        await call.message.answer(
+        await render_callback(call, 
             "🔴 Проверка ноды не прошла.\n\n"
             f"{str(exc)[:500]}\n\n"
             "Проверь URL/API token. Если на ноде собственный TLS-сертификат, "
@@ -1421,7 +1423,7 @@ async def _node_add_test_and_show(call: CallbackQuery, state: FSMContext, tls_mo
     if result.get("xrayError"):
         lines.append(f"⚠️ Xray: {str(result['xrayError'])[:240]}")
     lines += ["", "Если всё верно, нажми «✅ Добавить ноду». "]
-    await call.message.answer("\n".join(lines), reply_markup=add_node_review_keyboard(mode))
+    await render_callback(call, "\n".join(lines), reply_markup=add_node_review_keyboard(mode))
 
 
 @router.callback_query(F.data.startswith("admin:nodeadd:tls:"))
@@ -1469,7 +1471,7 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
             target_id=str(data.get("name") or ""),
             details=f"3x-ui error: {exc}", success=False,
         )
-        await call.message.answer(
+        await render_callback(call, 
             "🔴 Не удалось добавить ноду.\n\n"
             f"Ошибка 3x-ui: {str(exc)[:500]}",
             reply_markup=add_node_review_keyboard(str(data.get("tlsVerifyMode") or "verify")),
@@ -1481,7 +1483,7 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
         details=f"name={node.name}; status={node.status}",
     )
     await state.clear()
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Нода {_node_display_name(node.name)} добавлена.\n"
         f"Статус: {_node_status_icon(node)} {node.status}",
         reply_markup=node_detail_keyboard(node.id, node.enable),
@@ -1494,7 +1496,7 @@ async def admin_node_add_cancel(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await call.answer("Добавление отменено")
-    await call.message.answer("Добавление ноды отменено.", reply_markup=admin_menu())
+    await render_callback(call, "Добавление ноды отменено.", reply_markup=admin_menu())
 
 
 @router.callback_query(F.data == "admin:master")
@@ -1573,7 +1575,7 @@ async def admin_master_detail(call: CallbackQuery):
     else:
         lines.append("⚠️ Backup: ещё не создан")
 
-    await call.message.answer("\n".join(lines), reply_markup=master_detail_keyboard())
+    await render_callback(call, "\n".join(lines), reply_markup=master_detail_keyboard())
 
 
 @router.callback_query(F.data == "admin:nodes:noop")
@@ -1608,12 +1610,12 @@ async def admin_nodes_refresh(call: CallbackQuery):
         online = (1 if master_online else 0) + sum(
             1 for n in nodes if n.enable and n.status == "online"
         )
-        await call.message.answer(
+        await render_callback(call, 
             f"🌍 Ноды обновлены\n\nСерверов: {1 + len(nodes)} · online: {online}",
             reply_markup=nodes_menu(nodes, master_online),
         )
     except XUIError as exc:
-        await call.message.answer(
+        await render_callback(call, 
             f"🌍 Ноды обновлены\n\n"
             f"{settings.master_flag} {settings.master_name}: "
             f"{'🟢 Online' if master_online else '🔴 Offline'}\n"
@@ -1641,13 +1643,13 @@ async def admin_node_detail(call: CallbackQuery):
     try:
         node = await xui.node_get(node_id)
     except XUIError as exc:
-        await call.message.answer(f"🔴 Нода недоступна: {exc}", reply_markup=admin_menu())
+        await render_callback(call, f"🔴 Нода недоступна: {exc}", reply_markup=admin_menu())
         return
 
     text = _node_detail_text(node)
     if probe_error and not node.last_error:
         text += f"\n⚠️ Probe: {probe_error[:240]}"
-    await call.message.answer(text, reply_markup=node_detail_keyboard(node_id, node.enable))
+    await render_callback(call, text, reply_markup=node_detail_keyboard(node_id, node.enable))
 
 
 @router.callback_query(F.data == "admin:health")
@@ -1791,14 +1793,14 @@ async def admin_health(call: CallbackQuery):
     elif nodes:
         lines.append("⚠️ Backup БД нод: не настроен")
 
-    await call.message.answer("\n".join(lines), reply_markup=monitoring_menu())
+    await render_callback(call, "\n".join(lines), reply_markup=monitoring_menu())
 
 
 @router.callback_query(F.data == "admin:home")
 async def admin_home(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
-    await call.message.answer("⚙️ Admin Panel", reply_markup=admin_menu())
+    await render_callback(call, "⚙️ Admin Panel", reply_markup=admin_menu())
     await call.answer()
 
 @router.callback_query(F.data.startswith("adminuser:"))
@@ -1835,7 +1837,7 @@ async def admin_user(call: CallbackQuery):
     except XUIError as e:
         enabled = True
         text = f"👤 {rec.email}\nTelegram ID: {rec.telegram_id}\n\nОшибка 3x-ui: {e}"
-    await call.message.answer(text, reply_markup=user_admin_keyboard(tg_id, enabled))
+    await render_callback(call, text, reply_markup=user_admin_keyboard(tg_id, enabled))
     await call.answer()
 
 @router.callback_query(F.data.startswith("adminsub:"))
@@ -1845,7 +1847,7 @@ async def admin_sub(call: CallbackQuery):
     tg_id = int(call.data.split(":", 1)[1])
     rec = await db.get(tg_id)
     if rec:
-        await call.message.answer(f"🔗 {rec.email}\n{sub_url(rec.sub_id)}")
+        await render_callback(call, f"🔗 {rec.email}\n{sub_url(rec.sub_id)}")
     await call.answer()
 
 @router.callback_query(F.data.startswith("adminsync:"))
@@ -1864,7 +1866,7 @@ async def admin_sync_inbounds(call: CallbackQuery):
         target_ids = sorted({i.id for i in available})
 
         if not target_ids:
-            await call.message.answer(
+            await render_callback(call, 
                 "После фильтрации в .env нет ни одного доступного inbound. "
                 "Проверь ALLOWED_PORTS, ALLOWED_PROTOCOLS и INBOUND_IDS."
             )
@@ -1910,7 +1912,7 @@ async def admin_sync_inbounds(call: CallbackQuery):
         if flow_synced:
             lines.append(f"VLESS flow: {updated_flow}")
 
-        await call.message.answer("\n".join(lines))
+        await render_callback(call, "\n".join(lines))
         await audit_from_call(
             db, call, "user.sync", target_type="user", target_id=rec.email,
             details=f"added={missing_ids}; inbounds={updated_ids}; flow={updated_flow}",
@@ -1920,7 +1922,7 @@ async def admin_sync_inbounds(call: CallbackQuery):
             db, call, "user.sync", target_type="user", target_id=rec.email,
             details=f"3x-ui error: {e}", success=False,
         )
-        await call.message.answer(
+        await render_callback(call, 
             "Не удалось синхронизировать inbound'ы/flow.\n\n"
             f"Ошибка 3x-ui: {e}"
         )
@@ -1950,13 +1952,13 @@ async def admin_extend(call: CallbackQuery):
             db, call, "user.extend", target_type="user", target_id=rec.email,
             details=f"+30 days; expiry={new_expiry}",
         )
-        await call.message.answer(f"✅ {rec.email} продлён до {fmt_date(new_expiry)}")
+        await render_callback(call, f"✅ {rec.email} продлён до {fmt_date(new_expiry)}")
     except XUIError as e:
         await audit_from_call(
             db, call, "user.extend", target_type="user", target_id=rec.email,
             details=f"3x-ui error: {e}", success=False,
         )
-        await call.message.answer(f"Ошибка 3x-ui: {e}")
+        await render_callback(call, f"Ошибка 3x-ui: {e}")
     await call.answer()
 
 @router.callback_query(F.data.startswith("admindisable:"))
@@ -1968,13 +1970,13 @@ async def admin_disable(call: CallbackQuery):
     try:
         await xui.update_client(rec.email, enable=False)
         await audit_from_call(db, call, "user.disable", target_type="user", target_id=rec.email)
-        await call.message.answer(f"⛔ {rec.email} отключён.")
+        await render_callback(call, f"⛔ {rec.email} отключён.")
     except (XUIError, AttributeError) as e:
         await audit_from_call(
             db, call, "user.disable", target_type="user",
             target_id=rec.email if rec else str(tg_id), details=str(e), success=False,
         )
-        await call.message.answer(f"Ошибка: {e}")
+        await render_callback(call, f"Ошибка: {e}")
     await call.answer()
 
 @router.callback_query(F.data.startswith("adminenable:"))
@@ -1986,13 +1988,13 @@ async def admin_enable(call: CallbackQuery):
     try:
         await xui.update_client(rec.email, enable=True)
         await audit_from_call(db, call, "user.enable", target_type="user", target_id=rec.email)
-        await call.message.answer(f"✅ {rec.email} включён.")
+        await render_callback(call, f"✅ {rec.email} включён.")
     except (XUIError, AttributeError) as e:
         await audit_from_call(
             db, call, "user.enable", target_type="user",
             target_id=rec.email if rec else str(tg_id), details=str(e), success=False,
         )
-        await call.message.answer(f"Ошибка: {e}")
+        await render_callback(call, f"Ошибка: {e}")
     await call.answer()
 
 @router.callback_query(F.data.startswith("admindelask:"))
@@ -2002,7 +2004,7 @@ async def admin_del_ask(call: CallbackQuery):
     tg_id = int(call.data.split(":", 1)[1])
     rec = await db.get(tg_id)
     if rec:
-        await call.message.answer(
+        await render_callback(call, 
             f"Удалить {rec.email} из 3x-ui и локальной БД?",
             reply_markup=confirm_delete_keyboard(tg_id)
         )
@@ -2021,13 +2023,13 @@ async def admin_del(call: CallbackQuery):
         await xui.delete_client(rec.email)
         await db.delete(tg_id)
         await audit_from_call(db, call, "user.delete", target_type="user", target_id=rec.email)
-        await call.message.answer(f"🗑 {rec.email} удалён.")
+        await render_callback(call, f"🗑 {rec.email} удалён.")
     except XUIError as e:
         await audit_from_call(
             db, call, "user.delete", target_type="user", target_id=rec.email,
             details=f"3x-ui error: {e}", success=False,
         )
-        await call.message.answer(f"Ошибка 3x-ui, локальная запись сохранена: {e}")
+        await render_callback(call, f"Ошибка 3x-ui, локальная запись сохранена: {e}")
     await call.answer()
 
 @router.message(Command("inbounds"))
@@ -2132,7 +2134,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=inbound_ids,
             total_bytes=traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=ip_limit,
-            comment=f"Created by Telegram bot v4.5.0 · {provisioning_note}",
+            comment=f"Created by Telegram bot v4.8.0 · {provisioning_note}",
             flow=settings.vless_flow,
         )
         if settings.vless_flow:
@@ -2171,7 +2173,7 @@ async def sub_cb(call: CallbackQuery):
         await call.answer("Нет доступа.", show_alert=True)
         return
     rec = await db.get(call.from_user.id)
-    await call.message.answer(sub_url(rec.sub_id) if rec else "Сначала создай доступ.")
+    await render_callback(call, sub_url(rec.sub_id) if rec else "Сначала создай доступ.")
     await call.answer()
 
 async def _seconds_until_backup_hour() -> float:
@@ -2261,6 +2263,7 @@ async def main():
     bot = Bot(settings.bot_token)
     await send_boot_restore_notice(bot)
     dp = Dispatcher()
+    dp.callback_query.outer_middleware(AdminPanelSessionMiddleware())
     dp.include_router(router)
     dp.include_router(advanced_users_router)
     dp.include_router(advanced_nodes_router)

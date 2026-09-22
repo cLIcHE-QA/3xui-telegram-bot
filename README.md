@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v4.7.0
+# 3x-ui Telegram bot v4.8.0
 
 Production-oriented Telegram admin panel for 3x-ui.
 
@@ -1415,3 +1415,100 @@ docker compose logs --tail=100 bot
 ```
 
 No new `.env` variables are required. v4.7 changes the container entrypoint only so a pending bot-DB restore can be applied safely before the Telegram process starts.
+
+
+## v4.8.0 — Single Message Admin UI
+
+v4.8.0 changes only the Telegram presentation/navigation layer. The v4.7
+business logic, 3x-ui operations, provisioning, monitoring, backups, restore,
+alerts, subscriptions and SQLite schema remain unchanged.
+
+### One active admin message
+
+`/admin` creates a fresh admin panel message. After that, inline navigation edits
+that same message instead of posting a new menu on every click:
+
+```text
+/admin
+  -> Dashboard
+     -> Infrastructure
+        -> Nodes
+           -> node card
+              -> Back
+```
+
+All of those screens reuse one Telegram `message_id` in the normal path.
+Pressing `/admin` again intentionally creates a new panel message.
+
+The same edit-in-place behavior is also used by the bot's inline user menu.
+Slash commands (`/start`, `/inbounds`, `/create`, `/subscription`, `/admin`)
+continue to create new messages, so a fresh command always gives a new entry
+point.
+
+### Forms no longer clutter the chat
+
+Admin FSM forms (node add/rename, user limits, Plans, Server Groups, Hosts,
+Payments, Promo Codes, Settings, inbound editing/templates and Disaster
+Recovery confirmation) remember the active panel. Text entered by the
+administrator is deleted when Telegram allows it, and the original panel is
+redrawn with the next step or result.
+
+If the active panel cannot be edited (for example after an unusual Telegram
+message transition), the bot safely falls back to sending a replacement panel
+and makes that replacement the new active message.
+
+### Messages that intentionally remain separate
+
+Some outputs are events or files rather than navigation and therefore still
+arrive as separate Telegram messages:
+
+- alert/recovery notifications;
+- `.tar.gz` backups and SQLite downloads;
+- Disaster Recovery export files such as `bot.env` / `nginx` bundles;
+- scheduled backup delivery when enabled.
+
+### Implementation notes
+
+`admin_ui.py` contains the shared renderer and panel-session middleware. All
+inline callback screens use `edit_text()` through the shared renderer, which
+also treats Telegram's `message is not modified` response as a normal refresh.
+The session is process-local and contains only Telegram chat/message references;
+no new SQLite tables or `.env` variables are introduced.
+
+### Upgrade from v4.7.0
+
+No additional server configuration is required.
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v4.7.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v4.7.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v4.8.0/.env
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.8.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v4.7.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v4.8.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v4.8.0
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 bot
+```
+
+Quick UI test:
+
+```text
+/admin
+-> Infrastructure
+-> Nodes
+-> Back
+-> Monitoring
+-> Logs
+-> Back
+```
+
+The navigation above should keep changing the same bot message. Then open any
+text-input form, enter a value, and confirm that the typed value disappears and
+the panel itself advances to the next step.

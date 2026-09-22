@@ -8,6 +8,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 from audit import audit_from_call
+from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback
 from backup_manager import BackupManager
 from config import load_settings
@@ -94,7 +95,7 @@ async def traffic_view(call: CallbackQuery):
     try:
         clients = await xui.clients_list()
     except XUIError as exc:
-        await call.message.answer(
+        await render_callback(call, 
             f"📊 Traffic\n\n🔴 3x-ui: {str(exc)[:500]}",
             reply_markup=monitoring_back(),
         )
@@ -160,7 +161,7 @@ async def traffic_view(call: CallbackQuery):
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:traffic")],
         [InlineKeyboardButton(text="⬅ Monitoring", callback_data="admin:section:monitoring")],
     ])
-    await call.message.answer("\n".join(lines), reply_markup=kb)
+    await render_callback(call, "\n".join(lines), reply_markup=kb)
 
 
 @observability_router.callback_query(F.data == "admin:online")
@@ -174,7 +175,7 @@ async def online_view(call: CallbackQuery):
             xui.last_online(),
         )
     except XUIError as exc:
-        await call.message.answer(
+        await render_callback(call, 
             f"🟢 Online\n\n🔴 3x-ui: {str(exc)[:500]}",
             reply_markup=monitoring_back(),
         )
@@ -215,7 +216,7 @@ async def online_view(call: CallbackQuery):
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:online")],
         [InlineKeyboardButton(text="⬅ Monitoring", callback_data="admin:section:monitoring")],
     ])
-    await call.message.answer("\n".join(lines), reply_markup=kb)
+    await render_callback(call, "\n".join(lines), reply_markup=kb)
 
 
 def next_backup_text() -> str:
@@ -280,7 +281,7 @@ async def jobs_view(call: CallbackQuery):
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:jobs")],
         [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
     ])
-    await call.message.answer("\n".join(lines), reply_markup=kb)
+    await render_callback(call, "\n".join(lines), reply_markup=kb)
     await call.answer()
 
 
@@ -312,7 +313,7 @@ async def jobs_run_backup(call: CallbackQuery):
             target_id=result.info.path.name,
             details=f"manual job; size={result.info.size}; missing={len(result.missing)}",
         )
-        await call.message.answer(
+        await render_callback(call, 
             "✅ Job завершён.\n\n"
             f"Файл: {result.info.path.name}\n"
             f"Размер: {human_bytes(result.info.size)}\n"
@@ -337,7 +338,7 @@ async def jobs_run_backup(call: CallbackQuery):
             details=f"manual job failed: {type(exc).__name__}: {exc}",
             success=False,
         )
-        await call.message.answer(
+        await render_callback(call, 
             f"🔴 Backup job failed: {type(exc).__name__}: {str(exc)[:500]}",
             reply_markup=system_back(),
         )
@@ -445,5 +446,5 @@ async def audit_page(call: CallbackQuery, offset: int):
         rows.append(nav)
     rows.append([InlineKeyboardButton(text="🔄 Обновить", callback_data=f"admin:audit:{offset}")])
     rows.append([InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")])
-    await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()

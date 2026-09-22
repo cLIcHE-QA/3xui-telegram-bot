@@ -10,6 +10,7 @@ from typing import Iterable
 from aiogram import Bot, F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
+from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback
 from audit import audit_from_call, audit_system
 from backup_manager import BackupManager
@@ -189,7 +190,7 @@ async def logs_home(call: CallbackQuery):
         "логи не удаляются и настройки сервисов не меняются.\n\n"
         "Node logs доступны для нод, у которых настроен direct admin token (NODE_BACKUP_TARGETS)."
     )
-    await call.message.answer(text, reply_markup=_logs_menu(direct))
+    await render_callback(call, text, reply_markup=_logs_menu(direct))
     await call.answer()
 
 
@@ -203,13 +204,13 @@ async def master_log_view(call: CallbackQuery):
     try:
         title, lines = await _master_log_lines(source, count, level)
     except (XUIError, OSError, ValueError) as exc:
-        await call.message.answer(
+        await render_callback(call, 
             f"📜 Logs\n\n🔴 {type(exc).__name__}: {str(exc)[:500]}",
             reply_markup=_log_controls(source, count, level),
         )
         return
     shown = lines[-count:]
-    await call.message.answer(
+    await render_callback(call, 
         f"{title}\nFilter: {level.upper()} · last {count}\n\n{_excerpt(shown)}",
         reply_markup=_log_controls(source, count, level),
     )
@@ -232,7 +233,7 @@ async def node_logs_list(call: CallbackQuery):
     if not rows:
         rows.append([InlineKeyboardButton(text="— direct tokens не настроены", callback_data="admin:logs")])
     rows.append([InlineKeyboardButton(text="⬅ Logs", callback_data="admin:logs")])
-    await call.message.answer("🌍 Node logs\n\nВыбери ноду:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, "🌍 Node logs\n\nВыбери ноду:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -257,7 +258,7 @@ async def node_logs_sources(call: CallbackQuery):
         [InlineKeyboardButton(text="🛡 AmneziaWG", callback_data=f"admin:logs:nview:{node_id}:awg:50:all")],
         [InlineKeyboardButton(text="⬅ Node logs", callback_data="admin:logs:nodes")],
     ])
-    await call.message.answer(f"📜 Logs · {node.name}\n\nВыбери источник:", reply_markup=kb)
+    await render_callback(call, f"📜 Logs · {node.name}\n\nВыбери источник:", reply_markup=kb)
     await call.answer()
 
 
@@ -283,13 +284,13 @@ async def node_log_view(call: CallbackQuery):
             lines = _filter_lines(await client.amneziawg_logs(fetch_count), level)
             title = f"🛡 AmneziaWG · {node.name}"
     except Exception as exc:
-        await call.message.answer(
+        await render_callback(call, 
             f"📜 Node logs\n\n🔴 {type(exc).__name__}: {str(exc)[:500]}",
             reply_markup=_log_controls(source, count, level, node_id=node_id),
         )
         await call.answer()
         return
-    await call.message.answer(
+    await render_callback(call, 
         f"{title}\nFilter: {level.upper()} · last {count}\n\n{_excerpt(lines[-count:])}",
         reply_markup=_log_controls(source, count, level, node_id=node_id),
     )
@@ -345,7 +346,7 @@ async def _send_alerts_view(call: CallbackQuery) -> None:
     else:
         lines.append("✅ Активных инцидентов нет")
     lines += ["", "Проверка выполняется автоматически примерно раз в 5 минут. Уведомления повторяются только после cooldown."]
-    await call.message.answer("\n".join(lines), reply_markup=_alerts_keyboard(rules))
+    await render_callback(call, "\n".join(lines), reply_markup=_alerts_keyboard(rules))
 
 
 @logs_alerts_router.callback_query(F.data == "admin:alerts")
@@ -565,7 +566,7 @@ async def alert_manual_check(call: CallbackQuery):
     await call.answer("Проверяю…")
     results = await alert_check_once(None, notify=False)
     await audit_from_call(db, call, "alerts.check", target_type="monitoring", details="; ".join(results)[:1400])
-    await call.message.answer("🚨 Alert check\n\n" + "\n".join(results), reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+    await render_callback(call, "🚨 Alert check\n\n" + "\n".join(results), reply_markup=InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Alerts", callback_data="admin:alerts")]
     ]))
 

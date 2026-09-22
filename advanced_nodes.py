@@ -7,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
 from audit import audit_from_call, audit_from_message
 from backup_manager import BackupManager
@@ -96,7 +97,7 @@ async def node_inbounds(call: CallbackQuery):
         inbounds = await xui.inbounds_list(slim=True)
     except XUIError as exc:
         await call.answer("Ошибка 3x-ui", show_alert=True)
-        await call.message.answer(f"🔴 Не удалось получить inbound'ы: {exc}", reply_markup=_back(node_id))
+        await render_callback(call, f"🔴 Не удалось получить inbound'ы: {exc}", reply_markup=_back(node_id))
         return
 
     selected = [ib for ib in inbounds if _node_key(ib.get("nodeId")) == node_id]
@@ -118,7 +119,7 @@ async def node_inbounds(call: CallbackQuery):
         lines.append("На ноде пока нет inbound'ов, известных master-панели.")
     rows.append([InlineKeyboardButton(text="⬅ Нода", callback_data=f"admin:node:{node_id}")])
     await call.answer()
-    await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:maintenance$"))
@@ -145,10 +146,10 @@ async def node_maintenance(call: CallbackQuery):
             details=str(exc), success=False,
         )
         await call.answer("Не удалось изменить режим", show_alert=True)
-        await call.message.answer(f"🔴 3x-ui: {exc}", reply_markup=_back(node_id))
+        await render_callback(call, f"🔴 3x-ui: {exc}", reply_markup=_back(node_id))
         return
     await call.answer("Нода включена" if new_enable else "Maintenance включён")
-    await call.message.answer(
+    await render_callback(call, 
         "✅ Нода возвращена в работу." if new_enable else
         "🛠 Maintenance включён. Master временно не использует ноду для синхронизации/управления.",
         reply_markup=_back(node_id),
@@ -169,7 +170,7 @@ async def node_rename_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(NodeEditStates.rename)
     await state.update_data(node_id=node_id)
     await call.answer()
-    await call.message.answer(
+    await render_callback(call, 
         f"✏️ Rename node\n\nТекущее имя: {node.name}\n\nОтправь новое имя (1–64 символа).",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:nodectl:{node_id}:cancel")
@@ -185,7 +186,7 @@ async def node_edit_cancel(call: CallbackQuery, state: FSMContext):
     node_id = _node_id_from_callback(call.data or "")
     await state.clear()
     await call.answer("Отменено")
-    await call.message.answer("Изменение ноды отменено.", reply_markup=_back(node_id))
+    await render_callback(call, "Изменение ноды отменено.", reply_markup=_back(node_id))
 
 
 @advanced_nodes_router.message(NodeEditStates.rename)
@@ -195,13 +196,13 @@ async def node_rename_finish(message: Message, state: FSMContext):
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
     if not ok:
         await state.clear()
-        await message.answer("Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.")
         return
     data = await state.get_data()
     node_id = int(data.get("node_id") or 0)
     name = (message.text or "").strip()
     if not (1 <= len(name) <= 64) or "\n" in name:
-        await message.answer("Имя должно содержать 1–64 символа одной строкой.")
+        await render_input(message, "Имя должно содержать 1–64 символа одной строкой.")
         return
     try:
         raw = await xui.node_get_raw(node_id)
@@ -217,7 +218,7 @@ async def node_rename_finish(message: Message, state: FSMContext):
             db, message, "node.rename", target_type="node", target_id=node_id,
             details=str(exc), success=False,
         )
-        await message.answer(f"🔴 Не удалось переименовать ноду: {exc}")
+        await render_input(message, f"🔴 Не удалось переименовать ноду: {exc}")
         return
     await state.clear()
     suffix = (
@@ -225,7 +226,7 @@ async def node_rename_finish(message: Message, state: FSMContext):
         "потому что backup target был привязан к старому имени."
         if had_backup_target and old_name.casefold() != name.casefold() else ""
     )
-    await message.answer(f"✅ Нода переименована: {name}{suffix}", reply_markup=_back(node_id))
+    await render_input(message, f"✅ Нода переименована: {name}{suffix}", reply_markup=_back(node_id))
 
 
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:backup$"))
@@ -241,7 +242,7 @@ async def node_backup(call: CallbackQuery):
         return
     if not system_backup.has_target_for(node.name):
         await call.answer("Backup target не настроен", show_alert=True)
-        await call.message.answer(
+        await render_callback(call, 
             "💾 Для backup этой ноды нужен отдельный admin-scope API token в NODE_BACKUP_TARGETS.\n"
             "Master специально не раскрывает сохранённый node-sync token.",
             reply_markup=_back(node_id),
@@ -264,7 +265,7 @@ async def node_backup(call: CallbackQuery):
             db, call, "node.backup", target_type="node", target_id=node_id,
             details=f"{type(exc).__name__}: {exc}", success=False,
         )
-        await call.message.answer(f"🔴 Backup ноды не создан: {type(exc).__name__}: {exc}", reply_markup=_back(node_id))
+        await render_callback(call, f"🔴 Backup ноды не создан: {type(exc).__name__}: {exc}", reply_markup=_back(node_id))
 
 
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:restartxray$"))
@@ -280,14 +281,14 @@ async def node_restart_xray_ask(call: CallbackQuery):
         return
     if system_backup.direct_client_for(node.name) is None:
         await call.answer("Нет direct admin token", show_alert=True)
-        await call.message.answer(
+        await render_callback(call, 
             "🔄 Перезапуск Xray на удалённой ноде требует отдельного admin-scope API token, "
             "того же, который используется для NODE_BACKUP_TARGETS.",
             reply_markup=_back(node_id),
         )
         return
     await call.answer()
-    await call.message.answer(
+    await render_callback(call, 
         f"⚠️ Перезапустить Xray на {node.name}?\n\nАктивные подключения кратковременно оборвутся.",
         reply_markup=_confirm(node_id, "restartxray", "🔄 Да, restart Xray"),
     )
@@ -315,10 +316,10 @@ async def node_restart_xray_run(call: CallbackQuery):
             details=f"{type(exc).__name__}: {exc}", success=False,
         )
         await call.answer("Restart failed", show_alert=True)
-        await call.message.answer(f"🔴 Xray restart: {type(exc).__name__}: {exc}", reply_markup=_back(node_id))
+        await render_callback(call, f"🔴 Xray restart: {type(exc).__name__}: {exc}", reply_markup=_back(node_id))
         return
     await call.answer("Xray restart отправлен")
-    await call.message.answer("✅ Команда restart Xray отправлена ноде.", reply_markup=_back(node_id))
+    await render_callback(call, "✅ Команда restart Xray отправлена ноде.", reply_markup=_back(node_id))
 
 
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:updatepanel$"))
@@ -336,7 +337,7 @@ async def node_update_panel_ask(call: CallbackQuery):
         await call.answer("Нода должна быть enabled и online", show_alert=True)
         return
     await call.answer()
-    await call.message.answer(
+    await render_callback(call, 
         f"⬆️ Обновить 3x-ui на {node.name} до latest stable?\n\n"
         "3x-ui запустит штатный self-updater и перезапустит панель. Перед обновлением рекомендуется backup.",
         reply_markup=_confirm(node_id, "updatepanel", "⬆️ Да, обновить ноду"),
@@ -362,9 +363,9 @@ async def node_update_panel_run(call: CallbackQuery):
         if not success:
             raise RuntimeError(error or "3x-ui did not confirm update start")
     except Exception as exc:
-        await call.message.answer(f"🔴 Update не запущен: {type(exc).__name__}: {exc}", reply_markup=_back(node_id))
+        await render_callback(call, f"🔴 Update не запущен: {type(exc).__name__}: {exc}", reply_markup=_back(node_id))
         return
-    await call.message.answer(
+    await render_callback(call, 
         "✅ Штатное обновление 3x-ui запущено. Нода может быть offline несколько секунд/минуту; затем нажми «Проверить».",
         reply_markup=_back(node_id),
     )
@@ -385,14 +386,14 @@ async def node_delete_ask(call: CallbackQuery):
         return
     if attached:
         await call.answer("Сначала удали/detach inbound'ы", show_alert=True)
-        await call.message.answer(
+        await render_callback(call, 
             f"🛡 Ноду {node.name} нельзя удалить: к ней привязано inbound'ов: {len(attached)}.\n"
             "Сначала перенеси или удали их. 3x-ui также блокирует удаление ноды с привязанными inbound'ами.",
             reply_markup=_back(node_id),
         )
         return
     await call.answer()
-    await call.message.answer(
+    await render_callback(call, 
         f"🗑 Удалить ноду {node.name} из master 3x-ui?\n\n"
         "Это удалит регистрацию ноды на Master, но не удалит сам VPS/3x-ui на удалённом сервере.",
         reply_markup=_confirm(node_id, "delete", "⚠️ Да, удалить ноду"),
@@ -423,10 +424,10 @@ async def node_delete_run(call: CallbackQuery):
             details=str(exc), success=False,
         )
         await call.answer("Удаление не выполнено", show_alert=True)
-        await call.message.answer(f"🔴 3x-ui: {exc}", reply_markup=_back(node_id))
+        await render_callback(call, f"🔴 3x-ui: {exc}", reply_markup=_back(node_id))
         return
     await call.answer("Нода удалена")
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Нода {name} удалена из Master.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],

@@ -11,6 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+from admin_ui import render_callback, render_input
 from admin_auth import ROLE_LABELS, authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_from_message
 from config import load_settings
@@ -80,7 +81,7 @@ async def guard_message(message: Message, state: FSMContext, *, minimum: str = "
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum=minimum)
     if not ok:
         await state.clear()
-        await message.answer("Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.")
         return False
     return True
 
@@ -166,7 +167,7 @@ async def payments_list(call: CallbackQuery):
         [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
     ]
     paid_text = ", ".join(f"{money(v, c)}" for c, v in sorted(totals.items())) or "—"
-    await call.message.answer(
+    await render_callback(call, 
         "💳 Payments\n\n"
         f"Всего: {await db.count_payments()}\n"
         f"🟢 Paid: {summary.get('paid', 0)}\n"
@@ -215,7 +216,7 @@ async def payment_detail(call: CallbackQuery):
         ],
         [InlineKeyboardButton(text="⬅ Payments", callback_data="admin:payments")],
     ]
-    await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -239,7 +240,7 @@ async def payment_status(call: CallbackQuery):
         details=f"{item.status}->{status}",
     )
     await call.answer("Статус обновлён")
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Payment #{payment_id}: {PAYMENT_STATUSES[status]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть платёж", callback_data=f"admin:payment:{payment_id}")],
@@ -254,7 +255,7 @@ async def payment_add_start(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.set_state(AddPaymentStates.telegram_id)
-    await call.message.answer(
+    await render_callback(call, 
         "➕ Новый платёж\n\nШаг 1/5. Отправь Telegram ID существующего пользователя.",
         reply_markup=cancel("admin:paymentadd:cancel"),
     )
@@ -268,11 +269,11 @@ async def payment_add_user(message: Message, state: FSMContext):
     try:
         tg_id = int((message.text or "").strip())
     except ValueError:
-        await message.answer("Нужен числовой Telegram ID.")
+        await render_input(message, "Нужен числовой Telegram ID.")
         return
     user = await db.get(tg_id)
     if not user:
-        await message.answer("Пользователь с таким Telegram ID не найден в БД бота.")
+        await render_input(message, "Пользователь с таким Telegram ID не найден в БД бота.")
         return
     await state.update_data(telegram_id=tg_id, email=user.email)
     plans = await db.list_plans()
@@ -284,7 +285,7 @@ async def payment_add_user(message: Message, state: FSMContext):
         )])
     rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:paymentadd:cancel")])
     await state.set_state(AddPaymentStates.plan)
-    await message.answer("Шаг 2/5. Выбери тариф для привязки платежа.", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_input(message, "Шаг 2/5. Выбери тариф для привязки платежа.", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
 @business_router.callback_query(AddPaymentStates.plan, F.data.startswith("admin:paymentadd:plan:"))
@@ -295,7 +296,7 @@ async def payment_add_plan(call: CallbackQuery, state: FSMContext):
     await state.update_data(plan_id=plan_id or None)
     await state.set_state(AddPaymentStates.amount)
     currency = await default_currency()
-    await call.message.answer(
+    await render_callback(call, 
         "Шаг 3/5. Отправь сумму.\n\n"
         f"Например: 299 или 4.99 USD\nВалюта по умолчанию: {currency}",
         reply_markup=cancel("admin:paymentadd:cancel"),
@@ -310,11 +311,11 @@ async def payment_add_amount(message: Message, state: FSMContext):
     try:
         amount_minor, currency = parse_money(message.text or "", await default_currency())
     except ValueError:
-        await message.answer("Не понял сумму. Пример: 299 RUB или 4.99 USD")
+        await render_input(message, "Не понял сумму. Пример: 299 RUB или 4.99 USD")
         return
     await state.update_data(amount_minor=amount_minor, currency=currency)
     await state.set_state(AddPaymentStates.status)
-    await message.answer(
+    await render_input(message, 
         "Шаг 4/5. Начальный статус платежа?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [
@@ -336,7 +337,7 @@ async def payment_add_status(call: CallbackQuery, state: FSMContext):
         return
     await state.update_data(status=status)
     await state.set_state(AddPaymentStates.reference)
-    await call.message.answer(
+    await render_callback(call, 
         "Шаг 5/5. Отправь reference/ID платежа или `-`, если его нет.",
         reply_markup=cancel("admin:paymentadd:cancel"),
     )
@@ -351,13 +352,13 @@ async def payment_add_reference(message: Message, state: FSMContext):
     if ref == "-":
         ref = ""
     if len(ref) > 160:
-        await message.answer("Reference слишком длинный (максимум 160 символов).")
+        await render_input(message, "Reference слишком длинный (максимум 160 символов).")
         return
     await state.update_data(external_id=ref)
     data = await state.get_data()
     plan = await db.get_plan(data.get("plan_id")) if data.get("plan_id") else None
     await state.set_state(AddPaymentStates.review)
-    await message.answer(
+    await render_input(message, 
         "Проверь платёж:\n\n"
         f"User: {data['email']} · TG {data['telegram_id']}\n"
         f"Plan: {plan.name if plan else 'не привязан'}\n"
@@ -388,7 +389,7 @@ async def payment_add_save(call: CallbackQuery, state: FSMContext):
     )
     await state.clear()
     await call.answer("Платёж сохранён")
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Payment #{payment_id} создан.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть", callback_data=f"admin:payment:{payment_id}")],
@@ -445,7 +446,7 @@ async def promo_list(call: CallbackQuery):
         [InlineKeyboardButton(text="➕ Добавить промокод", callback_data="admin:promoadd:start")],
         [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
     ]
-    await call.message.answer(
+    await render_callback(call, 
         "🎟 Promo Codes\n\n"
         f"Промокодов: {len(promos)} · активных: {active}\n\n"
         "Каталог готов для будущего checkout. Пока промокоды не применяются к /create автоматически.",
@@ -467,7 +468,7 @@ async def promo_detail(call: CallbackQuery):
     plan = await db.get_plan(item.plan_id) if item.plan_id else None
     uses = f"{item.uses_count}/{item.max_uses}" if item.max_uses else f"{item.uses_count}/∞"
     toggle = "⛔ Отключить" if item.active else "✅ Включить"
-    await call.message.answer(
+    await render_callback(call, 
         f"🎟 {item.code}\n\n"
         f"Status: {icon} {state}\n"
         f"Discount: {promo_value_text(item)}\n"
@@ -490,7 +491,7 @@ async def promo_add_start(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.set_state(AddPromoStates.code)
-    await call.message.answer(
+    await render_callback(call, 
         "➕ Новый промокод\n\nШаг 1/6. Отправь код, например: WELCOME20",
         reply_markup=cancel("admin:promoadd:cancel"),
     )
@@ -503,11 +504,11 @@ async def promo_add_code(message: Message, state: FSMContext):
         return
     code = (message.text or "").strip().upper()
     if not re.fullmatch(r"[A-Z0-9_-]{3,32}", code):
-        await message.answer("Код: 3–32 символа, A-Z, 0-9, `_` или `-`.")
+        await render_input(message, "Код: 3–32 символа, A-Z, 0-9, `_` или `-`.")
         return
     await state.update_data(code=code)
     await state.set_state(AddPromoStates.discount_type)
-    await message.answer(
+    await render_input(message, 
         "Шаг 2/6. Тип скидки:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [
@@ -533,7 +534,7 @@ async def promo_add_type(call: CallbackQuery, state: FSMContext):
     prompt = "Шаг 3/6. Процент скидки от 1 до 100." if kind == "percent" else (
         f"Шаг 3/6. Сумма скидки, например 100 или 4.99 USD. По умолчанию {currency}."
     )
-    await call.message.answer(prompt, reply_markup=cancel("admin:promoadd:cancel"))
+    await render_callback(call, prompt, reply_markup=cancel("admin:promoadd:cancel"))
     await call.answer()
 
 
@@ -548,17 +549,17 @@ async def promo_add_value(message: Message, state: FSMContext):
         except ValueError:
             value = 0
         if not 1 <= value <= 100:
-            await message.answer("Процент должен быть от 1 до 100.")
+            await render_input(message, "Процент должен быть от 1 до 100.")
             return
         await state.update_data(value=value, currency=await default_currency())
     else:
         try:
             value, currency = parse_money(message.text or "", await default_currency())
         except ValueError:
-            await message.answer("Не понял сумму. Пример: 100 RUB или 4.99 USD")
+            await render_input(message, "Не понял сумму. Пример: 100 RUB или 4.99 USD")
             return
         if value <= 0:
-            await message.answer("Скидка должна быть больше нуля.")
+            await render_input(message, "Скидка должна быть больше нуля.")
             return
         await state.update_data(value=value, currency=currency)
     plans = await db.list_plans()
@@ -567,7 +568,7 @@ async def promo_add_value(message: Message, state: FSMContext):
         rows.append([InlineKeyboardButton(text=plan.name, callback_data=f"admin:promoadd:plan:{plan.id}")])
     rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:promoadd:cancel")])
     await state.set_state(AddPromoStates.plan)
-    await message.answer("Шаг 4/6. Ограничить промокод конкретным тарифом?", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_input(message, "Шаг 4/6. Ограничить промокод конкретным тарифом?", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
 @business_router.callback_query(AddPromoStates.plan, F.data.startswith("admin:promoadd:plan:"))
@@ -577,7 +578,7 @@ async def promo_add_plan(call: CallbackQuery, state: FSMContext):
     plan_id = int(call.data.rsplit(":", 1)[-1])
     await state.update_data(plan_id=plan_id or None)
     await state.set_state(AddPromoStates.max_uses)
-    await call.message.answer(
+    await render_callback(call, 
         "Шаг 5/6. Максимальное количество использований. `0` = без ограничения.",
         reply_markup=cancel("admin:promoadd:cancel"),
     )
@@ -593,11 +594,11 @@ async def promo_add_max_uses(message: Message, state: FSMContext):
     except ValueError:
         max_uses = -1
     if max_uses < 0 or max_uses > 10_000_000:
-        await message.answer("Нужно целое число от 0 до 10000000.")
+        await render_input(message, "Нужно целое число от 0 до 10000000.")
         return
     await state.update_data(max_uses=max_uses)
     await state.set_state(AddPromoStates.expires)
-    await message.answer(
+    await render_input(message, 
         "Шаг 6/6. Срок действия: `0` = без срока или дата `YYYY-MM-DD` (UTC).",
         reply_markup=cancel("admin:promoadd:cancel"),
     )
@@ -615,17 +616,17 @@ async def promo_add_expires(message: Message, state: FSMContext):
             dt = datetime.strptime(raw, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
             expires_at = int(dt.timestamp())
         except ValueError:
-            await message.answer("Формат даты: YYYY-MM-DD или 0.")
+            await render_input(message, "Формат даты: YYYY-MM-DD или 0.")
             return
         if expires_at <= int(time.time()):
-            await message.answer("Дата должна быть в будущем.")
+            await render_input(message, "Дата должна быть в будущем.")
             return
     await state.update_data(expires_at=expires_at)
     data = await state.get_data()
     plan = await db.get_plan(data.get("plan_id")) if data.get("plan_id") else None
     display_value = f"{data['value']}%" if data["discount_type"] == "percent" else money(data["value"], data["currency"])
     await state.set_state(AddPromoStates.review)
-    await message.answer(
+    await render_input(message, 
         "Проверь промокод:\n\n"
         f"Code: {data['code']}\n"
         f"Discount: {display_value}\n"
@@ -659,7 +660,7 @@ async def promo_add_save(call: CallbackQuery, state: FSMContext):
     )
     await state.clear()
     await call.answer("Промокод создан")
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Промокод {data['code']} создан.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть", callback_data=f"admin:promo:{promo_id}")],
@@ -692,7 +693,7 @@ async def promo_toggle(call: CallbackQuery):
         details=f"active={int(new_state)}",
     )
     await call.answer("Статус изменён")
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ {item.code}: {'enabled' if new_state else 'disabled'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть промокод", callback_data=f"admin:promo:{promo_id}")],
@@ -706,7 +707,7 @@ async def promo_delete_ask(call: CallbackQuery):
     if not await guard(call, minimum="admin"):
         return
     promo_id = int(call.data.rsplit(":", 1)[-1])
-    await call.message.answer(
+    await render_callback(call, 
         "Удалить промокод? История платежей не затрагивается.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:promo:delete:{promo_id}")],
@@ -762,7 +763,7 @@ async def administrators_list(call: CallbackQuery):
         [InlineKeyboardButton(text="➕ Добавить администратора", callback_data="admin:administratoradd:start")],
         [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
     ]
-    await call.message.answer(
+    await render_callback(call, 
         "👮 Administrators\n\n"
         "ENV Owner — аварийный владелец из ADMIN_TELEGRAM_IDS; его нельзя отключить из Telegram.\n\n"
         "Роли:\n"
@@ -781,7 +782,7 @@ async def administrator_detail(call: CallbackQuery):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
-        await call.message.answer(
+        await render_callback(call, 
             f"👑 TG {tg_id}\n\nRole: Owner\nSource: ADMIN_TELEGRAM_IDS (.env)\nStatus: 🟢 enabled\n\n"
             "Этот владелец защищён от изменения через Telegram.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -810,7 +811,7 @@ async def administrator_detail(call: CallbackQuery):
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:administrator:deleteask:{tg_id}")],
         [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
     ]
-    await call.message.answer(
+    await render_callback(call, 
         f"👮 TG {tg_id}\n\n"
         f"Role: {role_button(rec.role)}\n"
         f"Status: {'🟢 enabled' if rec.enabled else '⚪ disabled'}\n"
@@ -827,7 +828,7 @@ async def administrator_add_start(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.set_state(AddAdministratorStates.telegram_id)
-    await call.message.answer(
+    await render_callback(call, 
         "➕ Новый администратор\n\nОтправь Telegram ID.",
         reply_markup=cancel("admin:administratoradd:cancel"),
     )
@@ -841,17 +842,17 @@ async def administrator_add_id(message: Message, state: FSMContext):
     try:
         tg_id = int((message.text or "").strip())
     except ValueError:
-        await message.answer("Нужен числовой Telegram ID.")
+        await render_input(message, "Нужен числовой Telegram ID.")
         return
     if tg_id <= 0:
-        await message.answer("Telegram ID должен быть положительным.")
+        await render_input(message, "Telegram ID должен быть положительным.")
         return
     if tg_id in settings.admin_telegram_ids:
-        await message.answer("Этот Telegram ID уже является ENV Owner из ADMIN_TELEGRAM_IDS.")
+        await render_input(message, "Этот Telegram ID уже является ENV Owner из ADMIN_TELEGRAM_IDS.")
         return
     await state.update_data(telegram_id=tg_id)
     await state.set_state(AddAdministratorStates.role)
-    await message.answer(
+    await render_input(message, 
         "Выбери роль:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [
@@ -886,7 +887,7 @@ async def administrator_add_role(call: CallbackQuery, state: FSMContext):
     )
     await state.clear()
     await call.answer("Администратор сохранён")
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ TG {tg_id} · {ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть", callback_data=f"admin:administrator:{tg_id}")],
@@ -920,7 +921,7 @@ async def administrator_role(call: CallbackQuery):
     await db.upsert_administrator(telegram_id=tg_id, role=role, enabled=bool(rec.enabled), added_by=rec.added_by)
     await audit_from_call(db, call, "administrator.role", target_type="administrator", target_id=tg_id, details=f"{rec.role}->{role}")
     await call.answer("Роль обновлена")
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ TG {tg_id}: {ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть", callback_data=f"admin:administrator:{tg_id}")],
@@ -945,7 +946,7 @@ async def administrator_toggle(call: CallbackQuery):
     await db.set_administrator_enabled(tg_id, new_enabled)
     await audit_from_call(db, call, "administrator.toggle", target_type="administrator", target_id=tg_id, details=f"enabled={int(new_enabled)}")
     await call.answer("Статус изменён")
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ TG {tg_id}: {'enabled' if new_enabled else 'disabled'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть", callback_data=f"admin:administrator:{tg_id}")],
@@ -962,7 +963,7 @@ async def administrator_delete_ask(call: CallbackQuery):
     if tg_id in settings.admin_telegram_ids:
         await call.answer("ENV Owner нельзя удалить.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         f"Удалить администратора TG {tg_id}?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:administrator:delete:{tg_id}")],
@@ -1012,7 +1013,7 @@ async def settings_view(call: CallbackQuery):
         [InlineKeyboardButton(text=f"💱 Default currency · {values['default_currency']}", callback_data="admin:settings:edit:default_currency")],
         [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
     ]
-    await call.message.answer(
+    await render_callback(call, 
         "🔧 Settings\n\n"
         "Safe runtime settings — применяются без изменения .env:\n"
         f"🗓 Trial days: {values['trial_days']}\n"
@@ -1043,7 +1044,7 @@ async def settings_edit(call: CallbackQuery, state: FSMContext):
     await state.set_state(EditSettingStates.value)
     current = await effective_setting(key)
     hint = "трёхбуквенный ISO-код, например RUB или USD" if spec[3] == "currency" else f"целое число {spec[1]}..{spec[2]}"
-    await call.message.answer(
+    await render_callback(call, 
         f"{spec[0]}\n\nТекущее значение: {current}\nОтправь новое значение ({hint}).",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="↩ Сбросить к .env/default", callback_data=f"admin:settings:reset:{key}")],
@@ -1062,29 +1063,29 @@ async def settings_value(message: Message, state: FSMContext):
     spec = SAFE_SETTING_SPECS.get(key)
     if not spec:
         await state.clear()
-        await message.answer("Настройка не найдена.")
+        await render_input(message, "Настройка не найдена.")
         return
     raw = (message.text or "").strip().upper() if spec[3] == "currency" else (message.text or "").strip()
     if spec[3] == "currency":
         if not re.fullmatch(r"[A-Z]{3}", raw):
-            await message.answer("Нужен трёхбуквенный код валюты, например RUB или USD.")
+            await render_input(message, "Нужен трёхбуквенный код валюты, например RUB или USD.")
             return
         value = raw
     else:
         try:
             parsed = int(raw)
         except ValueError:
-            await message.answer("Нужно целое число.")
+            await render_input(message, "Нужно целое число.")
             return
         if parsed < spec[1] or parsed > spec[2]:
-            await message.answer(f"Допустимый диапазон: {spec[1]}..{spec[2]}.")
+            await render_input(message, f"Допустимый диапазон: {spec[1]}..{spec[2]}.")
             return
         value = str(parsed)
     old = await effective_setting(key)
     await db.set_runtime_setting(key, value, updated_by=message.from_user.id)
     await audit_from_message(db, message, "settings.set", target_type="setting", target_id=key, details=f"{old}->{value}")
     await state.clear()
-    await message.answer(
+    await render_input(message, 
         f"✅ {spec[0]}: {value}\nИзменение применяется к новым операциям сразу.",
         reply_markup=system_back(),
     )

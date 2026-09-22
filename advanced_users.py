@@ -9,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
 from audit import audit_from_call, audit_from_message
 from config import load_settings
@@ -46,7 +47,7 @@ async def guard_message(message: Message, state: FSMContext, *, minimum: str = "
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum=minimum)
     if not ok:
         await state.clear()
-        await message.answer("Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.")
         return False
     return True
 
@@ -218,7 +219,7 @@ async def user_advanced_card(call: CallbackQuery, state: FSMContext):
     await state.clear()
     tg_id = int(call.data.rsplit(":", 1)[-1])
     text, kb = await render_user(tg_id)
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -233,7 +234,7 @@ async def user_expiry_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.update_data(tg_id=tg_id)
     await state.set_state(EditUserStates.expiry)
-    await call.message.answer(
+    await render_callback(call, 
         "⏳ Изменение срока\n\n"
         "Введи:\n"
         "• +30 — добавить 30 дней к текущему сроку\n"
@@ -253,7 +254,7 @@ async def user_expiry_save(message: Message, state: FSMContext):
     rec = await db.get(tg_id)
     if not rec:
         await state.clear()
-        await message.answer("Пользователь не найден.")
+        await render_input(message, "Пользователь не найден.")
         return
     raw = (message.text or "").strip()
     try:
@@ -281,12 +282,12 @@ async def user_expiry_save(message: Message, state: FSMContext):
             details=f"old={current}; new={new_expiry}",
         )
         await state.clear()
-        await message.answer(f"✅ Expiry: {fmt_date(new_expiry)}", reply_markup=back_user(tg_id))
+        await render_input(message, f"✅ Expiry: {fmt_date(new_expiry)}", reply_markup=back_user(tg_id))
     except (ValueError, XUIError) as exc:
         if isinstance(exc, XUIError):
-            await message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+            await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
         else:
-            await message.answer("Формат: +30, YYYY-MM-DD или 0.")
+            await render_input(message, "Формат: +30, YYYY-MM-DD или 0.")
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:traffic:"))
@@ -297,7 +298,7 @@ async def user_traffic_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.update_data(tg_id=tg_id)
     await state.set_state(EditUserStates.traffic)
-    await call.message.answer(
+    await render_callback(call, 
         "📦 Новый traffic limit в GB.\n0 = unlimited.\nНапример: 100",
         reply_markup=cancel_edit(tg_id),
     )
@@ -323,14 +324,14 @@ async def user_traffic_save(message: Message, state: FSMContext):
             details=f"traffic_gb={gb}",
         )
         await state.clear()
-        await message.answer(
+        await render_input(message, 
             f"✅ Traffic limit: {gb} GB" if gb else "✅ Traffic limit: unlimited",
             reply_markup=back_user(tg_id),
         )
     except ValueError:
-        await message.answer("Введи целое число GB от 0 до 1000000.")
+        await render_input(message, "Введи целое число GB от 0 до 1000000.")
     except XUIError as exc:
-        await message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:ip:"))
@@ -341,7 +342,7 @@ async def user_ip_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.update_data(tg_id=tg_id)
     await state.set_state(EditUserStates.ip_limit)
-    await call.message.answer(
+    await render_callback(call, 
         "📱 Новый IP limit.\n0 = unlimited.\nНапример: 2",
         reply_markup=cancel_edit(tg_id),
     )
@@ -367,14 +368,14 @@ async def user_ip_save(message: Message, state: FSMContext):
             details=f"limitIp={limit}",
         )
         await state.clear()
-        await message.answer(
+        await render_input(message, 
             f"✅ IP limit: {limit}" if limit else "✅ IP limit: unlimited",
             reply_markup=back_user(tg_id),
         )
     except ValueError:
-        await message.answer("Введи целое число от 0 до 1000.")
+        await render_input(message, "Введи целое число от 0 до 1000.")
     except XUIError as exc:
-        await message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:note:"))
@@ -385,7 +386,7 @@ async def user_note_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.update_data(tg_id=tg_id)
     await state.set_state(EditUserStates.note)
-    await call.message.answer(
+    await render_callback(call, 
         "📝 Введи внутреннюю заметку (до 500 символов).\n«-» очищает заметку.",
         reply_markup=cancel_edit(tg_id),
     )
@@ -403,7 +404,7 @@ async def user_note_save(message: Message, state: FSMContext):
     if note == "-":
         note = ""
     if len(note) > 500:
-        await message.answer("Максимум 500 символов.")
+        await render_input(message, "Максимум 500 символов.")
         return
     await db.set_user_note(tg_id, note)
     await audit_from_message(
@@ -411,7 +412,7 @@ async def user_note_save(message: Message, state: FSMContext):
         details=f"length={len(note)}",
     )
     await state.clear()
-    await message.answer("✅ Заметка сохранена.", reply_markup=back_user(tg_id))
+    await render_input(message, "✅ Заметка сохранена.", reply_markup=back_user(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:plan:"))
@@ -432,7 +433,7 @@ async def user_plan_menu(call: CallbackQuery):
             text=f"{icon} {plan.name}", callback_data=f"admin:u:planset:{tg_id}:{plan.id}"
         )])
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
-    await call.message.answer(
+    await render_callback(call, 
         "💎 Plan\n\nНазначение здесь — метаданные control-plane. Лимиты 3x-ui не меняются автоматически.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -455,7 +456,7 @@ async def user_plan_set(call: CallbackQuery):
         db, call, "user.plan.set", target_type="user", target_id=rec.email if rec else str(tg_id),
         details=f"plan_id={plan_id or None}; name={plan.name if plan else ''}",
     )
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Plan: {plan.name if plan else 'не назначен'}", reply_markup=back_user(tg_id)
     )
     await call.answer()
@@ -472,7 +473,7 @@ async def user_plan_apply_ask(call: CallbackQuery):
     if not rec or not plan:
         await call.answer("Сначала назначь пользователю Plan.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         f"Применить Plan «{plan.name}» к {rec.email}?\n\n"
         f"Expiry станет: сейчас + {plan.duration_days} дней\n"
         f"Traffic: {plan.traffic_gb} GB{' (unlimited)' if plan.traffic_gb == 0 else ''}\n"
@@ -515,7 +516,7 @@ async def user_plan_apply_run(call: CallbackQuery):
                 f"limit_ip={plan.ip_limit}; server_group_id={plan.server_group_id}"
             ),
         )
-        await call.message.answer(
+        await render_callback(call, 
             f"✅ Plan «{plan.name}» применён к лимитам 3x-ui.", reply_markup=back_user(tg_id)
         )
     except XUIError as exc:
@@ -523,7 +524,7 @@ async def user_plan_apply_run(call: CallbackQuery):
             db, call, "user.plan.apply", target_type="user", target_id=rec.email,
             details=f"error={exc}", success=False,
         )
-        await call.message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -545,7 +546,7 @@ async def user_group_menu(call: CallbackQuery):
             callback_data=f"admin:u:groupset:{tg_id}:{group.id}",
         )])
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
-    await call.message.answer(
+    await render_callback(call, 
         "🗂 Server Group\n\nГруппа определяет desired provisioning scope. Само назначение не меняет 3x-ui мгновенно — используй 🚀 Provisioning / reconcile.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -568,7 +569,7 @@ async def user_group_set(call: CallbackQuery):
         db, call, "user.server_group.set", target_type="user", target_id=rec.email if rec else str(tg_id),
         details=f"server_group_id={group_id or None}; name={group.name if group else ''}",
     )
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Server Group: {group.name if group else 'не назначена'}", reply_markup=back_user(tg_id)
     )
     await call.answer()
@@ -614,9 +615,9 @@ async def user_provisioning_card(call: CallbackQuery):
             [InlineKeyboardButton(text="⚠️ Strict reconcile", callback_data=f"admin:u:provstrictask:{tg_id}")],
             [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
         ]
-        await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+        await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     except Exception as exc:
-        await call.message.answer(f"🔴 Provisioning: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔴 Provisioning: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -625,7 +626,7 @@ async def user_provisioning_strict_ask(call: CallbackQuery):
     if not await guard(call, minimum="admin"):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
-    await call.message.answer(
+    await render_callback(call, 
         "⚠️ Strict reconcile не только добавит missing inbound'ы, но и отключит управляемые inbound'ы, которых нет в desired policy.\n\nПродолжить?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, strict reconcile", callback_data=f"admin:u:provrun:{tg_id}:strict")],
@@ -662,10 +663,10 @@ async def user_provisioning_run(call: CallbackQuery):
         ]
         if result.policy.unavailable_members:
             lines.append(f"⏸ Недоступные ноды: {', '.join(result.policy.unavailable_members)}")
-        await call.message.answer("\n".join(lines), reply_markup=back_user(tg_id))
+        await render_callback(call, "\n".join(lines), reply_markup=back_user(tg_id))
     except Exception as exc:
         await audit_from_call(db, call, f"user.provision.{mode}", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
-        await call.message.answer(f"🔴 Provisioning error: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔴 Provisioning error: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -679,7 +680,7 @@ async def user_plan_provision_ask(call: CallbackQuery):
     if not plan:
         await call.answer("Сначала назначь Plan.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         f"Применить Plan «{plan.name}» к лимитам и выполнить safe provisioning?\n\n"
         "Это обновит expiry/traffic/IP limit, назначит Server Group тарифа и добавит missing inbound'ы. Extra inbound'ы не удаляются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -705,13 +706,13 @@ async def user_plan_provision_run(call: CallbackQuery):
             db, call, "user.plan.provision", target_type="user", target_id=rec.email,
             details=f"plan={result.policy.plan.id if result.policy.plan else None}; attached={result.attached_ids}; remaining={result.remaining_missing_ids}",
         )
-        await call.message.answer(
+        await render_callback(call, 
             f"✅ Plan + Provision завершён.\nAttached: {result.attached_ids or 'нет'}\nStill missing: {result.remaining_missing_ids or 'нет'}",
             reply_markup=back_user(tg_id),
         )
     except Exception as exc:
         await audit_from_call(db, call, "user.plan.provision", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
-        await call.message.answer(f"🔴 Plan + Provision: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔴 Plan + Provision: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -735,12 +736,12 @@ async def user_inbounds(call: CallbackQuery):
                 callback_data=f"admin:u:ibtoggle:{tg_id}:{inbound.id}",
             )])
         rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
-        await call.message.answer(
+        await render_callback(call, 
             f"📡 Inbounds · {rec.email}\n\nНажатие подключает/отключает пользователя от конкретного inbound.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
         )
     except XUIError as exc:
-        await call.message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -787,13 +788,13 @@ async def user_inbound_toggle(call: CallbackQuery):
             callback_data=f"admin:u:ibtoggle:{tg_id}:{i.id}",
         )] for i in all_inbounds[:40]]
         rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
-        await call.message.answer("📡 Inbounds обновлены.", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+        await render_callback(call, "📡 Inbounds обновлены.", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.inbound.toggle", target_type="user", target_id=rec.email,
             details=f"inbound_id={inbound_id}; error={exc}", success=False,
         )
-        await call.message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:resetask:"))
@@ -805,7 +806,7 @@ async def user_reset_ask(call: CallbackQuery):
     if not rec:
         await call.answer("Пользователь не найден.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         f"Сбросить накопленный трафик {rec.email} до 0?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сбросить трафик", callback_data=f"admin:u:resetrun:{tg_id}")],
@@ -831,13 +832,13 @@ async def user_reset_run(call: CallbackQuery):
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
             details=f"affected={affected}",
         )
-        await call.message.answer(f"✅ Трафик сброшен. affected={affected}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"✅ Трафик сброшен. affected={affected}", reply_markup=back_user(tg_id))
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
             details=f"error={exc}", success=False,
         )
-        await call.message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -850,7 +851,7 @@ async def user_sub_rotate_ask(call: CallbackQuery):
     if not rec:
         await call.answer("Пользователь не найден.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         "🔐 Rotate subscription ID\n\n"
         "Старый URL подписки перестанет работать. Уже импортированные конфиги в клиентах не удалятся, "
         "но обновлять их по старому URL будет нельзя.",
@@ -887,7 +888,7 @@ async def user_sub_rotate_run(call: CallbackQuery):
             db, call, "user.subscription.rotate", target_type="user", target_id=rec.email,
             details="subId rotated",
         )
-        await call.message.answer(
+        await render_callback(call, 
             f"✅ Новый URL подписки для {rec.email}:\n{sub_url(new_sid)}",
             reply_markup=back_user(tg_id),
         )
@@ -896,7 +897,7 @@ async def user_sub_rotate_run(call: CallbackQuery):
             db, call, "user.subscription.rotate", target_type="user", target_id=rec.email,
             details=f"error={exc}", success=False,
         )
-        await call.message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -952,7 +953,7 @@ async def bulk_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(BulkUserStates.selecting)
     await state.update_data(selected=[], page=0)
     text, kb = await _bulk_render(state)
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -969,7 +970,7 @@ async def bulk_toggle(call: CallbackQuery, state: FSMContext):
         selected.add(tg_id)
     await state.update_data(selected=sorted(selected))
     text, kb = await _bulk_render(state)
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -981,7 +982,7 @@ async def bulk_page(call: CallbackQuery, state: FSMContext):
     page = int(data.get("page", 0)) + (-1 if call.data.endswith("prev") else 1)
     await state.update_data(page=max(0, page))
     text, kb = await _bulk_render(state)
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -992,7 +993,7 @@ async def bulk_all(call: CallbackQuery, state: FSMContext):
     users = await db.list_users()
     await state.update_data(selected=[u.telegram_id for u in users])
     text, kb = await _bulk_render(state)
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -1002,7 +1003,7 @@ async def bulk_clear(call: CallbackQuery, state: FSMContext):
         return
     await state.update_data(selected=[])
     text, kb = await _bulk_render(state)
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -1029,7 +1030,7 @@ async def bulk_actions(call: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="📡 Sync inbounds", callback_data="admin:bulk:run:sync")],
         [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
     ])
-    await call.message.answer(f"⚙️ Bulk actions\n\nВыбрано: {len(selected)}", reply_markup=kb)
+    await render_callback(call, f"⚙️ Bulk actions\n\nВыбрано: {len(selected)}", reply_markup=kb)
     await call.answer()
 
 
@@ -1038,7 +1039,7 @@ async def bulk_back(call: CallbackQuery, state: FSMContext):
     if not await guard(call, minimum="support"):
         return
     text, kb = await _bulk_render(state)
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -1047,7 +1048,7 @@ async def bulk_close(call: CallbackQuery, state: FSMContext):
     if not await guard(call, minimum="support"):
         return
     await state.clear()
-    await call.message.answer("Bulk selection закрыт.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+    await render_callback(call, "Bulk selection закрыт.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Users", callback_data="admin:users")]
     ]))
     await call.answer()
@@ -1109,7 +1110,7 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
             db, call, f"users.bulk.{action}", target_type="users", target_id=str(len(emails)),
             details=f"emails={','.join(emails[:20])}; {details}",
         )
-        await call.message.answer(f"{message}\nПользователей: {len(emails)}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+        await render_callback(call, f"{message}\nПользователей: {len(emails)}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
             [InlineKeyboardButton(text="⬅ Users", callback_data="admin:bulk:close")],
         ]))
@@ -1118,5 +1119,5 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
             db, call, f"users.bulk.{action}", target_type="users", target_id=str(len(emails)),
             details=f"error={exc}", success=False,
         )
-        await call.message.answer(f"Ошибка 3x-ui: {exc}")
+        await render_callback(call, f"Ошибка 3x-ui: {exc}")
     await call.answer()

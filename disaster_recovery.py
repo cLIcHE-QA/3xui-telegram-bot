@@ -10,6 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
 from audit import audit_from_call, audit_from_message
 from backup_manager import BackupManager
@@ -161,7 +162,7 @@ async def restore_list(call: CallbackQuery):
         [InlineKeyboardButton(text="⬅ Backups", callback_data="admin:backups")],
     ]
     await call.answer()
-    await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
 @disaster_recovery_router.callback_query(F.data.regexp(r"^admin:restore:b:[A-Za-z0-9._-]+$"))
@@ -175,10 +176,10 @@ async def restore_detail(call: CallbackQuery):
         info = await asyncio.to_thread(restore_manager.inspect_backup, path)
     except Exception as exc:
         await call.answer("Backup недоступен", show_alert=True)
-        await call.message.answer(f"🔴 {type(exc).__name__}: {exc}", reply_markup=_backup_back())
+        await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_backup_back())
         return
     await call.answer()
-    await call.message.answer(_inspection_summary(info), reply_markup=_backup_actions(info))
+    await render_callback(call, _inspection_summary(info), reply_markup=_backup_actions(info))
 
 
 @disaster_recovery_router.callback_query(F.data.regexp(r"^admin:restore:pre:[A-Za-z0-9._-]+$"))
@@ -202,7 +203,7 @@ async def restore_preflight(call: CallbackQuery):
             success=info.valid,
         )
         status = "✅ Dry-run завершён. Никакие данные не изменены." if info.valid else "🔴 Preflight не пройден. Restore заблокирован до исправления ошибок."
-        await call.message.answer(
+        await render_callback(call, 
             _inspection_summary(info, deep=True) + "\n\n" + status,
             reply_markup=_backup_actions(info),
         )
@@ -211,7 +212,7 @@ async def restore_preflight(call: CallbackQuery):
             db, call, "restore.preflight", target_type="backup", target_id=bid,
             details=f"{type(exc).__name__}: {exc}", success=False,
         )
-        await call.message.answer(f"🔴 Preflight error: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_callback(call, f"🔴 Preflight error: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
 
 
 async def _start_confirmation(
@@ -232,7 +233,7 @@ async def _start_confirmation(
         node_index=node_index,
     )
     await call.answer()
-    await call.message.answer(
+    await render_callback(call, 
         warning
         + "\n\nЭто destructive operation. Для второго подтверждения отправь отдельным сообщением точно:\n\n"
         + phrase,
@@ -255,7 +256,7 @@ async def restore_bot_start(call: CallbackQuery, state: FSMContext):
             raise RestoreError("bot.sqlite3 не прошёл preflight")
     except Exception as exc:
         await call.answer("Restore заблокирован", show_alert=True)
-        await call.message.answer(f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
         return
     await _start_confirmation(
         call, state,
@@ -286,7 +287,7 @@ async def restore_xui_start(call: CallbackQuery, state: FSMContext):
             raise RestoreError("x-ui.db не прошёл preflight")
     except Exception as exc:
         await call.answer("Restore заблокирован", show_alert=True)
-        await call.message.answer(f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
         return
     phrase = "RESTORE XUI FORCE" if info.panel_token_matches is False else "RESTORE XUI"
     token_warning = (
@@ -331,7 +332,7 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
                 raise RestoreError(f"node DB quick_check failed: {detail}")
     except Exception as exc:
         await call.answer("Restore node заблокирован", show_alert=True)
-        await call.message.answer(f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
         return
     await _start_confirmation(
         call, state,
@@ -352,7 +353,7 @@ async def restore_cancel(call: CallbackQuery, state: FSMContext):
     bid = (call.data or "").split(":", 3)[3]
     await state.clear()
     await call.answer("Отменено")
-    await call.message.answer("Restore отменён. Данные не изменены.", reply_markup=_restore_back(bid))
+    await render_callback(call, "Restore отменён. Данные не изменены.", reply_markup=_restore_back(bid))
 
 
 async def _exit_for_bot_restore() -> None:
@@ -367,12 +368,12 @@ async def restore_confirm_message(message: Message, state: FSMContext):
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="owner")
     if not ok:
         await state.clear()
-        await message.answer("Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.")
         return
     state_data = await state.get_data()
     phrase = str(state_data.get("phrase") or "")
     if (message.text or "").strip() != phrase:
-        await message.answer(f"Фраза не совпала. Restore не выполнен. Для подтверждения отправь точно: {phrase}")
+        await render_input(message, f"Фраза не совпала. Restore не выполнен. Для подтверждения отправь точно: {phrase}")
         return
     action = str(state_data.get("restore_action") or "")
     bid = str(state_data.get("backup_id") or "")
@@ -400,7 +401,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 db, message, "restore.bot.schedule", target_type="backup", target_id=path.name,
                 details=f"rescue={marker.get('rescue_path')}",
             )
-            await message.answer(
+            await render_input(message, 
                 "✅ Restore bot.sqlite3 подготовлен.\n\n"
                 "Контейнер бота перезапустится примерно через 2 секунды. На старте restore-bootstrap заменит DB атомарно; при ошибке старая DB останется, а бот всё равно запустится."
             )
@@ -415,7 +416,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             rescue = await asyncio.to_thread(
                 restore_manager.save_rescue_blob, "master-xui", current_name, current
             )
-            await message.answer(
+            await render_input(message, 
                 f"💾 Rescue текущего Master сохранён: {rescue.name}\nЗапускаю importDB…"
             )
             await xui.import_database(archived, "x-ui.db", keep_host_settings=True)
@@ -427,7 +428,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 db, message, "restore.xui", target_type="backup", target_id=path.name,
                 details=f"keepHostSettings=true; rescue={rescue.name}",
             )
-            await message.answer(
+            await render_input(message, 
                 "✅ Master x-ui DB импортирована. 3x-ui перезапускает panel/Xray.\n\n"
                 "Проверь через 5–10 секунд Monitoring → System Health. Если API token из backup отличался, возможно потребуется вернуть соответствующий PANEL_API_TOKEN в .env."
             )
@@ -448,7 +449,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             rescue = await asyncio.to_thread(
                 restore_manager.save_rescue_blob, f"node-{node.name}", current_name, current
             )
-            await message.answer(
+            await render_input(message, 
                 f"💾 Rescue текущей DB {node.name} сохранён: {rescue.name}\nЗапускаю importDB…"
             )
             await client.import_database(
@@ -464,7 +465,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 db, message, "restore.node", target_type="node", target_id=node.name,
                 details=f"backup={path.name}; keepHostSettings=true; rescue={rescue.name}",
             )
-            await message.answer(
+            await render_input(message, 
                 f"✅ DB ноды {node.name} импортирована. Нода перезапускает panel/Xray.\n"
                 "Через несколько секунд открой Infrastructure → Nodes и выполни проверку. "
                 "Если backup содержал другой admin/API token, обнови соответствующий NODE_BACKUP_*_API_TOKEN в .env."
@@ -481,7 +482,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             db, message, "restore.failed", target_type="backup", target_id=bid,
             details=f"action={action}; {type(exc).__name__}: {exc}", success=False,
         )
-        await message.answer(f"🔴 Restore не выполнен: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_input(message, f"🔴 Restore не выполнен: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
 
 
 @disaster_recovery_router.callback_query(F.data.regexp(r"^admin:restore:env:[A-Za-z0-9._-]+$"))
@@ -505,7 +506,7 @@ async def restore_export_env(call: CallbackQuery):
         await call.answer()
     except Exception as exc:
         await call.answer("Ошибка export", show_alert=True)
-        await call.message.answer(f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
 
 
 @disaster_recovery_router.callback_query(F.data.regexp(r"^admin:restore:nginx:[A-Za-z0-9._-]+$"))
@@ -531,7 +532,7 @@ async def restore_export_nginx(call: CallbackQuery):
         await call.answer()
     except Exception as exc:
         await call.answer("Ошибка export", show_alert=True)
-        await call.message.answer(f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
 
 
 @disaster_recovery_router.callback_query(F.data == "admin:restore:history")
@@ -555,7 +556,7 @@ async def restore_history(call: CallbackQuery):
         if item.get("error"):
             lines.append(f"   {str(item.get('error'))[:180]}")
     await call.answer()
-    await call.message.answer("\n".join(lines), reply_markup=_backup_back())
+    await render_callback(call, "\n".join(lines), reply_markup=_backup_back())
 
 
 async def send_boot_restore_notice(bot) -> None:

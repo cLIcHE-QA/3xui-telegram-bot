@@ -16,6 +16,7 @@ from db import Database, HostRecord, PlanRecord, ServerGroupRecord
 from xui import XUIClient, XUIError
 from provisioning import ProvisioningEngine, is_managed_inbound, inbound_member_key
 from audit import audit_from_call, audit_from_message
+from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
 
 
@@ -69,7 +70,7 @@ async def guard_message(message: Message, state: FSMContext) -> bool:
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
     if not ok:
         await state.clear()
-        await message.answer("Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.")
         return False
     return True
 
@@ -175,7 +176,7 @@ async def plans_list(call: CallbackQuery):
         [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
     ]
     active = sum(1 for p in plans if p.active)
-    await call.message.answer(
+    await render_callback(call, 
         "💎 Plans\n\n"
         f"Тарифов: {len(plans)} · активных: {active}\n\n"
         "Тарифы участвуют в provisioning v4.5. ⭐ отмечает тариф по умолчанию для /create. "
@@ -236,7 +237,7 @@ async def plan_detail(call: CallbackQuery):
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:plan:deleteask:{plan.id}")],
         [InlineKeyboardButton(text="⬅ Plans", callback_data="admin:plans")],
     ])
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -246,7 +247,7 @@ async def plan_add_start(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.set_state(AddPlanStates.name)
-    await call.message.answer(
+    await render_callback(call, 
         "💎 Новый тариф · 1/5\n\nНазвание тарифа:",
         reply_markup=cancel_keyboard("admin:planadd:cancel"),
     )
@@ -259,11 +260,11 @@ async def plan_add_name(message: Message, state: FSMContext):
         return
     name = (message.text or "").strip()
     if not 1 <= len(name) <= 64:
-        await message.answer("Название должно быть от 1 до 64 символов.")
+        await render_input(message, "Название должно быть от 1 до 64 символов.")
         return
     await state.update_data(name=name)
     await state.set_state(AddPlanStates.duration)
-    await message.answer("💎 Новый тариф · 2/5\n\nСрок действия в днях, например 30:")
+    await render_input(message, "💎 Новый тариф · 2/5\n\nСрок действия в днях, например 30:")
 
 
 @catalog_router.message(AddPlanStates.duration)
@@ -275,11 +276,11 @@ async def plan_add_duration(message: Message, state: FSMContext):
         if not 1 <= value <= 3650:
             raise ValueError
     except ValueError:
-        await message.answer("Введите целое число от 1 до 3650.")
+        await render_input(message, "Введите целое число от 1 до 3650.")
         return
     await state.update_data(duration_days=value)
     await state.set_state(AddPlanStates.traffic)
-    await message.answer("💎 Новый тариф · 3/5\n\nЛимит трафика в GB. 0 = без лимита:")
+    await render_input(message, "💎 Новый тариф · 3/5\n\nЛимит трафика в GB. 0 = без лимита:")
 
 
 @catalog_router.message(AddPlanStates.traffic)
@@ -291,11 +292,11 @@ async def plan_add_traffic(message: Message, state: FSMContext):
         if not 0 <= value <= 1_000_000:
             raise ValueError
     except ValueError:
-        await message.answer("Введите целое число от 0 до 1000000.")
+        await render_input(message, "Введите целое число от 0 до 1000000.")
         return
     await state.update_data(traffic_gb=value)
     await state.set_state(AddPlanStates.ip_limit)
-    await message.answer("💎 Новый тариф · 4/5\n\nЛимит IP/устройств. 0 = без лимита:")
+    await render_input(message, "💎 Новый тариф · 4/5\n\nЛимит IP/устройств. 0 = без лимита:")
 
 
 @catalog_router.message(AddPlanStates.ip_limit)
@@ -307,11 +308,11 @@ async def plan_add_ip_limit(message: Message, state: FSMContext):
         if not 0 <= value <= 1000:
             raise ValueError
     except ValueError:
-        await message.answer("Введите целое число от 0 до 1000.")
+        await render_input(message, "Введите целое число от 0 до 1000.")
         return
     await state.update_data(ip_limit=value)
     await state.set_state(AddPlanStates.price)
-    await message.answer(
+    await render_input(message, 
         "💎 Новый тариф · 5/5\n\nЦена, например:\n499\n499.90 RUB\n5 EUR\n\n0 = бесплатно."
     )
 
@@ -324,7 +325,7 @@ async def plan_add_price(message: Message, state: FSMContext):
         default_currency = str(await db.get_runtime_setting("default_currency", "RUB") or "RUB").upper()
         price_minor, currency = _parse_price(message.text or "", default_currency)
     except ValueError:
-        await message.answer("Не понял цену. Пример: 499 RUB, 4.99 EUR или 0.")
+        await render_input(message, "Не понял цену. Пример: 499 RUB, 4.99 EUR или 0.")
         return
     await state.update_data(price_minor=price_minor, currency=currency)
     await state.set_state(AddPlanStates.group)
@@ -336,7 +337,7 @@ async def plan_add_price(message: Message, state: FSMContext):
             callback_data=f"admin:planadd:group:{group.id}",
         )])
     rows.append([InlineKeyboardButton(text="Отмена", callback_data="admin:planadd:cancel")])
-    await message.answer(
+    await render_input(message, 
         "Выбери Server Group для тарифа.\n"
         "Можно оставить без группы и назначить позже.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -360,7 +361,7 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
     group_name = await _group_name(group_id)
     traffic = "без лимита" if int(data["traffic_gb"]) == 0 else f"{data['traffic_gb']} GB"
     ips = "без лимита" if int(data["ip_limit"]) == 0 else str(data["ip_limit"])
-    await call.message.answer(
+    await render_callback(call, 
         "💎 Проверь тариф\n\n"
         f"Название: {data['name']}\n"
         f"Срок: {data['duration_days']} дней\n"
@@ -392,7 +393,7 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
             server_group_id=data.get("server_group_id"),
         )
     except sqlite3.IntegrityError:
-        await call.message.answer("Тариф с таким названием уже существует.", reply_markup=dashboard_back())
+        await render_callback(call, "Тариф с таким названием уже существует.", reply_markup=dashboard_back())
         await state.clear()
         await call.answer()
         return
@@ -401,7 +402,7 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
         details=f"name={data['name']}; duration={data['duration_days']}; traffic_gb={data['traffic_gb']}",
     )
     await state.clear()
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Тариф создан: #{plan_id} · {data['name']}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть тариф", callback_data=f"admin:plan:{plan_id}")],
@@ -416,7 +417,7 @@ async def plan_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await call.message.answer("Создание тарифа отменено.", reply_markup=dashboard_back())
+    await render_callback(call, "Создание тарифа отменено.", reply_markup=dashboard_back())
     await call.answer()
 
 
@@ -435,7 +436,7 @@ async def plan_toggle(call: CallbackQuery):
         db, call, "plan.toggle", target_type="plan", target_id=str(plan_id),
         details=f"active={new_active}",
     )
-    await call.message.answer(
+    await render_callback(call, 
         "✅ Статус тарифа обновлён.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть тариф", callback_data=f"admin:plan:{plan_id}")],
@@ -464,7 +465,7 @@ async def plan_group_select(call: CallbackQuery):
             callback_data=f"admin:plan:setgroup:{plan_id}:{group.id}",
         )])
     rows.append([InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")])
-    await call.message.answer(
+    await render_callback(call, 
         "Выбери Server Group для тарифа:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -490,7 +491,7 @@ async def plan_set_group(call: CallbackQuery):
     await call.answer("Server Group сохранена.")
     # Reuse detail rendering through a fresh synthetic callback is undesirable;
     # return a compact success card instead.
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Server Group: {await _group_name(group_id)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")],
@@ -531,7 +532,7 @@ async def plan_set_default(call: CallbackQuery):
         await db.set_runtime_setting("default_plan_id", str(plan_id), updated_by=call.from_user.id if call.from_user else 0)
         await audit_from_call(db, call, "plan.default", target_type="plan", target_id=str(plan_id), details="enabled=True")
         await call.answer("⭐ Default /create установлен.")
-    await call.message.answer("Статус default обновлён.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
+    await render_callback(call, "Статус default обновлён.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
 
 
 @catalog_router.callback_query(F.data.startswith("admin:plan:preview:"))
@@ -565,9 +566,9 @@ async def plan_preview(call: CallbackQuery):
                     lines.append(f"{marker} #{iid} · {server} · {ib.port}/{ib.protocol} · {ib.remark}")
         if policy.warnings:
             lines += ["", "Warnings:"] + [f"⚠️ {w}" for w in policy.warnings]
-        await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
+        await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
     except Exception as exc:
-        await call.message.answer(f"🔴 Provisioning preview: {type(exc).__name__}: {exc}")
+        await render_callback(call, f"🔴 Provisioning preview: {type(exc).__name__}: {exc}")
     await call.answer()
 
 
@@ -580,7 +581,7 @@ async def plan_delete_ask(call: CallbackQuery):
     if not plan:
         await call.answer("Тариф не найден.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         f"Удалить тариф «{plan.name}»?\n\nПользователи и 3x-ui не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:plan:delete:{plan_id}")],
@@ -604,7 +605,7 @@ async def plan_delete(call: CallbackQuery):
         db, call, "plan.delete", target_type="plan", target_id=str(plan_id),
         details=f"name={plan.name if plan else ''}",
     )
-    await call.message.answer("✅ Тариф удалён из каталога.", reply_markup=dashboard_back())
+    await render_callback(call, "✅ Тариф удалён из каталога.", reply_markup=dashboard_back())
     await call.answer()
 
 
@@ -629,7 +630,7 @@ async def server_groups_list(call: CallbackQuery):
         [InlineKeyboardButton(text="➕ Добавить группу", callback_data="admin:servergroupadd:start")],
         [InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")],
     ]
-    await call.message.answer(
+    await render_callback(call, 
         "🗂 Server Groups\n\n"
         f"Групп: {len(groups)}\n\n"
         "Группа объединяет Master и/или ноды и задаёт provisioning scope. "
@@ -645,7 +646,7 @@ async def server_group_add_start(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.set_state(AddServerGroupStates.name)
-    await call.message.answer(
+    await render_callback(call, 
         "🗂 Новая Server Group · 1/2\n\nНазвание, например Europe или Premium:",
         reply_markup=cancel_keyboard("admin:servergroupadd:cancel"),
     )
@@ -658,11 +659,11 @@ async def server_group_add_name(message: Message, state: FSMContext):
         return
     name = (message.text or "").strip()
     if not 1 <= len(name) <= 64:
-        await message.answer("Название должно быть от 1 до 64 символов.")
+        await render_input(message, "Название должно быть от 1 до 64 символов.")
         return
     await state.update_data(name=name)
     await state.set_state(AddServerGroupStates.description)
-    await message.answer("🗂 Новая Server Group · 2/2\n\nОписание или «-», если не нужно:")
+    await render_input(message, "🗂 Новая Server Group · 2/2\n\nОписание или «-», если не нужно:")
 
 
 @catalog_router.message(AddServerGroupStates.description)
@@ -674,12 +675,12 @@ async def server_group_add_description(message: Message, state: FSMContext):
     if description == "-":
         description = ""
     if len(description) > 300:
-        await message.answer("Описание слишком длинное. Максимум 300 символов.")
+        await render_input(message, "Описание слишком длинное. Максимум 300 символов.")
         return
     try:
         group_id = await db.create_server_group(name=str(data["name"]), description=description)
     except sqlite3.IntegrityError:
-        await message.answer("Группа с таким названием уже существует.", reply_markup=infrastructure_back())
+        await render_input(message, "Группа с таким названием уже существует.", reply_markup=infrastructure_back())
         await state.clear()
         return
     await audit_from_message(
@@ -687,7 +688,7 @@ async def server_group_add_description(message: Message, state: FSMContext):
         details=f"name={data['name']}",
     )
     await state.clear()
-    await message.answer(
+    await render_input(message, 
         f"✅ Server Group создана: #{group_id} · {data['name']}\n\nТеперь выбери серверы в карточке группы.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть группу", callback_data=f"admin:servergroup:{group_id}")],
@@ -701,7 +702,7 @@ async def server_group_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await call.message.answer("Создание Server Group отменено.", reply_markup=infrastructure_back())
+    await render_callback(call, "Создание Server Group отменено.", reply_markup=infrastructure_back())
     await call.answer()
 
 
@@ -779,7 +780,7 @@ async def server_group_detail(call: CallbackQuery):
         await call.answer("Группа не найдена.", show_alert=True)
         return
     text, kb = await _server_group_card(group)
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -803,7 +804,7 @@ async def server_group_toggle(call: CallbackQuery):
     )
     await call.answer("Состав группы обновлён.")
     text, kb = await _server_group_card(group)
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
 
 
 @catalog_router.callback_query(F.data.startswith("admin:servergroup:inbounds:"))
@@ -821,7 +822,7 @@ async def server_group_inbounds(call: CallbackQuery):
     try:
         options = [i for i in await xui.inbound_options() if i.enable and is_managed_inbound(settings, i) and inbound_member_key(i) in members]
     except XUIError as exc:
-        await call.message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=infrastructure_back())
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=infrastructure_back())
         await call.answer()
         return
     try:
@@ -848,7 +849,7 @@ async def server_group_inbounds(call: CallbackQuery):
         "ALL managed автоматически включает все разрешённые .env inbound'ы на серверах группы. "
         "SELECTED позволяет зафиксировать конкретный набор."
     )
-    await call.message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -873,7 +874,7 @@ async def server_group_inbound_mode(call: CallbackQuery):
     await db.set_server_group_inbound_mode(group_id, mode)
     await audit_from_call(db, call, "server_group.inbound_mode", target_type="server_group", target_id=str(group_id), details=f"mode={mode}")
     await call.answer("Inbound policy обновлена.")
-    await call.message.answer("Открой provisioning inbounds ещё раз для настройки.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Provisioning inbounds", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
+    await render_callback(call, "Открой provisioning inbounds ещё раз для настройки.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Provisioning inbounds", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
 
 
 @catalog_router.callback_query(F.data.startswith("admin:servergroup:ibtoggle:"))
@@ -902,7 +903,7 @@ async def server_group_inbound_toggle(call: CallbackQuery):
     await db.set_server_group_inbound(group_id, inbound_id, enabled)
     await audit_from_call(db, call, "server_group.inbound", target_type="server_group", target_id=str(group_id), details=f"inbound_id={inbound_id}; enabled={enabled}")
     await call.answer("Inbound policy обновлена.")
-    await call.message.answer("Изменение сохранено.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Продолжить", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
+    await render_callback(call, "Изменение сохранено.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Продолжить", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
 
 
 @catalog_router.callback_query(F.data.startswith("admin:servergroup:deleteask:"))
@@ -914,7 +915,7 @@ async def server_group_delete_ask(call: CallbackQuery):
     if not group:
         await call.answer("Группа не найдена.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         f"Удалить Server Group «{group.name}»?\n\n"
         "У тарифов и user profiles эта группа будет снята. Текущие привязки 3x-ui не изменятся до reconcile.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -936,7 +937,7 @@ async def server_group_delete(call: CallbackQuery):
         db, call, "server_group.delete", target_type="server_group", target_id=str(group_id),
         details=f"name={group.name if group else ''}",
     )
-    await call.message.answer("✅ Server Group удалена.", reply_markup=infrastructure_back())
+    await render_callback(call, "✅ Server Group удалена.", reply_markup=infrastructure_back())
     await call.answer()
 
 
@@ -964,7 +965,7 @@ async def hosts_list(call: CallbackQuery):
         [InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")],
     ]
     enabled = sum(1 for h in hosts if h.enabled)
-    await call.message.answer(
+    await render_callback(call, 
         "🌐 Hosts\n\n"
         f"Записей: {len(hosts)} · активных: {enabled}\n\n"
         "Это централизованный реестр доменов/IP и их ролей. v3.9 не меняет DNS, nginx "
@@ -1002,7 +1003,7 @@ async def hosts_discover(call: CallbackQuery):
         text += "\n\n" + "\n".join(f"• {x}" for x in added)
     else:
         text += "\n\nПодходящих hosts в текущей конфигурации не найдено."
-    await call.message.answer(
+    await render_callback(call, 
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⬅ Hosts", callback_data="admin:hosts")],
@@ -1017,7 +1018,7 @@ async def host_add_start(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.set_state(AddHostStates.label)
-    await call.message.answer(
+    await render_callback(call, 
         "🌐 Новый host · 1/3\n\nНазвание, например Public Subscription или NL VPN:",
         reply_markup=cancel_keyboard("admin:hostadd:cancel"),
     )
@@ -1030,11 +1031,11 @@ async def host_add_label(message: Message, state: FSMContext):
         return
     label = (message.text or "").strip()
     if not 1 <= len(label) <= 80:
-        await message.answer("Название должно быть от 1 до 80 символов.")
+        await render_input(message, "Название должно быть от 1 до 80 символов.")
         return
     await state.update_data(label=label)
     await state.set_state(AddHostStates.hostname)
-    await message.answer(
+    await render_input(message, 
         "🌐 Новый host · 2/3\n\nHostname, IP или URL. Например:\nsub.example.com\nhttps://panel.example.com/basepath"
     )
 
@@ -1046,7 +1047,7 @@ async def host_add_hostname(message: Message, state: FSMContext):
     try:
         hostname = _normalize_hostname(message.text or "")
     except ValueError:
-        await message.answer("Некорректный hostname/IP/URL.")
+        await render_input(message, "Некорректный hostname/IP/URL.")
         return
     await state.update_data(hostname=hostname)
     await state.set_state(AddHostStates.role)
@@ -1057,7 +1058,7 @@ async def host_add_hostname(message: Message, state: FSMContext):
             callback_data=f"admin:hostadd:role:{key}",
         )])
     rows.append([InlineKeyboardButton(text="Отмена", callback_data="admin:hostadd:cancel")])
-    await message.answer(
+    await render_input(message, 
         "🌐 Новый host · 3/3\n\nВыбери роль:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -1075,7 +1076,7 @@ async def host_add_role(call: CallbackQuery, state: FSMContext):
     try:
         host_id = await db.create_host(label=str(data["label"]), hostname=str(data["hostname"]), role=role)
     except sqlite3.IntegrityError:
-        await call.message.answer(
+        await render_callback(call, 
             "Такой hostname с этой ролью уже есть в реестре.",
             reply_markup=infrastructure_back(),
         )
@@ -1087,7 +1088,7 @@ async def host_add_role(call: CallbackQuery, state: FSMContext):
         details=f"hostname={data['hostname']}; role={role}",
     )
     await state.clear()
-    await call.message.answer(
+    await render_callback(call, 
         f"✅ Host добавлен: {data['hostname']} · {HOST_ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть host", callback_data=f"admin:host:{host_id}")],
@@ -1102,7 +1103,7 @@ async def host_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await call.message.answer("Добавление host отменено.", reply_markup=infrastructure_back())
+    await render_callback(call, "Добавление host отменено.", reply_markup=infrastructure_back())
     await call.answer()
 
 
@@ -1129,7 +1130,7 @@ async def host_detail(call: CallbackQuery):
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:host:deleteask:{host.id}")],
         [InlineKeyboardButton(text="⬅ Hosts", callback_data="admin:hosts")],
     ])
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -1149,7 +1150,7 @@ async def host_toggle(call: CallbackQuery):
         details=f"hostname={host.hostname}; enabled={new_enabled}",
     )
     await call.answer("Статус host обновлён.")
-    await call.message.answer(
+    await render_callback(call, 
         "✅ Статус обновлён.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Открыть host", callback_data=f"admin:host:{host_id}")],
@@ -1167,7 +1168,7 @@ async def host_delete_ask(call: CallbackQuery):
     if not host:
         await call.answer("Host не найден.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         f"Удалить из реестра {host.hostname} ({HOST_ROLE_LABELS.get(host.role, host.role)})?\n\n"
         "DNS/nginx/3x-ui изменены не будут.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -1189,5 +1190,5 @@ async def host_delete(call: CallbackQuery):
         db, call, "host.delete", target_type="host", target_id=str(host_id),
         details=f"hostname={host.hostname if host else ''}",
     )
-    await call.message.answer("✅ Host удалён из реестра.", reply_markup=infrastructure_back())
+    await render_callback(call, "✅ Host удалён из реестра.", reply_markup=infrastructure_back())
     await call.answer()

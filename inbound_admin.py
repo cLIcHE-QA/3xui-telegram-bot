@@ -10,6 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
 from audit import audit_from_call, audit_from_message
 from config import load_settings
@@ -41,7 +42,7 @@ async def guard_message(message: Message, state: FSMContext, *, minimum: str = "
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum=minimum)
     if not ok:
         await state.clear()
-        await message.answer("Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.")
         return False
     return True
 
@@ -297,7 +298,7 @@ async def inbound_detail(call: CallbackQuery, state: FSMContext):
     inbound_id = int(call.data.rsplit(":", 1)[-1])
     try:
         text, kb = await _inbound_card(inbound_id)
-        await call.message.answer(text, reply_markup=kb)
+        await render_callback(call, text, reply_markup=kb)
         await call.answer()
     except XUIError as exc:
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
@@ -332,7 +333,7 @@ async def inbound_clients(call: CallbackQuery):
     if len(clients) > 50:
         lines += ["", f"… ещё {len(clients) - 50}"]
     rows.append([InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{inbound_id}")])
-    await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -380,7 +381,7 @@ async def inbound_edit_menu(call: CallbackQuery):
     except XUIError as exc:
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         "✏️ Edit inbound\n\n"
         "Из Telegram доступны только поля, которые можно обновить без показа приватных ключей. "
         "Полный settings/streamSettings сохраняется при каждом изменении.",
@@ -414,7 +415,7 @@ async def inbound_edit_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.set_state(InboundEditStates.value)
     await state.update_data(inbound_id=iid, field=field)
-    await call.message.answer(
+    await render_callback(call, 
         f"✏️ Inbound #{iid}\n\n{_FIELD_PROMPTS[field]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inbound:{iid}")
@@ -431,7 +432,7 @@ async def inbound_edit_mode(call: CallbackQuery):
     rows = [[InlineKeyboardButton(text=mode, callback_data=f"admin:inbound:setmode:{iid}:{mode}")]
             for mode in ("auto", "packet-up", "stream-up", "stream-one")]
     rows.append([InlineKeyboardButton(text="⬅ Edit", callback_data=f"admin:inbound:edit:{iid}")])
-    await call.message.answer("XHTTP mode:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, "XHTTP mode:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -463,7 +464,7 @@ async def inbound_set_mode(call: CallbackQuery):
         await _apply_mode(call, iid, mode)
         await call.answer("Сохранено.")
         text, kb = await _inbound_card(iid)
-        await call.message.answer(text, reply_markup=kb)
+        await render_callback(call, text, reply_markup=kb)
     except XUIError as exc:
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
@@ -482,7 +483,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         new_display = raw
         if field == "remark":
             if not 1 <= len(raw) <= 128:
-                await message.answer("Название должно быть от 1 до 128 символов.")
+                await render_input(message, "Название должно быть от 1 до 128 символов.")
                 return
             old_display = str(ib.get("remark") or "")
             ib["remark"] = raw
@@ -490,13 +491,13 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             try:
                 port = int(raw)
             except ValueError:
-                await message.answer("Нужен числовой port.")
+                await render_input(message, "Нужен числовой port.")
                 return
             if not 1 <= port <= 65535:
-                await message.answer("Port должен быть 1-65535.")
+                await render_input(message, "Port должен быть 1-65535.")
                 return
             if not await _port_free(_node_key(ib.get("nodeId")), port, exclude_inbound_id=iid):
-                await message.answer("Этот port уже занят на данном сервере.")
+                await render_input(message, "Этот port уже занят на данном сервере.")
                 return
             old_display = str(ib.get("port") or 0)
             ib["port"] = port
@@ -508,7 +509,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         elif field in {"path", "host", "padding"}:
             stream = _stream(ib)
             if str(stream.get("network") or "") != "xhttp":
-                await message.answer("Этот inbound не использует XHTTP.")
+                await render_input(message, "Этот inbound не использует XHTTP.")
                 await state.clear()
                 return
             xhttp = _json_obj(stream.get("xhttpSettings"))
@@ -516,7 +517,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             old_display = str(xhttp.get(key) or "")
             value = "" if raw == "-" else raw
             if field == "path" and value and not value.startswith("/"):
-                await message.answer("XHTTP path должен начинаться с /.")
+                await render_input(message, "XHTTP path должен начинаться с /.")
                 return
             xhttp[key] = value
             stream["xhttpSettings"] = xhttp
@@ -525,12 +526,12 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         elif field == "sni":
             stream = _stream(ib)
             if str(stream.get("security") or "") != "reality":
-                await message.answer("Этот inbound не использует Reality.")
+                await render_input(message, "Этот inbound не использует Reality.")
                 await state.clear()
                 return
             values = [x.strip() for x in raw.split(",") if x.strip()]
             if not values:
-                await message.answer("Укажи хотя бы один SNI.")
+                await render_input(message, "Укажи хотя бы один SNI.")
                 return
             reality = _json_obj(stream.get("realitySettings"))
             old_display = ",".join(map(str, reality.get("serverNames") or []))
@@ -544,7 +545,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         elif field == "fingerprint":
             stream = _stream(ib)
             if str(stream.get("security") or "") != "reality":
-                await message.answer("Этот inbound не использует Reality.")
+                await render_input(message, "Этот inbound не использует Reality.")
                 await state.clear()
                 return
             reality = _json_obj(stream.get("realitySettings"))
@@ -557,7 +558,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             ib["streamSettings"] = stream
             new_display = value or "-"
         else:
-            await message.answer("Поле не поддерживается.")
+            await render_input(message, "Поле не поддерживается.")
             await state.clear()
             return
         await xui.inbound_update(iid, _update_payload(ib))
@@ -567,14 +568,14 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         )
         await state.clear()
         text, kb = await _inbound_card(iid)
-        await message.answer("✅ Inbound обновлён.\n\n" + text, reply_markup=kb)
+        await render_input(message, "✅ Inbound обновлён.\n\n" + text, reply_markup=kb)
     except XUIError as exc:
         await state.clear()
         await audit_from_message(
             db, message, "inbound.update", target_type="inbound", target_id=str(iid),
             details=f"field={field}; error={str(exc)[:300]}", success=False,
         )
-        await message.answer(f"Ошибка 3x-ui: {exc}")
+        await render_input(message, f"Ошибка 3x-ui: {exc}")
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:toggle:"))
@@ -592,7 +593,7 @@ async def inbound_toggle(call: CallbackQuery):
         )
         await call.answer("Enabled" if enabled else "Disabled")
         text, kb = await _inbound_card(iid)
-        await call.message.answer(text, reply_markup=kb)
+        await render_callback(call, text, reply_markup=kb)
     except XUIError as exc:
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
@@ -603,7 +604,7 @@ async def inbound_sync_ask(call: CallbackQuery):
         return
     iid = int(call.data.rsplit(":", 1)[-1])
     users = await db.list_users()
-    await call.message.answer(
+    await render_callback(call, 
         f"🔄 Sync users → inbound #{iid}\n\n"
         f"Все {len(users)} пользователей из локальной БД будут привязаны к этому inbound, "
         "если они ещё не привязаны. Лимиты и credentials не меняются.",
@@ -629,7 +630,7 @@ async def inbound_sync_run(call: CallbackQuery):
             db, call, "inbound.sync_users", target_type="inbound", target_id=str(iid),
             details=f"users={len(emails)}; result={str(obj)[:800]}",
         )
-        await call.message.answer(
+        await render_callback(call, 
             f"✅ Sync завершён для inbound #{iid}.\nПользователей обработано: {len(emails)}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")
@@ -649,7 +650,7 @@ async def inbound_reset_ask(call: CallbackQuery):
     if not await guard(call, minimum="admin"):
         return
     iid = int(call.data.rsplit(":", 1)[-1])
-    await call.message.answer(
+    await render_callback(call, 
         f"♻️ Обнулить общий traffic inbound #{iid}?\n\nPer-client counters не изменяются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Reset", callback_data=f"admin:inbound:resetrun:{iid}")],
@@ -669,7 +670,7 @@ async def inbound_reset_run(call: CallbackQuery):
         await audit_from_call(db, call, "inbound.reset_traffic", target_type="inbound", target_id=str(iid))
         await call.answer("Traffic обнулён.")
         text, kb = await _inbound_card(iid)
-        await call.message.answer(text, reply_markup=kb)
+        await render_callback(call, text, reply_markup=kb)
     except XUIError as exc:
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
@@ -697,7 +698,7 @@ async def inbound_clone_start(call: CallbackQuery):
     if not await guard(call, minimum="admin"):
         return
     iid = int(call.data.rsplit(":", 1)[-1])
-    await call.message.answer(
+    await render_callback(call, 
         "📋 Clone inbound\n\nВыбери сервер. Клон создаётся disabled и без клиентов.",
         reply_markup=await _target_keyboard("admin:inbound:clonetarget", iid),
     )
@@ -728,12 +729,12 @@ async def inbound_clone_target(call: CallbackQuery, state: FSMContext):
             await _create_clone(call, iid, target_node, source_port)
             await call.answer("Clone создан disabled.")
             text, kb = await inbound_list_view()
-            await call.message.answer(text, reply_markup=kb)
+            await render_callback(call, text, reply_markup=kb)
             return
         await state.clear()
         await state.set_state(InboundEditStates.clone_port)
         await state.update_data(clone_inbound_id=iid, clone_target_node=target_node)
-        await call.message.answer(
+        await render_callback(call, 
             f"На выбранном сервере port {source_port} уже занят.\n\nВведи другой port (1-65535):"
         )
         await call.answer()
@@ -748,16 +749,16 @@ async def inbound_clone_port(message: Message, state: FSMContext):
     try:
         port = int((message.text or "").strip())
     except ValueError:
-        await message.answer("Нужен числовой port.")
+        await render_input(message, "Нужен числовой port.")
         return
     if not 1 <= port <= 65535:
-        await message.answer("Port должен быть 1-65535.")
+        await render_input(message, "Port должен быть 1-65535.")
         return
     data = await state.get_data()
     iid = int(data.get("clone_inbound_id") or 0)
     target_node = int(data.get("clone_target_node") or 0)
     if not await _port_free(target_node, port):
-        await message.answer("Этот port уже занят на выбранном сервере.")
+        await render_input(message, "Этот port уже занят на выбранном сервере.")
         return
     try:
         # This path has no CallbackQuery for audit, so record the mutation directly.
@@ -768,7 +769,7 @@ async def inbound_clone_port(message: Message, state: FSMContext):
             details=f"target_node={target_node}; port={port}",
         )
         await state.clear()
-        await message.answer(
+        await render_input(message, 
             "✅ Clone создан disabled.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
@@ -776,7 +777,7 @@ async def inbound_clone_port(message: Message, state: FSMContext):
         )
     except XUIError as exc:
         await state.clear()
-        await message.answer(f"Ошибка 3x-ui: {exc}")
+        await render_input(message, f"Ошибка 3x-ui: {exc}")
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:template:"))
@@ -792,7 +793,7 @@ async def inbound_template_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.set_state(InboundEditStates.template_name)
     await state.update_data(template_source_id=iid)
-    await call.message.answer(
+    await render_callback(call, 
         f"🧩 Save template from #{iid}\n\n"
         f"Источник: {ib.get('remark') or '-'}\n"
         "Введи имя template. В шаблон попадёт конфигурация inbound без clients; он будет храниться в bot.sqlite3.",
@@ -806,7 +807,7 @@ async def inbound_template_save(message: Message, state: FSMContext):
         return
     name = (message.text or "").strip()
     if not 1 <= len(name) <= 64:
-        await message.answer("Имя должно быть от 1 до 64 символов.")
+        await render_input(message, "Имя должно быть от 1 до 64 символов.")
         return
     data = await state.get_data()
     iid = int(data.get("template_source_id") or 0)
@@ -824,17 +825,17 @@ async def inbound_template_save(message: Message, state: FSMContext):
             target_id=str(template_id), details=f"name={name}; source_inbound={iid}",
         )
         await state.clear()
-        await message.answer(
+        await render_input(message, 
             f"✅ Template создан: {name}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="🧩 Templates", callback_data="admin:inboundtemplates")
             ]]),
         )
     except sqlite3.IntegrityError:
-        await message.answer("Template с таким именем уже существует.")
+        await render_input(message, "Template с таким именем уже существует.")
     except XUIError as exc:
         await state.clear()
-        await message.answer(f"Ошибка 3x-ui: {exc}")
+        await render_input(message, f"Ошибка 3x-ui: {exc}")
 
 
 @inbound_admin_router.callback_query(F.data == "admin:inboundtemplates")
@@ -847,7 +848,7 @@ async def inbound_templates(call: CallbackQuery):
     )] for t in templates[:50]]
     rows.append([InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")])
     text = "🧩 Inbound Templates\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет.")
-    await call.message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -880,7 +881,7 @@ async def inbound_template_card(call: CallbackQuery):
         [InlineKeyboardButton(text="🗑 Delete template", callback_data=f"admin:inboundtemplate:deleteask:{tid}")],
         [InlineKeyboardButton(text="⬅ Templates", callback_data="admin:inboundtemplates")],
     ])
-    await call.message.answer(text, reply_markup=kb)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -892,7 +893,7 @@ async def template_deploy_start(call: CallbackQuery):
     if not await db.get_inbound_template(tid):
         await call.answer("Template не найден.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         "🚀 Deploy template\n\nВыбери сервер. Новый inbound будет disabled и без clients.",
         reply_markup=await _target_keyboard("admin:inboundtemplate:target", tid),
     )
@@ -935,12 +936,12 @@ async def template_deploy_target(call: CallbackQuery, state: FSMContext):
             )
             await call.answer("Deploy завершён. Inbound disabled.")
             text, kb = await inbound_list_view()
-            await call.message.answer(text, reply_markup=kb)
+            await render_callback(call, text, reply_markup=kb)
             return
         await state.clear()
         await state.set_state(InboundEditStates.template_port)
         await state.update_data(template_id=tid, template_target_node=target_node)
-        await call.message.answer(
+        await render_callback(call, 
             f"Port {port} уже занят на выбранном сервере.\n\nВведи другой port (1-65535):"
         )
         await call.answer()
@@ -955,16 +956,16 @@ async def template_deploy_port(message: Message, state: FSMContext):
     try:
         port = int((message.text or "").strip())
     except ValueError:
-        await message.answer("Нужен числовой port.")
+        await render_input(message, "Нужен числовой port.")
         return
     if not 1 <= port <= 65535:
-        await message.answer("Port должен быть 1-65535.")
+        await render_input(message, "Port должен быть 1-65535.")
         return
     data = await state.get_data()
     tid = int(data.get("template_id") or 0)
     target_node = int(data.get("template_target_node") or 0)
     if not await _port_free(target_node, port):
-        await message.answer("Этот port уже занят на выбранном сервере.")
+        await render_input(message, "Этот port уже занят на выбранном сервере.")
         return
     try:
         await _deploy_template(tid, target_node, port)
@@ -973,7 +974,7 @@ async def template_deploy_port(message: Message, state: FSMContext):
             target_id=str(tid), details=f"target_node={target_node}; port={port}",
         )
         await state.clear()
-        await message.answer(
+        await render_input(message, 
             "✅ Deploy завершён. Новый inbound disabled.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
@@ -981,7 +982,7 @@ async def template_deploy_port(message: Message, state: FSMContext):
         )
     except (XUIError, ValueError) as exc:
         await state.clear()
-        await message.answer(f"Ошибка deploy: {exc}")
+        await render_input(message, f"Ошибка deploy: {exc}")
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inboundtemplate:deleteask:"))
@@ -993,7 +994,7 @@ async def template_delete_ask(call: CallbackQuery):
     if not t:
         await call.answer("Template не найден.", show_alert=True)
         return
-    await call.message.answer(
+    await render_callback(call, 
         f"Удалить template «{t.name}»?\n\nРазвёрнутые inbound'ы не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Удалить", callback_data=f"admin:inboundtemplate:delete:{tid}")],
@@ -1019,7 +1020,7 @@ async def template_delete(call: CallbackQuery):
     rows = [[InlineKeyboardButton(text=f"🧩 {x.name}", callback_data=f"admin:inboundtemplate:{x.id}")]
             for x in templates[:50]]
     rows.append([InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")])
-    await call.message.answer(
+    await render_callback(call, 
         "🧩 Inbound Templates\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет."),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -1036,7 +1037,7 @@ async def inbound_delete_ask(call: CallbackQuery):
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
         return
     clients = _settings(ib).get("clients") or []
-    await call.message.answer(
+    await render_callback(call, 
         f"🗑 Удалить inbound #{iid} «{ib.get('remark') or '-'}»?\n\n"
         f"Клиентов внутри: {len(clients) if isinstance(clients, list) else 0}.\n"
         "Удаление inbound необратимо. 3x-ui также удалит связанные с этим inbound traffic/stat rows; "
@@ -1063,7 +1064,7 @@ async def inbound_delete(call: CallbackQuery):
         )
         await call.answer("Inbound удалён.")
         text, kb = await inbound_list_view()
-        await call.message.answer(text, reply_markup=kb)
+        await render_callback(call, text, reply_markup=kb)
     except XUIError as exc:
         await audit_from_call(
             db, call, "inbound.delete", target_type="inbound", target_id=str(iid),
