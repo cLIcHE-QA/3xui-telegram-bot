@@ -172,6 +172,20 @@ class Database:
                 )
             """)
             await db.execute("""
+                CREATE TABLE IF NOT EXISTS server_group_provisioning (
+                    group_id INTEGER PRIMARY KEY,
+                    inbound_mode TEXT NOT NULL DEFAULT 'all_managed',
+                    updated_at INTEGER NOT NULL
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS server_group_inbounds (
+                    group_id INTEGER NOT NULL,
+                    inbound_id INTEGER NOT NULL,
+                    PRIMARY KEY(group_id, inbound_id)
+                )
+            """)
+            await db.execute("""
                 CREATE TABLE IF NOT EXISTS plans (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT COLLATE NOCASE NOT NULL UNIQUE,
@@ -549,6 +563,14 @@ class Database:
                 "DELETE FROM server_group_members WHERE group_id = ?",
                 (int(group_id),),
             )
+            await db.execute(
+                "DELETE FROM server_group_inbounds WHERE group_id = ?",
+                (int(group_id),),
+            )
+            await db.execute(
+                "DELETE FROM server_group_provisioning WHERE group_id = ?",
+                (int(group_id),),
+            )
             await db.execute("DELETE FROM server_groups WHERE id = ?", (int(group_id),))
             await db.commit()
 
@@ -572,6 +594,69 @@ class Database:
                 await db.execute(
                     "DELETE FROM server_group_members WHERE group_id = ? AND member_key = ?",
                     (int(group_id), member_key),
+                )
+            await db.commit()
+
+    async def get_server_group_inbound_mode(self, group_id: int) -> str:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                "SELECT inbound_mode FROM server_group_provisioning WHERE group_id = ?",
+                (int(group_id),),
+            )
+            row = await cur.fetchone()
+            mode = str(row[0]) if row else "all_managed"
+            return mode if mode in {"all_managed", "selected"} else "all_managed"
+
+    async def set_server_group_inbound_mode(self, group_id: int, mode: str) -> None:
+        if mode not in {"all_managed", "selected"}:
+            raise ValueError("invalid inbound mode")
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                INSERT INTO server_group_provisioning(group_id, inbound_mode, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(group_id) DO UPDATE SET
+                    inbound_mode=excluded.inbound_mode,
+                    updated_at=excluded.updated_at
+                """,
+                (int(group_id), mode, int(time.time())),
+            )
+            await db.commit()
+
+    async def list_server_group_inbounds(self, group_id: int) -> set[int]:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                "SELECT inbound_id FROM server_group_inbounds WHERE group_id = ?",
+                (int(group_id),),
+            )
+            rows = await cur.fetchall()
+            return {int(r[0]) for r in rows}
+
+    async def set_server_group_inbound(self, group_id: int, inbound_id: int, enabled: bool) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            if enabled:
+                await db.execute(
+                    "INSERT OR IGNORE INTO server_group_inbounds(group_id, inbound_id) VALUES (?, ?)",
+                    (int(group_id), int(inbound_id)),
+                )
+            else:
+                await db.execute(
+                    "DELETE FROM server_group_inbounds WHERE group_id = ? AND inbound_id = ?",
+                    (int(group_id), int(inbound_id)),
+                )
+            await db.commit()
+
+    async def replace_server_group_inbounds(self, group_id: int, inbound_ids: set[int] | list[int]) -> None:
+        ids = sorted({int(x) for x in inbound_ids})
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "DELETE FROM server_group_inbounds WHERE group_id = ?",
+                (int(group_id),),
+            )
+            if ids:
+                await db.executemany(
+                    "INSERT INTO server_group_inbounds(group_id, inbound_id) VALUES (?, ?)",
+                    [(int(group_id), inbound_id) for inbound_id in ids],
                 )
             await db.commit()
 

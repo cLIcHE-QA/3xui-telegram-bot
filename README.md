@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v4.4.0
+# 3x-ui Telegram bot v4.5.0
 
 Production-oriented Telegram admin panel for 3x-ui.
 
@@ -1099,3 +1099,127 @@ docker compose up -d --build
 docker compose ps
 docker compose logs --tail=100 bot
 ```
+
+
+## v4.5.0 — Provisioning Engine
+
+v4.5.0 activates the control-plane model introduced in earlier releases:
+
+```text
+Plan
+  -> Server Group
+     -> Master / Nodes
+        -> managed Inbounds
+           -> Client attachments
+```
+
+Existing working user, inbound, node, subscription, backup and compatibility
+logic remains available. Provisioning is additive and explicit: assigning a
+Plan or Server Group does not silently remove existing client attachments.
+
+### Default Plan for `/create`
+
+A Plan card now has:
+
+```text
+Preview provisioning
+Set as default /create
+```
+
+When an active Plan is the default, new users created through `/create` use the
+Plan's duration, traffic quota and IP limit. If the Plan has a Server Group, the
+new client is attached only to the group's currently available provisioning
+inbounds. Offline node targets are left as drift and can be reconciled later.
+
+If no valid default Plan is configured, the previous trial behaviour is kept:
+`TEST_*` / runtime trial settings and the existing all-managed inbound filter.
+
+### Server Group inbound policy
+
+Each Server Group now has a `Provisioning inbounds` screen with two modes:
+
+```text
+ALL managed
+SELECTED
+```
+
+`ALL managed` dynamically targets every enabled inbound that passes the bot's
+existing `INBOUND_IDS`, `ALLOWED_PORTS`, `ALLOWED_PROTOCOLS`, ignored tag and
+ignored protocol filters on servers belonging to the group.
+
+`SELECTED` stores an explicit inbound set. Switching from ALL to SELECTED seeds
+that set from the group's current managed inbounds so the change is safe by
+default; administrators can then deselect individual targets.
+
+Two additive SQLite tables are created automatically:
+
+```text
+server_group_provisioning
+server_group_inbounds
+```
+
+No existing table is rebuilt.
+
+### Per-user provisioning
+
+Advanced User Management now shows provisioning drift and adds:
+
+```text
+Provisioning
+Safe reconcile
+Strict reconcile
+Plan + Provision
+```
+
+`Safe reconcile` only attaches missing desired inbounds that are currently
+reachable. It never detaches an existing inbound.
+
+`Strict reconcile` is Admin-only and confirmation-gated. It attaches missing
+inbounds and detaches managed inbounds that are outside the desired policy. It
+never intentionally leaves a client with zero inbound attachments.
+
+`Plan + Provision` applies the Plan's expiry/traffic/IP limits and then performs
+a safe reconcile. The Plan's Server Group becomes the user's group assignment.
+
+### Fleet reconcile
+
+```text
+/admin
+-> Users
+-> Reconcile provisioning
+```
+
+runs safe reconcile for every user in the local bot database. One broken user
+or offline node does not stop the remaining users. The run is written to
+`job_runs` as `provision.reconcile_all` and all actions are recorded in Audit
+Log.
+
+### Multi-node behaviour
+
+3x-ui first-class clients are attached to inbound IDs managed by the master.
+Node-hosted inbounds carry `nodeId`; the provisioning engine maps Server Group
+members (`master`, `node_<id>`) to those inbound IDs. Offline/disabled nodes are
+kept in the desired policy but skipped by safe provisioning until a later
+reconcile.
+
+### Upgrade from v4.4.0
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v4.4.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v4.4.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v4.5.0/.env
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.5.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v4.4.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v4.5.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v4.5.0
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 bot
+```
+
+No new `.env` variables are required.

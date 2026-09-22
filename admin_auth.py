@@ -81,6 +81,7 @@ def required_role_for_callback(data: str) -> str:
         # Some detail prefixes also contain mutation suffixes; catch them below.
         mutation_tokens = (
             ":toggle:", ":delete:", ":deleteask:", ":setgroup:", ":member:",
+            ":default:", ":inboundmode:", ":ibtoggle:",
             ":status:", ":save", ":start", ":create", ":discover", ":run",
             ":tls:", ":cancel", ":backup", ":full", ":botdb",
         )

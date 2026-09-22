@@ -17,6 +17,7 @@ class InboundOption:
     protocol: str
     port: int
     enable: bool
+    node_id: int | None = None
 
 
 @dataclass
@@ -266,6 +267,7 @@ class XUIClient:
             protocol=str(item.get("protocol") or "").lower(),
             port=int(item.get("port") or 0),
             enable=bool(item.get("enable", True)),
+            node_id=(int(item.get("nodeId")) if item.get("nodeId") not in (None, "", 0, "0") else None),
         )
 
     async def clients_list(self) -> list[dict[str, Any]]:

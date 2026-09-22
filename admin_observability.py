@@ -231,6 +231,7 @@ def next_backup_text() -> str:
 def job_status_icon(status: str) -> str:
     return {
         "success": "✅",
+        "partial": "⚠️",
         "failed": "🔴",
         "running": "⏳",
     }.get((status or "").lower(), "⚪")
@@ -249,6 +250,7 @@ async def jobs_view(call: CallbackQuery):
         return
     daily = await db.last_job_run("backup.daily")
     manual = await db.last_job_run("backup.manual")
+    provision = await db.last_job_run("provision.reconcile_all")
     history = await db.list_job_runs(limit=8)
     lines = [
         "⚙️ Jobs",
@@ -258,6 +260,9 @@ async def jobs_view(call: CallbackQuery):
         f"Следующий запуск: {next_backup_text()}",
         f"Последний scheduled: {job_line(daily)}",
         f"Последний manual: {job_line(manual)}",
+        "",
+        "Provisioning",
+        f"Последний fleet reconcile: {job_line(provision)}",
         "",
         "Последние запуски:",
     ]
@@ -358,6 +363,13 @@ ACTION_LABELS = {
     "plan.toggle": "toggle plan",
     "plan.set_group": "set plan group",
     "plan.delete": "delete plan",
+    "plan.default": "set default plan",
+    "server_group.inbound_mode": "change group inbound mode",
+    "server_group.inbound": "change group provisioning inbound",
+    "user.provision.safe": "safe reconcile user",
+    "user.provision.strict": "strict reconcile user",
+    "user.plan.provision": "apply plan and provision",
+    "users.provision_all": "reconcile all users",
     "server_group.create": "create server group",
     "server_group.member": "change group member",
     "server_group.delete": "delete server group",

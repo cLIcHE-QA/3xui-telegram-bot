@@ -14,6 +14,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from config import load_settings
 from db import Database, HostRecord, PlanRecord, ServerGroupRecord
 from xui import XUIClient, XUIError
+from provisioning import ProvisioningEngine, is_managed_inbound, inbound_member_key
 from audit import audit_from_call, audit_from_message
 from admin_auth import authorize_callback, authorize_message
 
@@ -22,6 +23,7 @@ settings = load_settings()
 db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 catalog_router = Router(name="catalog_admin")
+provisioner = ProvisioningEngine(db, xui, settings)
 
 
 class AddPlanStates(StatesGroup):
@@ -155,11 +157,17 @@ async def plans_list(call: CallbackQuery):
     if not await guard_call(call):
         return
     plans = await db.list_plans()
+    raw_default = await db.get_runtime_setting("default_plan_id", "")
+    try:
+        default_plan_id = int(raw_default or 0)
+    except (TypeError, ValueError):
+        default_plan_id = 0
     rows: list[list[InlineKeyboardButton]] = []
     for plan in plans[:40]:
         icon = "🟢" if plan.active else "⚪"
+        default_icon = "⭐ " if plan.id == default_plan_id else ""
         rows.append([InlineKeyboardButton(
-            text=f"{icon} {plan.name} · {_money(plan)}",
+            text=f"{default_icon}{icon} {plan.name} · {_money(plan)}",
             callback_data=f"admin:plan:{plan.id}",
         )])
     rows += [
@@ -170,8 +178,8 @@ async def plans_list(call: CallbackQuery):
     await call.message.answer(
         "💎 Plans\n\n"
         f"Тарифов: {len(plans)} · активных: {active}\n\n"
-        "В v3.9 тарифы — production-каталог. Они пока не меняют текущую "
-        "логику /create автоматически; подключение provisioning сделаем отдельно по согласованию.",
+        "Тарифы участвуют в provisioning v4.5. ⭐ отмечает тариф по умолчанию для /create. "
+        "Plan задаёт лимиты, а Server Group — серверы и inbound-политику.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -194,19 +202,36 @@ async def plan_detail(call: CallbackQuery):
     traffic = "без лимита" if plan.traffic_gb == 0 else f"{plan.traffic_gb} GB"
     ip_limit = "без лимита" if plan.ip_limit == 0 else str(plan.ip_limit)
     status = "🟢 active" if plan.active else "⚪ disabled"
+    raw_default = await db.get_runtime_setting("default_plan_id", "")
+    try:
+        is_default = int(raw_default or 0) == plan.id
+    except (TypeError, ValueError):
+        is_default = False
+    try:
+        policy = await provisioner.policy_for_plan(plan)
+        target_text = f"{len(policy.desired_inbound_ids)} desired / {len(policy.actionable_inbound_ids)} available"
+        policy_warn = f"\n⚠️ {'; '.join(policy.warnings[:2])}" if policy.warnings else ""
+    except Exception as exc:
+        target_text = "ошибка расчёта"
+        policy_warn = f"\n⚠️ {type(exc).__name__}: {str(exc)[:160]}"
     text = (
         f"💎 {plan.name}\n\n"
         f"Статус: {status}\n"
+        f"Default /create: {'⭐ да' if is_default else 'нет'}\n"
         f"Срок: {plan.duration_days} дней\n"
         f"Трафик: {traffic}\n"
         f"IP limit: {ip_limit}\n"
         f"Цена: {_money(plan)}\n"
-        f"Server Group: {group_name}\n\n"
-        "Каталог не влияет на уже работающий provisioning до отдельного включения."
+        f"Server Group: {group_name}\n"
+        f"Provisioning targets: {target_text}"
+        f"{policy_warn}"
     )
     toggle_text = "⛔ Отключить" if plan.active else "✅ Включить"
+    default_text = "⭐ Убрать из default /create" if is_default else "⭐ Сделать default /create"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🗂 Выбрать Server Group", callback_data=f"admin:plan:groups:{plan.id}")],
+        [InlineKeyboardButton(text="🚀 Preview provisioning", callback_data=f"admin:plan:preview:{plan.id}")],
+        [InlineKeyboardButton(text=default_text, callback_data=f"admin:plan:default:{plan.id}")],
         [InlineKeyboardButton(text=toggle_text, callback_data=f"admin:plan:toggle:{plan.id}")],
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:plan:deleteask:{plan.id}")],
         [InlineKeyboardButton(text="⬅ Plans", callback_data="admin:plans")],
@@ -473,6 +498,79 @@ async def plan_set_group(call: CallbackQuery):
     )
 
 
+@catalog_router.callback_query(F.data.startswith("admin:plan:default:"))
+async def plan_set_default(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
+    if not plan:
+        await call.answer("Тариф не найден.", show_alert=True)
+        return
+    raw = await db.get_runtime_setting("default_plan_id", "")
+    try:
+        current = int(raw or 0)
+    except (TypeError, ValueError):
+        current = 0
+    if current == plan_id:
+        await db.delete_runtime_setting("default_plan_id")
+        await audit_from_call(db, call, "plan.default", target_type="plan", target_id=str(plan_id), details="enabled=False")
+        await call.answer("Default /create снят.")
+    else:
+        if not plan.active:
+            await call.answer("Сначала включи тариф.", show_alert=True)
+            return
+        try:
+            policy = await provisioner.policy_for_plan(plan)
+        except Exception as exc:
+            await call.answer(f"Provisioning error: {str(exc)[:120]}", show_alert=True)
+            return
+        if plan.server_group_id and not policy.desired_inbound_ids:
+            await call.answer("У Server Group нет provisioning inbound'ов.", show_alert=True)
+            return
+        await db.set_runtime_setting("default_plan_id", str(plan_id), updated_by=call.from_user.id if call.from_user else 0)
+        await audit_from_call(db, call, "plan.default", target_type="plan", target_id=str(plan_id), details="enabled=True")
+        await call.answer("⭐ Default /create установлен.")
+    await call.message.answer("Статус default обновлён.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
+
+
+@catalog_router.callback_query(F.data.startswith("admin:plan:preview:"))
+async def plan_preview(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
+    if not plan:
+        await call.answer("Тариф не найден.", show_alert=True)
+        return
+    try:
+        policy = await provisioner.policy_for_plan(plan)
+        lines = [
+            f"🚀 Provisioning preview · {plan.name}",
+            "",
+            f"Server Group: {policy.group.name if policy.group else 'legacy all-managed'}",
+            f"Mode: {policy.inbound_mode}",
+            f"Desired: {len(policy.desired_inbound_ids)}",
+            f"Available now: {len(policy.actionable_inbound_ids)}",
+        ]
+        if policy.unavailable_members:
+            lines.append(f"Unavailable: {', '.join(policy.unavailable_members)}")
+        if policy.desired_inbound_ids:
+            lines += ["", "Targets:"]
+            for iid in policy.desired_inbound_ids[:30]:
+                ib = policy.inbounds.get(iid)
+                if ib:
+                    server = settings.master_name if ib.node_id is None else policy.nodes.get(ib.node_id).name if policy.nodes.get(ib.node_id) else f"Node #{ib.node_id}"
+                    marker = "✅" if iid in policy.actionable_inbound_ids else "⏸"
+                    lines.append(f"{marker} #{iid} · {server} · {ib.port}/{ib.protocol} · {ib.remark}")
+        if policy.warnings:
+            lines += ["", "Warnings:"] + [f"⚠️ {w}" for w in policy.warnings]
+        await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
+    except Exception as exc:
+        await call.message.answer(f"🔴 Provisioning preview: {type(exc).__name__}: {exc}")
+    await call.answer()
+
+
 @catalog_router.callback_query(F.data.startswith("admin:plan:deleteask:"))
 async def plan_delete_ask(call: CallbackQuery):
     if not await guard_call(call):
@@ -498,6 +596,9 @@ async def plan_delete(call: CallbackQuery):
         return
     plan_id = int(call.data.rsplit(":", 1)[-1])
     plan = await db.get_plan(plan_id)
+    raw_default = await db.get_runtime_setting("default_plan_id", "")
+    if str(raw_default or "") == str(plan_id):
+        await db.delete_runtime_setting("default_plan_id")
     await db.delete_plan(plan_id)
     await audit_from_call(
         db, call, "plan.delete", target_type="plan", target_id=str(plan_id),
@@ -531,8 +632,8 @@ async def server_groups_list(call: CallbackQuery):
     await call.message.answer(
         "🗂 Server Groups\n\n"
         f"Групп: {len(groups)}\n\n"
-        "Группа объединяет Master и/или ноды. В v3.9 это control-plane каталог; "
-        "применение групп при выдаче подписки включим отдельно по согласованию.",
+        "Группа объединяет Master и/или ноды и задаёт provisioning scope. "
+        "Для каждой группы можно использовать все managed inbound'ы или выбрать конкретные.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -634,7 +735,13 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
         lines += ["", "Members:"] + [f"• {name}" for name in selected]
     if nodes_error:
         lines += ["", f"⚠️ Nodes API: {nodes_error}"]
-    lines += ["", "Изменение состава группы пока не меняет существующие подписки автоматически."]
+    mode = await db.get_server_group_inbound_mode(group.id)
+    selected_inbounds = await db.list_server_group_inbounds(group.id)
+    lines += [
+        "",
+        f"Inbound policy: {'all managed' if mode == 'all_managed' else f'selected ({len(selected_inbounds)})'}",
+        "Изменения применяются к пользователям через safe/strict reconcile; автоматически существующих клиентов не перестраиваем.",
+    ]
 
     rows: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(
         text=f"{'✅' if 'master' in members else '⬜'} {settings.master_flag} {settings.master_name}",
@@ -655,6 +762,7 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
             callback_data=f"admin:servergroup:toggle:{group.id}:{stale_key}",
         )])
     rows += [
+        [InlineKeyboardButton(text="📡 Provisioning inbounds", callback_data=f"admin:servergroup:inbounds:{group.id}")],
         [InlineKeyboardButton(text="🗑 Удалить группу", callback_data=f"admin:servergroup:deleteask:{group.id}")],
         [InlineKeyboardButton(text="⬅ Server Groups", callback_data="admin:servergroups")],
     ]
@@ -698,6 +806,105 @@ async def server_group_toggle(call: CallbackQuery):
     await call.message.answer(text, reply_markup=kb)
 
 
+@catalog_router.callback_query(F.data.startswith("admin:servergroup:inbounds:"))
+async def server_group_inbounds(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    group_id = int(call.data.rsplit(":", 1)[-1])
+    group = await db.get_server_group(group_id)
+    if not group:
+        await call.answer("Группа не найдена.", show_alert=True)
+        return
+    members = await db.list_server_group_members(group_id)
+    mode = await db.get_server_group_inbound_mode(group_id)
+    selected = await db.list_server_group_inbounds(group_id)
+    try:
+        options = [i for i in await xui.inbound_options() if i.enable and is_managed_inbound(settings, i) and inbound_member_key(i) in members]
+    except XUIError as exc:
+        await call.message.answer(f"Ошибка 3x-ui: {exc}", reply_markup=infrastructure_back())
+        await call.answer()
+        return
+    try:
+        nodes = {n.id: n for n in await xui.nodes_list()}
+    except XUIError:
+        nodes = {}
+    rows: list[list[InlineKeyboardButton]] = []
+    if mode == "all_managed":
+        rows.append([InlineKeyboardButton(text="✅ Mode: ALL managed", callback_data=f"admin:servergroup:inboundmode:{group_id}:selected")])
+    else:
+        rows.append([InlineKeyboardButton(text="🎯 Mode: SELECTED", callback_data=f"admin:servergroup:inboundmode:{group_id}:all_managed")])
+        for ib in options[:50]:
+            server = settings.master_name if ib.node_id is None else nodes.get(ib.node_id).name if nodes.get(ib.node_id) else f"Node #{ib.node_id}"
+            rows.append([InlineKeyboardButton(
+                text=f"{'✅' if ib.id in selected else '⬜'} #{ib.id} · {server} · {ib.port}/{ib.protocol}",
+                callback_data=f"admin:servergroup:ibtoggle:{group_id}:{ib.id}",
+            )])
+    rows.append([InlineKeyboardButton(text="⬅ Server Group", callback_data=f"admin:servergroup:{group_id}")])
+    text = (
+        f"📡 Provisioning inbounds · {group.name}\n\n"
+        f"Mode: {mode}\n"
+        f"Member servers: {len(members)}\n"
+        f"Available managed inbounds: {len(options)}\n\n"
+        "ALL managed автоматически включает все разрешённые .env inbound'ы на серверах группы. "
+        "SELECTED позволяет зафиксировать конкретный набор."
+    )
+    await call.message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await call.answer()
+
+
+@catalog_router.callback_query(F.data.startswith("admin:servergroup:inboundmode:"))
+async def server_group_inbound_mode(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    parts = call.data.split(":")
+    group_id = int(parts[-2])
+    mode = parts[-1]
+    if mode not in {"all_managed", "selected"}:
+        await call.answer("Некорректный mode.", show_alert=True)
+        return
+    if mode == "selected":
+        members = await db.list_server_group_members(group_id)
+        try:
+            options = [i for i in await xui.inbound_options() if i.enable and is_managed_inbound(settings, i) and inbound_member_key(i) in members]
+        except XUIError as exc:
+            await call.answer(f"3x-ui: {str(exc)[:120]}", show_alert=True)
+            return
+        await db.replace_server_group_inbounds(group_id, {i.id for i in options})
+    await db.set_server_group_inbound_mode(group_id, mode)
+    await audit_from_call(db, call, "server_group.inbound_mode", target_type="server_group", target_id=str(group_id), details=f"mode={mode}")
+    await call.answer("Inbound policy обновлена.")
+    await call.message.answer("Открой provisioning inbounds ещё раз для настройки.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Provisioning inbounds", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
+
+
+@catalog_router.callback_query(F.data.startswith("admin:servergroup:ibtoggle:"))
+async def server_group_inbound_toggle(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    parts = call.data.split(":")
+    group_id, inbound_id = int(parts[-2]), int(parts[-1])
+    if await db.get_server_group_inbound_mode(group_id) != "selected":
+        await call.answer("Сначала включи SELECTED mode.", show_alert=True)
+        return
+    members = await db.list_server_group_members(group_id)
+    try:
+        valid = {
+            i.id for i in await xui.inbound_options()
+            if i.enable and is_managed_inbound(settings, i) and inbound_member_key(i) in members
+        }
+    except XUIError as exc:
+        await call.answer(f"3x-ui: {str(exc)[:120]}", show_alert=True)
+        return
+    if inbound_id not in valid:
+        await call.answer("Inbound не входит в managed scope этой Server Group.", show_alert=True)
+        return
+    selected = await db.list_server_group_inbounds(group_id)
+    enabled = inbound_id not in selected
+    await db.set_server_group_inbound(group_id, inbound_id, enabled)
+    await audit_from_call(db, call, "server_group.inbound", target_type="server_group", target_id=str(group_id), details=f"inbound_id={inbound_id}; enabled={enabled}")
+    await call.answer("Inbound policy обновлена.")
+    await call.message.answer("Изменение сохранено.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Продолжить", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
+
+
 @catalog_router.callback_query(F.data.startswith("admin:servergroup:deleteask:"))
 async def server_group_delete_ask(call: CallbackQuery):
     if not await guard_call(call):
@@ -709,7 +916,7 @@ async def server_group_delete_ask(call: CallbackQuery):
         return
     await call.message.answer(
         f"Удалить Server Group «{group.name}»?\n\n"
-        "У тарифов эта группа будет снята. 3x-ui и пользователи не изменятся.",
+        "У тарифов и user profiles эта группа будет снята. Текущие привязки 3x-ui не изменятся до reconcile.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:servergroup:delete:{group_id}")],
             [InlineKeyboardButton(text="Отмена", callback_data=f"admin:servergroup:{group_id}")],

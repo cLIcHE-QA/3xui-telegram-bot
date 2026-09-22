@@ -29,6 +29,7 @@ from advanced_nodes import advanced_nodes_router
 from admin_auth import authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_system
 from runtime_jobs import backup_lock
+from provisioning import ProvisioningEngine
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -36,6 +37,7 @@ xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tl
 router = Router()
 backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
 system_backup = SystemBackupService(backup_manager, settings.node_backup_targets)
+provisioner = ProvisioningEngine(db, xui, settings)
 
 
 class AddNodeStates(StatesGroup):
@@ -405,7 +407,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v4.4.0", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v4.5.0", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -488,6 +490,7 @@ async def admin_dashboard(call: CallbackQuery):
     server_groups = await db.list_server_groups()
     hosts = await db.list_hosts()
     active_plans = sum(1 for p in plans if p.active)
+    default_plan = await provisioner.default_plan()
     enabled_hosts = sum(1 for h in hosts if h.enabled)
     payment_summary = await db.payment_summary()
     promo_codes = await db.list_promo_codes()
@@ -527,6 +530,7 @@ async def admin_dashboard(call: CallbackQuery):
         "",
         "Catalog",
         f"💎 Plans: {active_plans}/{len(plans)} active",
+        f"⭐ Default /create: {default_plan.name if default_plan else 'trial legacy policy'}",
         f"🗂 Server Groups: {len(server_groups)}",
         f"🌐 Hosts: {enabled_hosts}/{len(hosts)} enabled",
         "",
@@ -730,12 +734,83 @@ async def admin_users(call: CallbackQuery):
             callback_data=f"adminuser:{u.telegram_id}"
         )])
     rows.append([InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk")])
+    rows.append([InlineKeyboardButton(text="🚀 Reconcile provisioning", callback_data="admin:provision:all:ask")])
     rows.append([InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")])
     rows.append([InlineKeyboardButton(text="📊 Статистика пользователей", callback_data="admin:stats")])
     rows.append([InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")])
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     await call.message.answer(f"👥 Users\n\nПользователи в БД бота: {len(users)}", reply_markup=kb)
     await call.answer()
+
+@router.callback_query(F.data == "admin:provision:all:ask")
+async def admin_provision_all_ask(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="support")
+    if not ok:
+        return
+    users = await db.list_users()
+    await call.message.answer(
+        "🚀 Safe reconcile provisioning для всех пользователей\n\n"
+        f"Пользователей: {len(users)}\n"
+        "Для каждого пользователя будет рассчитан desired scope по User Profile → Plan → Server Group. "
+        "Будут только добавлены missing inbound'ы на доступных нодах; extra inbound'ы не удаляются.\n\n"
+        "Legacy-пользователи без Plan/Group сохраняют текущую all-managed policy.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Запустить safe reconcile", callback_data="admin:provision:all:run")],
+            [InlineKeyboardButton(text="Отмена", callback_data="admin:users")],
+        ]),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:provision:all:run")
+async def admin_provision_all_run(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="support")
+    if not ok:
+        return
+    users = await db.list_users()
+    if not users:
+        await call.answer("Нет пользователей.", show_alert=True)
+        return
+    await call.answer("Запускаю reconcile…")
+    run_id = await db.start_job_run(
+        name="provision.reconcile_all", trigger="admin",
+        actor_id=call.from_user.id if call.from_user else 0,
+    )
+    started = time.monotonic()
+    try:
+        summary = await provisioner.provision_many([u.telegram_id for u in users], strict=False)
+        duration_ms = int((time.monotonic() - started) * 1000)
+        failed = summary.get("failed") or {}
+        status = "success" if not failed else "partial"
+        await db.finish_job_run(
+            run_id, status=status, duration_ms=duration_ms,
+            details=f"ok={summary.get('ok')}; failed={len(failed)}; attached={summary.get('attached')}",
+        )
+        await audit_from_call(
+            db, call, "users.provision_all", target_type="users", target_id=str(len(users)),
+            details=f"ok={summary.get('ok')}; failed={len(failed)}; attached={summary.get('attached')}",
+            success=not bool(failed),
+        )
+        lines = [
+            "✅ Provisioning reconcile завершён." if not failed else "⚠️ Provisioning reconcile завершён частично.",
+            "",
+            f"Пользователей: {len(users)}",
+            f"Успешно: {summary.get('ok')}",
+            f"Attached inbound pairs: {summary.get('attached')}",
+            f"Ошибок: {len(failed)}",
+            f"Время: {duration_ms / 1000:.1f}s",
+        ]
+        if failed:
+            lines += ["", "Первые ошибки:"]
+            for tg_id, err in list(failed.items())[:8]:
+                lines.append(f"• TG {tg_id}: {err[:140]}")
+        await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Users", callback_data="admin:users")]]))
+    except Exception as exc:
+        duration_ms = int((time.monotonic() - started) * 1000)
+        await db.finish_job_run(run_id, status="failed", duration_ms=duration_ms, details=f"{type(exc).__name__}: {exc}")
+        await audit_from_call(db, call, "users.provision_all", target_type="users", details=f"error={type(exc).__name__}: {exc}", success=False)
+        await call.message.answer(f"🔴 Provisioning job failed: {type(exc).__name__}: {exc}")
+
 
 @router.callback_query(F.data == "admin:syncall:ask")
 async def admin_sync_all_ask(call: CallbackQuery):
@@ -1993,20 +2068,39 @@ async def create_user(tg_id: int, message: Message):
                 await message.answer(f"Восстановлен:\n{sub_url(rec.sub_id)}")
                 return
 
-        chosen = choose_inbounds(await xui.inbound_options())
-        if not chosen:
-            await message.answer("Нет подходящих inbound'ов.")
-            return
+        default_plan, policy = await provisioner.new_user_plan()
         now = int(time.time())
-        try:
-            trial_days = int(await db.get_runtime_setting("trial_days", str(settings.test_days)) or settings.test_days)
-            trial_traffic_gb = int(await db.get_runtime_setting("trial_traffic_gb", str(settings.test_traffic_gb)) or settings.test_traffic_gb)
-            trial_ip_limit = int(await db.get_runtime_setting("trial_ip_limit", str(settings.test_ip_limit)) or settings.test_ip_limit)
-        except (TypeError, ValueError):
-            trial_days = settings.test_days
-            trial_traffic_gb = settings.test_traffic_gb
-            trial_ip_limit = settings.test_ip_limit
-        expiry = (now + trial_days * 86400) * 1000
+        provisioning_note = ""
+        if default_plan and policy:
+            inbound_ids = list(policy.actionable_inbound_ids)
+            if not inbound_ids:
+                await message.answer(
+                    "Provisioning default Plan настроен, но сейчас нет доступных target inbound'ов. "
+                    "Попроси администратора проверить Plan → Server Group → Nodes/Inbounds."
+                )
+                return
+            duration_days = max(0, default_plan.duration_days)
+            traffic_gb = max(0, default_plan.traffic_gb)
+            ip_limit = max(0, default_plan.ip_limit)
+            expiry = (now + duration_days * 86400) * 1000 if duration_days else 0
+            provisioning_note = f"Plan: {default_plan.name}"
+        else:
+            chosen = choose_inbounds(await xui.inbound_options())
+            if not chosen:
+                await message.answer("Нет подходящих inbound'ов.")
+                return
+            inbound_ids = [i.id for i in chosen]
+            try:
+                duration_days = int(await db.get_runtime_setting("trial_days", str(settings.test_days)) or settings.test_days)
+                traffic_gb = int(await db.get_runtime_setting("trial_traffic_gb", str(settings.test_traffic_gb)) or settings.test_traffic_gb)
+                ip_limit = int(await db.get_runtime_setting("trial_ip_limit", str(settings.test_ip_limit)) or settings.test_ip_limit)
+            except (TypeError, ValueError):
+                duration_days = settings.test_days
+                traffic_gb = settings.test_traffic_gb
+                ip_limit = settings.test_ip_limit
+            expiry = (now + duration_days * 86400) * 1000
+            provisioning_note = "Trial legacy policy"
+
         username = ""
         if getattr(message, "chat", None) and getattr(message.chat, "username", None):
             username = message.chat.username.strip().lower()
@@ -2014,17 +2108,29 @@ async def create_user(tg_id: int, message: Message):
         sid = secrets.token_urlsafe(18)
         await xui.create_client(
             email=email, telegram_id=tg_id, sub_id=sid,
-            inbound_ids=[i.id for i in chosen],
-            total_bytes=trial_traffic_gb * 1024**3,
-            expiry_time_ms=expiry, limit_ip=trial_ip_limit,
-            comment="Created by Telegram bot v4.4.0",
+            inbound_ids=inbound_ids,
+            total_bytes=traffic_gb * 1024**3,
+            expiry_time_ms=expiry, limit_ip=ip_limit,
+            comment=f"Created by Telegram bot v4.5.0 · {provisioning_note}",
             flow=settings.vless_flow,
         )
-        # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.
         if settings.vless_flow:
             await xui.bulk_adjust_clients([email], flow=settings.vless_flow)
         await db.put(UserRecord(tg_id, email, sid, expiry, now))
-        await message.answer(f"✅ Создан\n\n{sub_url(sid)}")
+        if default_plan and policy:
+            await db.upsert_user_profile(
+                tg_id,
+                plan_id=default_plan.id,
+                server_group_id=default_plan.server_group_id,
+                note="",
+                preserve_unspecified=False,
+            )
+        lines = ["✅ Создан", "", sub_url(sid)]
+        if default_plan and policy:
+            lines += ["", f"💎 Plan: {default_plan.name}", f"📡 Inbounds: {', '.join(map(str, inbound_ids))}"]
+            if policy.unavailable_members:
+                lines.append("⏸ Часть нод недоступна; администратор сможет выполнить reconcile позже.")
+        await message.answer("\n".join(lines))
     except XUIError as e:
         await message.answer(f"Ошибка 3x-ui: {e}")
 

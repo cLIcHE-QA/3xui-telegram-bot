@@ -14,11 +14,13 @@ from audit import audit_from_call, audit_from_message
 from config import load_settings
 from db import Database, UserRecord
 from xui import XUIClient, XUIError
+from provisioning import ProvisioningEngine
 
 settings = load_settings()
 db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 advanced_users_router = Router(name="advanced_users")
+provisioner = ProvisioningEngine(db, xui, settings)
 
 
 class EditUserStates(StatesGroup):
@@ -127,6 +129,17 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
         ])
 
     plan_name, group_name, note = await _profile_labels(tg_id)
+    provisioning_line = "🚀 Provisioning: unavailable"
+    try:
+        policy = await provisioner.policy_for_user(tg_id)
+        pobj = await xui.get_client(rec.email)
+        pcurrent = {int(x) for x in (pobj.get("inboundIds") or [])}
+        pdesired = set(policy.desired_inbound_ids)
+        pmissing = len(pdesired - pcurrent)
+        pextra = len((pcurrent & set(policy.managed_inbound_ids)) - pdesired)
+        provisioning_line = f"🚀 Provisioning: desired {len(pdesired)} · missing {pmissing} · extra {pextra}"
+    except Exception as exc:
+        provisioning_line = f"🚀 Provisioning: ⚠️ {type(exc).__name__}"
     try:
         obj = await xui.get_client(rec.email)
         client = obj.get("client", obj)
@@ -146,6 +159,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             "",
             f"💎 Plan: {plan_name}",
             f"🗂 Server Group: {group_name}",
+            provisioning_line,
             f"⏳ Expiry: {fmt_date(expiry)}",
             f"📦 Traffic limit: {human_bytes(total) if total else 'unlimited'}",
             f"📊 Used: {human_bytes(up + down)}",
@@ -163,6 +177,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             "",
             f"💎 Plan: {plan_name}",
             f"🗂 Server Group: {group_name}",
+            provisioning_line,
             "",
             f"⚠️ 3x-ui: {exc}",
         ]
@@ -183,6 +198,8 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             InlineKeyboardButton(text="🗂 Server Group", callback_data=f"admin:u:group:{tg_id}"),
         ],
         [InlineKeyboardButton(text="▶ Применить Plan к лимитам", callback_data=f"admin:u:planapplyask:{tg_id}")],
+        [InlineKeyboardButton(text="🚀 Provisioning", callback_data=f"admin:u:prov:{tg_id}")],
+        [InlineKeyboardButton(text="🚀 Plan + Provision", callback_data=f"admin:u:planprovask:{tg_id}")],
         [
             InlineKeyboardButton(text="🔄 Reset traffic", callback_data=f"admin:u:resetask:{tg_id}"),
             InlineKeyboardButton(text="📝 Note", callback_data=f"admin:u:note:{tg_id}"),
@@ -529,7 +546,7 @@ async def user_group_menu(call: CallbackQuery):
         )])
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
     await call.message.answer(
-        "🗂 Server Group\n\nГруппа сохраняется как control-plane назначение. Перемещение между нодами будет включено в multi-node provisioning.",
+        "🗂 Server Group\n\nГруппа определяет desired provisioning scope. Само назначение не меняет 3x-ui мгновенно — используй 🚀 Provisioning / reconcile.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -554,6 +571,147 @@ async def user_group_set(call: CallbackQuery):
     await call.message.answer(
         f"✅ Server Group: {group.name if group else 'не назначена'}", reply_markup=back_user(tg_id)
     )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:prov:"))
+async def user_provisioning_card(call: CallbackQuery):
+    if not await guard(call, minimum="read_only"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    try:
+        policy = await provisioner.policy_for_user(tg_id)
+        obj = await xui.get_client(rec.email)
+        current = {int(x) for x in (obj.get("inboundIds") or [])}
+        desired = set(policy.desired_inbound_ids)
+        managed = set(policy.managed_inbound_ids)
+        missing = sorted(desired - current)
+        actionable_missing = sorted(set(policy.actionable_inbound_ids) - current)
+        extra = sorted((current & managed) - desired)
+        lines = [
+            f"🚀 Provisioning · {rec.email}",
+            "",
+            f"Source: {policy.source}",
+            f"Plan: {policy.plan.name if policy.plan else 'не назначен'}",
+            f"Server Group: {policy.group.name if policy.group else 'legacy all-managed'}",
+            f"Inbound mode: {policy.inbound_mode}",
+            "",
+            f"Desired: {len(desired)} · {', '.join(map(str, sorted(desired))) if desired else 'нет'}",
+            f"Current: {len(current)} · {', '.join(map(str, sorted(current))) if current else 'нет'}",
+            f"Missing: {len(missing)} · actionable now: {len(actionable_missing)}",
+            f"Extra managed: {len(extra)}",
+        ]
+        if policy.unavailable_members:
+            lines.append(f"Unavailable nodes: {', '.join(policy.unavailable_members)}")
+        if policy.warnings:
+            lines += ["", "Warnings:"] + [f"⚠️ {w}" for w in policy.warnings]
+        rows = [
+            [InlineKeyboardButton(text="✅ Safe reconcile", callback_data=f"admin:u:provrun:{tg_id}:safe")],
+            [InlineKeyboardButton(text="⚠️ Strict reconcile", callback_data=f"admin:u:provstrictask:{tg_id}")],
+            [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
+        ]
+        await call.message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    except Exception as exc:
+        await call.message.answer(f"🔴 Provisioning: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:provstrictask:"))
+async def user_provisioning_strict_ask(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    await call.message.answer(
+        "⚠️ Strict reconcile не только добавит missing inbound'ы, но и отключит управляемые inbound'ы, которых нет в desired policy.\n\nПродолжить?",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⚠️ Да, strict reconcile", callback_data=f"admin:u:provrun:{tg_id}:strict")],
+            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:u:prov:{tg_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:provrun:\d+:(safe|strict)$"))
+async def user_provisioning_run(call: CallbackQuery):
+    mode = call.data.rsplit(":", 1)[-1]
+    minimum = "admin" if mode == "strict" else "support"
+    if not await guard(call, minimum=minimum):
+        return
+    parts = call.data.split(":")
+    tg_id = int(parts[-2])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    try:
+        result = await provisioner.sync_user(tg_id, strict=(mode == "strict"), apply_plan_limits=False)
+        await audit_from_call(
+            db, call, f"user.provision.{mode}", target_type="user", target_id=rec.email,
+            details=f"attached={result.attached_ids}; detached={result.detached_ids}; remaining={result.remaining_missing_ids}; extra={result.extra_ids}",
+        )
+        lines = [
+            f"✅ {mode.capitalize()} reconcile завершён.",
+            f"Attached: {result.attached_ids or 'нет'}",
+            f"Detached: {result.detached_ids or 'нет'}",
+            f"Still missing: {result.remaining_missing_ids or 'нет'}",
+            f"Extra managed: {result.extra_ids or 'нет'}",
+        ]
+        if result.policy.unavailable_members:
+            lines.append(f"⏸ Недоступные ноды: {', '.join(result.policy.unavailable_members)}")
+        await call.message.answer("\n".join(lines), reply_markup=back_user(tg_id))
+    except Exception as exc:
+        await audit_from_call(db, call, f"user.provision.{mode}", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
+        await call.message.answer(f"🔴 Provisioning error: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:planprovask:"))
+async def user_plan_provision_ask(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    profile = await db.get_user_profile(tg_id)
+    plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
+    if not plan:
+        await call.answer("Сначала назначь Plan.", show_alert=True)
+        return
+    await call.message.answer(
+        f"Применить Plan «{plan.name}» к лимитам и выполнить safe provisioning?\n\n"
+        "Это обновит expiry/traffic/IP limit, назначит Server Group тарифа и добавит missing inbound'ы. Extra inbound'ы не удаляются.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Plan + Provision", callback_data=f"admin:u:planprovrun:{tg_id}")],
+            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:u:{tg_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:planprovrun:"))
+async def user_plan_provision_run(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    try:
+        result = await provisioner.sync_user(tg_id, strict=False, apply_plan_limits=True)
+        await audit_from_call(
+            db, call, "user.plan.provision", target_type="user", target_id=rec.email,
+            details=f"plan={result.policy.plan.id if result.policy.plan else None}; attached={result.attached_ids}; remaining={result.remaining_missing_ids}",
+        )
+        await call.message.answer(
+            f"✅ Plan + Provision завершён.\nAttached: {result.attached_ids or 'нет'}\nStill missing: {result.remaining_missing_ids or 'нет'}",
+            reply_markup=back_user(tg_id),
+        )
+    except Exception as exc:
+        await audit_from_call(db, call, "user.plan.provision", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
+        await call.message.answer(f"🔴 Plan + Provision: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
