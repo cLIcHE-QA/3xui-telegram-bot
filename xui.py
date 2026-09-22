@@ -249,6 +249,25 @@ class XUIClient:
             return lines
         return [self._log_text(obj)] if obj else []
 
+    async def import_database(
+        self, body: bytes, filename: str = "x-ui.db", *, keep_host_settings: bool = True
+    ) -> dict[str, Any]:
+        """Restore the panel database through 3x-ui's documented importDB API.
+
+        keep_host_settings=True is the safe default: the target machine keeps its
+        own listen/certificate/node identity settings while restoring panel data.
+        The panel restarts after a successful import.
+        """
+        form = aiohttp.FormData()
+        form.add_field(
+            "db",
+            body,
+            filename=Path(filename).name or "x-ui.db",
+            content_type="application/octet-stream",
+        )
+        form.add_field("keepHostSettings", "true" if keep_host_settings else "false")
+        return await self._request("POST", "/panel/api/server/importDB", data=form)
+
     async def download_database(self) -> tuple[bytes, str]:
         headers = {
             "Authorization": f"Bearer {self.token}",

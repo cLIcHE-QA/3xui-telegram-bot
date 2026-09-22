@@ -63,6 +63,10 @@ def _is_read_callback(data: str) -> bool:
 def required_role_for_callback(data: str) -> str:
     data = data or ""
 
+    # Disaster Recovery is intentionally break-glass Owner-only.
+    if data.startswith("admin:restore"):
+        return "owner"
+
     if data.startswith("admin:logs"):
         return "read_only"
     if data in {"admin:alerts", "admin:alerts:check"}:

@@ -32,6 +32,7 @@ from runtime_jobs import backup_lock
 from provisioning import ProvisioningEngine
 from logs_alerts import logs_alerts_router, alert_monitor_loop
 from logging_setup import configure_logging
+from disaster_recovery import disaster_recovery_router, send_boot_restore_notice
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -166,6 +167,7 @@ def backup_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="💾 Создать сейчас", callback_data="admin:backup:create")],
         [InlineKeyboardButton(text="📥 Скачать bot.sqlite3", callback_data="admin:backup:botdb")],
         [InlineKeyboardButton(text="📦 Скачать полный backup", callback_data="admin:backup:full")],
+        [InlineKeyboardButton(text="🧯 Restore / DR", callback_data="admin:restore")],
         [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
     ])
 
@@ -2257,6 +2259,7 @@ async def main():
     await proxy.start()
 
     bot = Bot(settings.bot_token)
+    await send_boot_restore_notice(bot)
     dp = Dispatcher()
     dp.include_router(router)
     dp.include_router(advanced_users_router)
@@ -2265,6 +2268,7 @@ async def main():
     dp.include_router(catalog_router)
     dp.include_router(observability_router)
     dp.include_router(logs_alerts_router)
+    dp.include_router(disaster_recovery_router)
     dp.include_router(business_router)
     backup_task = (
         asyncio.create_task(automatic_backup_loop(bot))

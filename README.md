@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v4.6.0
+# 3x-ui Telegram bot v4.7.0
 
 Production-oriented Telegram admin panel for 3x-ui.
 
@@ -1333,3 +1333,85 @@ docker compose logs --tail=100 bot
 All other v4.6 alert configuration is stored in SQLite and managed from the
 admin UI.
 
+
+
+## v4.7.0 — Disaster Recovery / Restore
+
+v4.7.0 adds a guarded restore workflow on top of the existing backup system. Existing user, provisioning, node, inbound, monitoring, alert and subscription behaviour is unchanged.
+
+### Restore UI
+
+```text
+/admin
+-> System
+   -> Backups
+      -> Restore / DR
+```
+
+Restore is **Owner-only**. The bot lists local full backups, shows their manifest/components and provides a `Dry-run / Preflight` action. Preflight validates the gzip/tar structure, rejects path traversal/symlinks/devices, checks size limits, parses node metadata and runs SQLite `PRAGMA quick_check` for `bot.sqlite3` and the master `x-ui.db`.
+
+Supported guarded actions:
+
+```text
+bot.sqlite3       -> automatic restore on container restart
+Master x-ui.db    -> 3x-ui /panel/api/server/importDB
+Node DB           -> direct node importDB when NODE_BACKUP_TARGETS is configured
+bot.env           -> export/download only
+nginx/            -> export/download only
+```
+
+The bot deliberately does **not** auto-apply `.env` or nginx configuration. `bot.env` contains secrets, and nginx should always be validated with `nginx -t` before reload.
+
+### bot.sqlite3 restore
+
+The bot database uses a restart-safe two-phase restore:
+
+1. Owner chooses a backup and passes preflight.
+2. A live rescue SQLite snapshot is created.
+3. The selected DB is staged under `data/restore/`.
+4. Owner must type the exact confirmation phrase `RESTORE BOT`.
+5. The bot process exits; Docker `restart: unless-stopped` restarts the container.
+6. `restore_bootstrap.py` validates the staged SHA-256 + SQLite quick-check **before** `bot.py` starts, creates a second rescue copy, atomically replaces the DB and removes stale WAL/SHM files.
+7. If bootstrap restore fails, the old DB is left in place and the bot still starts. Break-glass owners receive the result after startup.
+
+Restore history is also written outside the bot SQLite database to:
+
+```text
+/app/data/restore/restore-history.jsonl
+```
+
+so restoring an older bot DB does not erase the DR history itself.
+
+### 3x-ui restore
+
+Master and configured node databases are restored through 3x-ui's authenticated `importDB` endpoint with `keepHostSettings=true`. Before every import the bot downloads the target's current database and stores it under:
+
+```text
+data/backups/rescue/
+```
+
+Master restore requires typing `RESTORE XUI`. If the archived `PANEL_API_TOKEN` differs from the currently configured token, the UI warns that API connectivity may be lost and requires the stronger phrase `RESTORE XUI FORCE`.
+
+Node restore requires `NODE_BACKUP_TARGETS` / direct admin token for that node and the phrase `RESTORE NODE`. Other nodes and the master are not modified.
+
+### Upgrade from v4.6.0
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v4.6.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v4.6.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v4.7.0/.env
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.7.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v4.6.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v4.7.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v4.7.0
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 bot
+```
+
+No new `.env` variables are required. v4.7 changes the container entrypoint only so a pending bot-DB restore can be applied safely before the Telegram process starts.
