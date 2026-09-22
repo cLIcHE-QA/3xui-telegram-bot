@@ -6,6 +6,7 @@ import re
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from version import APP_VERSION
 
 from backup_manager import BackupManager, BackupResult
 from config import NodeBackupTarget
@@ -157,6 +158,6 @@ class SystemBackupService:
                 self.manager.create_full_backup,
                 extra_files,
                 extra_missing,
-                version="4.7.0",
+                version=APP_VERSION,
                 extra_manifest={"nodes": node_results},
             )

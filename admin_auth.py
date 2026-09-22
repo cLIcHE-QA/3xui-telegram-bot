@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from aiogram.types import CallbackQuery
 
 from config import Settings
@@ -62,6 +64,15 @@ def _is_read_callback(data: str) -> bool:
 
 def required_role_for_callback(data: str) -> str:
     data = data or ""
+
+    if data == "admin:versions":
+        return "read_only"
+    if data.startswith("admin:ver:unlock:"):
+        return "owner"
+    if data.startswith("admin:ver:"):
+        key = r"(?:m|n[1-9][0-9]{0,18})"
+        readonly = rf"admin:ver:(?:(?:target|panel):{key}|xray:{key}:[0-9]+|check:[0-9a-f]{{16}})"
+        return "read_only" if re.fullmatch(readonly, data) else "admin"
 
     # Disaster Recovery is intentionally break-glass Owner-only.
     if data.startswith("admin:restore"):

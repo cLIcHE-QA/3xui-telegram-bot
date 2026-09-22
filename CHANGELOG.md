@@ -4,6 +4,16 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.9.0 - Versions & Updates
+- Added version dashboard and Master/Node shortcuts.
+- Added explicit stable-channel panel updates and exact Xray version selection.
+- Fresh validated backup, expiring single-use confirmation, durable target lockout and post-update verification.
+- Panel updater run IDs are checked; lost responses never trigger automatic retries.
+- Read-only views, Admin+ installation and explicit Owner acknowledgement for uncertain outcomes.
+- Reused existing audit/job tables; no SQLite schema changes.
+- Centralized APP_VERSION and corrected stale backup manifest versions.
+- Added automated API/workflow/integration tests and read-only pull-request CI.
+
 ## v4.8.0 — Single Message Admin UI
 - Админ-панель переведена на один обновляемый Telegram-message.
 - Inline-навигация, Back/Refresh/Confirm больше не засоряют чат новыми сообщениями.

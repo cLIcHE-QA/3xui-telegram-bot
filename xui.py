@@ -6,6 +6,7 @@ from urllib.parse import quote
 import re
 import json
 import aiohttp
+from version_api import VersionAPIMixin
 
 class XUIError(RuntimeError):
     pass
@@ -57,7 +58,7 @@ class NodeInfo:
     net_up: int
     net_down: int
 
-class XUIClient:
+class XUIClient(VersionAPIMixin):
     def __init__(self, base_url: str, token: str, verify_tls: bool = True):
         self.base_url = base_url.rstrip("/")
         self.token = token

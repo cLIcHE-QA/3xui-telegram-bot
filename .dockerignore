@@ -8,3 +8,9 @@ __pycache__/
 *.backup
 .git/
 .DS_Store
+
+.env.*
+!.env.example
+tests/
+.github/
+scripts/
