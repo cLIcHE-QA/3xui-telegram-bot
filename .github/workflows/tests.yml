@@ -20,4 +20,5 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - run: python -m compileall -q .
       - run: python -m unittest discover -s tests -v
+      - run: docker compose --env-file .env.example config --quiet
       - run: git diff --check
