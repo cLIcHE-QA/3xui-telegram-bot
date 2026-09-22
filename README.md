@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v4.2.0
+# 3x-ui Telegram bot v4.3.0
 
 Production-oriented Telegram admin panel for 3x-ui.
 
@@ -861,4 +861,131 @@ Then verify:
 /admin
  -> Users
  -> Bulk actions
+```
+
+
+## v4.3.0 — Advanced Inbound Management
+
+v4.3.0 is additive on top of v4.2.0. Existing user provisioning, Plans,
+Server Groups, subscription compatibility, backups, nodes, monitoring and user
+management are intentionally left in place. The Infrastructure → Inbounds page
+now opens first-class inbound cards instead of being only a status list.
+
+### Inbound cards
+
+Each managed inbound can now be opened from:
+
+```text
+/admin
+→ Infrastructure
+→ Inbounds
+→ select inbound
+```
+
+The card shows server/node, enable state, protocol, port, listen address,
+transport/security, client count and traffic counters. XHTTP cards also show
+path/host/mode/padding. REALITY cards show SNI and the public client
+fingerprint setting; private keys are never printed to Telegram.
+
+Available actions:
+
+```text
+Clients
+Edit
+Enable / Disable
+Sync users
+Reset inbound traffic
+Clone
+Save as template
+Delete inbound (confirmed)
+```
+
+### Safe editing
+
+Telegram editing uses the documented full inbound replacement payload while
+preserving the existing settings/streamSettings/sniffing objects. It exposes
+only selected operational fields:
+
+```text
+remark
+port
+listen
+XHTTP path
+XHTTP host
+XHTTP mode
+XHTTP xPaddingBytes
+REALITY serverNames / SNI
+REALITY client fingerprint
+```
+
+The REALITY private key, AWG private material and other secret fields are not
+shown or requested. They remain preserved in the full configuration sent back
+to 3x-ui.
+
+Enable/disable uses the dedicated `/panel/api/inbounds/setEnable/:id` endpoint
+rather than serialising the whole inbound just to flip a switch.
+
+### Clients and sync
+
+`Clients` lists the clients currently attached to the inbound. Clients known to
+the Telegram bot link back to their existing admin user card.
+
+`Sync users` is an explicit confirmed bulk operation. It attaches every user
+known to the local bot SQLite database to the selected inbound without changing
+credentials or limits. Existing attachments are skipped by 3x-ui.
+
+### Clone and multi-node deployment
+
+Clone follows the current 3x-ui panel behaviour: the clone is created disabled,
+with no clients, zero inbound counters, an empty listen address and the same
+configuration as the source. The target can be Master or any online native
+3x-ui node. The source port is reused when free on that target; otherwise the
+bot asks for another port.
+
+### Inbound Templates
+
+A current inbound can be saved as a template. Templates are stored in
+`bot.sqlite3` and intentionally contain the configuration needed to reproduce
+the inbound, so treat the bot database/backup as secret material.
+
+```text
+Infrastructure
+→ Inbounds
+→ Templates
+→ template
+→ Deploy
+→ Master / node
+```
+
+Deploy creates a disabled inbound with no clients. It uses the template port
+when available on the target and asks for another port on conflict.
+
+### Database migration
+
+One additive table is created automatically:
+
+```text
+inbound_templates
+```
+
+No existing table is rebuilt or rewritten.
+
+### Upgrade from v4.2.0
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v4.2.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v4.2.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v4.3.0/.env
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.3.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v4.2.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v4.3.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v4.3.0
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 bot
 ```

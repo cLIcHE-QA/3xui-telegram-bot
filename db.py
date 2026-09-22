@@ -130,6 +130,17 @@ class UserProfileRecord:
     updated_at: int
 
 
+@dataclass
+class InboundTemplateRecord:
+    id: int
+    name: str
+    source_inbound_id: int
+    protocol: str
+    payload_json: str
+    created_at: int
+    updated_at: int
+
+
 class Database:
     def __init__(self, path: str):
         self.path = path
@@ -282,6 +293,17 @@ class Database:
                     plan_id INTEGER,
                     server_group_id INTEGER,
                     note TEXT NOT NULL DEFAULT '',
+                    updated_at INTEGER NOT NULL
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS inbound_templates (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT COLLATE NOCASE NOT NULL UNIQUE,
+                    source_inbound_id INTEGER NOT NULL DEFAULT 0,
+                    protocol TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
                     updated_at INTEGER NOT NULL
                 )
             """)
@@ -831,6 +853,67 @@ class Database:
     async def delete_runtime_setting(self, key: str) -> None:
         async with aiosqlite.connect(self.path) as db:
             await db.execute("DELETE FROM runtime_settings WHERE key = ?", (key,))
+            await db.commit()
+
+    # --- Inbound templates ---------------------------------------------
+
+    async def list_inbound_templates(self) -> list[InboundTemplateRecord]:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM inbound_templates ORDER BY name COLLATE NOCASE, id"
+            )
+            rows = await cur.fetchall()
+            return [InboundTemplateRecord(**dict(r)) for r in rows]
+
+    async def get_inbound_template(self, template_id: int) -> InboundTemplateRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM inbound_templates WHERE id = ?", (int(template_id),)
+            )
+            row = await cur.fetchone()
+            return InboundTemplateRecord(**dict(row)) if row else None
+
+    async def create_inbound_template(
+        self, *, name: str, source_inbound_id: int, protocol: str, payload_json: str
+    ) -> int:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                INSERT INTO inbound_templates(
+                    name, source_inbound_id, protocol, payload_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    name.strip(), int(source_inbound_id), protocol.strip().lower(),
+                    payload_json, now, now,
+                ),
+            )
+            await db.commit()
+            return int(cur.lastrowid)
+
+    async def update_inbound_template_payload(
+        self, template_id: int, *, source_inbound_id: int, protocol: str, payload_json: str
+    ) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                UPDATE inbound_templates
+                SET source_inbound_id = ?, protocol = ?, payload_json = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    int(source_inbound_id), protocol.strip().lower(), payload_json,
+                    int(time.time()), int(template_id),
+                ),
+            )
+            await db.commit()
+
+    async def delete_inbound_template(self, template_id: int) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute("DELETE FROM inbound_templates WHERE id = ?", (int(template_id),))
             await db.commit()
 
     # --- Audit log -----------------------------------------------------

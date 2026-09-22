@@ -182,6 +182,41 @@ class XUIClient:
         data = await self._request("GET", "/panel/api/inbounds/list")
         return [self._parse_option(x) for x in (data.get("obj") or [])]
 
+    async def inbounds_list(self, *, slim: bool = False) -> list[dict[str, Any]]:
+        path = "/panel/api/inbounds/list/slim" if slim else "/panel/api/inbounds/list"
+        data = await self._request("GET", path)
+        obj = data.get("obj") or []
+        return obj if isinstance(obj, list) else []
+
+    async def inbound_get(self, inbound_id: int) -> dict[str, Any]:
+        data = await self._request("GET", f"/panel/api/inbounds/get/{int(inbound_id)}")
+        obj = data.get("obj") or {}
+        if not isinstance(obj, dict) or not obj:
+            raise XUIError(f"Inbound not found: {inbound_id}")
+        return obj
+
+    async def inbound_add(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self._request("POST", "/panel/api/inbounds/add", json=payload)
+
+    async def inbound_update(self, inbound_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self._request(
+            "POST", f"/panel/api/inbounds/update/{int(inbound_id)}", json=payload
+        )
+
+    async def inbound_set_enable(self, inbound_id: int, enable: bool) -> dict[str, Any]:
+        return await self._request(
+            "POST", f"/panel/api/inbounds/setEnable/{int(inbound_id)}",
+            json={"enable": bool(enable)},
+        )
+
+    async def inbound_delete(self, inbound_id: int) -> dict[str, Any]:
+        return await self._request("POST", f"/panel/api/inbounds/del/{int(inbound_id)}")
+
+    async def inbound_reset_traffic(self, inbound_id: int) -> dict[str, Any]:
+        return await self._request(
+            "POST", f"/panel/api/inbounds/{int(inbound_id)}/resetTraffic"
+        )
+
     @staticmethod
     def _parse_option(item: dict[str, Any]) -> InboundOption:
         return InboundOption(
