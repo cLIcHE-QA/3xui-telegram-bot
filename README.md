@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v4.3.0
+# 3x-ui Telegram bot v4.4.0
 
 Production-oriented Telegram admin panel for 3x-ui.
 
@@ -985,6 +985,116 @@ cp -a /opt/3xui-bot/3xui-telegram-bot-v4.2.0/data/. \
    /opt/3xui-bot/3xui-telegram-bot-v4.3.0/data/.
 
 cd /opt/3xui-bot/3xui-telegram-bot-v4.3.0
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 bot
+```
+
+
+## v4.4.0 — Advanced Nodes
+
+v4.4.0 is additive on top of v4.3.0. Existing user, subscription, inbound,
+monitoring, backup and business logic is kept intact. The native 3x-ui node
+card now exposes operational controls suitable for day-to-day administration.
+
+Open:
+
+```text
+/admin
+→ Infrastructure
+→ Nodes
+→ select node
+```
+
+The node card now shows panel/Xray state, 3x-ui and Xray versions, endpoint,
+TLS verification mode, inbound-sync mode, API latency, CPU/RAM, uptime,
+network throughput, inbound/client counts, heartbeat state and per-node backup
+availability.
+
+### Node actions
+
+```text
+Test / probe
+Inbounds
+Per-node DB backup
+Maintenance mode
+Rename
+Restart Xray
+Update 3x-ui
+Delete node
+```
+
+`Maintenance mode` uses the native node enable/disable switch on the master.
+It does not shut down the VPS; it tells the master to stop actively managing the
+node until it is enabled again.
+
+`Inbounds` lists only master-known inbounds assigned to that node and links each
+row to the existing Advanced Inbound Management card from v4.3.0.
+
+### Per-node backup and Xray restart
+
+3x-ui intentionally does not expose the node-sync API token back through the
+master's node API. Therefore operations that must call the remote panel directly
+use the already-supported dedicated admin token from `NODE_BACKUP_TARGETS`.
+
+The same target is used for:
+
+```text
+per-node database download
+remote Xray restart
+```
+
+If a target is not configured, the buttons explain the requirement rather than
+falling back to an unsafe token source. Manual node snapshots are stored below
+`BACKUP_DIR/nodes/<node>/` and the newest five are retained.
+
+Example (same variables as earlier releases):
+
+```env
+NODE_BACKUP_TARGETS=FI
+NODE_BACKUP_FI_NODE_NAME=Finland
+NODE_BACKUP_FI_PANEL_URL=https://fi-panel.example.com/basepath
+NODE_BACKUP_FI_API_TOKEN=replace_with_dedicated_admin_scope_token
+NODE_BACKUP_FI_VERIFY_TLS=true
+```
+
+If a node with a configured backup target is renamed, update the corresponding
+`NODE_BACKUP_*_NODE_NAME` value and restart/recreate the bot container so the
+direct target follows the new name.
+
+### Panel update
+
+`Update 3x-ui` uses the native master endpoint for node panel updates and starts
+the official stable-channel self-updater on the selected enabled/online node.
+It is confirmation-gated because the remote panel restarts during the update.
+
+### Safe deletion
+
+The bot checks for node-assigned inbounds before presenting the final delete
+confirmation. 3x-ui itself also refuses to delete a node while inbounds are still
+attached. Removing a node from Master does not delete the remote VPS or uninstall
+3x-ui on it.
+
+### Database / environment changes
+
+No bot SQLite migration and no new `.env` variables are required in v4.4.0.
+All node mutations are recorded in the existing Audit Log.
+
+### Upgrade from v4.3.0
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v4.3.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v4.3.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v4.4.0/.env
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.4.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v4.3.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v4.4.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v4.4.0
 docker compose up -d --build
 docker compose ps
 docker compose logs --tail=100 bot

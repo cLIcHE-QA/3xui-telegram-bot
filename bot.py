@@ -25,6 +25,7 @@ from admin_observability import observability_router
 from business_admin import business_router
 from advanced_users import advanced_users_router
 from inbound_admin import inbound_admin_router, inbound_list_view
+from advanced_nodes import advanced_nodes_router
 from admin_auth import authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_system
 from runtime_jobs import backup_lock
@@ -337,9 +338,23 @@ def master_detail_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def node_detail_keyboard(node_id: int) -> InlineKeyboardMarkup:
+def node_detail_keyboard(node_id: int, enabled: bool | None = None) -> InlineKeyboardMarkup:
+    maintenance_text = (
+        "🛠 Enter maintenance" if enabled is not False else "▶️ Exit maintenance"
+    )
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔄 Проверить", callback_data=f"admin:node:{node_id}")],
+        [InlineKeyboardButton(text="🔍 Проверить", callback_data=f"admin:node:{node_id}")],
+        [
+            InlineKeyboardButton(text="📡 Inbounds", callback_data=f"admin:nodectl:{node_id}:inbounds"),
+            InlineKeyboardButton(text="💾 Backup", callback_data=f"admin:nodectl:{node_id}:backup"),
+        ],
+        [InlineKeyboardButton(text=maintenance_text, callback_data=f"admin:nodectl:{node_id}:maintenance")],
+        [
+            InlineKeyboardButton(text="✏️ Rename", callback_data=f"admin:nodectl:{node_id}:rename"),
+            InlineKeyboardButton(text="🔄 Restart Xray", callback_data=f"admin:nodectl:{node_id}:restartxray"),
+        ],
+        [InlineKeyboardButton(text="⬆️ Update 3x-ui", callback_data=f"admin:nodectl:{node_id}:updatepanel")],
+        [InlineKeyboardButton(text="🗑 Delete node", callback_data=f"admin:nodectl:{node_id}:deleteask")],
         [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
     ])
 
@@ -390,7 +405,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v4.3.0", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v4.4.0", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -1086,17 +1101,25 @@ async def admin_backup_full(call: CallbackQuery):
 def _node_detail_text(node: NodeInfo) -> str:
     status_icon = _node_status_icon(node)
     xray_icon = _xray_icon(node)
+    endpoint = f"{node.scheme}://{node.address}:{node.port}{node.base_path}"
     lines = [
         f"🌍 {_node_display_name(node.name)}",
         "",
         f"{status_icon} Panel: {node.status}",
+        f"{'🟢 Enabled' if node.enable else '🛠 Maintenance / disabled'}",
+        f"Endpoint: {endpoint}",
         f"{xray_icon} Xray: {node.xray_state}"
         + (f" {node.xray_version}" if node.xray_version else ""),
     ]
     if node.panel_version:
         lines.append(f"3x-ui: {node.panel_version}")
+    lines.append(f"TLS verify: {node.tls_verify_mode} · inbound sync: {node.inbound_sync_mode}")
+    if node.outbound_tag:
+        lines.append(f"Outbound bridge: {node.outbound_tag}")
     if node.latency_ms:
         lines.append(f"Ping API: {node.latency_ms} ms")
+    if node.net_up or node.net_down:
+        lines.append(f"Network: ↑ {human_bytes(node.net_up)}/s · ↓ {human_bytes(node.net_down)}/s")
     lines += [
         f"CPU: {node.cpu_pct:.1f}%",
         f"RAM: {node.mem_pct:.1f}%",
@@ -1365,7 +1388,7 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
     await call.message.answer(
         f"✅ Нода {_node_display_name(node.name)} добавлена.\n"
         f"Статус: {_node_status_icon(node)} {node.status}",
-        reply_markup=node_detail_keyboard(node.id),
+        reply_markup=node_detail_keyboard(node.id, node.enable),
     )
 
 
@@ -1528,7 +1551,7 @@ async def admin_node_detail(call: CallbackQuery):
     text = _node_detail_text(node)
     if probe_error and not node.last_error:
         text += f"\n⚠️ Probe: {probe_error[:240]}"
-    await call.message.answer(text, reply_markup=node_detail_keyboard(node_id))
+    await call.message.answer(text, reply_markup=node_detail_keyboard(node_id, node.enable))
 
 
 @router.callback_query(F.data == "admin:health")
@@ -1994,7 +2017,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=trial_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=trial_ip_limit,
-            comment="Created by Telegram bot v4.3.0",
+            comment="Created by Telegram bot v4.4.0",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.
@@ -2112,6 +2135,7 @@ async def main():
     dp = Dispatcher()
     dp.include_router(router)
     dp.include_router(advanced_users_router)
+    dp.include_router(advanced_nodes_router)
     dp.include_router(inbound_admin_router)
     dp.include_router(catalog_router)
     dp.include_router(observability_router)

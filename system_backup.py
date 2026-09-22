@@ -33,9 +33,57 @@ class SystemBackupService:
     def configured_node_names(self) -> tuple[str, ...]:
         return tuple(t.node_name for t in self.targets)
 
-    def has_target_for(self, node_name: str) -> bool:
+    def target_for(self, node_name: str) -> NodeBackupTarget | None:
         needle = node_name.strip().casefold()
-        return any(t.node_name.strip().casefold() == needle for t in self.targets)
+        for target in self.targets:
+            if target.node_name.strip().casefold() == needle:
+                return target
+        return None
+
+    def has_target_for(self, node_name: str) -> bool:
+        return self.target_for(node_name) is not None
+
+    async def create_node_snapshot(self, node_name: str) -> Path:
+        """Download one node database using its dedicated admin backup token.
+
+        The master's node-sync token is intentionally not exposed by 3x-ui, so
+        this action is available only for nodes configured in NODE_BACKUP_TARGETS.
+        """
+        target = self.target_for(node_name)
+        if target is None:
+            raise ValueError(f"Backup target is not configured for node: {node_name}")
+        client = XUIClient(target.panel_url, target.api_token, target.verify_tls)
+        body, remote_filename = await client.download_database()
+        safe_node = _safe_segment(target.node_name)
+        safe_remote = _safe_segment(remote_filename)
+        if "." not in safe_remote:
+            safe_remote += ".db"
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        out_dir = self.manager.backup_dir / "nodes" / safe_node
+        await asyncio.to_thread(out_dir.mkdir, parents=True, exist_ok=True)
+        path = out_dir / f"node-backup-{stamp}-{safe_remote}"
+        await asyncio.to_thread(path.write_bytes, body)
+
+        # Keep a few manual node snapshots; full archives remain governed by BACKUP_KEEP.
+        def _prune() -> None:
+            items = sorted(
+                out_dir.glob("node-backup-*"),
+                key=lambda p: p.stat().st_mtime if p.exists() else 0,
+                reverse=True,
+            )
+            for old in items[5:]:
+                try:
+                    old.unlink()
+                except OSError:
+                    pass
+        await asyncio.to_thread(_prune)
+        return path
+
+    def direct_client_for(self, node_name: str) -> XUIClient | None:
+        target = self.target_for(node_name)
+        if target is None:
+            return None
+        return XUIClient(target.panel_url, target.api_token, target.verify_tls)
 
     async def _fetch_target(self, target: NodeBackupTarget, root: Path):
         client = XUIClient(target.panel_url, target.api_token, target.verify_tls)
@@ -109,6 +157,6 @@ class SystemBackupService:
                 self.manager.create_full_backup,
                 extra_files,
                 extra_missing,
-                version="4.0.0",
+                version="4.4.0",
                 extra_manifest={"nodes": node_results},
             )

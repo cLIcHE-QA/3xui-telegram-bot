@@ -48,6 +48,12 @@ class NodeInfo:
     config_dirty: bool
     transitive: bool
     has_api_token: bool
+    tls_verify_mode: str
+    inbound_sync_mode: str
+    outbound_tag: str
+    allow_private_address: bool
+    net_up: int
+    net_down: int
 
 class XUIClient:
     def __init__(self, base_url: str, token: str, verify_tls: bool = True):
@@ -89,12 +95,37 @@ class XUIClient:
         data = await self._request("GET", "/panel/api/nodes/list")
         return [self._parse_node(x) for x in (data.get("obj") or [])]
 
-    async def node_get(self, node_id: int) -> NodeInfo:
+    async def node_get_raw(self, node_id: int) -> dict[str, Any]:
         data = await self._request("GET", f"/panel/api/nodes/get/{int(node_id)}")
         obj = data.get("obj") or {}
-        if not obj:
+        if not isinstance(obj, dict) or not obj:
             raise XUIError(f"Node not found: {node_id}")
-        return self._parse_node(obj)
+        return obj
+
+    async def node_get(self, node_id: int) -> NodeInfo:
+        return self._parse_node(await self.node_get_raw(node_id))
+
+    async def node_update(self, node_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self._request(
+            "POST", f"/panel/api/nodes/update/{int(node_id)}", json=payload
+        )
+
+    async def node_delete(self, node_id: int) -> dict[str, Any]:
+        return await self._request("POST", f"/panel/api/nodes/del/{int(node_id)}")
+
+    async def node_set_enable(self, node_id: int, enable: bool) -> dict[str, Any]:
+        return await self._request(
+            "POST", f"/panel/api/nodes/setEnable/{int(node_id)}",
+            json={"enable": bool(enable)},
+        )
+
+    async def node_update_panels(self, node_ids: list[int], *, dev: bool = False) -> list[dict[str, Any]]:
+        data = await self._request(
+            "POST", "/panel/api/nodes/updatePanel",
+            json={"ids": [int(x) for x in node_ids], "dev": bool(dev)},
+        )
+        obj = data.get("obj") or []
+        return obj if isinstance(obj, list) else []
 
     async def node_probe(self, node_id: int) -> NodeInfo | None:
         data = await self._request("POST", f"/panel/api/nodes/probe/{int(node_id)}")
@@ -145,7 +176,16 @@ class XUIClient:
             config_dirty=bool(item.get("configDirty", False)),
             transitive=bool(item.get("transitive", False)),
             has_api_token=bool(item.get("hasApiToken", False)),
+            tls_verify_mode=str(item.get("tlsVerifyMode") or "verify"),
+            inbound_sync_mode=str(item.get("inboundSyncMode") or "all"),
+            outbound_tag=str(item.get("outboundTag") or ""),
+            allow_private_address=bool(item.get("allowPrivateAddress", False)),
+            net_up=int(item.get("netUp") or 0),
+            net_down=int(item.get("netDown") or 0),
         )
+
+    async def restart_xray(self) -> dict[str, Any]:
+        return await self._request("POST", "/panel/api/server/restartXrayService")
 
     async def download_database(self) -> tuple[bytes, str]:
         headers = {
