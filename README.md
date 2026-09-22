@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v4.5.0
+# 3x-ui Telegram bot v4.6.0
 
 Production-oriented Telegram admin panel for 3x-ui.
 
@@ -1223,3 +1223,113 @@ docker compose logs --tail=100 bot
 ```
 
 No new `.env` variables are required.
+
+## v4.6.0 — Logs + Alerts
+
+v4.6.0 adds centralized operational diagnostics without changing the existing
+provisioning, user, inbound, node, subscription or backup behaviour.
+
+### Logs
+
+```text
+/admin
+-> Monitoring
+   -> Logs
+```
+
+Available master sources:
+
+```text
+Bot
+3x-ui panel
+Xray
+AmneziaWG
+Nginx error.log
+Nginx access.log
+System journal (through 3x-ui)
+```
+
+Views support 50/200 trailing entries and `ALL`, `WARN+`, `ERROR` filters.
+3x-ui/Xray/AmneziaWG logs use the authenticated 3x-ui server API. Node logs
+are available when that node has a direct admin-scope token configured in
+`NODE_BACKUP_TARGETS`; the master node-sync token is never exposed by the bot.
+
+The bot now also writes a small rotating local log to:
+
+```text
+/app/data/logs/bot.log
+```
+
+with 5 MB x 3 files. Existing Docker `json-file` limits remain 10 MB x 3.
+
+Nginx log access is read-only. Docker Compose mounts:
+
+```text
+${NGINX_LOG_HOST_PATH:-/var/log/nginx} -> /app/log_sources/nginx
+```
+
+If nginx logs live elsewhere, set `NGINX_LOG_HOST_PATH` in `.env`. No nginx
+configuration is modified by the bot.
+
+### Alerts
+
+```text
+/admin
+-> Monitoring
+   -> Alerts
+```
+
+Default rules are created additively on first start:
+
+```text
+Master / 3x-ui unreachable
+Xray down
+Node offline
+Background job failed
+Disk usage >= 85%
+Full backup older than 36h
+```
+
+The monitor runs approximately every five minutes. Notifications are sent to
+`ADMIN_TELEGRAM_IDS` and enabled database administrators with Owner/Admin roles.
+Incidents are deduplicated and use cooldowns, so the same outage does not spam
+Telegram continuously. A recovery message is sent when a previously notified
+incident becomes healthy again.
+
+`Disk` and `Backup stale` thresholds can be changed from Telegram using safe
+presets. Individual rules can be enabled/disabled. Disabled 3x-ui nodes
+(maintenance mode) do not trigger `Node offline` alerts.
+
+Two additive SQLite tables are created automatically:
+
+```text
+alert_rules
+alert_state
+```
+
+No existing table is rebuilt.
+
+### Upgrade from v4.5.0
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v4.5.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v4.5.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v4.6.0/.env
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.6.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v4.5.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v4.6.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v4.6.0
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 bot
+```
+
+`NGINX_LOG_HOST_PATH` is optional. If it is omitted, `/var/log/nginx` is used.
+All other v4.6 alert configuration is stored in SQLite and managed from the
+admin UI.
+

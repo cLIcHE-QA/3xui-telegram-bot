@@ -48,6 +48,7 @@ def _is_read_callback(data: str) -> bool:
         "admin:traffic", "admin:online", "admin:jobs", "admin:audit",
         "admin:backups", "admin:plans", "admin:servergroups", "admin:hosts",
         "admin:payments", "admin:promo", "admin:administrators", "admin:settings",
+        "admin:logs", "admin:alerts", "admin:alerts:check",
     }
     if data in exact:
         return True
@@ -61,6 +62,13 @@ def _is_read_callback(data: str) -> bool:
 
 def required_role_for_callback(data: str) -> str:
     data = data or ""
+
+    if data.startswith("admin:logs"):
+        return "read_only"
+    if data in {"admin:alerts", "admin:alerts:check"}:
+        return "read_only"
+    if data.startswith("admin:alerts:"):
+        return "admin"
 
     # Administrator registry is owner-only. Environment owners are the recovery path.
     if data.startswith("admin:administrator") or data == "admin:administrators":

@@ -12,6 +12,8 @@ services:
       - ${BACKUP_XUI_DIR_HOST_PATH:-/etc/x-ui}:/app/backup_sources/x-ui:ro
       # This deployment keeps nginx configuration here. Override if your path differs.
       - ${BACKUP_NGINX_CONF_HOST_PATH:-/opt/mtproxyl-nginx/conf}:/app/backup_sources/nginx:ro
+      # v4.6 read-only log source for Monitoring -> Logs. Override if nginx logs live elsewhere.
+      - ${NGINX_LOG_HOST_PATH:-/var/log/nginx}:/app/log_sources/nginx:ro
     environment:
       DB_PATH: /app/data/bot.sqlite3
     ports:

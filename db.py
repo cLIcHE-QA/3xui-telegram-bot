@@ -141,6 +141,26 @@ class InboundTemplateRecord:
     updated_at: int
 
 
+@dataclass
+class AlertRuleRecord:
+    code: str
+    enabled: int
+    threshold: int
+    cooldown_sec: int
+    updated_at: int
+
+
+@dataclass
+class AlertStateRecord:
+    code: str
+    target: str
+    active: int
+    last_value: str
+    first_seen: int
+    last_seen: int
+    last_notified: int
+
+
 class Database:
     def __init__(self, path: str):
         self.path = path
@@ -321,6 +341,40 @@ class Database:
                     updated_at INTEGER NOT NULL
                 )
             """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS alert_rules (
+                    code TEXT PRIMARY KEY,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    threshold INTEGER NOT NULL DEFAULT 0,
+                    cooldown_sec INTEGER NOT NULL DEFAULT 1800,
+                    updated_at INTEGER NOT NULL
+                )
+            """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS alert_state (
+                    code TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    active INTEGER NOT NULL DEFAULT 0,
+                    last_value TEXT NOT NULL DEFAULT '',
+                    first_seen INTEGER NOT NULL DEFAULT 0,
+                    last_seen INTEGER NOT NULL DEFAULT 0,
+                    last_notified INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(code, target)
+                )
+            """)
+            now = int(time.time())
+            defaults = (
+                ("master_down", 1, 0, 900),
+                ("xray_down", 1, 0, 900),
+                ("node_offline", 1, 0, 900),
+                ("job_failed", 1, 0, 1800),
+                ("disk_high", 1, 85, 1800),
+                ("backup_stale", 1, 36, 3600),
+            )
+            await db.executemany(
+                "INSERT OR IGNORE INTO alert_rules(code, enabled, threshold, cooldown_sec, updated_at) VALUES (?, ?, ?, ?, ?)",
+                [(code, enabled, threshold, cooldown, now) for code, enabled, threshold, cooldown in defaults],
+            )
             await db.commit()
 
     async def get(self, telegram_id: int) -> UserRecord | None:
@@ -1128,4 +1182,85 @@ class Database:
             )
             await db.commit()
             return int(cur.rowcount or 0)
+    # --- Alerts --------------------------------------------------------
+
+    async def list_alert_rules(self) -> list[AlertRuleRecord]:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM alert_rules ORDER BY code")
+            rows = await cur.fetchall()
+            return [AlertRuleRecord(**dict(r)) for r in rows]
+
+    async def get_alert_rule(self, code: str) -> AlertRuleRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute("SELECT * FROM alert_rules WHERE code = ?", (code,))
+            row = await cur.fetchone()
+            return AlertRuleRecord(**dict(row)) if row else None
+
+    async def set_alert_rule_enabled(self, code: str, enabled: bool) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "UPDATE alert_rules SET enabled = ?, updated_at = ? WHERE code = ?",
+                (1 if enabled else 0, int(time.time()), code),
+            )
+            await db.commit()
+
+    async def set_alert_rule_threshold(self, code: str, threshold: int) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "UPDATE alert_rules SET threshold = ?, updated_at = ? WHERE code = ?",
+                (max(0, int(threshold)), int(time.time()), code),
+            )
+            await db.commit()
+
+    async def list_alert_states(self, *, active_only: bool = False) -> list[AlertStateRecord]:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            if active_only:
+                cur = await db.execute(
+                    "SELECT * FROM alert_state WHERE active = 1 ORDER BY last_seen DESC"
+                )
+            else:
+                cur = await db.execute("SELECT * FROM alert_state ORDER BY last_seen DESC")
+            rows = await cur.fetchall()
+            return [AlertStateRecord(**dict(r)) for r in rows]
+
+    async def get_alert_state(self, code: str, target: str) -> AlertStateRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM alert_state WHERE code = ? AND target = ?",
+                (code, target),
+            )
+            row = await cur.fetchone()
+            return AlertStateRecord(**dict(row)) if row else None
+
+    async def update_alert_state(
+        self, *, code: str, target: str, active: bool, value: str = "",
+        notified_at: int | None = None,
+    ) -> AlertStateRecord:
+        now = int(time.time())
+        existing = await self.get_alert_state(code, target)
+        first_seen = now if active and (not existing or not existing.active) else (existing.first_seen if existing else 0)
+        last_notified = existing.last_notified if existing else 0
+        if notified_at is not None:
+            last_notified = int(notified_at)
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                INSERT INTO alert_state(code, target, active, last_value, first_seen, last_seen, last_notified)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(code, target) DO UPDATE SET
+                    active=excluded.active, last_value=excluded.last_value,
+                    first_seen=excluded.first_seen, last_seen=excluded.last_seen,
+                    last_notified=excluded.last_notified
+                """,
+                (code, target, 1 if active else 0, (value or "")[:500], first_seen, now, last_notified),
+            )
+            await db.commit()
+        return AlertStateRecord(
+            code=code, target=target, active=1 if active else 0, last_value=(value or "")[:500],
+            first_seen=first_seen, last_seen=now, last_notified=last_notified,
+        )
 

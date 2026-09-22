@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 import re
+import json
 import aiohttp
 
 class XUIError(RuntimeError):
@@ -61,6 +62,20 @@ class XUIClient:
         self.base_url = base_url.rstrip("/")
         self.token = token
         self.verify_tls = verify_tls
+
+    @staticmethod
+    def _log_text(item: Any) -> str:
+        if isinstance(item, str):
+            return item
+        if isinstance(item, dict):
+            message = item.get("message") or item.get("msg") or item.get("line")
+            if message is not None:
+                prefix = " ".join(
+                    str(item.get(k)) for k in ("time", "timestamp", "level") if item.get(k) not in (None, "")
+                )
+                return f"{prefix} {message}".strip()
+            return json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+        return str(item)
 
     async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
         headers = kwargs.pop("headers", {})
@@ -187,6 +202,52 @@ class XUIClient:
 
     async def restart_xray(self) -> dict[str, Any]:
         return await self._request("POST", "/panel/api/server/restartXrayService")
+
+    async def panel_logs(self, count: int = 100, *, level: str = "info", syslog: bool = False) -> list[str]:
+        count = max(1, min(500, int(count)))
+        data = await self._request(
+            "POST", f"/panel/api/server/logs/{count}",
+            data={"level": (level or "info").lower(), "syslog": "true" if syslog else "false"},
+        )
+        obj = data.get("obj") or []
+        if isinstance(obj, list):
+            return [self._log_text(x) for x in obj]
+        return [self._log_text(obj)] if obj else []
+
+    async def xray_logs(
+        self, count: int = 100, *, keyword: str = "", show_direct: bool = True,
+        show_blocked: bool = True, show_proxy: bool = True,
+    ) -> list[str]:
+        count = max(1, min(500, int(count)))
+        data = await self._request(
+            "POST", f"/panel/api/server/xraylogs/{count}",
+            data={
+                "filter": keyword or "",
+                "showDirect": "true" if show_direct else "false",
+                "showBlocked": "true" if show_blocked else "false",
+                "showProxy": "true" if show_proxy else "false",
+            },
+        )
+        obj = data.get("obj") or []
+        if isinstance(obj, list):
+            return [self._log_text(x) for x in obj]
+        return [self._log_text(obj)] if obj else []
+
+    async def amneziawg_logs(self, count: int = 100) -> list[str]:
+        count = max(1, min(500, int(count)))
+        data = await self._request("POST", f"/panel/api/server/amneziawglogs/{count}")
+        obj = data.get("obj") or []
+        if isinstance(obj, list):
+            return [self._log_text(x) for x in obj]
+        if isinstance(obj, dict):
+            lines: list[str] = []
+            for key, value in obj.items():
+                if isinstance(value, list):
+                    lines.extend(f"{key}: {self._log_text(item)}" for item in value)
+                else:
+                    lines.append(f"{key}: {self._log_text(value)}")
+            return lines
+        return [self._log_text(obj)] if obj else []
 
     async def download_database(self) -> tuple[bytes, str]:
         headers = {

@@ -30,6 +30,8 @@ from admin_auth import authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_system
 from runtime_jobs import backup_lock
 from provisioning import ProvisioningEngine
+from logs_alerts import logs_alerts_router, alert_monitor_loop
+from logging_setup import configure_logging
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -110,7 +112,10 @@ def monitoring_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🟢 Online", callback_data="admin:online"),
         ],
         [InlineKeyboardButton(text="🩺 System Health", callback_data="admin:health")],
-        [InlineKeyboardButton(text="📜 Logs", callback_data="admin:coming:logs")],
+        [
+            InlineKeyboardButton(text="📜 Logs", callback_data="admin:logs"),
+            InlineKeyboardButton(text="🚨 Alerts", callback_data="admin:alerts"),
+        ],
         [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
     ])
 
@@ -494,6 +499,7 @@ async def admin_dashboard(call: CallbackQuery):
     enabled_hosts = sum(1 for h in hosts if h.enabled)
     payment_summary = await db.payment_summary()
     promo_codes = await db.list_promo_codes()
+    active_alerts = await db.list_alert_states(active_only=True)
     now_s = int(time.time())
     active_promos = sum(
         1 for promo in promo_codes
@@ -552,6 +558,7 @@ async def admin_dashboard(call: CallbackQuery):
         lines.append(f"⚠️ Online: {online_error}")
     else:
         lines.append(f"🟢 Online clients: {len(set(online_clients))}")
+    lines.append(f"{'🚨' if active_alerts else '✅'} Active alerts: {len(active_alerts)}")
     lines += [
         "",
         "System",
@@ -690,13 +697,25 @@ async def admin_legacy_v4_callback(call: CallbackQuery):
     await call.answer()
 
 
+@router.callback_query(F.data == "admin:coming:logs")
+async def admin_legacy_logs_callback(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.message.answer(
+        "Раздел Logs уже доступен в текущей версии.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="📜 Logs", callback_data="admin:logs")
+        ]]),
+    )
+    await call.answer()
+
+
 COMING_SOON = {
     "payments": ("💳 Payments", "Раздел Payments уже доступен."),
     "promo": ("🎟 Promo Codes", "Раздел Promo Codes уже доступен."),
     "panels": ("🖥 Panels", "Раздел панелей зарезервирован. Текущий Master продолжает работать без изменений."),
     "traffic": ("📊 Traffic", "Агрегация трафика будет добавлена на этапе Monitoring."),
     "online": ("🟢 Online", "Online-клиенты будут добавлены на этапе Monitoring."),
-    "logs": ("📜 Logs", "Просмотр журналов будет добавлен без изменения текущего Docker logging."),
     "jobs": ("⚙️ Jobs", "Планировщик и история фоновых задач будут добавлены отдельно."),
     "audit": ("🧾 Audit Log", "Аудит административных действий будет добавлен отдельным модулем."),
     "administrators": ("👮 Administrators", "Раздел Administrators уже доступен."),
@@ -2221,7 +2240,7 @@ async def automatic_backup_loop(bot: Bot):
 
 
 async def main():
-    logging.basicConfig(level=logging.INFO)
+    configure_logging()
     await db.init()
     stale_jobs = await db.fail_stale_job_runs()
     if stale_jobs:
@@ -2245,20 +2264,25 @@ async def main():
     dp.include_router(inbound_admin_router)
     dp.include_router(catalog_router)
     dp.include_router(observability_router)
+    dp.include_router(logs_alerts_router)
     dp.include_router(business_router)
     backup_task = (
         asyncio.create_task(automatic_backup_loop(bot))
         if settings.backup_enabled else None
     )
+    alert_task = asyncio.create_task(alert_monitor_loop(bot))
     try:
         await dp.start_polling(bot)
     finally:
-        if backup_task:
-            backup_task.cancel()
-            try:
-                await backup_task
-            except asyncio.CancelledError:
-                pass
+        for task in (backup_task, alert_task):
+            if task:
+                task.cancel()
+        for task in (backup_task, alert_task):
+            if task:
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
         await proxy.stop()
 
 if __name__ == "__main__":
