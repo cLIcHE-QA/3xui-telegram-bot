@@ -103,6 +103,18 @@ class XUIClient:
             return self._parse_node(obj)
         return None
 
+    async def node_test(self, payload: dict[str, Any]) -> dict[str, Any]:
+        data = await self._request("POST", "/panel/api/nodes/test", json=payload)
+        obj = data.get("obj") or {}
+        return obj if isinstance(obj, dict) else {}
+
+    async def node_add(self, payload: dict[str, Any]) -> NodeInfo:
+        data = await self._request("POST", "/panel/api/nodes/add", json=payload)
+        obj = data.get("obj") or {}
+        if not isinstance(obj, dict) or not obj:
+            raise XUIError("3x-ui did not return the created node")
+        return self._parse_node(obj)
+
     @staticmethod
     def _parse_node(item: dict[str, Any]) -> NodeInfo:
         return NodeInfo(

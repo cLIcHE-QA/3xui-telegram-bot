@@ -10,6 +10,8 @@ import aiohttp
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
 
 from backup_manager import BackupManager
@@ -25,6 +27,14 @@ xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tl
 router = Router()
 backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
 system_backup = SystemBackupService(backup_manager, settings.node_backup_targets)
+
+
+class AddNodeStates(StatesGroup):
+    name = State()
+    url = State()
+    token = State()
+    review = State()
+
 
 def is_allowed(tg_id: int) -> bool:
     return tg_id in settings.allowed_telegram_ids or tg_id in settings.admin_telegram_ids
@@ -124,6 +134,116 @@ def _epoch_text(seconds: int) -> str:
         return str(seconds)
 
 
+def _node_display_name(name: str) -> str:
+    value = (name or "Node").strip()
+    lower = value.lower()
+    if value.startswith(("🇫🇮", "🇳🇱", "🇩🇪", "🇸🇪", "🇳🇴", "🇫🇷", "🇬🇧", "🇺🇸")):
+        return value
+    country_flags = {
+        "finland": "🇫🇮",
+        "finnish": "🇫🇮",
+        "netherlands": "🇳🇱",
+        "germany": "🇩🇪",
+        "sweden": "🇸🇪",
+        "norway": "🇳🇴",
+        "france": "🇫🇷",
+        "uk": "🇬🇧",
+        "united kingdom": "🇬🇧",
+        "usa": "🇺🇸",
+        "united states": "🇺🇸",
+    }
+    flag = country_flags.get(lower)
+    return f"{flag} {value}" if flag else value
+
+
+def _parse_node_url(raw: str) -> dict[str, object]:
+    value = (raw or "").strip()
+    if not value:
+        raise ValueError("URL пустой")
+    if "://" not in value:
+        value = "https://" + value
+    parsed = urlsplit(value)
+    scheme = parsed.scheme.lower()
+    if scheme not in {"http", "https"}:
+        raise ValueError("схема должна быть http или https")
+    if parsed.username or parsed.password:
+        raise ValueError("логин/пароль в URL не поддерживаются")
+    if not parsed.hostname:
+        raise ValueError("не найден адрес сервера")
+    try:
+        port = parsed.port or (443 if scheme == "https" else 80)
+    except ValueError as exc:
+        raise ValueError("некорректный порт") from exc
+    base_path = parsed.path or "/"
+    if not base_path.startswith("/"):
+        base_path = "/" + base_path
+    # A copied browser URL normally ends in /panel/.  The node API expects
+    # the web base path before that route, because the master appends
+    # /panel/api/... itself.
+    stripped = base_path.rstrip("/")
+    if stripped.lower().endswith("/panel"):
+        stripped = stripped[:-len("/panel")]
+        base_path = stripped or "/"
+    if not base_path.endswith("/"):
+        base_path += "/"
+    return {
+        "scheme": scheme,
+        "address": parsed.hostname,
+        "port": int(port),
+        "basePath": base_path,
+    }
+
+
+def _node_mutation_payload(data: dict[str, object]) -> dict[str, object]:
+    return {
+        "id": 0,
+        "name": str(data["name"]),
+        "remark": "",
+        "scheme": str(data["scheme"]),
+        "address": str(data["address"]),
+        "port": int(data["port"]),
+        "basePath": str(data["basePath"]),
+        "apiToken": str(data["apiToken"]),
+        "clearApiToken": False,
+        "enable": True,
+        "allowPrivateAddress": False,
+        "inboundSyncMode": "all",
+        "inboundTags": [],
+        "outboundTag": "",
+        "pinnedCertSha256": "",
+        "tlsVerifyMode": str(data.get("tlsVerifyMode") or "verify"),
+    }
+
+
+def add_node_tls_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Проверять TLS", callback_data="admin:nodeadd:tls:verify")],
+        [InlineKeyboardButton(text="⚠️ Не проверять TLS", callback_data="admin:nodeadd:tls:skip")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:nodeadd:cancel")],
+    ])
+
+
+def add_node_review_keyboard(tls_mode: str) -> InlineKeyboardMarkup:
+    other = "skip" if tls_mode == "verify" else "verify"
+    other_label = "⚠️ TLS без проверки" if other == "skip" else "✅ Проверять TLS"
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Добавить ноду", callback_data="admin:nodeadd:save")],
+        [InlineKeyboardButton(text="🔍 Проверить ещё раз", callback_data="admin:nodeadd:test")],
+        [InlineKeyboardButton(text=other_label, callback_data=f"admin:nodeadd:tls:{other}")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:nodeadd:cancel")],
+    ])
+
+
+def add_node_retry_keyboard(tls_mode: str) -> InlineKeyboardMarkup:
+    other = "skip" if tls_mode == "verify" else "verify"
+    other_label = "⚠️ Попробовать без проверки TLS" if other == "skip" else "✅ Включить проверку TLS"
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔍 Проверить ещё раз", callback_data="admin:nodeadd:test")],
+        [InlineKeyboardButton(text=other_label, callback_data=f"admin:nodeadd:tls:{other}")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:nodeadd:cancel")],
+    ])
+
+
 def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeyboardMarkup:
     master_icon = "🟢" if master_online else "🔴"
     rows: list[list[InlineKeyboardButton]] = [
@@ -134,11 +254,12 @@ def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeybo
     ]
     for node in nodes[:40]:
         suffix = " ↳" if node.transitive else ""
-        text = f"{_node_status_icon(node)} {node.name}{suffix}"
+        text = f"{_node_status_icon(node)} {_node_display_name(node.name)}{suffix}"
         if node.id > 0 and not node.transitive:
             rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:node:{node.id}")])
         else:
             rows.append([InlineKeyboardButton(text=text, callback_data="admin:nodes:noop")])
+    rows.append([InlineKeyboardButton(text="➕ Добавить ноду", callback_data="admin:nodeadd:start")])
     rows.append([InlineKeyboardButton(text="🔄 Проверить все", callback_data="admin:nodes:refresh")])
     rows.append([InlineKeyboardButton(text="⬅ Админка", callback_data="admin:home")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
@@ -206,7 +327,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v3.7.1", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v3.7.2", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -539,7 +660,7 @@ def _node_detail_text(node: NodeInfo) -> str:
     status_icon = _node_status_icon(node)
     xray_icon = _xray_icon(node)
     lines = [
-        f"🌍 {node.name}",
+        f"🌍 {_node_display_name(node.name)}",
         "",
         f"{status_icon} Panel: {node.status}",
         f"{xray_icon} Xray: {node.xray_state}"
@@ -599,8 +720,8 @@ async def admin_nodes(call: CallbackQuery):
     text = f"🌍 Ноды\n\nСерверов: {total} · online: {online}"
     if not nodes and not nodes_error:
         text += (
-            "\n\nПока подключён только Master. "
-            "Добавь Finland в 3x-ui → Nodes, после чего она появится второй строкой."
+            "\n\nПока зарегистрированных нод нет. "
+            "Используй «➕ Добавить ноду», чтобы подключить сервер."
         )
     if master_error:
         text += f"\n\n⚠️ Master: {master_error[:180]}"
@@ -611,6 +732,199 @@ async def admin_nodes(call: CallbackQuery):
     await call.answer()
 
 
+
+
+@router.callback_query(F.data == "admin:nodeadd:start")
+async def admin_node_add_start(call: CallbackQuery, state: FSMContext):
+    if not await guard_admin_call(call):
+        return
+    await state.clear()
+    await state.set_state(AddNodeStates.name)
+    await call.message.answer(
+        "➕ Добавление ноды\n\n"
+        "Шаг 1/4. Отправь имя ноды.\n"
+        "Например: Finland",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:nodeadd:cancel")]
+        ]),
+    )
+    await call.answer()
+
+
+@router.message(AddNodeStates.name)
+async def admin_node_add_name(message: Message, state: FSMContext):
+    if not message.from_user or not is_admin(message.from_user.id):
+        return
+    name = (message.text or "").strip()
+    if not name or len(name) > 64:
+        await message.answer("Имя должно содержать от 1 до 64 символов.")
+        return
+    await state.update_data(name=name)
+    await state.set_state(AddNodeStates.url)
+    await message.answer(
+        "Шаг 2/4. Отправь URL панели 3x-ui на ноде.\n\n"
+        "Можно целиком, например:\n"
+        "https://fi.example.com:2053/my-base/panel/\n\n"
+        "Можно вставить URL прямо из браузера: завершающий /panel/ будет убран автоматически. "
+        "Если схема не указана, будет использован https."
+    )
+
+
+@router.message(AddNodeStates.url)
+async def admin_node_add_url(message: Message, state: FSMContext):
+    if not message.from_user or not is_admin(message.from_user.id):
+        return
+    try:
+        parsed = _parse_node_url(message.text or "")
+    except ValueError as exc:
+        await message.answer(f"Не удалось разобрать URL: {exc}\nПопробуй ещё раз.")
+        return
+    await state.update_data(**parsed)
+    await state.set_state(AddNodeStates.token)
+    await message.answer(
+        "Шаг 3/4. Отправь API token этой ноды.\n\n"
+        "Токен 3x-ui является полным административным секретом. "
+        "Сообщение с токеном бот попробует удалить сразу после получения."
+    )
+
+
+@router.message(AddNodeStates.token)
+async def admin_node_add_token(message: Message, state: FSMContext):
+    if not message.from_user or not is_admin(message.from_user.id):
+        return
+    token = (message.text or "").strip()
+    if len(token) < 8:
+        await message.answer("Токен выглядит слишком коротким. Отправь API token ноды ещё раз.")
+        return
+    await state.update_data(apiToken=token)
+    try:
+        await message.delete()
+    except Exception:
+        pass
+    await state.set_state(AddNodeStates.review)
+    await message.answer(
+        "Шаг 4/4. Как проверять TLS-сертификат ноды?\n\n"
+        "Рекомендуется «Проверять TLS». Режим без проверки нужен только для "
+        "временного теста или собственного сертификата.",
+        reply_markup=add_node_tls_keyboard(),
+    )
+
+
+async def _node_add_test_and_show(call: CallbackQuery, state: FSMContext, tls_mode: str | None = None):
+    data = await state.get_data()
+    if not data.get("apiToken"):
+        await state.clear()
+        await call.message.answer("Сессия добавления ноды истекла. Начни добавление заново.", reply_markup=admin_menu())
+        return
+    if tls_mode:
+        await state.update_data(tlsVerifyMode=tls_mode)
+        data["tlsVerifyMode"] = tls_mode
+    data.setdefault("tlsVerifyMode", "verify")
+    payload = _node_mutation_payload(data)
+    try:
+        result = await xui.node_test(payload)
+    except XUIError as exc:
+        mode = str(data.get("tlsVerifyMode") or "verify")
+        await call.message.answer(
+            "🔴 Проверка ноды не прошла.\n\n"
+            f"{str(exc)[:500]}\n\n"
+            "Проверь URL/API token. Если на ноде собственный TLS-сертификат, "
+            "можно временно попробовать режим без проверки.",
+            reply_markup=add_node_retry_keyboard(mode),
+        )
+        return
+
+    mode = str(data.get("tlsVerifyMode") or "verify")
+    status = str(result.get("status") or "unknown").lower()
+    status_icon = "🟢" if status == "online" else "🟡"
+    lines = [
+        "🔍 Проверка ноды завершена",
+        "",
+        f"Имя: {_node_display_name(str(data['name']))}",
+        f"Адрес: {data['scheme']}://{data['address']}:{data['port']}{data['basePath']}",
+        f"TLS: {mode}",
+        f"{status_icon} Panel: {status}",
+    ]
+    if result.get("panelVersion"):
+        lines.append(f"3x-ui: {result['panelVersion']}")
+    if result.get("xrayState"):
+        lines.append(f"Xray: {result['xrayState']} {result.get('xrayVersion') or ''}".rstrip())
+    if result.get("latencyMs") is not None:
+        lines.append(f"Ping API: {int(result.get('latencyMs') or 0)} ms")
+    if result.get("cpuPct") is not None:
+        lines.append(f"CPU: {float(result.get('cpuPct') or 0):.1f}%")
+    if result.get("memPct") is not None:
+        lines.append(f"RAM: {float(result.get('memPct') or 0):.1f}%")
+    if result.get("error"):
+        lines.append(f"⚠️ {str(result['error'])[:240]}")
+    if result.get("xrayError"):
+        lines.append(f"⚠️ Xray: {str(result['xrayError'])[:240]}")
+    lines += ["", "Если всё верно, нажми «✅ Добавить ноду». "]
+    await call.message.answer("\n".join(lines), reply_markup=add_node_review_keyboard(mode))
+
+
+@router.callback_query(F.data.startswith("admin:nodeadd:tls:"))
+async def admin_node_add_tls(call: CallbackQuery, state: FSMContext):
+    if not await guard_admin_call(call):
+        return
+    mode = call.data.rsplit(":", 1)[-1]
+    if mode not in {"verify", "skip"}:
+        await call.answer("Некорректный TLS-режим", show_alert=True)
+        return
+    await call.answer("Проверяю соединение…")
+    await _node_add_test_and_show(call, state, mode)
+
+
+@router.callback_query(F.data == "admin:nodeadd:test")
+async def admin_node_add_test(call: CallbackQuery, state: FSMContext):
+    if not await guard_admin_call(call):
+        return
+    await call.answer("Проверяю соединение…")
+    await _node_add_test_and_show(call, state)
+
+
+@router.callback_query(F.data == "admin:nodeadd:save")
+async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
+    if not await guard_admin_call(call):
+        return
+    data = await state.get_data()
+    if not data.get("apiToken"):
+        await state.clear()
+        await call.answer("Сессия добавления истекла", show_alert=True)
+        return
+    payload = _node_mutation_payload(data)
+    await call.answer("Добавляю ноду…")
+    try:
+        node = await xui.node_add(payload)
+        try:
+            probed = await xui.node_probe(node.id)
+            if probed is not None:
+                node = probed
+        except XUIError:
+            pass
+    except XUIError as exc:
+        await call.message.answer(
+            "🔴 Не удалось добавить ноду.\n\n"
+            f"Ошибка 3x-ui: {str(exc)[:500]}",
+            reply_markup=add_node_review_keyboard(str(data.get("tlsVerifyMode") or "verify")),
+        )
+        return
+
+    await state.clear()
+    await call.message.answer(
+        f"✅ Нода {_node_display_name(node.name)} добавлена.\n"
+        f"Статус: {_node_status_icon(node)} {node.status}",
+        reply_markup=node_detail_keyboard(node.id),
+    )
+
+
+@router.callback_query(F.data == "admin:nodeadd:cancel")
+async def admin_node_add_cancel(call: CallbackQuery, state: FSMContext):
+    if not await guard_admin_call(call):
+        return
+    await state.clear()
+    await call.answer("Добавление отменено")
+    await call.message.answer("Добавление ноды отменено.", reply_markup=admin_menu())
 
 
 @router.callback_query(F.data == "admin:master")
@@ -889,7 +1203,7 @@ async def admin_health(call: CallbackQuery):
         if len(nodes) > 20:
             lines.append(f"… ещё {len(nodes) - 20}")
     else:
-        lines.append("⚪ Ноды не добавлены в master 3x-ui")
+        lines.append("⚪ Удалённые ноды не зарегистрированы")
 
     lines += ["", f"👥 Пользователей в БД бота: {len(users)}"]
     latest_backup = await asyncio.to_thread(backup_manager.latest_backup)
@@ -1190,7 +1504,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=settings.test_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram bot v3.7.1",
+            comment="Created by Telegram bot v3.7.2",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.

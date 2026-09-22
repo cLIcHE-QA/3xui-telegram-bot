@@ -308,9 +308,9 @@ disabled by default because the archive contains secrets.
 v3.6.0 also adds `.dockerignore`, so `.env`, databases and the `data/` directory
 are no longer copied into the Docker image during `docker compose build`.
 
-## v3.7.1: native 3x-ui multi-node foundation
+## v3.7.0: native 3x-ui multi-node foundation
 
-v3.7.1 integrates the bot with the **native 3x-ui Nodes API** on the master panel.
+v3.7.0 integrates the bot with the **native 3x-ui Nodes API** on the master panel.
 The bot does not keep a second copy of the node registry and does not need the
 node-sync tokens which the master stores internally.
 
@@ -379,3 +379,17 @@ created and the failed node is listed in the `missing` section and manifest.
 By default it is rendered as `🇳🇱 Master · 🟢 Online`; the label can be changed with `MASTER_NAME` and `MASTER_FLAG`.
 The Master card opens a compact health view with 3x-ui/Xray, CPU/RAM/disk/uptime, subscription proxy, managed inbounds, bot users and latest backup.
 Server totals and online counts include Master.
+
+
+## v3.7.2 — Add nodes from Telegram
+
+`/admin → 🌍 Ноды → ➕ Добавить ноду` opens a four-step wizard:
+
+1. node name;
+2. full 3x-ui panel URL (scheme/host/port/base path are parsed automatically);
+3. node API token (the bot attempts to delete the Telegram message immediately after reading it);
+4. TLS verification mode (`verify` recommended, `skip` only when needed).
+
+Before saving, the bot calls the master 3x-ui `/panel/api/nodes/test` endpoint and shows panel/Xray health and latency. The final save uses `/panel/api/nodes/add`; credentials remain stored by the master 3x-ui, not in the bot SQLite database.
+
+When no remote nodes exist, the hint is intentionally neutral: use the **➕ Добавить ноду** button to connect a server.
