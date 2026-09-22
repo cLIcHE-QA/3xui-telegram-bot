@@ -15,6 +15,7 @@ from config import load_settings
 from db import Database
 from system_backup import SystemBackupService
 from xui import XUIClient, XUIError
+from versions_updates import show_panel_screen
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -323,52 +324,14 @@ async def node_restart_xray_run(call: CallbackQuery):
 
 
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:updatepanel$"))
-async def node_update_panel_ask(call: CallbackQuery):
-    ok, _ = await authorize_callback(db, settings, call, minimum="admin")
-    if not ok:
-        return
-    node_id = _node_id_from_callback(call.data or "")
-    try:
-        node = await xui.node_get(node_id)
-    except XUIError as exc:
-        await call.answer(str(exc)[:180], show_alert=True)
-        return
-    if not node.enable or node.status != "online":
-        await call.answer("Нода должна быть enabled и online", show_alert=True)
-        return
-    await call.answer()
-    await render_callback(call, 
-        f"⬆️ Обновить 3x-ui на {node.name} до latest stable?\n\n"
-        "3x-ui запустит штатный self-updater и перезапустит панель. Перед обновлением рекомендуется backup.",
-        reply_markup=_confirm(node_id, "updatepanel", "⬆️ Да, обновить ноду"),
-    )
-
-
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:updatepanel:run$"))
-async def node_update_panel_run(call: CallbackQuery):
+async def node_update_panel_legacy(call: CallbackQuery):
+    # Old keyboards cannot bypass the new backup, locking and confirmation gates.
     ok, _ = await authorize_callback(db, settings, call, minimum="admin")
     if not ok:
         return
     node_id = _node_id_from_callback(call.data or "")
-    await call.answer("Запускаю update…")
-    try:
-        results = await xui.node_update_panels([node_id], dev=False)
-        result = results[0] if results else {}
-        success = bool(result.get("ok"))
-        error = str(result.get("error") or "")
-        await audit_from_call(
-            db, call, "node.panel.update", target_type="node", target_id=node_id,
-            details=f"stable; ok={success}; error={error}", success=success,
-        )
-        if not success:
-            raise RuntimeError(error or "3x-ui did not confirm update start")
-    except Exception as exc:
-        await render_callback(call, f"🔴 Update не запущен: {type(exc).__name__}: {exc}", reply_markup=_back(node_id))
-        return
-    await render_callback(call, 
-        "✅ Штатное обновление 3x-ui запущено. Нода может быть offline несколько секунд/минуту; затем нажми «Проверить».",
-        reply_markup=_back(node_id),
-    )
+    await show_panel_screen(call, f"n{node_id}")
 
 
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:deleteask$"))

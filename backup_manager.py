@@ -8,6 +8,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from version import APP_VERSION
 
 
 @dataclass(frozen=True)
@@ -65,7 +66,7 @@ class BackupManager:
         extra_files: dict[str, Path] | None = None,
         extra_missing: list[str] | tuple[str, ...] | None = None,
         *,
-        version: str = "4.7.0",
+        version: str = APP_VERSION,
         extra_manifest: dict | None = None,
     ) -> BackupResult:
         self._ensure_dir()

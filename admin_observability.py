@@ -345,6 +345,20 @@ async def jobs_run_backup(call: CallbackQuery):
 
 
 ACTION_LABELS = {
+    "panel.update.prepared": "3x-ui update: prepared",
+    "panel.update.started": "3x-ui update: started",
+    "panel.update.success": "3x-ui update: success",
+    "panel.update.failed": "3x-ui update: failed",
+    "panel.update.unconfirmed": "3x-ui update: unconfirmed",
+    "panel.update.cancelled": "3x-ui update: cancelled",
+    "panel.update.acknowledged": "3x-ui update: acknowledged",
+    "xray.install.prepared": "Xray install: prepared",
+    "xray.install.started": "Xray install: started",
+    "xray.install.success": "Xray install: success",
+    "xray.install.failed": "Xray install: failed",
+    "xray.install.unconfirmed": "Xray install: unconfirmed",
+    "xray.install.cancelled": "Xray install: cancelled",
+    "xray.install.acknowledged": "Xray install: acknowledged",
     "user.sync": "sync user",
     "user.extend": "extend user",
     "user.disable": "disable user",

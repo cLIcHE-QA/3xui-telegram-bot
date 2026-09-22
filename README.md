@@ -1,6 +1,27 @@
-# 3x-ui Telegram bot v4.8.0
+# 3x-ui Telegram bot v4.9.0
 
 Production-oriented Telegram admin panel for 3x-ui.
+
+## v4.9.0 - Versions & Updates
+
+Open `/admin -> System -> Versions & Updates`. Master/Node cards and
+Infrastructure -> Panels link to the same version-management UI.
+
+The module displays 3x-ui/Xray versions, updates 3x-ui through its official
+stable-channel updater and lets an administrator select an exact Xray version
+(upgrade or downgrade). Each operation creates and checks a fresh backup, then
+requires a single-use confirmation valid for five minutes. It verifies the
+installed version and running Xray, not merely an HTTP success response.
+
+Node updates require the existing direct admin connection in
+`NODE_BACKUP_TARGETS`. Incomplete/invalid backups block installation. There are
+no automatic updates or automatic rollback. Uncertain outcomes are recorded and
+block new updates until read-only verification or an explicit Owner acknowledgement.
+No changes to user provisioning, subscriptions, payments or the SQLite schema.
+
+See [Versions & Updates](docs/VERSIONS_UPDATES.md) for recovery, limitations and
+deployment checks. Historical notes below describe their respective releases.
+
 
 ## Admin commands
 

@@ -18,6 +18,9 @@ from backup_manager import BackupManager
 from config import load_settings
 from db import Database, UserRecord
 from xui import XUIClient, XUIError, NodeInfo
+from version import APP_VERSION
+from version_api import VersionAPIError
+from versions_updates import versions_router
 from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
 from catalog_admin import catalog_router
@@ -95,7 +98,7 @@ def admin_menu() -> InlineKeyboardMarkup:
 def infrastructure_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🖥 Panels", callback_data="admin:coming:panels"),
+            InlineKeyboardButton(text="🖥 Panels", callback_data="admin:versions"),
             InlineKeyboardButton(text="🌍 Nodes", callback_data="admin:nodes"),
         ],
         [
@@ -124,6 +127,7 @@ def monitoring_menu() -> InlineKeyboardMarkup:
 
 def system_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🧩 Versions & Updates", callback_data="admin:versions")],
         [
             InlineKeyboardButton(text="⚙️ Jobs", callback_data="admin:jobs"),
             InlineKeyboardButton(text="💾 Backups", callback_data="admin:backups"),
@@ -343,6 +347,10 @@ def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeybo
 
 def master_detail_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="3x-ui updates", callback_data="admin:ver:panel:m"),
+            InlineKeyboardButton(text="Xray Core", callback_data="admin:ver:xray:m:0"),
+        ],
         [InlineKeyboardButton(text="🔄 Проверить", callback_data="admin:master")],
         [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
     ])
@@ -363,7 +371,8 @@ def node_detail_keyboard(node_id: int, enabled: bool | None = None) -> InlineKey
             InlineKeyboardButton(text="✏️ Rename", callback_data=f"admin:nodectl:{node_id}:rename"),
             InlineKeyboardButton(text="🔄 Restart Xray", callback_data=f"admin:nodectl:{node_id}:restartxray"),
         ],
-        [InlineKeyboardButton(text="⬆️ Update 3x-ui", callback_data=f"admin:nodectl:{node_id}:updatepanel")],
+        [InlineKeyboardButton(text="⬆️ Update 3x-ui", callback_data=f"admin:ver:panel:n{node_id}")],
+        [InlineKeyboardButton(text="Xray Core", callback_data=f"admin:ver:xray:n{node_id}:0")],
         [InlineKeyboardButton(text="🗑 Delete node", callback_data=f"admin:nodectl:{node_id}:deleteask")],
         [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
     ])
@@ -415,7 +424,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v4.8.0", reply_markup=user_menu())
+    await message.answer(f"3x-ui Telegram bot v{APP_VERSION}", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -1535,6 +1544,12 @@ async def admin_master_detail(call: CallbackQuery):
     )
 
     if status:
+        try:
+            panel_info = await xui.get_panel_update_info()
+            panel_version = str(panel_info.get("currentVersion") or "unavailable")
+        except VersionAPIError:
+            panel_version = "unavailable"
+        lines.append(f"3x-ui: {panel_version}")
         xray = status.get("xray") or {}
         xray_state = str(xray.get("state") or "unknown").lower()
         xray_ok = xray_state in {"running", "started", "online"}
@@ -2134,7 +2149,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=inbound_ids,
             total_bytes=traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=ip_limit,
-            comment=f"Created by Telegram bot v4.8.0 · {provisioning_note}",
+            comment=f"Created by Telegram bot v{APP_VERSION} · {provisioning_note}",
             flow=settings.vless_flow,
         )
         if settings.vless_flow:
@@ -2265,6 +2280,7 @@ async def main():
     dp = Dispatcher()
     dp.callback_query.outer_middleware(AdminPanelSessionMiddleware())
     dp.include_router(router)
+    dp.include_router(versions_router)
     dp.include_router(advanced_users_router)
     dp.include_router(advanced_nodes_router)
     dp.include_router(inbound_admin_router)
