@@ -109,6 +109,6 @@ class SystemBackupService:
                 self.manager.create_full_backup,
                 extra_files,
                 extra_missing,
-                version="3.8.0",
+                version="4.0.0",
                 extra_manifest={"nodes": node_results},
             )

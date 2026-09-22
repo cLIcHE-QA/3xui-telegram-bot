@@ -21,6 +21,9 @@ from xui import XUIClient, XUIError, NodeInfo
 from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
 from catalog_admin import catalog_router
+from admin_observability import observability_router
+from audit import audit_from_call, audit_system
+from runtime_jobs import backup_lock
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -96,8 +99,8 @@ def infrastructure_menu() -> InlineKeyboardMarkup:
 def monitoring_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="📊 Traffic", callback_data="admin:coming:traffic"),
-            InlineKeyboardButton(text="🟢 Online", callback_data="admin:coming:online"),
+            InlineKeyboardButton(text="📊 Traffic", callback_data="admin:traffic"),
+            InlineKeyboardButton(text="🟢 Online", callback_data="admin:online"),
         ],
         [InlineKeyboardButton(text="🩺 System Health", callback_data="admin:health")],
         [InlineKeyboardButton(text="📜 Logs", callback_data="admin:coming:logs")],
@@ -108,10 +111,10 @@ def monitoring_menu() -> InlineKeyboardMarkup:
 def system_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="⚙️ Jobs", callback_data="admin:coming:jobs"),
+            InlineKeyboardButton(text="⚙️ Jobs", callback_data="admin:jobs"),
             InlineKeyboardButton(text="💾 Backups", callback_data="admin:backups"),
         ],
-        [InlineKeyboardButton(text="🧾 Audit Log", callback_data="admin:coming:audit")],
+        [InlineKeyboardButton(text="🧾 Audit Log", callback_data="admin:audit")],
         [InlineKeyboardButton(text="👮 Administrators", callback_data="admin:coming:administrators")],
         [InlineKeyboardButton(text="🔧 Settings", callback_data="admin:coming:settings")],
         [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
@@ -384,7 +387,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v3.8.0", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v4.0.0", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -416,6 +419,10 @@ async def admin_dashboard(call: CallbackQuery):
     nodes_error = None
     inbounds = []
     inbounds_error = None
+    traffic_rows: list[dict] = []
+    traffic_error = None
+    online_clients: list[str] = []
+    online_error = None
 
     try:
         await xui.server_status()
@@ -433,6 +440,21 @@ async def admin_dashboard(call: CallbackQuery):
         inbounds = await xui.inbound_options()
     except XUIError as exc:
         inbounds_error = str(exc)[:120]
+
+    monitoring_results = await asyncio.gather(
+        xui.clients_list(),
+        xui.online_clients(),
+        return_exceptions=True,
+    )
+    traffic_result, online_result = monitoring_results
+    if isinstance(traffic_result, Exception):
+        traffic_error = str(traffic_result)[:120]
+    else:
+        traffic_rows = traffic_result
+    if isinstance(online_result, Exception):
+        online_error = str(online_result)[:120]
+    else:
+        online_clients = online_result
 
     remote_online = sum(1 for n in nodes if n.enable and n.status == "online")
     servers_total = 1 + len(nodes)
@@ -477,6 +499,22 @@ async def admin_dashboard(call: CallbackQuery):
         f"💎 Plans: {active_plans}/{len(plans)} active",
         f"🗂 Server Groups: {len(server_groups)}",
         f"🌐 Hosts: {enabled_hosts}/{len(hosts)} enabled",
+        "",
+        "Monitoring",
+    ]
+    if traffic_error:
+        lines.append(f"⚠️ Traffic: {traffic_error}")
+    else:
+        traffic_total = 0
+        for row in traffic_rows:
+            traffic = row.get("traffic") if isinstance(row, dict) and isinstance(row.get("traffic"), dict) else {}
+            traffic_total += int(traffic.get("up") or 0) + int(traffic.get("down") or 0)
+        lines.append(f"📊 Traffic used: {human_bytes(traffic_total)}")
+    if online_error:
+        lines.append(f"⚠️ Online: {online_error}")
+    else:
+        lines.append(f"🟢 Online clients: {len(set(online_clients))}")
+    lines += [
         "",
         "System",
         f"💾 Last backup: {backup_text}",
@@ -592,6 +630,28 @@ async def admin_legacy_catalog_callback(call: CallbackQuery):
     }[call.data]
     await call.message.answer(
         "Этот раздел уже доступен в v3.9.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text=target[0], callback_data=target[1])
+        ]]),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:coming:traffic")
+@router.callback_query(F.data == "admin:coming:online")
+@router.callback_query(F.data == "admin:coming:jobs")
+@router.callback_query(F.data == "admin:coming:audit")
+async def admin_legacy_v4_callback(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    target = {
+        "admin:coming:traffic": ("📊 Traffic", "admin:traffic"),
+        "admin:coming:online": ("🟢 Online", "admin:online"),
+        "admin:coming:jobs": ("⚙️ Jobs", "admin:jobs"),
+        "admin:coming:audit": ("🧾 Audit Log", "admin:audit"),
+    }[call.data]
+    await call.message.answer(
+        "Этот раздел уже доступен в v4.0.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text=target[0], callback_data=target[1])
         ]]),
@@ -768,7 +828,16 @@ async def admin_sync_all_run(call: CallbackQuery):
                 lines += ["", "Первые ошибки:"] + preview
 
         await call.message.answer("\n".join(lines), reply_markup=admin_menu())
+        await audit_from_call(
+            db, call, "users.sync_all", target_type="users", target_id=str(len(users)),
+            details=f"inbounds={target_ids}; errors={error_count}; flow={settings.vless_flow or 'unchanged'}",
+            success=(error_count == 0),
+        )
     except XUIError as e:
+        await audit_from_call(
+            db, call, "users.sync_all", target_type="users", target_id=str(len(users)),
+            details=f"3x-ui error: {e}", success=False,
+        )
         await call.message.answer(
             "Не удалось выполнить глобальную синхронизацию.\n\n"
             f"Ошибка 3x-ui: {e}",
@@ -895,9 +964,28 @@ async def admin_backups(call: CallbackQuery):
 async def admin_backup_create(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
+    if backup_lock.locked():
+        await call.answer("Backup уже выполняется.", show_alert=True)
+        return
     await call.answer("Создаю backup…")
+    run_id = await db.start_job_run(
+        name="backup.manual", trigger="admin",
+        actor_id=call.from_user.id if call.from_user else 0,
+    )
+    started = time.monotonic()
     try:
-        result = await system_backup.create_full_backup()
+        async with backup_lock:
+            result = await system_backup.create_full_backup()
+        duration_ms = int((time.monotonic() - started) * 1000)
+        await db.finish_job_run(
+            run_id, status="success", duration_ms=duration_ms,
+            details=f"{result.info.path.name}; {result.info.size} bytes; missing={len(result.missing)}",
+        )
+        await audit_from_call(
+            db, call, "backup.create", target_type="backup",
+            target_id=result.info.path.name,
+            details=f"size={result.info.size}; missing={len(result.missing)}",
+        )
         lines = [
             "✅ Полный backup создан.",
             f"Файл: {result.info.path.name}",
@@ -908,6 +996,15 @@ async def admin_backup_create(call: CallbackQuery):
             lines.append(f"⚠️ Не найдено: {', '.join(result.missing)}")
         await call.message.answer("\n".join(lines), reply_markup=backup_menu())
     except Exception as exc:
+        duration_ms = int((time.monotonic() - started) * 1000)
+        await db.finish_job_run(
+            run_id, status="failed", duration_ms=duration_ms,
+            details=f"{type(exc).__name__}: {exc}",
+        )
+        await audit_from_call(
+            db, call, "backup.create", target_type="backup",
+            details=f"{type(exc).__name__}: {exc}", success=False,
+        )
         logging.exception("Manual backup failed")
         await call.message.answer(
             f"🔴 Не удалось создать backup: {type(exc).__name__}: {exc}",
@@ -926,7 +1023,15 @@ async def admin_backup_botdb(call: CallbackQuery):
             FSInputFile(path),
             caption="Свежая консистентная копия bot.sqlite3",
         )
+        await audit_from_call(
+            db, call, "backup.download", target_type="bot.sqlite3",
+            target_id=path.name, details="consistent SQLite snapshot",
+        )
     except Exception as exc:
+        await audit_from_call(
+            db, call, "backup.download", target_type="bot.sqlite3",
+            details=f"{type(exc).__name__}: {exc}", success=False,
+        )
         logging.exception("Bot DB snapshot failed")
         await call.message.answer(f"🔴 Ошибка backup SQLite: {type(exc).__name__}: {exc}")
 
@@ -939,7 +1044,11 @@ async def admin_backup_full(call: CallbackQuery):
     try:
         info = await asyncio.to_thread(backup_manager.latest_backup)
         if info is None:
-            result = await system_backup.create_full_backup()
+            if backup_lock.locked():
+                await call.message.answer("Backup уже создаётся. Повтори скачивание чуть позже.")
+                return
+            async with backup_lock:
+                result = await system_backup.create_full_backup()
             info = result.info
         await call.message.answer_document(
             FSInputFile(info.path),
@@ -948,7 +1057,15 @@ async def admin_backup_full(call: CallbackQuery):
                 f"Создан: {info.created_at.strftime('%Y-%m-%d %H:%M UTC')}"
             ),
         )
+        await audit_from_call(
+            db, call, "backup.download", target_type="full", target_id=info.path.name,
+            details=f"size={info.size}",
+        )
     except Exception as exc:
+        await audit_from_call(
+            db, call, "backup.download", target_type="full",
+            details=f"{type(exc).__name__}: {exc}", success=False,
+        )
         logging.exception("Full backup download failed")
         await call.message.answer(f"🔴 Ошибка отправки backup: {type(exc).__name__}: {exc}")
 
@@ -1200,6 +1317,11 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
         except XUIError:
             pass
     except XUIError as exc:
+        await audit_from_call(
+            db, call, "node.add", target_type="node",
+            target_id=str(data.get("name") or ""),
+            details=f"3x-ui error: {exc}", success=False,
+        )
         await call.message.answer(
             "🔴 Не удалось добавить ноду.\n\n"
             f"Ошибка 3x-ui: {str(exc)[:500]}",
@@ -1207,6 +1329,10 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
         )
         return
 
+    await audit_from_call(
+        db, call, "node.add", target_type="node", target_id=str(node.id),
+        details=f"name={node.name}; status={node.status}",
+    )
     await state.clear()
     await call.message.answer(
         f"✅ Нода {_node_display_name(node.name)} добавлена.\n"
@@ -1638,7 +1764,15 @@ async def admin_sync_inbounds(call: CallbackQuery):
             lines.append(f"VLESS flow: {updated_flow}")
 
         await call.message.answer("\n".join(lines))
+        await audit_from_call(
+            db, call, "user.sync", target_type="user", target_id=rec.email,
+            details=f"added={missing_ids}; inbounds={updated_ids}; flow={updated_flow}",
+        )
     except XUIError as e:
+        await audit_from_call(
+            db, call, "user.sync", target_type="user", target_id=rec.email,
+            details=f"3x-ui error: {e}", success=False,
+        )
         await call.message.answer(
             "Не удалось синхронизировать inbound'ы/flow.\n\n"
             f"Ошибка 3x-ui: {e}"
@@ -1665,8 +1799,16 @@ async def admin_extend(call: CallbackQuery):
         new_expiry = base + 30 * 86400 * 1000
         await xui.update_client(rec.email, expiryTime=new_expiry, enable=True)
         await db.update_expiry(tg_id, new_expiry)
+        await audit_from_call(
+            db, call, "user.extend", target_type="user", target_id=rec.email,
+            details=f"+30 days; expiry={new_expiry}",
+        )
         await call.message.answer(f"✅ {rec.email} продлён до {fmt_date(new_expiry)}")
     except XUIError as e:
+        await audit_from_call(
+            db, call, "user.extend", target_type="user", target_id=rec.email,
+            details=f"3x-ui error: {e}", success=False,
+        )
         await call.message.answer(f"Ошибка 3x-ui: {e}")
     await call.answer()
 
@@ -1678,8 +1820,13 @@ async def admin_disable(call: CallbackQuery):
     rec = await db.get(tg_id)
     try:
         await xui.update_client(rec.email, enable=False)
+        await audit_from_call(db, call, "user.disable", target_type="user", target_id=rec.email)
         await call.message.answer(f"⛔ {rec.email} отключён.")
     except (XUIError, AttributeError) as e:
+        await audit_from_call(
+            db, call, "user.disable", target_type="user",
+            target_id=rec.email if rec else str(tg_id), details=str(e), success=False,
+        )
         await call.message.answer(f"Ошибка: {e}")
     await call.answer()
 
@@ -1691,8 +1838,13 @@ async def admin_enable(call: CallbackQuery):
     rec = await db.get(tg_id)
     try:
         await xui.update_client(rec.email, enable=True)
+        await audit_from_call(db, call, "user.enable", target_type="user", target_id=rec.email)
         await call.message.answer(f"✅ {rec.email} включён.")
     except (XUIError, AttributeError) as e:
+        await audit_from_call(
+            db, call, "user.enable", target_type="user",
+            target_id=rec.email if rec else str(tg_id), details=str(e), success=False,
+        )
         await call.message.answer(f"Ошибка: {e}")
     await call.answer()
 
@@ -1721,8 +1873,13 @@ async def admin_del(call: CallbackQuery):
     try:
         await xui.delete_client(rec.email)
         await db.delete(tg_id)
+        await audit_from_call(db, call, "user.delete", target_type="user", target_id=rec.email)
         await call.message.answer(f"🗑 {rec.email} удалён.")
     except XUIError as e:
+        await audit_from_call(
+            db, call, "user.delete", target_type="user", target_id=rec.email,
+            details=f"3x-ui error: {e}", success=False,
+        )
         await call.message.answer(f"Ошибка 3x-ui, локальная запись сохранена: {e}")
     await call.answer()
 
@@ -1801,7 +1958,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=settings.test_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram bot v3.8.0",
+            comment="Created by Telegram bot v4.0.0",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.
@@ -1847,8 +2004,20 @@ async def _seconds_until_backup_hour() -> float:
 async def automatic_backup_loop(bot: Bot):
     while True:
         await asyncio.sleep(await _seconds_until_backup_hour())
+        run_id = await db.start_job_run(name="backup.daily", trigger="scheduled", actor_id=0)
+        started = time.monotonic()
         try:
-            result = await system_backup.create_full_backup()
+            async with backup_lock:
+                result = await system_backup.create_full_backup()
+            duration_ms = int((time.monotonic() - started) * 1000)
+            await db.finish_job_run(
+                run_id, status="success", duration_ms=duration_ms,
+                details=f"{result.info.path.name}; {result.info.size} bytes; missing={len(result.missing)}",
+            )
+            await audit_system(
+                db, "backup.create", target_type="backup", target_id=result.info.path.name,
+                details=f"scheduled; size={result.info.size}; missing={len(result.missing)}",
+            )
             logging.info(
                 "Automatic backup created: %s (%d bytes)",
                 result.info.path,
@@ -1868,14 +2037,30 @@ async def automatic_backup_loop(bot: Bot):
                     except Exception:
                         logging.exception("Could not send automatic backup to admin %s", admin_id)
         except asyncio.CancelledError:
+            duration_ms = int((time.monotonic() - started) * 1000)
+            await db.finish_job_run(
+                run_id, status="failed", duration_ms=duration_ms, details="cancelled",
+            )
             raise
-        except Exception:
+        except Exception as exc:
+            duration_ms = int((time.monotonic() - started) * 1000)
+            await db.finish_job_run(
+                run_id, status="failed", duration_ms=duration_ms,
+                details=f"{type(exc).__name__}: {exc}",
+            )
+            await audit_system(
+                db, "backup.create", target_type="backup",
+                details=f"scheduled failed: {type(exc).__name__}: {exc}", success=False,
+            )
             logging.exception("Automatic backup failed")
 
 
 async def main():
     logging.basicConfig(level=logging.INFO)
     await db.init()
+    stale_jobs = await db.fail_stale_job_runs()
+    if stale_jobs:
+        logging.warning("Marked %d stale job runs as failed", stale_jobs)
 
     proxy = SubscriptionProxy(
         db=db,
@@ -1891,6 +2076,7 @@ async def main():
     dp = Dispatcher()
     dp.include_router(router)
     dp.include_router(catalog_router)
+    dp.include_router(observability_router)
     backup_task = (
         asyncio.create_task(automatic_backup_loop(bot))
         if settings.backup_enabled else None

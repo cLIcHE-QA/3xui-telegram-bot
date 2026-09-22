@@ -65,7 +65,7 @@ class BackupManager:
         extra_files: dict[str, Path] | None = None,
         extra_missing: list[str] | tuple[str, ...] | None = None,
         *,
-        version: str = "3.8.0",
+        version: str = "4.0.0",
         extra_manifest: dict | None = None,
     ) -> BackupResult:
         self._ensure_dir()

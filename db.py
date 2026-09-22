@@ -45,6 +45,32 @@ class HostRecord:
     created_at: int
 
 
+@dataclass
+class AuditRecord:
+    id: int
+    actor_id: int
+    actor_username: str
+    action: str
+    target_type: str
+    target_id: str
+    details: str
+    success: int
+    created_at: int
+
+
+@dataclass
+class JobRunRecord:
+    id: int
+    name: str
+    trigger: str
+    actor_id: int
+    status: str
+    started_at: int
+    finished_at: int
+    duration_ms: int
+    details: str
+
+
 class Database:
     def __init__(self, path: str):
         self.path = path
@@ -100,6 +126,38 @@ class Database:
                     UNIQUE(hostname, role)
                 )
             """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    actor_id INTEGER NOT NULL,
+                    actor_username TEXT NOT NULL DEFAULT '',
+                    action TEXT NOT NULL,
+                    target_type TEXT NOT NULL DEFAULT '',
+                    target_id TEXT NOT NULL DEFAULT '',
+                    details TEXT NOT NULL DEFAULT '',
+                    success INTEGER NOT NULL DEFAULT 1,
+                    created_at INTEGER NOT NULL
+                )
+            """)
+            await db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at DESC)"
+            )
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS job_runs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    trigger TEXT NOT NULL,
+                    actor_id INTEGER NOT NULL DEFAULT 0,
+                    status TEXT NOT NULL DEFAULT 'running',
+                    started_at INTEGER NOT NULL,
+                    finished_at INTEGER NOT NULL DEFAULT 0,
+                    duration_ms INTEGER NOT NULL DEFAULT 0,
+                    details TEXT NOT NULL DEFAULT ''
+                )
+            """)
+            await db.execute(
+                "CREATE INDEX IF NOT EXISTS idx_job_runs_name_started ON job_runs(name, started_at DESC)"
+            )
             await db.commit()
 
     async def get(self, telegram_id: int) -> UserRecord | None:
@@ -343,3 +401,132 @@ class Database:
         async with aiosqlite.connect(self.path) as db:
             await db.execute("DELETE FROM hosts WHERE id = ?", (int(host_id),))
             await db.commit()
+
+    # --- Audit log -----------------------------------------------------
+
+    async def add_audit(
+        self,
+        *,
+        actor_id: int,
+        actor_username: str = "",
+        action: str,
+        target_type: str = "",
+        target_id: str = "",
+        details: str = "",
+        success: bool = True,
+    ) -> int:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                INSERT INTO audit_log(
+                    actor_id, actor_username, action, target_type, target_id,
+                    details, success, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    int(actor_id),
+                    (actor_username or "")[:64],
+                    (action or "")[:96],
+                    (target_type or "")[:64],
+                    (target_id or "")[:160],
+                    (details or "")[:1500],
+                    1 if success else 0,
+                    int(time.time()),
+                ),
+            )
+            await db.commit()
+            return int(cur.lastrowid)
+
+    async def list_audit(self, *, limit: int = 20, offset: int = 0) -> list[AuditRecord]:
+        limit = max(1, min(100, int(limit)))
+        offset = max(0, int(offset))
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM audit_log ORDER BY id DESC LIMIT ? OFFSET ?",
+                (limit, offset),
+            )
+            rows = await cur.fetchall()
+            return [AuditRecord(**dict(r)) for r in rows]
+
+    async def count_audit(self) -> int:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute("SELECT COUNT(*) FROM audit_log")
+            row = await cur.fetchone()
+            return int(row[0] if row else 0)
+
+    # --- Job runs ------------------------------------------------------
+
+    async def start_job_run(self, *, name: str, trigger: str, actor_id: int = 0) -> int:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                INSERT INTO job_runs(name, trigger, actor_id, status, started_at)
+                VALUES (?, ?, ?, 'running', ?)
+                """,
+                ((name or "")[:96], (trigger or "")[:32], int(actor_id), int(time.time())),
+            )
+            await db.commit()
+            return int(cur.lastrowid)
+
+    async def finish_job_run(
+        self,
+        run_id: int,
+        *,
+        status: str,
+        duration_ms: int,
+        details: str = "",
+    ) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                UPDATE job_runs
+                SET status = ?, finished_at = ?, duration_ms = ?, details = ?
+                WHERE id = ?
+                """,
+                (
+                    (status or "unknown")[:24],
+                    int(time.time()),
+                    max(0, int(duration_ms)),
+                    (details or "")[:1500],
+                    int(run_id),
+                ),
+            )
+            await db.commit()
+
+    async def list_job_runs(self, *, name: str | None = None, limit: int = 20) -> list[JobRunRecord]:
+        limit = max(1, min(100, int(limit)))
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            if name:
+                cur = await db.execute(
+                    "SELECT * FROM job_runs WHERE name = ? ORDER BY id DESC LIMIT ?",
+                    (name, limit),
+                )
+            else:
+                cur = await db.execute(
+                    "SELECT * FROM job_runs ORDER BY id DESC LIMIT ?",
+                    (limit,),
+                )
+            rows = await cur.fetchall()
+            return [JobRunRecord(**dict(r)) for r in rows]
+
+    async def last_job_run(self, name: str) -> JobRunRecord | None:
+        rows = await self.list_job_runs(name=name, limit=1)
+        return rows[0] if rows else None
+
+    async def fail_stale_job_runs(self, *, older_than_seconds: int = 21600) -> int:
+        cutoff = int(time.time()) - max(60, int(older_than_seconds))
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                UPDATE job_runs
+                SET status = 'failed', finished_at = ?, details =
+                    CASE WHEN details = '' THEN 'process stopped before job completion' ELSE details END
+                WHERE status = 'running' AND started_at < ?
+                """,
+                (int(time.time()), cutoff),
+            )
+            await db.commit()
+            return int(cur.rowcount or 0)
+

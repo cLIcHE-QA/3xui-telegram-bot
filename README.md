@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v3.9.0
+# 3x-ui Telegram bot v4.0.0
 
 Production-oriented Telegram admin panel for 3x-ui.
 
@@ -505,3 +505,113 @@ docker compose up -d --build
 The first startup performs only additive `CREATE TABLE IF NOT EXISTS` schema
 initialization for the new catalog tables. The existing `users` table and all
 current 3x-ui behavior are preserved.
+
+## v4.0.0 — Monitoring, Jobs and Audit Log
+
+v4.0 keeps the working v3.9 control-plane behavior unchanged and fills the
+production Monitoring/System modules that were previously placeholders.
+
+### Monitoring → Traffic
+
+`/admin -> Monitoring -> Traffic` reads the current first-class client list from
+3x-ui and aggregates its traffic records. The page shows:
+
+- total upload/download and total transferred bytes;
+- number of clients visible to 3x-ui and number linked to the bot SQLite DB;
+- aggregate usage of finite quotas;
+- top clients by cumulative traffic.
+
+The counters are intentionally labelled **cumulative**. They are the current
+3x-ui counters since the last traffic reset, not a fabricated "today" metric.
+
+### Monitoring → Online
+
+Uses the native 3x-ui clients monitoring endpoints. The page shows currently
+online client emails deduplicated across the master and nodes, marks bot-known
+users with their Telegram ID, and shows a short list of recent last-seen users.
+No client source IP addresses are exposed in the Telegram UI.
+
+### System → Jobs
+
+The Jobs page is backed by the new `job_runs` SQLite table. v4.0 records real
+backup executions rather than displaying synthetic jobs:
+
+- `backup.daily` — scheduled automatic backup;
+- `backup.manual` — backup launched by an administrator.
+
+Each run stores trigger, status, start/end time, duration and a short result.
+`Run backup now` is available from the Jobs page. A shared process lock prevents
+two full backup archives from being built at the same time.
+
+### System → Audit Log
+
+The new `audit_log` SQLite table records administrative mutations without
+storing API tokens or subscription secrets. v4.0 audits the main production
+actions, including:
+
+- per-user sync, +30 days, enable/disable and delete;
+- global inbound sync;
+- node add;
+- backup create/download;
+- plan create/toggle/group/delete;
+- server group create/member changes/delete;
+- host discover/create/toggle/delete.
+
+The Audit Log is paginated and intentionally has no "clear" button.
+
+### Dashboard
+
+Dashboard now also includes the live Monitoring summary:
+
+- cumulative traffic currently reported by 3x-ui;
+- number of clients currently online.
+
+If the monitoring API is temporarily unavailable, Dashboard reports that
+section as a warning without breaking the rest of the admin panel.
+
+### Database migration
+
+No existing table is rewritten. `db.init()` adds only:
+
+```text
+audit_log
+job_runs
+```
+
+Existing `users`, `plans`, `server_groups`, `server_group_members` and `hosts`
+remain compatible with v3.9.0.
+
+### Upgrade from v3.9.0
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v3.9.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v3.9.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v4.0.0/.env
+
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.0.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v3.9.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v4.0.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v4.0.0
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 bot
+```
+
+Then check:
+
+```text
+/admin
+ -> Dashboard
+ -> Monitoring -> Traffic
+ -> Monitoring -> Online
+ -> System -> Jobs
+ -> System -> Audit Log
+```
+
+No new `.env` variables are required for v4.0.0.
+

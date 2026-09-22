@@ -14,6 +14,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from config import load_settings
 from db import Database, HostRecord, PlanRecord, ServerGroupRecord
 from xui import XUIClient, XUIError
+from audit import audit_from_call, audit_from_message
 
 
 settings = load_settings()
@@ -370,6 +371,10 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
         await state.clear()
         await call.answer()
         return
+    await audit_from_call(
+        db, call, "plan.create", target_type="plan", target_id=str(plan_id),
+        details=f"name={data['name']}; duration={data['duration_days']}; traffic_gb={data['traffic_gb']}",
+    )
     await state.clear()
     await call.message.answer(
         f"✅ Тариф создан: #{plan_id} · {data['name']}",
@@ -399,7 +404,12 @@ async def plan_toggle(call: CallbackQuery):
     if not plan:
         await call.answer("Тариф не найден.", show_alert=True)
         return
-    await db.set_plan_active(plan_id, not bool(plan.active))
+    new_active = not bool(plan.active)
+    await db.set_plan_active(plan_id, new_active)
+    await audit_from_call(
+        db, call, "plan.toggle", target_type="plan", target_id=str(plan_id),
+        details=f"active={new_active}",
+    )
     await call.message.answer(
         "✅ Статус тарифа обновлён.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -448,6 +458,10 @@ async def plan_set_group(call: CallbackQuery):
         await call.answer("Группа не найдена.", show_alert=True)
         return
     await db.set_plan_group(plan_id, group_id)
+    await audit_from_call(
+        db, call, "plan.set_group", target_type="plan", target_id=str(plan_id),
+        details=f"server_group_id={group_id}",
+    )
     await call.answer("Server Group сохранена.")
     # Reuse detail rendering through a fresh synthetic callback is undesirable;
     # return a compact success card instead.
@@ -483,7 +497,12 @@ async def plan_delete(call: CallbackQuery):
     if not await guard_call(call):
         return
     plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
     await db.delete_plan(plan_id)
+    await audit_from_call(
+        db, call, "plan.delete", target_type="plan", target_id=str(plan_id),
+        details=f"name={plan.name if plan else ''}",
+    )
     await call.message.answer("✅ Тариф удалён из каталога.", reply_markup=dashboard_back())
     await call.answer()
 
@@ -562,6 +581,10 @@ async def server_group_add_description(message: Message, state: FSMContext):
         await message.answer("Группа с таким названием уже существует.", reply_markup=infrastructure_back())
         await state.clear()
         return
+    await audit_from_message(
+        db, message, "server_group.create", target_type="server_group", target_id=str(group_id),
+        details=f"name={data['name']}",
+    )
     await state.clear()
     await message.answer(
         f"✅ Server Group создана: #{group_id} · {data['name']}\n\nТеперь выбери серверы в карточке группы.",
@@ -664,7 +687,12 @@ async def server_group_toggle(call: CallbackQuery):
         await call.answer("Группа не найдена.", show_alert=True)
         return
     members = await db.list_server_group_members(group_id)
-    await db.set_server_group_member(group_id, member_key, member_key not in members)
+    enabled = member_key not in members
+    await db.set_server_group_member(group_id, member_key, enabled)
+    await audit_from_call(
+        db, call, "server_group.member", target_type="server_group", target_id=str(group_id),
+        details=f"member={member_key}; enabled={enabled}",
+    )
     await call.answer("Состав группы обновлён.")
     text, kb = await _server_group_card(group)
     await call.message.answer(text, reply_markup=kb)
@@ -695,7 +723,12 @@ async def server_group_delete(call: CallbackQuery):
     if not await guard_call(call):
         return
     group_id = int(call.data.rsplit(":", 1)[-1])
+    group = await db.get_server_group(group_id)
     await db.delete_server_group(group_id)
+    await audit_from_call(
+        db, call, "server_group.delete", target_type="server_group", target_id=str(group_id),
+        details=f"name={group.name if group else ''}",
+    )
     await call.message.answer("✅ Server Group удалена.", reply_markup=infrastructure_back())
     await call.answer()
 
@@ -753,6 +786,10 @@ async def hosts_discover(call: CallbackQuery):
             continue
         await db.upsert_host(label=label, hostname=host, role=role)
         added.append(f"{host} · {HOST_ROLE_LABELS.get(role, role)}")
+    await audit_from_call(
+        db, call, "host.discover", target_type="hosts", target_id=str(len(added)),
+        details="; ".join(added),
+    )
     text = "✅ Текущие hosts синхронизированы с реестром."
     if added:
         text += "\n\n" + "\n".join(f"• {x}" for x in added)
@@ -838,6 +875,10 @@ async def host_add_role(call: CallbackQuery, state: FSMContext):
         await state.clear()
         await call.answer()
         return
+    await audit_from_call(
+        db, call, "host.create", target_type="host", target_id=str(host_id),
+        details=f"hostname={data['hostname']}; role={role}",
+    )
     await state.clear()
     await call.message.answer(
         f"✅ Host добавлен: {data['hostname']} · {HOST_ROLE_LABELS[role]}",
@@ -894,7 +935,12 @@ async def host_toggle(call: CallbackQuery):
     if not host:
         await call.answer("Host не найден.", show_alert=True)
         return
-    await db.set_host_enabled(host_id, not bool(host.enabled))
+    new_enabled = not bool(host.enabled)
+    await db.set_host_enabled(host_id, new_enabled)
+    await audit_from_call(
+        db, call, "host.toggle", target_type="host", target_id=str(host_id),
+        details=f"hostname={host.hostname}; enabled={new_enabled}",
+    )
     await call.answer("Статус host обновлён.")
     await call.message.answer(
         "✅ Статус обновлён.",
@@ -930,6 +976,11 @@ async def host_delete(call: CallbackQuery):
     if not await guard_call(call):
         return
     host_id = int(call.data.rsplit(":", 1)[-1])
+    host = await db.get_host(host_id)
     await db.delete_host(host_id)
+    await audit_from_call(
+        db, call, "host.delete", target_type="host", target_id=str(host_id),
+        details=f"hostname={host.hostname if host else ''}",
+    )
     await call.message.answer("✅ Host удалён из реестра.", reply_markup=infrastructure_back())
     await call.answer()

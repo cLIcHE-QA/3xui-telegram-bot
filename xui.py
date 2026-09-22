@@ -193,6 +193,38 @@ class XUIClient:
             enable=bool(item.get("enable", True)),
         )
 
+    async def clients_list(self) -> list[dict[str, Any]]:
+        """Return first-class clients with their aggregate traffic records."""
+        data = await self._request("GET", "/panel/api/clients/list")
+        obj = data.get("obj") or []
+        return obj if isinstance(obj, list) else []
+
+    async def online_clients(self) -> list[str]:
+        """Emails currently online, deduplicated across master and nodes."""
+        data = await self._request("POST", "/panel/api/clients/onlines")
+        obj = data.get("obj") or []
+        return [str(x) for x in obj] if isinstance(obj, list) else []
+
+    async def online_clients_by_guid(self) -> dict[str, list[str]]:
+        data = await self._request("POST", "/panel/api/clients/onlinesByGuid")
+        obj = data.get("obj") or {}
+        if not isinstance(obj, dict):
+            return {}
+        return {str(k): [str(x) for x in (v or [])] for k, v in obj.items() if isinstance(v, list)}
+
+    async def last_online(self) -> dict[str, int]:
+        data = await self._request("POST", "/panel/api/clients/lastOnline")
+        obj = data.get("obj") or {}
+        if not isinstance(obj, dict):
+            return {}
+        out: dict[str, int] = {}
+        for key, value in obj.items():
+            try:
+                out[str(key)] = int(value or 0)
+            except (TypeError, ValueError):
+                continue
+        return out
+
     async def get_client_by_tg_id(self, telegram_id: int) -> list[dict[str, Any]]:
         data = await self._request("GET", f"/panel/api/clients/get/tgId/{telegram_id}")
         return data.get("obj") or []
