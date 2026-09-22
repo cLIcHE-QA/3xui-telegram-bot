@@ -60,7 +60,14 @@ class BackupManager:
         self._sqlite_backup(self.db_path, target)
         return target
 
-    def create_full_backup(self) -> BackupResult:
+    def create_full_backup(
+        self,
+        extra_files: dict[str, Path] | None = None,
+        extra_missing: list[str] | tuple[str, ...] | None = None,
+        *,
+        version: str = "3.7.0",
+        extra_manifest: dict | None = None,
+    ) -> BackupResult:
         self._ensure_dir()
         stamp = self._timestamp()
         archive_path = self.backup_dir / f"3xui-bot-backup-{stamp}.tar.gz"
@@ -107,14 +114,37 @@ class BackupManager:
             else:
                 missing.append("nginx/")
 
+            # Optional external/node files collected by the caller. Archive names
+            # are relative and cannot escape the staging directory.
+            for arcname, source in (extra_files or {}).items():
+                rel = Path(arcname)
+                if rel.is_absolute() or ".." in rel.parts:
+                    missing.append(f"{arcname} (unsafe archive path)")
+                    continue
+                source = Path(source)
+                if not source.exists():
+                    missing.append(f"{arcname} (source missing)")
+                    continue
+                destination = stage / rel
+                if source.is_dir():
+                    self._copy_tree(source, destination)
+                else:
+                    self._copy_file(source, destination)
+                included.append(rel.as_posix() + ("/" if source.is_dir() else ""))
+
+            if extra_missing:
+                missing.extend(str(x) for x in extra_missing)
+
             created = datetime.now(timezone.utc)
             manifest = {
-                "version": "3.6.0",
+                "version": version,
                 "created_at_utc": created.isoformat(),
                 "included": included,
                 "missing": missing,
                 "note": "This archive contains secrets. Store it securely.",
             }
+            if extra_manifest:
+                manifest.update(extra_manifest)
             (stage / "manifest.json").write_text(
                 json.dumps(manifest, ensure_ascii=False, indent=2),
                 encoding="utf-8",
@@ -123,7 +153,7 @@ class BackupManager:
                 "3x-ui Telegram bot backup\n"
                 "==========================\n\n"
                 "Contents may include bot.sqlite3, x-ui.db, bot.env, "
-                "docker-compose.yml and nginx configuration.\n\n"
+                "docker-compose.yml, nginx configuration and nodes/* backups.\n\n"
                 "Restore notes:\n"
                 "1. Stop the bot before replacing bot.sqlite3.\n"
                 "2. Stop x-ui before replacing /etc/x-ui/x-ui.db.\n"

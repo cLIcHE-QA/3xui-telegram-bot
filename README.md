@@ -307,3 +307,67 @@ disabled by default because the archive contains secrets.
 
 v3.6.0 also adds `.dockerignore`, so `.env`, databases and the `data/` directory
 are no longer copied into the Docker image during `docker compose build`.
+
+## v3.7.0: native 3x-ui multi-node foundation
+
+v3.7.0 integrates the bot with the **native 3x-ui Nodes API** on the master panel.
+The bot does not keep a second copy of the node registry and does not need the
+node-sync tokens which the master stores internally.
+
+New admin UI:
+
+- `🌍 Ноды` lists every node registered in the master 3x-ui panel;
+- `🔄 Проверить все` asks the master to probe all direct nodes;
+- each direct node has a detail page with panel status, Xray state/version,
+  API latency, CPU, RAM, uptime, inbound count and client counts;
+- `🩺 Состояние системы` now shows Master + all nodes in one report;
+- master CPU/RAM/disk/uptime are read from `/panel/api/server/status`, rather
+  than inferred from the bot container.
+
+### First Finland node
+
+Register the Finland server in the master 3x-ui panel under **Nodes**. A simple
+name such as `Finland` is recommended because the bot uses the same name.
+Once the node is registered, `/admin -> 🌍 Ноды` discovers it automatically;
+no bot `.env` changes are required for monitoring.
+
+3x-ui supports token, certificate pinning and mTLS trust modes for native nodes.
+Prefer verified HTTPS (or mTLS) rather than `skip` once the initial connection is
+working.
+
+### Backing up node databases
+
+The master Nodes API deliberately does not return the node API token. Therefore
+node health works automatically, while **database backup is configured
+separately** for every node which should be included in the bot's full archive.
+The bot downloads a consistent backup through the node's official
+`GET /panel/api/server/getDb` endpoint. This supports both SQLite panels and
+PostgreSQL panels (the returned file may be `.db` or `.dump`).
+
+For the Finland node, add to the existing `.env` when ready:
+
+```env
+NODE_BACKUP_TARGETS=FI
+NODE_BACKUP_FI_NODE_NAME=Finland
+NODE_BACKUP_FI_PANEL_URL=https://fi-panel.example.com/basepath
+NODE_BACKUP_FI_API_TOKEN=replace_with_dedicated_admin_scope_token
+NODE_BACKUP_FI_VERIFY_TLS=true
+```
+
+`NODE_BACKUP_FI_NODE_NAME` must match the node name shown by the master 3x-ui
+panel. For backup, use a **dedicated admin-scope API token on the Finland node**;
+a restricted node-sync/monitor token may not be allowed to download the DB.
+Never commit this token.
+
+When configured, the existing `💾 Создать сейчас` and daily automatic backup
+append files such as:
+
+```text
+nodes/
+  Finland/
+    x-ui.db        # or a PostgreSQL .dump returned by the node
+    node.json      # non-secret source metadata
+```
+
+A failed node backup does not discard the master backup. The archive is still
+created and the failed node is listed in the `missing` section and manifest.

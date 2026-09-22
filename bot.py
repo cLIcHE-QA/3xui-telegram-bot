@@ -15,7 +15,8 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKe
 from backup_manager import BackupManager
 from config import load_settings
 from db import Database, UserRecord
-from xui import XUIClient, XUIError
+from xui import XUIClient, XUIError, NodeInfo
+from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
 
 settings = load_settings()
@@ -23,6 +24,7 @@ db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 router = Router()
 backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
+system_backup = SystemBackupService(backup_manager, settings.node_backup_targets)
 
 def is_allowed(tg_id: int) -> bool:
     return tg_id in settings.allowed_telegram_ids or tg_id in settings.admin_telegram_ids
@@ -42,7 +44,8 @@ def admin_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users")],
         [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats")],
-        [InlineKeyboardButton(text="🩺 Состояние сервера", callback_data="admin:health")],
+        [InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:health")],
+        [InlineKeyboardButton(text="🌍 Ноды", callback_data="admin:nodes")],
         [InlineKeyboardButton(text="💾 Резервные копии", callback_data="admin:backups")],
         [InlineKeyboardButton(text="🧪 Inbound'ы", callback_data="inbounds")],
     ])
@@ -81,6 +84,64 @@ def backup_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="📥 Скачать bot.sqlite3", callback_data="admin:backup:botdb")],
         [InlineKeyboardButton(text="📦 Скачать полный backup", callback_data="admin:backup:full")],
         [InlineKeyboardButton(text="⬅ Админка", callback_data="admin:home")],
+    ])
+
+def _node_status_icon(node: NodeInfo) -> str:
+    if not node.enable:
+        return "⚪"
+    if node.status == "online":
+        return "🟢"
+    if node.status == "offline":
+        return "🔴"
+    return "🟡"
+
+
+def _xray_icon(node: NodeInfo) -> str:
+    state = node.xray_state.lower()
+    if state in {"running", "started", "online"}:
+        return "🟢"
+    if state in {"stopped", "failed", "error"}:
+        return "🔴"
+    return "🟡"
+
+
+def _duration_text(seconds: int) -> str:
+    seconds = max(0, int(seconds or 0))
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes = rem // 60
+    if days:
+        return f"{days}д {hours}ч {minutes}м"
+    return f"{hours}ч {minutes}м"
+
+
+def _epoch_text(seconds: int) -> str:
+    if not seconds:
+        return "никогда"
+    try:
+        return datetime.fromtimestamp(seconds, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    except (OSError, OverflowError, ValueError):
+        return str(seconds)
+
+
+def nodes_menu(nodes: list[NodeInfo]) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for node in nodes[:40]:
+        suffix = " ↳" if node.transitive else ""
+        text = f"{_node_status_icon(node)} {node.name}{suffix}"
+        if node.id > 0 and not node.transitive:
+            rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:node:{node.id}")])
+        else:
+            rows.append([InlineKeyboardButton(text=text, callback_data="admin:nodes:noop")])
+    rows.append([InlineKeyboardButton(text="🔄 Проверить все", callback_data="admin:nodes:refresh")])
+    rows.append([InlineKeyboardButton(text="⬅ Админка", callback_data="admin:home")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def node_detail_keyboard(node_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Проверить", callback_data=f"admin:node:{node_id}")],
+        [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
     ])
 
 async def guard_message(message: Message) -> bool:
@@ -132,7 +193,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v3.6.0", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v3.7.0", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -382,7 +443,12 @@ def _backup_status_text() -> str:
         lines.append(f"Ежедневно: {settings.backup_hour_utc:02d}:00 UTC")
         if settings.backup_send_to_admins:
             lines.append("Отправка администраторам: включена")
-    lines += ["", "⚠️ Полный архив содержит секреты (.env и x-ui.db)."]
+    names = system_backup.configured_node_names()
+    if names:
+        lines.append(f"Backup нод: {len(names)} — {', '.join(names)}")
+    else:
+        lines.append("Backup нод: не настроен")
+    lines += ["", "⚠️ Полный архив содержит секреты (.env, x-ui.db и базы нод)."]
     return "\n".join(lines)
 
 
@@ -400,7 +466,7 @@ async def admin_backup_create(call: CallbackQuery):
         return
     await call.answer("Создаю backup…")
     try:
-        result = await asyncio.to_thread(backup_manager.create_full_backup)
+        result = await system_backup.create_full_backup()
         lines = [
             "✅ Полный backup создан.",
             f"Файл: {result.info.path.name}",
@@ -442,7 +508,7 @@ async def admin_backup_full(call: CallbackQuery):
     try:
         info = await asyncio.to_thread(backup_manager.latest_backup)
         if info is None:
-            result = await asyncio.to_thread(backup_manager.create_full_backup)
+            result = await system_backup.create_full_backup()
             info = result.info
         await call.message.answer_document(
             FSInputFile(info.path),
@@ -454,6 +520,128 @@ async def admin_backup_full(call: CallbackQuery):
     except Exception as exc:
         logging.exception("Full backup download failed")
         await call.message.answer(f"🔴 Ошибка отправки backup: {type(exc).__name__}: {exc}")
+
+
+def _node_detail_text(node: NodeInfo) -> str:
+    status_icon = _node_status_icon(node)
+    xray_icon = _xray_icon(node)
+    lines = [
+        f"🌍 {node.name}",
+        "",
+        f"{status_icon} Panel: {node.status}",
+        f"{xray_icon} Xray: {node.xray_state}"
+        + (f" {node.xray_version}" if node.xray_version else ""),
+    ]
+    if node.panel_version:
+        lines.append(f"3x-ui: {node.panel_version}")
+    if node.latency_ms:
+        lines.append(f"Ping API: {node.latency_ms} ms")
+    lines += [
+        f"CPU: {node.cpu_pct:.1f}%",
+        f"RAM: {node.mem_pct:.1f}%",
+        f"Uptime: {_duration_text(node.uptime_secs)}",
+        f"Inbound'ов: {node.inbound_count}",
+        f"Клиентов: {node.client_count} · active {node.active_count} · online {node.online_count}",
+        f"Последний heartbeat: {_epoch_text(node.last_heartbeat)}",
+    ]
+    if node.config_dirty:
+        lines.append("🟡 Конфигурация ожидает синхронизации")
+    if node.last_error:
+        lines.append(f"⚠️ Node error: {node.last_error[:240]}")
+    if node.xray_error:
+        lines.append(f"⚠️ Xray error: {node.xray_error[:240]}")
+    lines.append(
+        "💾 Backup БД: "
+        + ("настроен" if system_backup.has_target_for(node.name) else "не настроен")
+    )
+    if node.transitive:
+        lines.append("ℹ️ Транзитная нода: read-only представление через родительскую ноду.")
+    return "\n".join(lines)
+
+
+@router.callback_query(F.data == "admin:nodes")
+async def admin_nodes(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    try:
+        nodes = await xui.nodes_list()
+    except XUIError as exc:
+        await call.message.answer(
+            f"🔴 Не удалось получить список нод: {exc}",
+            reply_markup=admin_menu(),
+        )
+        await call.answer()
+        return
+
+    if not nodes:
+        text = (
+            "🌍 Ноды\n\n"
+            "В master 3x-ui пока нет зарегистрированных нод. "
+            "Добавь Finland в 3x-ui → Nodes, после чего она появится здесь автоматически."
+        )
+    else:
+        online = sum(1 for n in nodes if n.enable and n.status == "online")
+        text = f"🌍 Ноды\n\nВсего: {len(nodes)} · online: {online}"
+    await call.message.answer(text, reply_markup=nodes_menu(nodes))
+    await call.answer()
+
+
+@router.callback_query(F.data == "admin:nodes:noop")
+async def admin_nodes_noop(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.answer("Транзитная нода отображается только для мониторинга.")
+
+
+@router.callback_query(F.data == "admin:nodes:refresh")
+async def admin_nodes_refresh(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    await call.answer("Проверяю ноды…")
+    try:
+        current = await xui.nodes_list()
+        direct = [n for n in current if n.id > 0 and not n.transitive]
+        if direct:
+            await asyncio.gather(
+                *(xui.node_probe(n.id) for n in direct),
+                return_exceptions=True,
+            )
+        nodes = await xui.nodes_list()
+        online = sum(1 for n in nodes if n.enable and n.status == "online")
+        await call.message.answer(
+            f"🌍 Ноды обновлены\n\nВсего: {len(nodes)} · online: {online}",
+            reply_markup=nodes_menu(nodes),
+        )
+    except XUIError as exc:
+        await call.message.answer(f"🔴 Ошибка проверки нод: {exc}", reply_markup=admin_menu())
+
+
+@router.callback_query(F.data.startswith("admin:node:"))
+async def admin_node_detail(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+    try:
+        node_id = int(call.data.rsplit(":", 1)[1])
+    except (TypeError, ValueError):
+        await call.answer("Некорректный ID ноды", show_alert=True)
+        return
+
+    await call.answer("Проверяю ноду…")
+    probe_error = None
+    try:
+        await xui.node_probe(node_id)
+    except XUIError as exc:
+        probe_error = str(exc)
+    try:
+        node = await xui.node_get(node_id)
+    except XUIError as exc:
+        await call.message.answer(f"🔴 Нода недоступна: {exc}", reply_markup=admin_menu())
+        return
+
+    text = _node_detail_text(node)
+    if probe_error and not node.last_error:
+        text += f"\n⚠️ Probe: {probe_error[:240]}"
+    await call.message.answer(text, reply_markup=node_detail_keyboard(node_id))
 
 
 @router.callback_query(F.data == "admin:health")
@@ -473,11 +661,27 @@ async def admin_health(call: CallbackQuery):
     )
 
     inbounds = None
+    server_status = None
+    nodes: list[NodeInfo] = []
+    nodes_error = None
     xui_error = None
+
     try:
         inbounds = await xui.inbound_options()
     except XUIError as exc:
         xui_error = str(exc)
+
+    try:
+        server_status = await xui.server_status()
+    except XUIError as exc:
+        if xui_error is None:
+            xui_error = str(exc)
+
+    try:
+        nodes = await xui.nodes_list()
+    except XUIError as exc:
+        nodes_error = str(exc)
+        nodes = []
 
     local_ok, local_detail = await local_task
     if public_task:
@@ -486,13 +690,39 @@ async def admin_health(call: CallbackQuery):
         public_ok, public_detail = False, "COMPAT URL не настроен"
 
     users = await db.list_users()
-    lines = ["🩺 Состояние сервера", ""]
+    lines = ["🩺 Состояние системы", "", "Master"]
 
-    if inbounds is not None:
+    if inbounds is not None or server_status is not None:
         lines.append("🟢 3x-ui API / panel route")
     else:
         detail = (xui_error or "unknown error")[:160]
         lines.append(f"🔴 3x-ui API / panel route — {detail}")
+
+    if server_status:
+        xray_status = server_status.get("xray") or {}
+        xray_state = str(xray_status.get("state") or "unknown").lower()
+        xray_ok = xray_state in {"running", "started", "online"}
+        xray_version = str(xray_status.get("version") or "")
+        lines.append(
+            f"{'🟢' if xray_ok else '🔴'} Xray: {xray_state}"
+            + (f" {xray_version}" if xray_version else "")
+        )
+
+        awg = server_status.get("amneziawg") or {}
+        if awg.get("configured"):
+            lines.append(f"{'🟢' if awg.get('running') else '🔴'} AmneziaWG core")
+
+        cpu = server_status.get("cpu")
+        if cpu is not None:
+            lines.append(f"🧮 CPU: {float(cpu):.1f}%")
+        mem = server_status.get("mem") or {}
+        if mem.get("total"):
+            lines.append(_usage_line("🧠 RAM", int(mem.get("current") or 0), int(mem["total"])))
+        disk = server_status.get("disk") or {}
+        if disk.get("total"):
+            lines.append(_usage_line("💽 Disk", int(disk.get("current") or 0), int(disk["total"])))
+        if server_status.get("uptime") is not None:
+            lines.append(f"⏱ Uptime: {_duration_text(int(server_status.get('uptime') or 0))}")
 
     lines.append(
         f"{'🟢' if local_ok else '🔴'} Subscription proxy (локально)"
@@ -508,31 +738,38 @@ async def admin_health(call: CallbackQuery):
             (i for i in inbounds if is_managed_inbound(i)),
             key=lambda i: (i.port, i.protocol, i.id),
         )
-        lines += ["", "Inbound'ы по данным 3x-ui:"]
+        lines += ["", "Inbound'ы master:"]
         if managed:
             for i in managed:
                 icon = "🟢" if i.enable else "🔴"
-                proto = i.protocol.upper()
-                lines.append(f"{icon} #{i.id} — {i.port} — {proto} — {i.remark}")
+                lines.append(f"{icon} {i.port} {i.protocol.upper()} — {i.remark}")
         else:
             lines.append("⚪ Нет inbound'ов после фильтров .env")
 
-    try:
-        disk = shutil.disk_usage("/")
-        lines += ["", _usage_line("💽 Disk", disk.used, disk.total)]
-    except OSError:
-        pass
+    lines += ["", "Nodes"]
+    if nodes_error:
+        lines.append(f"🔴 Nodes API — {nodes_error[:180]}")
+    elif nodes:
+        for node in nodes[:20]:
+            icon = _node_status_icon(node)
+            xicon = _xray_icon(node)
+            node_line = (
+                f"{icon} {node.name} · Xray {xicon} · "
+                f"CPU {node.cpu_pct:.0f}% · RAM {node.mem_pct:.0f}%"
+            )
+            if node.latency_ms:
+                node_line += f" · {node.latency_ms}ms"
+            lines.append(node_line)
+            lines.append(
+                f"   clients {node.client_count} · online {node.online_count} · "
+                f"inbounds {node.inbound_count} · up {_duration_text(node.uptime_secs)}"
+            )
+        if len(nodes) > 20:
+            lines.append(f"… ещё {len(nodes) - 20}")
+    else:
+        lines.append("⚪ Ноды не добавлены в master 3x-ui")
 
-    mem = _memory_stats()
-    if mem:
-        used, total = mem
-        lines.append(_usage_line("🧠 RAM", used, total))
-
-    uptime = _uptime_text()
-    if uptime:
-        lines.append(f"⏱ Uptime: {uptime}")
-
-    lines.append(f"👥 Пользователей в БД: {len(users)}")
+    lines += ["", f"👥 Пользователей в БД бота: {len(users)}"]
     latest_backup = await asyncio.to_thread(backup_manager.latest_backup)
     if latest_backup:
         lines.append(
@@ -542,7 +779,11 @@ async def admin_health(call: CallbackQuery):
         )
     else:
         lines.append("⚠️ Backup: ещё не создан")
-    lines += ["", "ℹ️ Inbound-статус здесь — enable/disable из 3x-ui API, не отдельный socket probe UDP/TCP."]
+
+    if settings.node_backup_targets:
+        lines.append(f"💾 Backup нод настроен: {len(settings.node_backup_targets)}")
+    elif nodes:
+        lines.append("⚠️ Backup БД нод: не настроен")
 
     await call.message.answer("\n".join(lines), reply_markup=admin_menu())
 
@@ -827,7 +1068,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=settings.test_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=settings.test_ip_limit,
-            comment="Created by Telegram bot v3.6.0",
+            comment="Created by Telegram bot v3.7.0",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.
@@ -874,7 +1115,7 @@ async def automatic_backup_loop(bot: Bot):
     while True:
         await asyncio.sleep(await _seconds_until_backup_hour())
         try:
-            result = await asyncio.to_thread(backup_manager.create_full_backup)
+            result = await system_backup.create_full_backup()
             logging.info(
                 "Automatic backup created: %s (%d bytes)",
                 result.info.path,

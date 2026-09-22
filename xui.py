@@ -1,7 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+import re
 import aiohttp
 
 class XUIError(RuntimeError):
@@ -15,6 +17,37 @@ class InboundOption:
     protocol: str
     port: int
     enable: bool
+
+
+@dataclass
+class NodeInfo:
+    id: int
+    name: str
+    address: str
+    port: int
+    base_path: str
+    scheme: str
+    enable: bool
+    status: str
+    cpu_pct: float
+    mem_pct: float
+    uptime_secs: int
+    latency_ms: int
+    inbound_count: int
+    client_count: int
+    active_count: int
+    online_count: int
+    depleted_count: int
+    disabled_count: int
+    panel_version: str
+    xray_state: str
+    xray_version: str
+    xray_error: str
+    last_heartbeat: int
+    last_error: str
+    config_dirty: bool
+    transitive: bool
+    has_api_token: bool
 
 class XUIClient:
     def __init__(self, base_url: str, token: str, verify_tls: bool = True):
@@ -47,6 +80,84 @@ class XUIClient:
                 if isinstance(data, dict) and data.get("success") is False:
                     raise XUIError(data.get("msg") or str(data))
                 return data
+
+    async def server_status(self) -> dict[str, Any]:
+        data = await self._request("GET", "/panel/api/server/status")
+        return data.get("obj") or {}
+
+    async def nodes_list(self) -> list[NodeInfo]:
+        data = await self._request("GET", "/panel/api/nodes/list")
+        return [self._parse_node(x) for x in (data.get("obj") or [])]
+
+    async def node_get(self, node_id: int) -> NodeInfo:
+        data = await self._request("GET", f"/panel/api/nodes/get/{int(node_id)}")
+        obj = data.get("obj") or {}
+        if not obj:
+            raise XUIError(f"Node not found: {node_id}")
+        return self._parse_node(obj)
+
+    async def node_probe(self, node_id: int) -> NodeInfo | None:
+        data = await self._request("POST", f"/panel/api/nodes/probe/{int(node_id)}")
+        obj = data.get("obj") or {}
+        if isinstance(obj, dict) and obj:
+            return self._parse_node(obj)
+        return None
+
+    @staticmethod
+    def _parse_node(item: dict[str, Any]) -> NodeInfo:
+        return NodeInfo(
+            id=int(item.get("id") or 0),
+            name=str(item.get("name") or item.get("remark") or "Node"),
+            address=str(item.get("address") or ""),
+            port=int(item.get("port") or 0),
+            base_path=str(item.get("basePath") or "/"),
+            scheme=str(item.get("scheme") or "https"),
+            enable=bool(item.get("enable", True)),
+            status=str(item.get("status") or "unknown").lower(),
+            cpu_pct=float(item.get("cpuPct") or 0),
+            mem_pct=float(item.get("memPct") or 0),
+            uptime_secs=int(item.get("uptimeSecs") or 0),
+            latency_ms=int(item.get("latencyMs") or 0),
+            inbound_count=int(item.get("inboundCount") or 0),
+            client_count=int(item.get("clientCount") or 0),
+            active_count=int(item.get("activeCount") or 0),
+            online_count=int(item.get("onlineCount") or 0),
+            depleted_count=int(item.get("depletedCount") or 0),
+            disabled_count=int(item.get("disabledCount") or 0),
+            panel_version=str(item.get("panelVersion") or ""),
+            xray_state=str(item.get("xrayState") or "unknown").lower(),
+            xray_version=str(item.get("xrayVersion") or ""),
+            xray_error=str(item.get("xrayError") or ""),
+            last_heartbeat=int(item.get("lastHeartbeat") or 0),
+            last_error=str(item.get("lastError") or ""),
+            config_dirty=bool(item.get("configDirty", False)),
+            transitive=bool(item.get("transitive", False)),
+            has_api_token=bool(item.get("hasApiToken", False)),
+        )
+
+    async def download_database(self) -> tuple[bytes, str]:
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/octet-stream",
+        }
+        timeout = aiohttp.ClientTimeout(total=60)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(
+                f"{self.base_url}/panel/api/server/getDb",
+                headers=headers,
+                ssl=None if self.verify_tls else False,
+                allow_redirects=True,
+            ) as resp:
+                body = await resp.read()
+                if resp.status >= 400:
+                    detail = body[:500].decode("utf-8", errors="replace")
+                    raise XUIError(f"3x-ui DB backup HTTP {resp.status}: {detail}")
+                disposition = resp.headers.get("Content-Disposition", "")
+                match = re.search(r'filename\*?=(?:UTF-8\'\')?["\']?([^"\';]+)', disposition, re.I)
+                filename = Path(match.group(1)).name if match else "x-ui.db"
+                if not filename or filename in {".", ".."}:
+                    filename = "x-ui.db"
+                return body, filename
 
     async def inbound_options(self) -> list[InboundOption]:
         try:

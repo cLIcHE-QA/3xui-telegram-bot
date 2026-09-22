@@ -4,16 +4,67 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 def csv_ints(value: str) -> tuple[int, ...]:
     return tuple(int(x.strip()) for x in value.split(",") if x.strip())
 
+
 def csv_strings(value: str) -> tuple[str, ...]:
     return tuple(x.strip().lower() for x in value.split(",") if x.strip())
+
+
+def csv_values(value: str) -> tuple[str, ...]:
+    return tuple(x.strip() for x in value.split(",") if x.strip())
+
 
 def env_bool(value: str | None, default: bool = True) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+@dataclass(frozen=True)
+class NodeBackupTarget:
+    key: str
+    node_name: str
+    panel_url: str
+    api_token: str
+    verify_tls: bool
+
+
+def _load_node_backup_targets() -> tuple[NodeBackupTarget, ...]:
+    aliases = csv_values(os.getenv("NODE_BACKUP_TARGETS", ""))
+    targets: list[NodeBackupTarget] = []
+    for raw_alias in aliases:
+        key = raw_alias.strip().upper()
+        if not key or not key.replace("_", "").isalnum():
+            raise RuntimeError(f"Invalid NODE_BACKUP_TARGETS alias: {raw_alias!r}")
+        prefix = f"NODE_BACKUP_{key}_"
+        node_name = os.getenv(prefix + "NODE_NAME", "").strip()
+        panel_url = os.getenv(prefix + "PANEL_URL", "").strip().rstrip("/")
+        api_token = os.getenv(prefix + "API_TOKEN", "").strip()
+        missing = []
+        if not node_name:
+            missing.append(prefix + "NODE_NAME")
+        if not panel_url:
+            missing.append(prefix + "PANEL_URL")
+        if not api_token:
+            missing.append(prefix + "API_TOKEN")
+        if missing:
+            raise RuntimeError(
+                f"Node backup target {key} is incomplete; missing: {', '.join(missing)}"
+            )
+        targets.append(
+            NodeBackupTarget(
+                key=key,
+                node_name=node_name,
+                panel_url=panel_url,
+                api_token=api_token,
+                verify_tls=env_bool(os.getenv(prefix + "VERIFY_TLS"), True),
+            )
+        )
+    return tuple(targets)
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -42,6 +93,8 @@ class Settings:
     backup_keep: int
     backup_hour_utc: int
     backup_send_to_admins: bool
+    node_backup_targets: tuple[NodeBackupTarget, ...]
+
 
 def load_settings() -> Settings:
     required = {
@@ -93,4 +146,5 @@ def load_settings() -> Settings:
         backup_keep=max(1, int(os.getenv("BACKUP_KEEP", "14"))),
         backup_hour_utc=max(0, min(23, int(os.getenv("BACKUP_HOUR_UTC", "2")))),
         backup_send_to_admins=env_bool(os.getenv("BACKUP_SEND_TO_ADMINS"), False),
+        node_backup_targets=_load_node_backup_targets(),
     )
