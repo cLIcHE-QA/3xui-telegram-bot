@@ -10,6 +10,7 @@ certs/
 # Runtime data / databases / backups
 data/
 backups/
+updates/
 *.db
 *.db-wal
 *.db-shm
