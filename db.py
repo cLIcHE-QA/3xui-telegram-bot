@@ -121,6 +121,15 @@ class RuntimeSettingRecord:
     updated_at: int
 
 
+@dataclass
+class UserProfileRecord:
+    telegram_id: int
+    plan_id: int | None
+    server_group_id: int | None
+    note: str
+    updated_at: int
+
+
 class Database:
     def __init__(self, path: str):
         self.path = path
@@ -267,6 +276,15 @@ class Database:
                     updated_at INTEGER NOT NULL
                 )
             """)
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    telegram_id INTEGER PRIMARY KEY,
+                    plan_id INTEGER,
+                    server_group_id INTEGER,
+                    note TEXT NOT NULL DEFAULT '',
+                    updated_at INTEGER NOT NULL
+                )
+            """)
             await db.commit()
 
     async def get(self, telegram_id: int) -> UserRecord | None:
@@ -318,8 +336,86 @@ class Database:
             )
             await db.commit()
 
+    async def update_sub_id(self, telegram_id: int, sub_id: str):
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "UPDATE users SET sub_id = ? WHERE telegram_id = ?",
+                (str(sub_id), int(telegram_id)),
+            )
+            await db.commit()
+
+    async def get_user_profile(self, telegram_id: int) -> UserProfileRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM user_profiles WHERE telegram_id = ?",
+                (int(telegram_id),),
+            )
+            row = await cur.fetchone()
+            return UserProfileRecord(**dict(row)) if row else None
+
+    async def upsert_user_profile(
+        self,
+        telegram_id: int,
+        *,
+        plan_id: int | None = None,
+        server_group_id: int | None = None,
+        note: str | None = None,
+        preserve_unspecified: bool = True,
+    ) -> None:
+        current = await self.get_user_profile(int(telegram_id)) if preserve_unspecified else None
+        plan_value = current.plan_id if current and plan_id is None else plan_id
+        group_value = current.server_group_id if current and server_group_id is None else server_group_id
+        note_value = current.note if current and note is None else (note or "")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                INSERT INTO user_profiles(telegram_id, plan_id, server_group_id, note, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(telegram_id) DO UPDATE SET
+                    plan_id=excluded.plan_id,
+                    server_group_id=excluded.server_group_id,
+                    note=excluded.note,
+                    updated_at=excluded.updated_at
+                """,
+                (int(telegram_id), plan_value, group_value, note_value[:1000], now),
+            )
+            await db.commit()
+
+    async def set_user_plan(self, telegram_id: int, plan_id: int | None) -> None:
+        current = await self.get_user_profile(int(telegram_id))
+        await self.upsert_user_profile(
+            int(telegram_id),
+            plan_id=plan_id,
+            server_group_id=current.server_group_id if current else None,
+            note=current.note if current else "",
+            preserve_unspecified=False,
+        )
+
+    async def set_user_server_group(self, telegram_id: int, group_id: int | None) -> None:
+        current = await self.get_user_profile(int(telegram_id))
+        await self.upsert_user_profile(
+            int(telegram_id),
+            plan_id=current.plan_id if current else None,
+            server_group_id=group_id,
+            note=current.note if current else "",
+            preserve_unspecified=False,
+        )
+
+    async def set_user_note(self, telegram_id: int, note: str) -> None:
+        current = await self.get_user_profile(int(telegram_id))
+        await self.upsert_user_profile(
+            int(telegram_id),
+            plan_id=current.plan_id if current else None,
+            server_group_id=current.server_group_id if current else None,
+            note=note,
+            preserve_unspecified=False,
+        )
+
     async def delete(self, telegram_id: int):
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("DELETE FROM user_profiles WHERE telegram_id = ?", (telegram_id,))
             await db.execute("DELETE FROM users WHERE telegram_id = ?", (telegram_id,))
             await db.commit()
 
@@ -385,6 +481,10 @@ class Database:
 
     async def delete_plan(self, plan_id: int):
         async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "UPDATE user_profiles SET plan_id = NULL, updated_at = ? WHERE plan_id = ?",
+                (int(time.time()), int(plan_id)),
+            )
             await db.execute("DELETE FROM plans WHERE id = ?", (int(plan_id),))
             await db.commit()
 
@@ -418,6 +518,10 @@ class Database:
             await db.execute(
                 "UPDATE plans SET server_group_id = NULL WHERE server_group_id = ?",
                 (int(group_id),),
+            )
+            await db.execute(
+                "UPDATE user_profiles SET server_group_id = NULL, updated_at = ? WHERE server_group_id = ?",
+                (int(time.time()), int(group_id)),
             )
             await db.execute(
                 "DELETE FROM server_group_members WHERE group_id = ?",

@@ -23,6 +23,7 @@ from subscription_proxy import SubscriptionProxy
 from catalog_admin import catalog_router
 from admin_observability import observability_router
 from business_admin import business_router
+from advanced_users import advanced_users_router
 from admin_auth import authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_system
 from runtime_jobs import backup_lock
@@ -129,6 +130,7 @@ def user_admin_keyboard(tg_id: int, enabled: bool = True) -> InlineKeyboardMarku
         InlineKeyboardButton(text="✅ Включить", callback_data=f"adminenable:{tg_id}")
     )
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚙️ Расширенное управление", callback_data=f"admin:u:{tg_id}")],
         [InlineKeyboardButton(text="🔗 Подписка", callback_data=f"adminsub:{tg_id}")],
         [InlineKeyboardButton(text="🔄 Синхронизировать inbound'ы", callback_data=f"adminsync:{tg_id}")],
         [InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}")],
@@ -387,7 +389,7 @@ def human_bytes(n: int) -> str:
 async def start(message: Message):
     if not await guard_message(message):
         return
-    await message.answer("3x-ui Telegram bot v4.1.0", reply_markup=user_menu())
+    await message.answer("3x-ui Telegram bot v4.2.0", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -726,6 +728,7 @@ async def admin_users(call: CallbackQuery):
             text=f"👤 {u.email} | TG {u.telegram_id}",
             callback_data=f"adminuser:{u.telegram_id}"
         )])
+    rows.append([InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk")])
     rows.append([InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")])
     rows.append([InlineKeyboardButton(text="📊 Статистика пользователей", callback_data="admin:stats")])
     rows.append([InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")])
@@ -2005,7 +2008,7 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids=[i.id for i in chosen],
             total_bytes=trial_traffic_gb * 1024**3,
             expiry_time_ms=expiry, limit_ip=trial_ip_limit,
-            comment="Created by Telegram bot v4.1.0",
+            comment="Created by Telegram bot v4.2.0",
             flow=settings.vless_flow,
         )
         # bulkAdjust is capability-aware in current 3x-ui: flow is applied where supported.
@@ -2122,6 +2125,7 @@ async def main():
     bot = Bot(settings.bot_token)
     dp = Dispatcher()
     dp.include_router(router)
+    dp.include_router(advanced_users_router)
     dp.include_router(catalog_router)
     dp.include_router(observability_router)
     dp.include_router(business_router)

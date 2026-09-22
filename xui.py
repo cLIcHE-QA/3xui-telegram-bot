@@ -301,6 +301,15 @@ class XUIClient:
             json={"inboundIds": inbound_ids},
         )
 
+    async def detach_client(self, email: str, inbound_ids: list[int]) -> dict[str, Any]:
+        if not inbound_ids:
+            return {"success": True, "obj": {"detached": [], "skipped": []}}
+        return await self._request(
+            "POST",
+            f"/panel/api/clients/{quote(email, safe='')}/detach",
+            json={"inboundIds": inbound_ids},
+        )
+
     async def bulk_attach_clients(self, emails: list[str], inbound_ids: list[int]) -> dict[str, Any]:
         if not emails or not inbound_ids:
             return {"success": True, "obj": {"attached": {}, "skipped": {}, "errors": {}}}
@@ -308,6 +317,32 @@ class XUIClient:
             "POST",
             "/panel/api/clients/bulkAttach",
             json={"emails": emails, "inboundIds": inbound_ids},
+        )
+
+    async def bulk_detach_clients(self, emails: list[str], inbound_ids: list[int]) -> dict[str, Any]:
+        if not emails or not inbound_ids:
+            return {"success": True, "obj": {"detached": {}, "skipped": {}, "errors": {}}}
+        return await self._request(
+            "POST",
+            "/panel/api/clients/bulkDetach",
+            json={"emails": emails, "inboundIds": inbound_ids},
+        )
+
+    async def bulk_enable_clients(self, emails: list[str]) -> dict[str, Any]:
+        if not emails:
+            return {"success": True, "obj": {"changed": 0, "skipped": []}}
+        return await self._request("POST", "/panel/api/clients/bulkEnable", json={"emails": emails})
+
+    async def bulk_disable_clients(self, emails: list[str]) -> dict[str, Any]:
+        if not emails:
+            return {"success": True, "obj": {"changed": 0, "skipped": []}}
+        return await self._request("POST", "/panel/api/clients/bulkDisable", json={"emails": emails})
+
+    async def bulk_reset_traffic(self, emails: list[str]) -> dict[str, Any]:
+        if not emails:
+            return {"success": True, "obj": {"affected": 0}}
+        return await self._request(
+            "POST", "/panel/api/clients/bulkResetTraffic", json={"emails": emails}
         )
 
     async def bulk_adjust_clients(

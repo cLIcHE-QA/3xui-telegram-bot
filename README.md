@@ -1,4 +1,4 @@
-# 3x-ui Telegram bot v4.1.0
+# 3x-ui Telegram bot v4.2.0
 
 Production-oriented Telegram admin panel for 3x-ui.
 
@@ -732,4 +732,133 @@ Then verify:
  -> Promo Codes
  -> System -> Administrators
  -> System -> Settings
+```
+
+
+## v4.2.0 — Advanced User Management
+
+v4.2.0 is additive on top of v4.1.0. Existing provisioning, subscription
+compatibility, Nodes, Plans, Server Groups, Payments, Monitoring, Backups,
+Administrators/Roles and Settings are not replaced.
+
+### Advanced user card
+
+Open `/admin -> Users -> user -> Advanced management`.
+
+The extended card shows live 3x-ui values together with control-plane metadata:
+
+- enable state;
+- expiry;
+- traffic quota and used traffic;
+- IP limit;
+- attached inbound IDs;
+- VLESS flow;
+- assigned Plan;
+- assigned Server Group;
+- internal admin note.
+
+### Direct edits
+
+Support+ administrators can now change:
+
+- expiry (`+30`, an absolute `YYYY-MM-DD` date, or `0` for unlimited);
+- traffic quota in GB (`0` = unlimited);
+- IP limit (`0` = unlimited);
+- Plan assignment;
+- Server Group assignment;
+- internal note;
+- individual managed inbound membership.
+
+Detaching the last managed inbound is blocked to avoid accidentally leaving a
+bot user with no usable service inbound.
+
+Plan and Server Group assignment are stored as control-plane metadata in the new
+`user_profiles` table. Assigning a Plan by itself does not silently rewrite a
+live 3x-ui client. The explicit `Apply Plan to limits` action applies the Plan's
+expiry duration, traffic quota and IP limit; when the Plan has a Server Group,
+that group is stored on the user's control-plane profile as well.
+
+### Traffic reset
+
+`Reset traffic` uses the current first-class 3x-ui client bulk reset endpoint
+with a single email. This resets the shared client traffic counters across its
+attached inbounds and works with the same multi-node-aware client model used by
+3x-ui.
+
+### Subscription ID rotation
+
+Owner/Administrator can rotate a user's `subId` from Telegram. The operation:
+
+1. creates a new unique random subscription ID;
+2. updates the first-class 3x-ui client;
+3. updates the bot SQLite row;
+4. writes an Audit Log entry;
+5. returns the new compatibility subscription URL.
+
+The old subscription URL stops refreshing after rotation. Existing already
+imported proxy configs are not remotely deleted from user devices.
+
+Protocol credentials (VLESS UUID, Hysteria auth, AmneziaWG keys) are deliberately
+not rotated by this action; credential rotation is a separate protocol-aware
+workflow and is not mixed with subscription-ID rotation.
+
+### Bulk user actions
+
+`/admin -> Users -> Bulk actions` provides a selector with pagination and:
+
+- +30 days;
+- enable;
+- disable;
+- reset traffic;
+- synchronize managed inbounds + VLESS flow.
+
+Bulk mutations use the first-class `/panel/api/clients/bulk*` endpoints where
+available and create Audit Log entries. Bulk delete is intentionally omitted from
+this screen to keep destructive actions explicit per user.
+
+### Database migration
+
+No existing table is rewritten. `db.init()` adds only:
+
+```text
+user_profiles
+```
+
+The existing `users` table remains the stable Telegram-ID / email / subId link.
+Deleting a bot user now also deletes its optional `user_profiles` row.
+
+### Upgrade from v4.1.0
+
+No new `.env` variables are required.
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot-v4.1.0
+docker compose down
+cp .env .env.backup
+cp data/bot.sqlite3 data/bot.sqlite3.backup
+
+cp /opt/3xui-bot/3xui-telegram-bot-v4.1.0/.env \
+   /opt/3xui-bot/3xui-telegram-bot-v4.2.0/.env
+
+mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.2.0/data
+cp -a /opt/3xui-bot/3xui-telegram-bot-v4.1.0/data/. \
+   /opt/3xui-bot/3xui-telegram-bot-v4.2.0/data/.
+
+cd /opt/3xui-bot/3xui-telegram-bot-v4.2.0
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100 bot
+```
+
+Then verify:
+
+```text
+/admin
+ -> Users
+ -> open a user
+ -> Advanced management
+
+/admin
+ -> Users
+ -> Bulk actions
 ```
