@@ -1,5 +1,42 @@
+# Runtime secrets
 .env
+.env.*
+!.env.example
+secrets/
+certs/
+*.pem
+*.key
+
+# Runtime data / databases / backups
 data/
+backups/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
 *.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.backup
+*.bak
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Local logs
+*.log
