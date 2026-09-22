@@ -1,62 +1,35 @@
-# Versions & Updates - v4.9.0
+# Версии и обновления — v4.9.0
 
-## Entry points and permissions
+## Разделы интерфейса и права доступа
 
-`/admin -> System -> Versions & Updates` is the shared dashboard.
-Infrastructure -> Panels and Master/Node cards link to it. Navigation,
-confirmation and progress use `admin_ui` and edit one message in the normal path.
-This workflow saves backups locally, without sending secret archives to Telegram.
+`/admin -> System -> Versions & Updates` — общий раздел управления версиями. В него также ведут `Infrastructure -> Panels` и карточки Master и нод. Навигация, подтверждение и показ хода операции используют `admin_ui`: в обычном сценарии редактируется одно сообщение. Резервные копии сохраняются локально; секретные архивы не отправляются в Telegram.
 
-Read-only/Support/Admin/Owner may view versions. Backup preparation and installation
-require Admin or Owner; permission is rechecked immediately before dispatch.
-Clearing an unverified outcome requires Owner and an operation-specific typed phrase.
+Просмотр доступен ролям Read-only, Support, Admin и Owner. Подготовка резервной копии и установка требуют Admin или Owner; права повторно проверяются непосредственно перед отправкой команды. Снятие блокировки при неподтверждённом результате требует роли Owner и ввода фразы, связанной с конкретной операцией.
 
-## Manual update sequence
+## Порядок ручного обновления
 
-1. Select a host/component. Xray tags come from that host's API with pagination.
-   Select an exact tag, not the moving `latest` alias. Returned prerelease tags
-   remain visible; the bot does not certify their compatibility.
-2. Read the current version and verify the target and available release.
-3. Create and verify a fresh backup. Master requires a complete full archive with
-   valid bot/Master SQLite databases and bot.env. Any missing component blocks
-   installation. Nodes require a configured direct admin connection and DB download.
-4. Review previous/selected versions and the backup. Confirmation is single-use,
-   bound to the administrator/chat/message and valid for five minutes after backup.
-5. Recheck permissions, target identity, versions, release availability and backup
-   SHA-256 before dispatch. Changed conditions block installation.
-6. Send exactly one update request. Service restarts can interrupt VPN sessions.
-7. Poll read-only status for up to 120 seconds. Success requires the selected
-   installed version and running Xray. If the panel returns an updater `runId`,
-   only that exact successful run is accepted; stale runs do not count.
-8. Record the outcome in existing `job_runs` and `audit_log`; no schema migration.
+1. Выбери сервер и компонент. Список версий Xray загружается из API этого сервера и разбивается на страницы. Выбирается конкретный тег, а не изменяемый псевдоним `latest`. Предварительные версии, возвращённые API, остаются видимыми; бот не гарантирует их совместимость.
+2. Посмотри текущую версию, проверь целевой сервер и доступный релиз.
+3. Создай и проверь свежую резервную копию. Для Master нужен полный архив с корректными SQLite-базами бота и Master и файлом `bot.env`. Отсутствие любого компонента блокирует установку. Для нод нужны настроенное прямое административное подключение и скачивание базы.
+4. Проверь прежнюю и выбранную версии и резервную копию. Подтверждение одноразовое, связано с администратором, чатом и сообщением и действует пять минут после создания копии.
+5. Перед отправкой команды повторно проверяются права, идентичность подключения, версии, доступность релиза и SHA-256 резервной копии. Изменившиеся условия блокируют установку.
+6. Отправляется ровно один запрос обновления. Перезапуск сервисов может прервать VPN-сессии.
+7. В течение максимум 120 секунд выполняется опрос состояния без изменений на сервере. Успех требует совпадения установленной версии с выбранной и работающего Xray. Если панель вернула `runId`, принимается только успешный результат именно этого запуска; старые результаты не учитываются.
+8. Результат записывается в существующие `job_runs` и `audit_log`; миграция схемы не требуется.
 
-The Xray install request has a 180-second HTTP deadline, the panel update start
-request 90 seconds. These are not promises of actual installation duration.
-A timeout does not establish that the remote operation failed.
+Таймаут HTTP-запроса установки Xray — 180 секунд, запуска обновления панели — 90 секунд. Эти значения не являются обещанием длительности установки. Таймаут сам по себе не доказывает, что удалённая операция завершилась ошибкой.
 
-## Uncertainty and restart
+## Неподтверждённый результат и перезапуск
 
-There are no automatic updates, automatic retries of mutation requests or automatic
-rollback. A lost response can still be followed by successful read-only verification.
-Otherwise the operation remains `unconfirmed`, its job is `unknown`, and new version
-updates on the same target are blocked.
+Автоматических обновлений, автоматических повторов изменяющих запросов и автоматического отката нет. После потери ответа проверка без повторной установки всё ещё может подтвердить успех. Иначе операция остаётся в состоянии `unconfirmed`, задание получает статус `unknown`, а новые обновления версий на том же сервере блокируются.
 
-The secret-free journal lives beside the bot DB in `updates/target-*.json`.
-Atomic writes and per-target advisory file locks protect this workflow across
-local processes. Restart does not replay an in-flight update. Open the operation
-status and use **Verify result (no retry)**. If the result remains unknown, inspect
-the actual server/updater first. Only then may Owner type `UNLOCK <operation nonce>`.
-This clears the local block without retrying, rolling back or asserting success.
+Журнал без секретов находится рядом с базой бота: `updates/target-*.json`. Атомарная запись и согласованные файловые блокировки для каждого сервера защищают этот сценарий между локальными процессами. Перезапуск не повторяет уже отправленное обновление. Открой статус операции и используй проверку результата без повтора (`Verify result (no retry)`). Если результат остаётся неизвестным, сначала проверь сам сервер и процесс обновления. Только после этого Owner может ввести `UNLOCK <operation nonce>`, заменив `<operation nonce>` идентификатором операции из интерфейса. Это снимает локальную блокировку, но не повторяет установку, не откатывает изменения и не объявляет операцию успешной.
 
-Do not run updates, restarts, restore or configuration changes through other tools
-while an update is active. This lock does not control external panel administrators,
-CLI commands or the pre-existing restore workflow. A changed node endpoint, token
-or name invalidates prepared confirmations.
+Не запускай обновление, перезапуск, восстановление или изменение конфигурации другими средствами, пока обновление активно. Эта блокировка не управляет внешними администраторами панели, командами CLI и прежним сценарием восстановления. Изменение адреса подключения, токена или имени ноды делает подготовленное подтверждение недействительным.
 
-## Nodes and backups
+## Ноды и резервные копии
 
-Discovery/telemetry still comes from Master. Mutations require an enabled, online,
-direct (non-transitive) node and the existing configuration:
+Обнаружение нод и телеметрия по-прежнему поступают от Master. Для изменений нужна включённая, доступная, непосредственно подключённая нода — не транзитивная — и существующая конфигурация:
 
 ```env
 NODE_BACKUP_TARGETS=FI
@@ -66,51 +39,36 @@ NODE_BACKUP_FI_API_TOKEN=replace_with_dedicated_admin_scope_token
 NODE_BACKUP_FI_VERIFY_TLS=true
 ```
 
-The dedicated connection is reused for versions, DB backup and the host update API.
-No new token is requested in the UI. Old `updatepanel:run` buttons redirect to the
-new screen and cannot bypass backup/confirmation. Nodes without a direct token
-remain visible through telemetry but cannot be updated from this workflow.
+Выделенное подключение повторно используется для получения версий, копирования базы и API обновления сервера. Новый токен через интерфейс не запрашивается. Старые кнопки `updatepanel:run` ведут на новый экран и не позволяют обойти резервное копирование и подтверждение. Ноды без прямого токена остаются видны по телеметрии, но обновлять их через этот сценарий нельзя.
 
-Rescue copies are private files below `BACKUP_DIR/rescue/updates/<target>/`, outside
-ordinary full-backup retention. Cancellation keeps them. Preserve appropriate copies
-before manual cleanup; they contain credentials and must not be committed or attached
-to public issues. The update journal contains metadata/checksums, not token values.
+Аварийные копии — закрытые файлы в `BACKUP_DIR/rescue/updates/<target>/`. На них не распространяется обычное ограничение числа полных архивов. Отмена операции не удаляет эти копии. Перед ручной очисткой сохрани необходимые файлы: они содержат учётные данные, их нельзя добавлять в Git или прикладывать к публичным обсуждениям. Журнал обновлений хранит метаданные и контрольные суммы, а не значения токенов.
 
-SQLite backups undergo `PRAGMA quick_check`. PostgreSQL custom `.dump` files receive
-only a format-header sanity check and SHA-256 verification, NOT a pg_restore rehearsal.
-Database backups do not contain previous Xray/3x-ui binaries. Recovery may require
-reinstalling a compatible binary separately and restoring data through the existing
-Disaster Recovery workflow. Master PostgreSQL-only deployments are not supported by
-this release's local SQLite full-backup gate.
+SQLite-копии проходят `PRAGMA quick_check`. Для PostgreSQL `.dump` в специальном формате выполняются только проверка заголовка формата и SHA-256, **а не пробное восстановление через pg_restore**. Копии баз не содержат прежние исполняемые файлы Xray и 3x-ui. Для восстановления может понадобиться отдельно установить совместимую версию программы и вернуть данные через существующий сценарий аварийного восстановления. Развёртывания Master только с PostgreSQL не поддерживаются проверкой полного архива этого релиза, рассчитанной на локальную SQLite.
 
-## API contracts and limitations
+## Контракты API и ограничения
 
-Checked against MHSanaei/3x-ui commit `95f19b192f477b59cc368dcb7751bcf2e0180e5b`:
+Реализация сверена с коммитом MHSanaei/3x-ui `95f19b192f477b59cc368dcb7751bcf2e0180e5b`:
 
-- [Server controller](https://github.com/MHSanaei/3x-ui/blob/95f19b192f477b59cc368dcb7751bcf2e0180e5b/internal/web/controller/server.go)
-- [Panel update service](https://github.com/MHSanaei/3x-ui/blob/95f19b192f477b59cc368dcb7751bcf2e0180e5b/internal/web/service/panel/panel.go)
+- [Серверный контроллер](https://github.com/MHSanaei/3x-ui/blob/95f19b192f477b59cc368dcb7751bcf2e0180e5b/internal/web/controller/server.go).
+- [Сервис обновления панели](https://github.com/MHSanaei/3x-ui/blob/95f19b192f477b59cc368dcb7751bcf2e0180e5b/internal/web/service/panel/panel.go).
 
-`GET /panel/api/server/getPanelUpdateInfo` supplies panel versions.
-`GET /panel/api/server/getXrayVersion` supplies Xray tags.
-`POST /panel/api/server/installXray/<exact tag>` installs the core.
-`POST /panel/api/server/updatePanel` receives form-encoded `dev=false`.
-`GET /panel/api/server/getUpdateStatus` supplies a string runId and outcome.
+`GET /panel/api/server/getPanelUpdateInfo` возвращает версии панели.
 
-The saved update channel is never changed. On a dev-channel panel the bot queries
-GitHub's official latest stable release without sending panel credentials.
-The native stable updater resolves latest at execution time; it cannot pin a panel
-version through this API. A release appearing during installation can therefore
-produce an unconfirmed version mismatch, never a fabricated success.
+`GET /panel/api/server/getXrayVersion` возвращает теги Xray.
 
-Missing endpoints, unknown versions or failed release lookups are reported.
-The self-updater remains subject to 3x-ui's OS/deployment restrictions. Docker-based
-panels may need their image updated through deployment tooling instead.
-Tests use fake local APIs; no live panel is modified by tests.
+`POST /panel/api/server/installXray/<exact tag>` устанавливает ядро; `<exact tag>` заменяется конкретным тегом.
 
-## Deployment and tests
+`POST /panel/api/server/updatePanel` принимает `dev=false` как данные формы.
 
-Merge the reviewed PR before updating the production Git checkout. Preserve `.env`
-and `data/`, and verify a usable recovery copy before deployment:
+`GET /panel/api/server/getUpdateStatus` возвращает строковый `runId` и результат.
+
+Сохранённый канал обновления не меняется. Для панели с каналом разработки бот запрашивает последний официальный стабильный релиз на GitHub, не передавая учётные данные панели. Штатный механизм стабильного канала определяет последний релиз во время выполнения: зафиксировать версию панели через этот API нельзя. Поэтому выход нового релиза во время установки может привести к неподтверждённому несовпадению версий, но не к ложному сообщению об успехе.
+
+Отсутствующие методы API, неизвестные версии и ошибки поиска релизов показываются явно. На штатный механизм обновления распространяются ограничения 3x-ui по операционной системе и способу установки. Для панелей в Docker может потребоваться обновление образа средствами развёртывания. Тесты используют локальные имитации API и не меняют работающие панели.
+
+## Развёртывание и тесты
+
+Перед обновлением рабочего Git-каталога слей проверенный PR. Сохрани `.env` и `data/` и убедись, что есть пригодная для восстановления копия:
 
 ```bash
 git pull --ff-only
@@ -118,10 +76,7 @@ docker compose up -d --build
 docker compose logs --tail=100 bot
 ```
 
-First check version display, Read-only access, no-token node behavior, cancellation
-and navigation. Rehearse a real update on a non-critical target during maintenance;
-verify actual VPN connectivity separately. A running process does not prove every
-transport or client configuration is compatible with an upgrade/downgrade.
+Сначала проверь отображение версий, доступ Read-only, поведение ноды без прямого токена, отмену и навигацию. Реальное обновление отрепетируй на некритичном сервере в период обслуживания. Отдельно проверь VPN-подключения: работающий процесс сам по себе не доказывает совместимость каждого транспорта и клиентской конфигурации с повышением или понижением версии.
 
 ```bash
 python -m pip install -r requirements.txt
@@ -129,8 +84,4 @@ python -m compileall -q .
 python -m unittest discover -s tests -v
 ```
 
-Workflow/API/backup tests use local fakes and temporary files. Integration tests
-import the actual application with fake environment values and cover menus, RBAC,
-legacy callbacks, backup manifests and audit/job records. Missing dependencies fail
-the integration tests rather than silently skipping them. Retained PR CI has
-read-only permissions and never calls production endpoints.
+Тесты сценариев, API и резервных копий используют локальные имитации и временные файлы. Интеграционные тесты импортируют настоящее приложение с фиктивными значениями окружения и проверяют меню, разграничение доступа по ролям, прежние обработчики кнопок, манифесты копий и записи аудита и заданий. Отсутствующая зависимость приводит к ошибке интеграционных тестов, а не к их незаметному пропуску. Постоянный CI для PR имеет права только на чтение и не обращается к рабочим API.
