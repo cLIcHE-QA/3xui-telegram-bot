@@ -447,6 +447,37 @@ GET status/operation остаются доступны во время mutation.
 
 Для restart состояние running → running само по себе не является доказательством выполнения; authoritative result берётся из operation journal.
 
+### Restart Panel process
+
+Это отдельная native 3x-ui операция, не action Host Control Agent:
+
+~~~http
+POST /panel/api/setting/restartPanel
+~~~
+
+Правила:
+
+- доступна только для Master или direct node с admin-scope direct API token;
+- transitive node не поддерживается;
+- POST отправляется ровно один раз;
+- если 3x-ui явно отклонил запрос, результат failed;
+- если HTTP response потерян, POST **не повторяется**;
+- после обычного accepted response bot ждёт grace period и подтверждает возврат Panel API;
+- после lost response success допускается только если bot наблюдал Panel API down → up;
+- если post-condition доказать нельзя, результат uncertain;
+- automatic fallback на Host Control Agent запрещён.
+
+### Xray Core
+
+Native endpoints:
+
+~~~http
+POST /panel/api/server/stopXrayService
+POST /panel/api/server/restartXrayService
+~~~
+
+`restartXrayService` используется и как Restart, и как Start после ручного Stop. Stop Xray — Owner-only; Restart / Start Xray — Admin+.
+
 ---
 
 ## 12. Timeouts и post-condition
@@ -630,9 +661,9 @@ Panel API кратковременно станет недоступен.
 [✖ Отмена]
 ~~~
 
-### Stop confirmation
+### Stop service confirmation
 
-Stop — Owner-only и требует усиленного подтверждения.
+Stop service — Owner-only и требует усиленного подтверждения.
 
 План v4.10.0: одноразовый confirmation nonce + явная фраза с именем target, например:
 
@@ -657,14 +688,18 @@ Nonce имеет короткий TTL и используется один ра�
 🟢 Panel API: online
 
 [▶ Start service]
-[⏹ Stop service]
 [🔄 Restart service]
+[⏹ Stop service]
+
 [♻️ Restart Panel process]
+
+[🔄 Restart / Start Xray]
+[⏹ Stop Xray]
 
 [⬅ Нода]
 ~~~
 
-🔄 Restart Xray остаётся отдельным существующим действием.
+Кнопка Stop Xray отображается только Owner; destructive Stop service также Owner-only.
 
 UI не должен объединять или путать:
 
@@ -684,13 +719,16 @@ Action names:
 host_control.start
 host_control.stop
 host_control.restart
+panel.restart
+xray.stop
+xray.restart
 ~~~
 
 Target:
 
 ~~~text
 target_type=host_control
-target_id=<configured alias>
+target_id=<configured target display name>
 ~~~
 
 Audit/job details могут содержать:
