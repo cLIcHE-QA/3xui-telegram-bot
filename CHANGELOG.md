@@ -6,6 +6,9 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## После v4.9.3 — подготовка v4.10.0
+- Зафиксирован контракт `Host Control Agent` для безопасных host-level операций `start/stop/restart x-ui.service`: отдельные credentials, строгий allowlist команд, persistent `operation_id`, lost-response recovery, role gates и fail-closed требования.
+
 ## v4.9.3 — Исправление счётчиков карточки ноды
 - Карточка `Infrastructure → Nodes → <node>` теперь использует enriched-данные `/panel/api/nodes/list` для вычисляемых счётчиков `inboundCount`, `clientCount`, `activeCount` и `onlineCount`.
 - При недоступности list API или отсутствии нужной ноды сохраняется fallback на `/panel/api/nodes/get/{id}`, поэтому административные действия не блокируются.
