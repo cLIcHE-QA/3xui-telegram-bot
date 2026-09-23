@@ -844,6 +844,7 @@ Bot host содержит host-control tokens. Поэтому blast radius ог�
 
 Mutation запрещается, если:
 
+- agent сообщает systemd state `unknown` или `transitioning`;
 - target отсутствует в HOST_CONTROL_TARGETS;
 - token отсутствует;
 - URL/transport не соответствует policy;
@@ -871,24 +872,25 @@ Mutation запрещается, если:
 6. Потеря POST response восстанавливается через operation lookup.
 7. Неизвестный operation остаётся uncertain, POST не повторяется.
 8. Concurrent mutation блокируется.
-9. Произвольный action отклоняется.
+9. При `unknown/transitioning` systemd state mutation блокируется до POST/systemctl.
+11. Произвольный action отклоняется.
 10. Произвольный systemd unit передать невозможно.
-11. Неверный token даёт 401 без утечки деталей.
-12. Wrong host_id блокирует mutation.
-13. Stop service и Stop Xray доступны только Owner.
-14. Restart/Start service, Restart Panel process и Restart/Start Xray доступны Admin/Owner.
-15. Read-only может смотреть status, но не выполнять mutation.
-16. Agent остаётся доступен после stop x-ui.service.
-17. После host-level start/restart проверяется и systemd state, и 3x-ui Panel API.
-18. `Restart Panel process` вызывает только `POST /panel/api/setting/restartPanel` и не выполняет systemctl.
-19. Потеря ответа `restartPanel` не вызывает автоматический повтор POST; итог подтверждается возвратом Panel API либо остаётся uncertain.
-20. `Restart Panel process` доступен для Master и direct nodes с admin-scope API token и запрещён для transitive nodes.
-21. Ни один Telegram callback/message не может задавать command, executable, argv, path или systemd unit.
-22. Агент не содержит SSH/shell/exec/file/Docker/firewall/reboot/package-management API.
-23. Sudoers использует только точные allowlisted команды для `x-ui.service`, без wildcard.
-24. Audit/job records не содержат secrets.
-25. Finland remote transport работает с TLS verification.
-26. Существующие Backup, Xray restart, provisioning, subscription и Versions & Updates не регрессируют.
+12. Неверный token даёт 401 без утечки деталей.
+13. Wrong host_id блокирует mutation.
+14. Stop service и Stop Xray доступны только Owner.
+15. Restart/Start service, Restart Panel process и Restart/Start Xray доступны Admin/Owner.
+16. Read-only может смотреть status, но не выполнять mutation.
+17. Agent остаётся доступен после stop x-ui.service.
+18. После host-level start/restart проверяется и systemd state, и 3x-ui Panel API.
+19. `Restart Panel process` вызывает только `POST /panel/api/setting/restartPanel` и не выполняет systemctl.
+20. Потеря ответа `restartPanel` не вызывает автоматический повтор POST; итог подтверждается возвратом Panel API либо остаётся uncertain.
+21. `Restart Panel process` доступен для Master и direct nodes с admin-scope API token и запрещён для transitive nodes.
+22. Ни один Telegram callback/message не может задавать command, executable, argv, path или systemd unit.
+23. Агент не содержит SSH/shell/exec/file/Docker/firewall/reboot/package-management API.
+24. Sudoers использует только точные allowlisted команды для `x-ui.service`, без wildcard.
+25. Audit/job records не содержат secrets.
+26. Finland remote transport работает с TLS verification.
+27. Существующие Backup, Xray restart, provisioning, subscription и Versions & Updates не регрессируют.
 
 ---
 
