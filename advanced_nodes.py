@@ -208,7 +208,7 @@ async def node_rename_finish(message: Message, state: FSMContext):
     try:
         raw = await xui.node_get_raw(node_id)
         old_name = str(raw.get("name") or "Node")
-        had_backup_target = system_backup.has_target_for(old_name)
+        had_backup_target = system_backup.has_target_for(old_name, node_id)
         had_host_control_target = any(
             target.name.strip().casefold() == old_name.strip().casefold()
             for target in settings.host_control_targets
@@ -251,7 +251,7 @@ async def node_backup(call: CallbackQuery):
     except XUIError as exc:
         await call.answer(str(exc)[:180], show_alert=True)
         return
-    if not system_backup.has_target_for(node.name):
+    if not system_backup.has_target_for(node.name, node.id):
         await call.answer("Backup target не настроен", show_alert=True)
         await render_callback(call, 
             "💾 Для backup этой ноды нужен отдельный admin-scope API token в NODE_BACKUP_TARGETS.\n"
@@ -261,7 +261,7 @@ async def node_backup(call: CallbackQuery):
         return
     await call.answer("Создаю backup…")
     try:
-        path = await system_backup.create_node_snapshot(node.name)
+        path = await system_backup.create_node_snapshot(node.name, node.id)
         await audit_from_call(
             db, call, "node.backup", target_type="node", target_id=node_id,
             details=f"name={node.name}; file={path.name}; bytes={path.stat().st_size}",
