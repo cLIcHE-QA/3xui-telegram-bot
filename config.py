@@ -74,6 +74,7 @@ def _load_host_control_targets() -> tuple[HostControlTarget, ...]:
     targets: list[HostControlTarget] = []
     seen_host_ids: set[str] = set()
     seen_names: set[str] = set()
+    seen_tokens: set[str] = set()
     for raw_alias in aliases:
         key = raw_alias.strip().upper()
         if not key or not key.replace("_", "").isalnum():
@@ -117,8 +118,11 @@ def _load_host_control_targets() -> tuple[HostControlTarget, ...]:
             raise RuntimeError(f"Duplicate host-control host_id: {host_id}")
         if folded_name in seen_names:
             raise RuntimeError(f"Duplicate host-control target name: {name}")
+        if token in seen_tokens:
+            raise RuntimeError("Host-control tokens must be unique per target.")
         seen_host_ids.add(host_id)
         seen_names.add(folded_name)
+        seen_tokens.add(token)
         targets.append(HostControlTarget(key, name, host_id, url, token, verify_tls))
     return tuple(targets)
 
