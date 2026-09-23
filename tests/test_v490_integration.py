@@ -54,6 +54,64 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.updates.back().inline_keyboard[0][0].text, '⬅ Versions & Updates')
         self.assertEqual(self.updates.back('m').inline_keyboard[0][0].text, '⬅ Сервер')
 
+    def test_static_inline_buttons_start_with_visual_marker(self):
+        import ast
+        import unicodedata
+
+        root = Path(__file__).resolve().parents[1]
+        files = [
+            'bot.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
+            'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
+            'disaster_recovery.py', 'logs_alerts.py',
+        ]
+
+        def marked(label: str) -> bool:
+            value = label.strip()
+            if not value:
+                return False
+            return unicodedata.category(value[0]) in {'So', 'Sm'}
+
+        missing = []
+        for name in files:
+            tree = ast.parse((root / name).read_text(encoding='utf-8'), filename=name)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                if not (isinstance(func, ast.Name) and func.id == 'InlineKeyboardButton'):
+                    continue
+                text_kw = next((kw.value for kw in node.keywords if kw.arg == 'text'), None)
+                if isinstance(text_kw, ast.Constant) and isinstance(text_kw.value, str):
+                    if not marked(text_kw.value):
+                        missing.append(f'{name}:{node.lineno}:{text_kw.value}')
+        self.assertEqual(missing, [])
+
+    def test_versions_static_tuple_buttons_start_with_visual_marker(self):
+        import ast
+        import unicodedata
+
+        source = inspect.getsource(self.updates)
+        tree = ast.parse(source)
+
+        def marked(label: str) -> bool:
+            value = label.strip()
+            if not value:
+                return False
+            return unicodedata.category(value[0]) in {'So', 'Sm'}
+
+        missing = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Tuple) or len(node.elts) != 2:
+                continue
+            label, callback = node.elts
+            if (isinstance(label, ast.Constant) and isinstance(label.value, str)
+                    and isinstance(callback, (ast.Constant, ast.JoinedStr))):
+                cb_value = callback.value if isinstance(callback, ast.Constant) else None
+                if (cb_value is None or (isinstance(cb_value, str) and cb_value.startswith('admin:'))):
+                    if not marked(label.value):
+                        missing.append(f'line {node.lineno}: {label.value}')
+        self.assertEqual(missing, [])
+
     def test_real_xui_client_has_version_api(self):
         from version_api import VersionAPIMixin
         self.assertIsInstance(self.bot.xui, VersionAPIMixin)
