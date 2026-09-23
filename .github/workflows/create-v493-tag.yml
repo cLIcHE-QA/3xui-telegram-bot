@@ -1,0 +1,88 @@
+name: Create verified v4.9.3 tag
+on:
+  push:
+    branches: ['chore/publish-v4.9.3']
+    paths: ['.github/workflows/create-v493-tag.yml']
+permissions:
+  contents: write
+  actions: read
+  pull-requests: read
+concurrency:
+  group: create-v4.9.3-tag
+  cancel-in-progress: false
+jobs:
+  tag:
+    if: github.repository == 'cLIcHE-QA/3xui-telegram-bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify release commit and create immutable tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          REPO = 'cLIcHE-QA/3xui-telegram-bot'
+          SHA = 'ce1e660463e0bc7d05e78f0d28caf44d4d6c3a15'
+          TAG = 'v4.9.3'
+          BASE = f'https://api.github.com/repos/{REPO}'
+
+          def api(path, payload=None, allow_missing=False):
+              req = urllib.request.Request(
+                  BASE + path,
+                  data=None if payload is None else json.dumps(payload).encode(),
+                  headers={
+                      'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                      'Accept': 'application/vnd.github+json',
+                      'Content-Type': 'application/json',
+                      'User-Agent': '3xui-bot-tag-publisher',
+                  },
+                  method='GET' if payload is None else 'POST',
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as resp:
+                      return json.load(resp)
+              except urllib.error.HTTPError as exc:
+                  if allow_missing and exc.code == 404:
+                      return None
+                  raise RuntimeError(f'GitHub API request failed: HTTP {exc.code}') from None
+
+          def tag_commit(ref):
+              obj = ref['object']
+              for _ in range(4):
+                  if obj['type'] == 'commit':
+                      return obj['sha']
+                  if obj['type'] != 'tag':
+                      raise RuntimeError('Unexpected tag object type')
+                  obj = api('/git/tags/' + obj['sha'])['object']
+              raise RuntimeError('Excessive annotated tag indirection')
+
+          if api('/branches/main')['commit']['sha'] != SHA:
+              raise RuntimeError('Main moved; tag creation needs another review')
+
+          run = api('/actions/runs/35895691401')
+          if (run['head_sha'], run['status'], run['conclusion'], run['event']) != (
+                  SHA, 'completed', 'success', 'push'):
+              raise RuntimeError('Expected successful post-merge CI is missing')
+
+          pr = api('/pulls/10')
+          if not pr['merged'] or pr['merge_commit_sha'] != SHA:
+              raise RuntimeError('PR #10 is not merged at the expected commit')
+
+          ref = api('/git/ref/tags/' + TAG, allow_missing=True)
+          if ref is None:
+              api('/git/refs', {'ref': 'refs/tags/' + TAG, 'sha': SHA})
+          elif tag_commit(ref) != SHA:
+              raise RuntimeError('Existing tag points elsewhere; it will NOT be moved')
+
+          ref = api('/git/ref/tags/' + TAG)
+          actual = tag_commit(ref)
+          if actual != SHA:
+              raise RuntimeError(f'Tag points to {actual}, expected {SHA}')
+
+          print('Verified tag:', TAG, actual)
+          PY
