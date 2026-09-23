@@ -7,6 +7,7 @@ HEALTH_URL="${RECOVERY_HEALTH_URL:-http://127.0.0.1:18080/healthz}"
 SSH_KEY="${RECOVERY_SSH_KEY:-$HOME/.ssh/3xui_bot_deploy}"
 EXPECTED_REPOSITORY="${RECOVERY_EXPECTED_REPOSITORY:-cLIcHE-QA/3xui-telegram-bot}"
 RESCUE_ROOT="${RECOVERY_RESCUE_ROOT:-/opt/3xui-bot/recovery-rescue}"
+ALLOW_VERSION_MISMATCH="${RECOVERY_ALLOW_VERSION_MISMATCH:-0}"
 
 usage() {
     cat <<'USAGE'
@@ -22,9 +23,13 @@ Safety:
   - refuses to overwrite a running bot container;
   - validates archive paths and SQLite before writing;
   - checks release tag + APP_VERSION + origin;
+  - requires backup manifest version to match the requested release by default;
   - creates a rescue copy of existing .env/data;
-  - disables HOST_CONTROL_TARGETS on restored .env until agents are re-enrolled;
+  - disables HOST_CONTROL_TARGETS and NODE_BACKUP_TARGETS until privileged targets are re-validated;
   - never prints secrets.
+
+Break glass:
+  RECOVERY_ALLOW_VERSION_MISMATCH=1 allows an intentional backup/release version mismatch.
 USAGE
 }
 
@@ -100,7 +105,7 @@ target_version="$(git show "$RELEASE:version.py" | sed -nE 's/^APP_VERSION[[:spa
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT HUP INT TERM
 
-python3 - "$ARCHIVE" "$stage" <<'PY'
+python3 - "$ARCHIVE" "$stage" "$target_version" "$ALLOW_VERSION_MISMATCH" <<'PY'
 from __future__ import annotations
 import json
 import sqlite3
@@ -110,6 +115,8 @@ from pathlib import Path
 
 archive = Path(sys.argv[1])
 stage = Path(sys.argv[2])
+target_version = sys.argv[3].strip()
+allow_version_mismatch = sys.argv[4].strip() == "1"
 max_members = 5000
 max_member = 512 * 1024 * 1024
 max_total = 2 * 1024 * 1024 * 1024
@@ -158,6 +165,27 @@ with tarfile.open(archive, "r:gz") as tar:
             except Exception:
                 manifest = {}
 
+backup_version = ""
+if isinstance(manifest, dict):
+    backup_version = str(manifest.get("version") or "").strip()
+
+if not backup_version:
+    if not allow_version_mismatch:
+        raise SystemExit(
+            "backup manifest version is missing; "
+            "set RECOVERY_ALLOW_VERSION_MISMATCH=1 only for an intentional break-glass restore"
+        )
+    print("WARNING: backup manifest version is missing; mismatch override is enabled")
+elif backup_version != target_version:
+    if not allow_version_mismatch:
+        raise SystemExit(
+            f"backup app version {backup_version!r} does not match target release {target_version!r}"
+        )
+    print(
+        "WARNING: backup app version "
+        f"{backup_version} does not match target release {target_version}; mismatch override is enabled"
+    )
+
 db = stage / "bot.sqlite3"
 if not db.read_bytes().startswith(b"SQLite format 3\x00"):
     raise SystemExit("bot.sqlite3 is not SQLite3")
@@ -169,33 +197,33 @@ if not values or any(v.lower() != "ok" for v in values):
     raise SystemExit("bot.sqlite3 quick_check failed: " + "; ".join(values[:10]))
 
 print("Backup preflight: OK")
-if isinstance(manifest, dict) and manifest.get("version"):
-    print("Backup app version:", manifest["version"])
+print("Backup app version:", backup_version or "unknown")
 PY
 
-# Restored host-control tokens/routes belong to the old host. Keep per-target
-# values in the file for operator review, but disable the active target list
-# until host-control is re-enrolled on the replacement VPS.
+# Restored privileged routes/tokens belong to the old deployment. Keep per-target
+# values in the file for operator review, but disable the active target lists
+# until Host Control and direct node admin connectivity are re-validated.
 python3 - "$stage/bot.env" <<'PY'
 from pathlib import Path
 import sys
 
 path = Path(sys.argv[1])
 lines = path.read_text(encoding="utf-8").splitlines()
+disabled = {"HOST_CONTROL_TARGETS", "NODE_BACKUP_TARGETS"}
 out = []
-seen = False
+seen = set()
 for line in lines:
     if line.lstrip().startswith("#") or "=" not in line:
         out.append(line)
         continue
     key = line.split("=", 1)[0].strip()
-    if key == "HOST_CONTROL_TARGETS":
-        out.append("HOST_CONTROL_TARGETS=")
-        seen = True
+    if key in disabled:
+        out.append(f"{key}=")
+        seen.add(key)
     else:
         out.append(line)
-if not seen:
-    out.append("HOST_CONTROL_TARGETS=")
+for key in sorted(disabled - seen):
+    out.append(f"{key}=")
 path.write_text("\n".join(out) + "\n", encoding="utf-8")
 PY
 
@@ -254,8 +282,16 @@ if result != "ok":
     raise SystemExit(1)
 PY
 
+current_version="$(docker exec "$cid" python -c 'from version import APP_VERSION; print(APP_VERSION)')"
+[[ "$current_version" == "$target_version" ]] \
+    || die "recovered container APP_VERSION=$current_version, expected $target_version; rescue copy: $rescue"
+
+./scripts/deploy-release.sh --status \
+    || die "recovered deployment failed status checks; rescue copy: $rescue"
+
 printf 'Recovery bootstrap complete.\n'
 printf 'Release: %s\n' "$RELEASE"
+printf 'APP_VERSION: %s\n' "$current_version"
 printf 'Rescue copy: %s\n' "$rescue"
-printf 'HOST_CONTROL_TARGETS was disabled intentionally. Re-enroll Host Control Agent before enabling it.\n'
-printf 'Next: verify PANEL_URL/DNS/firewall/3x-ui, then run ./scripts/deploy-release.sh --status\n'
+printf 'HOST_CONTROL_TARGETS and NODE_BACKUP_TARGETS were disabled intentionally.\n'
+printf 'Re-enroll Host Control and re-validate direct node admin targets before enabling them.\n'
