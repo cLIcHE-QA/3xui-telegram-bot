@@ -29,6 +29,7 @@ from business_admin import business_router
 from advanced_users import advanced_users_router
 from inbound_admin import inbound_admin_router, inbound_list_view
 from advanced_nodes import advanced_nodes_router
+from host_control import HostControlClient, HostControlError
 from host_control_ui import host_control_router
 from admin_auth import authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_system
@@ -373,6 +374,7 @@ def node_detail_keyboard(node_id: int, enabled: bool | None = None) -> InlineKey
             InlineKeyboardButton(text="✏️ Rename", callback_data=f"admin:nodectl:{node_id}:rename"),
             InlineKeyboardButton(text="🧩 3x-ui Control", callback_data=f"admin:hostctl:n{node_id}"),
         ],
+        [InlineKeyboardButton(text="🧭 Readiness", callback_data=f"admin:node:{node_id}:readiness")],
         [InlineKeyboardButton(text="⬆️ Update 3x-ui", callback_data=f"admin:ver:panel:n{node_id}")],
         [InlineKeyboardButton(text="⚡ Xray Core", callback_data=f"admin:ver:xray:n{node_id}:0")],
         [InlineKeyboardButton(text="🗑 Delete node", callback_data=f"admin:nodectl:{node_id}:deleteask")],
@@ -1251,7 +1253,7 @@ def _node_detail_text(node: NodeInfo) -> str:
         lines.append(f"⚠️ Xray error: {node.xray_error[:240]}")
     lines.append(
         "💾 Backup БД: "
-        + ("настроен" if system_backup.has_target_for(node.name) else "не настроен")
+        + ("настроен" if system_backup.has_target_for(node.name, getattr(node, "id", None)) else "не настроен")
     )
     if node.transitive:
         lines.append("ℹ️ Транзитная нода: read-only представление через родительскую ноду.")
@@ -1673,6 +1675,130 @@ async def admin_node_detail(call: CallbackQuery):
     if probe_error and not node.last_error:
         text += f"\n⚠️ Probe: {probe_error[:240]}"
     await render_callback(call, text, reply_markup=node_detail_keyboard(node_id, node.enable))
+
+
+
+def _host_control_target_for_node(node: NodeInfo):
+    for target in settings.host_control_targets:
+        if target.node_id == node.id:
+            return target, "node_id"
+    needle = node.name.strip().casefold()
+    for target in settings.host_control_targets:
+        if (
+            target.key != "MASTER"
+            and target.node_id is None
+            and target.name.strip().casefold() == needle
+        ):
+            return target, "legacy_name"
+    return None, "missing"
+
+
+@router.callback_query(F.data.regexp(r"^admin:node:\d+:readiness$"))
+async def admin_node_readiness(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    try:
+        node_id = int((call.data or "").split(":")[2])
+    except (TypeError, ValueError, IndexError):
+        await call.answer("Некорректный ID ноды", show_alert=True)
+        return
+
+    await call.answer("Проверяю readiness…")
+    try:
+        node = await xui.node_get_enriched(node_id)
+    except XUIError as exc:
+        await render_callback(
+            call,
+            f"🧭 Node readiness\n\n🔴 Нода не найдена в Master: {str(exc)[:240]}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")
+            ]]),
+        )
+        return
+
+    direct_target = system_backup.target_for(node.name, node.id)
+    direct_mode = (
+        "node_id" if direct_target is not None and direct_target.node_id == node.id
+        else "legacy_name" if direct_target is not None
+        else "missing"
+    )
+    direct_ok = False
+    direct_error = ""
+    if direct_target is not None:
+        try:
+            await system_backup.direct_client_for(node.name, getattr(node, "id", None)).server_status()
+            direct_ok = True
+        except Exception as exc:
+            direct_error = type(exc).__name__
+
+    host_target, host_mode = _host_control_target_for_node(node)
+    host_ok = False
+    host_state = "not configured"
+    host_error = ""
+    if host_target is not None:
+        try:
+            status = await HostControlClient(
+                host_target.url,
+                host_target.token,
+                host_target.host_id,
+                verify_tls=host_target.verify_tls,
+            ).status()
+            host_state = status.state
+            host_ok = status.state in {"running", "stopped"}
+        except HostControlError as exc:
+            host_error = exc.code or "unavailable"
+            host_state = "unavailable"
+
+    lines = [
+        f"🧭 Node readiness · {_node_display_name(node.name)}",
+        "",
+        f"Node ID: {node.id}",
+        f"{'🟢' if not node.transitive else '🔴'} Direct node: {'yes' if not node.transitive else 'no'}",
+        f"{'🟢' if node.enable and node.status == 'online' else '🟡'} Master view: {node.status}",
+        "",
+        "Privileged bindings",
+        f"{'🟢' if direct_ok else '🔴'} Direct Panel API: "
+        + ("online" if direct_ok else ("not configured" if direct_target is None else f"unavailable ({direct_error})")),
+        f"   binding: {direct_mode}",
+        f"{'🟢' if host_ok else '🔴'} Host Control: {host_state}"
+        + (f" ({host_error})" if host_error else ""),
+        f"   binding: {host_mode}",
+    ]
+
+    stable = direct_mode == "node_id" and host_mode == "node_id"
+    runtime_ready = not node.transitive and direct_ok and host_ok
+    lines += [
+        "",
+        f"{'🟢' if runtime_ready else '🟡'} Runtime readiness: {'ready' if runtime_ready else 'incomplete'}",
+        f"{'🟢' if stable else '🟡'} Stable identity: {'node_id' if stable else 'migration needed'}",
+    ]
+
+    hints: list[str] = []
+    if direct_target is None:
+        hints.append(
+            f"Direct admin: импортируй local enrollment через scripts/import-node-admin-target.py (NODE_ID={node.id})."
+        )
+    elif direct_mode != "node_id":
+        hints.append(f"Direct admin: добавь NODE_BACKUP_*_NODE_ID={node.id}.")
+    if host_target is None:
+        hints.append(
+            f"Host Control: импортируй enrollment с --node-id {node.id}."
+        )
+    elif host_mode != "node_id":
+        hints.append(f"Host Control: добавь HOST_CONTROL_*_NODE_ID={node.id}.")
+    if hints:
+        lines += ["", "Следующие шаги"] + [f"• {item}" for item in hints]
+
+    await render_callback(
+        call,
+        "\n".join(lines)[:3900],
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔄 Проверить снова", callback_data=f"admin:node:{node.id}:readiness")],
+            [InlineKeyboardButton(text="🧩 3x-ui Control", callback_data=f"admin:hostctl:n{node.id}")],
+            [InlineKeyboardButton(text="⬅ Нода", callback_data=f"admin:node:{node.id}")],
+        ]),
+    )
 
 
 @router.callback_query(F.data == "admin:health")

@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import argparse
-import ipaddress
 import os
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 import urllib.request
@@ -15,14 +13,13 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 ALIAS_RE = re.compile(r"^[A-Z0-9][A-Z0-9_]{0,31}$")
-HOST_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
-ENROLLMENT_KEYS = {
-    "HOST_CONTROL_ALIAS",
-    "HOST_CONTROL_NAME",
-    "HOST_CONTROL_HOST_ID",
-    "HOST_CONTROL_URL",
-    "HOST_CONTROL_VERIFY_TLS",
-    "HOST_CONTROL_TOKEN",
+INPUT_KEYS = {
+    "NODE_ADMIN_ALIAS",
+    "NODE_ADMIN_NODE_ID",
+    "NODE_ADMIN_NODE_NAME",
+    "NODE_ADMIN_PANEL_URL",
+    "NODE_ADMIN_API_TOKEN",
+    "NODE_ADMIN_VERIFY_TLS",
 }
 
 
@@ -32,11 +29,10 @@ def fail(message: str) -> "NoReturn":
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Safely import a Host Control enrollment file into bot .env without printing secrets."
+        description="Safely import a direct 3x-ui admin target into bot .env without printing its token."
     )
     parser.add_argument("enrollment", type=Path)
     parser.add_argument("--env", dest="env_path", type=Path, default=Path(".env"))
-    parser.add_argument("--node-id", type=int, default=None)
     parser.add_argument("--check-only", action="store_true")
     parser.add_argument("--recreate-bot", action="store_true")
     parser.add_argument("--project", default="3xui-telegram-bot")
@@ -59,12 +55,10 @@ def parse_simple_env(path: Path, *, allowed: set[str] | None = None) -> dict[str
             fail(f"{path}:{lineno}: expected KEY=VALUE")
         key, value = raw.split("=", 1)
         key = key.strip()
-        if not key:
-            fail(f"{path}:{lineno}: empty key")
         if allowed is not None and key not in allowed:
             fail(f"{path}:{lineno}: unexpected key {key}")
-        if key in values:
-            fail(f"{path}:{lineno}: duplicate key {key}")
+        if not key or key in values:
+            fail(f"{path}:{lineno}: invalid or duplicate key")
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
             value = value[1:-1]
@@ -72,82 +66,14 @@ def parse_simple_env(path: Path, *, allowed: set[str] | None = None) -> dict[str
     return values
 
 
-def is_private_host(hostname: str) -> bool:
-    value = (hostname or "").strip().lower()
-    if value == "localhost":
-        return True
-    try:
-        address = ipaddress.ip_address(value)
-    except ValueError:
-        return False
-    return any(
-        address in network
-        for network in (
-            ipaddress.ip_network("127.0.0.0/8"),
-            ipaddress.ip_network("10.0.0.0/8"),
-            ipaddress.ip_network("172.16.0.0/12"),
-            ipaddress.ip_network("192.168.0.0/16"),
-            ipaddress.ip_network("169.254.0.0/16"),
-            ipaddress.ip_network("::1/128"),
-            ipaddress.ip_network("fc00::/7"),
-            ipaddress.ip_network("fe80::/10"),
-        )
-    )
-
-
-def validate_target(alias: str, name: str, host_id: str, url: str, token: str, verify_tls: str) -> None:
-    if not ALIAS_RE.fullmatch(alias):
-        fail(f"invalid alias {alias!r}")
-    if not (1 <= len(name) <= 64) or "\n" in name or "\r" in name:
-        fail(f"invalid target name for {alias}")
-    if not HOST_ID_RE.fullmatch(host_id):
-        fail(f"invalid host_id for {alias}")
-    if len(token) < 43:
-        fail(f"token for {alias} is too short")
-    if verify_tls.strip().lower() not in {"1", "true", "yes", "on"}:
-        fail(f"VERIFY_TLS must be true for {alias}")
-
-    parsed = urlsplit(url.rstrip("/"))
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-        fail(f"URL for {alias} must be absolute http(s)")
-    if parsed.username or parsed.password or parsed.query or parsed.fragment:
-        fail(f"URL for {alias} must not contain credentials, query or fragment")
-    if parsed.scheme == "http":
-        if alias != "MASTER" or not is_private_host(parsed.hostname):
-            fail("plain HTTP is allowed only for private/local MASTER")
-
-
-def enrollment_to_updates(enrollment: dict[str, str]) -> tuple[str, dict[str, str]]:
-    missing = sorted(ENROLLMENT_KEYS - enrollment.keys())
-    if missing:
-        fail("enrollment is incomplete: " + ", ".join(missing))
-
-    alias = enrollment["HOST_CONTROL_ALIAS"].strip().upper()
-    name = enrollment["HOST_CONTROL_NAME"].strip()
-    host_id = enrollment["HOST_CONTROL_HOST_ID"].strip().lower()
-    url = enrollment["HOST_CONTROL_URL"].strip().rstrip("/")
-    verify_tls = enrollment["HOST_CONTROL_VERIFY_TLS"].strip()
-    token = enrollment["HOST_CONTROL_TOKEN"].strip()
-    validate_target(alias, name, host_id, url, token, verify_tls)
-
-    prefix = f"HOST_CONTROL_{alias}_"
-    return alias, {
-        prefix + "NAME": name,
-        prefix + "HOST_ID": host_id,
-        prefix + "URL": url,
-        prefix + "VERIFY_TLS": "true",
-        prefix + "TOKEN": token,
-    }
-
-
 def active_aliases(env: dict[str, str], new_alias: str) -> list[str]:
     aliases: list[str] = []
-    for raw in env.get("HOST_CONTROL_TARGETS", "").split(","):
+    for raw in env.get("NODE_BACKUP_TARGETS", "").split(","):
         alias = raw.strip().upper()
         if not alias:
             continue
         if not ALIAS_RE.fullmatch(alias):
-            fail(f"invalid existing HOST_CONTROL_TARGETS alias: {raw!r}")
+            fail(f"invalid existing NODE_BACKUP_TARGETS alias: {raw!r}")
         if alias not in aliases:
             aliases.append(alias)
     if new_alias not in aliases:
@@ -155,62 +81,110 @@ def active_aliases(env: dict[str, str], new_alias: str) -> list[str]:
     return aliases
 
 
+def enrollment_updates(values: dict[str, str]) -> tuple[str, dict[str, str]]:
+    missing = sorted(INPUT_KEYS - values.keys())
+    if missing:
+        fail("enrollment is incomplete: " + ", ".join(missing))
+
+    alias = values["NODE_ADMIN_ALIAS"].strip().upper()
+    if not ALIAS_RE.fullmatch(alias):
+        fail(f"invalid alias {alias!r}")
+
+    try:
+        node_id = int(values["NODE_ADMIN_NODE_ID"].strip())
+    except ValueError:
+        fail("NODE_ADMIN_NODE_ID must be a positive integer")
+    if node_id <= 0:
+        fail("NODE_ADMIN_NODE_ID must be a positive integer")
+
+    name = values["NODE_ADMIN_NODE_NAME"].strip()
+    if not (1 <= len(name) <= 64) or "\n" in name or "\r" in name:
+        fail("NODE_ADMIN_NODE_NAME must contain 1-64 characters on one line")
+
+    url = values["NODE_ADMIN_PANEL_URL"].strip().rstrip("/")
+    parsed = urlsplit(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        fail("NODE_ADMIN_PANEL_URL must be an absolute http(s) URL")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        fail("NODE_ADMIN_PANEL_URL must not contain credentials, query or fragment")
+
+    token = values["NODE_ADMIN_API_TOKEN"].strip()
+    if len(token) < 8:
+        fail("NODE_ADMIN_API_TOKEN looks too short")
+
+    verify_raw = values["NODE_ADMIN_VERIFY_TLS"].strip().lower()
+    if verify_raw not in {"1", "true", "yes", "on", "0", "false", "no", "off"}:
+        fail("NODE_ADMIN_VERIFY_TLS must be true or false")
+    verify = "true" if verify_raw in {"1", "true", "yes", "on"} else "false"
+    if parsed.scheme == "https" and verify != "true":
+        fail("verified HTTPS is required for direct admin targets")
+    if parsed.scheme == "http":
+        fail("plain HTTP is not accepted by the v4.11 onboarding importer")
+
+    prefix = f"NODE_BACKUP_{alias}_"
+    return alias, {
+        prefix + "NODE_NAME": name,
+        prefix + "NODE_ID": str(node_id),
+        prefix + "PANEL_URL": url,
+        prefix + "API_TOKEN": token,
+        prefix + "VERIFY_TLS": verify,
+    }
+
+
 def validate_combined(env: dict[str, str], alias: str, updates: dict[str, str]) -> list[str]:
     combined = dict(env)
     combined.update(updates)
     aliases = active_aliases(combined, alias)
-    combined["HOST_CONTROL_TARGETS"] = ",".join(aliases)
-
-    seen_ids: dict[str, str] = {}
+    seen_ids: dict[int, str] = {}
     seen_names: dict[str, str] = {}
     seen_tokens: dict[str, str] = {}
-    seen_node_ids: dict[int, str] = {}
+
     for key in aliases:
-        prefix = f"HOST_CONTROL_{key}_"
-        values = {
-            "name": combined.get(prefix + "NAME", "").strip(),
-            "host_id": combined.get(prefix + "HOST_ID", "").strip().lower(),
-            "url": combined.get(prefix + "URL", "").strip().rstrip("/"),
-            "token": combined.get(prefix + "TOKEN", "").strip(),
-            "verify_tls": combined.get(prefix + "VERIFY_TLS", "true").strip(),
-            "node_id": combined.get(prefix + "NODE_ID", "").strip(),
-        }
-        missing = [field for field in ("name", "host_id", "url", "token") if not values[field]]
+        prefix = f"NODE_BACKUP_{key}_"
+        name = combined.get(prefix + "NODE_NAME", "").strip()
+        raw_id = combined.get(prefix + "NODE_ID", "").strip()
+        url = combined.get(prefix + "PANEL_URL", "").strip().rstrip("/")
+        token = combined.get(prefix + "API_TOKEN", "").strip()
+        verify = combined.get(prefix + "VERIFY_TLS", "true").strip().lower()
+        missing = [
+            field for field, value in (
+                ("NODE_NAME", name),
+                ("PANEL_URL", url),
+                ("API_TOKEN", token),
+            ) if not value
+        ]
         if missing:
             fail(f"existing target {key} is incomplete: {', '.join(missing)}")
-        validate_target(
-            key,
-            values["name"],
-            values["host_id"],
-            values["url"],
-            values["token"],
-            values["verify_tls"],
-        )
-        node_id = None
-        if values["node_id"]:
-            if key == "MASTER":
-                fail(f"{prefix}NODE_ID is only valid for direct nodes")
+
+        if raw_id:
             try:
-                node_id = int(values["node_id"])
+                node_id = int(raw_id)
             except ValueError:
                 fail(f"{prefix}NODE_ID must be a positive integer")
             if node_id <= 0:
                 fail(f"{prefix}NODE_ID must be a positive integer")
-            other = seen_node_ids.get(node_id)
+            other = seen_ids.get(node_id)
             if other is not None and other != key:
-                fail(f"duplicate host-control node_id: {other} and {key}")
-            seen_node_ids[node_id] = key
+                fail(f"duplicate direct-admin node_id: {other} and {key}")
+            seen_ids[node_id] = key
 
-        folded_name = values["name"].casefold()
-        for value, seen, label in (
-            (values["host_id"], seen_ids, "host_id"),
-            (folded_name, seen_names, "name"),
-            (values["token"], seen_tokens, "token"),
-        ):
-            other = seen.get(value)
+        folded = name.casefold()
+        other = seen_names.get(folded)
+        if other is not None and other != key:
+            fail(f"duplicate direct-admin node name: {other} and {key}")
+        seen_names[folded] = key
+
+        if token:
+            other = seen_tokens.get(token)
             if other is not None and other != key:
-                fail(f"duplicate host-control {label}: {other} and {key}")
-            seen[value] = key
+                fail(f"direct-admin API tokens must be unique: {other} and {key}")
+            seen_tokens[token] = key
+
+        parsed = urlsplit(url)
+        if parsed.scheme != "https" or not parsed.hostname:
+            fail(f"{prefix}PANEL_URL must use HTTPS")
+        if verify not in {"1", "true", "yes", "on"}:
+            fail(f"{prefix}VERIFY_TLS=false is forbidden by v4.11 onboarding")
     return aliases
 
 
@@ -235,10 +209,10 @@ def render_env(path: Path, updates: dict[str, str]) -> str:
 
 def backup_path(env_path: Path) -> Path:
     stamp = time.strftime("%Y%m%d-%H%M%S", time.gmtime())
-    candidate = env_path.with_name(env_path.name + f".before-host-control-{stamp}")
+    candidate = env_path.with_name(env_path.name + f".before-node-admin-{stamp}")
     index = 1
     while candidate.exists():
-        candidate = env_path.with_name(env_path.name + f".before-host-control-{stamp}.{index}")
+        candidate = env_path.with_name(env_path.name + f".before-node-admin-{stamp}.{index}")
         index += 1
     return candidate
 
@@ -259,14 +233,10 @@ def atomic_write(path: Path, content: str) -> None:
 
 def compose_cmd(args: argparse.Namespace, *extra: str) -> list[str]:
     return [
-        "docker",
-        "compose",
-        "--project-name",
-        args.project,
-        "--env-file",
-        str(args.env_path),
-        "-f",
-        "docker-compose.yml",
+        "docker", "compose",
+        "--project-name", args.project,
+        "--env-file", str(args.env_path),
+        "-f", "docker-compose.yml",
         *extra,
     ]
 
@@ -305,23 +275,17 @@ def main() -> int:
     if not args.env_path.is_file():
         fail(f"env file not found: {args.env_path}")
 
-    enrollment = parse_simple_env(args.enrollment, allowed=ENROLLMENT_KEYS)
-    alias, target_updates = enrollment_to_updates(enrollment)
-    if args.node_id is not None:
-        if args.node_id <= 0:
-            fail("--node-id must be a positive integer")
-        if alias == "MASTER":
-            fail("--node-id is only valid for direct nodes")
-        target_updates[f"HOST_CONTROL_{alias}_NODE_ID"] = str(args.node_id)
+    source = parse_simple_env(args.enrollment, allowed=INPUT_KEYS)
+    alias, target_updates = enrollment_updates(source)
     env = parse_simple_env(args.env_path)
     aliases = validate_combined(env, alias, target_updates)
 
     updates = dict(target_updates)
-    updates["HOST_CONTROL_TARGETS"] = ",".join(aliases)
+    updates["NODE_BACKUP_TARGETS"] = ",".join(aliases)
     candidate = render_env(args.env_path, updates)
 
     if args.check_only:
-        print(f"Enrollment preflight OK for alias {alias}. No files changed.")
+        print(f"Direct-admin enrollment preflight OK for alias {alias}. No files changed.")
         return 0
 
     backup = backup_path(args.env_path)
@@ -332,7 +296,7 @@ def main() -> int:
     if args.recreate_bot:
         recreate_bot(args, backup)
 
-    print(f"Host-control enrollment imported for alias {alias}.")
+    print(f"Direct-admin target imported for alias {alias}.")
     print(f"Backup: {backup}")
     if not args.recreate_bot:
         print("Bot was not recreated. Recreate only the bot service after validation.")

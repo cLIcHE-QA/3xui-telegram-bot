@@ -321,7 +321,7 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
         node = info.nodes[idx]
         if not info.valid:
             raise RestoreError("backup не прошёл preflight")
-        if system_backup.direct_client_for(node.name) is None:
+        if system_backup.direct_client_for(node.name, getattr(node, "id", None)) is None:
             raise RestoreError(
                 f"Для {node.name} не настроен direct admin token в NODE_BACKUP_TARGETS; автоматический restore запрещён."
             )
@@ -437,7 +437,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
         if action == "node":
             idx = int(node_index)
             node = info.nodes[idx]
-            client = system_backup.direct_client_for(node.name)
+            client = system_backup.direct_client_for(node.name, getattr(node, "id", None))
             if client is None:
                 raise RestoreError(f"Direct admin token для {node.name} не настроен")
             archived = await asyncio.to_thread(restore_manager.read_member, path, node.member_name)
