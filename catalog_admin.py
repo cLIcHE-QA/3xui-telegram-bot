@@ -89,7 +89,7 @@ def infrastructure_back() -> InlineKeyboardMarkup:
 
 def cancel_keyboard(callback: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Отмена", callback_data=callback)],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data=callback)],
     ])
 
 
@@ -330,13 +330,13 @@ async def plan_add_price(message: Message, state: FSMContext):
     await state.update_data(price_minor=price_minor, currency=currency)
     await state.set_state(AddPlanStates.group)
     groups = await db.list_server_groups()
-    rows = [[InlineKeyboardButton(text="Без группы", callback_data="admin:planadd:group:none")]]
+    rows = [[InlineKeyboardButton(text="🚫 Без группы", callback_data="admin:planadd:group:none")]]
     for group in groups[:30]:
         rows.append([InlineKeyboardButton(
             text=f"🗂 {group.name}",
             callback_data=f"admin:planadd:group:{group.id}",
         )])
-    rows.append([InlineKeyboardButton(text="Отмена", callback_data="admin:planadd:cancel")])
+    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")])
     await render_input(message, 
         "Выбери Server Group для тарифа.\n"
         "Можно оставить без группы и назначить позже.",
@@ -371,7 +371,7 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
         f"Server Group: {group_name}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Создать", callback_data="admin:planadd:save")],
-            [InlineKeyboardButton(text="Отмена", callback_data="admin:planadd:cancel")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")],
         ]),
     )
     await call.answer()
@@ -405,7 +405,7 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         f"✅ Тариф создан: #{plan_id} · {data['name']}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть тариф", callback_data=f"admin:plan:{plan_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть тариф", callback_data=f"admin:plan:{plan_id}")],
             [InlineKeyboardButton(text="⬅ Plans", callback_data="admin:plans")],
         ]),
     )
@@ -439,7 +439,7 @@ async def plan_toggle(call: CallbackQuery):
     await render_callback(call, 
         "✅ Статус тарифа обновлён.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть тариф", callback_data=f"admin:plan:{plan_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть тариф", callback_data=f"admin:plan:{plan_id}")],
             [InlineKeyboardButton(text="⬅ Plans", callback_data="admin:plans")],
         ]),
     )
@@ -456,7 +456,7 @@ async def plan_group_select(call: CallbackQuery):
         return
     groups = await db.list_server_groups()
     rows = [[InlineKeyboardButton(
-        text="Без группы",
+        text="🚫 Без группы",
         callback_data=f"admin:plan:setgroup:{plan_id}:none",
     )]]
     for group in groups[:30]:
@@ -585,7 +585,7 @@ async def plan_delete_ask(call: CallbackQuery):
         f"Удалить тариф «{plan.name}»?\n\nПользователи и 3x-ui не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:plan:delete:{plan_id}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:plan:{plan_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:plan:{plan_id}")],
         ]),
     )
     await call.answer()
@@ -691,7 +691,7 @@ async def server_group_add_description(message: Message, state: FSMContext):
     await render_input(message, 
         f"✅ Server Group создана: #{group_id} · {data['name']}\n\nТеперь выбери серверы в карточке группы.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть группу", callback_data=f"admin:servergroup:{group_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть группу", callback_data=f"admin:servergroup:{group_id}")],
             [InlineKeyboardButton(text="⬅ Server Groups", callback_data="admin:servergroups")],
         ]),
     )
@@ -920,7 +920,7 @@ async def server_group_delete_ask(call: CallbackQuery):
         "У тарифов и user profiles эта группа будет снята. Текущие привязки 3x-ui не изменятся до reconcile.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:servergroup:delete:{group_id}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:servergroup:{group_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:servergroup:{group_id}")],
         ]),
     )
     await call.answer()
@@ -1057,7 +1057,7 @@ async def host_add_hostname(message: Message, state: FSMContext):
             text=HOST_ROLE_LABELS[key],
             callback_data=f"admin:hostadd:role:{key}",
         )])
-    rows.append([InlineKeyboardButton(text="Отмена", callback_data="admin:hostadd:cancel")])
+    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:hostadd:cancel")])
     await render_input(message, 
         "🌐 Новый host · 3/3\n\nВыбери роль:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -1091,7 +1091,7 @@ async def host_add_role(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         f"✅ Host добавлен: {data['hostname']} · {HOST_ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть host", callback_data=f"admin:host:{host_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть host", callback_data=f"admin:host:{host_id}")],
             [InlineKeyboardButton(text="⬅ Hosts", callback_data="admin:hosts")],
         ]),
     )
@@ -1153,7 +1153,7 @@ async def host_toggle(call: CallbackQuery):
     await render_callback(call, 
         "✅ Статус обновлён.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть host", callback_data=f"admin:host:{host_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть host", callback_data=f"admin:host:{host_id}")],
             [InlineKeyboardButton(text="⬅ Hosts", callback_data="admin:hosts")],
         ]),
     )
@@ -1173,7 +1173,7 @@ async def host_delete_ask(call: CallbackQuery):
         "DNS/nginx/3x-ui изменены не будут.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:host:delete:{host_id}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:host:{host_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:host:{host_id}")],
         ]),
     )
     await call.answer()
