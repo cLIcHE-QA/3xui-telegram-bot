@@ -52,6 +52,10 @@ class HostControlConfigTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.load({"HOST_CONTROL_FI_TOKEN": "short"})
 
+    def test_tokens_must_be_unique_per_target(self):
+        with self.assertRaises(RuntimeError):
+            self.load({"HOST_CONTROL_FI_TOKEN": "m" * 43})
+
     def test_incomplete_target_is_rejected(self):
         with self.assertRaises(RuntimeError):
             self.load({"HOST_CONTROL_FI_URL": ""})
