@@ -31,7 +31,11 @@ jobs:
       - run: |
           test -x scripts/bootstrap-bot-from-backup.sh
           bash -n scripts/bootstrap-bot-from-backup.sh
-          test "$(scripts/bootstrap-bot-from-backup.sh 2>&1 >/dev/null; echo $?)" -eq 2
+          set +e
+          scripts/bootstrap-bot-from-backup.sh >/dev/null 2>&1
+          rc=$?
+          set -e
+          test "$rc" -eq 2
       - run: |
           cp .env.example .env
           docker compose --env-file .env.example config --quiet
