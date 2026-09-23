@@ -20,11 +20,14 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          if [[ "$PR_TITLE" =~ ^release: v[0-9]+.[0-9]+.[0-9]+$ ]]; then
+          release_re='^release: v[0-9]+\.[0-9]+\.[0-9]+$'
+          regular_re='^(feat|fix|security|docs|test|chore|refactor): .+'
+
+          if [[ "$PR_TITLE" =~ $release_re ]]; then
             exit 0
           fi
 
-          if [[ "$PR_TITLE" =~ ^(feat|fix|security|docs|test|chore|refactor): .+ ]]; then
+          if [[ "$PR_TITLE" =~ $regular_re ]]; then
             exit 0
           fi
 
