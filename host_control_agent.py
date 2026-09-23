@@ -611,13 +611,19 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
         self._json(HTTPStatus.UNAUTHORIZED, {"error": "unauthorized"})
         return False
 
-    def _path(self) -> str:
-        return urlsplit(self.path).path
+    def _path(self) -> str | None:
+        parsed = urlsplit(self.path)
+        if parsed.query:
+            return None
+        return parsed.path
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
         if not self._authorized():
             return
         path = self._path()
+        if path is None:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid_request_target"})
+            return
         if path == "/v1/status":
             self._json(HTTPStatus.OK, self.agent.status_payload())
             return
@@ -638,7 +644,11 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
         if not self._authorized():
             return
-        if self._path() != "/v1/actions":
+        path = self._path()
+        if path is None:
+            self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid_request_target"})
+            return
+        if path != "/v1/actions":
             self._json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
             return
 
