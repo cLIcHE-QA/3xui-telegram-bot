@@ -1,0 +1,29 @@
+name: Feature
+description: Предложить новую возможность
+title: "feature: "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Желаемый результат
+      description: Что должно стать возможным после реализации?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Контекст
+      description: Зачем это нужно и какой текущий flow затрагивается?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Совместимость / security
+      description: Migration, privilege boundary, rollout или другие ограничения.
