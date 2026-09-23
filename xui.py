@@ -227,6 +227,12 @@ class XUIClient(VersionAPIMixin):
     async def restart_xray(self) -> dict[str, Any]:
         return await self._request("POST", "/panel/api/server/restartXrayService")
 
+    async def stop_xray(self) -> dict[str, Any]:
+        return await self._request("POST", "/panel/api/server/stopXrayService")
+
+    async def restart_panel(self) -> dict[str, Any]:
+        return await self._request("POST", "/panel/api/setting/restartPanel")
+
     async def panel_logs(self, count: int = 100, *, level: str = "info", syslog: bool = False) -> list[str]:
         count = max(1, min(500, int(count)))
         data = await self._request(
