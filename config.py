@@ -1,5 +1,8 @@
 from dataclasses import dataclass
+import ipaddress
 import os
+import re
+from urllib.parse import urlsplit
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -30,6 +33,84 @@ class NodeBackupTarget:
     panel_url: str
     api_token: str
     verify_tls: bool
+
+
+@dataclass(frozen=True)
+class HostControlTarget:
+    key: str
+    name: str
+    host_id: str
+    url: str
+    token: str
+    verify_tls: bool
+
+
+_HOST_CONTROL_HOST_ID = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}\\Z")
+
+
+def _private_http_host(hostname: str) -> bool:
+    value = (hostname or "").strip().lower()
+    if value == "localhost":
+        return True
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return address.is_loopback or address.is_private or address.is_link_local
+
+
+def _load_host_control_targets() -> tuple[HostControlTarget, ...]:
+    aliases = csv_values(os.getenv("HOST_CONTROL_TARGETS", ""))
+    targets: list[HostControlTarget] = []
+    seen_host_ids: set[str] = set()
+    seen_names: set[str] = set()
+    for raw_alias in aliases:
+        key = raw_alias.strip().upper()
+        if not key or not key.replace("_", "").isalnum():
+            raise RuntimeError(f"Invalid HOST_CONTROL_TARGETS alias: {raw_alias!r}")
+        prefix = f"HOST_CONTROL_{key}_"
+        name = os.getenv(prefix + "NAME", "").strip()
+        host_id = os.getenv(prefix + "HOST_ID", "").strip().lower()
+        url = os.getenv(prefix + "URL", "").strip().rstrip("/")
+        token = os.getenv(prefix + "TOKEN", "").strip()
+        verify_tls = env_bool(os.getenv(prefix + "VERIFY_TLS"), True)
+
+        missing = [
+            field for field, value in (
+                (prefix + "NAME", name),
+                (prefix + "HOST_ID", host_id),
+                (prefix + "URL", url),
+                (prefix + "TOKEN", token),
+            ) if not value
+        ]
+        if missing:
+            raise RuntimeError(
+                f"Host-control target {key} is incomplete; missing: {', '.join(missing)}"
+            )
+        if not _HOST_CONTROL_HOST_ID.fullmatch(host_id):
+            raise RuntimeError(f"Invalid {prefix}HOST_ID.")
+        if len(token) < 43:
+            raise RuntimeError(f"{prefix}TOKEN is too short; use at least 32 random bytes.")
+
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise RuntimeError(f"{prefix}URL must be an absolute http(s) URL.")
+        if parsed.username or parsed.password or parsed.query or parsed.fragment:
+            raise RuntimeError(f"{prefix}URL must not contain credentials, query or fragment.")
+        if parsed.scheme == "https" and not verify_tls:
+            raise RuntimeError(f"{prefix}VERIFY_TLS=false is forbidden for host-control HTTPS.")
+        if parsed.scheme == "http" and not _private_http_host(parsed.hostname):
+            raise RuntimeError(f"{prefix}URL plain HTTP is allowed only for a private/local address.")
+
+        folded_name = name.casefold()
+        if host_id in seen_host_ids:
+            raise RuntimeError(f"Duplicate host-control host_id: {host_id}")
+        if folded_name in seen_names:
+            raise RuntimeError(f"Duplicate host-control target name: {name}")
+        seen_host_ids.add(host_id)
+        seen_names.add(folded_name)
+        targets.append(HostControlTarget(key, name, host_id, url, token, verify_tls))
+    return tuple(targets)
 
 
 def _load_node_backup_targets() -> tuple[NodeBackupTarget, ...]:
@@ -94,6 +175,7 @@ class Settings:
     backup_hour_utc: int
     backup_send_to_admins: bool
     node_backup_targets: tuple[NodeBackupTarget, ...]
+    host_control_targets: tuple[HostControlTarget, ...]
     master_name: str
     master_flag: str
 
@@ -149,6 +231,7 @@ def load_settings() -> Settings:
         backup_hour_utc=max(0, min(23, int(os.getenv("BACKUP_HOUR_UTC", "2")))),
         backup_send_to_admins=env_bool(os.getenv("BACKUP_SEND_TO_ADMINS"), False),
         node_backup_targets=_load_node_backup_targets(),
+        host_control_targets=_load_host_control_targets(),
         master_name=os.getenv("MASTER_NAME", "Master").strip() or "Master",
         master_flag=os.getenv("MASTER_FLAG", "🇳🇱").strip() or "🇳🇱",
     )
