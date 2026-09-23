@@ -36,6 +36,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("enrollment", type=Path)
     parser.add_argument("--env", dest="env_path", type=Path, default=Path(".env"))
+    parser.add_argument("--node-id", type=int, default=None)
     parser.add_argument("--check-only", action="store_true")
     parser.add_argument("--recreate-bot", action="store_true")
     parser.add_argument("--project", default="3xui-telegram-bot")
@@ -163,6 +164,7 @@ def validate_combined(env: dict[str, str], alias: str, updates: dict[str, str]) 
     seen_ids: dict[str, str] = {}
     seen_names: dict[str, str] = {}
     seen_tokens: dict[str, str] = {}
+    seen_node_ids: dict[int, str] = {}
     for key in aliases:
         prefix = f"HOST_CONTROL_{key}_"
         values = {
@@ -171,6 +173,7 @@ def validate_combined(env: dict[str, str], alias: str, updates: dict[str, str]) 
             "url": combined.get(prefix + "URL", "").strip().rstrip("/"),
             "token": combined.get(prefix + "TOKEN", "").strip(),
             "verify_tls": combined.get(prefix + "VERIFY_TLS", "true").strip(),
+            "node_id": combined.get(prefix + "NODE_ID", "").strip(),
         }
         missing = [field for field in ("name", "host_id", "url", "token") if not values[field]]
         if missing:
@@ -183,6 +186,19 @@ def validate_combined(env: dict[str, str], alias: str, updates: dict[str, str]) 
             values["token"],
             values["verify_tls"],
         )
+        node_id = None
+        if values["node_id"]:
+            try:
+                node_id = int(values["node_id"])
+            except ValueError:
+                fail(f"{prefix}NODE_ID must be a positive integer")
+            if node_id <= 0:
+                fail(f"{prefix}NODE_ID must be a positive integer")
+            other = seen_node_ids.get(node_id)
+            if other is not None and other != key:
+                fail(f"duplicate host-control node_id: {other} and {key}")
+            seen_node_ids[node_id] = key
+
         folded_name = values["name"].casefold()
         for value, seen, label in (
             (values["host_id"], seen_ids, "host_id"),
@@ -289,6 +305,12 @@ def main() -> int:
 
     enrollment = parse_simple_env(args.enrollment, allowed=ENROLLMENT_KEYS)
     alias, target_updates = enrollment_to_updates(enrollment)
+    if args.node_id is not None:
+        if args.node_id <= 0:
+            fail("--node-id must be a positive integer")
+        if alias == "MASTER":
+            fail("--node-id is only valid for direct nodes")
+        target_updates[f"HOST_CONTROL_{alias}_NODE_ID"] = str(args.node_id)
     env = parse_simple_env(args.env_path)
     aliases = validate_combined(env, alias, target_updates)
 
