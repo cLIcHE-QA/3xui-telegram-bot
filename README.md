@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.10.0
+# Telegram-бот для 3x-ui v4.10.1
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
@@ -8,6 +8,20 @@
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
 Повторяемый rollout, deployment bundle и enrollment-import описаны в [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
 Восстановление бота после замены/форматирования VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
+
+## v4.10.1 — Operational rollout и recovery
+
+Patch-релиз не меняет runtime semantics `🧩 3x-ui Control`, но делает эксплуатацию v4.10 воспроизводимой: добавлены recovery helper для нового Master VPS, secret-free Host Control bundle для remote nodes, безопасный enrollment-import в bot `.env`, TLS refresh timer для отдельного management proxy и managed UFW reconfiguration.
+
+Для обычного обновления production используется опубликованный tag:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.10.1
+./scripts/deploy-release.sh --status
+~~~
+
+Host Control Agent/proxy на Master и remote nodes обновляется отдельно по [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md). Восстановление после замены/форматирования Master VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
 
 ## v4.10.0 — Безопасный 3x-ui Control
 
