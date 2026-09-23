@@ -2,7 +2,9 @@
 
 Этот runbook описывает воспроизводимое развёртывание Host Control Agent для Master и direct nodes.
 
-Цель: свести ручной rollout к одному installer-скрипту, не редактировать существующие MTProxy/nginx-конфиги и не давать Telegram-боту доступ к VPS за пределами allowlist для `x-ui.service`.
+Цель: сделать rollout повторяемым без ручного редактирования существующих MTProxy/nginx-конфигов и не давать Telegram-боту доступ к VPS за пределами allowlist для `x-ui.service`.
+
+Для remote node репозиторий клонировать не обязательно: из release checkout на Master можно собрать secret-free deployment bundle, передать его на VPS и выполнить installer локально. Enrollment возвращается на Master отдельным mode-0600 файлом и импортируется helper'ом без вывода token в терминал.
 
 ## 1. Быстрый путь — Master
 
@@ -52,6 +54,24 @@ sudo scripts/setup-host-control-endpoint.sh master \
 
 Для remote node используется отдельный HTTPS listener на management port. Existing public nginx/MTProxy server block не редактируется.
 
+Сначала на Master из checkout нужного release собери bundle:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+bash scripts/build-host-control-bundle.sh /root/3xui-host-control-bundle.tar.gz
+~~~
+
+Передай на remote VPS сам архив и `.sha256` через защищённый канал. На remote:
+
+~~~bash
+mkdir -p /root/3xui-host-control-install
+cd /root/3xui-host-control-install
+sha256sum -c /root/3xui-host-control-bundle.tar.gz.sha256
+tar -xzf /root/3xui-host-control-bundle.tar.gz
+~~~
+
+Bundle не содержит runtime secrets, token или TLS private key. Token создаётся только локально на target VPS.
+
 Предпосылки:
 
 - DNS `host-control-node.example.com` уже указывает на remote VPS;
@@ -60,10 +80,10 @@ sudo scripts/setup-host-control-endpoint.sh master \
 - management port свободен;
 - UFW/провайдерский firewall позволяет source-IP → management-port.
 
-Пример:
+Пример на remote VPS после распаковки bundle:
 
 ~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
+cd /root/3xui-host-control-install
 
 sudo scripts/setup-host-control-endpoint.sh remote \
   --alias FI \
@@ -85,6 +105,10 @@ https://host-control-fi.example.com:18443
 ~~~
 
 Он принимает соединения только с `--source-ip`.
+
+Installer сохраняет source paths сертификата/key в root-only state и включает `3xui-host-control-tls-refresh.timer`. Таймер ежедневно проверяет hostname и соответствие cert/key; если исходный сертификат обновился, копии для restricted proxy заменяются и отдельный proxy reload'ится. Existing nginx/MTProxy при этом не трогается.
+
+Повторный запуск installer с `--apply-ufw` сохраняет managed firewall state. Если management source/destination/port изменились, прежнее exact UFW allow-rule удаляется перед добавлением нового.
 
 ## 3. Что installer никогда не делает
 
@@ -164,7 +188,34 @@ HOST_CONTROL_VERIFY_TLS=true
 HOST_CONTROL_TOKEN=<secret>
 ~~~
 
-Перенос token в bot `.env` делается локально на Master. Не копируй token через issue/PR/chat.
+Перенос enrollment на Master делается только защищённым каналом. Не копируй token через issue/PR/chat и не выводи enrollment через `cat`.
+
+После передачи файла на Master сначала выполни preflight:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+
+python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-fi.env   --env .env   --check-only
+~~~
+
+Затем импортируй и пересоздай только bot container:
+
+~~~bash
+python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-fi.env   --env .env   --recreate-bot
+~~~
+
+Helper:
+
+- не печатает token;
+- проверяет alias/host_id/name/URL/transport policy;
+- блокирует повторное использование host_id/name/token между активными targets;
+- добавляет alias в `HOST_CONTROL_TARGETS` идемпотентно;
+- сохраняет mode-0600 backup предыдущего `.env`;
+- проверяет Compose до recreate;
+- пересоздаёт только service `bot`;
+- ждёт `/healthz = ok`.
+
+После успешной проверки enrollment-файл на Master можно удалить.
 
 Для alias `FI` итоговые ключи bot env:
 
@@ -179,13 +230,15 @@ HOST_CONTROL_FI_VERIFY_TLS=true
 
 ## 7. Production deploy bot
 
-После enrollment:
+Если одновременно устанавливается новая версия самого Telegram-бота, production по-прежнему разворачивается только по опубликованному tag:
 
 ~~~bash
 cd /opt/3xui-bot/3xui-telegram-bot
 ./scripts/deploy-release.sh vX.Y.Z
 ./scripts/deploy-release.sh --status
 ~~~
+
+Если release уже установлен и меняется только enrollment новой ноды, достаточно `import-host-control-enrollment.py --recreate-bot`: он пересоздаёт только текущий bot container с новым `.env`.
 
 ## 8. Smoke-test
 
@@ -204,6 +257,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Host-control можно отключить независимо от bot release:
 
 ~~~bash
+sudo systemctl disable --now 3xui-host-control-tls-refresh.timer 2>/dev/null || true
 sudo systemctl disable --now 3xui-host-control-proxy.service
 sudo systemctl disable --now 3xui-host-control.service
 ~~~
@@ -217,3 +271,5 @@ sudo systemctl disable --now 3xui-host-control.service
 Для восстановления самого бота используй `docs/VPS_RECOVERY.md` и `scripts/bootstrap-bot-from-backup.sh`.
 
 Host Control Agent на новом VPS всегда enroll заново: старый host token не должен автоматически переезжать на новый сервер.
+
+Для полноценного `🧩 3x-ui Control` remote node также нужен проверенный direct admin target в `NODE_BACKUP_TARGETS`: Panel/Xray actions и post-condition после Start/Restart используют штатный 3x-ui API. v4.10.x оставляет этот credential отдельным fail-safe конфигом; объединённый onboarding/readiness flow относится к v4.11.0.
