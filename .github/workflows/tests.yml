@@ -31,6 +31,9 @@ jobs:
       - run: |
           test -x scripts/bootstrap-bot-from-backup.sh
           bash -n scripts/bootstrap-bot-from-backup.sh
+          scripts/bootstrap-bot-from-backup.sh --help 2>&1 | grep -q 'RECOVERY_ALLOW_VERSION_MISMATCH'
+          grep -q 'NODE_BACKUP_TARGETS' scripts/bootstrap-bot-from-backup.sh
+          grep -q 'deploy-release.sh --status' scripts/bootstrap-bot-from-backup.sh
           set +e
           scripts/bootstrap-bot-from-backup.sh >/dev/null 2>&1
           rc=$?
