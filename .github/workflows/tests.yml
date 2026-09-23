@@ -32,9 +32,12 @@ jobs:
           test -x scripts/setup-host-control-endpoint.sh
           bash -n scripts/setup-host-control-endpoint.sh
           scripts/setup-host-control-endpoint.sh --help >/dev/null
+          test -x scripts/build-host-control-bundle.sh
           bash -n scripts/build-host-control-bundle.sh
-          bash scripts/build-host-control-bundle.sh --help >/dev/null
+          scripts/build-host-control-bundle.sh --help >/dev/null
+          test -x scripts/refresh-host-control-tls.sh
           bash -n scripts/refresh-host-control-tls.sh
+          test -x scripts/import-host-control-enrollment.py
           python3 scripts/import-host-control-enrollment.py --help >/dev/null
       - run: |
           test -x scripts/bootstrap-bot-from-backup.sh
