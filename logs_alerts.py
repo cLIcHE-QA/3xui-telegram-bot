@@ -183,7 +183,7 @@ async def logs_home(call: CallbackQuery):
         nodes = await xui.nodes_list()
     except XUIError:
         nodes = []
-    direct = sum(1 for n in nodes if system_backup.direct_client_for(n.name, n.id) is not None)
+    direct = sum(1 for n in nodes if system_backup.direct_client_for(n.name, getattr(n, "id", None)) is not None)
     text = (
         "📜 Logs\n\n"
         "Просмотр последних строк без shell-доступа. Фильтры применяются только к выдаче; "
@@ -227,7 +227,7 @@ async def node_logs_list(call: CallbackQuery):
         return
     rows: list[list[InlineKeyboardButton]] = []
     for node in nodes:
-        if system_backup.direct_client_for(node.name, node.id) is not None:
+        if system_backup.direct_client_for(node.name, getattr(node, "id", None)) is not None:
             icon = "🟢" if node.enable and node.status == "online" else "🔴"
             rows.append([InlineKeyboardButton(text=f"{icon} {node.name}", callback_data=f"admin:logs:node:{node.id}")])
     if not rows:
@@ -247,7 +247,7 @@ async def node_logs_sources(call: CallbackQuery):
     except XUIError as exc:
         await call.answer(str(exc)[:180], show_alert=True)
         return
-    if system_backup.direct_client_for(node.name, node.id) is None:
+    if system_backup.direct_client_for(node.name, getattr(node, "id", None)) is None:
         await call.answer("Direct admin token не настроен", show_alert=True)
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -270,7 +270,7 @@ async def node_log_view(call: CallbackQuery):
     node_id, source, count, level = int(parts[3]), parts[4], int(parts[5]), parts[6]
     try:
         node = await xui.node_get(node_id)
-        client = system_backup.direct_client_for(node.name, node.id)
+        client = system_backup.direct_client_for(node.name, getattr(node, "id", None))
         if client is None:
             raise RuntimeError("direct admin token is not configured")
         fetch_count = min(500, max(count, 200 if level != "all" else count))
