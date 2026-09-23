@@ -218,7 +218,8 @@ async def node_rename_finish(message: Message, state: FSMContext):
                 (
                     target
                     for target in settings.host_control_targets
-                    if target.name.strip().casefold() == old_name.strip().casefold()
+                    if target.node_id is None
+                    and target.name.strip().casefold() == old_name.strip().casefold()
                 ),
                 None,
             )
