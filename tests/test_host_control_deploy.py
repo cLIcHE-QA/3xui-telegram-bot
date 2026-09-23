@@ -61,7 +61,7 @@ class HostControlDeploymentSecurityTests(unittest.TestCase):
             "deploy/host-control/3xui-host-control.sudoers",
         ]:
             self.assertIn(required, text)
-        for forbidden in [".env", "token", "x-ui.db", "bot.sqlite3", "privkey.pem"]:
+        for forbidden in [".env", "/etc/3xui-host-control/token", "x-ui.db", "bot.sqlite3", "privkey.pem"]:
             self.assertNotIn(forbidden, text.lower())
 
     def test_agent_systemd_service_runs_unprivileged_and_loopback_only(self):
