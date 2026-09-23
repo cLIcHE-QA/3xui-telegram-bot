@@ -219,7 +219,17 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
 
     operation_id = secrets.token_hex(16)
     job_name = f"host_control.{action}"
-    run_id = await db.start_job_run(name=job_name, trigger="admin", actor_id=actor_id)
+    prepared_details = (
+        f"target={target.name}; operation_id={operation_id}; "
+        f"action={action}; result=prepared"
+    )
+    # Persist operation_id before POST so a bot crash cannot orphan the agent journal entry.
+    run_id = await db.start_job_run(
+        name=job_name,
+        trigger="admin",
+        actor_id=actor_id,
+        details=prepared_details,
+    )
     started = time.monotonic()
     client = _host_client(target.host_target)
     try:
