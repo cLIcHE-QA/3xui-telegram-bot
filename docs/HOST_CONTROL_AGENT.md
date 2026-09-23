@@ -617,7 +617,7 @@ Reverse proxy должен:
 - не логировать Authorization header;
 - проксировать только `/v1/` к loopback agent.
 
-Для Master допустим restricted private Docker-host route или аналогичный локальный reverse proxy. Plain HTTP разрешён bot config только к явным loopback/RFC1918/link-local адресам; remote/public target требует verified HTTPS.
+Для Master допустим restricted private Docker-host route или аналогичный локальный reverse proxy. Plain HTTP разрешён bot config только для alias `MASTER` на private/local адресе; любой remote target, включая private-address node, требует verified HTTPS.
 
 ---
 
