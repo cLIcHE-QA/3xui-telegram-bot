@@ -59,7 +59,7 @@ async def resolve_target(key: str) -> Target:
     node = await xui.node_get(int(key[1:]))
     if node.transitive:
         raise UpdateError("Transitive nodes are read-only; use their own administrator.")
-    client = system_backup.direct_client_for(node.name)
+    client = system_backup.direct_client_for(node.name, node.id)
     if client is None:
         raise UpdateError("Direct admin connection required: configure this node in NODE_BACKUP_TARGETS.")
     identity = f"{node.scheme}|{node.address}|{node.port}|{node.base_path}"
