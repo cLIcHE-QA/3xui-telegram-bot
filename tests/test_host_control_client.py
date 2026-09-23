@@ -163,6 +163,20 @@ class HostControlClientTests(unittest.IsolatedAsyncioTestCase):
                 await self.client.execute("restart", op_id)
         self.assertTrue(ctx.exception.uncertain)
 
+    async def test_unstable_preflight_blocks_mutation_post(self):
+        for state, code in [("unknown", "service_state_unknown"), ("transitioning", "service_transitioning")]:
+            calls = []
+
+            async def fake_http(method, path, *, body=None, _state=state):
+                calls.append((method, path, body))
+                return 200, status_payload(state=_state)
+
+            with self.subTest(state=state), patch.object(self.client, "_http", side_effect=fake_http):
+                with self.assertRaises(HostControlError) as ctx:
+                    await self.client.execute("restart", "9" * 32)
+                self.assertEqual(ctx.exception.code, code)
+                self.assertEqual([x[0] for x in calls], ["GET"])
+
     async def test_wrong_host_preflight_blocks_mutation_post(self):
         op_id = "1" * 32
         calls = []
