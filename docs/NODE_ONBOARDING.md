@@ -10,6 +10,66 @@ v4.11 добавляет рекомендуемый путь подключен�
 
 Все privileged targets привязываются к стабильному `node.id`. Display name остаётся только подписью и fallback для старых конфигураций.
 
+## Быстрый guided flow
+
+Для обычного добавления новой direct node используй wrapper `scripts/onboard-direct-node.sh`. Он не заменяет security helpers, а вызывает их в правильном порядке и не принимает/не печатает raw tokens.
+
+На Master подготовь secret-free Host Control bundle и, при необходимости, сразу скопируй его на новую VPS:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+
+bash scripts/onboard-direct-node.sh prepare \
+  --alias DE \
+  --host-id de \
+  --name Germany \
+  --listen-ip 203.0.113.10 \
+  --source-ip 198.51.100.20 \
+  --public-host panel-de.example.com \
+  --copy-to root@203.0.113.10 \
+  --ssh-port 22
+~~~
+
+`prepare` передаёт только bundle и checksum. Скрипт выводит exact remote command для установки Host Control endpoint с verified TLS, restricted source IP, managed UFW rule и ежедневным TLS refresh timer. Enrollment-файл с Host Control token создаётся только на remote VPS и возвращается на Master отдельно через защищённый канал.
+
+После remote setup подготовь на Master три mode-0600 файла:
+
+- node-sync enrollment для `onboard-node.py`;
+- direct-admin enrollment для `import-node-admin-target.py`;
+- Host Control enrollment, полученный с remote VPS.
+
+Для direct-admin файла при использовании wrapper `NODE_ADMIN_NODE_ID` можно не указывать: wrapper получает стабильный ID после регистрации node и передаёт его через `--node-id`.
+
+Сначала выполни read-only/preflight запуск:
+
+~~~bash
+bash scripts/onboard-direct-node.sh bind \
+  --node-enrollment /root/3xui-node-de.env \
+  --admin-enrollment /root/3xui-node-admin-de.env \
+  --host-control-enrollment /root/3xui-host-control-de.env
+~~~
+
+Для новой node preflight ничего не меняет. После проверки запусти тот же flow с explicit mutation:
+
+~~~bash
+bash scripts/onboard-direct-node.sh bind \
+  --node-enrollment /root/3xui-node-de.env \
+  --admin-enrollment /root/3xui-node-admin-de.env \
+  --host-control-enrollment /root/3xui-host-control-de.env \
+  --apply
+~~~
+
+Wrapper:
+
+1. повторяет node preflight и регистрирует либо безопасно переиспользует exact name + endpoint;
+2. получает `NODE_ID`;
+3. preflight-проверяет direct-admin и Host Control enrollment с одним и тем же ID;
+4. импортирует direct-admin binding без recreate;
+5. импортирует Host Control binding и пересоздаёт только service `bot` один раз;
+6. оставляет финальную проверку `🧭 Readiness` оператору.
+
+Wrapper не выполняет `docker compose down`, не запускает generic remote shell/SSH commands, не выводит enrollment contents и не объединяет node-sync/direct-admin/Host Control secrets.
+
 ## 1. Подготовь remote Host Control endpoint
 
 На новой VPS используй release bundle и `scripts/setup-host-control-endpoint.sh remote` из [Host Control Rollout](HOST_CONTROL_ROLLOUT.md).

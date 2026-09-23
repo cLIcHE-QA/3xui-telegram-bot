@@ -53,6 +53,9 @@ jobs:
           python3 scripts/import-node-admin-target.py --help >/dev/null
           test -x scripts/onboard-node.py
           python3 scripts/onboard-node.py --help >/dev/null
+          test -f scripts/onboard-direct-node.sh
+          bash -n scripts/onboard-direct-node.sh
+          bash scripts/onboard-direct-node.sh --help >/dev/null
       - run: |
           test -x scripts/bootstrap-bot-from-backup.sh
           bash -n scripts/bootstrap-bot-from-backup.sh

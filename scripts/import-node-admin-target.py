@@ -21,6 +21,7 @@ INPUT_KEYS = {
     "NODE_ADMIN_API_TOKEN",
     "NODE_ADMIN_VERIFY_TLS",
 }
+REQUIRED_INPUT_KEYS = INPUT_KEYS - {"NODE_ADMIN_NODE_ID"}
 
 
 def fail(message: str) -> "NoReturn":
@@ -33,6 +34,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("enrollment", type=Path)
     parser.add_argument("--env", dest="env_path", type=Path, default=Path(".env"))
+    parser.add_argument("--node-id", type=int, default=None)
     parser.add_argument("--check-only", action="store_true")
     parser.add_argument("--recreate-bot", action="store_true")
     parser.add_argument("--project", default="3xui-telegram-bot")
@@ -81,8 +83,12 @@ def active_aliases(env: dict[str, str], new_alias: str) -> list[str]:
     return aliases
 
 
-def enrollment_updates(values: dict[str, str]) -> tuple[str, dict[str, str]]:
-    missing = sorted(INPUT_KEYS - values.keys())
+def enrollment_updates(
+    values: dict[str, str],
+    *,
+    node_id_override: int | None = None,
+) -> tuple[str, dict[str, str]]:
+    missing = sorted(REQUIRED_INPUT_KEYS - values.keys())
     if missing:
         fail("enrollment is incomplete: " + ", ".join(missing))
 
@@ -90,12 +96,29 @@ def enrollment_updates(values: dict[str, str]) -> tuple[str, dict[str, str]]:
     if not ALIAS_RE.fullmatch(alias):
         fail(f"invalid alias {alias!r}")
 
-    try:
-        node_id = int(values["NODE_ADMIN_NODE_ID"].strip())
-    except ValueError:
-        fail("NODE_ADMIN_NODE_ID must be a positive integer")
-    if node_id <= 0:
-        fail("NODE_ADMIN_NODE_ID must be a positive integer")
+    raw_node_id = values.get("NODE_ADMIN_NODE_ID", "").strip()
+    if node_id_override is not None:
+        if node_id_override <= 0:
+            fail("--node-id must be a positive integer")
+        if raw_node_id:
+            try:
+                enrolled_node_id = int(raw_node_id)
+            except ValueError:
+                fail("NODE_ADMIN_NODE_ID must be a positive integer")
+            if enrolled_node_id <= 0:
+                fail("NODE_ADMIN_NODE_ID must be a positive integer")
+            if enrolled_node_id != node_id_override:
+                fail("NODE_ADMIN_NODE_ID does not match --node-id")
+        node_id = node_id_override
+    else:
+        if not raw_node_id:
+            fail("NODE_ADMIN_NODE_ID is required unless --node-id is provided")
+        try:
+            node_id = int(raw_node_id)
+        except ValueError:
+            fail("NODE_ADMIN_NODE_ID must be a positive integer")
+        if node_id <= 0:
+            fail("NODE_ADMIN_NODE_ID must be a positive integer")
 
     name = values["NODE_ADMIN_NODE_NAME"].strip()
     if not (1 <= len(name) <= 64) or "\n" in name or "\r" in name:
@@ -276,7 +299,7 @@ def main() -> int:
         fail(f"env file not found: {args.env_path}")
 
     source = parse_simple_env(args.enrollment, allowed=INPUT_KEYS)
-    alias, target_updates = enrollment_updates(source)
+    alias, target_updates = enrollment_updates(source, node_id_override=args.node_id)
     env = parse_simple_env(args.env_path)
     aliases = validate_combined(env, alias, target_updates)
 
