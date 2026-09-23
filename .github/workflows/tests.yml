@@ -29,6 +29,10 @@ jobs:
           sh -n scripts/install-host-control-agent.sh
           sudo /usr/sbin/visudo -cf deploy/host-control/3xui-host-control.sudoers >/dev/null
       - run: |
+          test -x scripts/bootstrap-bot-from-backup.sh
+          bash -n scripts/bootstrap-bot-from-backup.sh
+          test "$(scripts/bootstrap-bot-from-backup.sh 2>&1 >/dev/null; echo $?)" -eq 2
+      - run: |
           cp .env.example .env
           docker compose --env-file .env.example config --quiet
       - run: git diff --check
