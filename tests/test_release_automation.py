@@ -82,7 +82,7 @@ class ReleaseNotesTests(unittest.TestCase):
 
     def test_release_contract_forbids_manual_publication(self):
         doc = (ROOT / "docs" / "RELEASES.md").read_text(encoding="utf-8")
-        self.assertIn("вручную tag/Release не создаются", doc)
+        self.assertIn("tag и GitHub Release вручную не создаются", doc)
         self.assertIn("Release не должен иметь пустой `name` или пустой `body`", doc)
         self.assertIn("CHANGELOG.md", doc)
 
