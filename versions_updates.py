@@ -160,7 +160,8 @@ def keyboard(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
 
 
 def back(key: str = "") -> InlineKeyboardMarkup:
-    return keyboard([[('Назад', f'admin:ver:target:{key}' if key else 'admin:versions')]])
+    label = "⬅ Сервер" if key else "⬅ Versions & Updates"
+    return keyboard([[(label, f"admin:ver:target:{key}" if key else "admin:versions")]])
 
 
 def binding(call: CallbackQuery) -> dict[str, int]:
@@ -196,13 +197,13 @@ def operation_keyboard(op: Operation, role: str | None, call: CallbackQuery) -> 
             and ROLE_RANK.get(role or "", 0) >= ROLE_RANK["admin"]):
         if (isinstance(call.message, Message) and op.chat == call.message.chat.id
                 and op.message == call.message.message_id):
-            rows.append([("Подтвердить установку", f"admin:ver:run:{op.nonce}")])
-        rows.append([("Отмена", f"admin:ver:cancel:{op.nonce}")])
+            rows.append([("✅ Подтвердить установку", f"admin:ver:run:{op.nonce}")])
+        rows.append([("✖ Отмена", f"admin:ver:cancel:{op.nonce}")])
     if op.state in UNCERTAIN_STATES:
-        rows.append([("Проверить результат (без повтора)", f"admin:ver:check:{op.nonce}")])
+        rows.append([("🔍 Проверить результат (без повтора)", f"admin:ver:check:{op.nonce}")])
         if role == "owner":
-            rows.append([("Снять блокировку после ручной проверки", f"admin:ver:unlock:{op.nonce}")])
-    rows.append([("К серверу", f"admin:ver:target:{op.target}")])
+            rows.append([("🔓 Снять блокировку после ручной проверки", f"admin:ver:unlock:{op.nonce}")])
+    rows.append([("⬅ Сервер", f"admin:ver:target:{op.target}")])
     return keyboard(rows)
 
 
@@ -221,17 +222,17 @@ async def versions_home(call: CallbackQuery, state: FSMContext):
         lines += [f"3x-ui: {master.panel or 'недоступно'}", f"Xray: {master.xray or 'недоступно'} | {master.xray_state}"]
     else:
         lines.append("Не удалось получить версии Master.")
-    rows = [[(settings.master_name, "admin:ver:target:m")]]
+    rows = [[(f"🖥 {settings.master_name}", "admin:ver:target:m")]]
     if isinstance(nodes, list):
         for node in nodes[:30]:
             lines += ["", f"{node.name}: 3x-ui {node.panel_version or '?'} | Xray {node.xray_version or '?'}"]
             if node.id > 0 and not node.transitive:
-                rows.append([(node.name, f"admin:ver:target:n{node.id}")])
+                rows.append([(f"🌍 {node.name}", f"admin:ver:target:n{node.id}")])
         if len(nodes) > 30:
             lines.append(f"Показано 30 из {len(nodes)} нод; остальные доступны через Infrastructure.")
     else:
         lines += ["", "Не удалось получить список нод."]
-    rows += [[("Обновить", "admin:versions")], [("System", "admin:section:system")]]
+    rows += [[("🔄 Обновить", "admin:versions")], [("⬅ System", "admin:section:system")]]
     await render_callback(call, "\n".join(lines)[:3900], reply_markup=keyboard(rows))
 
 
@@ -250,16 +251,16 @@ async def version_target(call: CallbackQuery, state: FSMContext):
             node = await xui.node_get(int(key[1:]))
             name = node.name
             snapshot = VersionState(node.panel_version, node.xray_version, node.xray_state)
-        rows = [[("3x-ui update", f"admin:ver:panel:{key}")],
-                [("Xray versions", f"admin:ver:xray:{key}:0")]]
+        rows = [[("⬆️ 3x-ui update", f"admin:ver:panel:{key}")],
+                [("⚡ Xray versions", f"admin:ver:xray:{key}:0")]]
         text = (f"{name}\n\n3x-ui: {snapshot.panel or 'недоступно'}\n"
                 f"Xray: {snapshot.xray or 'недоступно'} | {snapshot.xray_state}\n\n"
                 "Только ручные обновления: свежая проверенная копия и подтверждение.")
         op = store.get(key)
         if op and op.state in UNCERTAIN_STATES | {"prepared", "preparing", "checking"}:
             text += f"\n\nОперация: {op.state} ({op.nonce})"
-            rows.append([("Статус операции", f"admin:ver:check:{op.nonce}")])
-        rows += [[("Обновить", f"admin:ver:target:{key}")], [("Все серверы", "admin:versions")]]
+            rows.append([("📋 Статус операции", f"admin:ver:check:{op.nonce}")])
+        rows += [[("🔄 Обновить", f"admin:ver:target:{key}")], [("⬅ Versions & Updates", "admin:versions")]]
         await render_callback(call, text, reply_markup=keyboard(rows))
     except Exception as exc:
         await error_screen(call, exc)
@@ -282,8 +283,8 @@ async def show_panel_screen(call: CallbackQuery, key: str) -> None:
                 "Используется stable; сохранённая настройка канала не меняется.")
         rows = []
         if target.eligible and ROLE_RANK.get(role or "", 0) >= ROLE_RANK["admin"] and not same_version(current, latest):
-            rows.append([("Создать backup и перейти к подтверждению", f"admin:ver:prepare:{key}:panel")])
-        rows.append([("Назад", f"admin:ver:target:{key}")])
+            rows.append([("💾 Создать backup и перейти к подтверждению", f"admin:ver:prepare:{key}:panel")])
+        rows.append([("⬅ Сервер", f"admin:ver:target:{key}")])
         await render_callback(call, text, reply_markup=keyboard(rows))
     except Exception as exc:
         await error_screen(call, exc, key)
@@ -316,15 +317,15 @@ async def xray_versions(call: CallbackQuery):
             label = value + (" | current" if current else "")
             lines.append(label)
             if can_change and not current:
-                rows.append([(label, f"admin:ver:pick:{key}:{value}")])
+                rows.append([(f"📦 {label}", f"admin:ver:pick:{key}:{value}")])
         nav = []
         if page:
-            nav.append(("Предыдущая", f"admin:ver:xray:{key}:{page - 1}"))
+            nav.append(("⬅ Предыдущая", f"admin:ver:xray:{key}:{page - 1}"))
         if (page + 1) * 8 < len(values):
-            nav.append(("Следующая", f"admin:ver:xray:{key}:{page + 1}"))
+            nav.append(("➡ Следующая", f"admin:ver:xray:{key}:{page + 1}"))
         if nav:
             rows.append(nav)
-        rows.append([("Назад", f"admin:ver:target:{key}")])
+        rows.append([("⬅ Сервер", f"admin:ver:target:{key}")])
         await render_callback(call, "\n".join(lines), reply_markup=keyboard(rows))
     except Exception as exc:
         await error_screen(call, exc, key)
@@ -397,7 +398,7 @@ async def unlock_start(call: CallbackQuery, state: FSMContext):
         "Сначала вручную убедись, что updater на сервере завершился. "
         "Это только снимает локальную блокировку — без повтора и без отката.\n\n"
         f"Введи точно: UNLOCK {nonce}",
-        reply_markup=keyboard([[('Отмена', 'admin:versions')]]),
+        reply_markup=keyboard([[('✖ Отмена', 'admin:versions')]]),
     )
 
 
@@ -411,4 +412,4 @@ async def unlock_finish(message: Message, state: FSMContext):
         await state.clear()
         await render_input(message, operation_text(op), reply_markup=back(op.target))
     except Exception as exc:
-        await render_input(message, safe_error(exc), reply_markup=keyboard([[('Отмена', 'admin:versions')]]))
+        await render_input(message, safe_error(exc), reply_markup=keyboard([[('✖ Отмена', 'admin:versions')]]))

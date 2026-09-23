@@ -481,7 +481,7 @@ async def user_plan_apply_ask(call: CallbackQuery):
         "Накопленный traffic не сбрасывается. Server Group сохраняется отдельно.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Применить", callback_data=f"admin:u:planapplyrun:{tg_id}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -630,7 +630,7 @@ async def user_provisioning_strict_ask(call: CallbackQuery):
         "⚠️ Strict reconcile не только добавит missing inbound'ы, но и отключит управляемые inbound'ы, которых нет в desired policy.\n\nПродолжить?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, strict reconcile", callback_data=f"admin:u:provrun:{tg_id}:strict")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:u:prov:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:prov:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -685,7 +685,7 @@ async def user_plan_provision_ask(call: CallbackQuery):
         "Это обновит expiry/traffic/IP limit, назначит Server Group тарифа и добавит missing inbound'ы. Extra inbound'ы не удаляются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Plan + Provision", callback_data=f"admin:u:planprovrun:{tg_id}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -810,7 +810,7 @@ async def user_reset_ask(call: CallbackQuery):
         f"Сбросить накопленный трафик {rec.email} до 0?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сбросить трафик", callback_data=f"admin:u:resetrun:{tg_id}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -857,7 +857,7 @@ async def user_sub_rotate_ask(call: CallbackQuery):
         "но обновлять их по старому URL будет нельзя.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Сгенерировать новый subId", callback_data=f"admin:u:subrotaterun:{tg_id}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -925,7 +925,7 @@ async def _bulk_render(state: FSMContext) -> tuple[str, InlineKeyboardMarkup]:
     nav = []
     if page > 0:
         nav.append(InlineKeyboardButton(text="⬅", callback_data="admin:bulk:prev"))
-    nav.append(InlineKeyboardButton(text=f"{page + 1}/{pages}", callback_data="admin:bulk:noop"))
+    nav.append(InlineKeyboardButton(text=f"📄 {page + 1}/{pages}", callback_data="admin:bulk:noop"))
     if page + 1 < pages:
         nav.append(InlineKeyboardButton(text="➡", callback_data="admin:bulk:next"))
     rows.append(nav)

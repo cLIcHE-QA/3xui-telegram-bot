@@ -114,13 +114,13 @@ def _log_controls(source: str, count: int, level: str, *, node_id: int | None = 
         base = f"admin:logs:nview:{node_id}:{source}"
     rows = [
         [
-            InlineKeyboardButton(text=("✓ " if count == 50 else "") + "50", callback_data=f"{base}:50:{level}"),
-            InlineKeyboardButton(text=("✓ " if count == 200 else "") + "200", callback_data=f"{base}:200:{level}"),
+            InlineKeyboardButton(text=("✅ " if count == 50 else "📄 ") + "50", callback_data=f"{base}:50:{level}"),
+            InlineKeyboardButton(text=("✅ " if count == 200 else "📄 ") + "200", callback_data=f"{base}:200:{level}"),
         ],
         [
-            InlineKeyboardButton(text=("✓ " if level == "all" else "") + "ALL", callback_data=f"{base}:{count}:all"),
-            InlineKeyboardButton(text=("✓ " if level == "warning" else "") + "WARN+", callback_data=f"{base}:{count}:warning"),
-            InlineKeyboardButton(text=("✓ " if level == "error" else "") + "ERROR", callback_data=f"{base}:{count}:error"),
+            InlineKeyboardButton(text=("✅ " if level == "all" else "📋 ") + "ALL", callback_data=f"{base}:{count}:all"),
+            InlineKeyboardButton(text=("✅ " if level == "warning" else "⚠️ ") + "WARN+", callback_data=f"{base}:{count}:warning"),
+            InlineKeyboardButton(text=("✅ " if level == "error" else "❌ ") + "ERROR", callback_data=f"{base}:{count}:error"),
         ],
         [InlineKeyboardButton(text="🔄 Обновить", callback_data=f"{base}:{count}:{level}")],
         [InlineKeyboardButton(text="⬅ Logs", callback_data="admin:logs")],
@@ -231,7 +231,7 @@ async def node_logs_list(call: CallbackQuery):
             icon = "🟢" if node.enable and node.status == "online" else "🔴"
             rows.append([InlineKeyboardButton(text=f"{icon} {node.name}", callback_data=f"admin:logs:node:{node.id}")])
     if not rows:
-        rows.append([InlineKeyboardButton(text="— direct tokens не настроены", callback_data="admin:logs")])
+        rows.append([InlineKeyboardButton(text="⚠️ direct tokens не настроены", callback_data="admin:logs")])
     rows.append([InlineKeyboardButton(text="⬅ Logs", callback_data="admin:logs")])
     await render_callback(call, "🌍 Node logs\n\nВыбери ноду:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()

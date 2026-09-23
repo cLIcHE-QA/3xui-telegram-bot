@@ -344,27 +344,27 @@ def _edit_menu(ib: dict[str, Any]) -> InlineKeyboardMarkup:
     security = str(stream.get("security") or "")
     rows: list[list[InlineKeyboardButton]] = [
         [
-            InlineKeyboardButton(text="Название", callback_data=f"admin:inbound:editfield:{iid}:remark"),
-            InlineKeyboardButton(text="Port", callback_data=f"admin:inbound:editfield:{iid}:port"),
+            InlineKeyboardButton(text="✏️ Название", callback_data=f"admin:inbound:editfield:{iid}:remark"),
+            InlineKeyboardButton(text="🔌 Port", callback_data=f"admin:inbound:editfield:{iid}:port"),
         ],
-        [InlineKeyboardButton(text="Listen", callback_data=f"admin:inbound:editfield:{iid}:listen")],
+        [InlineKeyboardButton(text="👂 Listen", callback_data=f"admin:inbound:editfield:{iid}:listen")],
     ]
     if network == "xhttp":
         rows += [
             [
-                InlineKeyboardButton(text="XHTTP path", callback_data=f"admin:inbound:editfield:{iid}:path"),
-                InlineKeyboardButton(text="XHTTP host", callback_data=f"admin:inbound:editfield:{iid}:host"),
+                InlineKeyboardButton(text="🌐 XHTTP path", callback_data=f"admin:inbound:editfield:{iid}:path"),
+                InlineKeyboardButton(text="🏷️ XHTTP host", callback_data=f"admin:inbound:editfield:{iid}:host"),
             ],
             [
-                InlineKeyboardButton(text="XHTTP mode", callback_data=f"admin:inbound:editmode:{iid}"),
-                InlineKeyboardButton(text="XHTTP padding", callback_data=f"admin:inbound:editfield:{iid}:padding"),
+                InlineKeyboardButton(text="⚙️ XHTTP mode", callback_data=f"admin:inbound:editmode:{iid}"),
+                InlineKeyboardButton(text="📐 XHTTP padding", callback_data=f"admin:inbound:editfield:{iid}:padding"),
             ],
         ]
     if security == "reality":
         rows += [
             [
-                InlineKeyboardButton(text="Reality SNI", callback_data=f"admin:inbound:editfield:{iid}:sni"),
-                InlineKeyboardButton(text="Fingerprint", callback_data=f"admin:inbound:editfield:{iid}:fingerprint"),
+                InlineKeyboardButton(text="🎯 Reality SNI", callback_data=f"admin:inbound:editfield:{iid}:sni"),
+                InlineKeyboardButton(text="🪪 Fingerprint", callback_data=f"admin:inbound:editfield:{iid}:fingerprint"),
             ]
         ]
     rows.append([InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")])
@@ -429,7 +429,7 @@ async def inbound_edit_mode(call: CallbackQuery):
     if not await guard(call, minimum="admin"):
         return
     iid = int(call.data.rsplit(":", 1)[-1])
-    rows = [[InlineKeyboardButton(text=mode, callback_data=f"admin:inbound:setmode:{iid}:{mode}")]
+    rows = [[InlineKeyboardButton(text=f"⚙️ {mode}", callback_data=f"admin:inbound:setmode:{iid}:{mode}")]
             for mode in ("auto", "packet-up", "stream-up", "stream-one")]
     rows.append([InlineKeyboardButton(text="⬅ Edit", callback_data=f"admin:inbound:edit:{iid}")])
     await render_callback(call, "XHTTP mode:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
@@ -610,7 +610,7 @@ async def inbound_sync_ask(call: CallbackQuery):
         "если они ещё не привязаны. Лимиты и credentials не меняются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Выполнить", callback_data=f"admin:inbound:syncrun:{iid}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:inbound:{iid}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inbound:{iid}")],
         ]),
     )
     await call.answer()
@@ -654,7 +654,7 @@ async def inbound_reset_ask(call: CallbackQuery):
         f"♻️ Обнулить общий traffic inbound #{iid}?\n\nPer-client counters не изменяются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Reset", callback_data=f"admin:inbound:resetrun:{iid}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:inbound:{iid}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inbound:{iid}")],
         ]),
     )
     await call.answer()
@@ -689,7 +689,7 @@ async def _target_keyboard(prefix: str, source_id: int) -> InlineKeyboardMarkup:
             rows.append([InlineKeyboardButton(
                 text=f"🌍 {node.name}", callback_data=f"{prefix}:{source_id}:{node.id}"
             )])
-    rows.append([InlineKeyboardButton(text="Отмена", callback_data="admin:infra:inbounds")])
+    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:infra:inbounds")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -998,7 +998,7 @@ async def template_delete_ask(call: CallbackQuery):
         f"Удалить template «{t.name}»?\n\nРазвёрнутые inbound'ы не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Удалить", callback_data=f"admin:inboundtemplate:delete:{tid}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:inboundtemplate:{tid}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inboundtemplate:{tid}")],
         ]),
     )
     await call.answer()
@@ -1044,7 +1044,7 @@ async def inbound_delete_ask(call: CallbackQuery):
         "перед удалением проверь клиентские привязки.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить inbound", callback_data=f"admin:inbound:delete:{iid}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:inbound:{iid}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inbound:{iid}")],
         ]),
     )
     await call.answer()

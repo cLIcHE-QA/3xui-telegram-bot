@@ -243,7 +243,7 @@ async def payment_status(call: CallbackQuery):
     await render_callback(call, 
         f"✅ Payment #{payment_id}: {PAYMENT_STATUSES[status]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть платёж", callback_data=f"admin:payment:{payment_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть платёж", callback_data=f"admin:payment:{payment_id}")],
             [InlineKeyboardButton(text="⬅ Payments", callback_data="admin:payments")],
         ]),
     )
@@ -277,7 +277,7 @@ async def payment_add_user(message: Message, state: FSMContext):
         return
     await state.update_data(telegram_id=tg_id, email=user.email)
     plans = await db.list_plans()
-    rows = [[InlineKeyboardButton(text="Без тарифа", callback_data="admin:paymentadd:plan:0")]]
+    rows = [[InlineKeyboardButton(text="🚫 Без тарифа", callback_data="admin:paymentadd:plan:0")]]
     for plan in plans[:30]:
         rows.append([InlineKeyboardButton(
             text=f"{'🟢' if plan.active else '⚪'} {plan.name}",
@@ -392,7 +392,7 @@ async def payment_add_save(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         f"✅ Payment #{payment_id} создан.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть", callback_data=f"admin:payment:{payment_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:payment:{payment_id}")],
             [InlineKeyboardButton(text="⬅ Payments", callback_data="admin:payments")],
         ]),
     )
@@ -512,7 +512,7 @@ async def promo_add_code(message: Message, state: FSMContext):
         "Шаг 2/6. Тип скидки:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [
-                InlineKeyboardButton(text="% Процент", callback_data="admin:promoadd:type:percent"),
+                InlineKeyboardButton(text="📊 Процент", callback_data="admin:promoadd:type:percent"),
                 InlineKeyboardButton(text="💵 Сумма", callback_data="admin:promoadd:type:fixed"),
             ],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:promoadd:cancel")],
@@ -563,9 +563,9 @@ async def promo_add_value(message: Message, state: FSMContext):
             return
         await state.update_data(value=value, currency=currency)
     plans = await db.list_plans()
-    rows = [[InlineKeyboardButton(text="Все тарифы", callback_data="admin:promoadd:plan:0")]]
+    rows = [[InlineKeyboardButton(text="🌐 Все тарифы", callback_data="admin:promoadd:plan:0")]]
     for plan in plans[:30]:
-        rows.append([InlineKeyboardButton(text=plan.name, callback_data=f"admin:promoadd:plan:{plan.id}")])
+        rows.append([InlineKeyboardButton(text=f"💎 {plan.name}", callback_data=f"admin:promoadd:plan:{plan.id}")])
     rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:promoadd:cancel")])
     await state.set_state(AddPromoStates.plan)
     await render_input(message, "Шаг 4/6. Ограничить промокод конкретным тарифом?", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
@@ -663,7 +663,7 @@ async def promo_add_save(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         f"✅ Промокод {data['code']} создан.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть", callback_data=f"admin:promo:{promo_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:promo:{promo_id}")],
             [InlineKeyboardButton(text="⬅ Promo Codes", callback_data="admin:promo")],
         ]),
     )
@@ -696,7 +696,7 @@ async def promo_toggle(call: CallbackQuery):
     await render_callback(call, 
         f"✅ {item.code}: {'enabled' if new_state else 'disabled'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть промокод", callback_data=f"admin:promo:{promo_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть промокод", callback_data=f"admin:promo:{promo_id}")],
             [InlineKeyboardButton(text="⬅ Promo Codes", callback_data="admin:promo")],
         ]),
     )
@@ -711,7 +711,7 @@ async def promo_delete_ask(call: CallbackQuery):
         "Удалить промокод? История платежей не затрагивается.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:promo:delete:{promo_id}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:promo:{promo_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:promo:{promo_id}")],
         ]),
     )
     await call.answer()
@@ -890,7 +890,7 @@ async def administrator_add_role(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         f"✅ TG {tg_id} · {ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть", callback_data=f"admin:administrator:{tg_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:administrator:{tg_id}")],
             [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
         ]),
     )
@@ -924,7 +924,7 @@ async def administrator_role(call: CallbackQuery):
     await render_callback(call, 
         f"✅ TG {tg_id}: {ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть", callback_data=f"admin:administrator:{tg_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:administrator:{tg_id}")],
             [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
         ]),
     )
@@ -949,7 +949,7 @@ async def administrator_toggle(call: CallbackQuery):
     await render_callback(call, 
         f"✅ TG {tg_id}: {'enabled' if new_enabled else 'disabled'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Открыть", callback_data=f"admin:administrator:{tg_id}")],
+            [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:administrator:{tg_id}")],
             [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
         ]),
     )
@@ -967,7 +967,7 @@ async def administrator_delete_ask(call: CallbackQuery):
         f"Удалить администратора TG {tg_id}?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:administrator:delete:{tg_id}")],
-            [InlineKeyboardButton(text="Отмена", callback_data=f"admin:administrator:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:administrator:{tg_id}")],
         ]),
     )
     await call.answer()

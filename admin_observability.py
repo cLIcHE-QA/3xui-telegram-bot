@@ -455,7 +455,7 @@ async def audit_page(call: CallbackQuery, offset: int):
     if offset > 0:
         nav.append(InlineKeyboardButton(text="⬅ Новее", callback_data=f"admin:audit:{max(0, offset - page_size)}"))
     if offset + page_size < total:
-        nav.append(InlineKeyboardButton(text="Старее ➡", callback_data=f"admin:audit:{offset + page_size}"))
+        nav.append(InlineKeyboardButton(text="➡ Старее", callback_data=f"admin:audit:{offset + page_size}"))
     if nav:
         rows.append(nav)
     rows.append([InlineKeyboardButton(text="🔄 Обновить", callback_data=f"admin:audit:{offset}")])
