@@ -541,6 +541,53 @@ HOST_CONTROL_AGENT_SERVICE читается только локально при
 
 HTTP request не может изменить service name.
 
+### 15.1 Deployment boundary
+
+Репозиторий содержит:
+
+~~~text
+host_control_agent.py
+deploy/host-control/3xui-host-control.service
+deploy/host-control/3xui-host-control.sudoers
+scripts/install-host-control-agent.sh
+~~~
+
+Installer запускается локально на конкретном VPS от root и:
+
+- создаёт системного пользователя `3xui-hostctl` без login shell;
+- устанавливает agent как root-owned executable;
+- генерирует отдельный random token локально, сохраняет его с mode `0600` и **не печатает**;
+- валидирует sudoers через `visudo -cf`;
+- устанавливает exact sudoers allowlist только для start/stop/restart `x-ui.service`;
+- запускает agent на `127.0.0.1:18181`;
+- **не меняет firewall, SSH, Docker или reverse proxy**.
+
+Agent никогда не слушает публичный или private-LAN interface напрямую.
+
+Для remote node (Finland) внешний доступ строится только так:
+
+~~~text
+Master bot
+   |
+   | HTTPS + Bearer token
+   v
+restricted reverse proxy on Finland
+   |
+   | loopback
+   v
+127.0.0.1:18181 Host Control Agent
+~~~
+
+Reverse proxy должен:
+
+- использовать валидный TLS certificate;
+- принимать host-control запросы только от management source (для Finland — Master VPS);
+- не публиковать backend port 18181;
+- не логировать Authorization header;
+- проксировать только `/v1/` к loopback agent.
+
+Для Master допустим restricted private Docker-host route или аналогичный локальный reverse proxy. Plain HTTP разрешён bot config только к явным loopback/RFC1918/link-local адресам; remote/public target требует verified HTTPS.
+
 ---
 
 ## 16. Telegram permissions
@@ -553,19 +600,33 @@ HTTP request не может изменить service name.
 | Start service | Admin |
 | Restart service | Admin |
 | Restart Panel process | Admin |
+| Restart / Start Xray | Admin |
+| Stop Xray | Owner |
 | Stop service | Owner |
 
 Transitive nodes — read-only, host-control mutations запрещены.
 
-### Restart confirmation
+### Restart service confirmation
 
 ~~~text
-⚠️ Перезапустить 3x-ui на Finland?
+⚠️ Перезапустить 3x-ui service на Finland?
 
 Панель и API будут кратковременно недоступны.
 VPN-сессии могут быть затронуты.
 
-[🔄 Да, restart 3x-ui]
+[🔄 Да, restart service]
+[✖ Отмена]
+~~~
+
+### Restart Panel process confirmation
+
+~~~text
+⚠️ Выполнить штатный Restart Panel process на Finland?
+
+Будет отправлен ровно один POST /panel/api/setting/restartPanel.
+Panel API кратковременно станет недоступен.
+
+[♻️ Да, restart panel]
 [✖ Отмена]
 ~~~
 
@@ -776,8 +837,8 @@ Mutation запрещается, если:
 10. Произвольный systemd unit передать невозможно.
 11. Неверный token даёт 401 без утечки деталей.
 12. Wrong host_id блокирует mutation.
-13. Stop доступен только Owner.
-14. Restart/Start доступны Admin/Owner.
+13. Stop service и Stop Xray доступны только Owner.
+14. Restart/Start service, Restart Panel process и Restart/Start Xray доступны Admin/Owner.
 15. Read-only может смотреть status, но не выполнять mutation.
 16. Agent остаётся доступен после stop x-ui.service.
 17. После host-level start/restart проверяется и systemd state, и 3x-ui Panel API.
