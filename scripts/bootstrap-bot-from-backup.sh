@@ -55,6 +55,13 @@ resolve_root() {
     pwd
 }
 
+case "${1:-}" in
+    --help|-h)
+        usage
+        exit 0
+        ;;
+esac
+
 [[ "$#" -eq 2 ]] || { usage >&2; exit 2; }
 RELEASE="$1"
 ARCHIVE="$2"
