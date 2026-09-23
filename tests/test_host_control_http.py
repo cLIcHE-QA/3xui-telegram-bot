@@ -98,6 +98,11 @@ class HostControlHTTPTests(unittest.TestCase):
         self.assertEqual(dict(headers).get("Cache-Control"), "no-store")
         self.assertNotIn(self.token.encode(), raw)
 
+    def test_query_string_is_rejected(self):
+        status, _, data, _ = self.request("GET", "/v1/status?command=whoami")
+        self.assertEqual(status, 400)
+        self.assertEqual(data["error"], "invalid_request_target")
+
     def test_unknown_shell_exec_file_routes_do_not_exist(self):
         for path in ["/v1/shell", "/v1/exec", "/v1/command", "/v1/files", "/v1/docker"]:
             with self.subTest(path=path):
