@@ -73,8 +73,10 @@ class AgentConfig:
         listen_host, sep, port_text = listen.rpartition(":")
         if not sep or not listen_host:
             raise AgentConfigError("HOST_CONTROL_AGENT_LISTEN must be host:port.")
-        if listen_host in {"0.0.0.0", "::", "[::]"}:
-            raise AgentConfigError("Wildcard listen addresses are forbidden.")
+        if listen_host not in {"127.0.0.1", "::1", "[::1]"}:
+            raise AgentConfigError(
+                "Host-control agent must listen on loopback only; expose it through a restricted HTTPS reverse proxy."
+            )
         try:
             listen_port = int(port_text)
         except ValueError as exc:
