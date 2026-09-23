@@ -7,6 +7,7 @@
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
 Повторяемый rollout, deployment bundle и enrollment-import описаны в [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
+Рекомендуемый v4.11 onboarding direct node без передачи секретов через Telegram описан в [Node Onboarding](docs/NODE_ONBOARDING.md).
 Восстановление бота после замены/форматирования VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
 
 ## v4.10.1 — Operational rollout и recovery
@@ -34,7 +35,7 @@ Destructive `Stop service` и `Stop Xray` доступны только роли
 
 ## Далее: v4.11.0 — Node readiness / onboarding
 
-Следующий feature-релиз должен упростить подключение и замену direct nodes: readiness/preflight для Panel API, direct admin и Host Control Agent; более стабильную identity вместо ручной привязки privileged targets к display name там, где это безопасно; и onboarding-flow, который помогает подготовить конфигурацию без передачи секретов через Telegram. Ручные `NODE_BACKUP_*` и `HOST_CONTROL_*` остаются поддерживаемым fail-safe способом настройки.
+v4.11 переносит privileged bindings на стабильный `node.id` с backward-compatible fallback по display name, добавляет read-only `🧭 Readiness` и local onboarding helpers для node-sync, direct admin и Host Control. Ручные `NODE_BACKUP_*` и `HOST_CONTROL_*` остаются поддерживаемым fail-safe способом настройки.
 
 ## v4.9.3 — Исправление счётчиков карточки ноды
 
