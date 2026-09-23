@@ -14,6 +14,7 @@ UI = ROOT / "host_control_ui.py"
 UNIT = ROOT / "deploy/host-control/3xui-host-control.service"
 SUDOERS = ROOT / "deploy/host-control/3xui-host-control.sudoers"
 INSTALLER = ROOT / "scripts/install-host-control-agent.sh"
+COMPOSE = ROOT / "docker-compose.yml"
 
 
 class HostControlDeploymentSecurityTests(unittest.TestCase):
@@ -106,6 +107,20 @@ class HostControlDeploymentSecurityTests(unittest.TestCase):
         for name in ["run_command", "execute_shell", "ssh", "read_file", "write_file"]:
             self.assertNotIn(f"def {name}", text)
             self.assertNotIn(f"async def {name}", text)
+
+    def test_bot_container_has_no_host_escape_socket_or_privilege(self):
+        text = COMPOSE.read_text(encoding="utf-8").lower()
+        forbidden = [
+            "/var/run/docker.sock",
+            "/run/docker.sock",
+            "/run/systemd/private",
+            "privileged: true",
+            "network_mode: host",
+            "pid: host",
+            "cap_sys_admin",
+        ]
+        for value in forbidden:
+            self.assertNotIn(value, text)
 
     def test_telegram_ui_never_builds_os_commands(self):
         text = UI.read_text(encoding="utf-8")
