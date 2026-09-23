@@ -214,7 +214,17 @@ class HostControlClient:
         # Fail closed before mutation: validate schema/service/host identity using
         # a read-only request. If DNS/routing points at the wrong agent, POST is
         # never sent.
-        await self.status()
+        preflight = await self.status()
+        if preflight.state == "unknown":
+            raise HostControlError(
+                "Host-control service state is unknown; mutation blocked.",
+                code="service_state_unknown",
+            )
+        if preflight.state == "transitioning":
+            raise HostControlError(
+                "Host-control service is transitioning; mutation blocked.",
+                code="service_transitioning",
+            )
 
         try:
             status, payload = await self._http(
