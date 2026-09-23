@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Unreleased
+- Добавлен guided wrapper `scripts/onboard-direct-node.sh`: `prepare` собирает/опционально копирует secret-free Host Control bundle и формирует remote install command, `bind` проводит node registration и оба privileged bindings через единый stable `NODE_ID`.
+- `import-node-admin-target.py` получил `--node-id`; ID из enrollment и explicit override проверяются на совпадение fail-closed.
+- Guided flow сохраняет разделение node-sync/direct-admin/Host Control secrets, выполняет importer preflights до изменения bot `.env` и пересоздаёт только service `bot` один раз.
+
 ## v4.11.1 — Исправление Readiness callback
 - Исправлен routing кнопки `🧭 Readiness`: общий handler карточки ноды больше не перехватывает callback `admin:node:<id>:readiness`.
 - Node detail handler теперь принимает только точный callback `admin:node:<id>`, а readiness сохраняет отдельный маршрут.

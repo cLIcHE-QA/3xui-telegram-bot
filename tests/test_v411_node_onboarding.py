@@ -126,6 +126,28 @@ class OnboardingImporterTests(unittest.TestCase):
         self.assertEqual(alias, "FI")
         self.assertEqual(updates["NODE_BACKUP_FI_NODE_ID"], "2")
 
+    def test_node_admin_importer_accepts_node_id_override_without_file_id(self):
+        alias, updates = node_import.enrollment_updates({
+            "NODE_ADMIN_ALIAS": "FI",
+            "NODE_ADMIN_NODE_NAME": "Finland",
+            "NODE_ADMIN_PANEL_URL": "https://fi.example.invalid/base",
+            "NODE_ADMIN_API_TOKEN": "x" * 43,
+            "NODE_ADMIN_VERIFY_TLS": "true",
+        }, node_id_override=7)
+        self.assertEqual(alias, "FI")
+        self.assertEqual(updates["NODE_BACKUP_FI_NODE_ID"], "7")
+
+    def test_node_admin_importer_rejects_mismatched_node_id_override(self):
+        with self.assertRaises(SystemExit):
+            node_import.enrollment_updates({
+                "NODE_ADMIN_ALIAS": "FI",
+                "NODE_ADMIN_NODE_ID": "8",
+                "NODE_ADMIN_NODE_NAME": "Finland",
+                "NODE_ADMIN_PANEL_URL": "https://fi.example.invalid/base",
+                "NODE_ADMIN_API_TOKEN": "x" * 43,
+                "NODE_ADMIN_VERIFY_TLS": "true",
+            }, node_id_override=7)
+
     def test_node_admin_importer_rejects_plain_http(self):
         with self.assertRaises(SystemExit):
             node_import.enrollment_updates({
