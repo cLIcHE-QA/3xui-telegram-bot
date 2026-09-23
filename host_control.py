@@ -95,6 +95,7 @@ class HostControlClient:
                 headers=self._headers(json_body=body is not None),
                 json=body,
                 ssl=None if self.verify_tls else False,
+                allow_redirects=False,
             ) as response:
                 try:
                     payload = await response.json(content_type=None)
