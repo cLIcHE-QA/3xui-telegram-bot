@@ -1,0 +1,8 @@
+# Exact allowlist for the unprivileged 3x-ui host-control agent.
+# Do not add wildcards and do not permit arbitrary systemctl units.
+Cmnd_Alias XUI_HOST_CONTROL = \
+    /usr/bin/systemctl start x-ui.service, \
+    /usr/bin/systemctl stop x-ui.service, \
+    /usr/bin/systemctl restart x-ui.service
+
+3xui-hostctl ALL=(root) NOPASSWD: XUI_HOST_CONTROL
