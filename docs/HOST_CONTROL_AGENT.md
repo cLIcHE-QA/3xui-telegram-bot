@@ -873,8 +873,8 @@ Mutation запрещается, если:
 7. Неизвестный operation остаётся uncertain, POST не повторяется.
 8. Concurrent mutation блокируется.
 9. При `unknown/transitioning` systemd state mutation блокируется до POST/systemctl.
-11. Произвольный action отклоняется.
-10. Произвольный systemd unit передать невозможно.
+10. Произвольный action отклоняется.
+11. Произвольный systemd unit передать невозможно.
 12. Неверный token даёт 401 без утечки деталей.
 13. Wrong host_id блокирует mutation.
 14. Stop service и Stop Xray доступны только Owner.
