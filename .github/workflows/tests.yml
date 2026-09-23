@@ -41,6 +41,8 @@ jobs:
           python3 scripts/import-host-control-enrollment.py --help >/dev/null
           test -x scripts/import-node-admin-target.py
           python3 scripts/import-node-admin-target.py --help >/dev/null
+          test -x scripts/onboard-node.py
+          python3 scripts/onboard-node.py --help >/dev/null
       - run: |
           test -x scripts/bootstrap-bot-from-backup.sh
           bash -n scripts/bootstrap-bot-from-backup.sh
