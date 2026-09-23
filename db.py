@@ -1110,14 +1110,27 @@ class Database:
 
     # --- Job runs ------------------------------------------------------
 
-    async def start_job_run(self, *, name: str, trigger: str, actor_id: int = 0) -> int:
+    async def start_job_run(
+        self,
+        *,
+        name: str,
+        trigger: str,
+        actor_id: int = 0,
+        details: str = "",
+    ) -> int:
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
                 """
-                INSERT INTO job_runs(name, trigger, actor_id, status, started_at)
-                VALUES (?, ?, ?, 'running', ?)
+                INSERT INTO job_runs(name, trigger, actor_id, status, started_at, details)
+                VALUES (?, ?, ?, 'running', ?, ?)
                 """,
-                ((name or "")[:96], (trigger or "")[:32], int(actor_id), int(time.time())),
+                (
+                    (name or "")[:96],
+                    (trigger or "")[:32],
+                    int(actor_id),
+                    int(time.time()),
+                    (details or "")[:1500],
+                ),
             )
             await db.commit()
             return int(cur.lastrowid)
