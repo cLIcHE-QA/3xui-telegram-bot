@@ -135,9 +135,11 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         for data in [
             'admin:hostctl:m:ss:ask', 'admin:hostctl:m:ss:run',
             'admin:hostctl:n2:sr:ask', 'admin:hostctl:n2:pr:run',
-            'admin:hostctl:n2:xs:ask', 'admin:hostctl:n2:xr:run',
+            'admin:hostctl:n2:xr:run',
         ]:
             self.assertEqual(required_role_for_callback(data), 'admin', data)
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2:xs:ask'), 'owner')
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2:xs:run'), 'owner')
         self.assertEqual(required_role_for_callback('admin:hostctl:m:sp:ask'), 'owner')
         self.assertEqual(required_role_for_callback('admin:hostctl:n2:stopcancel'), 'owner')
 
