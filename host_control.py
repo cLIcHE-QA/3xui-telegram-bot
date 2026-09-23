@@ -1,0 +1,245 @@
+"""Strict client for the v4.10.0 Host Control Agent.
+
+There is intentionally no generic request/command API here. Callers can only
+read service status, dispatch start|stop|restart, or read one operation journal
+entry. A lost mutation response is recovered with a read-only lookup; the POST
+is never retried automatically.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+import re
+from typing import Any
+
+import aiohttp
+
+
+SCHEMA_VERSION = 1
+SERVICE = "x-ui.service"
+ACTIONS = frozenset({"start", "stop", "restart"})
+OPERATION_ID_RE = re.compile(r"[0-9a-f]{32}\Z")
+STATES = frozenset({"running", "stopped", "failed", "transitioning", "unknown"})
+RESULTS = frozenset({"started", "success", "failed", "uncertain"})
+
+
+class HostControlError(RuntimeError):
+    def __init__(self, message: str, *, code: str = "", uncertain: bool = False):
+        super().__init__(message)
+        self.code = code
+        self.uncertain = uncertain
+
+
+@dataclass(frozen=True)
+class HostControlStatus:
+    host_id: str
+    state: str
+    active_state: str
+    sub_state: str
+    agent_version: str
+    timestamp: str
+
+
+@dataclass(frozen=True)
+class HostControlOperation:
+    host_id: str
+    operation_id: str
+    action: str
+    result: str
+    changed: bool
+    before: str
+    after: str
+    duration_ms: int
+    error_code: str
+    created_at: str
+    finished_at: str
+    replayed: bool = False
+
+
+class HostControlClient:
+    def __init__(
+        self,
+        base_url: str,
+        token: str,
+        expected_host_id: str,
+        *,
+        verify_tls: bool = True,
+        timeout_seconds: float = 25.0,
+    ):
+        self.base_url = base_url.rstrip("/")
+        self.token = token
+        self.expected_host_id = expected_host_id
+        self.verify_tls = verify_tls
+        self.timeout_seconds = timeout_seconds
+
+    def _headers(self, *, json_body: bool = False) -> dict[str, str]:
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/json",
+        }
+        if json_body:
+            headers["Content-Type"] = "application/json"
+        return headers
+
+    async def _http(
+        self,
+        method: str,
+        path: str,
+        *,
+        body: dict[str, str] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.request(
+                method,
+                f"{self.base_url}{path}",
+                headers=self._headers(json_body=body is not None),
+                json=body,
+                ssl=None if self.verify_tls else False,
+            ) as response:
+                try:
+                    payload = await response.json(content_type=None)
+                except Exception as exc:
+                    raise HostControlError(
+                        f"Host-control returned invalid JSON (HTTP {response.status}).",
+                        code="invalid_json",
+                        uncertain=method == "POST",
+                    ) from exc
+                if not isinstance(payload, dict):
+                    raise HostControlError(
+                        "Host-control returned an invalid response shape.",
+                        code="invalid_response",
+                        uncertain=method == "POST",
+                    )
+                return int(response.status), payload
+
+    def _validate_identity(self, payload: dict[str, Any]) -> None:
+        if payload.get("schema") != SCHEMA_VERSION:
+            raise HostControlError("Host-control schema mismatch.", code="schema_mismatch")
+        if payload.get("service") != SERVICE:
+            raise HostControlError("Host-control service mismatch.", code="service_mismatch")
+        host_id = payload.get("host_id")
+        if host_id != self.expected_host_id:
+            raise HostControlError("Host-control host identity mismatch.", code="host_id_mismatch")
+
+    def _parse_status(self, payload: dict[str, Any]) -> HostControlStatus:
+        self._validate_identity(payload)
+        state = str(payload.get("state") or "")
+        if state not in STATES:
+            raise HostControlError("Host-control returned an invalid service state.", code="invalid_state")
+        return HostControlStatus(
+            host_id=self.expected_host_id,
+            state=state,
+            active_state=str(payload.get("active_state") or ""),
+            sub_state=str(payload.get("sub_state") or ""),
+            agent_version=str(payload.get("agent_version") or ""),
+            timestamp=str(payload.get("timestamp") or ""),
+        )
+
+    def _parse_operation(self, payload: dict[str, Any]) -> HostControlOperation:
+        self._validate_identity(payload)
+        operation_id = str(payload.get("operation_id") or "")
+        action = str(payload.get("action") or "")
+        result = str(payload.get("result") or "")
+        if not OPERATION_ID_RE.fullmatch(operation_id):
+            raise HostControlError("Host-control returned an invalid operation id.", code="invalid_operation_id")
+        if action not in ACTIONS:
+            raise HostControlError("Host-control returned an invalid action.", code="invalid_action")
+        if result not in RESULTS:
+            raise HostControlError("Host-control returned an invalid operation result.", code="invalid_result")
+        return HostControlOperation(
+            host_id=self.expected_host_id,
+            operation_id=operation_id,
+            action=action,
+            result=result,
+            changed=bool(payload.get("changed", False)),
+            before=str(payload.get("before") or ""),
+            after=str(payload.get("after") or ""),
+            duration_ms=max(0, int(payload.get("duration_ms") or 0)),
+            error_code=str(payload.get("error_code") or ""),
+            created_at=str(payload.get("created_at") or ""),
+            finished_at=str(payload.get("finished_at") or ""),
+            replayed=bool(payload.get("replayed", False)),
+        )
+
+    async def status(self) -> HostControlStatus:
+        try:
+            status, payload = await self._http("GET", "/v1/status")
+        except (aiohttp.ClientError, TimeoutError) as exc:
+            raise HostControlError(
+                "Host-control status is unavailable.",
+                code="network_error",
+            ) from exc
+        if status != 200:
+            code = str(payload.get("error") or f"http_{status}")
+            raise HostControlError("Host-control status request failed.", code=code)
+        return self._parse_status(payload)
+
+    async def get_operation(self, operation_id: str) -> HostControlOperation | None:
+        if not OPERATION_ID_RE.fullmatch(operation_id):
+            raise HostControlError("Invalid host-control operation id.", code="invalid_operation_id")
+        try:
+            status, payload = await self._http("GET", f"/v1/operations/{operation_id}")
+        except (aiohttp.ClientError, TimeoutError) as exc:
+            raise HostControlError(
+                "Host-control operation lookup is unavailable.",
+                code="network_error",
+            ) from exc
+        if status == 404:
+            return None
+        if status != 200:
+            code = str(payload.get("error") or f"http_{status}")
+            raise HostControlError("Host-control operation lookup failed.", code=code)
+        operation = self._parse_operation(payload)
+        if operation.operation_id != operation_id:
+            raise HostControlError("Host-control operation identity mismatch.", code="operation_id_mismatch")
+        return operation
+
+    async def execute(self, action: str, operation_id: str) -> HostControlOperation:
+        if action not in ACTIONS:
+            raise HostControlError("Unsupported host-control action.", code="invalid_action")
+        if not OPERATION_ID_RE.fullmatch(operation_id):
+            raise HostControlError("Invalid host-control operation id.", code="invalid_operation_id")
+
+        try:
+            status, payload = await self._http(
+                "POST",
+                "/v1/actions",
+                body={"operation_id": operation_id, "action": action},
+            )
+        except (aiohttp.ClientError, TimeoutError, HostControlError) as exc:
+            # A POST may have reached the agent. Never retry it. Recover only via
+            # the read-only persistent operation journal.
+            try:
+                recovered = await self.get_operation(operation_id)
+            except HostControlError:
+                recovered = None
+            if recovered is not None:
+                if recovered.action != action:
+                    raise HostControlError(
+                        "Host-control operation action mismatch.",
+                        code="operation_action_mismatch",
+                        uncertain=True,
+                    ) from exc
+                return recovered
+            raise HostControlError(
+                "Host-control outcome is uncertain; mutation was not retried.",
+                code="unconfirmed",
+                uncertain=True,
+            ) from exc
+
+        if status in {200, 503, 504} and "operation_id" in payload:
+            operation = self._parse_operation(payload)
+            if operation.operation_id != operation_id or operation.action != action:
+                raise HostControlError(
+                    "Host-control operation identity mismatch.",
+                    code="operation_identity_mismatch",
+                    uncertain=True,
+                )
+            return operation
+
+        code = str(payload.get("error") or f"http_{status}")
+        raise HostControlError(
+            "Host-control action was rejected.",
+            code=code,
+            uncertain=False,
+        )
