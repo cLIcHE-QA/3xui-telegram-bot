@@ -6,6 +6,16 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.10.1 — Operational rollout и recovery
+- Добавлен `scripts/bootstrap-bot-from-backup.sh` для восстановления Telegram-бота на подготовленном новом VPS из Full Backup с проверкой tag/APP_VERSION, tar safety, SQLite `quick_check`, rescue-copy и post-check через `deploy-release.sh --status`.
+- Recovery по умолчанию требует совпадения версии backup с целевым release; intentional mismatch возможен только через `RECOVERY_ALLOW_VERSION_MISMATCH=1`.
+- При recovery намеренно отключаются `HOST_CONTROL_TARGETS` и `NODE_BACKUP_TARGETS`, чтобы privileged routes/tokens старого deployment не активировались автоматически.
+- Добавлен воспроизводимый Host Control rollout: secret-free deployment bundle, отдельный restricted proxy, enrollment-importer для безопасного обновления bot `.env`, идемпотентное добавление target и recreate только service `bot`.
+- Remote Host Control proxy получил ежедневный TLS refresh timer: source certificate/key проверяются на hostname и соответствие пары, proxy reload выполняется только при обновлении копий.
+- Повторный rollout с `--apply-ufw` хранит managed firewall state и при изменении management source/destination/port удаляет прежнее exact allow-rule перед добавлением нового.
+- Добавлены runbook `docs/HOST_CONTROL_ROLLOUT.md`, `docs/VPS_RECOVERY.md`, новые unit/security tests и CI-проверки executable bit/shell syntax для operational helpers.
+- Runtime semantics экрана `🧩 3x-ui Control`, privilege boundary Host Control Agent, схема SQLite и provisioning пользователей не изменены.
+
 ## v4.10.0 — Безопасный 3x-ui Control
 - Реализован restricted `Host Control Agent` для host-level `status/start/stop/restart x-ui.service`: listener только `127.0.0.1`, отдельный token на host, fixed service/action allowlist, `shell=False`, persistent `operation_id`, lost-response recovery без повторного mutation POST.
 - Добавлен единый экран `🧩 3x-ui Control` для Master и direct nodes: `Start/Restart service` доступны Admin+, destructive `Stop service` и `Stop Xray` — только Owner; Stop service требует одноразовую typed-фразу `STOP <target>`.
