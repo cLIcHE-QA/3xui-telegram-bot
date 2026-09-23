@@ -130,11 +130,14 @@ def _screen_keyboard(target: ControlTarget, role: str | None, xray_running: bool
             InlineKeyboardButton(text="♻️ Restart Panel process", callback_data=f"admin:hostctl:{target.key}:pr:ask"),
         ])
         rows.append([
-            InlineKeyboardButton(text="⏹ Stop Xray", callback_data=f"admin:hostctl:{target.key}:xs:ask"),
             InlineKeyboardButton(
                 text="🔄 Restart Xray" if xray_running else "▶ Start Xray",
                 callback_data=f"admin:hostctl:{target.key}:xr:ask",
             ),
+        ])
+    if target.panel_client is not None and rank >= ROLE_RANK["owner"]:
+        rows.append([
+            InlineKeyboardButton(text="⏹ Stop Xray", callback_data=f"admin:hostctl:{target.key}:xs:ask"),
         ])
     rows.append([
         InlineKeyboardButton(
@@ -422,11 +425,12 @@ async def host_control_screen(call: CallbackQuery):
 
 @host_control_router.callback_query(F.data.regexp(rf"^admin:hostctl:{TARGET_KEY}:(?:ss|sr|pr|xs|xr):ask$"))
 async def host_control_action_ask(call: CallbackQuery):
-    ok, _ = await authorize_callback(db, settings, call, minimum="admin")
-    if not ok:
-        return
     parts = (call.data or "").split(":")
     key, action = parts[2], parts[3]
+    minimum = "owner" if action == "xs" else "admin"
+    ok, _ = await authorize_callback(db, settings, call, minimum=minimum)
+    if not ok:
+        return
     try:
         target = await _resolve_target(key)
     except (ValueError, XUIError) as exc:
@@ -463,11 +467,12 @@ async def host_control_action_ask(call: CallbackQuery):
 
 @host_control_router.callback_query(F.data.regexp(rf"^admin:hostctl:{TARGET_KEY}:(?:ss|sr|pr|xs|xr):run$"))
 async def host_control_action_run(call: CallbackQuery):
-    ok, _ = await authorize_callback(db, settings, call, minimum="admin")
-    if not ok:
-        return
     parts = (call.data or "").split(":")
     key, action = parts[2], parts[3]
+    minimum = "owner" if action == "xs" else "admin"
+    ok, _ = await authorize_callback(db, settings, call, minimum=minimum)
+    if not ok:
+        return
     try:
         target = await _resolve_target(key)
     except (ValueError, XUIError) as exc:
