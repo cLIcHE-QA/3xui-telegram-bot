@@ -518,8 +518,8 @@ async def inbound_set_fingerprint(call: CallbackQuery):
         ib = await xui.inbound_get(iid)
         try:
             old = _set_reality_fingerprint(ib, fingerprint)
-        except ValueError as exc:
-            await call.answer(str(exc), show_alert=True)
+        except ValueError:
+            await call.answer("Этот inbound не использует Reality.", show_alert=True)
             return
         await xui.inbound_update(iid, _update_payload(ib))
         await audit_from_call(
