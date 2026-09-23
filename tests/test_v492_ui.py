@@ -46,6 +46,12 @@ class V492UITests(unittest.TestCase):
         text = self.bot.system_section_text()
         self.assertIn(f"🤖 Bot: v{APP_VERSION}", text)
 
+    def test_fingerprint_callbacks_require_admin_role(self):
+        from admin_auth import required_role_for_callback
+
+        self.assertEqual(required_role_for_callback("admin:inbound:editfp:7"), "admin")
+        self.assertEqual(required_role_for_callback("admin:inbound:setfp:7:chrome"), "admin")
+
     def test_reality_fingerprints_match_3xui_select(self):
         self.assertEqual(
             self.inbound.REALITY_FINGERPRINTS,
