@@ -159,7 +159,11 @@ else
     valid_ipv4 "$SOURCE_IP" || die "invalid --source-ip"
     [[ "$LISTEN_IP" != "0.0.0.0" ]] || die "wildcard listen is forbidden"
     [[ -n "$PUBLIC_HOST" && "$PUBLIC_HOST" =~ ^[A-Za-z0-9.-]+$ ]] || die "invalid --public-host"
-    [[ "$CERT_PATH" = /* && "$CERT_PATH" != *
+    [[ "$CERT_PATH" = /* ]] || die "--cert must be an absolute path"
+    [[ "$KEY_PATH" = /* ]] || die "--key must be an absolute path"
+    [[ -f "$CERT_PATH" ]] || die "TLS certificate not found"
+    [[ -f "$KEY_PATH" ]] || die "TLS private key not found"
+    need_cmd openssl
     openssl x509 -in "$CERT_PATH" -noout -checkhost "$PUBLIC_HOST" >/dev/null 2>&1 \
         || die "TLS certificate does not match --public-host"
 fi
