@@ -25,6 +25,7 @@ def load_script(name: str, filename: str):
 
 host_import = load_script("v411_host_import", "import-host-control-enrollment.py")
 node_import = load_script("v411_node_import", "import-node-admin-target.py")
+onboard = load_script("v411_onboard", "onboard-node.py")
 
 
 class StableNodeIdentityTests(unittest.TestCase):
@@ -145,6 +146,27 @@ class OnboardingImporterTests(unittest.TestCase):
         updates["HOST_CONTROL_FI_NODE_ID"] = "2"
         with self.assertRaises(SystemExit):
             host_import.validate_combined(env, alias, updates)
+
+    def test_local_onboarding_requires_https(self):
+        with self.assertRaises(SystemExit):
+            onboard.parse_node_url("http://fi.example.invalid/base")
+
+    def test_local_onboarding_normalizes_browser_panel_url(self):
+        parsed = onboard.parse_node_url("https://fi.example.invalid:2053/base/panel/")
+        self.assertEqual(parsed["scheme"], "https")
+        self.assertEqual(parsed["address"], "fi.example.invalid")
+        self.assertEqual(parsed["port"], 2053)
+        self.assertEqual(parsed["basePath"], "/base/")
+
+    def test_local_onboarding_requires_private_secret_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "node.env"
+            path.write_text("secret\n", encoding="utf-8")
+            path.chmod(0o644)
+            with self.assertRaises(SystemExit):
+                onboard.require_private_file(path)
+            path.chmod(0o600)
+            onboard.require_private_file(path)
 
     def test_readiness_button_is_present_on_node_card(self):
         source = (ROOT / "bot.py").read_text(encoding="utf-8")
