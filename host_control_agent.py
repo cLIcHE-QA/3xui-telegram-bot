@@ -493,6 +493,11 @@ class HostControlAgent:
                 return HTTPStatus.OK, self.operation_payload(existing, replayed=True)
 
             before = self.controller.status()
+            if before.state == "unknown":
+                return HTTPStatus.SERVICE_UNAVAILABLE, {"error": "service_state_unknown"}
+            if before.state == "transitioning":
+                return HTTPStatus.CONFLICT, {"error": "service_transitioning"}
+
             if action == "start" and before.state == "running":
                 record = self.journal.begin(operation_id, action, before.state)
                 record = self.journal.finish(
