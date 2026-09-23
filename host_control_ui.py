@@ -49,10 +49,19 @@ class ControlTarget:
     node_id: int = 0
 
 
-def _host_target_for(name: str, *, master: bool = False) -> HostControlTarget | None:
+def _host_target_for(
+    name: str,
+    node_id: int | None = None,
+    *,
+    master: bool = False,
+) -> HostControlTarget | None:
     if master:
         for target in settings.host_control_targets:
             if target.key == "MASTER":
+                return target
+    if node_id is not None:
+        for target in settings.host_control_targets:
+            if target.node_id == node_id:
                 return target
     needle = name.strip().casefold()
     for target in settings.host_control_targets:
@@ -89,8 +98,8 @@ async def _resolve_target(key: str) -> ControlTarget:
         key=key,
         name=node.name,
         back_callback=f"admin:node:{node_id}",
-        panel_client=system_backup.direct_client_for(node.name),
-        host_target=_host_target_for(node.name),
+        panel_client=system_backup.direct_client_for(node.name, node.id),
+        host_target=_host_target_for(node.name, node.id),
         node_id=node_id,
     )
 
@@ -370,7 +379,7 @@ async def recover_control_jobs() -> int:
                     ) + "; recovery=agent_journal"
                     status = "success"
                     if action in {"start", "restart"}:
-                        panel_client = xui if target.key == "MASTER" else system_backup.direct_client_for(target.name)
+                        panel_client = xui if target.key == "MASTER" else system_backup.direct_client_for(target.name, target.node_id)
                         panel_ok, _, _ = await _panel_snapshot(panel_client)
                         if not panel_ok:
                             details += "; panel_postcondition=unconfirmed"
