@@ -5,10 +5,15 @@ import argparse
 import asyncio
 import os
 import stat
+import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from dotenv import dotenv_values
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from xui import XUIClient, XUIError
 
