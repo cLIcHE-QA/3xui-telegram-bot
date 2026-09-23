@@ -35,6 +35,53 @@
 
 Развёртывание на VPS выполняется отдельно от слияния PR и публикации релиза.
 
+## Развёртывание опубликованного релиза на VPS
+
+Production разворачивается по опубликованному тегу `vX.Y.Z`, а не по произвольному состоянию `main`. Для стандартного VPS используется `scripts/deploy-release.sh`.
+
+Обычное обновление после появления скрипта в текущем релизе:
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.9.2
+```
+
+Проверка текущего состояния без изменений:
+
+```bash
+./scripts/deploy-release.sh --status
+```
+
+Скрипт сам получает теги, проверяет наличие целевого тега в истории `origin/main`, сопоставляет тег с `APP_VERSION`, сохраняет `.env` и согласованную SQLite-копию, проверяет Compose и Docker-подсеть, собирает образ, пересоздаёт только сервис `bot` и после запуска проверяет `/healthz`, SQLite и TCP-доступ к upstream 3x-ui.
+
+Скрипт намеренно не выполняет `docker compose down`, `docker system prune`, обновление 3x-ui/Xray и автоматический откат базы данных. Если существующая Docker-сеть не соответствует `BOT_DOCKER_SUBNET`, развёртывание останавливается до изменения контейнера: пересоздание сети выполняется как отдельная обслуживаемая операция.
+
+Для намеренного понижения версии нужно явно разрешить его:
+
+```bash
+DEPLOY_ALLOW_DOWNGRADE=1 ./scripts/deploy-release.sh v4.9.1
+```
+
+### Первое внедрение deploy helper
+
+Тег `v4.9.1` опубликован до появления `scripts/deploy-release.sh`, поэтому для первого перехода на релиз, содержащий helper, его нужно один раз запустить из актуального `origin/main`, не переключая production заранее:
+
+```bash
+cd /opt/3xui-bot/3xui-telegram-bot
+
+GIT_SSH_COMMAND="ssh -i $HOME/.ssh/3xui_bot_deploy -o IdentitiesOnly=yes" \
+  git fetch origin main --tags --prune
+
+git show origin/main:scripts/deploy-release.sh > /tmp/3xui-bot-deploy-release.sh
+chmod 700 /tmp/3xui-bot-deploy-release.sh
+
+DEPLOY_REPO_ROOT="$PWD" /tmp/3xui-bot-deploy-release.sh v4.9.2
+
+rm -f /tmp/3xui-bot-deploy-release.sh
+```
+
+Начиная с `v4.9.2` helper находится внутри самого релиза, поэтому следующие обновления выполняются обычной командой из репозитория.
+
 ## Правило оформления кнопок Telegram
 
 Для единообразия интерфейса все inline-кнопки пользовательского и административного интерфейса должны начинаться с понятного emoji или навигационного символа. Это относится к действиям, выбору сущностей, подтверждениям, отмене, обновлению, пагинации и возврату на родительский экран.
