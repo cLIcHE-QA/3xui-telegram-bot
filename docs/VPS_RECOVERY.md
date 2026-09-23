@@ -61,13 +61,23 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Скрипт:
 
 - проверит tag и `APP_VERSION`;
+- потребует, чтобы `manifest.json.version` backup совпадал с выбранным release;
 - безопасно проверит tar paths/types/size;
 - выполнит `PRAGMA quick_check` для `bot.sqlite3`;
 - сохранит существующие `.env`/DB в rescue-каталог, если они есть;
 - восстановит только `bot.env → .env` и `bot.sqlite3`;
-- намеренно выставит `HOST_CONTROL_TARGETS=`, чтобы не использовать stale host-control token/route старого VPS;
+- намеренно выставит `HOST_CONTROL_TARGETS=` и `NODE_BACKUP_TARGETS=`, чтобы privileged routes/tokens старого deployment не активировались автоматически;
 - соберёт и запустит bot container;
-- проверит health и SQLite.
+- проверит health, SQLite, фактический `APP_VERSION` и общий `deploy-release.sh --status`, включая доступность upstream 3x-ui.
+
+Если требуется осознанно восстановить backup другой версии, это возможно только как break-glass операция:
+
+```bash
+RECOVERY_ALLOW_VERSION_MISMATCH=1 \
+  ./scripts/bootstrap-bot-from-backup.sh vX.Y.Z /secure/path/backup.tar.gz
+```
+
+Без этого флага отсутствие версии в manifest или несовпадение версии блокируют восстановление.
 
 ## После bootstrap
 
@@ -94,6 +104,8 @@ HOST_CONTROL_TARGETS=MASTER
 
 Remote host-control nodes включать только после проверки их HTTPS/source allowlist.
 
+`NODE_BACKUP_TARGETS` также включать заново только после проверки direct admin URL/token каждой ноды. Пер-target значения остаются в восстановленном `.env` для ручной сверки, но активный список намеренно очищен.
+
 ## Восстановление x-ui.db
 
 Bootstrap бота **не заменяет** `/etc/x-ui/x-ui.db`.
@@ -107,10 +119,12 @@ Bootstrap бота **не заменяет** `/etc/x-ui/x-ui.db`.
 ```text
 Bot health: ok
 bot.sqlite3 quick_check: ok
-3x-ui Panel API: online
+APP_VERSION: matches release
+3x-ui connectivity: ok
 Docker subnet: expected
 Host Control Agent: re-enrolled
 Host-control token: новый/local, не старый из потерянного VPS
+Direct node admin targets: re-validated before NODE_BACKUP_TARGETS is enabled
 ```
 
 После этого можно возвращать remote targets и выполнять mutations.
