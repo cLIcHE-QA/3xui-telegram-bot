@@ -9,6 +9,7 @@
 Повторяемый rollout, deployment bundle и enrollment-import описаны в [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
 Рекомендуемый v4.11 onboarding direct node без передачи секретов через Telegram описан в [Node Onboarding](docs/NODE_ONBOARDING.md).
 Восстановление бота после замены/форматирования VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
+Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 
 ## v4.10.1 — Operational rollout и recovery
 
