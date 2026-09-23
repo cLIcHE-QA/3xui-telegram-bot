@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import sys
 from unittest.mock import AsyncMock, patch
 
 import aiohttp
@@ -73,6 +74,7 @@ class HostControlUITests(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def tearDownClass(cls):
+        sys.modules.pop("host_control_ui", None)
         cls.env.stop()
         cls.tmp.cleanup()
 
@@ -140,6 +142,44 @@ class HostControlUITests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("НЕ отправлялся", message)
         self.assertIn("lost_response", details)
         self.assertEqual(panel.stop_calls, 1)
+
+    async def test_definite_native_xray_rejection_is_failed(self):
+        from xui import XUIMutationError
+
+        panel = FakePanelClient(xray_state="running")
+        panel.stop_error = XUIMutationError(
+            "forbidden",
+            code="http_403",
+            uncertain=False,
+        )
+        fake_db = FakeDB()
+        target = self.target(panel)
+        with patch.object(self.ui, "db", fake_db):
+            message, success, details = await self.ui._run_xray_action(target, "stop", 1)
+
+        self.assertFalse(success)
+        self.assertIn("отклонил", message)
+        self.assertIn("result=failed", details)
+        self.assertEqual(panel.stop_calls, 1)
+
+    async def test_uncertain_native_xray_rejection_is_not_retried(self):
+        from xui import XUIMutationError
+
+        panel = FakePanelClient(xray_state="running")
+        panel.restart_error = XUIMutationError(
+            "upstream",
+            code="http_502",
+            uncertain=True,
+        )
+        fake_db = FakeDB()
+        target = self.target(panel)
+        with patch.object(self.ui, "db", fake_db):
+            message, success, details = await self.ui._run_xray_action(target, "restart", 1)
+
+        self.assertFalse(success)
+        self.assertIn("НЕ отправлялся", message)
+        self.assertIn("result=uncertain", details)
+        self.assertEqual(panel.restart_calls, 1)
 
     async def test_lost_panel_restart_response_is_never_retried(self):
         panel = FakePanelClient()
