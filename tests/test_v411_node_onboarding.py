@@ -193,6 +193,21 @@ class OnboardingImporterTests(unittest.TestCase):
             path.chmod(0o600)
             onboard.require_private_file(path)
 
+    def test_node_detail_route_does_not_capture_readiness(self):
+        source = (ROOT / "bot.py").read_text(encoding="utf-8")
+        self.assertIn(
+            '@router.callback_query(F.data.regexp(r"^admin:node:\\d+$"))',
+            source,
+        )
+        self.assertIn(
+            '@router.callback_query(F.data.regexp(r"^admin:node:\\d+:readiness$"))',
+            source,
+        )
+        self.assertNotIn(
+            '@router.callback_query(F.data.startswith("admin:node:"))',
+            source,
+        )
+
     def test_readiness_button_is_present_on_node_card(self):
         source = (ROOT / "bot.py").read_text(encoding="utf-8")
         self.assertIn('text="🧭 Readiness"', source)
