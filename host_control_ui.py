@@ -5,6 +5,7 @@ import asyncio
 from dataclasses import dataclass
 import secrets
 import time
+import re
 
 import aiohttp
 from aiogram import F, Router
@@ -14,7 +15,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from admin_auth import ROLE_RANK, authorize_callback, authorize_message
 from admin_ui import render_callback, render_input
-from audit import audit_from_call, audit_from_message
+from audit import audit_from_call, audit_from_message, audit_system
 from backup_manager import BackupManager
 from config import HostControlTarget, load_settings
 from db import Database
@@ -220,8 +221,8 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
     operation_id = secrets.token_hex(16)
     job_name = f"host_control.{action}"
     prepared_details = (
-        f"target={target.name}; operation_id={operation_id}; "
-        f"action={action}; result=prepared"
+        f"target={target.name}; host_alias={target.host_target.key}; "
+        f"operation_id={operation_id}; action={action}; result=prepared"
     )
     # Persist operation_id before POST so a bot crash cannot orphan the agent journal entry.
     run_id = await db.start_job_run(
@@ -277,6 +278,147 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
                 details,
             )
         return f"🔴 Host-control отклонил операцию ({exc.code or 'error'}).", False, details
+
+
+_RECOVERY_OPERATION_ID = re.compile(r"(?:^|; )operation_id=([0-9a-f]{32})(?:;|$)")
+_RECOVERY_ACTION = re.compile(r"(?:^|; )action=(start|stop|restart)(?:;|$)")
+_RECOVERY_HOST_ALIAS = re.compile(r"(?:^|; )host_alias=([A-Z0-9_]+)(?:;|$)")
+
+
+def _recovery_field(pattern: re.Pattern[str], details: str) -> str:
+    match = pattern.search(details or "")
+    return match.group(1) if match else ""
+
+
+async def recover_control_jobs() -> int:
+    """Resolve unfinished control jobs without ever replaying a mutation."""
+    recovered = 0
+    for job in await db.list_running_job_runs(limit=500):
+        if job.name in {"panel.restart", "xray.stop", "xray.restart"}:
+            details = (
+                (job.details + "; " if job.details else "")
+                + "result=uncertain; recovery=bot_restarted; mutation_not_retried=true"
+            )
+            duration_ms = max(0, (int(time.time()) - int(job.started_at)) * 1000)
+            await db.finish_job_run(
+                job.id,
+                status="unknown",
+                duration_ms=duration_ms,
+                details=details,
+            )
+            await audit_system(
+                db,
+                f"{job.name}.recovered",
+                target_type="host_control",
+                details=details,
+                success=False,
+            )
+            recovered += 1
+            continue
+
+        if job.name not in {
+            "host_control.start",
+            "host_control.stop",
+            "host_control.restart",
+        }:
+            continue
+
+        operation_id = _recovery_field(_RECOVERY_OPERATION_ID, job.details)
+        action = _recovery_field(_RECOVERY_ACTION, job.details)
+        alias = _recovery_field(_RECOVERY_HOST_ALIAS, job.details)
+        target = next((item for item in settings.host_control_targets if item.key == alias), None)
+        base_details = job.details or f"operation_id={operation_id}; action={action}"
+
+        if not operation_id or not action or target is None:
+            details = base_details + "; result=uncertain; recovery=metadata_missing; mutation_not_retried=true"
+            status = "unknown"
+        else:
+            client = _host_client(target)
+            try:
+                operation = await client.get_operation(operation_id)
+            except HostControlError as exc:
+                operation = None
+                details = (
+                    base_details
+                    + f"; result=uncertain; recovery=lookup_failed; error_code={exc.code or 'error'}"
+                    + "; mutation_not_retried=true"
+                )
+                status = "unknown"
+            else:
+                if operation is None:
+                    details = (
+                        base_details
+                        + "; result=uncertain; recovery=operation_not_found; mutation_not_retried=true"
+                    )
+                    status = "unknown"
+                elif operation.action != action:
+                    details = (
+                        base_details
+                        + "; result=uncertain; recovery=action_mismatch; mutation_not_retried=true"
+                    )
+                    status = "unknown"
+                elif operation.result == "success":
+                    details = _operation_details(
+                        ControlTarget(
+                            key="m" if target.key == "MASTER" else target.key,
+                            name=target.name,
+                            back_callback="",
+                            panel_client=None,
+                            host_target=target,
+                        ),
+                        operation,
+                    ) + "; recovery=agent_journal"
+                    status = "success"
+                    if action in {"start", "restart"}:
+                        panel_client = xui if target.key == "MASTER" else system_backup.direct_client_for(target.name)
+                        panel_ok, _, _ = await _panel_snapshot(panel_client)
+                        if not panel_ok:
+                            details += "; panel_postcondition=unconfirmed"
+                            status = "unknown"
+                        else:
+                            details += "; panel_postcondition=online"
+                elif operation.result == "failed":
+                    details = _operation_details(
+                        ControlTarget(
+                            key="m" if target.key == "MASTER" else target.key,
+                            name=target.name,
+                            back_callback="",
+                            panel_client=None,
+                            host_target=target,
+                        ),
+                        operation,
+                    ) + "; recovery=agent_journal"
+                    status = "failed"
+                else:
+                    details = _operation_details(
+                        ControlTarget(
+                            key="m" if target.key == "MASTER" else target.key,
+                            name=target.name,
+                            back_callback="",
+                            panel_client=None,
+                            host_target=target,
+                        ),
+                        operation,
+                    ) + "; recovery=agent_journal; mutation_not_retried=true"
+                    status = "unknown"
+
+        duration_ms = max(0, (int(time.time()) - int(job.started_at)) * 1000)
+        await db.finish_job_run(
+            job.id,
+            status=status,
+            duration_ms=duration_ms,
+            details=details,
+        )
+        await audit_system(
+            db,
+            f"{job.name}.recovered",
+            target_type="host_control",
+            target_id=target.name if target is not None else alias,
+            details=details,
+            success=status == "success",
+        )
+        recovered += 1
+    return recovered
 
 
 async def _run_panel_restart(target: ControlTarget, actor_id: int) -> tuple[str, bool, str]:
