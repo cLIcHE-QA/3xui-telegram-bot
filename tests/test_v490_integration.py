@@ -48,6 +48,12 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('admin:ver:panel:n2', self.callback_values(self.bot.node_detail_keyboard(2)))
         self.assertIn('admin:ver:xray:n2:0', self.callback_values(self.bot.node_detail_keyboard(2)))
 
+    def test_versions_navigation_labels_are_consistent(self):
+        home = self.updates.keyboard([[('⬅ System', 'admin:section:system')]])
+        self.assertEqual(home.inline_keyboard[0][0].text, '⬅ System')
+        self.assertEqual(self.updates.back().inline_keyboard[0][0].text, '⬅ Versions & Updates')
+        self.assertEqual(self.updates.back('m').inline_keyboard[0][0].text, '⬅ Сервер')
+
     def test_real_xui_client_has_version_api(self):
         from version_api import VersionAPIMixin
         self.assertIsInstance(self.bot.xui, VersionAPIMixin)
