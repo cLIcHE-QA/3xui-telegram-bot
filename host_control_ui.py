@@ -20,7 +20,7 @@ from config import HostControlTarget, load_settings
 from db import Database
 from host_control import HostControlClient, HostControlError, HostControlOperation
 from system_backup import SystemBackupService
-from xui import XUIClient, XUIError
+from xui import XUIClient, XUIError, XUIMutationError
 
 
 settings = load_settings()
@@ -281,8 +281,11 @@ async def _run_panel_restart(target: ControlTarget, actor_id: int) -> tuple[str,
         try:
             await target.panel_client.restart_panel()
             dispatched = True
-        except XUIError:
-            error_code = "panel_rejected"
+        except XUIMutationError as exc:
+            error_code = exc.code or ("lost_response" if exc.uncertain else "panel_rejected")
+            if exc.uncertain:
+                dispatched = True
+                uncertain_dispatch = True
         except (aiohttp.ClientError, TimeoutError):
             dispatched = True
             uncertain_dispatch = True
@@ -339,8 +342,22 @@ async def _run_xray_action(target: ControlTarget, action: str, actor_id: int) ->
                 await target.panel_client.stop_xray()
             else:
                 await target.panel_client.restart_xray()
-        except XUIError:
-            details = f"target={target.name}; action={action}; result=failed; error_code=panel_rejected"
+        except XUIMutationError as exc:
+            if exc.uncertain:
+                details = (
+                    f"target={target.name}; action={action}; result=uncertain; "
+                    f"error_code={exc.code or 'lost_response'}"
+                )
+                await _finish_job(run_id, started=started, status="unknown", details=details)
+                return (
+                    "🟡 Ответ Xray operation не подтверждён. Запрос повторно НЕ отправлялся.",
+                    False,
+                    details,
+                )
+            details = (
+                f"target={target.name}; action={action}; result=failed; "
+                f"error_code={exc.code or 'panel_rejected'}"
+            )
             await _finish_job(run_id, started=started, status="failed", details=details)
             return "🔴 3x-ui отклонил Xray operation.", False, details
         except (aiohttp.ClientError, TimeoutError):
