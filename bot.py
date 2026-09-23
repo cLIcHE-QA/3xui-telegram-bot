@@ -29,6 +29,7 @@ from business_admin import business_router
 from advanced_users import advanced_users_router
 from inbound_admin import inbound_admin_router, inbound_list_view
 from advanced_nodes import advanced_nodes_router
+from host_control_ui import host_control_router
 from admin_auth import authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_system
 from runtime_jobs import backup_lock
@@ -347,6 +348,7 @@ def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeybo
 
 def master_detail_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🧩 3x-ui Control", callback_data="admin:hostctl:m")],
         [
             InlineKeyboardButton(text="⬆️ 3x-ui updates", callback_data="admin:ver:panel:m"),
             InlineKeyboardButton(text="⚡ Xray Core", callback_data="admin:ver:xray:m:0"),
@@ -369,7 +371,7 @@ def node_detail_keyboard(node_id: int, enabled: bool | None = None) -> InlineKey
         [InlineKeyboardButton(text=maintenance_text, callback_data=f"admin:nodectl:{node_id}:maintenance")],
         [
             InlineKeyboardButton(text="✏️ Rename", callback_data=f"admin:nodectl:{node_id}:rename"),
-            InlineKeyboardButton(text="🔄 Restart Xray", callback_data=f"admin:nodectl:{node_id}:restartxray"),
+            InlineKeyboardButton(text="🧩 3x-ui Control", callback_data=f"admin:hostctl:n{node_id}"),
         ],
         [InlineKeyboardButton(text="⬆️ Update 3x-ui", callback_data=f"admin:ver:panel:n{node_id}")],
         [InlineKeyboardButton(text="⚡ Xray Core", callback_data=f"admin:ver:xray:n{node_id}:0")],
@@ -2289,6 +2291,7 @@ async def main():
     dp.include_router(versions_router)
     dp.include_router(advanced_users_router)
     dp.include_router(advanced_nodes_router)
+    dp.include_router(host_control_router)
     dp.include_router(inbound_admin_router)
     dp.include_router(catalog_router)
     dp.include_router(observability_router)
