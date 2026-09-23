@@ -47,11 +47,13 @@ chmod 0600 "$tmp"
 mv "$tmp" "$OUT"
 trap - EXIT HUP INT TERM
 
+OUT_DIR="$(dirname -- "$OUT")"
+OUT_NAME="$(basename -- "$OUT")"
 if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$OUT" > "$OUT.sha256"
+    (cd "$OUT_DIR" && sha256sum "$OUT_NAME" > "$OUT_NAME.sha256")
     chmod 0600 "$OUT.sha256"
 elif command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$OUT" > "$OUT.sha256"
+    (cd "$OUT_DIR" && shasum -a 256 "$OUT_NAME" > "$OUT_NAME.sha256")
     chmod 0600 "$OUT.sha256"
 else
     die "bundle created, but sha256sum/shasum is unavailable"
