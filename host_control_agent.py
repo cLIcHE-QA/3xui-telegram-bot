@@ -73,9 +73,9 @@ class AgentConfig:
         listen_host, sep, port_text = listen.rpartition(":")
         if not sep or not listen_host:
             raise AgentConfigError("HOST_CONTROL_AGENT_LISTEN must be host:port.")
-        if listen_host not in {"127.0.0.1", "::1", "[::1]"}:
+        if listen_host != "127.0.0.1":
             raise AgentConfigError(
-                "Host-control agent must listen on loopback only; expose it through a restricted HTTPS reverse proxy."
+                "Host-control agent must listen on 127.0.0.1 only; expose it through a restricted HTTPS reverse proxy."
             )
         try:
             listen_port = int(port_text)
@@ -88,6 +88,8 @@ class AgentConfig:
             os.environ.get("HOST_CONTROL_AGENT_TOKEN_FILE", "/etc/3xui-host-control/token")
         )
         try:
+            if token_file.is_symlink():
+                raise AgentConfigError("Host-control token file must not be a symlink.")
             file_stat = token_file.stat()
         except OSError as exc:
             raise AgentConfigError("Host-control token file is unavailable.") from exc
