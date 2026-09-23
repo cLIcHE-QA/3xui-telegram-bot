@@ -209,6 +209,10 @@ async def node_rename_finish(message: Message, state: FSMContext):
         raw = await xui.node_get_raw(node_id)
         old_name = str(raw.get("name") or "Node")
         had_backup_target = system_backup.has_target_for(old_name)
+        had_host_control_target = any(
+            target.name.strip().casefold() == old_name.strip().casefold()
+            for target in settings.host_control_targets
+        )
         await xui.node_update(node_id, _node_update_payload(raw, name=name))
         await audit_from_message(
             db, message, "node.rename", target_type="node", target_id=node_id,
@@ -222,11 +226,17 @@ async def node_rename_finish(message: Message, state: FSMContext):
         await render_input(message, f"🔴 Не удалось переименовать ноду: {exc}")
         return
     await state.clear()
-    suffix = (
-        "\n\n⚠️ Для per-node backup/restart Xray обнови NODE_BACKUP_*_NODE_NAME в .env, "
-        "потому что backup target был привязан к старому имени."
-        if had_backup_target and old_name.casefold() != name.casefold() else ""
-    )
+    warnings: list[str] = []
+    if old_name.casefold() != name.casefold():
+        if had_backup_target:
+            warnings.append(
+                "обнови NODE_BACKUP_*_NODE_NAME: direct backup/Xray target был привязан к старому имени"
+            )
+        if had_host_control_target:
+            warnings.append(
+                "обнови HOST_CONTROL_*_NAME: Host Control target был привязан к старому имени"
+            )
+    suffix = "\n\n⚠️ " + "; ".join(warnings) + "." if warnings else ""
     await render_input(message, f"✅ Нода переименована: {name}{suffix}", reply_markup=_back(node_id))
 
 
