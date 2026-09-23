@@ -10,6 +10,112 @@
 - `chore/<name>` — инфраструктура и служебные изменения;
 - `docs/<name>` — документация.
 
+## Канонический стиль Git-истории
+
+Этот раздел задаёт стиль для новых изменений. Исторические commits/PR/issues не переписываются ради соответствия новым правилам.
+
+### Ветки
+
+Используются короткие ASCII slug-имена:
+
+- `feature/<slug>` — новая функциональность;
+- `fix/<slug>` — исправление;
+- `hotfix/<slug>` — срочное production-исправление;
+- `security/<slug>` — security hardening/fix;
+- `chore/<slug>` — инфраструктура, CI, automation, maintenance;
+- `docs/<slug>` — документация;
+- `test/<slug>` — тестовая инфраструктура;
+- `release/vX.Y.Z` — только release-prep.
+
+Примеры: `feature/node-readiness`, `fix/release-tag-probe`, `chore/git-conventions`, `release/v4.12.0`.
+
+### Commit subjects
+
+Канонический subject использует формат:
+
+~~~text
+<type>: <краткое описание>
+~~~
+
+Разрешённые типы:
+
+- `feat:` — новая функциональность;
+- `fix:` — исправление дефекта;
+- `security:` — security hardening/fix;
+- `docs:` — документация;
+- `test:` — тесты;
+- `chore:` — CI, automation, maintenance;
+- `refactor:` — внутреннее изменение без изменения ожидаемого поведения;
+- `release:` — release-prep.
+
+Описание пишется по-русски, если это не точное техническое имя. Команды, API, identifiers и названия UI сохраняются в исходном виде. Subject по возможности укладывается примерно в 72 символа, не заканчивается точкой и описывает результат изменения.
+
+Не добавляй номер issue/PR вручную в subject. Для squash merge GitHub сам добавит suffix `(#N)`.
+
+Branch-local commits желательно оформлять тем же способом, но **каноническая история `main` определяется PR title**, потому что штатный merge strategy — squash.
+
+### Pull Requests
+
+PR title обязан иметь тот же формат `<type>: <краткое описание>`. Для release-prep используется строго:
+
+~~~text
+release: vX.Y.Z
+~~~
+
+PR body должен кратко фиксировать:
+
+1. что изменено;
+2. зачем это нужно;
+3. проверки/CI/manual smoke-tests;
+4. security/compatibility/migration последствия;
+5. rollout/rollback, если изменение operational.
+
+Не перечисляй в PR body secrets, tokens, private keys или содержимое mode-0600 enrollment files.
+
+### Merge strategy
+
+Для обычных feature/fix/security/docs/chore/release PR используется **Squash and merge**.
+
+Итоговый commit в `main` получает PR title как subject. Suffix GitHub вида `(#20)` является **ожидаемой и желательной** частью истории: он даёт прямую traceability commit → PR.
+
+Пример:
+
+~~~text
+fix: проверка отсутствующего release tag (#20)
+~~~
+
+Не переписывай уже опубликованную историю ради удаления или добавления `(#N)`.
+
+Обычный merge commit в `main` не используется, кроме действительно исключительных интеграционных случаев, которые должны быть объяснены в PR. Merge `main` в рабочую ветку для разрешения конфликтов допустим: при последующем squash промежуточная история не попадает в `main`.
+
+Force-push/rebase общей PR-ветки без необходимости не используется.
+
+### Issues
+
+Issues используются для работы, которая требует отдельного tracking/discussion. Мелкая очевидная правка может идти сразу через PR.
+
+Канонические issue titles:
+
+- `bug: <симптом>` — воспроизводимый дефект;
+- `feature: <результат>` — новая возможность;
+- `task: <результат>` — operational/maintenance/documentation задача.
+
+Issue должен содержать факты, expected/actual behavior и acceptance criteria, когда они применимы.
+
+Не публикуй в issue passwords, API tokens, private keys, backup archives, enrollment contents или другие secrets. Security-sensitive материал не переносится в обычный issue; фиксируется только безопасное описание/impact, а секретные данные остаются вне GitHub discussion.
+
+Закрытие issue через PR желательно связывать обычной GitHub-ссылкой/ключевым словом в PR body, а не добавлением номера issue в commit subject.
+
+### Что считается источником стиля
+
+Для новых чатов/сессий сначала читаются:
+
+1. `docs/GIT_WORKFLOW.md` — branches, commits, PR, merge, issues;
+2. `docs/RELEASES.md` — tags и GitHub Releases;
+3. `CHANGELOG.md` — пользовательские/операционные изменения релизов.
+
+Новые локальные соглашения не вводятся молча: если нужен другой стиль, сначала меняется этот контракт отдельным PR.
+
 ## Типовой цикл
 
 1. Создать ветку от актуального `main`.
