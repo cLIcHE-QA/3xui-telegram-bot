@@ -1662,7 +1662,7 @@ async def admin_node_detail(call: CallbackQuery):
     except XUIError as exc:
         probe_error = str(exc)
     try:
-        node = await xui.node_get(node_id)
+        node = await xui.node_get_enriched(node_id)
     except XUIError as exc:
         await render_callback(call, f"🔴 Нода недоступна: {exc}", reply_markup=admin_menu())
         return
