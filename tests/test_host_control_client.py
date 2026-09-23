@@ -79,6 +79,8 @@ class HostControlClientTests(unittest.IsolatedAsyncioTestCase):
 
         async def fake_http(method, path, *, body=None):
             calls.append((method, path, body))
+            if path == "/v1/status":
+                return 200, status_payload()
             if method == "POST":
                 raise aiohttp.ClientConnectionError("lost response")
             return 404, {"error": "operation_not_found"}
@@ -88,7 +90,7 @@ class HostControlClientTests(unittest.IsolatedAsyncioTestCase):
                 await self.client.execute("restart", op_id)
 
         self.assertTrue(ctx.exception.uncertain)
-        self.assertEqual([x[0] for x in calls], ["POST", "GET"])
+        self.assertEqual([x[0] for x in calls], ["GET", "POST", "GET"])
         self.assertEqual(sum(1 for x in calls if x[0] == "POST"), 1)
 
     async def test_execute_recovers_lost_response_from_read_only_lookup(self):
@@ -97,6 +99,8 @@ class HostControlClientTests(unittest.IsolatedAsyncioTestCase):
 
         async def fake_http(method, path, *, body=None):
             calls.append((method, path, body))
+            if path == "/v1/status":
+                return 200, status_payload()
             if method == "POST":
                 raise asyncio.TimeoutError()
             return 200, operation_payload(op_id=op_id)
@@ -105,7 +109,7 @@ class HostControlClientTests(unittest.IsolatedAsyncioTestCase):
             result = await self.client.execute("restart", op_id)
 
         self.assertEqual(result.result, "success")
-        self.assertEqual([x[0] for x in calls], ["POST", "GET"])
+        self.assertEqual([x[0] for x in calls], ["GET", "POST", "GET"])
 
     async def test_504_operation_response_is_returned_as_uncertain_record(self):
         op_id = "d" * 32
@@ -114,7 +118,11 @@ class HostControlClientTests(unittest.IsolatedAsyncioTestCase):
             result="uncertain",
             error_code="postcondition_timeout",
         )
-        with patch.object(self.client, "_http", new=AsyncMock(return_value=(504, payload))):
+        request = AsyncMock(side_effect=[
+            (200, status_payload()),
+            (504, payload),
+        ])
+        with patch.object(self.client, "_http", new=request):
             result = await self.client.execute("restart", op_id)
         self.assertEqual(result.result, "uncertain")
         self.assertEqual(result.error_code, "postcondition_timeout")
@@ -146,11 +154,37 @@ class HostControlClientTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_operation_action_mismatch_fails_closed(self):
         op_id = "f" * 32
-        with patch.object(
-            self.client,
-            "_http",
-            new=AsyncMock(return_value=(200, operation_payload(op_id=op_id, action="stop"))),
-        ):
+        request = AsyncMock(side_effect=[
+            (200, status_payload()),
+            (200, operation_payload(op_id=op_id, action="stop")),
+        ])
+        with patch.object(self.client, "_http", new=request):
+            with self.assertRaises(HostControlError) as ctx:
+                await self.client.execute("restart", op_id)
+        self.assertTrue(ctx.exception.uncertain)
+
+    async def test_wrong_host_preflight_blocks_mutation_post(self):
+        op_id = "1" * 32
+        calls = []
+
+        async def fake_http(method, path, *, body=None):
+            calls.append((method, path, body))
+            return 200, status_payload(host_id="master")
+
+        with patch.object(self.client, "_http", side_effect=fake_http):
+            with self.assertRaises(HostControlError) as ctx:
+                await self.client.execute("restart", op_id)
+
+        self.assertEqual(ctx.exception.code, "host_id_mismatch")
+        self.assertEqual([x[0] for x in calls], ["GET"])
+
+    async def test_malformed_mutation_response_is_uncertain(self):
+        op_id = "2" * 32
+        request = AsyncMock(side_effect=[
+            (200, status_payload()),
+            (200, operation_payload(op_id=op_id, duration_ms="not-a-number")),
+        ])
+        with patch.object(self.client, "_http", new=request):
             with self.assertRaises(HostControlError) as ctx:
                 await self.client.execute("restart", op_id)
         self.assertTrue(ctx.exception.uncertain)
