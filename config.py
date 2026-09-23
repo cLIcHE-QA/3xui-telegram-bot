@@ -45,7 +45,7 @@ class HostControlTarget:
     verify_tls: bool
 
 
-_HOST_CONTROL_HOST_ID = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}\\Z")
+_HOST_CONTROL_HOST_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 
 
 def _private_http_host(hostname: str) -> bool:
