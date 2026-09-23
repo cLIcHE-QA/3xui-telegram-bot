@@ -83,7 +83,7 @@ def _back(node_id: int) -> InlineKeyboardMarkup:
 def _confirm(node_id: int, action: str, label: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=label, callback_data=f"admin:nodectl:{node_id}:{action}:run")],
-        [InlineKeyboardButton(text="Отмена", callback_data=f"admin:node:{node_id}")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:node:{node_id}")],
     ])
 
 
