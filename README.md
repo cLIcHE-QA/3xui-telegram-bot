@@ -6,6 +6,16 @@
 
 Архитектурный контракт для следующего этапа `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 
+## v4.10.0 — в разработке: безопасный 3x-ui Control
+
+Feature-ветка добавляет отдельный экран `🧩 3x-ui Control` для Master и direct nodes. Host-level `Start / Stop / Restart service` выполняются только через restricted Host Control Agent, а `Restart Panel process` и Xray controls используют штатные API 3x-ui.
+
+Host Control Agent не является SSH gateway: он слушает только `127.0.0.1`, не принимает command/path/unit из Telegram и умеет управлять только жёстко заданным `x-ui.service`. Remote node публикует agent только через restricted HTTPS reverse proxy; backend port agent наружу не открывается.
+
+Destructive `Stop service` и `Stop Xray` доступны только роли Owner. `Stop service` дополнительно требует одноразовую typed-фразу. Mutation requests не повторяются автоматически после timeout/lost response.
+
+До merge/release production остаётся на `v4.9.3`; `APP_VERSION` будет повышен отдельным release-prep PR.
+
 ## v4.9.3 — Исправление счётчиков карточки ноды
 
 Карточка `Infrastructure → Nodes → <node>` теперь использует enriched-данные списка нод 3x-ui для вычисляемых счётчиков inbound'ов и клиентов. Это исправляет ситуацию, когда рабочая удалённая нода с синхронизированными inbound'ами и реальным трафиком показывала `Inbound'ов: 0` и `Клиентов: 0`.
