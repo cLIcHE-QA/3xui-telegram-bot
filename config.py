@@ -98,6 +98,8 @@ def _load_host_control_targets() -> tuple[HostControlTarget, ...]:
             raise RuntimeError(
                 f"Host-control target {key} is incomplete; missing: {', '.join(missing)}"
             )
+        if not (1 <= len(name) <= 64) or "\n" in name or "\r" in name:
+            raise RuntimeError(f"{prefix}NAME must contain 1-64 characters on one line.")
         if not _HOST_CONTROL_HOST_ID.fullmatch(host_id):
             raise RuntimeError(f"Invalid {prefix}HOST_ID.")
         if len(token) < 43:
