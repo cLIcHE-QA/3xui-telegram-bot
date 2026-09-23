@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import os
 from pathlib import Path
 import tempfile
@@ -114,6 +115,13 @@ class HostControlUITests(unittest.IsolatedAsyncioTestCase):
         callbacks = self.callbacks(self.ui._screen_keyboard(self.target(), "owner", True))
         self.assertIn("admin:hostctl:n2:sp:ask", callbacks)
         self.assertIn("admin:hostctl:n2:xs:ask", callbacks)
+
+    def test_stop_service_confirmation_is_consumed_before_dispatch(self):
+        source = inspect.getsource(self.ui.host_control_stop_phrase)
+        clear_at = source.index("await state.clear()")
+        dispatch_at = source.index("_run_service_action(target, \"stop\"")
+        self.assertLess(clear_at, dispatch_at)
+        self.assertIn('f"STOP {target_name}"', source)
 
     async def test_unknown_xray_state_does_not_confirm_stop(self):
         panel = FakePanelClient(xray_state="unknown")
