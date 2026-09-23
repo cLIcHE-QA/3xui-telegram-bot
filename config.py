@@ -30,6 +30,7 @@ def env_bool(value: str | None, default: bool = True) -> bool:
 class NodeBackupTarget:
     key: str
     node_name: str
+    node_id: int | None
     panel_url: str
     api_token: str
     verify_tls: bool
@@ -39,6 +40,7 @@ class NodeBackupTarget:
 class HostControlTarget:
     key: str
     name: str
+    node_id: int | None
     host_id: str
     url: str
     token: str
@@ -46,6 +48,19 @@ class HostControlTarget:
 
 
 _HOST_CONTROL_HOST_ID = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
+
+
+def _optional_positive_int(value: str | None, field: str) -> int | None:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = int(raw)
+    except ValueError as exc:
+        raise RuntimeError(f"{field} must be a positive integer.") from exc
+    if parsed <= 0:
+        raise RuntimeError(f"{field} must be a positive integer.")
+    return parsed
 
 
 def _private_http_host(hostname: str) -> bool:
@@ -75,12 +90,14 @@ def _load_host_control_targets() -> tuple[HostControlTarget, ...]:
     seen_host_ids: set[str] = set()
     seen_names: set[str] = set()
     seen_tokens: set[str] = set()
+    seen_node_ids: set[int] = set()
     for raw_alias in aliases:
         key = raw_alias.strip().upper()
         if not key or not key.replace("_", "").isalnum():
             raise RuntimeError(f"Invalid HOST_CONTROL_TARGETS alias: {raw_alias!r}")
         prefix = f"HOST_CONTROL_{key}_"
         name = os.getenv(prefix + "NAME", "").strip()
+        node_id = _optional_positive_int(os.getenv(prefix + "NODE_ID"), prefix + "NODE_ID")
         host_id = os.getenv(prefix + "HOST_ID", "").strip().lower()
         url = os.getenv(prefix + "URL", "").strip().rstrip("/")
         token = os.getenv(prefix + "TOKEN", "").strip()
@@ -100,6 +117,8 @@ def _load_host_control_targets() -> tuple[HostControlTarget, ...]:
             )
         if not (1 <= len(name) <= 64) or "\n" in name or "\r" in name:
             raise RuntimeError(f"{prefix}NAME must contain 1-64 characters on one line.")
+        if key == "MASTER" and node_id is not None:
+            raise RuntimeError(f"{prefix}NODE_ID is only valid for direct nodes.")
         if not _HOST_CONTROL_HOST_ID.fullmatch(host_id):
             raise RuntimeError(f"Invalid {prefix}HOST_ID.")
         if len(token) < 43:
@@ -125,22 +144,28 @@ def _load_host_control_targets() -> tuple[HostControlTarget, ...]:
             raise RuntimeError(f"Duplicate host-control target name: {name}")
         if token in seen_tokens:
             raise RuntimeError("Host-control tokens must be unique per target.")
+        if node_id is not None and node_id in seen_node_ids:
+            raise RuntimeError(f"Duplicate host-control node_id: {node_id}")
         seen_host_ids.add(host_id)
         seen_names.add(folded_name)
         seen_tokens.add(token)
-        targets.append(HostControlTarget(key, name, host_id, url, token, verify_tls))
+        if node_id is not None:
+            seen_node_ids.add(node_id)
+        targets.append(HostControlTarget(key, name, node_id, host_id, url, token, verify_tls))
     return tuple(targets)
 
 
 def _load_node_backup_targets() -> tuple[NodeBackupTarget, ...]:
     aliases = csv_values(os.getenv("NODE_BACKUP_TARGETS", ""))
     targets: list[NodeBackupTarget] = []
+    seen_node_ids: set[int] = set()
     for raw_alias in aliases:
         key = raw_alias.strip().upper()
         if not key or not key.replace("_", "").isalnum():
             raise RuntimeError(f"Invalid NODE_BACKUP_TARGETS alias: {raw_alias!r}")
         prefix = f"NODE_BACKUP_{key}_"
         node_name = os.getenv(prefix + "NODE_NAME", "").strip()
+        node_id = _optional_positive_int(os.getenv(prefix + "NODE_ID"), prefix + "NODE_ID")
         panel_url = os.getenv(prefix + "PANEL_URL", "").strip().rstrip("/")
         api_token = os.getenv(prefix + "API_TOKEN", "").strip()
         missing = []
@@ -154,10 +179,15 @@ def _load_node_backup_targets() -> tuple[NodeBackupTarget, ...]:
             raise RuntimeError(
                 f"Node backup target {key} is incomplete; missing: {', '.join(missing)}"
             )
+        if node_id is not None and node_id in seen_node_ids:
+            raise RuntimeError(f"Duplicate node backup node_id: {node_id}")
+        if node_id is not None:
+            seen_node_ids.add(node_id)
         targets.append(
             NodeBackupTarget(
                 key=key,
                 node_name=node_name,
+                node_id=node_id,
                 panel_url=panel_url,
                 api_token=api_token,
                 verify_tls=env_bool(os.getenv(prefix + "VERIFY_TLS"), True),
