@@ -16,6 +16,7 @@ jobs:
   publish:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
@@ -40,92 +41,55 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-
-          version="$(python3 - <<'PY'
-          from version import APP_VERSION
-          print(APP_VERSION)
-          PY
-          )"
+          version="$(python3 -c 'from version import APP_VERSION; print(APP_VERSION)')"
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-
-          release_commit="$(
-            git log --format='%H'               -G "^APP_VERSION = \"$version\"$"               -- version.py               | head -n 1
-          )"
-          [[ "$release_commit" =~ ^[0-9a-f]{40}$ ]] || {
-            echo "Cannot resolve release commit for APP_VERSION=$version" >&2
-            exit 1
-          }
-
+          release_commit="$(git log --format='%H' -G "^APP_VERSION = \"$version\"$" -- version.py | head -n 1)"
+          [[ "$release_commit" =~ ^[0-9a-f]{40}$ ]] || { echo "Cannot resolve release commit for APP_VERSION=$version" >&2; exit 1; }
           git merge-base --is-ancestor "$release_commit" "$TESTED_SHA"
-
           git show "$release_commit:version.py" > /tmp/release-version.py
-          resolved="$(
-            python3 - <<'PY'
-          ns = {}
-          exec(open("/tmp/release-version.py", encoding="utf-8").read(), ns)
-          print(ns["APP_VERSION"])
-          PY
-          )"
+          resolved="$(python3 -c 'ns={}; exec(open("/tmp/release-version.py", encoding="utf-8").read(), ns); print(ns["APP_VERSION"])')"
           [[ "$resolved" == "$version" ]]
-
-          {
-            echo "version=$version"
-            echo "tag=v$version"
-            echo "commit=$release_commit"
-          } >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "commit=$release_commit" >> "$GITHUB_OUTPUT"
 
       - name: Render canonical release notes
         run: |
-          python3 scripts/render-release-notes.py             --version "${{ steps.release.outputs.version }}"             --commit "${{ steps.release.outputs.commit }}"             --title-out /tmp/release-title.txt             --body-out /tmp/release-body.md
+          python3 scripts/render-release-notes.py --version "${{ steps.release.outputs.version }}" --commit "${{ steps.release.outputs.commit }}" --title-out /tmp/release-title.txt --body-out /tmp/release-body.md
 
       - name: Verify or create release tag
         shell: bash
         run: |
           set -Eeuo pipefail
-
           tag="${{ steps.release.outputs.tag }}"
           commit="${{ steps.release.outputs.commit }}"
-          existing="$(
-            gh api "repos/$REPOSITORY/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null || true
-          )"
-
+          existing="$(gh api "repos/$REPOSITORY/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null || true)"
           if [[ -n "$existing" ]]; then
-            [[ "$existing" == "$commit" ]] || {
-              echo "Tag $tag already points to $existing, expected $commit. Refusing to move it." >&2
-              exit 1
-            }
+            [[ "$existing" == "$commit" ]] || { echo "Tag $tag already points to $existing, expected $commit. Refusing to move it." >&2; exit 1; }
           else
-            gh api --method POST "repos/$REPOSITORY/git/refs"               -f "ref=refs/tags/$tag"               -f "sha=$commit" >/dev/null
+            gh api --method POST "repos/$REPOSITORY/git/refs" -f "ref=refs/tags/$tag" -f "sha=$commit" >/dev/null
           fi
 
       - name: Create or synchronize GitHub Release
         shell: bash
         run: |
           set -Eeuo pipefail
-
           tag="${{ steps.release.outputs.tag }}"
           title="$(cat /tmp/release-title.txt)"
-
           if gh release view "$tag" --repo "$REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "$tag"               --repo "$REPOSITORY"               --title "$title"               --notes-file /tmp/release-body.md               --latest
+            gh release edit "$tag" --repo "$REPOSITORY" --title "$title" --notes-file /tmp/release-body.md
           else
-            gh release create "$tag"               --repo "$REPOSITORY"               --verify-tag               --title "$title"               --notes-file /tmp/release-body.md               --latest
+            gh release create "$tag" --repo "$REPOSITORY" --verify-tag --title "$title" --notes-file /tmp/release-body.md
           fi
 
       - name: Repair v4.10.1 blank metadata if needed
         shell: bash
         run: |
           set -Eeuo pipefail
-
-          if ! gh release view v4.10.1 --repo "$REPOSITORY" >/dev/null 2>&1; then
-            exit 0
-          fi
-
+          if ! gh release view v4.10.1 --repo "$REPOSITORY" >/dev/null 2>&1; then exit 0; fi
           name="$(gh release view v4.10.1 --repo "$REPOSITORY" --json name --jq '.name // ""')"
           body="$(gh release view v4.10.1 --repo "$REPOSITORY" --json body --jq '.body // ""')"
           [[ -z "$name" || -z "$body" ]] || exit 0
-
           commit="$(gh api "repos/$REPOSITORY/git/ref/tags/v4.10.1" --jq '.object.sha')"
-          python3 scripts/render-release-notes.py             --version 4.10.1             --commit "$commit"             --title-out /tmp/v4101-title.txt             --body-out /tmp/v4101-body.md
-
-          gh release edit v4.10.1             --repo "$REPOSITORY"             --title "$(cat /tmp/v4101-title.txt)"             --notes-file /tmp/v4101-body.md
+          python3 scripts/render-release-notes.py --version 4.10.1 --commit "$commit" --title-out /tmp/v4101-title.txt --body-out /tmp/v4101-body.md
+          gh release edit v4.10.1 --repo "$REPOSITORY" --title "$(cat /tmp/v4101-title.txt)" --notes-file /tmp/v4101-body.md
