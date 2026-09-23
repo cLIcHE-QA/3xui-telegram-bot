@@ -351,7 +351,8 @@ async def _run_xray_action(target: ControlTarget, action: str, actor_id: int) ->
 
         await asyncio.sleep(0.75)
         ok, state, running = await _panel_snapshot(target.panel_client)
-        expected = (not running) if action == "stop" else running
+        # Fail closed: an unknown/error Xray state is not proof that Stop worked.
+        expected = state in {"stop", "stopped"} if action == "stop" else running
         if ok and expected:
             details = f"target={target.name}; action={action}; result=success; xray_state={state}"
             await _finish_job(run_id, started=started, status="success", details=details)
@@ -557,7 +558,6 @@ async def host_control_stop_cancel(call: CallbackQuery, state: FSMContext):
         return
     key = (call.data or "").split(":")[2]
     await state.clear()
-    await call.answer("Отменено")
     await _show_screen(call, key)
 
 
