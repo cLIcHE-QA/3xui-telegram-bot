@@ -210,6 +210,7 @@ Helper:
 - проверяет alias/host_id/name/URL/transport policy;
 - блокирует повторное использование host_id/name/token между активными targets;
 - добавляет alias в `HOST_CONTROL_TARGETS` идемпотентно;
+- в v4.11 через `--node-id` закрепляет direct node за стабильным 3x-ui `node.id`;
 - сохраняет mode-0600 backup предыдущего `.env`;
 - проверяет Compose до recreate;
 - пересоздаёт только service `bot`;
