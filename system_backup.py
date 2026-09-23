@@ -41,6 +41,8 @@ class SystemBackupService:
                     return target
         needle = node_name.strip().casefold()
         for target in self.targets:
+            if node_id is not None and target.node_id is not None:
+                continue
             if target.node_name.strip().casefold() == needle:
                 return target
         return None
