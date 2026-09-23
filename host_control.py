@@ -135,6 +135,16 @@ class HostControlClient:
             timestamp=str(payload.get("timestamp") or ""),
         )
 
+    @staticmethod
+    def _safe_duration(value: Any) -> int:
+        try:
+            return max(0, int(value or 0))
+        except (TypeError, ValueError) as exc:
+            raise HostControlError(
+                "Host-control returned an invalid duration.",
+                code="invalid_duration",
+            ) from exc
+
     def _parse_operation(self, payload: dict[str, Any]) -> HostControlOperation:
         self._validate_identity(payload)
         operation_id = str(payload.get("operation_id") or "")
@@ -154,7 +164,7 @@ class HostControlClient:
             changed=bool(payload.get("changed", False)),
             before=str(payload.get("before") or ""),
             after=str(payload.get("after") or ""),
-            duration_ms=max(0, int(payload.get("duration_ms") or 0)),
+            duration_ms=self._safe_duration(payload.get("duration_ms")),
             error_code=str(payload.get("error_code") or ""),
             created_at=str(payload.get("created_at") or ""),
             finished_at=str(payload.get("finished_at") or ""),
@@ -200,6 +210,11 @@ class HostControlClient:
         if not OPERATION_ID_RE.fullmatch(operation_id):
             raise HostControlError("Invalid host-control operation id.", code="invalid_operation_id")
 
+        # Fail closed before mutation: validate schema/service/host identity using
+        # a read-only request. If DNS/routing points at the wrong agent, POST is
+        # never sent.
+        await self.status()
+
         try:
             status, payload = await self._http(
                 "POST",
@@ -228,7 +243,14 @@ class HostControlClient:
             ) from exc
 
         if status in {200, 503, 504} and "operation_id" in payload:
-            operation = self._parse_operation(payload)
+            try:
+                operation = self._parse_operation(payload)
+            except HostControlError as exc:
+                raise HostControlError(
+                    "Host-control mutation response failed validation.",
+                    code=exc.code or "invalid_mutation_response",
+                    uncertain=True,
+                ) from exc
             if operation.operation_id != operation_id or operation.action != action:
                 raise HostControlError(
                     "Host-control operation identity mismatch.",
