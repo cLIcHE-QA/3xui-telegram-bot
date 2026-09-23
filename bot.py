@@ -1253,7 +1253,7 @@ def _node_detail_text(node: NodeInfo) -> str:
         lines.append(f"⚠️ Xray error: {node.xray_error[:240]}")
     lines.append(
         "💾 Backup БД: "
-        + ("настроен" if system_backup.has_target_for(node.name, node.id) else "не настроен")
+        + ("настроен" if system_backup.has_target_for(node.name, getattr(node, "id", None)) else "не настроен")
     )
     if node.transitive:
         lines.append("ℹ️ Транзитная нода: read-only представление через родительскую ноду.")
@@ -1723,7 +1723,7 @@ async def admin_node_readiness(call: CallbackQuery):
     direct_error = ""
     if direct_target is not None:
         try:
-            await system_backup.direct_client_for(node.name, node.id).server_status()
+            await system_backup.direct_client_for(node.name, getattr(node, "id", None)).server_status()
             direct_ok = True
         except Exception as exc:
             direct_error = type(exc).__name__
