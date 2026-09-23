@@ -158,6 +158,13 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('node_update_panels(', source)
         self.assertNotIn('service.execute(', source)
 
+    def test_legacy_restart_xray_callback_cannot_mutate_directly(self):
+        from advanced_nodes import node_restart_xray_legacy
+        source = inspect.getsource(node_restart_xray_legacy)
+        self.assertIn('admin:hostctl:n', source)
+        self.assertNotIn('restart_xray(', source)
+        self.assertNotIn('direct_client_for(', source)
+
     def test_router_registered_and_master_shows_panel_version(self):
         self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.bot.main))
