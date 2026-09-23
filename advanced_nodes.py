@@ -208,11 +208,20 @@ async def node_rename_finish(message: Message, state: FSMContext):
     try:
         raw = await xui.node_get_raw(node_id)
         old_name = str(raw.get("name") or "Node")
-        had_backup_target = system_backup.has_target_for(old_name, node_id)
-        had_host_control_target = any(
-            target.name.strip().casefold() == old_name.strip().casefold()
-            for target in settings.host_control_targets
+        backup_target = system_backup.target_for(old_name, node_id)
+        host_target = next(
+            (target for target in settings.host_control_targets if target.node_id == node_id),
+            None,
         )
+        if host_target is None:
+            host_target = next(
+                (
+                    target
+                    for target in settings.host_control_targets
+                    if target.name.strip().casefold() == old_name.strip().casefold()
+                ),
+                None,
+            )
         await xui.node_update(node_id, _node_update_payload(raw, name=name))
         await audit_from_message(
             db, message, "node.rename", target_type="node", target_id=node_id,
@@ -228,13 +237,13 @@ async def node_rename_finish(message: Message, state: FSMContext):
     await state.clear()
     warnings: list[str] = []
     if old_name.casefold() != name.casefold():
-        if had_backup_target:
+        if backup_target is not None and backup_target.node_id is None:
             warnings.append(
-                "обнови NODE_BACKUP_*_NODE_NAME: direct backup/Xray target был привязан к старому имени"
+                "legacy NODE_BACKUP target всё ещё привязан к имени; добавь NODE_BACKUP_*_NODE_ID"
             )
-        if had_host_control_target:
+        if host_target is not None and host_target.node_id is None:
             warnings.append(
-                "обнови HOST_CONTROL_*_NAME: Host Control target был привязан к старому имени"
+                "legacy HOST_CONTROL target всё ещё привязан к имени; добавь HOST_CONTROL_*_NODE_ID"
             )
     suffix = "\n\n⚠️ " + "; ".join(warnings) + "." if warnings else ""
     await render_input(message, f"✅ Нода переименована: {name}{suffix}", reply_markup=_back(node_id))
