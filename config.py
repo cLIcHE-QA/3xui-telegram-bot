@@ -56,7 +56,17 @@ def _private_http_host(hostname: str) -> bool:
         address = ipaddress.ip_address(value)
     except ValueError:
         return False
-    return address.is_loopback or address.is_private or address.is_link_local
+    networks = (
+        ipaddress.ip_network("127.0.0.0/8"),
+        ipaddress.ip_network("10.0.0.0/8"),
+        ipaddress.ip_network("172.16.0.0/12"),
+        ipaddress.ip_network("192.168.0.0/16"),
+        ipaddress.ip_network("169.254.0.0/16"),
+        ipaddress.ip_network("::1/128"),
+        ipaddress.ip_network("fc00::/7"),
+        ipaddress.ip_network("fe80::/10"),
+    )
+    return any(address in network for network in networks)
 
 
 def _load_host_control_targets() -> tuple[HostControlTarget, ...]:
