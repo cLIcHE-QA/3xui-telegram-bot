@@ -14,6 +14,7 @@ read_state() {
 [[ "$(id -u)" -eq 0 ]] || die "run as root"
 [[ -f "$STATE_FILE" ]] || die "TLS source state not found: $STATE_FILE"
 command -v openssl >/dev/null 2>&1 || die "openssl not found"
+command -v sha256sum >/dev/null 2>&1 || die "sha256sum not found"
 command -v systemctl >/dev/null 2>&1 || die "systemctl not found"
 
 CERT_PATH="$(read_state CERT_PATH)"
