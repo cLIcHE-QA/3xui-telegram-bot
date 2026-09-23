@@ -441,6 +441,14 @@ def _section_header(title: str, subtitle: str) -> str:
     return f"{title}\n\n{subtitle}"
 
 
+def system_section_text() -> str:
+    return _section_header(
+        "⚙️ System",
+        f"🤖 Bot: v{APP_VERSION}\n\n"
+        "Фоновые задачи, backups, аудит, администраторы и настройки.",
+    )
+
+
 @router.callback_query(F.data == "admin:dashboard")
 async def admin_dashboard(call: CallbackQuery):
     if not await guard_admin_call(call):
@@ -635,11 +643,9 @@ async def admin_monitoring(call: CallbackQuery):
 async def admin_system(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
-    await render_callback(call, 
-        _section_header(
-            "⚙️ System",
-            "Фоновые задачи, backups, аудит, администраторы и настройки.",
-        ),
+    await render_callback(
+        call,
+        system_section_text(),
         reply_markup=system_menu(),
     )
     await call.answer()
