@@ -36,6 +36,10 @@ class HostControlConfigTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.load({"HOST_CONTROL_FI_URL": "http://203.0.113.10:18181"})
 
+    def test_remote_private_http_is_rejected(self):
+        with self.assertRaises(RuntimeError):
+            self.load({"HOST_CONTROL_FI_URL": "http://10.0.0.20:18181"})
+
     def test_https_without_verification_is_rejected(self):
         with self.assertRaises(RuntimeError):
             self.load({"HOST_CONTROL_FI_VERIFY_TLS": "false"})
