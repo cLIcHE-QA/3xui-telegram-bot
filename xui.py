@@ -122,6 +122,29 @@ class XUIClient(VersionAPIMixin):
     async def node_get(self, node_id: int) -> NodeInfo:
         return self._parse_node(await self.node_get_raw(node_id))
 
+    async def node_get_enriched(self, node_id: int) -> NodeInfo:
+        """Return a node view with derived counters when the list API is available.
+
+        Current 3x-ui computes inbound/client/online counters in /nodes/list, while
+        /nodes/get/{id} returns the persisted node row where those derived fields
+        remain zero. Prefer the direct node from the list and fall back to the
+        detail endpoint so node administration still works if the list request
+        is temporarily unavailable.
+        """
+        target_id = int(node_id)
+        try:
+            nodes = await self.nodes_list()
+        except XUIError:
+            nodes = []
+
+        for node in nodes:
+            if node.id == target_id and not node.transitive:
+                return node
+        for node in nodes:
+            if node.id == target_id:
+                return node
+        return await self.node_get(target_id)
+
     async def node_update(self, node_id: int, payload: dict[str, Any]) -> dict[str, Any]:
         return await self._request(
             "POST", f"/panel/api/nodes/update/{int(node_id)}", json=payload
