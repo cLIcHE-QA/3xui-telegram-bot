@@ -95,6 +95,20 @@ class HostControlAgentTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertEqual(self.controller.actions, [])
 
+    def test_unknown_state_blocks_mutation_without_systemctl(self):
+        self.controller.state = "unknown"
+        status, body = self.agent.execute("0" * 32, "restart")
+        self.assertEqual(status, 503)
+        self.assertEqual(body["error"], "service_state_unknown")
+        self.assertEqual(self.controller.actions, [])
+
+    def test_transitioning_state_blocks_mutation_without_systemctl(self):
+        self.controller.state = "transitioning"
+        status, body = self.agent.execute("f" * 32, "restart")
+        self.assertEqual(status, 409)
+        self.assertEqual(body["error"], "service_transitioning")
+        self.assertEqual(self.controller.actions, [])
+
     def test_start_already_running_is_idempotent_without_systemctl(self):
         status, body = self.agent.execute("1" * 32, "start")
         self.assertEqual(status, 200)
