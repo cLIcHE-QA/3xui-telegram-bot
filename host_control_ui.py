@@ -65,6 +65,8 @@ def _host_target_for(
                 return target
     needle = name.strip().casefold()
     for target in settings.host_control_targets:
+        if node_id is not None and target.node_id is not None:
+            continue
         if target.name.strip().casefold() == needle:
             return target
     return None
