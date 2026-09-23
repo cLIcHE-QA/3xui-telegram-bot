@@ -8,6 +8,8 @@ import subprocess
 import tempfile
 import threading
 import unittest
+import contextlib
+import io
 from unittest.mock import patch
 
 from host_control_agent import (
@@ -167,6 +169,18 @@ class HostControlAgentTests(unittest.TestCase):
         self.assertNotIn(self.config.token.encode(), data)
         self.assertNotIn(b"Authorization", data)
         self.assertNotIn(b"/usr/bin/sudo", data)
+
+    def test_operation_log_contains_only_normalized_metadata(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.agent.execute("0" * 32, "restart")
+        logged = out.getvalue()
+        self.assertIn('"event":"host_control_operation"', logged)
+        self.assertIn('"action":"restart"', logged)
+        self.assertNotIn(self.config.token, logged)
+        self.assertNotIn("Authorization", logged)
+        self.assertNotIn("/usr/bin/sudo", logged)
+        self.assertNotIn("systemctl restart", logged)
 
     def test_interrupted_started_operation_recovers_as_uncertain(self):
         journal = self.agent.journal
