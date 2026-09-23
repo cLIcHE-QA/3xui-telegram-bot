@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.11.0
+# Telegram-бот для 3x-ui v4.11.1
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
@@ -33,6 +33,18 @@ Host Control Agent не является SSH gateway: он слушает тол
 
 Destructive `Stop service` и `Stop Xray` доступны только роли Owner. `Stop service` дополнительно требует одноразовую typed-фразу. Mutation requests не повторяются автоматически после timeout/lost response.
 
+
+## v4.11.1 — Исправление Readiness callback
+
+Patch-релиз исправляет routing кнопки `🧭 Readiness`: общий handler карточки ноды больше не перехватывает readiness callback и не показывает ошибку `Некорректный ID ноды`.
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.11.1
+./scripts/deploy-release.sh --status
+~~~
 
 ## v4.11.0 — Node readiness / onboarding
 
