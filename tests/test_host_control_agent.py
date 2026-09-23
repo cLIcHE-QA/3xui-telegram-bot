@@ -17,6 +17,7 @@ from host_control_agent import (
     SYSTEMCTL,
     AgentConfig,
     AgentConfigError,
+    AgentRequestHandler,
     HostControlAgent,
     OperationJournal,
     ServiceController,
@@ -291,6 +292,18 @@ class AgentConfigSecurityTests(unittest.TestCase):
         os.chmod(self.token_file, 0o600)
         with self.assertRaises(AgentConfigError):
             self.load()
+
+
+class RequestTargetSecurityTests(unittest.TestCase):
+    def test_query_string_is_rejected(self):
+        handler = object.__new__(AgentRequestHandler)
+        handler.path = "/v1/status?command=whoami"
+        self.assertIsNone(handler._path())
+
+    def test_plain_known_path_is_accepted(self):
+        handler = object.__new__(AgentRequestHandler)
+        handler.path = "/v1/status"
+        self.assertEqual(handler._path(), "/v1/status")
 
 
 class SourceSecurityTests(unittest.TestCase):
