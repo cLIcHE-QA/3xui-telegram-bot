@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.11.1
+# Telegram-бот для 3x-ui v4.12.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
@@ -7,9 +7,26 @@
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
 Повторяемый rollout, deployment bundle и enrollment-import описаны в [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
-Рекомендуемый v4.11 onboarding direct node без передачи секретов через Telegram описан в [Node Onboarding](docs/NODE_ONBOARDING.md).
+Рекомендуемый guided onboarding direct node без передачи секретов через Telegram описан в [Node Onboarding](docs/NODE_ONBOARDING.md).
 Восстановление бота после замены/форматирования VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
+
+
+## v4.12.0 — Guided onboarding direct node
+
+Для новой direct node добавлен единый guided wrapper `scripts/onboard-direct-node.sh`. Этап `prepare` собирает secret-free Host Control bundle, при необходимости копирует только bundle и checksum на remote VPS и формирует точную команду установки restricted Host Control endpoint.
+
+Этап `bind` выполняет node preflight/registration, получает стабильный `NODE_ID`, проверяет direct-admin и Host Control enrollment с одним ID, импортирует оба binding и пересоздаёт только service `bot` один раз. Node-sync, direct-admin и Host Control secrets остаются раздельными mode-0600 файлами и не передаются через Telegram.
+
+Порядок работы и fallback manual flow описаны в [Node Onboarding](docs/NODE_ONBOARDING.md).
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.12.0
+./scripts/deploy-release.sh --status
+~~~
 
 ## v4.10.1 — Operational rollout и recovery
 
