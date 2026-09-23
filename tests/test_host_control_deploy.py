@@ -97,6 +97,10 @@ class HostControlDeploymentSecurityTests(unittest.TestCase):
         for route in routes:
             self.assertNotRegex(route, r"(shell|exec|command|file|docker|firewall|ssh)")
 
+    def test_bot_client_does_not_follow_redirects_with_bearer_token(self):
+        text = CLIENT.read_text(encoding="utf-8")
+        self.assertIn("allow_redirects=False", text)
+
     def test_bot_client_has_no_generic_command_surface(self):
         text = CLIENT.read_text(encoding="utf-8")
         for name in ["run_command", "execute_shell", "ssh", "read_file", "write_file"]:
