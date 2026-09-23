@@ -222,12 +222,12 @@ async def versions_home(call: CallbackQuery, state: FSMContext):
         lines += [f"3x-ui: {master.panel or 'недоступно'}", f"Xray: {master.xray or 'недоступно'} | {master.xray_state}"]
     else:
         lines.append("Не удалось получить версии Master.")
-    rows = [[(settings.master_name, "admin:ver:target:m")]]
+    rows = [[(f"🖥 {settings.master_name}", "admin:ver:target:m")]]
     if isinstance(nodes, list):
         for node in nodes[:30]:
             lines += ["", f"{node.name}: 3x-ui {node.panel_version or '?'} | Xray {node.xray_version or '?'}"]
             if node.id > 0 and not node.transitive:
-                rows.append([(node.name, f"admin:ver:target:n{node.id}")])
+                rows.append([(f"🌍 {node.name}", f"admin:ver:target:n{node.id}")])
         if len(nodes) > 30:
             lines.append(f"Показано 30 из {len(nodes)} нод; остальные доступны через Infrastructure.")
     else:
@@ -251,15 +251,15 @@ async def version_target(call: CallbackQuery, state: FSMContext):
             node = await xui.node_get(int(key[1:]))
             name = node.name
             snapshot = VersionState(node.panel_version, node.xray_version, node.xray_state)
-        rows = [[("3x-ui update", f"admin:ver:panel:{key}")],
-                [("Xray versions", f"admin:ver:xray:{key}:0")]]
+        rows = [[("⬆️ 3x-ui update", f"admin:ver:panel:{key}")],
+                [("⚡ Xray versions", f"admin:ver:xray:{key}:0")]]
         text = (f"{name}\n\n3x-ui: {snapshot.panel or 'недоступно'}\n"
                 f"Xray: {snapshot.xray or 'недоступно'} | {snapshot.xray_state}\n\n"
                 "Только ручные обновления: свежая проверенная копия и подтверждение.")
         op = store.get(key)
         if op and op.state in UNCERTAIN_STATES | {"prepared", "preparing", "checking"}:
             text += f"\n\nОперация: {op.state} ({op.nonce})"
-            rows.append([("Статус операции", f"admin:ver:check:{op.nonce}")])
+            rows.append([("📋 Статус операции", f"admin:ver:check:{op.nonce}")])
         rows += [[("🔄 Обновить", f"admin:ver:target:{key}")], [("⬅ Versions & Updates", "admin:versions")]]
         await render_callback(call, text, reply_markup=keyboard(rows))
     except Exception as exc:
@@ -283,7 +283,7 @@ async def show_panel_screen(call: CallbackQuery, key: str) -> None:
                 "Используется stable; сохранённая настройка канала не меняется.")
         rows = []
         if target.eligible and ROLE_RANK.get(role or "", 0) >= ROLE_RANK["admin"] and not same_version(current, latest):
-            rows.append([("Создать backup и перейти к подтверждению", f"admin:ver:prepare:{key}:panel")])
+            rows.append([("💾 Создать backup и перейти к подтверждению", f"admin:ver:prepare:{key}:panel")])
         rows.append([("⬅ Сервер", f"admin:ver:target:{key}")])
         await render_callback(call, text, reply_markup=keyboard(rows))
     except Exception as exc:
@@ -317,12 +317,12 @@ async def xray_versions(call: CallbackQuery):
             label = value + (" | current" if current else "")
             lines.append(label)
             if can_change and not current:
-                rows.append([(label, f"admin:ver:pick:{key}:{value}")])
+                rows.append([(f"📦 {label}", f"admin:ver:pick:{key}:{value}")])
         nav = []
         if page:
             nav.append(("⬅ Предыдущая", f"admin:ver:xray:{key}:{page - 1}"))
         if (page + 1) * 8 < len(values):
-            nav.append(("Следующая ➡", f"admin:ver:xray:{key}:{page + 1}"))
+            nav.append(("➡ Следующая", f"admin:ver:xray:{key}:{page + 1}"))
         if nav:
             rows.append(nav)
         rows.append([("⬅ Сервер", f"admin:ver:target:{key}")])
