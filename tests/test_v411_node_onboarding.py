@@ -88,6 +88,18 @@ class StableNodeIdentityTests(unittest.TestCase):
         service = SystemBackupService(None, (target,))
         self.assertIs(service.target_for("Renamed Finland", 2), target)
 
+    def test_explicit_different_node_id_never_falls_back_by_name(self):
+        target = NodeBackupTarget(
+            key="FI",
+            node_name="Finland",
+            node_id=3,
+            panel_url="https://fi.example.invalid",
+            api_token="x" * 43,
+            verify_tls=True,
+        )
+        service = SystemBackupService(None, (target,))
+        self.assertIsNone(service.target_for("Finland", 2))
+
     def test_legacy_name_binding_remains_compatible(self):
         target = NodeBackupTarget(
             key="FI",
@@ -124,6 +136,19 @@ class OnboardingImporterTests(unittest.TestCase):
                 "NODE_ADMIN_API_TOKEN": "x" * 43,
                 "NODE_ADMIN_VERIFY_TLS": "true",
             })
+
+    def test_host_importer_rejects_node_id_on_master(self):
+        env = {
+            "HOST_CONTROL_TARGETS": "MASTER",
+            "HOST_CONTROL_MASTER_NAME": "Master",
+            "HOST_CONTROL_MASTER_NODE_ID": "2",
+            "HOST_CONTROL_MASTER_HOST_ID": "master",
+            "HOST_CONTROL_MASTER_URL": "http://172.19.0.1:18182",
+            "HOST_CONTROL_MASTER_TOKEN": "m" * 43,
+            "HOST_CONTROL_MASTER_VERIFY_TLS": "true",
+        }
+        with self.assertRaises(SystemExit):
+            host_import.validate_combined(env, "MASTER", {})
 
     def test_host_importer_rejects_duplicate_node_id(self):
         env = {
