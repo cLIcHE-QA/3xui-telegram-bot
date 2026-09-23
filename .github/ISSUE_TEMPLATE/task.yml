@@ -1,0 +1,24 @@
+name: Task
+description: Operational, maintenance или documentation задача
+title: "task: "
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Результат
+      description: Какой конкретный результат должен быть получен?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Что входит и не входит в задачу?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+    validations:
+      required: true
