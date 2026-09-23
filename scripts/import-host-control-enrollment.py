@@ -188,6 +188,8 @@ def validate_combined(env: dict[str, str], alias: str, updates: dict[str, str]) 
         )
         node_id = None
         if values["node_id"]:
+            if key == "MASTER":
+                fail(f"{prefix}NODE_ID is only valid for direct nodes")
             try:
                 node_id = int(values["node_id"])
             except ValueError:
