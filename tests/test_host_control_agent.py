@@ -277,6 +277,15 @@ class AgentConfigSecurityTests(unittest.TestCase):
         with self.assertRaises(AgentConfigError):
             self.load()
 
+    def test_token_symlink_is_rejected(self):
+        real = self.root / "real-token"
+        real.write_text("r" * 43, encoding="utf-8")
+        os.chmod(real, 0o600)
+        self.token_file.unlink()
+        self.token_file.symlink_to(real)
+        with self.assertRaises(AgentConfigError):
+            self.load()
+
     def test_short_token_is_rejected(self):
         self.token_file.write_text("short", encoding="utf-8")
         os.chmod(self.token_file, 0o600)
