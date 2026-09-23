@@ -444,6 +444,27 @@ class HostControlAgent:
                 "replayed": replayed,
             }
         )
+        # stdout is captured by systemd/journald. Log normalized metadata only:
+        # never the bearer token, request headers, command argv or raw stderr.
+        print(
+            json.dumps(
+                {
+                    "event": "host_control_operation",
+                    "host_id": self.config.host_id,
+                    "operation_id": record.operation_id,
+                    "action": record.action,
+                    "result": record.result,
+                    "before": record.before,
+                    "after": record.after,
+                    "duration_ms": record.duration_ms,
+                    "error_code": record.error_code,
+                    "replayed": replayed,
+                },
+                separators=(",", ":"),
+                ensure_ascii=True,
+            ),
+            flush=True,
+        )
         return payload
 
     def execute(self, operation_id: str, action: str) -> tuple[int, dict[str, object]]:
