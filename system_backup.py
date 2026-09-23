@@ -34,23 +34,27 @@ class SystemBackupService:
     def configured_node_names(self) -> tuple[str, ...]:
         return tuple(t.node_name for t in self.targets)
 
-    def target_for(self, node_name: str) -> NodeBackupTarget | None:
+    def target_for(self, node_name: str, node_id: int | None = None) -> NodeBackupTarget | None:
+        if node_id is not None:
+            for target in self.targets:
+                if target.node_id == node_id:
+                    return target
         needle = node_name.strip().casefold()
         for target in self.targets:
             if target.node_name.strip().casefold() == needle:
                 return target
         return None
 
-    def has_target_for(self, node_name: str) -> bool:
-        return self.target_for(node_name) is not None
+    def has_target_for(self, node_name: str, node_id: int | None = None) -> bool:
+        return self.target_for(node_name, node_id) is not None
 
-    async def create_node_snapshot(self, node_name: str) -> Path:
+    async def create_node_snapshot(self, node_name: str, node_id: int | None = None) -> Path:
         """Download one node database using its dedicated admin backup token.
 
         The master's node-sync token is intentionally not exposed by 3x-ui, so
         this action is available only for nodes configured in NODE_BACKUP_TARGETS.
         """
-        target = self.target_for(node_name)
+        target = self.target_for(node_name, node_id)
         if target is None:
             raise ValueError(f"Backup target is not configured for node: {node_name}")
         client = XUIClient(target.panel_url, target.api_token, target.verify_tls)
@@ -80,8 +84,8 @@ class SystemBackupService:
         await asyncio.to_thread(_prune)
         return path
 
-    def direct_client_for(self, node_name: str) -> XUIClient | None:
-        target = self.target_for(node_name)
+    def direct_client_for(self, node_name: str, node_id: int | None = None) -> XUIClient | None:
+        target = self.target_for(node_name, node_id)
         if target is None:
             return None
         return XUIClient(target.panel_url, target.api_token, target.verify_tls)
@@ -102,6 +106,7 @@ class SystemBackupService:
 
         meta = {
             "node_name": target.node_name,
+            "node_id": target.node_id,
             "source_panel_url": target.panel_url,
             "created_at_utc": datetime.now(timezone.utc).isoformat(),
             "database_file": filename,
