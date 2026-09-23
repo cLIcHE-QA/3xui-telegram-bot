@@ -908,4 +908,11 @@ Mutation запрещается, если:
 - automatic rollback;
 - node onboarding/readiness wizard.
 
-Fleet-wide операции остаются целью v4.12.0, node readiness/onboarding — v4.11.0.
+Fleet-wide операции остаются целью v4.12.0.
+
+Для v4.11.0 отдельно зафиксирована цель **Node readiness / onboarding**:
+- preflight готовности Panel API, direct admin и Host Control Agent;
+- упрощённое добавление/замена direct nodes;
+- уход от ручной привязки privileged targets к display name в пользу стабильной identity там, где это можно сделать без ослабления security boundary;
+- onboarding-flow, который помогает подготовить локальную конфигурацию и проверяет её, но не принимает и не хранит host/admin secrets через Telegram;
+- существующие `NODE_BACKUP_*` и `HOST_CONTROL_*` остаются поддерживаемым fail-safe способом конфигурации.

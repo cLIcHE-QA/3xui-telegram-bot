@@ -6,13 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## После v4.9.3 — подготовка v4.10.0
+## v4.10.0 — Безопасный 3x-ui Control
 - Реализован restricted `Host Control Agent` для host-level `status/start/stop/restart x-ui.service`: listener только `127.0.0.1`, отдельный token на host, fixed service/action allowlist, `shell=False`, persistent `operation_id`, lost-response recovery без повторного mutation POST.
 - Добавлен единый экран `🧩 3x-ui Control` для Master и direct nodes: `Start/Restart service` доступны Admin+, destructive `Stop service` и `Stop Xray` — только Owner; Stop service требует одноразовую typed-фразу `STOP <target>`.
 - Добавлены native действия `♻️ Restart Panel process` через `POST /panel/api/setting/restartPanel`, `Stop Xray` через `/server/stopXrayService` и `Restart / Start Xray` через `/server/restartXrayService`.
 - Агент не предоставляет SSH/shell/exec/file/Docker/firewall/reboot/package-management API; systemd unit запускает его непривилегированным пользователем, а sudoers разрешает только три точных команды для `x-ui.service`.
-- Добавлены installer/systemd/sudoers assets и CI-проверки executable bit, shell syntax, `visudo`, transport policy, host identity, no-retry и security invariants.
-- `APP_VERSION` намеренно остаётся `4.9.3` до отдельного release-prep PR.
+- Remote host-control targets требуют verified HTTPS; private HTTP разрешён только для локального `MASTER` через restricted management route.
+- Добавлены installer/systemd/sudoers assets, production deployment guide и CI-проверки executable bit, shell syntax, `visudo`, transport policy, host identity, no-retry, privilege boundary и security invariants.
 
 ## v4.9.3 — Исправление счётчиков карточки ноды
 - Карточка `Infrastructure → Nodes → <node>` теперь использует enriched-данные `/panel/api/nodes/list` для вычисляемых счётчиков `inboundCount`, `clientCount`, `activeCount` и `onlineCount`.

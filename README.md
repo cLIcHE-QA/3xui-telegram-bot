@@ -1,21 +1,24 @@
-# Telegram-бот для 3x-ui v4.9.3
+# Telegram-бот для 3x-ui v4.10.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
-Архитектурный контракт для следующего этапа `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
+Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
 
-## v4.10.0 — в разработке: безопасный 3x-ui Control
+## v4.10.0 — Безопасный 3x-ui Control
 
-Feature-ветка добавляет отдельный экран `🧩 3x-ui Control` для Master и direct nodes. Host-level `Start / Stop / Restart service` выполняются только через restricted Host Control Agent, а `Restart Panel process` и Xray controls используют штатные API 3x-ui.
+Релиз добавляет отдельный экран `🧩 3x-ui Control` для Master и direct nodes. Host-level `Start / Stop / Restart service` выполняются только через restricted Host Control Agent, а `Restart Panel process` и Xray controls используют штатные API 3x-ui.
 
 Host Control Agent не является SSH gateway: он слушает только `127.0.0.1`, не принимает command/path/unit из Telegram и умеет управлять только жёстко заданным `x-ui.service`. Remote node публикует agent только через restricted HTTPS reverse proxy; backend port agent наружу не открывается.
 
 Destructive `Stop service` и `Stop Xray` доступны только роли Owner. `Stop service` дополнительно требует одноразовую typed-фразу. Mutation requests не повторяются автоматически после timeout/lost response.
 
-До merge/release production остаётся на `v4.9.3`; `APP_VERSION` будет повышен отдельным release-prep PR.
+
+## Далее: v4.11.0 — Node readiness / onboarding
+
+Следующий feature-релиз должен упростить подключение и замену direct nodes: readiness/preflight для Panel API, direct admin и Host Control Agent; более стабильную identity вместо ручной привязки privileged targets к display name там, где это безопасно; и onboarding-flow, который помогает подготовить конфигурацию без передачи секретов через Telegram. Ручные `NODE_BACKUP_*` и `HOST_CONTROL_*` остаются поддерживаемым fail-safe способом настройки.
 
 ## v4.9.3 — Исправление счётчиков карточки ноды
 
