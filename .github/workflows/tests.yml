@@ -29,6 +29,17 @@ jobs:
           sh -n scripts/install-host-control-agent.sh
           sudo /usr/sbin/visudo -cf deploy/host-control/3xui-host-control.sudoers >/dev/null
       - run: |
+          test -x scripts/setup-host-control-endpoint.sh
+          bash -n scripts/setup-host-control-endpoint.sh
+          scripts/setup-host-control-endpoint.sh --help >/dev/null
+          test -x scripts/build-host-control-bundle.sh
+          bash -n scripts/build-host-control-bundle.sh
+          scripts/build-host-control-bundle.sh --help >/dev/null
+          test -x scripts/refresh-host-control-tls.sh
+          bash -n scripts/refresh-host-control-tls.sh
+          test -x scripts/import-host-control-enrollment.py
+          python3 scripts/import-host-control-enrollment.py --help >/dev/null
+      - run: |
           test -x scripts/bootstrap-bot-from-backup.sh
           bash -n scripts/bootstrap-bot-from-backup.sh
           scripts/bootstrap-bot-from-backup.sh --help 2>&1 | grep -q 'RECOVERY_ALLOW_VERSION_MISMATCH'

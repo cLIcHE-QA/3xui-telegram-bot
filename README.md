@@ -6,6 +6,7 @@
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
+Повторяемый rollout, deployment bundle и enrollment-import описаны в [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
 Восстановление бота после замены/форматирования VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
 
 ## v4.10.0 — Безопасный 3x-ui Control

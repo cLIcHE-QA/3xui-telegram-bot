@@ -14,6 +14,9 @@ UI = ROOT / "host_control_ui.py"
 UNIT = ROOT / "deploy/host-control/3xui-host-control.service"
 SUDOERS = ROOT / "deploy/host-control/3xui-host-control.sudoers"
 INSTALLER = ROOT / "scripts/install-host-control-agent.sh"
+ENDPOINT = ROOT / "scripts/setup-host-control-endpoint.sh"
+TLS_REFRESH = ROOT / "scripts/refresh-host-control-tls.sh"
+BUNDLE = ROOT / "scripts/build-host-control-bundle.sh"
 COMPOSE = ROOT / "docker-compose.yml"
 
 
@@ -21,6 +24,45 @@ class HostControlDeploymentSecurityTests(unittest.TestCase):
     def test_installer_is_executable(self):
         mode = INSTALLER.stat().st_mode
         self.assertTrue(mode & stat.S_IXUSR)
+
+
+    def test_endpoint_rollout_keeps_agent_loopback_and_separate_proxy(self):
+        text = ENDPOINT.read_text(encoding="utf-8")
+        self.assertIn("127.0.0.1:18181", text)
+        self.assertIn("3xui-host-control-proxy.service", text)
+        self.assertIn("/etc/3xui-host-control/proxy-nginx.conf", text)
+        self.assertNotIn("listen 0.0.0.0", text)
+        self.assertNotIn("sudo ALL", text)
+
+    def test_remote_tls_has_refresh_timer_and_validates_hostname(self):
+        endpoint = ENDPOINT.read_text(encoding="utf-8")
+        refresh = TLS_REFRESH.read_text(encoding="utf-8")
+        self.assertIn("3xui-host-control-tls-refresh.timer", endpoint)
+        self.assertIn("OnCalendar=daily", endpoint)
+        self.assertIn("openssl x509", refresh)
+        self.assertIn("-checkhost", refresh)
+        self.assertIn("certificate/private key mismatch", refresh)
+        self.assertIn('systemctl reload "$PROXY_SERVICE"', refresh)
+
+    def test_rollout_tracks_managed_ufw_rule_for_reconfiguration(self):
+        text = ENDPOINT.read_text(encoding="utf-8")
+        self.assertIn("ufw-managed.env", text)
+        self.assertIn("ufw --force delete allow from", text)
+        self.assertIn("comment \"$UFW_COMMENT\"", text)
+
+    def test_bundle_is_explicit_secret_free_allowlist(self):
+        text = BUNDLE.read_text(encoding="utf-8")
+        for required in [
+            "host_control_agent.py",
+            "scripts/install-host-control-agent.sh",
+            "scripts/setup-host-control-endpoint.sh",
+            "scripts/refresh-host-control-tls.sh",
+            "deploy/host-control/3xui-host-control.service",
+            "deploy/host-control/3xui-host-control.sudoers",
+        ]:
+            self.assertIn(required, text)
+        for forbidden in [".env", "/etc/3xui-host-control/token", "x-ui.db", "bot.sqlite3", "privkey.pem"]:
+            self.assertNotIn(forbidden, text.lower())
 
     def test_agent_systemd_service_runs_unprivileged_and_loopback_only(self):
         text = UNIT.read_text(encoding="utf-8")
