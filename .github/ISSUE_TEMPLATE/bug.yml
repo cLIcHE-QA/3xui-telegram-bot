@@ -1,0 +1,35 @@
+name: Bug
+description: Сообщить о воспроизводимом дефекте
+title: "bug: "
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Симптом
+      description: Что именно работает неправильно?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Как воспроизвести
+      description: Минимальные шаги без secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактическое поведение
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Когда issue можно считать закрытым?

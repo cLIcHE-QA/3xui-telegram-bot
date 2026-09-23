@@ -1,0 +1,47 @@
+name: PR conventions
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  title:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PR_TITLE: ${{ github.event.pull_request.title }}
+    steps:
+      - name: Validate PR title
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          release_re='^release: v[0-9]+\.[0-9]+\.[0-9]+$'
+          regular_re='^(feat|fix|security|docs|test|chore|refactor): .+'
+
+          if [[ "$PR_TITLE" =~ $release_re ]]; then
+            exit 0
+          fi
+
+          if [[ "$PR_TITLE" =~ $regular_re ]]; then
+            exit 0
+          fi
+
+          cat >&2 <<'EOF'
+          Invalid PR title.
+
+          Expected:
+            feat: <краткое описание>
+            fix: <краткое описание>
+            security: <краткое описание>
+            docs: <краткое описание>
+            test: <краткое описание>
+            chore: <краткое описание>
+            refactor: <краткое описание>
+            release: vX.Y.Z
+          EOF
+          exit 1

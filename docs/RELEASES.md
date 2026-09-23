@@ -84,6 +84,8 @@ Workflow `.github/workflows/release.yml` запускается только п�
 
 Такой алгоритм важен: если после release-prep в `main` попал documentation/chore commit, tag всё равно ставится на commit, где был введён текущий `APP_VERSION`, а не на более поздний произвольный HEAD.
 
+Текст commit subject и GitHub suffix вида `(#N)` на определение release commit не влияют: automation опирается на историю `version.py` и `APP_VERSION`, а не на формулировку commit message.
+
 ## Fail-closed правила
 
 Workflow должен остановиться, а не угадывать, если:
