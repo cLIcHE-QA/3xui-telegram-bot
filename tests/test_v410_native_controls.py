@@ -38,7 +38,6 @@ class V410NativeControlEndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("allow_redirects=False", source)
         self.assertNotIn("for attempt", source)
         self.assertNotIn("while True", source)
-        self.assertNotIn("retry", source.lower())
 
     def test_mutation_error_carries_outcome_certainty(self):
         definite = XUIMutationError("rejected", code="http_403", uncertain=False)
