@@ -11,6 +11,16 @@ from version_api import VersionAPIMixin
 class XUIError(RuntimeError):
     pass
 
+
+class XUIMutationError(XUIError):
+    """State-changing 3x-ui request with explicit outcome certainty."""
+
+    def __init__(self, message: str, *, code: str = "", uncertain: bool = False):
+        super().__init__(message)
+        self.code = code
+        self.uncertain = uncertain
+
+
 @dataclass
 class InboundOption:
     id: int
@@ -103,6 +113,73 @@ class XUIClient(VersionAPIMixin):
                 if isinstance(data, dict) and data.get("success") is False:
                     raise XUIError(data.get("msg") or str(data))
                 return data
+
+    async def _mutation_request(self, path: str) -> dict[str, Any]:
+        """Send one state-changing POST without redirects or automatic retry."""
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        timeout = aiohttp.ClientTimeout(total=20)
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.request(
+                    "POST",
+                    f"{self.base_url}{path}",
+                    headers=headers,
+                    ssl=None if self.verify_tls else False,
+                    allow_redirects=False,
+                ) as resp:
+                    text = await resp.text()
+                    try:
+                        data = await resp.json(content_type=None)
+                    except Exception as exc:
+                        uncertain = 200 <= resp.status < 300 or resp.status >= 500
+                        raise XUIMutationError(
+                            f"3x-ui mutation returned invalid JSON (HTTP {resp.status}).",
+                            code=f"http_{resp.status}",
+                            uncertain=uncertain,
+                        ) from exc
+                    if not isinstance(data, dict):
+                        raise XUIMutationError(
+                            "3x-ui mutation returned an invalid response.",
+                            code="invalid_response",
+                            uncertain=True,
+                        )
+                    if 300 <= resp.status < 400:
+                        raise XUIMutationError(
+                            "3x-ui mutation redirect was rejected.",
+                            code=f"http_{resp.status}",
+                            uncertain=False,
+                        )
+                    if resp.status >= 500:
+                        raise XUIMutationError(
+                            "3x-ui mutation upstream outcome is uncertain.",
+                            code=f"http_{resp.status}",
+                            uncertain=True,
+                        )
+                    if resp.status >= 400:
+                        raise XUIMutationError(
+                            "3x-ui mutation was rejected.",
+                            code=f"http_{resp.status}",
+                            uncertain=False,
+                        )
+                    if data.get("success") is False:
+                        raise XUIMutationError(
+                            str(data.get("msg") or "3x-ui rejected the mutation."),
+                            code="panel_rejected",
+                            uncertain=False,
+                        )
+                    return data
+        except XUIMutationError:
+            raise
+        except (aiohttp.ClientError, TimeoutError) as exc:
+            raise XUIMutationError(
+                "3x-ui mutation outcome is uncertain; request was not retried.",
+                code="network_error",
+                uncertain=True,
+            ) from exc
 
     async def server_status(self) -> dict[str, Any]:
         data = await self._request("GET", "/panel/api/server/status")
@@ -225,7 +302,13 @@ class XUIClient(VersionAPIMixin):
         )
 
     async def restart_xray(self) -> dict[str, Any]:
-        return await self._request("POST", "/panel/api/server/restartXrayService")
+        return await self._mutation_request("/panel/api/server/restartXrayService")
+
+    async def stop_xray(self) -> dict[str, Any]:
+        return await self._mutation_request("/panel/api/server/stopXrayService")
+
+    async def restart_panel(self) -> dict[str, Any]:
+        return await self._mutation_request("/panel/api/setting/restartPanel")
 
     async def panel_logs(self, count: int = 100, *, level: str = "info", syslog: bool = False) -> list[str]:
         count = max(1, min(500, int(count)))

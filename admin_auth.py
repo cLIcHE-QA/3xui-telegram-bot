@@ -65,6 +65,14 @@ def _is_read_callback(data: str) -> bool:
 def required_role_for_callback(data: str) -> str:
     data = data or ""
 
+    if data.startswith("admin:hostctl:"):
+        key = r"(?:m|n[1-9][0-9]{0,18})"
+        if re.fullmatch(rf"admin:hostctl:{key}", data):
+            return "read_only"
+        if re.fullmatch(rf"admin:hostctl:{key}:(?:sp:ask|stopcancel|xs:(?:ask|run))", data):
+            return "owner"
+        return "admin"
+
     if data == "admin:versions":
         return "read_only"
     if data.startswith("admin:ver:unlock:"):

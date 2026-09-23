@@ -43,8 +43,10 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
     def test_navigation_shortcuts(self):
         self.assertIn('admin:versions', self.callback_values(self.bot.system_menu()))
         self.assertIn('admin:versions', self.callback_values(self.bot.infrastructure_menu()))
+        self.assertIn('admin:hostctl:m', self.callback_values(self.bot.master_detail_keyboard()))
         self.assertIn('admin:ver:panel:m', self.callback_values(self.bot.master_detail_keyboard()))
         self.assertIn('admin:ver:xray:m:0', self.callback_values(self.bot.master_detail_keyboard()))
+        self.assertIn('admin:hostctl:n2', self.callback_values(self.bot.node_detail_keyboard(2)))
         self.assertIn('admin:ver:panel:n2', self.callback_values(self.bot.node_detail_keyboard(2)))
         self.assertIn('admin:ver:xray:n2:0', self.callback_values(self.bot.node_detail_keyboard(2)))
 
@@ -62,7 +64,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         files = [
             'bot.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
-            'disaster_recovery.py', 'logs_alerts.py',
+            'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
         ]
 
         def marked(label: str) -> bool:
@@ -128,6 +130,18 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
                      'admin:ver:target:m:unexpected']:
             self.assertEqual(required_role_for_callback(data), 'admin', data)
         self.assertEqual(required_role_for_callback('admin:ver:unlock:0123456789abcdef'), 'owner')
+        self.assertEqual(required_role_for_callback('admin:hostctl:m'), 'read_only')
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2'), 'read_only')
+        for data in [
+            'admin:hostctl:m:ss:ask', 'admin:hostctl:m:ss:run',
+            'admin:hostctl:n2:sr:ask', 'admin:hostctl:n2:pr:run',
+            'admin:hostctl:n2:xr:run',
+        ]:
+            self.assertEqual(required_role_for_callback(data), 'admin', data)
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2:xs:ask'), 'owner')
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2:xs:run'), 'owner')
+        self.assertEqual(required_role_for_callback('admin:hostctl:m:sp:ask'), 'owner')
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2:stopcancel'), 'owner')
 
     def test_callback_data_fits_telegram_byte_limit(self):
         key = 'n' + '9' * 19
@@ -144,8 +158,16 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('node_update_panels(', source)
         self.assertNotIn('service.execute(', source)
 
+    def test_legacy_restart_xray_callback_cannot_mutate_directly(self):
+        from advanced_nodes import node_restart_xray_legacy
+        source = inspect.getsource(node_restart_xray_legacy)
+        self.assertIn('admin:hostctl:n', source)
+        self.assertNotIn('restart_xray(', source)
+        self.assertNotIn('direct_client_for(', source)
+
     def test_router_registered_and_master_shows_panel_version(self):
         self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.bot.main))
+        self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.bot.main))
         self.assertIn('get_panel_update_info', inspect.getsource(self.bot.admin_master_detail))
         self.assertIn('3x-ui:', inspect.getsource(self.bot.admin_master_detail))
 

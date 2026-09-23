@@ -1,0 +1,39 @@
+[Unit]
+Description=3x-ui restricted host-control agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=3xui-hostctl
+Group=3xui-hostctl
+WorkingDirectory=/opt/3xui-host-control
+EnvironmentFile=/etc/3xui-host-control/agent.env
+ExecStart=/usr/bin/python3 /opt/3xui-host-control/host_control_agent.py
+Restart=on-failure
+RestartSec=3
+UMask=0077
+
+# The agent must be able to execute exact sudoers-approved systemctl commands,
+# so NoNewPrivileges cannot be enabled here.
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/3xui-host-control
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target

@@ -25,6 +25,10 @@ jobs:
           bash -n scripts/deploy-release.sh
           scripts/deploy-release.sh --help >/dev/null
       - run: |
+          test -x scripts/install-host-control-agent.sh
+          sh -n scripts/install-host-control-agent.sh
+          sudo /usr/sbin/visudo -cf deploy/host-control/3xui-host-control.sudoers >/dev/null
+      - run: |
           cp .env.example .env
           docker compose --env-file .env.example config --quiet
       - run: git diff --check

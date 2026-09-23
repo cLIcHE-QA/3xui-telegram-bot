@@ -1110,14 +1110,27 @@ class Database:
 
     # --- Job runs ------------------------------------------------------
 
-    async def start_job_run(self, *, name: str, trigger: str, actor_id: int = 0) -> int:
+    async def start_job_run(
+        self,
+        *,
+        name: str,
+        trigger: str,
+        actor_id: int = 0,
+        details: str = "",
+    ) -> int:
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
                 """
-                INSERT INTO job_runs(name, trigger, actor_id, status, started_at)
-                VALUES (?, ?, ?, 'running', ?)
+                INSERT INTO job_runs(name, trigger, actor_id, status, started_at, details)
+                VALUES (?, ?, ?, 'running', ?, ?)
                 """,
-                ((name or "")[:96], (trigger or "")[:32], int(actor_id), int(time.time())),
+                (
+                    (name or "")[:96],
+                    (trigger or "")[:32],
+                    int(actor_id),
+                    int(time.time()),
+                    (details or "")[:1500],
+                ),
             )
             await db.commit()
             return int(cur.lastrowid)
@@ -1167,6 +1180,17 @@ class Database:
     async def last_job_run(self, name: str) -> JobRunRecord | None:
         rows = await self.list_job_runs(name=name, limit=1)
         return rows[0] if rows else None
+
+    async def list_running_job_runs(self, *, limit: int = 100) -> list[JobRunRecord]:
+        limit = max(1, min(500, int(limit)))
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM job_runs WHERE status = 'running' ORDER BY id ASC LIMIT ?",
+                (limit,),
+            )
+            rows = await cur.fetchall()
+            return [JobRunRecord(**dict(r)) for r in rows]
 
     async def fail_stale_job_runs(self, *, older_than_seconds: int = 21600) -> int:
         cutoff = int(time.time()) - max(60, int(older_than_seconds))

@@ -209,6 +209,10 @@ async def node_rename_finish(message: Message, state: FSMContext):
         raw = await xui.node_get_raw(node_id)
         old_name = str(raw.get("name") or "Node")
         had_backup_target = system_backup.has_target_for(old_name)
+        had_host_control_target = any(
+            target.name.strip().casefold() == old_name.strip().casefold()
+            for target in settings.host_control_targets
+        )
         await xui.node_update(node_id, _node_update_payload(raw, name=name))
         await audit_from_message(
             db, message, "node.rename", target_type="node", target_id=node_id,
@@ -222,11 +226,17 @@ async def node_rename_finish(message: Message, state: FSMContext):
         await render_input(message, f"🔴 Не удалось переименовать ноду: {exc}")
         return
     await state.clear()
-    suffix = (
-        "\n\n⚠️ Для per-node backup/restart Xray обнови NODE_BACKUP_*_NODE_NAME в .env, "
-        "потому что backup target был привязан к старому имени."
-        if had_backup_target and old_name.casefold() != name.casefold() else ""
-    )
+    warnings: list[str] = []
+    if old_name.casefold() != name.casefold():
+        if had_backup_target:
+            warnings.append(
+                "обнови NODE_BACKUP_*_NODE_NAME: direct backup/Xray target был привязан к старому имени"
+            )
+        if had_host_control_target:
+            warnings.append(
+                "обнови HOST_CONTROL_*_NAME: Host Control target был привязан к старому имени"
+            )
+    suffix = "\n\n⚠️ " + "; ".join(warnings) + "." if warnings else ""
     await render_input(message, f"✅ Нода переименована: {name}{suffix}", reply_markup=_back(node_id))
 
 
@@ -270,57 +280,23 @@ async def node_backup(call: CallbackQuery):
 
 
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:restartxray$"))
-async def node_restart_xray_ask(call: CallbackQuery):
-    ok, _ = await authorize_callback(db, settings, call, minimum="admin")
-    if not ok:
-        return
-    node_id = _node_id_from_callback(call.data or "")
-    try:
-        node = await xui.node_get(node_id)
-    except XUIError as exc:
-        await call.answer(str(exc)[:180], show_alert=True)
-        return
-    if system_backup.direct_client_for(node.name) is None:
-        await call.answer("Нет direct admin token", show_alert=True)
-        await render_callback(call, 
-            "🔄 Перезапуск Xray на удалённой ноде требует отдельного admin-scope API token, "
-            "того же, который используется для NODE_BACKUP_TARGETS.",
-            reply_markup=_back(node_id),
-        )
-        return
-    await call.answer()
-    await render_callback(call, 
-        f"⚠️ Перезапустить Xray на {node.name}?\n\nАктивные подключения кратковременно оборвутся.",
-        reply_markup=_confirm(node_id, "restartxray", "🔄 Да, restart Xray"),
-    )
-
-
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:restartxray:run$"))
-async def node_restart_xray_run(call: CallbackQuery):
+async def node_restart_xray_legacy(call: CallbackQuery):
+    # Old keyboards must not bypass the v4.10 no-retry/audit/role gates.
     ok, _ = await authorize_callback(db, settings, call, minimum="admin")
     if not ok:
         return
     node_id = _node_id_from_callback(call.data or "")
-    try:
-        node = await xui.node_get(node_id)
-        client = system_backup.direct_client_for(node.name)
-        if client is None:
-            raise RuntimeError("direct admin token is not configured")
-        await client.restart_xray()
-        await audit_from_call(
-            db, call, "node.xray.restart", target_type="node", target_id=node_id,
-            details=f"name={node.name}",
-        )
-    except Exception as exc:
-        await audit_from_call(
-            db, call, "node.xray.restart", target_type="node", target_id=node_id,
-            details=f"{type(exc).__name__}: {exc}", success=False,
-        )
-        await call.answer("Restart failed", show_alert=True)
-        await render_callback(call, f"🔴 Xray restart: {type(exc).__name__}: {exc}", reply_markup=_back(node_id))
-        return
-    await call.answer("Xray restart отправлен")
-    await render_callback(call, "✅ Команда restart Xray отправлена ноде.", reply_markup=_back(node_id))
+    await call.answer()
+    await render_callback(
+        call,
+        "🔄 Управление Xray перенесено в единый 🧩 3x-ui Control. "
+        "Старый callback больше не выполняет mutation напрямую.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🧩 3x-ui Control", callback_data=f"admin:hostctl:n{node_id}")],
+            [InlineKeyboardButton(text="⬅ Нода", callback_data=f"admin:node:{node_id}")],
+        ]),
+    )
 
 
 @advanced_nodes_router.callback_query(F.data.regexp(r"^admin:nodectl:\d+:updatepanel$"))
