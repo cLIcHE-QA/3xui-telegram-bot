@@ -11,6 +11,22 @@
 
 Это отдельный механизм от существующего 🔄 Restart Xray, который вызывает API 3x-ui и перезапускает только Xray Core.
 
+Дополнительно v4.10.0 сохраняет штатный soft restart процесса панели:
+
+~~~text
+POST /panel/api/setting/restartPanel
+~~~
+
+Он оформляется как отдельное действие **♻️ Restart Panel process** и не заменяет host-level `restart x-ui.service`.
+
+Итого control plane намеренно разделён:
+
+- Xray Core → штатный API 3x-ui;
+- Panel process soft restart → штатный `restartPanel` API;
+- x-ui.service status/start/stop/restart → Host Control Agent.
+
+`restartPanel` не является fallback для Host Control Agent, а Host Control Agent не является автоматическим fallback для `restartPanel`: оператор всегда явно выбирает нужную семантику.
+
 ---
 
 ## 1. Архитектура
@@ -534,9 +550,10 @@ HTTP request не может изменить service name.
 | Operation | Minimum role |
 | --- | --- |
 | Status | Read-only |
-| Start | Admin |
-| Restart | Admin |
-| Stop | Owner |
+| Start service | Admin |
+| Restart service | Admin |
+| Restart Panel process | Admin |
+| Stop service | Owner |
 
 Transitive nodes — read-only, host-control mutations запрещены.
 
@@ -578,9 +595,10 @@ Nonce имеет короткий TTL и используется один ра�
 🟢 Service: running
 🟢 Panel API: online
 
-[▶ Start]
-[⏹ Stop]
-[🔄 Restart]
+[▶ Start service]
+[⏹ Stop service]
+[🔄 Restart service]
+[♻️ Restart Panel process]
 
 [⬅ Нода]
 ~~~
@@ -590,7 +608,8 @@ Nonce имеет короткий TTL и используется один ра�
 UI не должен объединять или путать:
 
 - Xray Core restart;
-- x-ui.service restart.
+- штатный Panel process restart через `/panel/api/setting/restartPanel`;
+- x-ui.service restart через Host Control Agent.
 
 ---
 
@@ -662,14 +681,26 @@ Token и Authorization header никогда не логируются.
 
 Защита: host-control использует отдельный credential domain.
 
-### Arbitrary command injection
+### Arbitrary command injection и выход на VPS
+
+Критическое требование v4.10.0: Telegram bot и Host Control Agent **не предоставляют способ получить shell или произвольный доступ к VPS**.
 
 Защита:
 
-- no shell;
-- fixed executable;
-- fixed unit;
-- fixed action enum.
+- отсутствуют SSH endpoints и SSH execution;
+- отсутствуют shell/exec/run endpoints;
+- отсутствуют параметры command, argv, executable, path, service/unit name;
+- subprocess запускается только со статическим списком аргументов и `shell=False`;
+- executable фиксирован локально;
+- unit фиксирован локально как `x-ui.service`;
+- action — строгий enum `start|stop|restart`;
+- agent user непривилегированный;
+- sudoers содержит только точные команды для `x-ui.service`, без wildcard;
+- Telegram input никогда не интерполируется в командную строку;
+- нет файлового API, upload/download, чтения env, произвольных host logs или произвольных путей;
+- нет Docker/firewall/reboot/package-management возможностей.
+
+Любая будущая функция, которая нарушает этот список, требует отдельного threat-model review и не входит в v4.10.0.
 
 ### Replay/double restart
 
@@ -749,10 +780,16 @@ Mutation запрещается, если:
 14. Restart/Start доступны Admin/Owner.
 15. Read-only может смотреть status, но не выполнять mutation.
 16. Agent остаётся доступен после stop x-ui.service.
-17. После start/restart проверяется и systemd state, и 3x-ui Panel API.
-18. Audit/job records не содержат secrets.
-19. Finland remote transport работает с TLS verification.
-20. Существующие Backup, Xray restart, provisioning, subscription и Versions & Updates не регрессируют.
+17. После host-level start/restart проверяется и systemd state, и 3x-ui Panel API.
+18. `Restart Panel process` вызывает только `POST /panel/api/setting/restartPanel` и не выполняет systemctl.
+19. Потеря ответа `restartPanel` не вызывает автоматический повтор POST; итог подтверждается возвратом Panel API либо остаётся uncertain.
+20. `Restart Panel process` доступен для Master и direct nodes с admin-scope API token и запрещён для transitive nodes.
+21. Ни один Telegram callback/message не может задавать command, executable, argv, path или systemd unit.
+22. Агент не содержит SSH/shell/exec/file/Docker/firewall/reboot/package-management API.
+23. Sudoers использует только точные allowlisted команды для `x-ui.service`, без wildcard.
+24. Audit/job records не содержат secrets.
+25. Finland remote transport работает с TLS verification.
+26. Существующие Backup, Xray restart, provisioning, subscription и Versions & Updates не регрессируют.
 
 ---
 
