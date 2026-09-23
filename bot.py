@@ -1684,7 +1684,11 @@ def _host_control_target_for_node(node: NodeInfo):
             return target, "node_id"
     needle = node.name.strip().casefold()
     for target in settings.host_control_targets:
-        if target.key != "MASTER" and target.name.strip().casefold() == needle:
+        if (
+            target.key != "MASTER"
+            and target.node_id is None
+            and target.name.strip().casefold() == needle
+        ):
             return target, "legacy_name"
     return None, "missing"
 
