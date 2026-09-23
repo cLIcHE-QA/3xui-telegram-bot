@@ -63,10 +63,10 @@ jobs:
           set -Eeuo pipefail
           tag="${{ steps.release.outputs.tag }}"
           commit="${{ steps.release.outputs.commit }}"
-          existing="$(gh api "repos/$REPOSITORY/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null || true)"
-          if [[ -n "$existing" ]]; then
+          if existing="$(gh api "repos/$REPOSITORY/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null)"; then
             [[ "$existing" == "$commit" ]] || { echo "Tag $tag already points to $existing, expected $commit. Refusing to move it." >&2; exit 1; }
           else
+            existing=""
             gh api --method POST "repos/$REPOSITORY/git/refs" -f "ref=refs/tags/$tag" -f "sha=$commit" >/dev/null
           fi
 

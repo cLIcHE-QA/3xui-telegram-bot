@@ -77,6 +77,8 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertIn("workflow_run.head_branch == 'main'", workflow)
         self.assertIn("workflow_run.conclusion == 'success'", workflow)
         self.assertIn("Refusing to move it.", workflow)
+        self.assertIn('if existing="$(gh api', workflow)
+        self.assertNotIn("git/ref/tags/$tag\" --jq '.object.sha' 2>/dev/null || true", workflow)
         self.assertNotIn("--force", workflow)
         self.assertIn("scripts/render-release-notes.py", workflow)
 
