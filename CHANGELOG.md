@@ -6,6 +6,18 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.11.0 — Node readiness и безопасный onboarding
+- Privileged targets для direct nodes получили стабильную привязку к 3x-ui `node.id` через `NODE_BACKUP_*_NODE_ID` и `HOST_CONTROL_*_NODE_ID`; старый lookup по display name сохранён только как backward-compatible fallback.
+- Explicit mismatched `NODE_ID` работает fail-closed: target, привязанный к другому node ID, не может быть подобран только по совпавшему имени.
+- Переименование direct node больше не ломает backup, restore, Versions & Updates, Panel/Xray controls и Host Control при наличии stable `NODE_ID`.
+- В карточку direct node добавлен read-only экран `🧭 Readiness`: он проверяет Master view, direct Panel API, Host Control Agent, runtime readiness и тип binding без mutation.
+- Добавлен `scripts/onboard-node.py` для регистрации node локально на Master из mode-0600 enrollment-файла: по умолчанию только preflight, mutation выполняется только с `--apply`, automatic retry отсутствует.
+- Добавлен `scripts/import-node-admin-target.py` для безопасного импорта dedicated direct-admin credential; Host Control enrollment importer получил `--node-id`.
+- Рекомендуемый onboarding больше не требует передачи node-sync/direct-admin/Host Control secrets через Telegram; privilege domains остаются раздельными.
+- Новые onboarding helpers требуют verified HTTPS для новых direct node/admin endpoints и не печатают secrets.
+- Добавлен runbook `docs/NODE_ONBOARDING.md` и regression tests для stable identity, legacy fallback, fail-closed mismatch, local enrollment permissions и onboarding transport policy.
+- Схема SQLite, provisioning пользователей, подписки и privilege boundary Host Control Agent не изменены.
+
 ## v4.10.1 — Operational rollout и recovery
 - Добавлен `scripts/bootstrap-bot-from-backup.sh` для восстановления Telegram-бота на подготовленном новом VPS из Full Backup с проверкой tag/APP_VERSION, tar safety, SQLite `quick_check`, rescue-copy и post-check через `deploy-release.sh --status`.
 - Recovery по умолчанию требует совпадения версии backup с целевым release; intentional mismatch возможен только через `RECOVERY_ALLOW_VERSION_MISMATCH=1`.
