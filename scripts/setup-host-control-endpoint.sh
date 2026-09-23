@@ -2,8 +2,10 @@
 set -Eeuo pipefail
 
 PROXY_SERVICE=3xui-host-control-proxy.service
+PROXY_USER=3xui-hostproxy
 PROXY_CONFIG=/etc/3xui-host-control/proxy-nginx.conf
 PROXY_UNIT=/etc/systemd/system/3xui-host-control-proxy.service
+PROXY_STATE=/var/lib/3xui-host-control-proxy
 TLS_DIR=/etc/3xui-host-control/tls
 
 usage() {
@@ -121,6 +123,7 @@ need_cmd python3
 need_cmd systemctl
 need_cmd install
 need_cmd ss
+[[ -x /usr/sbin/useradd ]] || die "required executable not found: /usr/sbin/useradd"
 
 valid_alias "$ALIAS" || die "invalid --alias"
 valid_host_id "$HOST_ID" || die "invalid --host-id"
@@ -162,13 +165,18 @@ printf 'Installing restricted Host Control Agent for %s...\n' "$HOST_ID"
 "$INSTALL_AGENT" "$HOST_ID"
 systemctl is-active --quiet 3xui-host-control.service || die "agent is not active"
 
+if ! id "$PROXY_USER" >/dev/null 2>&1; then
+    /usr/sbin/useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin "$PROXY_USER"
+fi
+
 install -d -o root -g root -m 0755 /etc/3xui-host-control
 install -d -o 3xui-hostctl -g 3xui-hostctl -m 0700 /var/lib/3xui-host-control
+install -d -o "$PROXY_USER" -g "$PROXY_USER" -m 0700 "$PROXY_STATE"
 
 if [[ "$MODE" == "remote" ]]; then
-    install -d -o root -g 3xui-hostctl -m 0750 "$TLS_DIR"
-    install -o root -g 3xui-hostctl -m 0640 "$CERT_PATH" "$TLS_DIR/fullchain.pem"
-    install -o root -g 3xui-hostctl -m 0640 "$KEY_PATH" "$TLS_DIR/privkey.pem"
+    install -d -o root -g "$PROXY_USER" -m 0750 "$TLS_DIR"
+    install -o root -g "$PROXY_USER" -m 0640 "$CERT_PATH" "$TLS_DIR/fullchain.pem"
+    install -o root -g "$PROXY_USER" -m 0640 "$KEY_PATH" "$TLS_DIR/privkey.pem"
 fi
 
 TMP="$(mktemp /etc/3xui-host-control/proxy-nginx.conf.XXXXXX)"
@@ -176,7 +184,7 @@ trap 'rm -f "$TMP"' EXIT HUP INT TERM
 
 cat > "$TMP" <<'NGINX'
 worker_processes 1;
-pid /var/lib/3xui-host-control/proxy-nginx.pid;
+pid /var/lib/3xui-host-control-proxy/nginx.pid;
 error_log stderr warn;
 
 events {
@@ -245,8 +253,8 @@ Requires=3xui-host-control.service
 
 [Service]
 Type=simple
-User=3xui-hostctl
-Group=3xui-hostctl
+User=$PROXY_USER
+Group=$PROXY_USER
 ExecStartPre=$NGINX_BIN -e stderr -t -c $PROXY_CONFIG
 ExecStart=$NGINX_BIN -e stderr -c $PROXY_CONFIG -g "daemon off;"
 ExecReload=/bin/kill -HUP \$MAINPID
@@ -267,7 +275,7 @@ LockPersonality=true
 CapabilityBoundingSet=
 AmbientCapabilities=
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
-ReadWritePaths=/var/lib/3xui-host-control
+ReadWritePaths=$PROXY_STATE
 ReadOnlyPaths=/etc/3xui-host-control
 UMask=0077
 
@@ -276,7 +284,7 @@ WantedBy=multi-user.target
 UNIT
 chmod 0644 "$PROXY_UNIT"
 
-sudo -u 3xui-hostctl "$NGINX_BIN" -e stderr -t -c "$PROXY_CONFIG"
+sudo -u "$PROXY_USER" "$NGINX_BIN" -e stderr -t -c "$PROXY_CONFIG"
 
 systemctl daemon-reload
 systemctl enable --now "$PROXY_SERVICE"
