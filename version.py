@@ -1,3 +1,3 @@
 """Single source of truth for the application release (not 3x-ui or Xray)."""
 
-APP_VERSION = "4.10.1"
+APP_VERSION = "4.11.0"

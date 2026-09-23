@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.10.1
+# Telegram-бот для 3x-ui v4.11.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
@@ -33,9 +33,19 @@ Host Control Agent не является SSH gateway: он слушает тол
 Destructive `Stop service` и `Stop Xray` доступны только роли Owner. `Stop service` дополнительно требует одноразовую typed-фразу. Mutation requests не повторяются автоматически после timeout/lost response.
 
 
-## Далее: v4.11.0 — Node readiness / onboarding
+## v4.11.0 — Node readiness / onboarding
 
-v4.11 переносит privileged bindings на стабильный `node.id` с backward-compatible fallback по display name, добавляет read-only `🧭 Readiness` и local onboarding helpers для node-sync, direct admin и Host Control. Ручные `NODE_BACKUP_*` и `HOST_CONTROL_*` остаются поддерживаемым fail-safe способом настройки.
+Privileged bindings direct nodes используют стабильный `node.id` через `NODE_BACKUP_*_NODE_ID` и `HOST_CONTROL_*_NODE_ID`; legacy name-only конфигурация остаётся совместимым fallback, но explicit mismatched ID не обходится по имени.
+
+В карточке node появился read-only `🧭 Readiness`, который проверяет direct Panel API, Host Control и stable identity. Для новых серверов рекомендуется local onboarding по [Node Onboarding](docs/NODE_ONBOARDING.md): node-sync, direct-admin и Host Control secrets остаются в mode-0600 файлах на VPS и не передаются через Telegram.
+
+Production deployment выполняется только по опубликованному tag:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.11.0
+./scripts/deploy-release.sh --status
+~~~
 
 ## v4.9.3 — Исправление счётчиков карточки ноды
 
