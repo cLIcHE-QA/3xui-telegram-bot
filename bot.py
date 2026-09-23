@@ -62,9 +62,9 @@ def is_admin(tg_id: int) -> bool:
 
 def user_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Проверить inbound'ы", callback_data="inbounds")],
-        [InlineKeyboardButton(text="Создать тестовый доступ", callback_data="create")],
-        [InlineKeyboardButton(text="Моя подписка", callback_data="subscription")],
+        [InlineKeyboardButton(text="🔍 Проверить inbound'ы", callback_data="inbounds")],
+        [InlineKeyboardButton(text="🧪 Создать тестовый доступ", callback_data="create")],
+        [InlineKeyboardButton(text="🔗 Моя подписка", callback_data="subscription")],
     ])
 
 def admin_menu() -> InlineKeyboardMarkup:
@@ -157,13 +157,13 @@ def user_admin_keyboard(tg_id: int, enabled: bool = True) -> InlineKeyboardMarku
 def confirm_delete_keyboard(tg_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admindel:{tg_id}")],
-        [InlineKeyboardButton(text="Отмена", callback_data=f"adminuser:{tg_id}")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data=f"adminuser:{tg_id}")],
     ])
 
 def confirm_sync_all_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Синхронизировать всех", callback_data="admin:syncall:run")],
-        [InlineKeyboardButton(text="Отмена", callback_data="admin:home")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:home")],
     ])
 
 
@@ -348,8 +348,8 @@ def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeybo
 def master_detail_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="3x-ui updates", callback_data="admin:ver:panel:m"),
-            InlineKeyboardButton(text="Xray Core", callback_data="admin:ver:xray:m:0"),
+            InlineKeyboardButton(text="⬆️ 3x-ui updates", callback_data="admin:ver:panel:m"),
+            InlineKeyboardButton(text="⚡ Xray Core", callback_data="admin:ver:xray:m:0"),
         ],
         [InlineKeyboardButton(text="🔄 Проверить", callback_data="admin:master")],
         [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
@@ -372,7 +372,7 @@ def node_detail_keyboard(node_id: int, enabled: bool | None = None) -> InlineKey
             InlineKeyboardButton(text="🔄 Restart Xray", callback_data=f"admin:nodectl:{node_id}:restartxray"),
         ],
         [InlineKeyboardButton(text="⬆️ Update 3x-ui", callback_data=f"admin:ver:panel:n{node_id}")],
-        [InlineKeyboardButton(text="Xray Core", callback_data=f"admin:ver:xray:n{node_id}:0")],
+        [InlineKeyboardButton(text="⚡ Xray Core", callback_data=f"admin:ver:xray:n{node_id}:0")],
         [InlineKeyboardButton(text="🗑 Delete node", callback_data=f"admin:nodectl:{node_id}:deleteask")],
         [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
     ])
@@ -788,7 +788,7 @@ async def admin_provision_all_ask(call: CallbackQuery):
         "Legacy-пользователи без Plan/Group сохраняют текущую all-managed policy.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Запустить safe reconcile", callback_data="admin:provision:all:run")],
-            [InlineKeyboardButton(text="Отмена", callback_data="admin:users")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
         ]),
     )
     await call.answer()
