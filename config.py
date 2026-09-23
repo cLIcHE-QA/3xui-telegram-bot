@@ -112,8 +112,11 @@ def _load_host_control_targets() -> tuple[HostControlTarget, ...]:
             raise RuntimeError(f"{prefix}URL must not contain credentials, query or fragment.")
         if parsed.scheme == "https" and not verify_tls:
             raise RuntimeError(f"{prefix}VERIFY_TLS=false is forbidden for host-control HTTPS.")
-        if parsed.scheme == "http" and not _private_http_host(parsed.hostname):
-            raise RuntimeError(f"{prefix}URL plain HTTP is allowed only for a private/local address.")
+        if parsed.scheme == "http":
+            if key != "MASTER":
+                raise RuntimeError(f"{prefix}URL remote host-control targets require verified HTTPS.")
+            if not _private_http_host(parsed.hostname):
+                raise RuntimeError(f"{prefix}URL plain HTTP is allowed only for a private/local Master address.")
 
         folded_name = name.casefold()
         if host_id in seen_host_ids:
