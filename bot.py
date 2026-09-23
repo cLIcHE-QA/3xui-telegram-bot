@@ -1649,7 +1649,7 @@ async def admin_nodes_refresh(call: CallbackQuery):
         )
 
 
-@router.callback_query(F.data.startswith("admin:node:"))
+@router.callback_query(F.data.regexp(r"^admin:node:\d+$"))
 async def admin_node_detail(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
