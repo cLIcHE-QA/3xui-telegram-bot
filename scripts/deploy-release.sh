@@ -235,9 +235,9 @@ finally:
 
 if result != 'ok':
     raise SystemExit('SQLite backup quick_check failed: ' + result)
-print('SQLITE_BACKUP=ok')
 PY
 
+    printf 'SQLITE_BACKUP=ok\n' >&2
     docker cp "$cid:$tmp" "$backup/bot.sqlite3"
     docker exec "$cid" rm -f "$tmp"
     chmod 600 "$backup/.env" "$backup/bot.sqlite3"
@@ -339,7 +339,7 @@ main() {
     compose build "$SERVICE"
 
     printf 'Deploying %s...\n' "$release"
-    compose up -d --no-deps --force-recreate "$SERVICE"
+    compose up -d --no-deps --no-build --force-recreate "$SERVICE"
 
     new_cid="$(container_id)"
     [[ -n "$new_cid" ]] || die "new bot container was not created; backup: $backup"
