@@ -98,7 +98,7 @@ async def _resolve_target(key: str) -> ControlTarget:
         key=key,
         name=node.name,
         back_callback=f"admin:node:{node_id}",
-        panel_client=system_backup.direct_client_for(node.name, node.id),
+        panel_client=system_backup.direct_client_for(node.name, getattr(node, "id", None)),
         host_target=_host_target_for(node.name, node.id),
         node_id=node_id,
     )
