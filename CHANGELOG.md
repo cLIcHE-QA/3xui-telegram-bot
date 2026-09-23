@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.11.1 — Исправление Readiness callback
+- Исправлен routing кнопки `🧭 Readiness`: общий handler карточки ноды больше не перехватывает callback `admin:node:<id>:readiness`.
+- Node detail handler теперь принимает только точный callback `admin:node:<id>`, а readiness сохраняет отдельный маршрут.
+- Добавлен regression-test, который блокирует возврат broad `admin:node:` startswith-handler.
+- Stable `NODE_ID` bindings, onboarding helpers, privilege boundaries и схема SQLite не изменены.
+
 ## v4.11.0 — Node readiness и безопасный onboarding
 - Privileged targets для direct nodes получили стабильную привязку к 3x-ui `node.id` через `NODE_BACKUP_*_NODE_ID` и `HOST_CONTROL_*_NODE_ID`; старый lookup по display name сохранён только как backward-compatible fallback.
 - Explicit mismatched `NODE_ID` работает fail-closed: target, привязанный к другому node ID, не может быть подобран только по совпавшему имени.
