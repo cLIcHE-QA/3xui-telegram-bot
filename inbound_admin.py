@@ -22,6 +22,22 @@ db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 inbound_admin_router = Router(name="inbound_admin")
 
+# Keep this list in sync with 3x-ui's UTLS_FINGERPRINT values.
+REALITY_FINGERPRINTS = (
+    "chrome",
+    "firefox",
+    "safari",
+    "ios",
+    "android",
+    "edge",
+    "360",
+    "qq",
+    "random",
+    "randomized",
+    "randomizednoalpn",
+    "unsafe",
+)
+
 
 class InboundEditStates(StatesGroup):
     value = State()
@@ -364,7 +380,7 @@ def _edit_menu(ib: dict[str, Any]) -> InlineKeyboardMarkup:
         rows += [
             [
                 InlineKeyboardButton(text="🎯 Reality SNI", callback_data=f"admin:inbound:editfield:{iid}:sni"),
-                InlineKeyboardButton(text="🪪 Fingerprint", callback_data=f"admin:inbound:editfield:{iid}:fingerprint"),
+                InlineKeyboardButton(text="🪪 Fingerprint", callback_data=f"admin:inbound:editfp:{iid}"),
             ]
         ]
     rows.append([InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")])
@@ -398,7 +414,6 @@ _FIELD_PROMPTS = {
     "host": "Новый XHTTP host. Отправь - чтобы очистить:",
     "padding": "XHTTP xPaddingBytes, например 100-1000. Отправь - чтобы очистить:",
     "sni": "Reality SNI/serverNames через запятую, например www.oracle.com:",
-    "fingerprint": "Reality fingerprint, например chrome/firefox. Отправь - чтобы очистить:",
 }
 
 
@@ -422,6 +437,104 @@ async def inbound_edit_start(call: CallbackQuery, state: FSMContext):
         ]]),
     )
     await call.answer()
+
+
+def _reality_fingerprint(ib: dict[str, Any]) -> str:
+    stream = _stream(ib)
+    reality = _json_obj(stream.get("realitySettings"))
+    client_half = _json_obj(reality.get("settings"))
+    return str(client_half.get("fingerprint") or reality.get("fingerprint") or "")
+
+
+def _set_reality_fingerprint(ib: dict[str, Any], fingerprint: str) -> str:
+    if fingerprint not in REALITY_FINGERPRINTS:
+        raise ValueError("unsupported Reality fingerprint")
+
+    stream = _stream(ib)
+    if str(stream.get("security") or "") != "reality":
+        raise ValueError("inbound does not use Reality")
+
+    reality = _json_obj(stream.get("realitySettings"))
+    client_half = _json_obj(reality.get("settings"))
+    old = str(client_half.get("fingerprint") or reality.get("fingerprint") or "")
+
+    client_half["fingerprint"] = fingerprint
+    reality["settings"] = client_half
+    stream["realitySettings"] = reality
+    ib["streamSettings"] = stream
+    return old
+
+
+def _fingerprint_menu(iid: int, current: str) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for offset in range(0, len(REALITY_FINGERPRINTS), 2):
+        row = []
+        for fingerprint in REALITY_FINGERPRINTS[offset:offset + 2]:
+            marker = "✅" if fingerprint == current else "🪪"
+            row.append(InlineKeyboardButton(
+                text=f"{marker} {fingerprint}",
+                callback_data=f"admin:inbound:setfp:{iid}:{fingerprint}",
+            ))
+        rows.append(row)
+    rows.append([InlineKeyboardButton(text="⬅ Edit", callback_data=f"admin:inbound:edit:{iid}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+@inbound_admin_router.callback_query(F.data.startswith("admin:inbound:editfp:"))
+async def inbound_edit_fingerprint(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    iid = int(call.data.rsplit(":", 1)[-1])
+    try:
+        ib = await xui.inbound_get(iid)
+        stream = _stream(ib)
+        if str(stream.get("security") or "") != "reality":
+            await call.answer("Этот inbound не использует Reality.", show_alert=True)
+            return
+        current = _reality_fingerprint(ib)
+        await render_callback(
+            call,
+            "🪪 Reality fingerprint\n\n"
+            f"Current: {current or '-'}\n\n"
+            "Выбери значение из списка 3x-ui:",
+            reply_markup=_fingerprint_menu(iid, current),
+        )
+        await call.answer()
+    except XUIError as exc:
+        await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
+
+
+@inbound_admin_router.callback_query(F.data.startswith("admin:inbound:setfp:"))
+async def inbound_set_fingerprint(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    parts = call.data.split(":")
+    iid = int(parts[-2])
+    fingerprint = parts[-1]
+    if fingerprint not in REALITY_FINGERPRINTS:
+        await call.answer("Некорректный fingerprint.", show_alert=True)
+        return
+    try:
+        ib = await xui.inbound_get(iid)
+        try:
+            old = _set_reality_fingerprint(ib, fingerprint)
+        except ValueError:
+            await call.answer("Этот inbound не использует Reality.", show_alert=True)
+            return
+        await xui.inbound_update(iid, _update_payload(ib))
+        await audit_from_call(
+            db,
+            call,
+            "inbound.update",
+            target_type="inbound",
+            target_id=str(iid),
+            details=f"field=reality.fingerprint; old={old[:120]}; new={fingerprint}",
+        )
+        await call.answer("Сохранено.")
+        text, kb = await _inbound_card(iid)
+        await render_callback(call, text, reply_markup=kb)
+    except XUIError as exc:
+        await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:editmode:"))
@@ -542,21 +655,6 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             stream["realitySettings"] = reality
             ib["streamSettings"] = stream
             new_display = ",".join(values)
-        elif field == "fingerprint":
-            stream = _stream(ib)
-            if str(stream.get("security") or "") != "reality":
-                await render_input(message, "Этот inbound не использует Reality.")
-                await state.clear()
-                return
-            reality = _json_obj(stream.get("realitySettings"))
-            client_half = _json_obj(reality.get("settings"))
-            old_display = str(client_half.get("fingerprint") or reality.get("fingerprint") or "")
-            value = "" if raw == "-" else raw
-            client_half["fingerprint"] = value
-            reality["settings"] = client_half
-            stream["realitySettings"] = reality
-            ib["streamSettings"] = stream
-            new_display = value or "-"
         else:
             await render_input(message, "Поле не поддерживается.")
             await state.clear()
