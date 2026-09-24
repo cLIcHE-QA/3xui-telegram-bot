@@ -119,8 +119,8 @@ bind() {
     while [[ "$#" -gt 0 ]]; do
         case "$1" in
             --node-enrollment) [[ "$#" -ge 2 ]] || die "missing value for --node-enrollment"; node_enrollment="$2"; shift 2 ;;
-            --admin-enrollment) [[ "$#" -ge 2 ]] || die "missing value for --admin-enrollment"; admin_enrolment="$2"; shift 2 ;;
-            --host-control-enrollment) [[ "$#" -ge 2 ]] || die "missing value for --host-control-enrollment": host_control_enrolment="$2"; shift 2 ;;
+            --admin-enrollment) [[ "$#" -ge 2 ]] || die "missing value for --admin-enrollment"; admin_enrollment="$2"; shift 2 ;;
+            --host-control-enrollment) [[ "$#" -ge 2 ]] || die "missing value for --host-control-enrollment"; host_control_enrollment="$2"; shift 2 ;;
             --env) [[ "$#" -ge 2 ]] || die "missing value for --env"; env_path="$2"; shift 2 ;;
             --apply) apply=1; shift ;;
             --help|-h) usage; exit 0 ;;
