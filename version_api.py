@@ -1,7 +1,7 @@
 """Version-management additions to XUIClient, isolated from legacy requests.
 
-Contracts checked against MHSanaei/3x-ui commit
-95f19b192f477b59cc368dcb7751bcf2e0180e5b (see docs/VERSIONS_UPDATES.md).
+The supported panel API contract is pinned in contracts/3xui/contract.json and
+validated against the vendored OpenAPI schema in CI.
 No mutation is retried, including on a timeout or a lost HTTP response.
 """
 from __future__ import annotations

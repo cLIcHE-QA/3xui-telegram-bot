@@ -1,0 +1,366 @@
+{
+  "contract_version": 1,
+  "supported_3xui_version": "3.8.5",
+  "upstream": {
+    "repository": "MHSanaei/3x-ui",
+    "ref": "v3.8.5",
+    "schema_path": "frontend/public/openapi.json",
+    "schema_blob_sha": "d1f9b499e43d4370d68fdf9ca6045e1d967b42ad"
+  },
+  "vendored_schema": "contracts/3xui/v3.8.5/openapi.json",
+  "source_files": [
+    "xui.py",
+    "version_api.py"
+  ],
+  "required_security_scheme": "bearerAuth",
+  "default_response_200_json_properties": [
+    "success",
+    "msg",
+    "obj"
+  ],
+  "documented_exceptions": [
+    {
+      "method": "GET",
+      "path": "/panel/api/server/getDb",
+      "contract": "route_method_auth_only",
+      "reason": "3x-ui v3.8.5 OpenAPI models a generic JSON envelope, while the live endpoint returns the database as a binary attachment; binary response semantics are covered by runtime regression tests."
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/panel/api/server/status"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/nodes/list"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/nodes/get/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/nodes/update/{id}",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/nodes/del/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/nodes/setEnable/{id}",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/nodes/updatePanel",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/nodes/probe/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/nodes/test",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/nodes/add",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/server/restartXrayService"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/server/stopXrayService"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/setting/restartPanel"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/server/logs/{count}",
+      "request": {
+        "required": false,
+        "content_type": "application/x-www-form-urlencoded",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/server/xraylogs/{count}",
+      "request": {
+        "required": false,
+        "content_type": "application/x-www-form-urlencoded",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/server/amneziawglogs/{count}",
+      "request": {
+        "required": false,
+        "content_type": "application/x-www-form-urlencoded",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/server/importDB",
+      "request": {
+        "required": true,
+        "content_type": "multipart/form-data",
+        "required_fields": [
+          "db"
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/server/getDb",
+      "response_envelope": false
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/inbounds/options"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/inbounds/list"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/inbounds/list/slim"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/inbounds/get/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/inbounds/add",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/inbounds/update/{id}",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/inbounds/setEnable/{id}",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/inbounds/del/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/inbounds/{id}/resetTraffic"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/clients/list"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/onlines"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/onlinesByGuid"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/lastOnline"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/clients/get/tgId/{tgId}"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/clients/get/{email}"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/add",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": [
+          "client",
+          "inboundIds"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/update/{email}",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/{email}/attach",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": [
+          "inboundIds"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/{email}/detach",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": [
+          "inboundIds"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/bulkAttach",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": [
+          "emails",
+          "inboundIds"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/bulkDetach",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": [
+          "emails",
+          "inboundIds"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/bulkEnable",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/bulkDisable",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/bulkResetTraffic",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/bulkAdjust",
+      "request": {
+        "required": true,
+        "content_type": "application/json",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/del/{email}"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/clients/subLinks/{subId}"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/clients/traffic/{email}"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/server/getPanelUpdateInfo"
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/server/getXrayVersion"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/server/installXray/{version}"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/server/updatePanel",
+      "request": {
+        "required": false,
+        "content_type": "application/x-www-form-urlencoded",
+        "required_fields": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/panel/api/server/getUpdateStatus"
+    }
+  ]
+}
