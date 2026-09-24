@@ -127,6 +127,14 @@ Agent слушает только private Docker-host route:
 http://172.19.0.1:18184
 ~~~
 
+Если на Master активен UFW с default-deny INPUT, разреши доступ к agent только из bot Docker subnet:
+
+~~~bash
+sudo ufw allow from 172.19.0.0/16 to 172.19.0.1 port 18184 proto tcp comment '3xui bot deploy agent'
+~~~
+
+Не открывай port 18184 для `Anywhere`/public Internet.
+
 После установки token нужно локально перенести из `/etc/3xui-deploy-agent/token` в production `.env`:
 
 ~~~env
