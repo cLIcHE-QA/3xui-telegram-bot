@@ -66,13 +66,17 @@ class HostControlStartupRecoveryContractTests(unittest.TestCase):
         self.assertLess(stale_at, polling_at)
 
     def test_recovery_uses_read_only_lookup_and_never_replays_mutation(self):
-        import host_control_ui
+        source = (
+            Path(__file__).resolve().parents[1] / "host_control_ui.py"
+        ).read_text(encoding="utf-8")
+        start = source.index("async def recover_control_jobs()")
+        end = source.index("\n\nasync def _run_panel_restart", start)
+        recovery = source[start:end]
 
-        source = inspect.getsource(host_control_ui.recover_control_jobs)
-        self.assertIn("await client.get_operation(operation_id)", source)
-        self.assertNotIn(".execute(", source)
-        self.assertNotIn("await client.execute", source)
-        self.assertIn("mutation_not_retried=true", source)
+        self.assertIn("await client.get_operation(operation_id)", recovery)
+        self.assertNotIn(".execute(", recovery)
+        self.assertNotIn("await client.execute", recovery)
+        self.assertIn("mutation_not_retried=true", recovery)
 
 
 class HostControlUITests(unittest.IsolatedAsyncioTestCase):
