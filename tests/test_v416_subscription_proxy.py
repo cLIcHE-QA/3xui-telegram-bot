@@ -1,0 +1,184 @@
+from __future__ import annotations
+
+import base64
+import unittest
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+import aiohttp
+from aiohttp import web
+
+from subscription_proxy import (
+    SubscriptionProxy,
+    _try_decode_subscription,
+    convert_vpn_to_amneziawg,
+    remove_shadowrocket_xhttp_reality_fp,
+)
+
+
+class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
+    def request(self, sub_id="known", *, query=None, headers=None):
+        return SimpleNamespace(
+            match_info={"sub_id": sub_id},
+            query=dict(query or {}),
+            headers=dict(headers or {}),
+        )
+
+    def test_plain_and_base64_subscription_detection(self):
+        plain = "vless://abc@example.test:443?type=tcp#one\nvpn://payload#awg"
+        decoded, wrapped = _try_decode_subscription(plain.encode())
+        self.assertEqual(decoded, plain)
+        self.assertFalse(wrapped)
+
+        body = base64.b64encode(plain.encode())
+        decoded, wrapped = _try_decode_subscription(body)
+        self.assertEqual(decoded, plain)
+        self.assertTrue(wrapped)
+
+        decoded, wrapped = _try_decode_subscription(b"not a subscription")
+        self.assertEqual(decoded, "not a subscription")
+        self.assertFalse(wrapped)
+
+    def test_awg_conversion_is_selective_and_preserves_other_links(self):
+        text = (
+            "vless://abc@example.test:443?type=tcp#vless\n"
+            "vpn://YWJjZA#Finland\n"
+            "trojan://secret@example.test:443#trojan"
+        )
+        converted = convert_vpn_to_amneziawg(text)
+        self.assertIn("vless://abc@example.test:443?type=tcp#vless", converted)
+        self.assertIn("amneziawg://YWJjZA#Finland", converted)
+        self.assertIn("trojan://secret@example.test:443#trojan", converted)
+        self.assertNotIn("\nvpn://", "\n" + converted)
+
+    def test_awg_conversion_derives_remark_from_embedded_config(self):
+        conf = "[Interface]\nPrivateKey=x\n# Name=Finland AWG\n[Peer]\nPublicKey=y\n"
+        payload = base64.urlsafe_b64encode(conf.encode()).decode().rstrip("=")
+        converted = convert_vpn_to_amneziawg(f"vpn://{payload}")
+        self.assertTrue(converted.startswith("amneziawg://"))
+        self.assertTrue(converted.endswith("#Finland%20AWG"))
+
+    def test_shadowrocket_removes_fp_only_for_vless_xhttp_reality(self):
+        xhttp = (
+            "vless://id@example.test:443?"
+            "type=xhttp&security=reality&fp=chrome&sni=example.com#xhttp"
+        )
+        tcp = (
+            "vless://id@example.test:443?"
+            "type=tcp&security=reality&fp=chrome&sni=example.com#tcp"
+        )
+        converted = remove_shadowrocket_xhttp_reality_fp(xhttp + "\n" + tcp)
+        first, second = converted.splitlines()
+        self.assertNotIn("fp=", first)
+        self.assertIn("sni=example.com", first)
+        self.assertIn("fp=chrome", second)
+
+    async def test_invalid_or_unknown_sub_id_never_reaches_upstream(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=None))
+        proxy = SubscriptionProxy(
+            db,
+            "https://upstream.example.invalid/sub/{sub_id}",
+            "https://public.example.invalid/compat/{sub_id}",
+        )
+        proxy._fetch = AsyncMock()
+
+        with self.assertRaises(web.HTTPNotFound):
+            await proxy.subscription(self.request(""))
+        with self.assertRaises(web.HTTPNotFound):
+            await proxy.subscription(self.request("x" * 129))
+        with self.assertRaises(web.HTTPNotFound):
+            await proxy.subscription(self.request("unknown"))
+
+        proxy._fetch.assert_not_awaited()
+
+    async def test_raw_base64_response_preserves_wrapping_and_converts_only_awg(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(
+            db,
+            "https://upstream.example.invalid/sub/{sub_id}",
+            "https://public.example.invalid/compat/{sub_id}",
+        )
+        plain = "vpn://YWJjZA#AWG\nvless://id@example.test:443?type=tcp#VLESS"
+        upstream_body = base64.b64encode(plain.encode())
+        proxy._fetch = AsyncMock(
+            return_value=(
+                200,
+                upstream_body,
+                {
+                    "subscription-userinfo": "upload=1; download=2",
+                    "Content-Type": "application/octet-stream",
+                    "X-Secret": "must-not-pass",
+                },
+            )
+        )
+
+        response = await proxy.subscription(self.request("known"))
+        decoded = base64.b64decode(response.body).decode()
+
+        self.assertIn("amneziawg://YWJjZA#AWG", decoded)
+        self.assertIn("vless://id@example.test:443?type=tcp#VLESS", decoded)
+        self.assertEqual(response.headers["subscription-userinfo"], "upload=1; download=2")
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertNotIn("X-Secret", response.headers)
+
+    async def test_shadowrocket_path_strips_only_affected_fingerprint_after_awg_conversion(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+        body = (
+            "vpn://YWJjZA#AWG\n"
+            "vless://id@example.test:443?type=xhttp&security=reality&fp=chrome#xhttp\n"
+            "vless://id@example.test:443?type=tcp&security=reality&fp=chrome#tcp"
+        ).encode()
+        proxy._fetch = AsyncMock(return_value=(200, body, {}))
+
+        response = await proxy.subscription(
+            self.request("known", headers={"User-Agent": "Shadowrocket/2.2"})
+        )
+        text = response.body.decode()
+        lines = text.splitlines()
+
+        self.assertTrue(lines[0].startswith("amneziawg://"))
+        self.assertNotIn("fp=", lines[1])
+        self.assertIn("fp=chrome", lines[2])
+
+    async def test_upstream_network_and_http_failures_are_bad_gateway(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+
+        proxy._fetch = AsyncMock(side_effect=aiohttp.ClientConnectionError("offline"))
+        with self.assertRaises(web.HTTPBadGateway):
+            await proxy.subscription(self.request("known"))
+
+        proxy._fetch = AsyncMock(return_value=(503, b"down", {}))
+        with self.assertRaises(web.HTTPBadGateway):
+            await proxy.subscription(self.request("known"))
+
+    async def test_info_mode_is_passthrough_not_subscription_rewrite(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+        body = b'{"status":"ok","url":"vpn://must-stay-native"}'
+        proxy._fetch = AsyncMock(
+            return_value=(200, body, {"Content-Type": "application/json"})
+        )
+
+        response = await proxy.subscription(
+            self.request("known", query={"format": "info"}, headers={"Accept": "application/json"})
+        )
+        self.assertEqual(response.body, body)
+        self.assertTrue(response.headers["Content-Type"].startswith("application/json"))
+
+    async def test_asset_path_traversal_is_rejected_without_fetch(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock())
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+        proxy._fetch = AsyncMock()
+        request = SimpleNamespace(
+            match_info={"tail": "../secret"},
+            headers={},
+        )
+        with self.assertRaises(web.HTTPNotFound):
+            await proxy.asset(request)
+        proxy._fetch.assert_not_awaited()
+
+
+if __name__ == "__main__":
+    unittest.main()
