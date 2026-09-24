@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.14.2 — Исправление guided onboarding direct node
+- Исправлен разбор аргументов `--admin-enrollment` и `--host-control-enrollment` в `scripts/onboard-direct-node.sh bind`: значения теперь попадают в канонические переменные, поэтому guided bind проходит preflight/import вместо ложной ошибки отсутствующих enrollment files.
+- Добавлен исполняемый regression test, который запускает `bind` с временными enrollment-файлами и проверяет фактические вызовы direct-admin и Host Control importer preflight.
+- Security boundary не меняется: node-sync, direct-admin и Host Control credentials остаются раздельными; mutation semantics, stable `node_id` binding и single bot recreate сохранены.
+
 ## v4.14.1 — Исправление Host Control snapshot rollout
 - Исправлено чтение nginx snapshot в bot client: streaming HTTP response теперь читается до EOF с сохранением жёсткого лимита 10 MiB, поэтому multi-chunk ответы reverse proxy больше не дают ложный `checksum_mismatch`.
 - Installer Host Control Agent теперь явно перезапускает `3xui-host-control.service` после обновления runtime files/unit, поэтому повторный rollout действительно активирует новую версию agent без ручного restart.

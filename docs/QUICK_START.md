@@ -26,9 +26,9 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v4.14.1. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v4.14.2. Все privileged connections используют отдельные credentials и stable node_id binding.
 
-> Важно для v4.14.1: published tag содержит ошибку разбора аргументов в guided wrapper scripts/onboard-direct-node.sh bind. Поэтому этот Quick Start намеренно использует underlying helpers напрямую: onboard-node.py, import-node-admin-target.py и import-host-control-enrollment.py. Этап prepare wrapper не нужен для выполнения этого runbook. После отдельного fix release этот блок можно будет упростить.
+> В `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
 ## 0. Что понадобится
 
@@ -122,7 +122,7 @@ git clone git@github.com:cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v4.14.1
+git checkout --detach v4.14.2
 ~~~
 
 Проверка release:
@@ -380,15 +380,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v4.14.1.tar.gz
+  /root/3xui-host-control-bundle-v4.14.2.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v4.14.1.tar.gz \
-  /root/3xui-host-control-bundle-v4.14.1.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v4.14.2.tar.gz \
+  /root/3xui-host-control-bundle-v4.14.2.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -398,7 +398,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v4.14.1.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v4.14.2.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -407,7 +407,7 @@ sha256sum -c 3xui-host-control-bundle-v4.14.1.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v4.14.1.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v4.14.2.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
@@ -495,7 +495,7 @@ sudo systemctl restart 3xui-host-control.service
 systemctl is-active 3xui-host-control.service
 ~~~
 
-Installer v4.14.1 при будущих upgrades не перезаписывает nginx-snapshot.env и сам restart'ит agent после обновления runtime files.
+Installer v4.14.2 при будущих upgrades не перезаписывает nginx-snapshot.env и сам restart'ит agent после обновления runtime files.
 
 ## 13. Передай Host Control enrollment на Master
 
@@ -513,7 +513,82 @@ chmod 600 /root/3xui-host-control-fi.env
 
 Пока не импортируй его без stable node_id.
 
-## 14. Создай node-sync enrollment на Master
+## 14. Подготовь три enrollment-файла на Master
+
+Создай три mode-0600 файла:
+
+1. node-sync enrollment: `/root/3xui-node-fi.env`;
+2. direct-admin enrollment: `/root/3xui-node-admin-fi.env`;
+3. Host Control enrollment: `/root/3xui-host-control-fi.env`, уже скопированный с node.
+
+Node-sync:
+
+~~~env
+NODE_ONBOARD_NAME=Finland
+NODE_ONBOARD_PANEL_URL=https://panel-fi.example.com/basepath
+NODE_ONBOARD_SYNC_TOKEN=<node-sync-secret>
+NODE_ONBOARD_VERIFY_TLS=true
+~~~
+
+Direct-admin:
+
+~~~env
+NODE_ADMIN_ALIAS=FI
+NODE_ADMIN_NODE_NAME=Finland
+NODE_ADMIN_PANEL_URL=https://panel-fi.example.com/basepath
+NODE_ADMIN_API_TOKEN=<dedicated-admin-secret>
+NODE_ADMIN_VERIFY_TLS=true
+~~~
+
+Для direct-admin файла `NODE_ADMIN_NODE_ID` можно не указывать: wrapper получает stable ID после регистрации и передаёт его importer через `--node-id`.
+
+Проверь права:
+
+~~~bash
+chmod 600   /root/3xui-node-fi.env   /root/3xui-node-admin-fi.env   /root/3xui-host-control-fi.env
+~~~
+
+## 15. Guided bind: сначала preflight
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+
+bash scripts/onboard-direct-node.sh bind   --node-enrollment /root/3xui-node-fi.env   --admin-enrollment /root/3xui-node-admin-fi.env   --host-control-enrollment /root/3xui-host-control-fi.env   --env .env
+~~~
+
+Для новой node этот запуск выполняет node preflight без mutation. Если exact node уже существует, wrapper также получает её stable `NODE_ID` и preflight-проверяет оба privileged enrollment.
+
+## 16. Guided bind: применить
+
+После успешного preflight:
+
+~~~bash
+bash scripts/onboard-direct-node.sh bind   --node-enrollment /root/3xui-node-fi.env   --admin-enrollment /root/3xui-node-admin-fi.env   --host-control-enrollment /root/3xui-host-control-fi.env   --env .env   --apply
+~~~
+
+Wrapper:
+
+1. повторяет node preflight и регистрирует либо безопасно переиспользует exact name + endpoint;
+2. получает stable `NODE_ID`;
+3. проверяет direct-admin и Host Control enrollment с тем же ID;
+4. импортирует direct-admin binding;
+5. импортирует Host Control binding;
+6. пересоздаёт только service `bot` один раз;
+7. не печатает raw tokens.
+
+Ожидаемый безопасный итог:
+
+~~~text
+READY candidate: NODE_ID=<number>
+~~~
+
+Если mutation не получила подтверждённый success, wrapper не должен автоматически повторять её. Сначала проверь Nodes на Master.
+
+### Manual fallback
+
+Если guided wrapper недоступен, используй underlying helpers из [Node Onboarding](NODE_ONBOARDING.md): `onboard-node.py`, `import-node-admin-target.py`, `import-host-control-enrollment.py`.
+
+## 14a. Manual fallback: создай node-sync enrollment на Master
 
 ~~~bash
 sudo install -o root -g root -m 0600 /dev/null /root/3xui-node-fi.env
@@ -558,7 +633,7 @@ NODE_ID=<number>
 
 Если helper не подтвердил success, mutation автоматически не повторяй. Сначала проверь Nodes на Master.
 
-## 15. Создай direct-admin enrollment
+## 15a. Manual fallback: создай direct-admin enrollment
 
 Этот token отдельный от node-sync token.
 
@@ -602,7 +677,7 @@ Preflight:
 
 Bot пока можно не recreate: Host Control binding добавим следующим шагом и сделаем один recreate.
 
-## 16. Импортируй Host Control binding с тем же node_id
+## 16a. Manual fallback: импортируй Host Control binding с тем же node_id
 
 Preflight:
 
@@ -745,7 +820,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v4.14.1
+Git tag: v4.14.2
 Container: running
 RestartCount=0
 Bot version: 4.14.1
@@ -879,15 +954,15 @@ cat /etc/3xui-host-control/nginx-snapshot.env
 
 ### После переименования node backup/Host Control пропал
 
-Правильный v4.14.1 onboarding должен использовать NODE_BACKUP_*_NODE_ID и HOST_CONTROL_*_NODE_ID. Name-only binding — legacy fallback, не финальное состояние.
+Правильный v4.14.2 onboarding должен использовать NODE_BACKUP_*_NODE_ID и HOST_CONTROL_*_NODE_ID. Name-only binding — legacy fallback, не финальное состояние.
 
 ### Host Control Agent обновлён, но старый process остался
 
-Это был defect v4.14.0. В v4.14.1 installer явно выполняет restart 3xui-host-control.service. Проверяй MainPID/ExecMainStartTimestamp до и после upgrade.
+Это был defect v4.14.0. В v4.14.2 installer явно выполняет restart 3xui-host-control.service. Проверяй MainPID/ExecMainStartTimestamp до и после upgrade.
 
 ### nginx snapshot даёт checksum mismatch через HTTPS proxy
 
-Это был defect v4.14.0 multi-chunk client read. В v4.14.1 response читается до EOF с прежним hard size limit.
+Это был defect v4.14.0 multi-chunk client read. В v4.14.2 response читается до EOF с прежним hard size limit.
 
 ## 27. Definition of Done новой node
 
