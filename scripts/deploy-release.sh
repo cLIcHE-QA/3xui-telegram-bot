@@ -6,6 +6,7 @@ SERVICE="${DEPLOY_SERVICE:-bot}"
 HEALTH_URL="${DEPLOY_HEALTH_URL:-http://127.0.0.1:18080/healthz}"
 BACKUP_ROOT="${DEPLOY_BACKUP_ROOT:-/opt/3xui-bot/deploy-backups}"
 SSH_KEY="${DEPLOY_SSH_KEY:-$HOME/.ssh/3xui_bot_deploy}"
+SSH_KNOWN_HOSTS="${DEPLOY_SSH_KNOWN_HOSTS:-$HOME/.ssh/known_hosts}"
 EXPECTED_REPOSITORY="${DEPLOY_EXPECTED_REPOSITORY:-cLIcHE-QA/3xui-telegram-bot}"
 DEFAULT_SUBNET="172.19.0.0/16"
 LOCK_FILE="${DEPLOY_LOCK_FILE:-/tmp/${PROJECT}.deploy-release.lock}"
@@ -24,6 +25,7 @@ Environment overrides:
   DEPLOY_HEALTH_URL            local health endpoint (default: http://127.0.0.1:18080/healthz)
   DEPLOY_BACKUP_ROOT           deployment backup directory (default: /opt/3xui-bot/deploy-backups)
   DEPLOY_SSH_KEY               read-only GitHub deploy key (default: ~/.ssh/3xui_bot_deploy)
+  DEPLOY_SSH_KNOWN_HOSTS        SSH known_hosts used for host-key verification
   DEPLOY_EXPECTED_REPOSITORY   expected origin repository (default: cLIcHE-QA/3xui-telegram-bot)
   DEPLOY_ALLOW_DOWNGRADE=1     allow deploying a lower semantic version intentionally
 
@@ -341,6 +343,7 @@ main() {
     printf 'Deploying %s...\n' "$release"
     compose up -d --no-deps --no-build --force-recreate "$SERVICE"
 
+    printf 'Verifying %s...\n' "$release"
     new_cid="$(container_id)"
     [[ -n "$new_cid" ]] || die "new bot container was not created; backup: $backup"
 
