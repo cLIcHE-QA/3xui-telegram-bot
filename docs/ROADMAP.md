@@ -205,6 +205,10 @@ Roadmap не задаёт искусственный глобальный про
 
 ##### Off-site backup
 
+**Статус: 🟡 Реализовано в `main`; ожидает публикации runtime release.**
+
+Encrypted off-site backup уже слит в `main`: Full Backup использует checksummed manifest schema 2, S3-compatible transport шифрует canonical archive client-side через AES-256-GCM, local и off-site outcomes записываются раздельно (`backup.daily`/`backup.manual` и `backup.offsite`), после upload обязателен remote download/decrypt/SHA/deep-validation round trip, retention ограничен fixed prefix, а host-side recovery CLI скачивает и проверяет latest external copy перед существующим bootstrap restore flow. Feature выключена по умолчанию и не открывает Telegram доступ к bucket/object key/credentials/filesystem path.
+
 Локальный Full Backup остаётся необходимым, но сам по себе не закрывает сценарий полной потери Master VPS. До v5.0.0 должен появиться поддерживаемый способ иметь хотя бы одну актуальную recovery copy вне Master host.
 
 Контракт должен быть provider-neutral:
