@@ -6,6 +6,10 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.13.2 — Host Control startup recovery
+- Startup бота теперь запускает `recover_control_jobs()` сразу после `db.init()` и до общего stale-job cleanup, поэтому незавершённые Host Control jobs получают шанс восстановить точный итог из persistent operation journal.
+- Recovery использует только read-only lookup сохранённого `operation_id`; state-changing Host Control mutation после рестарта автоматически не повторяется, а недоказуемый результат остаётся `unknown`.
+- Добавлены regression tests на порядок startup recovery и отсутствие mutation replay; схема SQLite, Host Control Agent API и privilege boundaries не изменены.
 ## v4.13.1 — Исправление Fleet Rollout jobs
 - Исправлен accounting `Controlled Rollout`: terminal no-op plan с уже актуальными версиями теперь создаёт и завершает parent `fleet.rollout` job со статусом `success`.
 - Отмена rollout до запуска canary теперь также фиксируется parent `fleet.rollout` job со статусом `cancelled`, поэтому `🧾 Fleet Jobs` и audit отражают terminal operation.
