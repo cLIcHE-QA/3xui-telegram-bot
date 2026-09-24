@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
 import json
@@ -14,6 +15,7 @@ import boto3
 from botocore.config import Config
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+from db import Database
 from restore_manager import RestoreManager
 
 
@@ -386,6 +388,57 @@ class OffsiteBackupService:
                 )
             os.replace(temp_plain, destination)
         return destination
+
+
+async def replicate_with_job(
+    db: Database,
+    service: OffsiteBackupService | None,
+    path: Path,
+    *,
+    trigger: str,
+    actor_id: int,
+) -> tuple[str, OffsiteBackupResult | None, str]:
+    if service is None:
+        return "disabled", None, "off-site backup disabled"
+
+    run_id = await db.start_job_run(
+        name="backup.offsite",
+        trigger=trigger,
+        actor_id=actor_id,
+    )
+    started = datetime.now(timezone.utc)
+    try:
+        result = await asyncio.to_thread(service.upload_and_verify, path)
+        status = "partial" if result.missing else "success"
+        details = (
+            f"key={result.key}; source_sha256={result.source_sha256}; "
+            f"plain={result.plaintext_bytes}; encrypted={result.encrypted_bytes}; "
+            f"retained={result.retained}; missing={len(result.missing)}"
+        )
+        duration_ms = max(
+            0,
+            int((datetime.now(timezone.utc) - started).total_seconds() * 1000),
+        )
+        await db.finish_job_run(
+            run_id,
+            status=status,
+            duration_ms=duration_ms,
+            details=details,
+        )
+        return status, result, details
+    except Exception as exc:
+        duration_ms = max(
+            0,
+            int((datetime.now(timezone.utc) - started).total_seconds() * 1000),
+        )
+        details = f"{type(exc).__name__}: {exc}"
+        await db.finish_job_run(
+            run_id,
+            status="failed",
+            duration_ms=duration_ms,
+            details=details,
+        )
+        return "failed", None, details
 
 
 def service_from_settings(settings: Any, restore_manager: RestoreManager) -> OffsiteBackupService | None:
