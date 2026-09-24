@@ -39,6 +39,8 @@ from provisioning import ProvisioningEngine
 from logs_alerts import logs_alerts_router, alert_monitor_loop
 from logging_setup import configure_logging
 from disaster_recovery import disaster_recovery_router, send_boot_restore_notice
+from restore_manager import RestoreManager
+from offsite_backup import replicate_with_job, service_from_settings
 from admin_ui import AdminPanelSessionMiddleware, register_panel_message, render_callback, render_input
 
 settings = load_settings()
@@ -47,6 +49,8 @@ xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tl
 router = Router()
 backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
 system_backup = SystemBackupService(backup_manager, settings.node_backup_targets, settings.host_control_targets)
+offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
+offsite_backup = service_from_settings(settings, offsite_restore_manager)
 provisioner = ProvisioningEngine(db, xui, settings)
 
 
@@ -1090,6 +1094,12 @@ def _backup_status_text() -> str:
         lines.append(f"Ежедневно: {settings.backup_hour_utc:02d}:00 UTC")
         if settings.backup_send_to_admins:
             lines.append("Отправка администраторам: включена")
+    if settings.offsite_backup_enabled:
+        lines.append(
+            f"☁️ Off-site: включён · encrypted · keep {settings.offsite_backup_keep}"
+        )
+    else:
+        lines.append("☁️ Off-site: выключен")
     names = system_backup.configured_node_names()
     if names:
         lines.append(f"Backup нод: {len(names)} — {', '.join(names)}")
@@ -1133,12 +1143,35 @@ async def admin_backup_create(call: CallbackQuery):
             target_id=result.info.path.name,
             details=f"size={result.info.size}; missing={len(result.missing)}",
         )
+        offsite_status, offsite_result, offsite_detail = await replicate_with_job(
+            db,
+            offsite_backup,
+            result.info.path,
+            trigger="admin",
+            actor_id=call.from_user.id if call.from_user else 0,
+        )
+        if offsite_status != "disabled":
+            await audit_from_call(
+                db,
+                call,
+                "backup.offsite.upload",
+                target_type="backup",
+                target_id=result.info.path.name,
+                details=offsite_detail,
+                success=offsite_status in {"success", "partial"},
+            )
         lines = [
             "✅ Полный backup создан.",
             f"Файл: {result.info.path.name}",
             f"Размер: {human_bytes(result.info.size)}",
             f"Включено: {', '.join(result.included) or 'нет'}",
         ]
+        if offsite_status == "success":
+            lines.append("☁️ Off-site: загружен и проверен")
+        elif offsite_status == "partial":
+            lines.append("⚠️ Off-site: загружен и проверен, local backup неполный")
+        elif offsite_status == "failed":
+            lines.append(f"🔴 Off-site: ошибка — {offsite_detail[:240]}")
         if result.missing:
             lines.append(f"⚠️ Не найдено: {', '.join(result.missing)}")
         await render_callback(call, "\n".join(lines), reply_markup=backup_menu())
@@ -2362,6 +2395,26 @@ async def automatic_backup_loop(bot: Bot):
                 result.info.path,
                 result.info.size,
             )
+            offsite_status, _, offsite_detail = await replicate_with_job(
+                db,
+                offsite_backup,
+                result.info.path,
+                trigger="scheduled",
+                actor_id=0,
+            )
+            if offsite_status != "disabled":
+                await audit_system(
+                    db,
+                    "backup.offsite.upload",
+                    target_type="backup",
+                    target_id=result.info.path.name,
+                    details=offsite_detail,
+                    success=offsite_status in {"success", "partial"},
+                )
+                if offsite_status == "failed":
+                    logging.error("Off-site backup failed: %s", offsite_detail)
+                else:
+                    logging.info("Off-site backup %s: %s", offsite_status, result.info.path.name)
             if settings.backup_send_to_admins:
                 for admin_id in settings.admin_telegram_ids:
                     try:
