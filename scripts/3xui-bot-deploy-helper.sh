@@ -161,13 +161,13 @@ preflight_cmd() {
 notes_cmd() {
     local release="$1"
     validate_release "$release" >/dev/null
-    local title="/tmp/3xui-deploy-title.$$"
-    local body="/tmp/3xui-deploy-body.$$"
-    python3 scripts/render-release-notes.py         --version "${release#v}"         --commit "$(git rev-parse "refs/tags/${release}^{commit}")"         --title-out "$title"         --body-out "$body" >/dev/null 2>&1 || die "release_notes_failed"
-    cat "$title"
-    printf '\n'
-    cat "$body"
-    rm -f "$title" "$body"
+    local changelog
+    changelog="$(git show "$release:CHANGELOG.md" 2>/dev/null)" || die "release_notes_failed"
+    printf '%s\n' "$changelog" | awk -v heading="## $release" '
+        index($0, heading) == 1 {capture=1}
+        capture && index($0, "## ") == 1 && index($0, heading) != 1 {exit}
+        capture {print}
+    ' | head -n 120
 }
 
 deploy_cmd() {
