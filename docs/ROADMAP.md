@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Этот документ фиксирует предварительное направление развития проекта после `v4.13.0`.
+Этот документ фиксирует предварительное направление развития проекта после `v4.13.1`.
 
 Roadmap задаёт границы крупных продуктовых этапов, но не заменяет release-specific scope: перед каждым релизом конкретный набор изменений всё равно фиксируется отдельным feature/fix/release PR.
 
@@ -121,6 +121,123 @@ success / failed / unknown
 ~~~
 
 Эта функция не должна превращать Telegram bot или Deploy Agent в remote server/general-purpose host administration interface. Любое будущее расширение за пределы строго фиксированного deployment workflow требует отдельного threat-model review.
+
+### Аудит перед заморозкой v4.x
+
+По итогам полного аудита репозитория перед переходом к Client Portal линейка v4.x получает дополнительные критерии завершённости. Цель этого блока — закрыть не новые customer-facing функции, а накопившиеся operational, recovery, migration, regression и maintainability риски.
+
+Уже зафиксированные выше цели `RBAC / Roles & Privileges catalog`, `Extended direct-node backup` и `Safe Bot Self-Update` остаются частью обязательной финализации v4.x и не переносятся молча в v5.x.
+
+#### Обязательные условия перехода к v5.0.0
+
+##### Host Control startup recovery
+
+В коде уже существует read-only recovery незавершённых Host Control jobs через `recover_control_jobs()`, но startup path бота должен явно вызывать этот recovery до начала обычной обработки Telegram updates.
+
+Требования:
+
+- recovery запускается после инициализации БД и до начала polling;
+- обрабатываются только незавершённые Host Control jobs, для которых уже существует persistent `operation_id`;
+- итог восстанавливается только через read-only lookup operation journal/status;
+- state-changing Host Control request при recovery никогда не отправляется повторно;
+- если результат невозможно доказать, job завершается как `unknown`, а не как предполагаемый success;
+- startup recovery покрывается regression-тестом, который одновременно проверяет сам вызов recovery и отсутствие mutation replay.
+
+Общий stale-job cleanup не считается заменой этого механизма: специализированный recovery должен использовать уже сохранённую identity операции и максимально точно восстановить известный итог.
+
+##### Версионные миграции SQLite
+
+Текущую эволюцию схемы через `CREATE TABLE IF NOT EXISTS` необходимо дополнить явной системой версионных миграций до того, как v5.x начнёт добавлять customer accounts, orders, entitlements и payment lifecycle.
+
+Минимальный контракт:
+
+- в БД хранится текущая schema version / migration journal;
+- миграции имеют фиксированный порядок и выполняются только вперёд;
+- изменение существующих таблиц/данных выполняется отдельными явно именованными migration steps;
+- каждая migration либо завершается полностью, либо оставляет БД в однозначно диагностируемом состоянии;
+- опасная migration не выполняется без пригодной recovery copy;
+- неизвестная более новая schema version и failed migration блокируют обычный startup fail-closed;
+- CI проверяет upgrade как минимум с репрезентативной старой схемы до текущей;
+- migration framework не должен зависеть от Telegram UI.
+
+Для простых additive изменений допустимы идемпотентные операции, но версия схемы остаётся источником истины о том, какие преобразования уже применены.
+
+##### Расширение regression coverage
+
+Наиболее опасные operational части проекта уже имеют сильные тесты, прежде всего Host Control и update engine. Перед v5.0.0 требуется выровнять regression coverage для административного и business/backend слоя.
+
+Приоритетные области:
+
+- `business_admin.py` — payment/status transitions, promo/application rules и административные mutations;
+- `catalog_admin.py` — Plans / Server Groups, ограничения и связи;
+- `advanced_users.py` — user lifecycle, enable/disable/extend/delete и role boundaries;
+- `inbound_admin.py` — inbound mutations, validation и failure paths;
+- `provisioning.py` — reconcile, повторный вызов, partial failure и сохранение subscription identity;
+- `subscription_proxy.py` — Base64/plain subscriptions, selective `vpn://` conversion, upstream errors и invalid `sub_id`;
+- disaster recovery / restore — malformed/incomplete backup, integrity checks, interrupted/failed recovery и Owner-only boundaries;
+- отрицательные authorization tests для sensitive callbacks, чтобы новая mutation не могла случайно стать доступна более слабой роли.
+
+Roadmap не задаёт искусственный глобальный процент coverage. Критерий завершённости — наличие regression tests на security boundaries, state transitions, idempotency/retry semantics и recovery paths перечисленных модулей.
+
+##### Off-site backup
+
+Локальный Full Backup остаётся необходимым, но сам по себе не закрывает сценарий полной потери Master VPS. До v5.0.0 должен появиться поддерживаемый способ иметь хотя бы одну актуальную recovery copy вне Master host.
+
+Контракт должен быть provider-neutral:
+
+- off-site target физически/логически не зависит от filesystem Master VPS;
+- передаётся именно проверенный Full Backup с manifest/checksums, а не произвольный набор файлов;
+- backup, содержащий `.env`, tokens, database или другие secrets, защищён при передаче и хранении;
+- retention и удаление старых копий предсказуемы и документированы;
+- ошибка off-site upload не делает локальный backup ложным success: локальный и off-site результаты фиксируются отдельно;
+- Telegram не используется как единственное off-site хранилище полного архива;
+- существует документированный restore flow с нового VPS и периодическая проверка, что выбранная внешняя копия действительно читается и проходит integrity validation.
+
+Конкретная реализация может использовать S3-compatible object storage, отдельный backup host или другой ограниченный transport, но Telegram/Admin UI не должен получать arbitrary remote filesystem access.
+
+##### Gate перед открытием Client Portal
+
+Переход к `v5.0.0` предполагает закрытие следующего набора v4.x работ:
+
+1. `RBAC / Roles & Privileges catalog`;
+2. `Extended direct-node backup`;
+3. `Safe Bot Self-Update`;
+4. Host Control startup recovery;
+5. versioned SQLite migrations;
+6. расширенный regression coverage критических admin/business/recovery путей;
+7. off-site backup и проверяемый restore path.
+
+Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
+
+#### Желательно закрыть до финальной заморозки v4.x
+
+Эти работы не меняют security boundary сами по себе, но уменьшают архитектурный долг перед существенным ростом v5.x.
+
+##### Декомпозиция bot.py
+
+`bot.py` уже выполняет слишком много обязанностей одновременно: composition root, пользовательские handlers, часть административной навигации и ряд operational workflows.
+
+Целевое состояние:
+
+- `bot.py` остаётся небольшим composition/startup module;
+- domain/admin handlers переносятся в тематические routers;
+- orchestration, которая нужна и Telegram UI, и background/recovery paths, живёт в services, а не внутри callback handlers;
+- существующие callback identifiers и внешнее поведение не меняются только ради рефакторинга;
+- перенос выполняется небольшими PR с regression tests, без одновременного переписывания бизнес-логики.
+
+Декомпозиция особенно желательна до v5, чтобы Client Portal не добавлялся в уже перегруженный module и сохранял отдельную authorization/navigation boundary от `/admin`.
+
+##### Синхронизация README с текущим состоянием
+
+README сохраняет полезную историю проекта, но старые v2/v3 инструкции и исторические operational sections не должны выглядеть как текущая рекомендуемая процедура.
+
+До финальной заморозки v4.x желательно:
+
+- явно отделить current production setup от исторических upgrade notes;
+- проверить, что current deployment/update/recovery instructions ссылаются на актуальные scripts и документы;
+- убрать или пометить устаревшие команды, которые могут конфликтовать с текущим tag-based deploy;
+- сохранить release history, но не дублировать противоречащие друг другу источники истины;
+- использовать специализированные документы в `docs/` как канонический подробный контракт, а README — как актуальную карту входа в них.
 
 Крупные публичные customer-facing workflows не должны размывать scope v4.x. `/admin` остаётся Control Plane.
 
