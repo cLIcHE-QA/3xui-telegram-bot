@@ -1,0 +1,36 @@
+[Unit]
+Description=3x-ui restricted bot deploy agent
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=3xui-deploy
+Group=3xui-deploy
+WorkingDirectory=/opt/3xui-deploy-agent
+EnvironmentFile=/etc/3xui-deploy-agent/agent.env
+ExecStart=/usr/bin/python3 /opt/3xui-deploy-agent/deploy_agent.py
+Restart=on-failure
+RestartSec=3
+UMask=0077
+
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/3xui-deploy-agent
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
