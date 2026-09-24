@@ -51,6 +51,7 @@ def _is_read_callback(data: str) -> bool:
         "admin:backups", "admin:plans", "admin:servergroups", "admin:hosts",
         "admin:payments", "admin:promo", "admin:administrators", "admin:settings",
         "admin:logs", "admin:alerts", "admin:alerts:check",
+        "admin:fleet", "admin:fleet:health", "admin:fleet:jobs",
     }
     if data in exact:
         return True
@@ -71,6 +72,11 @@ def required_role_for_callback(data: str) -> str:
             return "read_only"
         if re.fullmatch(rf"admin:hostctl:{key}:(?:sp:ask|stopcancel|xs:(?:ask|run))", data):
             return "owner"
+        return "admin"
+
+    if data in {"admin:fleet", "admin:fleet:health", "admin:fleet:jobs"}:
+        return "read_only"
+    if data.startswith("admin:fleet:"):
         return "admin"
 
     if data == "admin:versions":

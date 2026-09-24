@@ -31,6 +31,7 @@ from inbound_admin import inbound_admin_router, inbound_list_view
 from advanced_nodes import advanced_nodes_router
 from host_control import HostControlClient, HostControlError
 from host_control_ui import host_control_router
+from fleet_operations import fleet_router, recover_fleet_operations
 from admin_auth import authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_system
 from runtime_jobs import backup_lock
@@ -107,6 +108,7 @@ def infrastructure_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds"),
             InlineKeyboardButton(text="🌐 Hosts", callback_data="admin:hosts"),
         ],
+        [InlineKeyboardButton(text="🌐 Fleet Operations", callback_data="admin:fleet")],
         [InlineKeyboardButton(text="🗂 Server Groups", callback_data="admin:servergroups")],
         [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
     ])
@@ -2398,6 +2400,9 @@ async def main():
     stale_jobs = await db.fail_stale_job_runs()
     if stale_jobs:
         logging.warning("Marked %d stale job runs as failed", stale_jobs)
+    recovered_fleet = await recover_fleet_operations()
+    if recovered_fleet:
+        logging.warning("Recovered %d interrupted fleet operations without replay", recovered_fleet)
 
     proxy = SubscriptionProxy(
         db=db,
@@ -2418,6 +2423,7 @@ async def main():
     dp.include_router(advanced_users_router)
     dp.include_router(advanced_nodes_router)
     dp.include_router(host_control_router)
+    dp.include_router(fleet_router)
     dp.include_router(inbound_admin_router)
     dp.include_router(catalog_router)
     dp.include_router(observability_router)
