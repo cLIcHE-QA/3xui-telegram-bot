@@ -1,10 +1,10 @@
-# Telegram-бот для 3x-ui v4.18.0
+# Telegram-бот для 3x-ui v4.19.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
-**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.18.0`. Будущая client-facing часть будет документироваться отдельно.
+**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.19.0`. Будущая client-facing часть будет документироваться отдельно.
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Encrypted off-site Full Backup и recovery с нового VPS описаны в [Off-site Backup](docs/OFFSITE_BACKUP.md).
@@ -17,6 +17,28 @@ Owner-only Safe Bot Self-Update через restricted host Deploy Agent опис
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.19.0 — Safe Bot Self-Update
+
+Релиз закрывает обязательный pre-v5 gate Safe Bot Self-Update через отдельный restricted host Deploy Agent. Bot container не получает Docker socket, host shell или Git deploy key; deployment разрешён только для published tag `vX.Y.Z` и выполняется существующим `scripts/deploy-release.sh`.
+
+Первый deploy `v4.19.0` выполняется вручную:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.19.0
+./scripts/deploy-release.sh --status
+~~~
+
+После успешного manual deploy Deploy Agent устанавливается отдельно на Master:
+
+~~~bash
+sudo ./scripts/install-deploy-agent.sh
+~~~
+
+Agent token не печатается и переносится в `.env` только локально. Затем bot service пересоздаётся, и `/admin → System → Bot Updates` получает Owner-only current/latest/preflight/update/history flow.
+
+Production acceptance требует controlled same-release deployment `v4.19.0 → v4.19.0` через новый control plane и подтверждение, что после recreate exact tag/SHA, Health, DB и 3x-ui connectivity остались зелёными. Полный runbook: [Safe Bot Self-Update](docs/BOT_SELF_UPDATE.md).
 
 ## v4.18.0 — Encrypted off-site backup
 
