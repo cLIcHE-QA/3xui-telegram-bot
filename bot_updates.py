@@ -37,6 +37,7 @@ _DOWNGRADE_PHRASE_RE = re.compile(r"DOWNGRADE (v[0-9]+\.[0-9]+\.[0-9]+)\Z")
 
 
 class BotUpdateStates(StatesGroup):
+    release_input = State()
     downgrade_phrase = State()
 
 
@@ -223,6 +224,8 @@ async def reconcile_deploy_jobs(*, wait_seconds: float = 0.0) -> int:
                 break
 
             if time.monotonic() >= deadline:
+                if wait_seconds <= 0:
+                    break
                 details = (
                     job.details
                     + f"; state=unknown; recovery=operation_still_{op.state}; mutation_not_retried=true"
@@ -531,10 +534,85 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
     rows: list[list[tuple[str, str]]] = []
     if latest != status.current_release and not status.active_operation:
         rows.append([("🔍 Preflight latest", f"admin:botupd:pre:{latest}")])
+    if not status.active_operation:
+        rows.append([("📦 Выбрать published tag", "admin:botupd:choose")])
     rows.append([("📜 Update history", "admin:botupd:history")])
     rows.append([("🔄 Обновить", "admin:botupd")])
     rows.append([("⬅ System", "admin:section:system")])
     await render_callback(call, "\n".join(lines), reply_markup=_keyboard(rows))
+
+
+@bot_updates_router.callback_query(F.data == "admin:botupd:choose")
+async def update_choose(call: CallbackQuery, state: FSMContext):
+    ok, _ = await authorize_callback(db, settings, call, minimum="owner")
+    if not ok:
+        return
+    await state.clear()
+    await state.set_state(BotUpdateStates.release_input)
+    await call.answer()
+    await render_callback(
+        call,
+        "🤖 Bot Updates\n\n"
+        "Отправь точный published release tag вида vX.Y.Z. "
+        "Deploy Agent примет только существующий tag, содержащийся в origin/main, "
+        "с совпадающим APP_VERSION.",
+        reply_markup=_keyboard([[("✖ Отмена", "admin:botupd")]]),
+    )
+
+
+@bot_updates_router.message(BotUpdateStates.release_input)
+async def update_release_input(message: Message, state: FSMContext):
+    if not message.from_user:
+        return
+    ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="owner")
+    if not ok:
+        await state.clear()
+        return
+    release = (message.text or "").strip()
+    if not RELEASE_RE.fullmatch(release):
+        await render_input(message, "Нужен точный release tag вида vX.Y.Z.")
+        return
+
+    client = _client()
+    if client is None:
+        await state.clear()
+        await render_input(message, "Deploy Agent не настроен.")
+        return
+    try:
+        preflight = await client.preflight(release)
+    except DeployControlError as exc:
+        await render_input(
+            message,
+            f"🔴 Release/preflight отклонён: {exc.code or 'error'}.",
+        )
+        return
+
+    await state.clear()
+    lines = [
+        "🤖 Bot Update preflight",
+        "",
+        f"Current: {preflight.current_release}",
+        f"Target: {preflight.release}",
+        f"Target SHA: {preflight.target_sha[:12]}",
+        f"Direction: {'DOWNGRADE' if preflight.downgrade else 'upgrade'}",
+        "",
+        "Release notes:",
+        (preflight.notes or "нет release notes")[:2400],
+        "",
+        "Deployment разрешён только для published tag из origin/main.",
+        "Автоматического rollback/retry mutation нет.",
+    ]
+    if preflight.downgrade:
+        rows = [
+            [("⚠️ Подтвердить downgrade", f"admin:botupd:down:{release}")],
+            [("✖ Отмена", "admin:botupd")],
+        ]
+    else:
+        rows = [
+            [("✅ Обновить bot", f"admin:botupd:run:{release}")],
+            [("✖ Отмена", "admin:botupd")],
+        ]
+    await render_input(message, "\n".join(lines)[:3900], reply_markup=_keyboard(rows))
 
 
 @bot_updates_router.callback_query(F.data.regexp(r"^admin:botupd:pre:v[0-9]+\.[0-9]+\.[0-9]+$"))
