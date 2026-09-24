@@ -6,7 +6,7 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Unreleased
+## v4.13.0 — Fleet Operations
 - Добавлен раздел `🌐 Fleet Operations` с read-only `Fleet Health`, controlled Fleet Maintenance, Fleet Jobs и последовательным rollout для direct nodes.
 - `Controlled Rollout` переиспользует существующий two-phase `UpdateService`: verified backup выполняется до intentional maintenance, затем update запускается строго по одной node с canary и explicit continue.
 - Rollout работает stop-on-failure: при `failed` или `unknown` проблемная node остаётся в maintenance, оставшиеся nodes не затрагиваются, state-changing request автоматически не повторяется.

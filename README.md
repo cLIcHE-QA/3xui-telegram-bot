@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.12.0
+# Telegram-бот для 3x-ui v4.13.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
@@ -11,6 +11,25 @@
 Массовые health/maintenance/controlled rollout операции описаны в [Fleet Operations](docs/FLEET_OPERATIONS.md).
 Восстановление бота после замены/форматирования VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
+
+
+## v4.13.0 — Fleet Operations
+
+В `Infrastructure → 🌐 Fleet Operations` добавлены read-only `Fleet Health`, controlled Fleet Maintenance, история Fleet Jobs и последовательный `Controlled Rollout` для direct nodes.
+
+Rollout переиспользует существующий two-phase update workflow: для каждой node выполняются eligibility/preflight и fresh verified backup, затем intentional maintenance, update и post-condition проверки. Первая node работает как canary; продолжение остальных требует отдельного подтверждения. При `failed` или `unknown` rollout останавливается, оставшиеся nodes не затрагиваются, а state-changing request автоматически не повторяется.
+
+Fleet rollout требует stable `node_id` bindings для Direct Admin и Host Control. Transitive, legacy-name, offline/degraded targets не мутируются. После рестарта незавершённый rollout не продолжается автоматически. Mass `Stop service` / `Stop Xray`, parallel rollout и automatic rollback в v4.13.0 намеренно отсутствуют.
+
+Полный safety contract: [Fleet Operations](docs/FLEET_OPERATIONS.md).
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.13.0
+./scripts/deploy-release.sh --status
+~~~
 
 
 ## v4.12.0 — Guided onboarding direct node
