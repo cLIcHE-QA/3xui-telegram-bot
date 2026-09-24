@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.14.1 — Исправление Host Control snapshot rollout
+- Исправлено чтение nginx snapshot в bot client: streaming HTTP response теперь читается до EOF с сохранением жёсткого лимита 10 MiB, поэтому multi-chunk ответы reverse proxy больше не дают ложный `checksum_mismatch`.
+- Installer Host Control Agent теперь явно перезапускает `3xui-host-control.service` после обновления runtime files/unit, поэтому повторный rollout действительно активирует новую версию agent без ручного restart.
+- Добавлены regression tests для multi-chunk snapshot response и upgrade restart path; security boundary fixed snapshot endpoint, host identity/TLS/checksum validation и mutation allowlist не расширены.
+
 ## v4.14.0 — RBAC и расширенные node snapshots
 - Добавлен централизованный каталог RBAC privileges для фиксированных ролей `Read-only`, `Support`, `Administrator` и `Owner`; authorization layer использует его как source of truth, неизвестные admin callbacks блокируются fail-closed, а `/admin → Administrators → Roles & Privileges` показывает действующие permission boundaries.
 - Direct-node backup расширен до recovery-oriented snapshot `nodes/<node>/` с `x-ui.db`, `nginx/`, `node.json` и `manifest.json`; manifest хранит stable node identity, component status, доступные версии, размеры и SHA-256 файлов, а тот же snapshot включается в обычный Full Backup.
