@@ -296,6 +296,13 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         r"^admin:fleet:ro:(p|x):review$",
     )
     + _rules("versions.manage", "regex", r"^admin:ver:(run|cancel|check):[0-9a-f]{16}$")
+    + _rules(
+        "bot_updates.manage",
+        "regex",
+        r"^admin:botupd:pre:v[0-9]+\.[0-9]+\.[0-9]+$",
+        r"^admin:botupd:run:v[0-9]+\.[0-9]+\.[0-9]+$",
+        r"^admin:botupd:down:v[0-9]+\.[0-9]+\.[0-9]+$",
+    )
     # Exact router-filter declaration for CI route-catalog parity. Runtime role
     # resolution is intentionally handled by the earlier safe/support and
     # strict/admin rules, so this trailing declaration cannot weaken access.
