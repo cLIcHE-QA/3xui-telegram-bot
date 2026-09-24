@@ -9,6 +9,10 @@ import tempfile
 from pathlib import Path
 from urllib.parse import urlsplit
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from dotenv import dotenv_values
 
 from offsite_backup import OffsiteBackupService
