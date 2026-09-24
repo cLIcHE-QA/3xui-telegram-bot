@@ -178,6 +178,17 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.state, 'failed')
         self.assertEqual(self.client.xray_posts, 0)
 
+    async def test_prepared_fleet_rollout_can_execute_in_intentional_maintenance(self):
+        op = await self.prepare()
+        self.target = replace(self.target, eligible=False)
+        result = await self.service.execute(
+            op.nonce,
+            allow_prepared_maintenance=True,
+            **self.ids,
+        )
+        self.assertEqual(result.state, 'success')
+        self.assertEqual(self.client.xray_posts, 1)
+
     async def test_offline_target_cannot_prepare(self):
         self.target = replace(self.target, eligible=False)
         with self.assertRaises(UpdateError):
