@@ -264,7 +264,7 @@ async def restore_bot_start(call: CallbackQuery, state: FSMContext):
         warning=(
             "🤖 Restore bot.sqlite3\n\n"
             "Будет создан rescue snapshot текущей bot DB, затем контейнер бота автоматически перезапустится и до старта Python заменит SQLite. "
-            "После запуска обычные additive migrations применятся снова. .env, 3x-ui и nginx не изменяются."
+            "После запуска versioned SQLite migrations проверят и при необходимости обновят схему до версии текущего кода; failed/running/newer schema блокирует startup fail-closed. .env, 3x-ui и nginx не изменяются."
         ),
     )
 
