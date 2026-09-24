@@ -4,6 +4,16 @@
 
 Roadmap задаёт границы крупных продуктовых этапов, но не заменяет release-specific scope: перед каждым релизом конкретный набор изменений всё равно фиксируется отдельным feature/fix/release PR.
 
+## Статусы roadmap
+
+Roadmap ведётся как living document. Для пунктов, по которым уже началась реализация, используется явный статус:
+
+- `⬜ Запланировано` — работа ещё не завершена в `main`;
+- `🟡 Реализовано в main` — код/документация уже слиты, но соответствующий release ещё не опубликован;
+- `✅ Выполнено в vX.Y.Z` — изменение опубликовано в указанном релизе.
+
+Статус меняется только по фактическому состоянию репозитория. Merge в `main` не считается опубликованным релизом, а публикация release без завершённого acceptance scope не должна автоматически закрывать пункт.
+
 ## Граница v4.x / v5.x
 
 ### Линейка v4.x — финализация Admin Control Plane
@@ -132,6 +142,8 @@ success / failed / unknown
 
 ##### Host Control startup recovery
 
+**Статус: 🟡 Реализовано в `main`; выпуск ожидается в `v4.13.2`.**
+
 В коде уже существует read-only recovery незавершённых Host Control jobs через `recover_control_jobs()`, но startup path бота должен явно вызывать этот recovery до начала обычной обработки Telegram updates.
 
 Требования:
@@ -218,7 +230,7 @@ Roadmap не задаёт искусственный глобальный про
 1. `RBAC / Roles & Privileges catalog`;
 2. `Extended direct-node backup`;
 3. `Safe Bot Self-Update`;
-4. Host Control startup recovery;
+4. Host Control startup recovery — 🟡 реализовано в `main`, ожидается `v4.13.2`;
 5. versioned SQLite migrations;
 6. расширенный regression coverage критических admin/business/recovery путей;
 7. off-site backup и проверяемый restore path;
