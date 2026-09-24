@@ -46,7 +46,7 @@ db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 router = Router()
 backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
-system_backup = SystemBackupService(backup_manager, settings.node_backup_targets)
+system_backup = SystemBackupService(backup_manager, settings.node_backup_targets, settings.host_control_targets)
 provisioner = ProvisioningEngine(db, xui, settings)
 
 
