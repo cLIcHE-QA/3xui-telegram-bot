@@ -272,6 +272,54 @@ class HostControlSnapshotClientTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("nginx.conf", archive.getnames())
             self.assertIn("_snapshot.json", archive.getnames())
 
+    async def test_client_reads_snapshot_until_eof_across_chunks(self):
+        body = b"first-chunk" + b"second-chunk"
+        digest = __import__("hashlib").sha256(body).hexdigest()
+
+        class FakeStream:
+            def __init__(self):
+                self.chunks = [b"first-chunk", b"second-chunk", b""]
+
+            async def read(self, _size=-1):
+                return self.chunks.pop(0)
+
+        class FakeResponse:
+            status = 200
+            content_length = len(body)
+            headers = {
+                "X-Host-Control-Schema": "1",
+                "X-Host-Control-Host-Id": "fi",
+                "X-Host-Control-Component": "nginx",
+                "X-Content-SHA256": digest,
+            }
+
+            def __init__(self):
+                self.content = FakeStream()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return False
+
+        class FakeSession:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return False
+
+            def get(self, *args, **kwargs):
+                return FakeResponse()
+
+        with patch("host_control.aiohttp.ClientSession", FakeSession):
+            result = await self.client.download_nginx_snapshot()
+
+        self.assertEqual(result, body)
+
     async def test_client_rejects_wrong_snapshot_host_identity(self):
         client = HostControlClient(
             f"http://127.0.0.1:{self.port}",
