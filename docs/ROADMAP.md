@@ -36,7 +36,7 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 #### RBAC / Roles & Privileges catalog
 
-**Статус: 🟡 Реализовано в `main`.**
+**Статус: ✅ Выполнено в `v4.14.0`.**
 
 Текущие роли `Read-only`, `Support`, `Administrator` и `Owner` сохраняются как фиксированные security boundaries.
 
@@ -53,7 +53,9 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 #### Extended direct-node backup
 
-**Статус: 🟡 Реализовано в `main`.**
+**Статус: ✅ Выполнено в `v4.14.1`.**
+
+Реализация впервые опубликована в `v4.14.0`, а production acceptance полностью закрыт в `v4.14.1` после исправления multi-chunk чтения Host Control nginx snapshot и upgrade restart path.
 
 Direct-node backup должен быть расширен от одной 3x-ui database до node snapshot, максимально полезного для operational recovery без превращения control plane в arbitrary remote file access.
 
@@ -498,156 +500,3 @@ failed
 - невалидная подпись никогда не изменяет финансовое состояние;
 - webhook handler не доверяет Telegram callback state;
 - ошибка после записи события, но до provisioning, должна быть recoverable через journal/reconcile;
-- секреты provider-а и полный sensitive payload не выводятся в audit/UI/logs.
-
-Ключевые требования:
-
-- payment events идемпотентны;
-- повторный webhook не должен повторно продлевать entitlement;
-- успешная оплата и временная ошибка provisioning не должны приводить к потере покупки;
-- failed provisioning попадает в recoverable job/reconcile flow;
-- Telegram UI не является источником истины для payment status.
-
-## 📊 Трафик
-
-Назначение: понятная клиенту статистика использования.
-
-Базовый v5.0.0 view:
-
-- использовано;
-- лимит;
-- осталось;
-- дата/период сброса или окончания entitlement;
-- состояние unlimited, если лимит отсутствует.
-
-Возможные последующие подразделы:
-
-- сегодня;
-- 7 дней;
-- 30 дней.
-
-Графики не являются обязательным условием первого Client Portal.
-
-## 📱 Устройства
-
-На первом этапе раздел должен различать реальные зарегистрированные устройства и наблюдаемые network connections.
-
-Если backend знает только IP/online connections, UI не должен выдавать их за достоверный список физических устройств.
-
-Базовый вариант:
-
-- активные подключения;
-- текущий IP/device limit;
-- наблюдаемые IP/сессии, если данные надёжно доступны;
-- `📱 Как подключить новое устройство`.
-
-Будущее расширение при появлении device registration:
-
-- пользовательское имя устройства;
-- platform/device type;
-- last seen;
-- revoke/unlink;
-- device-specific onboarding/deep-link.
-
-## Client onboarding / connection UX
-
-Первый Client Portal должен уменьшать зависимость от ручной поддержки при подключении устройства.
-
-Базовый UX:
-
-- platform selection: iOS / Android / Windows / macOS / Linux;
-- QR для subscription URL там, где это уместно;
-- deep-link / import-link только если формат клиента стабилен и безопасен;
-- короткие инструкции для поддерживаемых клиентов без привязки backend logic к конкретному приложению;
-- read-only диагностика: entitlement active, subscription reachable, provisioning/reconcile state, известные ограничения;
-- rotation/reissue credentials выполняется отдельной явной операцией и не маскируется под обычный refresh.
-
-Roadmap не требует device registration в первой версии. Наблюдаемый IP/session не должен называться физическим устройством без надёжной device identity.
-
-## 🆘 Помощь
-
-Подразделы:
-
-- `📱 Как подключиться`;
-- `❓ Частые вопросы`;
-- `🛠 Проверить подписку`;
-- `💬 Связаться с поддержкой`.
-
-Раздел должен помогать решить типовые проблемы без доступа пользователя к административным controls.
-
-`🛠 Проверить подписку` — read-only diagnostics либо безопасная ссылка на reconcile flow; она не должна выполнять опасные infrastructure mutations.
-
-## Authorization boundary
-
-Текущий проект ограничивает пользовательский flow через allowlist. Для публичного Client Portal это должно быть пересмотрено отдельно в v5.x.
-
-Целевое правило:
-
-- `/start` и customer callbacks доступны обычному Telegram-пользователю согласно product/onboarding policy;
-- пользователь может читать и изменять только собственный account/subscription context;
-- `/admin` и все `admin:*` callbacks продолжают требовать существующие admin roles;
-- customer identity никогда не даёт implicit admin access;
-- ownership проверяется backend-ом, а не только callback payload.
-
-Открытие публичного `/start` выполняется только после готовности customer authorization, entitlement/payment lifecycle и abuse/rate-limit policy.
-
-## Архитектурный принцип
-
-Client Portal не должен напрямую реализовывать infrastructure logic.
-
-Предпочтительная схема:
-
-~~~text
-Telegram Client UI
-        ↓
-Order / Entitlement / Subscription services
-        ↓
-ProvisioningEngine / reconcile
-        ↓
-Plan → Server Group → Nodes → Inbounds
-        ↓
-3x-ui
-~~~
-
-Административный UI использует те же backend primitives для диагностики и управления, но customer flow не вызывает административные callbacks.
-
-## Observability и внешние интеграции после стабилизации v5
-
-После стабилизации customer/domain model допускается отдельный этап внешних интеграций:
-
-- read-only metrics endpoint для Prometheus-compatible collection;
-- scoped service/API tokens;
-- signed outgoing webhooks для событий subscription/payment/provisioning;
-- documented API для внешних систем.
-
-Эти интерфейсы не должны становиться источником обхода существующих RBAC, ownership и mutation safety rules.
-
-### Явно вне архитектуры control plane
-
-Даже при расширении observability/automation следующие возможности не считаются целями проекта:
-
-- arbitrary remote shell/terminal;
-- generic command runner;
-- произвольный script execution из Telegram;
-- передача arbitrary filesystem path/unit name/Docker arguments;
-- автоматический retry state-changing host/deploy/update operations после uncertain outcome.
-
-Если когда-либо понадобится отдельный automation executor шире текущих restricted agents, это требует отдельного threat-model review и нового privilege domain, а не расширения существующего Host Control Agent.
-
-## Что предварительно не является top-level разделом v5.0.0
-
-- `🔄 Обновить подписку` — находится внутри `🌐 Моя подписка` как `🔄 Синхронизировать подписку`;
-- `🎟 Промокод` — часть `💳 Купить / продлить`;
-- `📱 Подключить устройство` — действие из `🌐 Моя подписка` и/или `📱 Устройства`;
-- payment history — может появиться внутри Profile/Purchase flow позже, если будет полезен клиенту;
-- infrastructure/server controls — никогда не относятся к Client Portal.
-
-## Definition of direction
-
-До `v5.0.0`:
-
-> завершаем Admin Control Plane и backend primitives в линейке v4.x.
-
-Начиная с `v5.0.0`:
-
-> `/start` становится Client Portal для покупки, получения, продления и самостоятельного обслуживания подписки; `/admin` остаётся отдельным защищённым Control Plane.
