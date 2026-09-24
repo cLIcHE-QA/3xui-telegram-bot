@@ -915,7 +915,19 @@ async def _execute_rollout_node(
         target = await resolve_target(key)
         direct_state = await read_state(target)
         if not direct_state.healthy:
-            return "unknown", "direct health failed after entering maintenance; update was not dispatched"
+            try:
+                await update_service.cancel(op.nonce, **ids)
+            except Exception:
+                pass
+            return "failed", "direct health failed after entering maintenance; update was not dispatched"
+    except Exception as exc:
+        try:
+            await update_service.cancel(op.nonce, **ids)
+        except Exception:
+            pass
+        return "failed", f"direct pre-dispatch health: {safe_error(exc)}"
+
+    try:
         result = await update_service.execute(
             op.nonce,
             allow_prepared_maintenance=True,
