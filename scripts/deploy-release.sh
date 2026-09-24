@@ -9,7 +9,7 @@ SSH_KEY="${DEPLOY_SSH_KEY:-$HOME/.ssh/3xui_bot_deploy}"
 SSH_KNOWN_HOSTS="${DEPLOY_SSH_KNOWN_HOSTS:-$HOME/.ssh/known_hosts}"
 EXPECTED_REPOSITORY="${DEPLOY_EXPECTED_REPOSITORY:-cLIcHE-QA/3xui-telegram-bot}"
 DEFAULT_SUBNET="172.19.0.0/16"
-LOCK_FILE="${DEPLOY_LOCK_FILE:-/tmp/${PROJECT}.deploy-release.lock}"
+LOCK_FILE="${DEPLOY_LOCK_FILE:-${BACKUP_ROOT}/.${PROJECT}.deploy-release.lock}"
 
 usage() {
     cat <<'USAGE'
