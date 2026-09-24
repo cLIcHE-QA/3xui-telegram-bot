@@ -163,6 +163,26 @@ Patch-релиз закрепляет Docker-подсеть проекта че�
 
 > Разделы ниже сохраняют подробную историю проекта и описывают поведение соответствующих версий. Исторические команды копирования каталогов не являются универсальной инструкцией развёртывания v4.9.0.
 
+## Extended direct-node backup
+
+Актуальный direct-node backup собирает не одиночный DB-файл, а recovery-oriented node snapshot:
+
+~~~text
+nodes/<node>/
+├─ x-ui.db
+├─ nginx/
+├─ node.json
+└─ manifest.json
+~~~
+
+`x-ui.db` по-прежнему скачивается через dedicated admin-scope connection из `NODE_BACKUP_TARGETS`. Nginx configuration получает restricted Host Control Agent через fixed read-only endpoint `GET /v1/snapshots/nginx`: source directory задаётся локально на самой node через installer `--nginx-source`, а Telegram/Master не может передать произвольный filesystem path.
+
+`manifest.json` фиксирует stable `node_id/host_id`, timestamp, доступные версии, component status, список файлов, размеры и SHA-256. Если nginx source не настроен или часть файлов нельзя безопасно прочитать, DB сохраняется, но snapshot явно помечается как `degraded`/missing component.
+
+Ручной backup ноды выдаёт `.tar.gz` snapshot; обычный Full Backup включает такой же каталог `nodes/<node>/`. Автоматический remote nginx restore не выполняется: bundle предназначен для контролируемого восстановления с локальной проверкой `nginx -t`.
+
+Подробности security boundary и rollout: [Host Control Agent](docs/HOST_CONTROL_AGENT.md) и [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
+
 ## Стабильная Docker-сеть
 
 Compose фиксирует подсеть проекта через `BOT_DOCKER_SUBNET` со значением по умолчанию `172.19.0.0/16`. Это важно, если 3x-ui на том же VPS доступен через публичный адрес и UFW разрешает порт панели только из Docker-подсети.
