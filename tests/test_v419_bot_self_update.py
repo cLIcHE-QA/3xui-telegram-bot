@@ -11,6 +11,7 @@ import aiohttp
 
 from deploy_agent import AgentConfig, DeployAgent, OperationJournal
 from deploy_control import DeployControlClient, DeployControlError
+from config import load_settings
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,6 +141,61 @@ class DeployClientTests(unittest.IsolatedAsyncioTestCase):
         call.assert_not_awaited()
 
 
+class DeployAgentConfigTests(unittest.TestCase):
+    def base_env(self) -> dict[str, str]:
+        return {
+            "BOT_TOKEN": "123456789:offline-test-token",
+            "PANEL_URL": "https://panel.example.invalid/base",
+            "PANEL_API_TOKEN": "offline-panel-token",
+            "SUBSCRIPTION_URL_TEMPLATE": "https://sub.example.invalid/{sub_id}",
+            "ALLOWED_TELEGRAM_IDS": "1",
+            "ADMIN_TELEGRAM_IDS": "1",
+            "NODE_BACKUP_TARGETS": "",
+            "HOST_CONTROL_TARGETS": "",
+        }
+
+    def test_deploy_agent_is_disabled_when_both_values_are_empty(self):
+        env = self.base_env()
+        env.update({"DEPLOY_AGENT_URL": "", "DEPLOY_AGENT_TOKEN": ""})
+        with patch.dict("os.environ", env, clear=True):
+            settings = load_settings()
+        self.assertFalse(settings.deploy_agent_enabled)
+
+    def test_partial_deploy_agent_config_fails_closed(self):
+        env = self.base_env()
+        env["DEPLOY_AGENT_URL"] = "http://172.19.0.1:18184"
+        with patch.dict("os.environ", env, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "configured together"):
+                load_settings()
+
+    def test_public_or_https_agent_url_is_rejected(self):
+        for url in [
+            "http://8.8.8.8:18184",
+            "https://172.19.0.1:18184",
+            "http://user:pass@172.19.0.1:18184",
+            "http://172.19.0.1:18184/v1",
+        ]:
+            env = self.base_env()
+            env.update({
+                "DEPLOY_AGENT_URL": url,
+                "DEPLOY_AGENT_TOKEN": "t" * 48,
+            })
+            with self.subTest(url=url), patch.dict("os.environ", env, clear=True):
+                with self.assertRaisesRegex(RuntimeError, "private/local plain HTTP"):
+                    load_settings()
+
+    def test_private_agent_url_and_strong_token_are_accepted(self):
+        env = self.base_env()
+        env.update({
+            "DEPLOY_AGENT_URL": "http://172.19.0.1:18184",
+            "DEPLOY_AGENT_TOKEN": "t" * 48,
+        })
+        with patch.dict("os.environ", env, clear=True):
+            settings = load_settings()
+        self.assertTrue(settings.deploy_agent_enabled)
+        self.assertEqual(settings.deploy_agent_url, "http://172.19.0.1:18184")
+
+
 class DeployAgentSecurityContractTests(unittest.TestCase):
     def test_host_scripts_are_executable(self):
         self.assertTrue(HELPER.stat().st_mode & stat.S_IXUSR)
@@ -177,6 +233,8 @@ class DeployAgentSecurityContractTests(unittest.TestCase):
         self.assertIn('REPO_ROOT="/opt/3xui-bot/3xui-telegram-bot"', text)
         self.assertIn('SSH_KEY="/etc/3xui-deploy-agent/deploy-key"', text)
         self.assertIn('SSH_KNOWN_HOSTS="/etc/3xui-deploy-agent/known_hosts"', text)
+        self.assertIn('git show "$release:CHANGELOG.md"', text)
+        self.assertNotIn("scripts/render-release-notes.py", text)
 
     def test_systemd_agent_is_unprivileged_and_scoped(self):
         text = UNIT.read_text(encoding="utf-8")
