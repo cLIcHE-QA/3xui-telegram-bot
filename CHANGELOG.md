@@ -6,6 +6,16 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.19.0 — Safe Bot Self-Update
+- Добавлен отдельный restricted Deploy Agent вне bot container: unprivileged systemd service, bearer-authenticated fixed API и persistent SQLite journal с stable `operation_id` и состояниями `queued/preflight/backup/building/deploying/verifying/success/failed/unknown`.
+- Bot container по-прежнему не получает Docker socket, host shell, Git deploy key или arbitrary filesystem access; root boundary сведена к одному root-owned helper с закрытым command surface для published `vX.Y.Z` releases.
+- Published release validation проверяет tag в `origin/main`, exact `APP_VERSION`, pinned SSH known_hosts, clean tracked tree и текущий Health/DB/3x-ui status; release notes читаются read-only из target `CHANGELOG.md` без выполнения target code.
+- `/admin → System → Bot Updates` доступен только Owner: current/latest, release notes, preflight, exact published tag selection, operation history/status и явный update confirmation. Downgrade требует точной фразы `DOWNGRADE vX.Y.Z` и повторного preflight.
+- Потерянный deploy response и restart bot/agent никогда не приводят к автоматическому mutation replay: bot и agent восстанавливают результат только через read-only operation/status lookup; недоказанный итог становится `unknown`.
+- Startup recovery двухфазный: мгновенный lookup выполняется до generic stale cleanup, а ожидание terminal state начинается только после поднятия health endpoint, поэтому self-update не блокирует post-deploy health check.
+- Manual и agent deployment используют общий host lock под deploy backup root; ручной `scripts/deploy-release.sh vX.Y.Z` остаётся break-glass fallback.
+- Добавлены installer/systemd/sudoers tooling, isolated root-only Git key/known_hosts copy, private Docker-bridge listener и regression/security tests; SQLite app schema, 3x-ui OpenAPI contract, Host Control API и off-site backup contract не меняются.
+
 ## v4.18.0 — Encrypted off-site backup
 - Full Backup manifest переведён на checksummed schema 2: для каждого обычного файла архива фиксируются path, size и SHA-256, а restore validation проверяет coverage/size/hash fail-closed; legacy archives остаются читаемыми обычным DR tooling.
 - Добавлена optional S3-compatible off-site replication, выключенная по умолчанию: canonical Full Backup шифруется client-side AES-256-GCM до upload, а bucket/prefix/endpoint/credentials задаются только локально и не управляются через Telegram.
