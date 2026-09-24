@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.14.0
+# Telegram-бот для 3x-ui v4.14.1
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
@@ -13,6 +13,22 @@
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.14.1 — Исправление Host Control snapshot rollout
+
+Patch-релиз исправляет два production-дефекта, выявленных targeted smoke после v4.14.0: bot client корректно дочитывает multi-chunk nginx snapshot response до EOF перед SHA-256 validation, а installer Host Control Agent явно перезапускает `3xui-host-control.service` после обновления файлов/unit.
+
+Security boundary не расширяется: fixed read-only snapshot endpoint, локальный `HOST_CONTROL_AGENT_NGINX_SOURCE`, TLS/host identity/checksum validation и allowlist mutations остаются прежними.
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.14.1
+./scripts/deploy-release.sh --status
+~~~
+
+После bot deploy direct-node Host Control Agent нужно повторно обновить из bundle v4.14.1; installer теперь сам перезапустит agent.
 
 ## v4.14.0 — RBAC и расширенные node snapshots
 
