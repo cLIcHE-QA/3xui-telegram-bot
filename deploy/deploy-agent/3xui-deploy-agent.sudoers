@@ -1,0 +1,5 @@
+# Exact root-owned helper for the restricted bot deploy agent.
+# The HTTP API does not accept executable/path/env/argv fields; this helper
+# validates a closed command enum and strict vX.Y.Z release tags.
+Cmnd_Alias XUI_BOT_DEPLOY = /usr/local/libexec/3xui-bot-deploy
+3xui-deploy ALL=(root) NOPASSWD: XUI_BOT_DEPLOY
