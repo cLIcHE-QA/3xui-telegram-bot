@@ -10,7 +10,7 @@ PROJECT="3xui-telegram-bot"
 SERVICE="bot"
 HEALTH_URL="http://127.0.0.1:18080/healthz"
 BACKUP_ROOT="/opt/3xui-bot/deploy-backups"
-LOCK_FILE="/tmp/${PROJECT}.deploy-release.lock"
+LOCK_FILE="${BACKUP_ROOT}/.${PROJECT}.deploy-release.lock"
 RELEASE_RE='^v[0-9]+\.[0-9]+\.[0-9]+$'
 
 die() {
