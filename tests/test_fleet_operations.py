@@ -35,6 +35,23 @@ class FleetOperationsContractTests(unittest.TestCase):
         self.assertIn('"stop-on-failure"', text)
         self.assertIn("rollout_lock = asyncio.Lock()", text)
 
+    def test_terminal_rollout_paths_create_parent_jobs(self):
+        text = FLEET.read_text(encoding="utf-8")
+        create_review = text[text.index("async def _create_rollout_review("):text.index("def _plan_status_icon(")]
+        self.assertIn('if not pending:', create_review)
+        self.assertIn("await _start_rollout_job(plan)", create_review)
+        self.assertIn('await _finish_rollout_job(plan, "success")', create_review)
+
+        rollout_run = text[text.index("async def rollout_run("):text.index("async def fleet_jobs(")]
+        cancel_block = rollout_run[rollout_run.index('if action == "cancel":'):rollout_run.index('await _render_plan(call, plan, "⏹ Rollout остановлен оператором.')]
+        self.assertIn("await _start_rollout_job(plan)", cancel_block)
+        self.assertIn('await _finish_rollout_job(plan, "cancelled")', cancel_block)
+
+    def test_rollout_job_summary_marks_already_current_as_skipped(self):
+        text = FLEET.read_text(encoding="utf-8")
+        finish_job = text[text.index("async def _finish_rollout_job("):text.index("async def _execute_rollout_node(")]
+        self.assertIn("'skipped' if node_id in skipped else 'pending'", finish_job)
+
     def test_restart_recovery_never_replays_mutations(self):
         text = FLEET.read_text(encoding="utf-8")
         self.assertIn("async def recover_fleet_operations()", text)

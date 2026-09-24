@@ -760,6 +760,9 @@ async def _create_rollout_review(
         "updated_at": int(time.time()),
     }
     plan_store.save(plan)
+    if not pending:
+        await _start_rollout_job(plan)
+        await _finish_rollout_job(plan, "success")
     await state.clear()
     await _render_plan(call, plan)
 
@@ -858,8 +861,10 @@ async def _finish_rollout_job(plan: dict[str, Any], status: str) -> None:
     job_id = int(plan.get("job_id") or 0)
     if job_id:
         elapsed = max(0, (int(time.time()) - int(plan.get("created_at") or time.time())) * 1000)
+        results = plan.get("results") or {}
+        skipped = set(plan.get("skipped") or [])
         summary = "; ".join(
-            f"n{node_id}={(plan.get('results') or {}).get(str(node_id), {}).get('status', 'pending')}"
+            f"n{node_id}={results.get(str(node_id), {}).get('status', 'skipped' if node_id in skipped else 'pending')}"
             for node_id in plan["selected"]
         )
         await db.finish_job_run(
@@ -1019,8 +1024,8 @@ async def rollout_run(call: CallbackQuery):
                 plan["pending"] = []
                 plan["updated_at"] = int(time.time())
                 plan_store.save(plan)
-                if int(plan.get("job_id") or 0):
-                    await _finish_rollout_job(plan, "cancelled")
+                await _start_rollout_job(plan)
+                await _finish_rollout_job(plan, "cancelled")
                 await _render_plan(call, plan, "⏹ Rollout остановлен оператором. Новые mutation не отправлялись.")
                 return
 

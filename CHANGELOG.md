@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Unreleased
+- Исправлен accounting `Controlled Rollout`: terminal no-op plan с уже актуальными версиями теперь создаёт и завершает parent `fleet.rollout` job со статусом `success`.
+- Отмена rollout до запуска canary теперь также фиксируется parent `fleet.rollout` job со статусом `cancelled`, поэтому `🧾 Fleet Jobs` и audit отражают terminal operation.
+- Для уже актуальных targets summary parent job использует `skipped`, а не `pending`; update/maintenance mutation при этих сценариях по-прежнему не отправляется.
+
 ## v4.13.0 — Fleet Operations
 - Добавлен раздел `🌐 Fleet Operations` с read-only `Fleet Health`, controlled Fleet Maintenance, Fleet Jobs и последовательным rollout для direct nodes.
 - `Controlled Rollout` переиспользует существующий two-phase `UpdateService`: verified backup выполняется до intentional maintenance, затем update запускается строго по одной node с canary и explicit continue.
