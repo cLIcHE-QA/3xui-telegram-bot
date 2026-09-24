@@ -279,6 +279,7 @@ main() {
     test -f .env || die "$ROOT/.env not found"
     test -f docker-compose.yml || die "$ROOT/docker-compose.yml not found"
     test -f "$SSH_KEY" || die "deploy key not found: $SSH_KEY"
+    mkdir -p "$BACKUP_ROOT"
 
     exec 9>"$LOCK_FILE"
     flock -n 9 || die "another deployment is already running"
