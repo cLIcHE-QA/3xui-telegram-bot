@@ -18,9 +18,15 @@ for path in "$AGENT_SOURCE" "$HELPER_SOURCE" "$UNIT_SOURCE" "$SUDOERS_SOURCE"; d
 done
 
 SOURCE_KEY="${DEPLOY_AGENT_SOURCE_KEY:-/root/.ssh/3xui_bot_deploy}"
+SOURCE_KNOWN_HOSTS="${DEPLOY_AGENT_SOURCE_KNOWN_HOSTS:-$(dirname "$SOURCE_KEY")/known_hosts}"
 [ -f "$SOURCE_KEY" ] || {
     echo "Deploy key not found: $SOURCE_KEY" >&2
     echo "Set DEPLOY_AGENT_SOURCE_KEY locally if the existing read-only key lives elsewhere." >&2
+    exit 2
+}
+[ -f "$SOURCE_KNOWN_HOSTS" ] || {
+    echo "SSH known_hosts not found: $SOURCE_KNOWN_HOSTS" >&2
+    echo "Set DEPLOY_AGENT_SOURCE_KNOWN_HOSTS locally; host-key verification is mandatory." >&2
     exit 2
 }
 
@@ -40,6 +46,8 @@ install -d -o root -g root -m 0755 /usr/local/libexec
 install -o root -g root -m 0755 "$AGENT_SOURCE" /opt/3xui-deploy-agent/deploy_agent.py
 install -o root -g root -m 0755 "$HELPER_SOURCE" /usr/local/libexec/3xui-bot-deploy
 install -o root -g root -m 0600 "$SOURCE_KEY" /etc/3xui-deploy-agent/deploy-key
+install -o root -g root -m 0644 "$SOURCE_KNOWN_HOSTS" /etc/3xui-deploy-agent/known_hosts
+install -d -o root -g root -m 0700 /opt/3xui-bot/deploy-backups
 
 TOKEN_FILE=/etc/3xui-deploy-agent/token
 if [ ! -f "$TOKEN_FILE" ]; then
@@ -89,4 +97,5 @@ echo "3x-ui bot Deploy Agent installed."
 echo "Listener: 172.19.0.1:18184 (Docker-host private route only)."
 echo "Token stored in /etc/3xui-deploy-agent/token and was NOT printed."
 echo "Read-only Git deploy key copied to /etc/3xui-deploy-agent/deploy-key (root-only)."
+echo "SSH known_hosts copied to /etc/3xui-deploy-agent/known_hosts."
 echo "Next: copy the token locally into DEPLOY_AGENT_TOKEN in the bot .env without sending it through chat."
