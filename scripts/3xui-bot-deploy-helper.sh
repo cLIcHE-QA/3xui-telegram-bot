@@ -5,6 +5,7 @@ REPO_ROOT="/opt/3xui-bot/3xui-telegram-bot"
 DEPLOY_SCRIPT="$REPO_ROOT/scripts/deploy-release.sh"
 EXPECTED_REPOSITORY="cLIcHE-QA/3xui-telegram-bot"
 SSH_KEY="/etc/3xui-deploy-agent/deploy-key"
+SSH_KNOWN_HOSTS="/etc/3xui-deploy-agent/known_hosts"
 PROJECT="3xui-telegram-bot"
 SERVICE="bot"
 HEALTH_URL="http://127.0.0.1:18080/healthz"
@@ -24,6 +25,7 @@ need_file() {
 cd "$REPO_ROOT" 2>/dev/null || die "repo_unavailable"
 need_file "$DEPLOY_SCRIPT"
 need_file "$SSH_KEY"
+need_file "$SSH_KNOWN_HOSTS"
 
 export HOME="/root"
 export DEPLOY_REPO_ROOT="$REPO_ROOT"
@@ -32,6 +34,7 @@ export DEPLOY_SERVICE="$SERVICE"
 export DEPLOY_HEALTH_URL="$HEALTH_URL"
 export DEPLOY_BACKUP_ROOT="$BACKUP_ROOT"
 export DEPLOY_SSH_KEY="$SSH_KEY"
+export DEPLOY_SSH_KNOWN_HOSTS="$SSH_KNOWN_HOSTS"
 export DEPLOY_EXPECTED_REPOSITORY="$EXPECTED_REPOSITORY"
 export DEPLOY_LOCK_FILE="$LOCK_FILE"
 unset DEPLOY_ALLOW_DOWNGRADE
@@ -47,7 +50,7 @@ validate_origin() {
 
 fetch_metadata() {
     validate_origin
-    GIT_SSH_COMMAND="ssh -i $SSH_KEY -o IdentitiesOnly=yes"         git fetch origin main --tags --prune >/dev/null 2>&1 || die "git_fetch_failed"
+    GIT_SSH_COMMAND="ssh -i $SSH_KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=$SSH_KNOWN_HOSTS"         git fetch origin main --tags --prune >/dev/null 2>&1 || die "git_fetch_failed"
 }
 
 current_release() {
@@ -179,12 +182,11 @@ deploy_cmd() {
 
     printf 'Creating deployment backup...\n'
 
-    local output rc=0
+    local rc=0
     set +e
-    output="$("$DEPLOY_SCRIPT" "$release" 2>&1)"
+    "$DEPLOY_SCRIPT" "$release" 2>&1
     rc=$?
     set -e
-    printf '%s\n' "$output"
 
     if [[ "$rc" -ne 0 ]]; then
         exit "$rc"
