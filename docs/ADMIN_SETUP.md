@@ -36,7 +36,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v4.17.0. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v4.18.0. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -98,7 +98,7 @@ systemctl is-active x-ui.service
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v4.17.0` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
+Для bot release `v4.18.0` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
 
 ## 2. Базовая подготовка Master VPS
 
@@ -134,7 +134,7 @@ git clone git@github.com:cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v4.17.0
+git checkout --detach v4.18.0
 ~~~
 
 Проверка release:
@@ -149,7 +149,7 @@ PY
 Ожидается:
 
 ~~~text
-4.17.0
+4.18.0
 ~~~
 
 ## 4. Создай local admin venv

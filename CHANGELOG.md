@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.18.0 — Encrypted off-site backup
+- Full Backup manifest переведён на checksummed schema 2: для каждого обычного файла архива фиксируются path, size и SHA-256, а restore validation проверяет coverage/size/hash fail-closed; legacy archives остаются читаемыми обычным DR tooling.
+- Добавлена optional S3-compatible off-site replication, выключенная по умолчанию: canonical Full Backup шифруется client-side AES-256-GCM до upload, а bucket/prefix/endpoint/credentials задаются только локально и не управляются через Telegram.
+- Local backup и external replication имеют независимые outcomes: `backup.daily`/`backup.manual` фиксируют локальный archive, `backup.offsite` — внешний upload; ошибка provider-а не превращает уже созданную локальную копию в false failure.
+- Off-site success требует remote round trip: HEAD metadata verification, download, GCM authentication, plaintext SHA-256/size и повторный deep Full Backup validation; retention выполняется только после подтверждённой читаемости.
+- Добавлен host-side `scripts/fetch-offsite-backup.py`: recovery CLI получает latest canonical object только из fixed prefix, decrypt/validates его и выдаёт mode-0600 archive для существующего `bootstrap-bot-from-backup.sh`.
+- Добавлены regression tests на manifest tampering, encryption/round trip, fixed-prefix retention, target security boundaries и отдельный failed `backup.offsite` job; SQLite schema, 3x-ui API, Host Control API и RBAC не изменены.
+
 ## v4.17.0 — 3x-ui OpenAPI compatibility gate
 - Поддерживаемый native API contract зафиксирован на 3x-ui `v3.8.5`: vendored OpenAPI берётся из immutable upstream tag, а exact Git blob SHA хранится в contract manifest.
 - `contracts/3xui/contract.json` описывает 51 реально используемый endpoint; CI проверяет route/method, Bearer auth, request body required/media type/mandatory fields и общий JSON response envelope.

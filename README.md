@@ -1,10 +1,10 @@
-# Telegram-бот для 3x-ui v4.17.0
+# Telegram-бот для 3x-ui v4.18.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
-**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.17.0`. Будущая client-facing часть будет документироваться отдельно.
+**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.18.0`. Будущая client-facing часть будет документироваться отдельно.
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Encrypted off-site Full Backup и recovery с нового VPS описаны в [Off-site Backup](docs/OFFSITE_BACKUP.md).
@@ -16,6 +16,24 @@ Encrypted off-site Full Backup и recovery с нового VPS описаны в
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.18.0 — Encrypted off-site backup
+
+Релиз закрывает реализацию pre-v5 off-site recovery path: Full Backup получает checksummed manifest schema 2, а optional S3-compatible transport шифрует проверенный archive client-side через AES-256-GCM и хранит local/off-site outcomes раздельно.
+
+External upload считается успешным только после remote download/decrypt/SHA/deep-validation round trip. Bucket/prefix/credentials задаются только локально, feature выключена по умолчанию, а Telegram не получает arbitrary object key/path или remote filesystem access.
+
+Подробная настройка и recovery с нового VPS: [Encrypted off-site Full Backup](docs/OFFSITE_BACKUP.md).
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.18.0
+./scripts/deploy-release.sh --status
+~~~
+
+Первичный deploy безопасен с `OFFSITE_BACKUP_ENABLED=false`. Финальный production acceptance roadmap-пункта требует отдельной настройки реального внешнего target, успешного manual Full Backup с `backup.offsite` и проверенного recovery fetch. Не передавай S3 credentials или encryption key через Telegram/chat.
 
 ## v4.17.0 — 3x-ui OpenAPI compatibility gate
 
