@@ -42,6 +42,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
     def test_navigation_shortcuts(self):
         self.assertIn('admin:versions', self.callback_values(self.bot.system_menu()))
+        self.assertIn('admin:botupd', self.callback_values(self.bot.system_menu()))
         self.assertIn('admin:versions', self.callback_values(self.bot.infrastructure_menu()))
         self.assertIn('admin:hostctl:m', self.callback_values(self.bot.master_detail_keyboard()))
         self.assertIn('admin:ver:panel:m', self.callback_values(self.bot.master_detail_keyboard()))

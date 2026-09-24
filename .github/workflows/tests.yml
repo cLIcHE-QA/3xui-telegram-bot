@@ -58,6 +58,17 @@ jobs:
           bash -n scripts/onboard-direct-node.sh
           bash scripts/onboard-direct-node.sh --help >/dev/null
       - run: |
+          test -x scripts/3xui-bot-deploy-helper.sh
+          bash -n scripts/3xui-bot-deploy-helper.sh
+          test -x scripts/install-deploy-agent.sh
+          sh -n scripts/install-deploy-agent.sh
+          sudo /usr/sbin/visudo -cf deploy/deploy-agent/3xui-deploy-agent.sudoers >/dev/null
+          grep -q '^User=3xui-deploy' deploy/deploy-agent/3xui-deploy-agent.service
+          grep -q '^ProtectSystem=strict' deploy/deploy-agent/3xui-deploy-agent.service
+          grep -q 'DEPLOY_AGENT_URL=' .env.example
+          grep -q 'DEPLOY_AGENT_TOKEN=' .env.example
+          ! grep -q '/var/run/docker.sock' docker-compose.yml
+      - run: |
           python3 scripts/fetch-offsite-backup.py --help >/dev/null
           grep -q 'OFFSITE_BACKUP_ENABLED=false' .env.example
           grep -q 'OFFSITE_BACKUP_ENCRYPTION_KEY_B64=' .env.example

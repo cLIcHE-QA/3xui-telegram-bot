@@ -60,6 +60,12 @@ class RBACPrivilegesTests(unittest.TestCase):
             "admin:versions": "read_only",
             "admin:ver:run:0123456789abcdef": "admin",
             "admin:ver:unlock:0123456789abcdef": "owner",
+            "admin:botupd": "owner",
+            "admin:botupd:choose": "owner",
+            "admin:botupd:pre:v4.19.0": "owner",
+            "admin:botupd:run:v4.19.0": "owner",
+            "admin:botupd:down:v4.18.0": "owner",
+            "admin:botupd:op:0123456789abcdef0123456789abcdef": "owner",
         }
         for data, role in cases.items():
             with self.subTest(data=data):
@@ -84,6 +90,7 @@ class RBACPrivilegesTests(unittest.TestCase):
             "host_control_ui.py",
             "fleet_operations.py",
             "versions_updates.py",
+            "bot_updates.py",
         )
         declared = declared_route_specs()
         missing: list[str] = []

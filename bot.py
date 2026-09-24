@@ -21,6 +21,7 @@ from xui import XUIClient, XUIError, NodeInfo
 from version import APP_VERSION
 from version_api import VersionAPIError
 from versions_updates import versions_router
+from bot_updates import bot_updates_router, reconcile_deploy_jobs
 from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
 from catalog_admin import catalog_router
@@ -135,6 +136,7 @@ def monitoring_menu() -> InlineKeyboardMarkup:
 
 def system_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🤖 Bot Updates", callback_data="admin:botupd")],
         [InlineKeyboardButton(text="🧩 Versions & Updates", callback_data="admin:versions")],
         [
             InlineKeyboardButton(text="⚙️ Jobs", callback_data="admin:jobs"),
@@ -2447,9 +2449,24 @@ async def automatic_backup_loop(bot: Bot):
             logging.exception("Automatic backup failed")
 
 
+async def _recover_deploy_after_health() -> None:
+    recovered = await reconcile_deploy_jobs(wait_seconds=60)
+    if recovered:
+        logging.warning(
+            "Recovered %d interrupted bot deployment jobs after health startup without mutation replay",
+            recovered,
+        )
+
+
 async def main():
     configure_logging()
     await db.init()
+    recovered_deploy = await reconcile_deploy_jobs(wait_seconds=0)
+    if recovered_deploy:
+        logging.warning(
+            "Recovered %d interrupted bot deployment jobs without mutation replay",
+            recovered_deploy,
+        )
     recovered_control = await recover_control_jobs()
     if recovered_control:
         logging.warning(
@@ -2472,6 +2489,10 @@ async def main():
         port=settings.subscription_proxy_port,
     )
     await proxy.start()
+    deploy_recovery_task = (
+        asyncio.create_task(_recover_deploy_after_health())
+        if settings.deploy_agent_enabled else None
+    )
 
     bot = Bot(settings.bot_token)
     await send_boot_restore_notice(bot)
@@ -2479,6 +2500,7 @@ async def main():
     dp.callback_query.outer_middleware(AdminPanelSessionMiddleware())
     dp.include_router(router)
     dp.include_router(versions_router)
+    dp.include_router(bot_updates_router)
     dp.include_router(advanced_users_router)
     dp.include_router(advanced_nodes_router)
     dp.include_router(host_control_router)
@@ -2497,10 +2519,10 @@ async def main():
     try:
         await dp.start_polling(bot)
     finally:
-        for task in (backup_task, alert_task):
+        for task in (backup_task, alert_task, deploy_recovery_task):
             if task:
                 task.cancel()
-        for task in (backup_task, alert_task):
+        for task in (backup_task, alert_task, deploy_recovery_task):
             if task:
                 try:
                     await task

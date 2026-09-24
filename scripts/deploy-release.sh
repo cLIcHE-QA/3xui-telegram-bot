@@ -6,9 +6,10 @@ SERVICE="${DEPLOY_SERVICE:-bot}"
 HEALTH_URL="${DEPLOY_HEALTH_URL:-http://127.0.0.1:18080/healthz}"
 BACKUP_ROOT="${DEPLOY_BACKUP_ROOT:-/opt/3xui-bot/deploy-backups}"
 SSH_KEY="${DEPLOY_SSH_KEY:-$HOME/.ssh/3xui_bot_deploy}"
+SSH_KNOWN_HOSTS="${DEPLOY_SSH_KNOWN_HOSTS:-$HOME/.ssh/known_hosts}"
 EXPECTED_REPOSITORY="${DEPLOY_EXPECTED_REPOSITORY:-cLIcHE-QA/3xui-telegram-bot}"
 DEFAULT_SUBNET="172.19.0.0/16"
-LOCK_FILE="${DEPLOY_LOCK_FILE:-/tmp/${PROJECT}.deploy-release.lock}"
+LOCK_FILE="${DEPLOY_LOCK_FILE:-${BACKUP_ROOT}/.${PROJECT}.deploy-release.lock}"
 
 usage() {
     cat <<'USAGE'
@@ -24,6 +25,7 @@ Environment overrides:
   DEPLOY_HEALTH_URL            local health endpoint (default: http://127.0.0.1:18080/healthz)
   DEPLOY_BACKUP_ROOT           deployment backup directory (default: /opt/3xui-bot/deploy-backups)
   DEPLOY_SSH_KEY               read-only GitHub deploy key (default: ~/.ssh/3xui_bot_deploy)
+  DEPLOY_SSH_KNOWN_HOSTS        SSH known_hosts used for host-key verification
   DEPLOY_EXPECTED_REPOSITORY   expected origin repository (default: cLIcHE-QA/3xui-telegram-bot)
   DEPLOY_ALLOW_DOWNGRADE=1     allow deploying a lower semantic version intentionally
 
@@ -277,6 +279,7 @@ main() {
     test -f .env || die "$ROOT/.env not found"
     test -f docker-compose.yml || die "$ROOT/docker-compose.yml not found"
     test -f "$SSH_KEY" || die "deploy key not found: $SSH_KEY"
+    mkdir -p "$BACKUP_ROOT"
 
     exec 9>"$LOCK_FILE"
     flock -n 9 || die "another deployment is already running"
@@ -301,7 +304,8 @@ main() {
     check_upstream_tcp "$current_cid"
 
     printf 'Fetching release metadata...\n'
-    GIT_SSH_COMMAND="ssh -i $SSH_KEY -o IdentitiesOnly=yes" \
+    [[ -f "$SSH_KNOWN_HOSTS" ]] || die "SSH known_hosts not found: $SSH_KNOWN_HOSTS"
+    GIT_SSH_COMMAND="ssh -i $SSH_KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=$SSH_KNOWN_HOSTS" \
         git fetch origin main --tags --prune
 
     tag_sha="$(git rev-parse -q --verify "refs/tags/${release}^{commit}")" || die "release tag not found: $release"
@@ -341,6 +345,7 @@ main() {
     printf 'Deploying %s...\n' "$release"
     compose up -d --no-deps --no-build --force-recreate "$SERVICE"
 
+    printf 'Verifying %s...\n' "$release"
     new_cid="$(container_id)"
     [[ -n "$new_cid" ]] || die "new bot container was not created; backup: $backup"
 
