@@ -54,8 +54,6 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
     def test_near_miss_sensitive_callbacks_fail_closed(self):
         values = (
             "admin:u:provrun:101:unsafe",
-            "admin:restore:node:backup-1:not-a-node",
-            "admin:administrator:delete",
             "admin:inboundtemplate:delete:not-a-number",
             "admin:payment:status",
             "admin:ver:unlock:not-a-valid-operation",
@@ -63,6 +61,14 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         for value in values:
             with self.subTest(value=value):
                 self.assertIsNone(required_role_for_callback(value))
+
+    def test_broad_safety_prefixes_keep_malformed_sensitive_namespaces_owner_only(self):
+        for value in (
+            "admin:restore:node:backup-1:not-a-node",
+            "admin:administrator:delete",
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(required_role_for_callback(value), "owner")
 
     async def test_subscription_rotation_updates_local_identity_only_after_xui_success(self):
         module = load_module("advanced_users")
