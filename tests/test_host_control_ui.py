@@ -50,6 +50,35 @@ class FakePanelClient:
         return {"success": True}
 
 
+class HostControlStartupRecoveryContractTests(unittest.TestCase):
+    def test_startup_runs_control_recovery_before_generic_stale_cleanup(self):
+        source = (Path(__file__).resolve().parents[1] / "bot.py").read_text(encoding="utf-8")
+        import_at = source.index(
+            "from host_control_ui import host_control_router, recover_control_jobs"
+        )
+        main_at = source.index("async def main():")
+        recover_at = source.index("await recover_control_jobs()", main_at)
+        stale_at = source.index("await db.fail_stale_job_runs()", main_at)
+        polling_at = source.index("await dp.start_polling(bot)", main_at)
+
+        self.assertLess(import_at, main_at)
+        self.assertLess(recover_at, stale_at)
+        self.assertLess(stale_at, polling_at)
+
+    def test_recovery_uses_read_only_lookup_and_never_replays_mutation(self):
+        source = (
+            Path(__file__).resolve().parents[1] / "host_control_ui.py"
+        ).read_text(encoding="utf-8")
+        start = source.index("async def recover_control_jobs()")
+        end = source.index("\n\nasync def _run_panel_restart", start)
+        recovery = source[start:end]
+
+        self.assertIn("await client.get_operation(operation_id)", recovery)
+        self.assertNotIn(".execute(", recovery)
+        self.assertNotIn("await client.execute", recovery)
+        self.assertIn("mutation_not_retried=true", recovery)
+
+
 class HostControlUITests(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):

@@ -30,7 +30,7 @@ from advanced_users import advanced_users_router
 from inbound_admin import inbound_admin_router, inbound_list_view
 from advanced_nodes import advanced_nodes_router
 from host_control import HostControlClient, HostControlError
-from host_control_ui import host_control_router
+from host_control_ui import host_control_router, recover_control_jobs
 from fleet_operations import fleet_router, recover_fleet_operations
 from admin_auth import authorize_callback, authorize_message, get_admin_role
 from audit import audit_from_call, audit_system
@@ -2397,6 +2397,12 @@ async def automatic_backup_loop(bot: Bot):
 async def main():
     configure_logging()
     await db.init()
+    recovered_control = await recover_control_jobs()
+    if recovered_control:
+        logging.warning(
+            "Recovered %d interrupted Host Control jobs without mutation replay",
+            recovered_control,
+        )
     stale_jobs = await db.fail_stale_job_runs()
     if stale_jobs:
         logging.warning("Marked %d stale job runs as failed", stale_jobs)
