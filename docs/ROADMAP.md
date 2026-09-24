@@ -10,7 +10,8 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 - `⬜ Запланировано` — работа ещё не завершена в `main`;
 - `🟡 Реализовано в main` — код/документация уже слиты, но соответствующий release ещё не опубликован;
-- `✅ Выполнено в vX.Y.Z` — изменение опубликовано в указанном релизе.
+- `🟠 Опубликовано; acceptance отложен` — release уже опубликован/развёрнут, но отдельный production acceptance или recovery drill сознательно перенесён и остаётся обязательным до финальной заморозки v4.x;
+- `✅ Выполнено в vX.Y.Z` — изменение опубликовано в указанном релизе и обязательный acceptance scope закрыт.
 
 Статус меняется только по фактическому состоянию репозитория. Merge в `main` не считается опубликованным релизом, а публикация release без завершённого acceptance scope не должна автоматически закрывать пункт.
 
@@ -205,9 +206,11 @@ Roadmap не задаёт искусственный глобальный про
 
 ##### Off-site backup
 
-**Статус: 🟡 Реализовано в `main`; ожидает публикации runtime release.**
+**Статус: 🟠 Опубликовано в `v4.18.0` и развернуто; production off-site acceptance отложен.**
 
-Encrypted off-site backup уже слит в `main`: Full Backup использует checksummed manifest schema 2, S3-compatible transport шифрует canonical archive client-side через AES-256-GCM, local и off-site outcomes записываются раздельно (`backup.daily`/`backup.manual` и `backup.offsite`), после upload обязателен remote download/decrypt/SHA/deep-validation round trip, retention ограничен fixed prefix, а host-side recovery CLI скачивает и проверяет latest external copy перед существующим bootstrap restore flow. Feature выключена по умолчанию и не открывает Telegram доступ к bucket/object key/credentials/filesystem path.
+Encrypted off-site backup опубликован и развернут в production как `v4.18.0` (release commit `1cc730c5929ba8b2fe1152a0db1ade4b1aaa21f9`). Базовый runtime acceptance пройден: exact tag/SHA, container, app version, health, DB и 3x-ui connectivity подтверждены. Full Backup использует checksummed manifest schema 2, S3-compatible transport шифрует canonical archive client-side через AES-256-GCM, local и off-site outcomes записываются раздельно (`backup.daily`/`backup.manual` и `backup.offsite`), после upload обязателен remote download/decrypt/SHA/deep-validation round trip, retention ограничен fixed prefix, а host-side recovery CLI скачивает и проверяет latest external copy перед существующим bootstrap restore flow. Feature выключена по умолчанию и не открывает Telegram доступ к bucket/object key/credentials/filesystem path.
+
+**Отложенный acceptance:** после завершения остальных релизов финализации v4.x, но до окончательного v4 freeze / перехода к v5, нужно вернуться к `v4.18.0` и провести отдельный production drill на реально внешнем S3-compatible target: настроить dedicated credentials и recovery encryption key локально, создать manual Full Backup, подтвердить отдельный `backup.offsite` success/допустимый partial, проверить remote round-trip validation и выполнить host-side recovery fetch/deep validation latest external copy. Секреты bucket credentials/encryption key не должны передаваться через Telegram/chat или Git.
 
 Локальный Full Backup остаётся необходимым, но сам по себе не закрывает сценарий полной потери Master VPS. До v5.0.0 должен появиться поддерживаемый способ иметь хотя бы одну актуальную recovery copy вне Master host.
 
