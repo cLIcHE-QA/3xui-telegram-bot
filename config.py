@@ -223,6 +223,15 @@ class Settings:
     backup_keep: int
     backup_hour_utc: int
     backup_send_to_admins: bool
+    offsite_backup_enabled: bool
+    offsite_backup_bucket: str
+    offsite_backup_prefix: str
+    offsite_backup_region: str
+    offsite_backup_endpoint_url: str
+    offsite_backup_access_key_id: str
+    offsite_backup_secret_access_key: str
+    offsite_backup_keep: int
+    offsite_backup_encryption_key_b64: str
     node_backup_targets: tuple[NodeBackupTarget, ...]
     host_control_targets: tuple[HostControlTarget, ...]
     master_name: str
@@ -253,6 +262,44 @@ def load_settings() -> Settings:
     if compat_template and "{sub_id}" not in compat_template:
         raise RuntimeError("COMPAT_SUBSCRIPTION_URL_TEMPLATE must contain {sub_id}")
 
+    offsite_enabled = env_bool(os.getenv("OFFSITE_BACKUP_ENABLED"), False)
+    offsite_bucket = os.getenv("OFFSITE_BACKUP_BUCKET", "").strip()
+    offsite_prefix = os.getenv("OFFSITE_BACKUP_PREFIX", "3xui-bot").strip().strip("/")
+    offsite_region = os.getenv("OFFSITE_BACKUP_REGION", "us-east-1").strip() or "us-east-1"
+    offsite_endpoint = os.getenv("OFFSITE_BACKUP_ENDPOINT_URL", "").strip().rstrip("/")
+    offsite_access = os.getenv("OFFSITE_BACKUP_ACCESS_KEY_ID", "").strip()
+    offsite_secret = os.getenv("OFFSITE_BACKUP_SECRET_ACCESS_KEY", "").strip()
+    offsite_key = os.getenv("OFFSITE_BACKUP_ENCRYPTION_KEY_B64", "").strip()
+    if offsite_enabled:
+        missing_offsite = [
+            name for name, value in (
+                ("OFFSITE_BACKUP_BUCKET", offsite_bucket),
+                ("OFFSITE_BACKUP_ACCESS_KEY_ID", offsite_access),
+                ("OFFSITE_BACKUP_SECRET_ACCESS_KEY", offsite_secret),
+                ("OFFSITE_BACKUP_ENCRYPTION_KEY_B64", offsite_key),
+            ) if not value
+        ]
+        if missing_offsite:
+            raise RuntimeError(
+                "Off-site backup is enabled but variables are missing: "
+                + ", ".join(missing_offsite)
+            )
+        if not offsite_prefix or any(part in {"", ".", ".."} for part in offsite_prefix.split("/")):
+            raise RuntimeError("OFFSITE_BACKUP_PREFIX must contain safe non-empty path segments.")
+        if offsite_endpoint:
+            parsed_offsite = urlsplit(offsite_endpoint)
+            if (
+                parsed_offsite.scheme != "https"
+                or not parsed_offsite.hostname
+                or parsed_offsite.username
+                or parsed_offsite.password
+                or parsed_offsite.query
+                or parsed_offsite.fragment
+            ):
+                raise RuntimeError(
+                    "OFFSITE_BACKUP_ENDPOINT_URL must be an absolute verified HTTPS URL without credentials/query/fragment."
+                )
+
     return Settings(
         bot_token=required["BOT_TOKEN"],
         panel_url=required["PANEL_URL"].rstrip("/"),
@@ -279,6 +326,15 @@ def load_settings() -> Settings:
         backup_keep=max(1, int(os.getenv("BACKUP_KEEP", "14"))),
         backup_hour_utc=max(0, min(23, int(os.getenv("BACKUP_HOUR_UTC", "2")))),
         backup_send_to_admins=env_bool(os.getenv("BACKUP_SEND_TO_ADMINS"), False),
+        offsite_backup_enabled=offsite_enabled,
+        offsite_backup_bucket=offsite_bucket,
+        offsite_backup_prefix=offsite_prefix,
+        offsite_backup_region=offsite_region,
+        offsite_backup_endpoint_url=offsite_endpoint,
+        offsite_backup_access_key_id=offsite_access,
+        offsite_backup_secret_access_key=offsite_secret,
+        offsite_backup_keep=max(1, int(os.getenv("OFFSITE_BACKUP_KEEP", "14"))),
+        offsite_backup_encryption_key_b64=offsite_key,
         node_backup_targets=_load_node_backup_targets(),
         host_control_targets=_load_host_control_targets(),
         master_name=os.getenv("MASTER_NAME", "Master").strip() or "Master",

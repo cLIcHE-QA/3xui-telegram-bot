@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import sqlite3
@@ -9,6 +10,30 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from version import APP_VERSION
+
+
+BACKUP_MANIFEST_SCHEMA = 2
+
+
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _integrity_entries(root: Path) -> list[dict[str, object]]:
+    entries: list[dict[str, object]] = []
+    for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
+        if not path.is_file() or path.name == "manifest.json":
+            continue
+        entries.append({
+            "path": path.relative_to(root).as_posix(),
+            "bytes": path.stat().st_size,
+            "sha256": _sha256_path(path),
+        })
+    return entries
 
 
 @dataclass(frozen=True)
@@ -137,19 +162,6 @@ class BackupManager:
                 missing.extend(str(x) for x in extra_missing)
 
             created = datetime.now(timezone.utc)
-            manifest = {
-                "version": version,
-                "created_at_utc": created.isoformat(),
-                "included": included,
-                "missing": missing,
-                "note": "This archive contains secrets. Store it securely.",
-            }
-            if extra_manifest:
-                manifest.update(extra_manifest)
-            (stage / "manifest.json").write_text(
-                json.dumps(manifest, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
             (stage / "README-RESTORE.txt").write_text(
                 "3x-ui Telegram bot backup\n"
                 "==========================\n\n"
@@ -161,6 +173,26 @@ class BackupManager:
                 "3. Restore x-ui.db to a compatible 3x-ui version, then start x-ui.\n"
                 "4. Validate nginx with `nginx -t` before reloading it.\n"
                 "5. bot.env contains secrets; protect this archive.\n",
+                encoding="utf-8",
+            )
+
+            manifest = {
+                "schema": BACKUP_MANIFEST_SCHEMA,
+                "version": version,
+                "created_at_utc": created.isoformat(),
+                "included": included,
+                "missing": missing,
+                "note": "This archive contains secrets. Store it securely.",
+            }
+            if extra_manifest:
+                manifest.update(extra_manifest)
+            manifest["schema"] = BACKUP_MANIFEST_SCHEMA
+            manifest["integrity"] = {
+                "algorithm": "sha256",
+                "files": _integrity_entries(stage),
+            }
+            (stage / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True),
                 encoding="utf-8",
             )
 

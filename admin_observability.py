@@ -15,6 +15,8 @@ from config import load_settings
 from db import AuditRecord, Database, JobRunRecord
 from runtime_jobs import backup_lock
 from system_backup import SystemBackupService
+from restore_manager import RestoreManager
+from offsite_backup import replicate_with_job, service_from_settings
 from xui import XUIClient, XUIError
 
 settings = load_settings()
@@ -22,6 +24,8 @@ db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
 system_backup = SystemBackupService(backup_manager, settings.node_backup_targets, settings.host_control_targets)
+offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
+offsite_backup = service_from_settings(settings, offsite_restore_manager)
 observability_router = Router(name="admin_observability")
 
 
@@ -251,6 +255,7 @@ async def jobs_view(call: CallbackQuery):
         return
     daily = await db.last_job_run("backup.daily")
     manual = await db.last_job_run("backup.manual")
+    offsite = await db.last_job_run("backup.offsite")
     provision = await db.last_job_run("provision.reconcile_all")
     history = await db.list_job_runs(limit=8)
     lines = [
@@ -261,6 +266,7 @@ async def jobs_view(call: CallbackQuery):
         f"Следующий запуск: {next_backup_text()}",
         f"Последний scheduled: {job_line(daily)}",
         f"Последний manual: {job_line(manual)}",
+        f"Последний off-site: {job_line(offsite) if settings.offsite_backup_enabled else 'выключен'}",
         "",
         "Provisioning",
         f"Последний fleet reconcile: {job_line(provision)}",
@@ -313,11 +319,36 @@ async def jobs_run_backup(call: CallbackQuery):
             target_id=result.info.path.name,
             details=f"manual job; size={result.info.size}; missing={len(result.missing)}",
         )
+        offsite_status, _, offsite_detail = await replicate_with_job(
+            db,
+            offsite_backup,
+            result.info.path,
+            trigger="admin",
+            actor_id=call.from_user.id if call.from_user else 0,
+        )
+        if offsite_status != "disabled":
+            await audit_from_call(
+                db,
+                call,
+                "backup.offsite.upload",
+                target_type="backup",
+                target_id=result.info.path.name,
+                details=offsite_detail,
+                success=offsite_status in {"success", "partial"},
+            )
+        offsite_line = ""
+        if offsite_status == "success":
+            offsite_line = "\n☁️ Off-site: загружен и проверен"
+        elif offsite_status == "partial":
+            offsite_line = "\n⚠️ Off-site: загружен и проверен, local backup неполный"
+        elif offsite_status == "failed":
+            offsite_line = f"\n🔴 Off-site: ошибка — {offsite_detail[:240]}"
         await render_callback(call, 
             "✅ Job завершён.\n\n"
             f"Файл: {result.info.path.name}\n"
             f"Размер: {human_bytes(result.info.size)}\n"
-            f"Время: {duration_ms / 1000:.1f}s",
+            f"Время: {duration_ms / 1000:.1f}s"
+            f"{offsite_line}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="⬅ Jobs", callback_data="admin:jobs")],
             ]),
@@ -380,6 +411,7 @@ ACTION_LABELS = {
     "xray.restart": "restart/start Xray",
     "backup.create": "create backup",
     "backup.download": "download backup",
+    "backup.offsite.upload": "replicate backup off-site",
     "plan.create": "create plan",
     "plan.toggle": "toggle plan",
     "plan.set_group": "set plan group",

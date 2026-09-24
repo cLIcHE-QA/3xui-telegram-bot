@@ -7,6 +7,7 @@
 **Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.17.0`. Будущая client-facing часть будет документироваться отдельно.
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
+Encrypted off-site Full Backup и recovery с нового VPS описаны в [Off-site Backup](docs/OFFSITE_BACKUP.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
 Повторяемый rollout, deployment bundle и enrollment-import описаны в [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
 Рекомендуемый guided onboarding direct node без передачи секретов через Telegram описан в [Node Onboarding](docs/NODE_ONBOARDING.md).
@@ -547,6 +548,8 @@ BACKUP_SEND_TO_ADMINS=false
 ```
 
 Полные автоматические копии создаются ежедневно в час `BACKUP_HOUR_UTC` по UTC. Сохраняются последние `BACKUP_KEEP` полных архивов. Для вручную создаваемых снимков SQLite, предназначенных для скачивания, хранятся только три последних файла.
+
+При `OFFSITE_BACKUP_ENABLED=true` каждый новый Full Backup после локального создания проходит checksum/deep validation, шифруется client-side AES-256-GCM и реплицируется в фиксированный S3-compatible bucket/prefix. Upload имеет отдельный `backup.offsite` job: ошибка внешнего хранилища не превращает уже созданный локальный backup в failure. После upload выполняется remote download/decrypt/deep-verify round trip, затем применяется отдельный `OFFSITE_BACKUP_KEEP` retention. Подробный recovery flow: [Off-site Backup](docs/OFFSITE_BACKUP.md).
 
 В этом варианте развёртывания Compose подключает стандартный каталог базы 3x-ui и отдельный каталог конфигурации nginx только для чтения:
 

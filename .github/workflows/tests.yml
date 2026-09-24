@@ -58,6 +58,10 @@ jobs:
           bash -n scripts/onboard-direct-node.sh
           bash scripts/onboard-direct-node.sh --help >/dev/null
       - run: |
+          python3 scripts/fetch-offsite-backup.py --help >/dev/null
+          grep -q 'OFFSITE_BACKUP_ENABLED=false' .env.example
+          grep -q 'OFFSITE_BACKUP_ENCRYPTION_KEY_B64=' .env.example
+      - run: |
           test -x scripts/bootstrap-bot-from-backup.sh
           bash -n scripts/bootstrap-bot-from-backup.sh
           scripts/bootstrap-bot-from-backup.sh --help 2>&1 | grep -q 'RECOVERY_ALLOW_VERSION_MISMATCH'

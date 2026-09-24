@@ -206,6 +206,75 @@ class RestoreManager:
                 else:
                     warnings.append("manifest.json отсутствует")
 
+                manifest_schema = manifest.get("schema")
+                if manifest_schema == 2:
+                    integrity = manifest.get("integrity")
+                    if not isinstance(integrity, dict) or integrity.get("algorithm") != "sha256":
+                        errors.append("manifest integrity block отсутствует или имеет неподдерживаемый algorithm")
+                    else:
+                        entries = integrity.get("files")
+                        if not isinstance(entries, list):
+                            errors.append("manifest integrity.files имеет неожиданный формат")
+                        else:
+                            expected: dict[str, tuple[int, str]] = {}
+                            for entry in entries:
+                                if not isinstance(entry, dict):
+                                    errors.append("manifest integrity.files содержит некорректную запись")
+                                    continue
+                                name = str(entry.get("path") or "")
+                                digest = str(entry.get("sha256") or "").lower()
+                                try:
+                                    size = int(entry.get("bytes"))
+                                except (TypeError, ValueError):
+                                    size = -1
+                                if (
+                                    not self._safe_member_name(name)
+                                    or name == "manifest.json"
+                                    or len(digest) != 64
+                                    or any(ch not in "0123456789abcdef" for ch in digest)
+                                    or size < 0
+                                    or name in expected
+                                ):
+                                    errors.append(f"Некорректная integrity-запись: {name!r}")
+                                    continue
+                                expected[name] = (size, digest)
+
+                            actual_files = {
+                                name: member
+                                for name, member in by_name.items()
+                                if member.isfile() and name != "manifest.json"
+                            }
+                            missing_integrity = sorted(set(actual_files) - set(expected))
+                            stale_integrity = sorted(set(expected) - set(actual_files))
+                            if missing_integrity:
+                                errors.append(
+                                    "manifest integrity не покрывает файлы: "
+                                    + ", ".join(missing_integrity[:10])
+                                )
+                            if stale_integrity:
+                                errors.append(
+                                    "manifest integrity ссылается на отсутствующие файлы: "
+                                    + ", ".join(stale_integrity[:10])
+                                )
+                            for name, member in actual_files.items():
+                                declared = expected.get(name)
+                                if declared is None:
+                                    continue
+                                size, digest = declared
+                                if int(member.size) != size:
+                                    errors.append(f"Integrity size mismatch: {name}")
+                                    continue
+                                data = self._read_tar_member(tar, member)
+                                actual_digest = hashlib.sha256(data).hexdigest()
+                                if actual_digest != digest:
+                                    errors.append(f"Integrity SHA-256 mismatch: {name}")
+                elif manifest_schema is not None:
+                    warnings.append(
+                        f"manifest schema {manifest_schema!r} не поддерживает checksum validation"
+                    )
+                else:
+                    warnings.append("legacy manifest без checksum schema")
+
                 # Discover node backups from node.json metadata. A node backup without
                 # metadata is deliberately not auto-restorable.
                 for name, member in sorted(by_name.items()):
