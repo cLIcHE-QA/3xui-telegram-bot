@@ -307,6 +307,32 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         db_mock.update_expiry.assert_not_awaited()
         db_mock.set_user_server_group.assert_not_awaited()
 
+    async def test_inbound_toggle_failure_does_not_record_success_or_render_changed_state(self):
+        module = load_module("inbound_admin")
+        xui_mock = SimpleNamespace(
+            inbound_get=AsyncMock(return_value={"id": 7, "enable": True}),
+            inbound_set_enable=AsyncMock(side_effect=XUIError("offline")),
+        )
+        audit = AsyncMock()
+        render = AsyncMock()
+        call = SimpleNamespace(
+            data="admin:inbound:toggle:7",
+            answer=AsyncMock(),
+        )
+
+        with (
+            patch.object(module, "guard", new=AsyncMock(return_value=True)),
+            patch.object(module, "xui", xui_mock),
+            patch.object(module, "audit_from_call", new=audit),
+            patch.object(module, "render_callback", new=render),
+        ):
+            await module.inbound_toggle(call)
+
+        xui_mock.inbound_set_enable.assert_awaited_once_with(7, False)
+        audit.assert_not_awaited()
+        render.assert_not_awaited()
+        call.answer.assert_awaited_once_with("3x-ui: offline", show_alert=True)
+
     def test_inbound_template_and_clone_payloads_never_copy_clients_or_enable_state(self):
         module = load_module("inbound_admin")
         inbound = {
