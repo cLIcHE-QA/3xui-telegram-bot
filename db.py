@@ -1,7 +1,10 @@
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 import aiosqlite
+
+from db_migrations import run_migrations
 
 
 @dataclass
@@ -162,221 +165,20 @@ class AlertStateRecord:
 
 
 class Database:
-    def __init__(self, path: str):
+    def __init__(self, path: str, migration_backup_dir: str | None = None):
         self.path = path
+        if migration_backup_dir is not None:
+            self.migration_backup_dir = migration_backup_dir
+        elif path == ":memory:":
+            self.migration_backup_dir = None
+        else:
+            self.migration_backup_dir = str(Path(path).parent / "migration-backups")
 
     async def init(self):
-        async with aiosqlite.connect(self.path) as db:
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    telegram_id INTEGER PRIMARY KEY,
-                    email TEXT NOT NULL UNIQUE,
-                    sub_id TEXT NOT NULL UNIQUE,
-                    expiry_time INTEGER NOT NULL,
-                    created_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS server_groups (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT COLLATE NOCASE NOT NULL UNIQUE,
-                    description TEXT NOT NULL DEFAULT '',
-                    created_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS server_group_members (
-                    group_id INTEGER NOT NULL,
-                    member_key TEXT NOT NULL,
-                    PRIMARY KEY(group_id, member_key)
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS server_group_provisioning (
-                    group_id INTEGER PRIMARY KEY,
-                    inbound_mode TEXT NOT NULL DEFAULT 'all_managed',
-                    updated_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS server_group_inbounds (
-                    group_id INTEGER NOT NULL,
-                    inbound_id INTEGER NOT NULL,
-                    PRIMARY KEY(group_id, inbound_id)
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS plans (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT COLLATE NOCASE NOT NULL UNIQUE,
-                    duration_days INTEGER NOT NULL,
-                    traffic_gb INTEGER NOT NULL,
-                    ip_limit INTEGER NOT NULL,
-                    price_minor INTEGER NOT NULL DEFAULT 0,
-                    currency TEXT NOT NULL DEFAULT 'RUB',
-                    server_group_id INTEGER,
-                    active INTEGER NOT NULL DEFAULT 1,
-                    created_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS hosts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    label TEXT NOT NULL,
-                    hostname TEXT NOT NULL,
-                    role TEXT NOT NULL,
-                    enabled INTEGER NOT NULL DEFAULT 1,
-                    created_at INTEGER NOT NULL,
-                    UNIQUE(hostname, role)
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS audit_log (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    actor_id INTEGER NOT NULL,
-                    actor_username TEXT NOT NULL DEFAULT '',
-                    action TEXT NOT NULL,
-                    target_type TEXT NOT NULL DEFAULT '',
-                    target_id TEXT NOT NULL DEFAULT '',
-                    details TEXT NOT NULL DEFAULT '',
-                    success INTEGER NOT NULL DEFAULT 1,
-                    created_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute(
-                "CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at DESC)"
-            )
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS job_runs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    trigger TEXT NOT NULL,
-                    actor_id INTEGER NOT NULL DEFAULT 0,
-                    status TEXT NOT NULL DEFAULT 'running',
-                    started_at INTEGER NOT NULL,
-                    finished_at INTEGER NOT NULL DEFAULT 0,
-                    duration_ms INTEGER NOT NULL DEFAULT 0,
-                    details TEXT NOT NULL DEFAULT ''
-                )
-            """)
-            await db.execute(
-                "CREATE INDEX IF NOT EXISTS idx_job_runs_name_started ON job_runs(name, started_at DESC)"
-            )
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS payments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    telegram_id INTEGER NOT NULL,
-                    plan_id INTEGER,
-                    amount_minor INTEGER NOT NULL,
-                    currency TEXT NOT NULL DEFAULT 'RUB',
-                    status TEXT NOT NULL DEFAULT 'pending',
-                    provider TEXT NOT NULL DEFAULT 'manual',
-                    external_id TEXT NOT NULL DEFAULT '',
-                    note TEXT NOT NULL DEFAULT '',
-                    created_by INTEGER NOT NULL DEFAULT 0,
-                    created_at INTEGER NOT NULL,
-                    updated_at INTEGER NOT NULL,
-                    paid_at INTEGER NOT NULL DEFAULT 0
-                )
-            """)
-            await db.execute(
-                "CREATE INDEX IF NOT EXISTS idx_payments_user_created ON payments(telegram_id, created_at DESC)"
-            )
-            await db.execute(
-                "CREATE INDEX IF NOT EXISTS idx_payments_status_created ON payments(status, created_at DESC)"
-            )
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS promo_codes (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    code TEXT COLLATE NOCASE NOT NULL UNIQUE,
-                    discount_type TEXT NOT NULL,
-                    value INTEGER NOT NULL,
-                    currency TEXT NOT NULL DEFAULT 'RUB',
-                    plan_id INTEGER,
-                    max_uses INTEGER NOT NULL DEFAULT 0,
-                    uses_count INTEGER NOT NULL DEFAULT 0,
-                    expires_at INTEGER NOT NULL DEFAULT 0,
-                    active INTEGER NOT NULL DEFAULT 1,
-                    created_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute(
-                "CREATE INDEX IF NOT EXISTS idx_promo_active_code ON promo_codes(active, code COLLATE NOCASE)"
-            )
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS administrators (
-                    telegram_id INTEGER PRIMARY KEY,
-                    role TEXT NOT NULL,
-                    enabled INTEGER NOT NULL DEFAULT 1,
-                    added_by INTEGER NOT NULL DEFAULT 0,
-                    created_at INTEGER NOT NULL,
-                    updated_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS runtime_settings (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL,
-                    updated_by INTEGER NOT NULL DEFAULT 0,
-                    updated_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS user_profiles (
-                    telegram_id INTEGER PRIMARY KEY,
-                    plan_id INTEGER,
-                    server_group_id INTEGER,
-                    note TEXT NOT NULL DEFAULT '',
-                    updated_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS inbound_templates (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT COLLATE NOCASE NOT NULL UNIQUE,
-                    source_inbound_id INTEGER NOT NULL DEFAULT 0,
-                    protocol TEXT NOT NULL,
-                    payload_json TEXT NOT NULL,
-                    created_at INTEGER NOT NULL,
-                    updated_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS alert_rules (
-                    code TEXT PRIMARY KEY,
-                    enabled INTEGER NOT NULL DEFAULT 1,
-                    threshold INTEGER NOT NULL DEFAULT 0,
-                    cooldown_sec INTEGER NOT NULL DEFAULT 1800,
-                    updated_at INTEGER NOT NULL
-                )
-            """)
-            await db.execute("""
-                CREATE TABLE IF NOT EXISTS alert_state (
-                    code TEXT NOT NULL,
-                    target TEXT NOT NULL,
-                    active INTEGER NOT NULL DEFAULT 0,
-                    last_value TEXT NOT NULL DEFAULT '',
-                    first_seen INTEGER NOT NULL DEFAULT 0,
-                    last_seen INTEGER NOT NULL DEFAULT 0,
-                    last_notified INTEGER NOT NULL DEFAULT 0,
-                    PRIMARY KEY(code, target)
-                )
-            """)
-            now = int(time.time())
-            defaults = (
-                ("master_down", 1, 0, 900),
-                ("xray_down", 1, 0, 900),
-                ("node_offline", 1, 0, 900),
-                ("job_failed", 1, 0, 1800),
-                ("disk_high", 1, 85, 1800),
-                ("backup_stale", 1, 36, 3600),
-            )
-            await db.executemany(
-                "INSERT OR IGNORE INTO alert_rules(code, enabled, threshold, cooldown_sec, updated_at) VALUES (?, ?, ?, ?, ?)",
-                [(code, enabled, threshold, cooldown, now) for code, enabled, threshold, cooldown in defaults],
-            )
-            await db.commit()
-
+        await run_migrations(
+            self.path,
+            backup_dir=self.migration_backup_dir,
+        )
     async def get(self, telegram_id: int) -> UserRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
