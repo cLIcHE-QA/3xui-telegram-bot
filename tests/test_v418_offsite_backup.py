@@ -185,6 +185,36 @@ class OffsiteBackupTests(unittest.IsolatedAsyncioTestCase):
             self.service.upload_and_verify(renamed)
         self.assertEqual(self.fake.objects, {})
 
+    def test_target_boundary_rejects_unsafe_prefix_and_non_https_endpoint(self):
+        common = dict(
+            bucket="backup-bucket",
+            region="eu-test-1",
+            access_key_id="access",
+            secret_access_key="secret",
+            keep=1,
+            encryption_key_b64=self.key_b64,
+            restore_manager=self.restore,
+            client=self.fake,
+        )
+        with self.assertRaisesRegex(OffsiteBackupError, "prefix"):
+            OffsiteBackupService(
+                prefix="../escape",
+                endpoint_url="https://s3.example.test",
+                **common,
+            )
+        with self.assertRaisesRegex(OffsiteBackupError, "verified HTTPS"):
+            OffsiteBackupService(
+                prefix="prod/master",
+                endpoint_url="http://s3.example.test",
+                **common,
+            )
+        with self.assertRaisesRegex(OffsiteBackupError, "verified HTTPS"):
+            OffsiteBackupService(
+                prefix="prod/master",
+                endpoint_url="https://user:pass@s3.example.test",
+                **common,
+            )
+
     async def test_replication_failure_is_recorded_as_separate_failed_job(self):
         db = Database(str(self.root / "jobs.sqlite3"))
         await db.init()
