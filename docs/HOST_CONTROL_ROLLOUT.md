@@ -106,6 +106,33 @@ https://host-control-fi.example.com:18443
 
 Он принимает соединения только с `--source-ip`.
 
+Для Extended direct-node backup фиксированный каталог nginx configuration задаётся **только локально на target VPS** в отдельном файле, который installer не создаёт и не перезаписывает:
+
+~~~env
+# /etc/3xui-host-control/nginx-snapshot.env
+HOST_CONTROL_AGENT_NGINX_SOURCE=/etc/nginx
+~~~
+
+Выбери фактический каталог конфигурации конкретной ноды, например `/etc/nginx` или deployment-specific `/opt/.../conf`. Каталог должен существовать, быть абсолютным, не быть filesystem root/symlink и быть читаемым непривилегированным пользователем `3xui-hostctl`.
+
+Безопасная локальная настройка после установки/обновления agent:
+
+~~~bash
+sudo install -o root -g root -m 0644 /dev/null /etc/3xui-host-control/nginx-snapshot.env
+sudoedit /etc/3xui-host-control/nginx-snapshot.env
+sudo systemctl restart 3xui-host-control.service
+~~~
+
+Запиши в файл ровно одну локальную переменную `HOST_CONTROL_AGENT_NGINX_SOURCE=<absolute-dir>`. Systemd unit читает его как optional EnvironmentFile. Поэтому обычный повторный installer run обновляет agent/unit, но не выбирает и не перезаписывает source path.
+
+Это значение:
+
+- **не входит** в enrollment file и bot `.env`;
+- не может быть изменено Telegram/Master HTTP request;
+- не превращает endpoint в file browser: agent отдаёт только `GET /v1/snapshots/nginx` без path/query selector.
+
+Если source не настроен или часть файлов недоступна, `x-ui.db` всё равно может быть сохранён, но node snapshot и соответствующий Full Backup явно помечаются как degraded/missing nginx component.
+
 Installer сохраняет source paths сертификата/key в root-only state и включает `3xui-host-control-tls-refresh.timer`. Таймер ежедневно проверяет hostname и соответствие cert/key; если исходный сертификат обновился, копии для restricted proxy заменяются и отдельный proxy reload'ится. Existing nginx/MTProxy при этом не трогается.
 
 Повторный запуск installer с `--apply-ufw` сохраняет managed firewall state. Если management source/destination/port изменились, прежнее exact UFW allow-rule удаляется перед добавлением нового.
@@ -117,6 +144,8 @@ Installer сохраняет source paths сертификата/key в root-onl
 - редактирует существующий MTProxy nginx config;
 - меняет x-ui config;
 - запускает SSH commands из Telegram;
+- принимает arbitrary filesystem path из Telegram/Master;
+- публикует directory listing или general-purpose file read/write API;
 - добавляет wildcard firewall rules;
 - слушает agent на `0.0.0.0`;
 - использует `sudo ALL`;
@@ -147,6 +176,8 @@ Agent должен слушать:
 Master proxy — только private Docker bridge address.
 
 Remote proxy — только конкретный public management IP, не wildcard.
+
+Если настроен `HOST_CONTROL_AGENT_NGINX_SOURCE`, после restart agent проверь его журнал и активность. Сам snapshot через management endpoint проверяется после enrollment штатным bot flow. Не вставляй Bearer token в shell command/history только ради ручной проверки.
 
 ## 5. Проверка без token
 
@@ -243,7 +274,16 @@ cd /opt/3xui-bot/3xui-telegram-bot
 
 ## 8. Smoke-test
 
-Порядок:
+Для release, который меняет Extended direct-node backup, targeted smoke выполняется без service mutation:
+
+1. открыть direct node и создать `Node snapshot`;
+2. проверить, что архив содержит `nodes/<node>/x-ui.db`, `nginx/`, `node.json`, `manifest.json`;
+3. проверить `manifest.json`: stable `node_id/host_id`, component status и checksums;
+4. создать обычный Full Backup и подтвердить тот же node snapshot внутри него;
+5. если nginx source намеренно не настроен, ожидаемый результат — `degraded`, а не ложный complete;
+6. завершить обычным bot/DB/3x-ui health/status-check.
+
+Для Host Control mutations отдельный smoke-порядок остаётся:
 
 1. Status;
 2. Start service при уже running состоянии;
