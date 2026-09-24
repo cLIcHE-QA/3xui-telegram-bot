@@ -65,6 +65,63 @@ nodes/<node>/
 
 В scope v4.x достаточно надёжно сохранять nginx configuration вместе с node DB. Автоматический remote nginx restore и полный bare-metal disaster recovery remote node не являются обязательными целями этой линии. При необходимости nginx bundle должен оставаться доступным для контролируемого ручного восстановления с обязательной локальной валидацией конфигурации перед reload.
 
+#### Safe Bot Self-Update
+
+До завершения v4.x допускается добавить обновление production bot из `/admin`, но только через отдельный ограниченный deploy control plane. Сам Telegram bot container не получает Docker socket, host shell, GitHub deploy key или произвольный host filesystem access.
+
+Целевая схема:
+
+~~~text
+Telegram /admin
+        ↓
+restricted local Deploy Agent
+        ↓
+existing scripts/deploy-release.sh
+        ↓
+Git / Docker Compose / production bot service
+~~~
+
+Security boundary:
+
+- update доступен только `Owner`;
+- Deploy Agent работает вне bot container и переживает recreate самого bot service;
+- agent принимает только ограниченную операцию deployment опубликованного release tag вида `vX.Y.Z`;
+- API не принимает shell command, argv, executable, script path, arbitrary git ref/SHA, Docker arguments, filesystem path или environment overrides;
+- bot container не получает `/var/run/docker.sock` и не хранит GitHub deploy key;
+- deploy repository, service, checkout path и credential paths задаются локально на host и не управляются через Telegram;
+- существующий `scripts/deploy-release.sh` остаётся source of truth для release validation, preflight, backup, deploy и post-checks;
+- автоматический deploy при появлении нового release запрещён; разрешены только обнаружение/уведомление и явное подтверждение Owner;
+- downgrade требует отдельного усиленного подтверждения и никогда не выполняется автоматически;
+- ручной VPS deploy через `scripts/deploy-release.sh vX.Y.Z` сохраняется как break-glass fallback.
+
+Deployment operation должна быть persistent и иметь `operation_id`, потому что во время обновления текущий bot container будет уничтожен и создан заново. Минимальные состояния:
+
+~~~text
+queued
+preflight
+backup
+building
+deploying
+verifying
+success / failed / unknown
+~~~
+
+После старта нового bot container UI должен уметь получить итог операции у Deploy Agent и зафиксировать результат в audit/job history. Потерянный ответ не должен приводить к автоматическому повтору deployment mutation.
+
+Предварительный UI:
+
+~~~text
+/admin → System → Bot Updates
+├─ Current version
+├─ Latest published release
+├─ Release notes
+├─ Preflight
+├─ Update to <version>
+└─ Update history
+~~~
+
+Эта функция не должна превращать Telegram bot или Deploy Agent в remote server/general-purpose host administration interface. Любое будущее расширение за пределы строго фиксированного deployment workflow требует отдельного threat-model review.
+
 Крупные публичные customer-facing workflows не должны размывать scope v4.x. `/admin` остаётся Control Plane.
 
 ### v5.0.0 — Client Portal
