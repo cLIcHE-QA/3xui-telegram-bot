@@ -217,6 +217,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("jobs.manage", "exact", "admin:jobs:backup")
     + _rules("alerts.view", "exact", "admin:alerts", "admin:alerts:check")
     + _rules("alerts.manage", "regex", r"^admin:alerts:toggle:[a-z_]+$", r"^admin:alerts:disk:(80|85|90|95)$", r"^admin:alerts:backup:(24|36|48|72)$")
+    + _rules("restore.manage", "exact", "admin:restore")
     + _rules("restore.manage", "prefix", "admin:restore")
     + _rules("host_control.view", "regex", r"^admin:hostctl:(m|n[1-9][0-9]{0,18})$")
     + _rules("host_control.destructive", "regex", r"^admin:hostctl:(m|n[1-9][0-9]{0,18}):(sp:(ask|run)|stopcancel|xs:(ask|run))$")
