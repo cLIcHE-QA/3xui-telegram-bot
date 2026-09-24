@@ -303,7 +303,8 @@ main() {
     check_upstream_tcp "$current_cid"
 
     printf 'Fetching release metadata...\n'
-    GIT_SSH_COMMAND="ssh -i $SSH_KEY -o IdentitiesOnly=yes" \
+    [[ -f "$SSH_KNOWN_HOSTS" ]] || die "SSH known_hosts not found: $SSH_KNOWN_HOSTS"
+    GIT_SSH_COMMAND="ssh -i $SSH_KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=$SSH_KNOWN_HOSTS" \
         git fetch origin main --tags --prune
 
     tag_sha="$(git rev-parse -q --verify "refs/tags/${release}^{commit}")" || die "release tag not found: $release"
