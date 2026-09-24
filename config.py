@@ -232,6 +232,9 @@ class Settings:
     offsite_backup_secret_access_key: str
     offsite_backup_keep: int
     offsite_backup_encryption_key_b64: str
+    deploy_agent_enabled: bool
+    deploy_agent_url: str
+    deploy_agent_token: str
     node_backup_targets: tuple[NodeBackupTarget, ...]
     host_control_targets: tuple[HostControlTarget, ...]
     master_name: str
@@ -300,6 +303,31 @@ def load_settings() -> Settings:
                     "OFFSITE_BACKUP_ENDPOINT_URL must be an absolute verified HTTPS URL without credentials/query/fragment."
                 )
 
+    deploy_agent_url = os.getenv("DEPLOY_AGENT_URL", "").strip().rstrip("/")
+    deploy_agent_token = os.getenv("DEPLOY_AGENT_TOKEN", "").strip()
+    deploy_agent_enabled = bool(deploy_agent_url or deploy_agent_token)
+    if deploy_agent_enabled:
+        if not deploy_agent_url or not deploy_agent_token:
+            raise RuntimeError(
+                "DEPLOY_AGENT_URL and DEPLOY_AGENT_TOKEN must be configured together."
+            )
+        if len(deploy_agent_token) < 43:
+            raise RuntimeError("DEPLOY_AGENT_TOKEN must contain at least 32 random bytes.")
+        parsed_deploy = urlsplit(deploy_agent_url)
+        if (
+            parsed_deploy.scheme != "http"
+            or not parsed_deploy.hostname
+            or parsed_deploy.username
+            or parsed_deploy.password
+            or parsed_deploy.query
+            or parsed_deploy.fragment
+            or parsed_deploy.path not in {"", "/"}
+            or not _private_http_host(parsed_deploy.hostname)
+        ):
+            raise RuntimeError(
+                "DEPLOY_AGENT_URL must be private/local plain HTTP without credentials/path/query/fragment."
+            )
+
     return Settings(
         bot_token=required["BOT_TOKEN"],
         panel_url=required["PANEL_URL"].rstrip("/"),
@@ -335,6 +363,9 @@ def load_settings() -> Settings:
         offsite_backup_secret_access_key=offsite_secret,
         offsite_backup_keep=max(1, int(os.getenv("OFFSITE_BACKUP_KEEP", "14"))),
         offsite_backup_encryption_key_b64=offsite_key,
+        deploy_agent_enabled=deploy_agent_enabled,
+        deploy_agent_url=deploy_agent_url,
+        deploy_agent_token=deploy_agent_token,
         node_backup_targets=_load_node_backup_targets(),
         host_control_targets=_load_host_control_targets(),
         master_name=os.getenv("MASTER_NAME", "Master").strip() or "Master",
