@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import io
+from pathlib import Path
+import tarfile
+import tempfile
+import threading
 import unittest
 from unittest.mock import AsyncMock, patch
 
@@ -9,6 +14,13 @@ import aiohttp
 from host_control import (
     HostControlClient,
     HostControlError,
+)
+from host_control_agent import (
+    AgentConfig,
+    AgentHTTPServer,
+    HostControlAgent,
+    OperationJournal,
+    ServiceState,
 )
 
 
@@ -206,6 +218,70 @@ class HostControlClientTests(unittest.IsolatedAsyncioTestCase):
     def test_client_exposes_no_generic_command_method(self):
         forbidden = {"shell", "exec", "run_command", "ssh", "read_file", "write_file"}
         self.assertTrue(forbidden.isdisjoint(set(dir(self.client))))
+
+
+
+class SnapshotController:
+    def status(self):
+        return ServiceState("running", "active", "running")
+
+
+class HostControlSnapshotClientTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        root = Path(self.tmp.name)
+        nginx = root / "nginx"
+        nginx.mkdir()
+        (nginx / "nginx.conf").write_text("events {}\n", encoding="utf-8")
+        self.token = "z" * 48
+        config = AgentConfig(
+            host_id="fi",
+            listen_host="127.0.0.1",
+            listen_port=0,
+            token=self.token,
+            db_path=root / "agent.sqlite3",
+            operation_timeout=2.0,
+            nginx_source=nginx,
+        )
+        agent = HostControlAgent(
+            config,
+            journal=OperationJournal(config.db_path),
+            controller=SnapshotController(),
+        )
+        self.server = AgentHTTPServer(("127.0.0.1", 0), agent)
+        self.port = int(self.server.server_address[1])
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.addCleanup(self._close_server)
+
+    def _close_server(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=2)
+
+    async def test_client_downloads_and_validates_fixed_nginx_snapshot(self):
+        client = HostControlClient(
+            f"http://127.0.0.1:{self.port}",
+            self.token,
+            "fi",
+            verify_tls=False,
+        )
+        body = await client.download_nginx_snapshot()
+        with tarfile.open(fileobj=io.BytesIO(body), mode="r:gz") as archive:
+            self.assertIn("nginx.conf", archive.getnames())
+            self.assertIn("_snapshot.json", archive.getnames())
+
+    async def test_client_rejects_wrong_snapshot_host_identity(self):
+        client = HostControlClient(
+            f"http://127.0.0.1:{self.port}",
+            self.token,
+            "master",
+            verify_tls=False,
+        )
+        with self.assertRaises(HostControlError) as ctx:
+            await client.download_nginx_snapshot()
+        self.assertEqual(ctx.exception.code, "host_id_mismatch")
 
 
 if __name__ == "__main__":
