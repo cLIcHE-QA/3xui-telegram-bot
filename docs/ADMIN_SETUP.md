@@ -19,6 +19,7 @@ Master VPS
 ├─ 3x-ui (native systemd: x-ui.service)
 ├─ Telegram bot (Docker Compose)
 ├─ Host Control Agent + restricted local proxy
+├─ Safe Bot Self-Update Deploy Agent (v4.19+, host systemd)
 └─ Full Backup
    ├─ bot.sqlite3
    ├─ Master x-ui.db
@@ -213,6 +214,10 @@ OFFSITE_BACKUP_SECRET_ACCESS_KEY=
 OFFSITE_BACKUP_KEEP=14
 OFFSITE_BACKUP_ENCRYPTION_KEY_B64=
 
+# Optional until the v4.19+ host-side Deploy Agent is installed.
+DEPLOY_AGENT_URL=
+DEPLOY_AGENT_TOKEN=
+
 MASTER_NAME=Master
 MASTER_FLAG=🇳🇱
 
@@ -298,7 +303,7 @@ ok
 
 - Container: running;
 - RestartCount=0;
-- Bot version: 4.15.0;
+- Bot version: соответствует установленному release;
 - Health: ok;
 - DB: ok;
 - 3x-ui connectivity: ok.
@@ -371,6 +376,45 @@ Agent должен слушать только 127.0.0.1:18181, а Master proxy 
 ~~~bash
 sudo rm -f /root/3xui-host-control-master.env
 ~~~
+
+## 8A. Safe Bot Self-Update Deploy Agent на Master
+
+Начиная с v4.19 bot может обновлять сам себя только через отдельный restricted Deploy Agent. Первый v4.19 release по-прежнему устанавливается вручную через `scripts/deploy-release.sh`; затем host-side agent подключается отдельно.
+
+Deploy Agent не является расширением Host Control Agent. Это отдельный privilege domain:
+
+- отдельный system user `3xui-deploy`;
+- отдельный bearer token;
+- отдельный persistent journal;
+- отдельная root-owned helper boundary;
+- отдельная root-only копия read-only Git deploy key и SSH known_hosts;
+- только published tag `vX.Y.Z`;
+- никаких shell/argv/path/env полей из Telegram.
+
+После ручного deploy v4.19:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+sudo ./scripts/install-deploy-agent.sh
+~~~
+
+Проверка:
+
+~~~bash
+systemctl is-enabled 3xui-deploy-agent.service
+systemctl is-active 3xui-deploy-agent.service
+~~~
+
+Token хранится в `/etc/3xui-deploy-agent/token` и не печатается installer-ом. Его нужно перенести в production `.env` локально, не через Telegram/chat:
+
+~~~env
+DEPLOY_AGENT_URL=http://172.19.0.1:18184
+DEPLOY_AGENT_TOKEN=<dedicated-agent-token>
+~~~
+
+После изменения `.env` validate Compose и recreate только bot service. Затем `/admin → System → Bot Updates` должен показывать текущий production release и latest published release.
+
+Полный security/recovery/install contract: [Safe Bot Self-Update](BOT_SELF_UPDATE.md).
 
 ## 9. Подготовь direct node
 
