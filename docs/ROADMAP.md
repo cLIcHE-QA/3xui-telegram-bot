@@ -165,7 +165,9 @@ success / failed / unknown
 
 ##### Версионные миграции SQLite
 
-Текущую эволюцию схемы через `CREATE TABLE IF NOT EXISTS` необходимо дополнить явной системой версионных миграций до того, как v5.x начнёт добавлять customer accounts, orders, entitlements и payment lifecycle.
+**Статус: 🟡 Реализовано в `main`; ожидает публикации runtime release.**
+
+Versioned migration framework уже слит в `main`: `schema_migrations` хранит journal/version, migrations выполняются только вперёд, dangerous steps требуют проверенную recovery copy, а `running`/`failed`/newer schema блокируют startup fail-closed. До публикации соответствующего runtime release пункт не переводится в `✅`.
 
 Минимальный контракт:
 
