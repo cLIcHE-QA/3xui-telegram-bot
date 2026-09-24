@@ -36,7 +36,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v4.15.0. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v4.16.0. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -132,7 +132,7 @@ git clone git@github.com:cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v4.15.0
+git checkout --detach v4.16.0
 ~~~
 
 Проверка release:
