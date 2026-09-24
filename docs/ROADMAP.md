@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Этот документ фиксирует предварительное направление развития проекта после `v4.13.1`.
+Этот документ фиксирует предварительное направление развития проекта после `v4.13.2`.
 
 Roadmap задаёт границы крупных продуктовых этапов, но не заменяет release-specific scope: перед каждым релизом конкретный набор изменений всё равно фиксируется отдельным feature/fix/release PR.
 
@@ -142,7 +142,7 @@ success / failed / unknown
 
 ##### Host Control startup recovery
 
-**Статус: 🟡 Реализовано в `main`; выпуск ожидается в `v4.13.2`.**
+**Статус: ✅ Выполнено в `v4.13.2`.**
 
 В коде уже существует read-only recovery незавершённых Host Control jobs через `recover_control_jobs()`, но startup path бота должен явно вызывать этот recovery до начала обычной обработки Telegram updates.
 
@@ -230,7 +230,7 @@ Roadmap не задаёт искусственный глобальный про
 1. `RBAC / Roles & Privileges catalog`;
 2. `Extended direct-node backup`;
 3. `Safe Bot Self-Update`;
-4. Host Control startup recovery — 🟡 реализовано в `main`, ожидается `v4.13.2`;
+4. Host Control startup recovery — ✅ выполнено в `v4.13.2`;
 5. versioned SQLite migrations;
 6. расширенный regression coverage критических admin/business/recovery путей;
 7. off-site backup и проверяемый restore path;
