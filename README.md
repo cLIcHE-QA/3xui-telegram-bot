@@ -1,10 +1,10 @@
-# Telegram-бот для 3x-ui v4.15.0
+# Telegram-бот для 3x-ui v4.16.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
-**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.15.0`. Будущая client-facing часть будет документироваться отдельно.
+**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.16.0`. Будущая client-facing часть будет документироваться отдельно.
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
@@ -15,6 +15,22 @@
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.16.0 — Regression coverage hardening
+
+Релиз закрывает pre-v5 gate по regression coverage критических административных и backend-путей. Новые tests фиксируют state transitions, failure semantics, idempotency и authorization boundaries для Payments/Promo/Plans/Server Groups, user lifecycle, provisioning, subscription proxy, inbound mutations и disaster recovery.
+
+В ходе hardening найден и исправлен RBAC drift для per-user provisioning: `Safe reconcile` соответствует роли `Support`, а `Strict reconcile` остаётся `Administrator`. Схема SQLite, 3x-ui API и Host Control API не меняются.
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.16.0
+./scripts/deploy-release.sh --status
+~~~
+
+После deploy targeted smoke должен подтвердить обычные health/DB/3x-ui checks и read-only privilege mapping: `admin:u:provrun:<id>:safe → support`, `admin:u:provrun:<id>:strict → admin`.
 
 ## v4.15.0 — Versioned SQLite migrations
 
