@@ -32,11 +32,13 @@ cd /opt/3xui-bot/3xui-telegram-bot
 ./scripts/deploy-release.sh --status
 ~~~
 
-После deploy targeted smoke должен подтвердить обычные health/DB/3x-ui checks и встроенный contract checker:
+После deploy targeted smoke должен подтвердить обычные health/DB/3x-ui checks и host-side contract checker из release checkout:
 
 ~~~bash
-docker compose exec -T bot python3 scripts/check-3xui-openapi-contract.py
+python3 scripts/check-3xui-openapi-contract.py
 ~~~
+
+Checker запускается на host из repository checkout: каталог `scripts/` исключён из Docker image через `.dockerignore`, поэтому эту проверку не нужно выполнять через `docker compose exec`.
 
 ## v4.16.0 — Regression coverage hardening
 
