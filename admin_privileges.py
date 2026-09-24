@@ -231,7 +231,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("versions.view", "regex", r"^admin:ver:(target|panel):(m|n[1-9][0-9]{0,18})$", r"^admin:ver:xray:(m|n[1-9][0-9]{0,18}):[0-9]+$", r"^admin:ver:check:[0-9a-f]{16}$")
     + _rules("versions.manage", "regex", r"^admin:ver:prepare:(m|n[1-9][0-9]{0,18}):panel$", r"^admin:ver:pick:(m|n[1-9][0-9]{0,18}):[A-Za-z0-9.-]+$", r"^admin:ver:(run|cancel):[0-9a-f]{16}$")
     + _rules("versions.unlock", "regex", r"^admin:ver:unlock:[0-9a-f]{16}$")
-    + _rules("bot_updates.manage", "exact", "admin:botupd", "admin:botupd:history")
+    + _rules("bot_updates.manage", "exact", "admin:botupd", "admin:botupd:history", "admin:botupd:choose")
     + _rules(
         "bot_updates.manage",
         "regex",
