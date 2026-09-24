@@ -1,10 +1,10 @@
-# Telegram-бот для 3x-ui v4.14.1
+# Telegram-бот для 3x-ui v4.14.2
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
-**Новая установка с нуля:** [Quick Start — Master + direct nodes](docs/QUICK_START.md). Он покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.14.1`.
+**Новая установка с нуля:** [Quick Start — Master + direct nodes](docs/QUICK_START.md). Он покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.14.2`.
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
@@ -15,6 +15,22 @@
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.14.2 — Исправление guided onboarding direct node
+
+Patch-релиз исправляет `scripts/onboard-direct-node.sh bind`: параметры direct-admin и Host Control enrollment теперь корректно разбираются и доходят до штатных preflight/import helpers. Добавлен исполняемый regression test на реальный argument parsing.
+
+Security boundary не меняется: три privilege domain остаются раздельными, stable `node_id` binding обязателен, а bot service по-прежнему пересоздаётся только один раз после успешных preflight.
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.14.2
+./scripts/deploy-release.sh --status
+~~~
+
+Для новой direct node после обновления рекомендуется guided flow из [Quick Start](docs/QUICK_START.md).
 
 ## v4.14.1 — Исправление Host Control snapshot rollout
 
