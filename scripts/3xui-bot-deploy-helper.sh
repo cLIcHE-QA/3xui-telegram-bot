@@ -161,13 +161,21 @@ preflight_cmd() {
 notes_cmd() {
     local release="$1"
     validate_release "$release" >/dev/null
-    local changelog
+    local changelog notes
     changelog="$(git show "$release:CHANGELOG.md" 2>/dev/null)" || die "release_notes_failed"
-    printf '%s\n' "$changelog" | awk -v heading="## $release" '
-        index($0, heading) == 1 {capture=1}
-        capture && index($0, "## ") == 1 && index($0, heading) != 1 {exit}
-        capture {print}
-    ' | head -n 120
+    notes="$(
+        printf '%s\n' "$changelog" | awk -v heading="## $release" '
+            index($0, heading) == 1 {capture=1}
+            capture && index($0, "## ") == 1 && index($0, heading) != 1 {exit}
+            capture {
+                print
+                count += 1
+                if (count >= 120) exit
+            }
+        '
+    )"
+    [[ -n "$notes" ]] || die "release_notes_missing"
+    printf '%s\n' "$notes"
 }
 
 deploy_cmd() {
