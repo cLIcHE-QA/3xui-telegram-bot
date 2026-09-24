@@ -47,10 +47,14 @@ SQLite-копии проходят `PRAGMA quick_check`. Для PostgreSQL `.dum
 
 ## Контракты API и ограничения
 
-Реализация сверена с коммитом MHSanaei/3x-ui `95f19b192f477b59cc368dcb7751bcf2e0180e5b`:
+Поддерживаемый panel API теперь фиксируется машинно через pinned OpenAPI contract 3x-ui `v3.8.5`:
 
-- [Серверный контроллер](https://github.com/MHSanaei/3x-ui/blob/95f19b192f477b59cc368dcb7751bcf2e0180e5b/internal/web/controller/server.go).
-- [Сервис обновления панели](https://github.com/MHSanaei/3x-ui/blob/95f19b192f477b59cc368dcb7751bcf2e0180e5b/internal/web/service/panel/panel.go).
+- manifest: `contracts/3xui/contract.json`;
+- vendored schema: `contracts/3xui/v3.8.5/openapi.json`;
+- checker: `python3 scripts/check-3xui-openapi-contract.py`;
+- подробный upgrade/exception contract: `docs/3XUI_OPENAPI_CONTRACT.md`.
+
+CI сопоставляет OpenAPI с фактическими `/panel/api/...` routes в `xui.py` и `version_api.py`. Изменение route/method, request media type, mandatory fields, response envelope или добавление нового undeclared route блокирует merge до явного обновления contract. Runtime не выбирает неизвестную schema автоматически.
 
 `GET /panel/api/server/getPanelUpdateInfo` возвращает версии панели.
 
