@@ -315,8 +315,14 @@ class HostControlSnapshotClientTests(unittest.IsolatedAsyncioTestCase):
             def get(self, *args, **kwargs):
                 return FakeResponse()
 
+        client = HostControlClient(
+            "https://host-control.example.invalid",
+            "secret-token",
+            "fi",
+            verify_tls=True,
+        )
         with patch("host_control.aiohttp.ClientSession", FakeSession):
-            result = await self.client.download_nginx_snapshot()
+            result = await client.download_nginx_snapshot()
 
         self.assertEqual(result, body)
 
