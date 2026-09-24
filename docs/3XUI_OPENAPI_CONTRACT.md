@@ -77,6 +77,8 @@ Bot продолжает использовать только явно реал
 
 ## Локальная проверка
 
+Проверка запускается из repository checkout на host/CI runner. Каталог `scripts/` намеренно исключён из production Docker image через `.dockerignore`, поэтому checker не является runtime-командой контейнера.
+
 ~~~bash
 python3 scripts/check-3xui-openapi-contract.py
 python -m unittest tests.test_v417_openapi_contract -v
