@@ -80,6 +80,7 @@ PRIVILEGES: tuple[Privilege, ...] = (
     Privilege("versions.view", "Versions & Updates: просмотр", "read_only"),
     Privilege("versions.manage", "Versions & Updates: установка", "admin"),
     Privilege("versions.unlock", "Versions & Updates: uncertain unlock", "owner"),
+    Privilege("bot_updates.manage", "Bot Updates: published release deployment", "owner"),
     Privilege("legacy.manage", "Legacy admin compatibility routes", "admin"),
 )
 
@@ -230,6 +231,13 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("versions.view", "regex", r"^admin:ver:(target|panel):(m|n[1-9][0-9]{0,18})$", r"^admin:ver:xray:(m|n[1-9][0-9]{0,18}):[0-9]+$", r"^admin:ver:check:[0-9a-f]{16}$")
     + _rules("versions.manage", "regex", r"^admin:ver:prepare:(m|n[1-9][0-9]{0,18}):panel$", r"^admin:ver:pick:(m|n[1-9][0-9]{0,18}):[A-Za-z0-9.-]+$", r"^admin:ver:(run|cancel):[0-9a-f]{16}$")
     + _rules("versions.unlock", "regex", r"^admin:ver:unlock:[0-9a-f]{16}$")
+    + _rules("bot_updates.manage", "exact", "admin:botupd", "admin:botupd:history")
+    + _rules(
+        "bot_updates.manage",
+        "regex",
+        r"^admin:botupd:(pre|run|down):v[0-9]+\.[0-9]+\.[0-9]+$",
+        r"^admin:botupd:op:[0-9a-f]{32}$",
+    )
     # Explicit route declarations below intentionally mirror router filters.
     # They make CI fail when a new admin route appears without a catalog entry,
     # even when an older broader runtime rule would otherwise happen to match it.
