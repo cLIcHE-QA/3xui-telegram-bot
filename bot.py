@@ -2449,10 +2449,19 @@ async def automatic_backup_loop(bot: Bot):
             logging.exception("Automatic backup failed")
 
 
+async def _recover_deploy_after_health() -> None:
+    recovered = await reconcile_deploy_jobs(wait_seconds=60)
+    if recovered:
+        logging.warning(
+            "Recovered %d interrupted bot deployment jobs after health startup without mutation replay",
+            recovered,
+        )
+
+
 async def main():
     configure_logging()
     await db.init()
-    recovered_deploy = await reconcile_deploy_jobs(wait_seconds=45)
+    recovered_deploy = await reconcile_deploy_jobs(wait_seconds=0)
     if recovered_deploy:
         logging.warning(
             "Recovered %d interrupted bot deployment jobs without mutation replay",
@@ -2480,6 +2489,10 @@ async def main():
         port=settings.subscription_proxy_port,
     )
     await proxy.start()
+    deploy_recovery_task = (
+        asyncio.create_task(_recover_deploy_after_health())
+        if settings.deploy_agent_enabled else None
+    )
 
     bot = Bot(settings.bot_token)
     await send_boot_restore_notice(bot)
@@ -2506,10 +2519,10 @@ async def main():
     try:
         await dp.start_polling(bot)
     finally:
-        for task in (backup_task, alert_task):
+        for task in (backup_task, alert_task, deploy_recovery_task):
             if task:
                 task.cancel()
-        for task in (backup_task, alert_task):
+        for task in (backup_task, alert_task, deploy_recovery_task):
             if task:
                 try:
                     await task
