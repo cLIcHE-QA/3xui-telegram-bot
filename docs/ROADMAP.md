@@ -195,6 +195,22 @@ Roadmap не задаёт искусственный глобальный про
 
 Конкретная реализация может использовать S3-compatible object storage, отдельный backup host или другой ограниченный transport, но Telegram/Admin UI не должен получать arbitrary remote filesystem access.
 
+##### 3x-ui API compatibility / OpenAPI contract gate
+
+Современный 3x-ui публикует OpenAPI-схему, поэтому совместимость с upstream API до v5 должна проверяться машинно, а не только ручными smoke tests.
+
+Минимальный контракт:
+
+- поддерживаемая версия 3x-ui и используемая OpenAPI schema фиксируются явно;
+- CI проверяет наличие и сигнатуры критических endpoints, на которые опираются `XUIClient`, Versions & Updates, provisioning, node operations и subscription proxy;
+- удаление/переименование endpoint, изменение HTTP method или несовместимое изменение обязательных request/response fields должно падать в CI до merge;
+- проверка должна быть fail-closed и не маскировать несовместимость fallback-логикой;
+- generated client не является обязательным условием первого этапа: допустимо начать с contract tests поверх текущего `xui.py`;
+- в дальнейшем допускается генерация DTO/models из OpenAPI, если это уменьшает ручной drift без ухудшения auditability;
+- runtime не должен автоматически переключаться на неизвестную API-схему только потому, что endpoint отвечает.
+
+Этот gate нужен именно как защита от тихой несовместимости после обновления 3x-ui и не заменяет integration tests против реального поддерживаемого release.
+
 ##### Gate перед открытием Client Portal
 
 Переход к `v5.0.0` предполагает закрытие следующего набора v4.x работ:
@@ -205,7 +221,8 @@ Roadmap не задаёт искусственный глобальный про
 4. Host Control startup recovery;
 5. versioned SQLite migrations;
 6. расширенный regression coverage критических admin/business/recovery путей;
-7. off-site backup и проверяемый restore path.
+7. off-site backup и проверяемый restore path;
+8. 3x-ui API compatibility / OpenAPI contract gate.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -354,6 +371,73 @@ Provisioning / reconcile
 Subscription available
 ~~~
 
+### Order / Payment / Entitlement state machine
+
+Commerce flow должен иметь явные persistent states, а не выводить состояние покупки из Telegram message history или набора loosely-related flags.
+
+Минимальная модель должна различать как минимум:
+
+~~~text
+order:
+created
+awaiting_payment
+paid
+cancelled
+expired
+
+payment:
+created
+pending
+confirmed
+failed
+refunded
+unknown
+
+entitlement:
+pending
+provisioning
+active
+suspended
+expired
+failed
+~~~
+
+Допустимые переходы фиксируются backend-ом. Telegram UI только запрашивает текущее состояние и инициирует разрешённые команды.
+
+Критические правила:
+
+- подтверждение оплаты сначала надёжно записывается как provider event/payment state и только потом влияет на entitlement;
+- `confirmed payment → entitlement/provisioning` выполняется идемпотентно;
+- временный provisioning failure не откатывает факт успешной оплаты;
+- повторный запуск reconcile не должен создавать второй entitlement или менять subscription identity без отдельной причины;
+- `unknown` используется там, где внешний provider мог принять mutation, но итог невозможно доказать;
+- ручная коррекция финансовых состояний доступна только через audit-friendly административный workflow.
+
+### Payment provider webhook journal
+
+Для каждого внешнего payment event хранится immutable/minimally-mutable journal record.
+
+Минимальные данные:
+
+- provider;
+- provider event/payment identifier;
+- received timestamp;
+- signature/authentication result;
+- normalized event type;
+- raw payload hash и безопасный диагностический metadata subset;
+- processing status;
+- связанный order/payment;
+- applied timestamp/result.
+
+Требования:
+
+- уникальность provider event ID защищает от повторного применения одного события;
+- повторный webhook после успешной обработки возвращает корректный idempotent результат, но не продлевает entitlement повторно;
+- невалидная подпись никогда не изменяет финансовое состояние;
+- webhook handler не доверяет Telegram callback state;
+- ошибка после записи события, но до provisioning, должна быть recoverable через journal/reconcile;
+- секреты provider-а и полный sensitive payload не выводятся в audit/UI/logs.
+
 Ключевые требования:
 
 - payment events идемпотентны;
@@ -403,6 +487,21 @@ Subscription available
 - revoke/unlink;
 - device-specific onboarding/deep-link.
 
+## Client onboarding / connection UX
+
+Первый Client Portal должен уменьшать зависимость от ручной поддержки при подключении устройства.
+
+Базовый UX:
+
+- platform selection: iOS / Android / Windows / macOS / Linux;
+- QR для subscription URL там, где это уместно;
+- deep-link / import-link только если формат клиента стабилен и безопасен;
+- короткие инструкции для поддерживаемых клиентов без привязки backend logic к конкретному приложению;
+- read-only диагностика: entitlement active, subscription reachable, provisioning/reconcile state, известные ограничения;
+- rotation/reissue credentials выполняется отдельной явной операцией и не маскируется под обычный refresh.
+
+Roadmap не требует device registration в первой версии. Наблюдаемый IP/session не должен называться физическим устройством без надёжной device identity.
+
 ## 🆘 Помощь
 
 Подразделы:
@@ -449,6 +548,29 @@ Plan → Server Group → Nodes → Inbounds
 ~~~
 
 Административный UI использует те же backend primitives для диагностики и управления, но customer flow не вызывает административные callbacks.
+
+## Observability и внешние интеграции после стабилизации v5
+
+После стабилизации customer/domain model допускается отдельный этап внешних интеграций:
+
+- read-only metrics endpoint для Prometheus-compatible collection;
+- scoped service/API tokens;
+- signed outgoing webhooks для событий subscription/payment/provisioning;
+- documented API для внешних систем.
+
+Эти интерфейсы не должны становиться источником обхода существующих RBAC, ownership и mutation safety rules.
+
+### Явно вне архитектуры control plane
+
+Даже при расширении observability/automation следующие возможности не считаются целями проекта:
+
+- arbitrary remote shell/terminal;
+- generic command runner;
+- произвольный script execution из Telegram;
+- передача arbitrary filesystem path/unit name/Docker arguments;
+- автоматический retry state-changing host/deploy/update operations после uncertain outcome.
+
+Если когда-либо понадобится отдельный automation executor шире текущих restricted agents, это требует отдельного threat-model review и нового privilege domain, а не расширения существующего Host Control Agent.
 
 ## Что предварительно не является top-level разделом v5.0.0
 
