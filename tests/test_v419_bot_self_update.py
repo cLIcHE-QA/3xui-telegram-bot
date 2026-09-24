@@ -226,7 +226,7 @@ class DeployAgentSecurityContractTests(unittest.TestCase):
         text = HELPER.read_text(encoding="utf-8")
         for command in ["status)", "latest)", "preflight)", "notes)", "deploy)"]:
             self.assertIn(command, text)
-        for forbidden in ["eval ", "bash -c", "sh -c", "source "$", "exec "$"]:
+        for forbidden in ["eval ", "bash -c", "sh -c", "source $", "exec $"]:
             self.assertNotIn(forbidden, text)
         self.assertIn("RELEASE_RE=", text)
         self.assertIn('EXPECTED_REPOSITORY="cLIcHE-QA/3xui-telegram-bot"', text)
