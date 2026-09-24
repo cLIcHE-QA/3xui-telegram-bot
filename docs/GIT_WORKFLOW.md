@@ -146,6 +146,8 @@ Issue должен содержать факты, expected/actual behavior и ac
 5. Проверить изменения и результаты CI, затем выполнить слияние.
 6. Для релиза подготовить и слить отдельный release-prep PR с новым `APP_VERSION` и разделом `CHANGELOG.md`.
 7. После зелёного `Python checks` на `main` tag и GitHub Release создаёт `.github/workflows/release.yml`. Вручную tag/Release не создаются.
+8. После публикации runtime-релиза выполняется controlled production deployment по опубликованному tag.
+9. После deployment выполняется отдельная post-deploy verification; только после неё runtime-релиз считается operationally closed и можно переходить к следующей runtime-задаче.
 
 Исторические теги до `v4.8.0` восстановлены по сохранённым снимкам релизов при миграции проекта в Git.
 
@@ -166,6 +168,20 @@ Issue должен содержать факты, expected/actual behavior и ac
 Если release metadata оформлены неверно, исправляется CHANGELOG/renderer/automation и синхронизируется только metadata Release. Tag не force-move.
 
 Развёртывание на VPS выполняется отдельно от слияния PR и публикации релиза.
+
+## Закрытие runtime-релиза после публикации
+
+Для runtime-релизов различаются три отдельных факта:
+
+1. **Published** — tag и GitHub Release опубликованы штатным workflow;
+2. **Deployed** — production VPS обновлён именно на опубликованный tag через `scripts/deploy-release.sh`;
+3. **Verified** — после deployment подтверждены version/tag, container health, SQLite quick check, upstream 3x-ui connectivity и отсутствие неожиданного restart loop.
+
+Публикация GitHub Release сама по себе не закрывает operational часть релиза.
+
+При интерактивной работе с оператором production update проводится пошагово: агент даёт **одну команду за раз**, оператор присылает полный вывод, агент проверяет его и только после этого даёт следующую команду. Не следует отправлять оператору длинный набор state-changing и verification-команд одной простынёй.
+
+Если очередная проверка не проходит, следующий state-changing шаг не выполняется до разбора результата.
 
 ## Развёртывание опубликованного релиза на VPS
 

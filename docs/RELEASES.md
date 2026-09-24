@@ -109,17 +109,31 @@ Workflow должен остановиться, а не угадывать, ес
 
 ## Production
 
-Публикация GitHub Release и production deployment — разные операции.
+Публикация GitHub Release, production deployment и post-deploy verification — три разные стадии.
 
 Release workflow никогда не подключается к VPS и не запускает deploy.
 
-После опубликованного release production обновляется отдельно:
+После опубликованного runtime-release production обновляется отдельно через `scripts/deploy-release.sh`. После успешного deploy обязательно выполняется отдельная проверка `--status` и анализ её результата.
+
+Минимальный acceptance для operational closure:
+
+- production checkout/container соответствует опубликованному tag/version;
+- container запущен без неожиданного restart loop;
+- `/healthz` возвращает `ok`;
+- SQLite `PRAGMA quick_check` проходит;
+- TCP-доступ к upstream 3x-ui проходит;
+- Docker subnet соответствует ожидаемому;
+- deployment helper завершил обновление без uncertain/partial состояния.
+
+В интерактивной сессии команды deployment/verification выдаются оператору по одной: команда → полный вывод → проверка → следующая команда. Это уменьшает риск продолжить deployment после уже возникшей ошибки и сохраняет понятный audit trail диалога.
+
+После опубликованного release обычная последовательность начинается так:
 
 ~~~bash
 cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh vX.Y.Z
-./scripts/deploy-release.sh --status
 ~~~
+
+Дальнейшая команда выдаётся только после проверки результата предыдущего шага.
 
 ## Для новых чатов/сессий
 
