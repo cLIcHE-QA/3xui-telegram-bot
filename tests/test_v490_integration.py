@@ -65,6 +65,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
             'bot.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
             'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
+            'fleet_operations.py',
         ]
 
         def marked(label: str) -> bool:
@@ -142,6 +143,14 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(required_role_for_callback('admin:hostctl:n2:xs:run'), 'owner')
         self.assertEqual(required_role_for_callback('admin:hostctl:m:sp:ask'), 'owner')
         self.assertEqual(required_role_for_callback('admin:hostctl:n2:stopcancel'), 'owner')
+        for data in ['admin:fleet', 'admin:fleet:health', 'admin:fleet:jobs']:
+            self.assertEqual(required_role_for_callback(data), 'read_only', data)
+        for data in [
+            'admin:fleet:mt:e', 'admin:fleet:mt:e:n2',
+            'admin:fleet:rollout', 'admin:fleet:ro:p',
+            'admin:fleet:run:012345abcdef:canary',
+        ]:
+            self.assertEqual(required_role_for_callback(data), 'admin', data)
 
     def test_callback_data_fits_telegram_byte_limit(self):
         key = 'n' + '9' * 19
@@ -168,6 +177,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
     def test_router_registered_and_master_shows_panel_version(self):
         self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.bot.main))
+        self.assertIn('dp.include_router(fleet_router)', inspect.getsource(self.bot.main))
         self.assertIn('get_panel_update_info', inspect.getsource(self.bot.admin_master_detail))
         self.assertIn('3x-ui:', inspect.getsource(self.bot.admin_master_detail))
 
