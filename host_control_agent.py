@@ -5,9 +5,11 @@ This process is intentionally NOT a shell gateway. It exposes only:
 - GET /v1/status
 - POST /v1/actions with action=start|stop|restart
 - GET /v1/operations/<operation_id>
+- GET /v1/snapshots/nginx
 
 The managed systemd unit is hard-coded as x-ui.service. Request data is never
-interpolated into an OS command.
+interpolated into an OS command. The nginx snapshot endpoint has no path
+parameter and can read only one locally configured source directory.
 """
 from __future__ import annotations
 
@@ -15,7 +17,9 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import hashlib
 import hmac
+import io
 import json
 import os
 from pathlib import Path
@@ -23,13 +27,14 @@ import re
 import sqlite3
 import stat
 import subprocess
+import tarfile
 import threading
 import time
 from typing import Callable
 from urllib.parse import urlsplit
 
 
-AGENT_VERSION = "0.1.0"
+AGENT_VERSION = "0.2.0"
 SCHEMA_VERSION = 1
 SERVICE = "x-ui.service"
 SYSTEMCTL = "/usr/bin/systemctl"
@@ -38,6 +43,9 @@ ALLOWED_ACTIONS = frozenset({"start", "stop", "restart"})
 OPERATION_ID_RE = re.compile(r"[0-9a-f]{32}\Z")
 HOST_ID_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,31}\Z")
 MAX_BODY_BYTES = 4096
+MAX_NGINX_SNAPSHOT_BYTES = 8 * 1024 * 1024
+MAX_NGINX_SNAPSHOT_FILES = 512
+NGINX_SNAPSHOT_ROUTE = "/v1/snapshots/nginx"
 DEFAULT_LISTEN = "127.0.0.1:18181"
 DEFAULT_TIMEOUT = 20.0
 
@@ -58,6 +66,7 @@ class AgentConfig:
     token: str
     db_path: Path
     operation_timeout: float
+    nginx_source: Path | None = None
 
     @classmethod
     def from_env(cls) -> "AgentConfig":
@@ -113,6 +122,24 @@ class AgentConfig:
             )
         )
 
+        nginx_source: Path | None = None
+        nginx_source_text = os.environ.get("HOST_CONTROL_AGENT_NGINX_SOURCE", "").strip()
+        if nginx_source_text:
+            candidate = Path(nginx_source_text)
+            if not candidate.is_absolute() or candidate == Path("/"):
+                raise AgentConfigError(
+                    "HOST_CONTROL_AGENT_NGINX_SOURCE must be an absolute non-root directory."
+                )
+            if candidate.is_symlink():
+                raise AgentConfigError("HOST_CONTROL_AGENT_NGINX_SOURCE must not be a symlink.")
+            try:
+                resolved = candidate.resolve(strict=True)
+            except OSError as exc:
+                raise AgentConfigError("HOST_CONTROL_AGENT_NGINX_SOURCE is unavailable.") from exc
+            if not resolved.is_dir():
+                raise AgentConfigError("HOST_CONTROL_AGENT_NGINX_SOURCE must be a directory.")
+            nginx_source = resolved
+
         timeout_text = os.environ.get(
             "HOST_CONTROL_AGENT_OPERATION_TIMEOUT",
             str(DEFAULT_TIMEOUT),
@@ -131,6 +158,7 @@ class AgentConfig:
             token=token,
             db_path=db_path,
             operation_timeout=operation_timeout,
+            nginx_source=nginx_source,
         )
 
 
@@ -469,6 +497,111 @@ class HostControlAgent:
         )
         return payload
 
+    def nginx_snapshot(self) -> tuple[int, dict[str, object], bytes | None]:
+        root = self.config.nginx_source
+        if root is None:
+            return HTTPStatus.NOT_FOUND, {"error": "nginx_snapshot_unconfigured"}, None
+        try:
+            resolved_root = root.resolve(strict=True)
+        except OSError:
+            return HTTPStatus.SERVICE_UNAVAILABLE, {"error": "nginx_snapshot_unavailable"}, None
+        if root.is_symlink() or not resolved_root.is_dir():
+            return HTTPStatus.SERVICE_UNAVAILABLE, {"error": "nginx_snapshot_unavailable"}, None
+
+        files: list[tuple[str, bytes, str]] = []
+        skipped: list[dict[str, str]] = []
+        total_bytes = 0
+
+        try:
+            for dirpath, dirnames, filenames in os.walk(resolved_root, topdown=True, followlinks=False):
+                current = Path(dirpath)
+                kept_dirs: list[str] = []
+                for dirname in sorted(dirnames):
+                    candidate = current / dirname
+                    if candidate.is_symlink():
+                        rel = candidate.relative_to(resolved_root).as_posix()
+                        skipped.append({"path": rel, "reason": "symlink_directory"})
+                    else:
+                        kept_dirs.append(dirname)
+                dirnames[:] = kept_dirs
+
+                for filename in sorted(filenames):
+                    candidate = current / filename
+                    rel_path = candidate.relative_to(resolved_root)
+                    if rel_path.is_absolute() or ".." in rel_path.parts:
+                        skipped.append({"path": rel_path.as_posix(), "reason": "unsafe_path"})
+                        continue
+
+                    source = candidate
+                    if candidate.is_symlink():
+                        try:
+                            source = candidate.resolve(strict=True)
+                            source.relative_to(resolved_root)
+                        except (OSError, ValueError):
+                            skipped.append({"path": rel_path.as_posix(), "reason": "external_symlink"})
+                            continue
+                        if not source.is_file():
+                            skipped.append({"path": rel_path.as_posix(), "reason": "symlink_not_file"})
+                            continue
+                    else:
+                        try:
+                            file_stat = candidate.stat()
+                        except OSError:
+                            skipped.append({"path": rel_path.as_posix(), "reason": "stat_failed"})
+                            continue
+                        if not stat.S_ISREG(file_stat.st_mode):
+                            skipped.append({"path": rel_path.as_posix(), "reason": "not_regular_file"})
+                            continue
+
+                    try:
+                        data = source.read_bytes()
+                    except OSError:
+                        skipped.append({"path": rel_path.as_posix(), "reason": "read_failed"})
+                        continue
+
+                    if len(files) + 1 > MAX_NGINX_SNAPSHOT_FILES:
+                        return HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "nginx_snapshot_too_many_files"}, None
+                    if total_bytes + len(data) > MAX_NGINX_SNAPSHOT_BYTES:
+                        return HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "nginx_snapshot_too_large"}, None
+
+                    digest = hashlib.sha256(data).hexdigest()
+                    files.append((rel_path.as_posix(), data, digest))
+                    total_bytes += len(data)
+        except OSError:
+            return HTTPStatus.SERVICE_UNAVAILABLE, {"error": "nginx_snapshot_unavailable"}, None
+
+        metadata: dict[str, object] = {
+            "schema": SCHEMA_VERSION,
+            "host_id": self.config.host_id,
+            "component": "nginx",
+            "created_at_utc": utc_now(),
+            "complete": bool(files) and not skipped,
+            "files": [
+                {"path": name, "bytes": len(data), "sha256": digest}
+                for name, data, digest in files
+            ],
+            "skipped": skipped,
+        }
+
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+            for name, data, _digest in files:
+                info = tarfile.TarInfo(name=name)
+                info.size = len(data)
+                info.mode = 0o600
+                info.mtime = 0
+                archive.addfile(info, io.BytesIO(data))
+            meta_bytes = json.dumps(
+                metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+            info = tarfile.TarInfo(name="_snapshot.json")
+            info.size = len(meta_bytes)
+            info.mode = 0o600
+            info.mtime = 0
+            archive.addfile(info, io.BytesIO(meta_bytes))
+
+        return HTTPStatus.OK, metadata, buffer.getvalue()
+
     def execute(self, operation_id: str, action: str) -> tuple[int, dict[str, object]]:
         if not OPERATION_ID_RE.fullmatch(operation_id):
             return HTTPStatus.BAD_REQUEST, {"error": "invalid_operation_id"}
@@ -610,6 +743,21 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _binary(self, status: int, body: bytes, *, complete: bool) -> None:
+        self.send_response(int(status))
+        self.send_header("Content-Type", "application/gzip")
+        self.send_header("Content-Disposition", 'attachment; filename="nginx-snapshot.tar.gz"')
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Host-Control-Schema", str(SCHEMA_VERSION))
+        self.send_header("X-Host-Control-Host-Id", self.agent.config.host_id)
+        self.send_header("X-Host-Control-Component", "nginx")
+        self.send_header("X-Host-Control-Snapshot-Complete", "1" if complete else "0")
+        self.send_header("X-Content-SHA256", hashlib.sha256(body).hexdigest())
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def _authorized(self) -> bool:
         if self.agent.authenticate(self.headers.get("Authorization")):
             return True
@@ -631,6 +779,13 @@ class AgentRequestHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/status":
             self._json(HTTPStatus.OK, self.agent.status_payload())
+            return
+        if path == NGINX_SNAPSHOT_ROUTE:
+            status, metadata, body = self.agent.nginx_snapshot()
+            if body is None:
+                self._json(status, metadata)
+                return
+            self._binary(status, body, complete=bool(metadata.get("complete")))
             return
         prefix = "/v1/operations/"
         if path.startswith(prefix):
