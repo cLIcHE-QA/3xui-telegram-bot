@@ -63,42 +63,8 @@ jobs:
           test -x scripts/install-deploy-agent.sh
           sh -n scripts/install-deploy-agent.sh
           sudo /usr/sbin/visudo -cf deploy/deploy-agent/3xui-deploy-agent.sudoers >/dev/null
-          grep -q '^User=3xui-deploy          grep -q 'OFFSITE_BACKUP_ENABLED=false' .env.example
-          grep -q 'OFFSITE_BACKUP_ENCRYPTION_KEY_B64=' .env.example
-      - run: |
-          test -x scripts/bootstrap-bot-from-backup.sh
-          bash -n scripts/bootstrap-bot-from-backup.sh
-          scripts/bootstrap-bot-from-backup.sh --help 2>&1 | grep -q 'RECOVERY_ALLOW_VERSION_MISMATCH'
-          grep -q 'NODE_BACKUP_TARGETS' scripts/bootstrap-bot-from-backup.sh
-          grep -q 'deploy-release.sh --status' scripts/bootstrap-bot-from-backup.sh
-          set +e
-          scripts/bootstrap-bot-from-backup.sh >/dev/null 2>&1
-          rc=$?
-          set -e
-          test "$rc" -eq 2
-      - run: |
-          cp .env.example .env
-          docker compose --env-file .env.example config --quiet
-      - run: git diff --check
- deploy/deploy-agent/3xui-deploy-agent.service
-          grep -q '^ProtectSystem=strict          grep -q 'OFFSITE_BACKUP_ENABLED=false' .env.example
-          grep -q 'OFFSITE_BACKUP_ENCRYPTION_KEY_B64=' .env.example
-      - run: |
-          test -x scripts/bootstrap-bot-from-backup.sh
-          bash -n scripts/bootstrap-bot-from-backup.sh
-          scripts/bootstrap-bot-from-backup.sh --help 2>&1 | grep -q 'RECOVERY_ALLOW_VERSION_MISMATCH'
-          grep -q 'NODE_BACKUP_TARGETS' scripts/bootstrap-bot-from-backup.sh
-          grep -q 'deploy-release.sh --status' scripts/bootstrap-bot-from-backup.sh
-          set +e
-          scripts/bootstrap-bot-from-backup.sh >/dev/null 2>&1
-          rc=$?
-          set -e
-          test "$rc" -eq 2
-      - run: |
-          cp .env.example .env
-          docker compose --env-file .env.example config --quiet
-      - run: git diff --check
- deploy/deploy-agent/3xui-deploy-agent.service
+          grep -q '^User=3xui-deploy' deploy/deploy-agent/3xui-deploy-agent.service
+          grep -q '^ProtectSystem=strict' deploy/deploy-agent/3xui-deploy-agent.service
           grep -q 'DEPLOY_AGENT_URL=' .env.example
           grep -q 'DEPLOY_AGENT_TOKEN=' .env.example
           ! grep -q '/var/run/docker.sock' docker-compose.yml
