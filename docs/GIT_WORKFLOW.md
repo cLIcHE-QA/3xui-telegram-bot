@@ -115,7 +115,29 @@ Issue должен содержать факты, expected/actual behavior и ac
 3. `docs/ROADMAP.md` — текущие продуктовые этапы, acceptance scope и фактические статусы выполнения;
 4. `CHANGELOG.md` — пользовательские/операционные изменения опубликованных и подготавливаемых релизов.
 
+Для задач, меняющих установку, инфраструктуру или operational-настройку Admin Control Plane, дополнительно читается `docs/ADMIN_SETUP.md`.
+
 Новые локальные соглашения не вводятся молча: если нужен другой стиль, сначала меняется этот контракт отдельным PR.
+
+## Обязательное сопровождение Admin Setup
+
+`docs/ADMIN_SETUP.md` — каноническое руководство по установке и настройке **Admin Control Plane** с нуля. Оно не предназначено для будущей client-facing части; для неё используется отдельное руководство.
+
+Любой feature/fix/security/chore PR, который добавляет или меняет действия, необходимые оператору для установки, включения или безопасной эксплуатации административной функции, обязан обновить `docs/ADMIN_SETUP.md` **в том же PR**. Это относится, в частности, к:
+
+- новым или изменённым `.env`-переменным и host paths;
+- системным пакетам, Docker mounts/networks и host prerequisites;
+- ports, firewall, DNS и TLS;
+- systemd services/timers, Host Control Agent и restricted proxy;
+- credentials, tokens и enrollment flow без публикации самих secrets;
+- Master/direct-node onboarding, backup/restore и migrations;
+- обязательным preflight, rollout, post-deploy smoke и operator verification шагам.
+
+Если изменение не требует новой ручной настройки или operator action, `ADMIN_SETUP.md` менять не нужно, но PR body должен явно отметить: `Admin Setup: изменений не требуется`.
+
+Feature не считается полностью документированной, если необходимый setup существует только в коде, issue, PR discussion, release notes или переписке, но отсутствует в `docs/ADMIN_SETUP.md`.
+
+При обновлении руководства изменяется канонический текущий flow, а не добавляется исторический журнал. История версий остаётся в `CHANGELOG.md`.
 
 ## Ведение roadmap
 

@@ -4,7 +4,7 @@
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
-**Новая установка с нуля:** [Quick Start — Master + direct nodes](docs/QUICK_START.md). Он покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.14.2`.
+**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.14.2`. Будущая client-facing часть будет документироваться отдельно.
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
@@ -30,7 +30,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 ./scripts/deploy-release.sh --status
 ~~~
 
-Для новой direct node после обновления рекомендуется guided flow из [Quick Start](docs/QUICK_START.md).
+Для новой direct node после обновления рекомендуется guided flow из [Admin Setup](docs/ADMIN_SETUP.md).
 
 ## v4.14.1 — Исправление Host Control snapshot rollout
 

@@ -1,6 +1,16 @@
-# Quick Start: Master + direct nodes
+# Admin Setup: установка и настройка Admin Control Plane
 
-Этот runbook описывает развёртывание 3x-ui Telegram Bot с чистых VPS: Master, одна или несколько direct nodes, Host Control Agent и Extended direct-node backup с nginx snapshot.
+Этот runbook описывает полное развёртывание и operational-настройку административного контура 3x-ui Telegram Bot с чистых VPS: Master, одна или несколько direct nodes, Host Control Agent и Extended direct-node backup с nginx snapshot.
+
+Scope документа — только **Admin Control Plane**. Будущая client-facing часть проекта должна иметь отдельное руководство (например, `docs/CLIENT_SETUP.md`) и не смешиваться с административным deployment flow.
+
+## Как поддерживать это руководство
+
+`docs/ADMIN_SETUP.md` — канонический runbook установки и настройки Admin Control Plane. Если новая функция или изменение требует от оператора дополнительных действий, это руководство обновляется одновременно с соответствующим PR.
+
+Сюда обязательно попадают новые или изменённые `.env`-параметры, системные пакеты, Docker/network/firewall настройки, DNS/TLS, systemd services/timers, Host Control, credentials/enrollment, backup/restore, migrations и любые новые обязательные preflight/post-deploy шаги. Если ручная настройка для функции не требуется, отдельный раздел добавлять не нужно.
+
+Руководство описывает актуальный безопасный путь установки с нуля; исторические изменения и release history остаются в `CHANGELOG.md`.
 
 Целевой результат:
 
@@ -137,7 +147,7 @@ PY
 Ожидается:
 
 ~~~text
-4.14.1
+4.14.2
 ~~~
 
 ## 4. Создай local admin venv
@@ -274,7 +284,7 @@ ok
 
 - Container: running;
 - RestartCount=0;
-- Bot version: 4.14.1;
+- Bot version: 4.14.2;
 - Health: ok;
 - DB: ok;
 - 3x-ui connectivity: ok.
@@ -823,7 +833,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Git tag: v4.14.2
 Container: running
 RestartCount=0
-Bot version: 4.14.1
+Bot version: 4.14.2
 Health: ok
 DB: ok
 3x-ui connectivity: ok
