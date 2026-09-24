@@ -250,14 +250,14 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Переход к `v5.0.0` предполагает закрытие следующего набора v4.x работ:
 
-1. `RBAC / Roles & Privileges catalog`;
-2. `Extended direct-node backup`;
-3. `Safe Bot Self-Update`;
+1. `RBAC / Roles & Privileges catalog` — ✅ выполнено в `v4.14.0`;
+2. `Extended direct-node backup` — ✅ выполнено в `v4.14.1`;
+3. `Safe Bot Self-Update` — ⬜ запланировано; следующий целевой release `v4.19.0`;
 4. Host Control startup recovery — ✅ выполнено в `v4.13.2`;
-5. versioned SQLite migrations;
-6. расширенный regression coverage критических admin/business/recovery путей;
-7. off-site backup и проверяемый restore path;
-8. 3x-ui API compatibility / OpenAPI contract gate.
+5. versioned SQLite migrations — ✅ выполнено в `v4.15.0`;
+6. расширенный regression coverage критических admin/business/recovery путей — ✅ выполнено в `v4.16.0`;
+7. off-site backup и проверяемый restore path — 🟠 опубликовано в `v4.18.0`, production drill отложен до финального v4 freeze;
+8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
