@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import hmac
 import json
 import re
 from typing import Any
@@ -24,11 +25,6 @@ STATES = frozenset({"running", "stopped", "failed", "transitioning", "unknown"})
 RESULTS = frozenset({"started", "success", "failed", "uncertain"})
 NGINX_SNAPSHOT_ROUTE = "/v1/snapshots/nginx"
 MAX_NGINX_SNAPSHOT_RESPONSE_BYTES = 10 * 1024 * 1024
-
-
-def hmac_compare(left: str, right: str) -> bool:
-    import hmac
-    return hmac.compare_digest(left, right)
 
 
 class HostControlError(RuntimeError):
@@ -244,7 +240,7 @@ class HostControlClient:
                             code="invalid_checksum",
                         )
                     actual = hashlib.sha256(body).hexdigest()
-                    if not hmac_compare(actual, expected):
+                    if not hmac.compare_digest(actual, expected):
                         raise HostControlError(
                             "Host-control snapshot checksum mismatch.",
                             code="checksum_mismatch",
