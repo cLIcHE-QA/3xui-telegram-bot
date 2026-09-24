@@ -53,6 +53,8 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 #### Extended direct-node backup
 
+**Статус: 🟡 Реализовано в `main`.**
+
 Direct-node backup должен быть расширен от одной 3x-ui database до node snapshot, максимально полезного для operational recovery без превращения control plane в arbitrary remote file access.
 
 Минимальный целевой состав snapshot:
