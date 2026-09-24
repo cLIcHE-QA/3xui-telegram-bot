@@ -63,7 +63,7 @@ class FleetStates(StatesGroup):
     rollout = State()
 
 
-class FleetError(RuntimeError):
+class FleetError(UpdateError):
     pass
 
 
@@ -674,7 +674,10 @@ async def rollout_review(call: CallbackQuery, state: FSMContext):
             reply_markup=_keyboard(rows),
         )
         return
-    await _create_rollout_review(call, state, component="panel", desired="")
+    try:
+        await _create_rollout_review(call, state, component="panel", desired="")
+    except Exception as exc:
+        await render_callback(call, f"🔴 {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
 
 
 @fleet_router.callback_query(F.data.regexp(r"^admin:fleet:ro:x:v:[A-Za-z0-9.-]+$"))
@@ -688,7 +691,10 @@ async def rollout_xray_version(call: CallbackQuery, state: FSMContext):
         return
     desired = (call.data or "").split(":")[-1]
     await call.answer()
-    await _create_rollout_review(call, state, component="xray", desired=desired)
+    try:
+        await _create_rollout_review(call, state, component="xray", desired=desired)
+    except Exception as exc:
+        await render_callback(call, f"🔴 {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
 
 
 async def _create_rollout_review(
