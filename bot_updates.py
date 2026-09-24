@@ -13,7 +13,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from admin_auth import authorize_callback, authorize_message
 from admin_ui import render_callback, render_input
-from audit import audit_system
+from audit import audit_from_call, audit_from_message, audit_system
 from config import load_settings
 from db import Database, JobRunRecord
 from deploy_control import (
@@ -270,10 +270,10 @@ async def _dispatch(
         actor_id=call.from_user.id,
         details=details,
     )
-    await audit_system(
+    await audit_from_call(
         db,
+        call,
         "bot.update.started",
-        actor_id=call.from_user.id,
         target_type="bot_release",
         target_id=release,
         details=details,
@@ -296,10 +296,10 @@ async def _dispatch(
                     duration_ms=0,
                     details=fail_details,
                 )
-                await audit_system(
+                await audit_from_call(
                     db,
+                    call,
                     "bot.update.failed",
-                    actor_id=call.from_user.id,
                     target_type="bot_release",
                     target_id=release,
                     details=fail_details,
@@ -325,10 +325,10 @@ async def _dispatch(
                     duration_ms=0,
                     details=unknown,
                 )
-                await audit_system(
+                await audit_from_call(
                     db,
+                    call,
                     "bot.update.unknown",
-                    actor_id=call.from_user.id,
                     target_type="bot_release",
                     target_id=release,
                     details=unknown,
@@ -376,10 +376,10 @@ async def _dispatch(
             duration_ms=0,
             details=fail_details,
         )
-        await audit_system(
+        await audit_from_call(
             db,
+            call,
             "bot.update.unknown",
-            actor_id=call.from_user.id,
             target_type="bot_release",
             target_id=release,
             details=fail_details,
@@ -390,6 +390,95 @@ async def _dispatch(
             "🤖 Bot Updates\n\n🟡 Локальная ошибка после подготовки операции. "
             "Автоматический повтор deployment запрещён.",
             reply_markup=_back(),
+        )
+
+
+async def _dispatch_message(
+    message: Message,
+    release: str,
+    *,
+    allow_downgrade: bool,
+) -> None:
+    client = _client()
+    if client is None:
+        await render_input(message, "Deploy Agent не настроен.")
+        return
+
+    operation_id = secrets.token_hex(16)
+    details = _job_details(operation_id, release, allow_downgrade=allow_downgrade)
+    run_id = await db.start_job_run(
+        name="bot.update",
+        trigger="admin",
+        actor_id=message.from_user.id if message.from_user else 0,
+        details=details,
+    )
+    await audit_from_message(
+        db,
+        message,
+        "bot.update.started",
+        target_type="bot_release",
+        target_id=release,
+        details=details,
+        success=True,
+    )
+
+    try:
+        try:
+            op = await client.deploy(
+                operation_id,
+                release,
+                allow_downgrade=allow_downgrade,
+            )
+        except DeployControlError as exc:
+            if not exc.uncertain:
+                failed = details + f"; state=failed; error_code={exc.code or 'deploy_rejected'}"
+                await db.finish_job_run(run_id, status="failed", duration_ms=0, details=failed)
+                await audit_from_message(
+                    db, message, "bot.update.failed",
+                    target_type="bot_release", target_id=release,
+                    details=failed, success=False,
+                )
+                await render_input(message, f"🔴 Deploy Agent отклонил операцию: {exc.code or 'error'}")
+                return
+            try:
+                op = await client.get_operation(operation_id)
+            except DeployControlError:
+                op = None
+            if op is None:
+                unknown = details + "; state=unknown; lost_post_response=true; mutation_not_retried=true"
+                await db.finish_job_run(run_id, status="unknown", duration_ms=0, details=unknown)
+                await audit_from_message(
+                    db, message, "bot.update.unknown",
+                    target_type="bot_release", target_id=release,
+                    details=unknown, success=False,
+                )
+                await render_input(
+                    message,
+                    "🟡 Ответ на deploy POST потерян; mutation повторно НЕ отправлялась.",
+                )
+                return
+
+        await render_input(
+            message,
+            "🤖 Bot Update запущен.\n\n"
+            + _operation_text(op)
+            + "\n\nТекущий bot container может быть пересоздан. "
+              "После старта итог восстановится из Deploy Agent journal; POST повторно не отправляется.",
+        )
+    except Exception as exc:
+        unknown = (
+            details
+            + f"; state=unknown; local_error={type(exc).__name__}; mutation_not_retried=true"
+        )
+        await db.finish_job_run(run_id, status="unknown", duration_ms=0, details=unknown)
+        await audit_from_message(
+            db, message, "bot.update.unknown",
+            target_type="bot_release", target_id=release,
+            details=unknown, success=False,
+        )
+        await render_input(
+            message,
+            "🟡 Локальная ошибка после подготовки deployment. Автоматический повтор запрещён.",
         )
 
 
@@ -575,15 +664,12 @@ async def downgrade_phrase(message: Message, state: FSMContext):
         await render_input(message, "Направление больше не является downgrade. Открой Bot Updates заново.")
         return
 
-    # Message surface cannot safely preserve the original callback message binding.
-    # Require the operator to return to the button flow after phrase verification.
-    await state.update_data(downgrade_confirmed=True)
     await state.clear()
     await render_input(
         message,
-        f"✅ Downgrade {release} подтверждён фразой. "
-        "Открой Bot Updates → Preflight ещё раз и запусти downgrade из подтверждённой сессии.",
+        f"✅ Downgrade {release} подтверждён фразой. Запускаю deployment…",
     )
+    await _dispatch_message(message, release, allow_downgrade=True)
 
 
 @bot_updates_router.callback_query(F.data.regexp(r"^admin:botupd:op:[0-9a-f]{32}$"))
