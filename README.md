@@ -1,10 +1,10 @@
-# Telegram-бот для 3x-ui v4.16.0
+# Telegram-бот для 3x-ui v4.17.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
-**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.16.0`. Будущая client-facing часть будет документироваться отдельно.
+**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.17.0`. Будущая client-facing часть будет документироваться отдельно.
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
@@ -15,6 +15,28 @@
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.17.0 — 3x-ui OpenAPI compatibility gate
+
+Релиз закрывает pre-v5 gate по совместимости native API 3x-ui. Поддерживаемый contract pinned к 3x-ui `v3.8.5`: immutable OpenAPI schema хранится в repository, а CI сверяет 51 реально используемый endpoint с manifest и фактическими routes клиента.
+
+Gate работает fail-closed для route/method, Bearer auth, request media type/mandatory fields, response envelope и source parity. Upstream `main` не скачивается во время CI, а runtime не переключается автоматически на неизвестную schema. Полный contract и upgrade procedure: [3x-ui OpenAPI compatibility contract](docs/3XUI_OPENAPI_CONTRACT.md).
+
+Runtime API behavior, SQLite schema, Host Control API и deployment topology не меняются.
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.17.0
+./scripts/deploy-release.sh --status
+~~~
+
+После deploy targeted smoke должен подтвердить обычные health/DB/3x-ui checks и встроенный contract checker:
+
+~~~bash
+docker compose exec -T bot python3 scripts/check-3xui-openapi-contract.py
+~~~
 
 ## v4.16.0 — Regression coverage hardening
 

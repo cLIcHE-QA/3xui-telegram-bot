@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.17.0 — 3x-ui OpenAPI compatibility gate
+- Поддерживаемый native API contract зафиксирован на 3x-ui `v3.8.5`: vendored OpenAPI берётся из immutable upstream tag, а exact Git blob SHA хранится в contract manifest.
+- `contracts/3xui/contract.json` описывает 51 реально используемый endpoint; CI проверяет route/method, Bearer auth, request body required/media type/mandatory fields и общий JSON response envelope.
+- AST source-parity check сопоставляет manifest с фактическими `/panel/api/...` вызовами в `xui.py` и `version_api.py`, поэтому новый или удалённый route требует явного contract review до merge.
+- Проверка полностью offline/stdlib-only: CI не скачивает upstream `main` и runtime не переключается автоматически на неизвестную API schema.
+- Единственное documented response exception — `GET /panel/api/server/getDb`: OpenAPI v3.8.5 описывает generic JSON envelope, а live endpoint возвращает binary DB attachment; route/method/auth остаются под gate, binary semantics покрываются отдельными regression tests.
+- Добавлены regression tests на missing method, новый mandatory field, response-envelope drift, schema tampering и dynamic route discovery; SQLite schema, runtime 3x-ui requests, Host Control API и deployment topology не изменены.
+
 ## v4.16.0 — Regression coverage hardening
 - Добавлен целевой regression pack для критических admin/business/recovery путей: payment/status и catalog relations, user lifecycle mutation ordering, provisioning idempotency/partial failure, subscription proxy compatibility/error paths, inbound mutation failure paths, disaster recovery и negative authorization boundaries.
 - Safe/strict provisioning теперь явно проверяются на разные privilege boundaries: per-user safe reconcile доступен роли `support`, strict reconcile остаётся `admin`; regression tests выявили и исправили drift, при котором privilege catalog излишне требовал `admin` и для safe reconcile.
