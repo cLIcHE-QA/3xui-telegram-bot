@@ -4,6 +4,8 @@
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
+**Новая установка с нуля:** [Quick Start — Master + direct nodes](docs/QUICK_START.md). Он покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.14.1`.
+
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
 Повторяемый rollout, deployment bundle и enrollment-import описаны в [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
