@@ -65,20 +65,25 @@ class FleetOperationsContractTests(unittest.TestCase):
         self.assertIn("os.chmod(tmp, 0o600)", text)
 
     def test_all_static_buttons_have_visual_prefix(self):
+        import unicodedata
+
         tree = ast.parse(FLEET.read_text(encoding="utf-8"))
-        labels = []
+        bare = []
         for node in ast.walk(tree):
             if not isinstance(node, ast.Tuple) or len(node.elts) != 2:
                 continue
-            label = node.elts[0]
-            if isinstance(label, ast.Constant) and isinstance(label.value, str):
-                if label.value.startswith(("admin:", "fleet.")):
-                    continue
-                labels.append(label.value)
-        bare = [
-            value for value in labels
-            if value and value[0].isalnum() and value not in {"3x-ui latest stable", "Xray Core"}
-        ]
+            label, callback = node.elts
+            if not (
+                isinstance(label, ast.Constant)
+                and isinstance(label.value, str)
+                and isinstance(callback, ast.Constant)
+                and isinstance(callback.value, str)
+                and callback.value.startswith("admin:")
+            ):
+                continue
+            value = label.value.strip()
+            if not value or unicodedata.category(value[0]) not in {"So", "Sm"}:
+                bare.append(value)
         self.assertEqual(bare, [])
 
     def test_scope_document_contains_safety_contract(self):
