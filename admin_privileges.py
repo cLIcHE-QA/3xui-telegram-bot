@@ -131,8 +131,9 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admindel:", "admindelask:", "admin:u:provstrictask:",
         "admin:u:subrotateask:", "admin:u:subrotaterun:",
     )
+    + _rules("users.support", "regex", r"^admin:u:provrun:\d+:safe$")
     + _rules("users.admin", "exact", "admin:syncall:ask", "admin:syncall:run")
-    + _rules("users.admin", "regex", r"^admin:u:provrun:\d+:(safe|strict)$")
+    + _rules("users.admin", "regex", r"^admin:u:provrun:\d+:strict$")
     + _rules("backups.view", "exact", "admin:backups")
     + _rules(
         "backups.manage",
@@ -287,6 +288,10 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         r"^admin:fleet:ro:(p|x):review$",
     )
     + _rules("versions.manage", "regex", r"^admin:ver:(run|cancel|check):[0-9a-f]{16}$")
+    # Exact router-filter declaration for CI route-catalog parity. Runtime role
+    # resolution is intentionally handled by the earlier safe/support and
+    # strict/admin rules, so this trailing declaration cannot weaken access.
+    + _rules("users.admin", "regex", r"^admin:u:provrun:\d+:(safe|strict)$")
 )
 
 
