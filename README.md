@@ -11,6 +11,7 @@
 Массовые health/maintenance/controlled rollout операции описаны в [Fleet Operations](docs/FLEET_OPERATIONS.md).
 Восстановление бота после замены/форматирования VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
+Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
 
 ## v4.13.0 — Fleet Operations
