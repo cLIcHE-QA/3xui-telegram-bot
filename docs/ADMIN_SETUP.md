@@ -405,6 +405,14 @@ systemctl is-enabled 3xui-deploy-agent.service
 systemctl is-active 3xui-deploy-agent.service
 ~~~
 
+Если UFW блокирует INPUT на Master, добавь fixed allow только из `BOT_DOCKER_SUBNET` к bridge listener:
+
+~~~bash
+sudo ufw allow from 172.19.0.0/16 to 172.19.0.1 port 18184 proto tcp comment '3xui bot deploy agent'
+~~~
+
+Port 18184 не публикуется в Internet.
+
 Token хранится в `/etc/3xui-deploy-agent/token` и не печатается installer-ом. Его нужно перенести в production `.env` локально, не через Telegram/chat:
 
 ~~~env
