@@ -187,8 +187,16 @@ class UpdateService:
         if not await self.authorize(actor, minimum):
             raise UpdateError(f"Permission denied; {minimum} role required.")
 
-    async def _check_version(self, target: Target, component: str, desired: str, current: str) -> None:
-        if not target.eligible:
+    async def _check_version(
+        self,
+        target: Target,
+        component: str,
+        desired: str,
+        current: str,
+        *,
+        allow_prepared_maintenance: bool = False,
+    ) -> None:
+        if not target.eligible and not allow_prepared_maintenance:
             raise UpdateError("Node must be enabled and online before an update.")
         if component == "xray":
             if not valid_version(current):
@@ -313,7 +321,15 @@ class UpdateService:
         op.error = "Outcome not verified. No retry was sent. Check status before any new update."
         self.store.save(op)
 
-    async def execute(self, nonce: str, *, actor: int, chat: int, message: int) -> Operation:
+    async def execute(
+        self,
+        nonce: str,
+        *,
+        actor: int,
+        chat: int,
+        message: int,
+        allow_prepared_maintenance: bool = False,
+    ) -> Operation:
         await self._authorize(actor)
         op = self.store.by_nonce(nonce)
         with self.store.lock(op.target):
@@ -336,7 +352,13 @@ class UpdateService:
                 current = state.panel if op.component == "panel" else state.xray
                 if not same_version(current, op.previous):
                     raise UpdateError("Installed version changed since preflight. Start again.")
-                await self._check_version(target, op.component, op.desired, current)
+                await self._check_version(
+                    target,
+                    op.component,
+                    op.desired,
+                    current,
+                    allow_prepared_maintenance=allow_prepared_maintenance,
+                )
                 if await asyncio.to_thread(file_hash, op.backup) != op.backup_sha256:
                     raise UpdateError("Backup checksum changed. Update blocked.")
                 await self._authorize(actor)  # Role may have been revoked during preflight.
