@@ -131,8 +131,9 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admindel:", "admindelask:", "admin:u:provstrictask:",
         "admin:u:subrotateask:", "admin:u:subrotaterun:",
     )
+    + _rules("users.support", "regex", r"^admin:u:provrun:\d+:safe$")
     + _rules("users.admin", "exact", "admin:syncall:ask", "admin:syncall:run")
-    + _rules("users.admin", "regex", r"^admin:u:provrun:\d+:(safe|strict)$")
+    + _rules("users.admin", "regex", r"^admin:u:provrun:\d+:strict$")
     + _rules("backups.view", "exact", "admin:backups")
     + _rules(
         "backups.manage",
