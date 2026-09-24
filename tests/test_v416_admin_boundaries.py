@@ -28,6 +28,10 @@ def load_module(name: str):
 class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
     def test_sensitive_callbacks_do_not_drop_below_required_roles(self):
         cases = {
+            "adminextend:101": "support",
+            "admindisable:101": "support",
+            "adminenable:101": "support",
+            "admindel:101": "admin",
             "admin:u:planapplyrun:101": "support",
             "admin:u:planprovrun:101": "support",
             "admin:u:provrun:101:safe": "support",
@@ -133,6 +137,138 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
 
         xui_mock.update_client.assert_awaited_once_with("user101@example.test", subId="new-sub-id")
         db_mock.update_sub_id.assert_awaited_once_with(101, "new-sub-id")
+
+    async def test_legacy_extend_keeps_local_expiry_when_remote_update_fails(self):
+        module = load_module("bot")
+        rec = SimpleNamespace(
+            telegram_id=101,
+            email="user101@example.test",
+            expiry_time=123,
+        )
+        db_mock = SimpleNamespace(
+            get=AsyncMock(return_value=rec),
+            update_expiry=AsyncMock(),
+        )
+        xui_mock = SimpleNamespace(
+            get_client=AsyncMock(return_value={"client": {"expiryTime": 123}}),
+            update_client=AsyncMock(side_effect=XUIError("offline")),
+        )
+        call = SimpleNamespace(
+            data="adminextend:101",
+            answer=AsyncMock(),
+        )
+
+        with (
+            patch.object(module, "guard_admin_call", new=AsyncMock(return_value=True)),
+            patch.object(module, "db", db_mock),
+            patch.object(module, "xui", xui_mock),
+            patch.object(module, "audit_from_call", new=AsyncMock()),
+            patch.object(module, "render_callback", new=AsyncMock()),
+        ):
+            await module.admin_extend(call)
+
+        db_mock.update_expiry.assert_not_awaited()
+
+    async def test_legacy_enable_disable_send_explicit_remote_state(self):
+        module = load_module("bot")
+        rec = SimpleNamespace(
+            telegram_id=101,
+            email="user101@example.test",
+            expiry_time=0,
+        )
+        db_mock = SimpleNamespace(get=AsyncMock(return_value=rec))
+        xui_mock = SimpleNamespace(update_client=AsyncMock())
+
+        with (
+            patch.object(module, "guard_admin_call", new=AsyncMock(return_value=True)),
+            patch.object(module, "db", db_mock),
+            patch.object(module, "xui", xui_mock),
+            patch.object(module, "audit_from_call", new=AsyncMock()),
+            patch.object(module, "render_callback", new=AsyncMock()),
+        ):
+            disable_call = SimpleNamespace(data="admindisable:101", answer=AsyncMock())
+            enable_call = SimpleNamespace(data="adminenable:101", answer=AsyncMock())
+            await module.admin_disable(disable_call)
+            await module.admin_enable(enable_call)
+
+        self.assertEqual(
+            xui_mock.update_client.await_args_list[0].kwargs,
+            {"enable": False},
+        )
+        self.assertEqual(
+            xui_mock.update_client.await_args_list[1].kwargs,
+            {"enable": True},
+        )
+
+    async def test_legacy_delete_preserves_local_record_when_remote_delete_fails(self):
+        module = load_module("bot")
+        rec = SimpleNamespace(
+            telegram_id=101,
+            email="user101@example.test",
+            expiry_time=0,
+        )
+        db_mock = SimpleNamespace(
+            get=AsyncMock(return_value=rec),
+            delete=AsyncMock(),
+        )
+        xui_mock = SimpleNamespace(delete_client=AsyncMock(side_effect=XUIError("offline")))
+        call = SimpleNamespace(
+            data="admindel:101",
+            answer=AsyncMock(),
+        )
+
+        with (
+            patch.object(module, "guard_admin_call", new=AsyncMock(return_value=True)),
+            patch.object(module, "db", db_mock),
+            patch.object(module, "xui", xui_mock),
+            patch.object(module, "audit_from_call", new=AsyncMock()),
+            patch.object(module, "render_callback", new=AsyncMock()),
+        ):
+            await module.admin_del(call)
+
+        xui_mock.delete_client.assert_awaited_once_with("user101@example.test")
+        db_mock.delete.assert_not_awaited()
+
+    async def test_legacy_delete_removes_local_record_only_after_remote_success(self):
+        module = load_module("bot")
+        rec = SimpleNamespace(
+            telegram_id=101,
+            email="user101@example.test",
+            expiry_time=0,
+        )
+        events = []
+
+        async def remote_delete(email):
+            events.append(("remote", email))
+
+        async def local_delete(tg_id):
+            events.append(("local", tg_id))
+
+        db_mock = SimpleNamespace(
+            get=AsyncMock(return_value=rec),
+            delete=AsyncMock(side_effect=local_delete),
+        )
+        xui_mock = SimpleNamespace(
+            delete_client=AsyncMock(side_effect=remote_delete),
+        )
+        call = SimpleNamespace(
+            data="admindel:101",
+            answer=AsyncMock(),
+        )
+
+        with (
+            patch.object(module, "guard_admin_call", new=AsyncMock(return_value=True)),
+            patch.object(module, "db", db_mock),
+            patch.object(module, "xui", xui_mock),
+            patch.object(module, "audit_from_call", new=AsyncMock()),
+            patch.object(module, "render_callback", new=AsyncMock()),
+        ):
+            await module.admin_del(call)
+
+        self.assertEqual(
+            events,
+            [("remote", "user101@example.test"), ("local", 101)],
+        )
 
     async def test_plan_apply_does_not_update_local_expiry_when_remote_mutation_fails(self):
         module = load_module("advanced_users")
