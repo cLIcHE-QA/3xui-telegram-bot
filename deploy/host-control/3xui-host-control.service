@@ -9,6 +9,7 @@ User=3xui-hostctl
 Group=3xui-hostctl
 WorkingDirectory=/opt/3xui-host-control
 EnvironmentFile=/etc/3xui-host-control/agent.env
+EnvironmentFile=-/etc/3xui-host-control/nginx-snapshot.env
 ExecStart=/usr/bin/python3 /opt/3xui-host-control/host_control_agent.py
 Restart=on-failure
 RestartSec=3
