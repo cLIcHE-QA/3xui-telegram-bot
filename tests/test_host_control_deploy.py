@@ -70,6 +70,10 @@ class HostControlDeploymentSecurityTests(unittest.TestCase):
         self.assertIn("Group=3xui-hostctl", text)
         self.assertNotIn("User=root", text)
         self.assertIn("ExecStart=/usr/bin/python3 /opt/3xui-host-control/host_control_agent.py", text)
+        self.assertIn(
+            "EnvironmentFile=-/etc/3xui-host-control/nginx-snapshot.env",
+            text,
+        )
         self.assertIn("ProtectSystem=strict", text)
         self.assertIn("ProtectHome=true", text)
         self.assertIn("PrivateDevices=true", text)
