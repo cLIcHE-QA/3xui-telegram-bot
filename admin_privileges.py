@@ -228,6 +228,64 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("versions.view", "regex", r"^admin:ver:(target|panel):(m|n[1-9][0-9]{0,18})$", r"^admin:ver:xray:(m|n[1-9][0-9]{0,18}):[0-9]+$", r"^admin:ver:check:[0-9a-f]{16}$")
     + _rules("versions.manage", "regex", r"^admin:ver:prepare:(m|n[1-9][0-9]{0,18}):panel$", r"^admin:ver:pick:(m|n[1-9][0-9]{0,18}):[A-Za-z0-9.-]+$", r"^admin:ver:(run|cancel):[0-9a-f]{16}$")
     + _rules("versions.unlock", "regex", r"^admin:ver:unlock:[0-9a-f]{16}$")
+    # Explicit route declarations below intentionally mirror router filters.
+    # They make CI fail when a new admin route appears without a catalog entry,
+    # even when an older broader runtime rule would otherwise happen to match it.
+    + _rules(
+        "legacy.manage",
+        "exact",
+        "admin:coming:plans", "admin:coming:hosts", "admin:coming:servergroups",
+        "admin:coming:traffic", "admin:coming:online", "admin:coming:jobs",
+        "admin:coming:audit", "admin:coming:payments", "admin:coming:promo",
+        "admin:coming:administrators", "admin:coming:settings", "admin:coming:logs",
+    )
+    + _rules(
+        "nodes.manage",
+        "regex",
+        r"^admin:nodectl:\d+:inbounds$",
+        r"^admin:nodectl:\d+:maintenance$",
+        r"^admin:nodectl:\d+:rename$",
+        r"^admin:nodectl:\d+:cancel$",
+        r"^admin:nodectl:\d+:backup$",
+        r"^admin:nodectl:\d+:restartxray$",
+        r"^admin:nodectl:\d+:restartxray:run$",
+        r"^admin:nodectl:\d+:updatepanel$",
+        r"^admin:nodectl:\d+:updatepanel:run$",
+        r"^admin:nodectl:\d+:deleteask$",
+        r"^admin:nodectl:\d+:delete:run$",
+    )
+    + _rules(
+        "administrators.manage",
+        "prefix",
+        "admin:administrator:role:", "admin:administrator:toggle:",
+        "admin:administrator:deleteask:", "admin:administrator:delete:",
+    )
+    + _rules("administrators.manage", "regex", r"^admin:administrator:\d+$")
+    + _rules("restore.manage", "exact", "admin:restore:history")
+    + _rules(
+        "restore.manage",
+        "regex",
+        r"^admin:restore:b:[A-Za-z0-9._-]+$",
+        r"^admin:restore:pre:[A-Za-z0-9._-]+$",
+        r"^admin:restore:bot:[A-Za-z0-9._-]+$",
+        r"^admin:restore:xui:[A-Za-z0-9._-]+$",
+        r"^admin:restore:node:[A-Za-z0-9._-]+:\d+$",
+        r"^admin:restore:cancel:[A-Za-z0-9._-]+$",
+        r"^admin:restore:env:[A-Za-z0-9._-]+$",
+        r"^admin:restore:nginx:[A-Za-z0-9._-]+$",
+    )
+    + _rules(
+        "fleet.manage",
+        "regex",
+        r"^admin:fleet:mt:(e|x)$",
+        r"^admin:fleet:mt:(e|x):n[1-9][0-9]{0,18}$",
+        r"^admin:fleet:mt:(e|x):review$",
+        r"^admin:fleet:mt:(e|x):run$",
+        r"^admin:fleet:ro:(p|x)$",
+        r"^admin:fleet:ro:(p|x):n[1-9][0-9]{0,18}$",
+        r"^admin:fleet:ro:(p|x):review$",
+    )
+    + _rules("versions.manage", "regex", r"^admin:ver:(run|cancel|check):[0-9a-f]{16}$")
 )
 
 
