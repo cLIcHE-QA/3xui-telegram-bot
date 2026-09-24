@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.13.0
+# Telegram-бот для 3x-ui v4.13.1
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
@@ -12,6 +12,21 @@
 Восстановление бота после замены/форматирования VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
+
+
+## v4.13.1 — Исправление Fleet Rollout jobs
+
+Patch-релиз исправляет accounting terminal `Controlled Rollout` operations: no-op plan для уже актуальных версий теперь фиксируется parent `fleet.rollout` job как `success`, а отмена до запуска canary — как `cancelled`. Для уже актуальных targets job summary показывает `skipped` вместо `pending`.
+
+Update/maintenance mutation semantics не меняются: `already current` и cancel-before-canary не отправляют update mutation.
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.13.1
+./scripts/deploy-release.sh --status
+~~~
 
 
 ## v4.13.0 — Fleet Operations
