@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import os
+import shutil
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -386,7 +387,7 @@ class OffsiteBackupService:
                 raise OffsiteBackupError(
                     "Downloaded off-site backup failed Full Backup validation."
                 )
-            os.replace(temp_plain, destination)
+            shutil.copy2(temp_plain, destination)
         return destination
 
 
