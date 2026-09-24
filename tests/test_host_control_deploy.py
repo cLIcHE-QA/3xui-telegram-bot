@@ -116,6 +116,15 @@ class HostControlDeploymentSecurityTests(unittest.TestCase):
         for value in forbidden:
             self.assertNotIn(value, text)
 
+    def test_installer_restarts_agent_after_updating_runtime_files(self):
+        text = INSTALLER.read_text(encoding="utf-8")
+        self.assertIn("/usr/bin/systemctl enable 3xui-host-control.service", text)
+        self.assertIn("/usr/bin/systemctl restart 3xui-host-control.service", text)
+        self.assertNotIn(
+            "/usr/bin/systemctl enable --now 3xui-host-control.service",
+            text,
+        )
+
     def test_installer_does_not_modify_firewall_or_ssh(self):
         text = INSTALLER.read_text(encoding="utf-8").lower()
         for token in ["ufw ", "iptables", "nft ", "sshd", "authorized_keys", "ssh-key"]:

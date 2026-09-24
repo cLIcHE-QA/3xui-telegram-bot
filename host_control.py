@@ -198,14 +198,21 @@ class HostControlClient:
                             "Host-control nginx snapshot is too large.",
                             code="snapshot_too_large",
                         )
-                    body = await response.content.read(
-                        MAX_NGINX_SNAPSHOT_RESPONSE_BYTES + 1
-                    )
-                    if len(body) > MAX_NGINX_SNAPSHOT_RESPONSE_BYTES:
-                        raise HostControlError(
-                            "Host-control nginx snapshot is too large.",
-                            code="snapshot_too_large",
+                    body_buffer = bytearray()
+                    while True:
+                        remaining = (
+                            MAX_NGINX_SNAPSHOT_RESPONSE_BYTES + 1 - len(body_buffer)
                         )
+                        chunk = await response.content.read(min(64 * 1024, remaining))
+                        if not chunk:
+                            break
+                        body_buffer.extend(chunk)
+                        if len(body_buffer) > MAX_NGINX_SNAPSHOT_RESPONSE_BYTES:
+                            raise HostControlError(
+                                "Host-control nginx snapshot is too large.",
+                                code="snapshot_too_large",
+                            )
+                    body = bytes(body_buffer)
 
                     if response.status != 200:
                         code = f"http_{response.status}"

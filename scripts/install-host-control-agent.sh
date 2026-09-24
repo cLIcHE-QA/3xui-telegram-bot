@@ -85,7 +85,8 @@ chmod 0440 /etc/sudoers.d/3xui-host-control
 
 install -o root -g root -m 0644 "$UNIT_SOURCE" /etc/systemd/system/3xui-host-control.service
 /usr/bin/systemctl daemon-reload
-/usr/bin/systemctl enable --now 3xui-host-control.service
+/usr/bin/systemctl enable 3xui-host-control.service
+/usr/bin/systemctl restart 3xui-host-control.service
 /usr/bin/systemctl is-active --quiet 3xui-host-control.service || {
     echo "Host-control agent did not become active." >&2
     exit 1
