@@ -321,6 +321,22 @@ class AgentConfigSecurityTests(unittest.TestCase):
         with self.assertRaises(AgentConfigError):
             self.load()
 
+    def test_nginx_source_is_local_directory_only(self):
+        source = self.root / "nginx"
+        source.mkdir()
+        loaded = self.load(HOST_CONTROL_AGENT_NGINX_SOURCE=str(source))
+        self.assertEqual(loaded.nginx_source, source.resolve())
+
+        with self.assertRaises(AgentConfigError):
+            self.load(HOST_CONTROL_AGENT_NGINX_SOURCE="relative/nginx")
+        with self.assertRaises(AgentConfigError):
+            self.load(HOST_CONTROL_AGENT_NGINX_SOURCE="/")
+
+        link = self.root / "nginx-link"
+        link.symlink_to(source, target_is_directory=True)
+        with self.assertRaises(AgentConfigError):
+            self.load(HOST_CONTROL_AGENT_NGINX_SOURCE=str(link))
+
 
 class RequestTargetSecurityTests(unittest.TestCase):
     def test_query_string_is_rejected(self):
