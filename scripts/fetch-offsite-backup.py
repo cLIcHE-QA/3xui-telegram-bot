@@ -7,6 +7,7 @@ import stat
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import dotenv_values
 
@@ -33,8 +34,22 @@ def load_values(path: Path) -> dict[str, str]:
     if missing:
         raise SystemExit("missing off-site recovery variables: " + ", ".join(missing))
     endpoint = values.get("OFFSITE_BACKUP_ENDPOINT_URL", "").strip().rstrip("/")
-    if endpoint and not endpoint.startswith("https://"):
-        raise SystemExit("OFFSITE_BACKUP_ENDPOINT_URL must use https")
+    if endpoint:
+        parsed = urlsplit(endpoint)
+        if (
+            parsed.scheme != "https"
+            or not parsed.hostname
+            or parsed.username
+            or parsed.password
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise SystemExit(
+                "OFFSITE_BACKUP_ENDPOINT_URL must be absolute verified HTTPS without credentials/query/fragment"
+            )
+    prefix = values.get("OFFSITE_BACKUP_PREFIX", "3xui-bot").strip().strip("/")
+    if not prefix or any(part in {"", ".", ".."} for part in prefix.split("/")):
+        raise SystemExit("OFFSITE_BACKUP_PREFIX contains unsafe path segments")
     return values
 
 
