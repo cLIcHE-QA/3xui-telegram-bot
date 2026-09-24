@@ -36,6 +36,8 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 #### RBAC / Roles & Privileges catalog
 
+**Статус: 🟡 Реализовано в `main`.**
+
 Текущие роли `Read-only`, `Support`, `Administrator` и `Owner` сохраняются как фиксированные security boundaries.
 
 До завершения v4.x требуется единый централизованный каталог privileges, который:
