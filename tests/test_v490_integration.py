@@ -183,7 +183,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
     def test_single_source_for_runtime_version(self):
         from version import APP_VERSION
-        self.assertEqual(APP_VERSION, '4.12.0')
+        self.assertEqual(APP_VERSION, '4.13.0')
         self.assertIn('APP_VERSION', inspect.getsource(self.bot.start))
         self.assertIn('APP_VERSION', inspect.getsource(self.bot.create_user))
         from system_backup import SystemBackupService
