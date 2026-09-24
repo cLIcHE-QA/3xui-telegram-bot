@@ -22,6 +22,49 @@ Roadmap задаёт границы крупных продуктовых эта
 - исправления UX/навигации `/admin`;
 - backend prerequisites, необходимые будущему Client Portal, если они не открывают публичный customer flow.
 
+### Зафиксированные цели финализации v4.x
+
+#### RBAC / Roles & Privileges catalog
+
+Текущие роли `Read-only`, `Support`, `Administrator` и `Owner` сохраняются как фиксированные security boundaries.
+
+До завершения v4.x требуется единый централизованный каталог privileges, который:
+
+- перечисляет административные разделы и операции в виде стабильных permission identifiers;
+- однозначно связывает каждую permission с минимально допустимой ролью;
+- используется authorization layer как источник правил доступа, а не только как справочная документация;
+- отображается в `/admin → Administrators → Roles & Privileges` в читаемом виде;
+- обновляется вместе с добавлением новых admin sections/actions;
+- покрывается regression/CI-проверками, чтобы новая административная mutation не могла появиться без явного privilege rule.
+
+Первый вариант не требует custom roles или индивидуальной выдачи произвольных permission отдельным администраторам. Четыре существующие роли остаются каноническими; цель — сделать их возможности полными, прозрачными и поддерживаемыми по мере развития `/admin`.
+
+#### Extended direct-node backup
+
+Direct-node backup должен быть расширен от одной 3x-ui database до node snapshot, максимально полезного для operational recovery без превращения control plane в arbitrary remote file access.
+
+Минимальный целевой состав snapshot:
+
+~~~text
+nodes/<node>/
+├─ x-ui.db
+├─ nginx/
+├─ node.json
+└─ manifest.json
+~~~
+
+Требования:
+
+- `x-ui.db` по-прежнему получается через существующий direct admin backup path;
+- nginx configuration собирается только из заранее разрешённого локального source на конкретной node;
+- Telegram/Master не может передавать произвольный filesystem path;
+- существующий Host Control Agent не расширяется до general-purpose file API;
+- manifest фиксирует stable node identity, timestamp, версии/компоненты при доступности, список включённых файлов и checksums;
+- node snapshot включается в обычный Full Backup Master и наследует его правила хранения/секретности;
+- отсутствие nginx source должно быть явно отражено как missing/degraded component, а не молча считаться полным backup.
+
+В scope v4.x достаточно надёжно сохранять nginx configuration вместе с node DB. Автоматический remote nginx restore и полный bare-metal disaster recovery remote node не являются обязательными целями этой линии. При необходимости nginx bundle должен оставаться доступным для контролируемого ручного восстановления с обязательной локальной валидацией конфигурации перед reload.
+
 Крупные публичные customer-facing workflows не должны размывать scope v4.x. `/admin` остаётся Control Plane.
 
 ### v5.0.0 — Client Portal
