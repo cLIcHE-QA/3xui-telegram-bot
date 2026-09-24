@@ -148,6 +148,7 @@ Issue должен содержать факты, expected/actual behavior и ac
 7. После зелёного `Python checks` на `main` tag и GitHub Release создаёт `.github/workflows/release.yml`. Вручную tag/Release не создаются.
 8. После публикации runtime-релиза выполняется controlled production deployment по опубликованному tag.
 9. После deployment выполняется отдельная post-deploy verification; только после неё runtime-релиз считается operationally closed и можно переходить к следующей runtime-задаче.
+10. После базовой post-deploy verification выполняется targeted production smoke изменённой критической области: проверяется именно новая feature/fix и её ключевые safety/postcondition свойства. Полный ручной регрессионный прогон всех функций не требуется. Если безопасный production smoke невозможен, это явно фиксируется в release notes/операционном отчёте с указанием, какими CI/regression проверками закрыт риск.
 
 Исторические теги до `v4.8.0` восстановлены по сохранённым снимкам релизов при миграции проекта в Git.
 
