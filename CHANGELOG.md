@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.16.0 — Regression coverage hardening
+- Добавлен целевой regression pack для критических admin/business/recovery путей: payment/status и catalog relations, user lifecycle mutation ordering, provisioning idempotency/partial failure, subscription proxy compatibility/error paths, inbound mutation failure paths, disaster recovery и negative authorization boundaries.
+- Safe/strict provisioning теперь явно проверяются на разные privilege boundaries: per-user safe reconcile доступен роли `support`, strict reconcile остаётся `admin`; regression tests выявили и исправили drift, при котором privilege catalog излишне требовал `admin` и для safe reconcile.
+- User lifecycle tests подтверждают, что local expiry/record/subscription identity не меняются раньше успешной state-changing операции в 3x-ui; failed remote delete сохраняет локальную запись.
+- Provisioning tests фиксируют повторный safe reconcile без лишних mutations, stop-safe strict semantics, недоступные node как partial result и изоляцию batch failure одного пользователя от остальных.
+- Subscription proxy и restore tests покрывают plain/Base64 subscriptions, selective `vpn://` conversion, Shadowrocket compatibility, invalid `sub_id`, upstream failures, unsafe/malformed backup, staged SHA mismatch, rescue copy и отсутствие replay broken restore.
+- Схема SQLite, 3x-ui API contract, Host Control API и deployment topology не изменены.
+
 ## v4.15.0 — Versioned SQLite migrations
 - Добавлен versioned migration framework для локальной `bot.sqlite3`: source of truth хранится в `schema_migrations`, migrations идут только вперёд и имеют стабильные version/name.
 - Текущая схема v4.14.2 оформлена как идемпотентная baseline migration `v1 baseline_v4_14_2`, поэтому существующие installation без migration journal обновляются in-place с сохранением данных.
