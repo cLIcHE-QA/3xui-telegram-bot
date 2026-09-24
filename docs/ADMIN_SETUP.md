@@ -36,9 +36,9 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v4.14.2. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v4.15.0. Все privileged connections используют отдельные credentials и stable node_id binding.
 
-> В `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
+> Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
 ## 0. Что понадобится
 
@@ -132,7 +132,7 @@ git clone git@github.com:cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v4.14.2
+git checkout --detach v4.15.0
 ~~~
 
 Проверка release:
@@ -147,7 +147,7 @@ PY
 Ожидается:
 
 ~~~text
-4.14.2
+4.15.0
 ~~~
 
 ## 4. Создай local admin venv
@@ -284,7 +284,7 @@ ok
 
 - Container: running;
 - RestartCount=0;
-- Bot version: 4.14.2;
+- Bot version: 4.15.0;
 - Health: ok;
 - DB: ok;
 - 3x-ui connectivity: ok.

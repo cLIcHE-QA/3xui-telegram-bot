@@ -1,10 +1,10 @@
-# Telegram-бот для 3x-ui v4.14.2
+# Telegram-бот для 3x-ui v4.15.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
-**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.14.2`. Будущая client-facing часть будет документироваться отдельно.
+**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.15.0`. Будущая client-facing часть будет документироваться отдельно.
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
@@ -15,6 +15,24 @@
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.15.0 — Versioned SQLite migrations
+
+Релиз переводит локальную `bot.sqlite3` на явный forward-only migration framework с persistent journal `schema_migrations`. Существующая схема v4.14.2 принимается как baseline `v1`, поэтому production DB без journal обновляется in-place без удаления данных.
+
+Startup теперь блокируется fail-closed при `running`/`failed` migration, неизвестной более новой schema version или schema/integrity mismatch. Future dangerous migrations обязаны создать проверенную recovery copy перед mutation; automatic down migrations, automatic restore и mutation replay не добавлены.
+
+Полный contract и recovery semantics: [Versioned SQLite migrations](docs/SQLITE_MIGRATIONS.md).
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.15.0
+./scripts/deploy-release.sh --status
+~~~
+
+После deploy targeted smoke должен подтвердить `schema_migrations` со статусом `success`, `PRAGMA quick_check = ok` и повторный startup без повторного применения baseline migration.
 
 ## v4.14.2 — Исправление guided onboarding direct node
 
