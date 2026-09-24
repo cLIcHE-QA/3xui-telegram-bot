@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.14.0 — RBAC и расширенные node snapshots
+- Добавлен централизованный каталог RBAC privileges для фиксированных ролей `Read-only`, `Support`, `Administrator` и `Owner`; authorization layer использует его как source of truth, неизвестные admin callbacks блокируются fail-closed, а `/admin → Administrators → Roles & Privileges` показывает действующие permission boundaries.
+- Direct-node backup расширен до recovery-oriented snapshot `nodes/<node>/` с `x-ui.db`, `nginx/`, `node.json` и `manifest.json`; manifest хранит stable node identity, component status, доступные версии, размеры и SHA-256 файлов, а тот же snapshot включается в обычный Full Backup.
+- Host Control Agent получил fixed read-only `GET /v1/snapshots/nginx`: endpoint не принимает filesystem path/filename/query selector, читает только локально настроенный `HOST_CONTROL_AGENT_NGINX_SOURCE` и не расширяет mutation allowlist за пределы `start|stop|restart`.
+- Отсутствующий или частично недоступный nginx source отражается как `degraded`/missing component, а не как ложный complete; bot дополнительно валидирует host identity, transport checksum, tar paths, file sizes и per-file checksums.
+- Для nginx snapshot source используется отдельный optional `/etc/3xui-host-control/nginx-snapshot.env`, который не входит в enrollment/bot `.env`; automatic remote nginx restore не добавлен, схема SQLite не изменена.
+- Добавлены regression/security tests для RBAC route coverage/fail-closed, fixed Host Control snapshot surface, archive integrity/path traversal и полного/degraded node backup.
+
 ## v4.13.2 — Host Control startup recovery
 - Startup бота теперь запускает `recover_control_jobs()` сразу после `db.init()` и до общего stale-job cleanup, поэтому незавершённые Host Control jobs получают шанс восстановить точный итог из persistent operation journal.
 - Recovery использует только read-only lookup сохранённого `operation_id`; state-changing Host Control mutation после рестарта автоматически не повторяется, а недоказуемый результат остаётся `unknown`.
