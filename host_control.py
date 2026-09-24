@@ -8,6 +8,9 @@ is never retried automatically.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import hmac
+import json
 import re
 from typing import Any
 
@@ -20,6 +23,8 @@ ACTIONS = frozenset({"start", "stop", "restart"})
 OPERATION_ID_RE = re.compile(r"[0-9a-f]{32}\Z")
 STATES = frozenset({"running", "stopped", "failed", "transitioning", "unknown"})
 RESULTS = frozenset({"started", "success", "failed", "uncertain"})
+NGINX_SNAPSHOT_ROUTE = "/v1/snapshots/nginx"
+MAX_NGINX_SNAPSHOT_RESPONSE_BYTES = 10 * 1024 * 1024
 
 
 class HostControlError(RuntimeError):
@@ -171,6 +176,85 @@ class HostControlClient:
             finished_at=str(payload.get("finished_at") or ""),
             replayed=bool(payload.get("replayed", False)),
         )
+
+    async def download_nginx_snapshot(self) -> bytes:
+        timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(
+                    f"{self.base_url}{NGINX_SNAPSHOT_ROUTE}",
+                    headers={
+                        "Authorization": f"Bearer {self.token}",
+                        "Accept": "application/gzip, application/json",
+                    },
+                    ssl=None if self.verify_tls else False,
+                    allow_redirects=False,
+                ) as response:
+                    if (
+                        response.content_length is not None
+                        and response.content_length > MAX_NGINX_SNAPSHOT_RESPONSE_BYTES
+                    ):
+                        raise HostControlError(
+                            "Host-control nginx snapshot is too large.",
+                            code="snapshot_too_large",
+                        )
+                    body = await response.content.read(
+                        MAX_NGINX_SNAPSHOT_RESPONSE_BYTES + 1
+                    )
+                    if len(body) > MAX_NGINX_SNAPSHOT_RESPONSE_BYTES:
+                        raise HostControlError(
+                            "Host-control nginx snapshot is too large.",
+                            code="snapshot_too_large",
+                        )
+
+                    if response.status != 200:
+                        code = f"http_{response.status}"
+                        try:
+                            payload = json.loads(body.decode("utf-8"))
+                            if isinstance(payload, dict) and payload.get("error"):
+                                code = str(payload["error"])
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            pass
+                        raise HostControlError(
+                            "Host-control nginx snapshot request failed.",
+                            code=code,
+                        )
+
+                    if response.headers.get("X-Host-Control-Schema") != str(SCHEMA_VERSION):
+                        raise HostControlError(
+                            "Host-control snapshot schema mismatch.",
+                            code="schema_mismatch",
+                        )
+                    if response.headers.get("X-Host-Control-Host-Id") != self.expected_host_id:
+                        raise HostControlError(
+                            "Host-control snapshot host identity mismatch.",
+                            code="host_id_mismatch",
+                        )
+                    if response.headers.get("X-Host-Control-Component") != "nginx":
+                        raise HostControlError(
+                            "Host-control snapshot component mismatch.",
+                            code="component_mismatch",
+                        )
+                    expected = str(response.headers.get("X-Content-SHA256") or "").lower()
+                    if not re.fullmatch(r"[0-9a-f]{64}", expected):
+                        raise HostControlError(
+                            "Host-control snapshot checksum is missing.",
+                            code="invalid_checksum",
+                        )
+                    actual = hashlib.sha256(body).hexdigest()
+                    if not hmac.compare_digest(actual, expected):
+                        raise HostControlError(
+                            "Host-control snapshot checksum mismatch.",
+                            code="checksum_mismatch",
+                        )
+                    return body
+        except HostControlError:
+            raise
+        except (aiohttp.ClientError, TimeoutError) as exc:
+            raise HostControlError(
+                "Host-control nginx snapshot is unavailable.",
+                code="network_error",
+            ) from exc
 
     async def status(self) -> HostControlStatus:
         try:

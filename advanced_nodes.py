@@ -21,7 +21,7 @@ settings = load_settings()
 db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
-system_backup = SystemBackupService(backup_manager, settings.node_backup_targets)
+system_backup = SystemBackupService(backup_manager, settings.node_backup_targets, settings.host_control_targets)
 
 advanced_nodes_router = Router(name="advanced_nodes")
 
@@ -271,14 +271,26 @@ async def node_backup(call: CallbackQuery):
         return
     await call.answer("Создаю backup…")
     try:
-        path = await system_backup.create_node_snapshot(node.name, node.id)
+        snapshot = await system_backup.create_node_snapshot(node.name, node.id)
         await audit_from_call(
             db, call, "node.backup", target_type="node", target_id=node_id,
-            details=f"name={node.name}; file={path.name}; bytes={path.stat().st_size}",
+            details=(
+                f"name={node.name}; file={snapshot.path.name}; "
+                f"bytes={snapshot.path.stat().st_size}; complete={int(snapshot.complete)}; "
+                f"missing={len(snapshot.missing)}"
+            ),
         )
+        state = "✅ полный" if snapshot.complete else "⚠️ degraded"
+        missing = ""
+        if snapshot.missing:
+            missing = "\nОтсутствует/неполно: " + "; ".join(snapshot.missing[:4])
         await call.message.answer_document(
-            FSInputFile(path),
-            caption=f"💾 Backup DB · {node.name}\nФайл содержит секретные данные. Храни его безопасно.",
+            FSInputFile(snapshot.path),
+            caption=(
+                f"💾 Node snapshot · {node.name}\n"
+                f"Статус: {state}{missing}\n"
+                "Архив содержит секретные данные. Храни его безопасно."
+            ),
             reply_markup=_back(node_id),
         )
     except Exception as exc:

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import http.client
+import io
 import json
 from pathlib import Path
+import tarfile
 import tempfile
 import threading
 import unittest
@@ -42,6 +45,15 @@ class HostControlHTTPTests(unittest.TestCase):
         root = Path(self.tmp.name)
         self.token = "t" * 48
         self.controller = FakeController()
+        self.nginx = root / "nginx"
+        self.nginx.mkdir()
+        (self.nginx / "nginx.conf").write_text("events {}\nhttp {}\n", encoding="utf-8")
+        confd = self.nginx / "conf.d"
+        confd.mkdir()
+        (confd / "site.conf").write_text("server { listen 443; }\n", encoding="utf-8")
+        outside = root / "outside.secret"
+        outside.write_text("must-not-leak", encoding="utf-8")
+        (self.nginx / "outside-link.conf").symlink_to(outside)
         config = AgentConfig(
             host_id="fi",
             listen_host="127.0.0.1",
@@ -49,6 +61,7 @@ class HostControlHTTPTests(unittest.TestCase):
             token=self.token,
             db_path=root / "agent.sqlite3",
             operation_timeout=2.0,
+            nginx_source=self.nginx,
         )
         agent = HostControlAgent(
             config,
@@ -66,7 +79,7 @@ class HostControlHTTPTests(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=2)
 
-    def request(self, method: str, path: str, *, body=None, auth=True):
+    def request_raw(self, method: str, path: str, *, body=None, auth=True):
         conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
         headers = {"Accept": "application/json"}
         if auth:
@@ -78,9 +91,14 @@ class HostControlHTTPTests(unittest.TestCase):
         conn.request(method, path, body=payload, headers=headers)
         response = conn.getresponse()
         raw = response.read()
+        result = (response.status, response.getheaders(), raw)
         conn.close()
+        return result
+
+    def request(self, method: str, path: str, *, body=None, auth=True):
+        status, headers, raw = self.request_raw(method, path, body=body, auth=auth)
         data = json.loads(raw.decode("utf-8"))
-        return response.status, response.getheaders(), data, raw
+        return status, headers, data, raw
 
     def test_status_requires_authentication(self):
         status, _, data, raw = self.request("GET", "/v1/status", auth=False)
@@ -109,6 +127,36 @@ class HostControlHTTPTests(unittest.TestCase):
                 status, _, data, _ = self.request("GET", path)
                 self.assertEqual(status, 404)
                 self.assertEqual(data["error"], "not_found")
+
+    def test_nginx_snapshot_is_fixed_read_only_surface(self):
+        status, headers, raw = self.request_raw("GET", "/v1/snapshots/nginx")
+        self.assertEqual(status, 200)
+        header_map = dict(headers)
+        self.assertEqual(header_map.get("X-Host-Control-Host-Id"), "fi")
+        self.assertEqual(header_map.get("X-Host-Control-Component"), "nginx")
+        self.assertEqual(header_map.get("X-Content-SHA256"), hashlib.sha256(raw).hexdigest())
+
+        with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+            names = set(archive.getnames())
+            self.assertIn("nginx.conf", names)
+            self.assertIn("conf.d/site.conf", names)
+            self.assertIn("_snapshot.json", names)
+            self.assertNotIn("outside-link.conf", names)
+            meta = json.load(archive.extractfile("_snapshot.json"))
+
+        self.assertFalse(meta["complete"])
+        self.assertTrue(any(item["reason"] == "external_symlink" for item in meta["skipped"]))
+
+        status, _, data, _ = self.request(
+            "GET", "/v1/snapshots/nginx?path=/etc/passwd"
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(data["error"], "invalid_request_target")
+
+    def test_nginx_snapshot_requires_authentication(self):
+        status, _, data, _ = self.request("GET", "/v1/snapshots/nginx", auth=False)
+        self.assertEqual(status, 401)
+        self.assertEqual(data["error"], "unauthorized")
 
     def test_mutation_schema_rejects_extra_command_fields_before_dispatch(self):
         body = {
