@@ -13,6 +13,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from admin_ui import render_callback, render_input
 from admin_auth import ROLE_LABELS, authorize_callback, authorize_message, get_admin_role
+from admin_privileges import PRIVILEGES
 from audit import audit_from_call, audit_from_message
 from config import load_settings
 from db import AdministratorRecord, Database, PaymentRecord, PromoCodeRecord
@@ -761,6 +762,7 @@ async def administrators_list(call: CallbackQuery):
         rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:administrator:{tg_id}")])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить администратора", callback_data="admin:administratoradd:start")],
+        [InlineKeyboardButton(text="🔐 Roles & Privileges", callback_data="admin:privileges")],
         [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
     ]
     await render_callback(call, 
@@ -772,6 +774,38 @@ async def administrators_list(call: CallbackQuery):
         "🧑‍💻 Support — просмотр админки + операции с пользователями\n"
         "👁 Read-only — просмотр без изменений",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+@business_router.callback_query(F.data == "admin:privileges")
+async def roles_privileges(call: CallbackQuery):
+    if not await guard(call, minimum="owner"):
+        return
+    role_order = ("read_only", "support", "admin", "owner")
+    role_icons = {
+        "read_only": "👁",
+        "support": "🧑‍💻",
+        "admin": "🛡",
+        "owner": "👑",
+    }
+    lines = [
+        "🔐 Roles & Privileges",
+        "",
+        "Четыре роли фиксированы. Каждая permission задаёт минимально допустимую роль.",
+        "Более высокая роль наследует permissions нижестоящих ролей.",
+    ]
+    for role in role_order:
+        lines += ["", f"{role_icons[role]} {ROLE_LABELS[role]}"]
+        for item in PRIVILEGES:
+            if item.minimum_role == role:
+                lines.append(f"• {item.permission_id} — {item.label}")
+    await render_callback(
+        call,
+        "\n".join(lines),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
+        ]),
     )
     await call.answer()
 
