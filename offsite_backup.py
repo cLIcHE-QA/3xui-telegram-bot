@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import boto3
 from botocore.config import Config
@@ -69,6 +70,23 @@ class OffsiteBackupService:
         self.region = region.strip() or "us-east-1"
         self.endpoint_url = endpoint_url.strip().rstrip("/")
         self.keep = max(1, int(keep))
+        if not self.bucket:
+            raise OffsiteBackupError("Off-site bucket must not be empty.")
+        if not self.prefix or any(part in {"", ".", ".."} for part in self.prefix.split("/")):
+            raise OffsiteBackupError("Off-site prefix must contain safe non-empty path segments.")
+        if self.endpoint_url:
+            parsed = urlsplit(self.endpoint_url)
+            if (
+                parsed.scheme != "https"
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise OffsiteBackupError(
+                    "Custom S3 endpoint must be absolute verified HTTPS without credentials/query/fragment."
+                )
         self.restore_manager = restore_manager
         self._key = self._decode_key(encryption_key_b64)
         if client is not None:
