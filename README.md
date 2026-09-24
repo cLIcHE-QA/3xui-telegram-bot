@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.13.1
+# Telegram-бот для 3x-ui v4.13.2
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
@@ -13,6 +13,20 @@
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.13.2 — Host Control startup recovery
+
+Patch-релиз подключает уже существующий read-only recovery незавершённых Host Control jobs к startup path бота. Recovery выполняется до generic stale-job cleanup и использует persistent `operation_id` для проверки operation journal Host Control Agent.
+
+State-changing mutation после рестарта автоматически не повторяется. Если итог нельзя доказать read-only проверкой, job остаётся `unknown`.
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.13.2
+./scripts/deploy-release.sh --status
+~~~
 
 ## v4.13.1 — Исправление Fleet Rollout jobs
 
