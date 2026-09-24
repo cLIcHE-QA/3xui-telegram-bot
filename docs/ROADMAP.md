@@ -84,6 +84,10 @@ nodes/<node>/
 
 #### Safe Bot Self-Update
 
+**Статус: 🟡 Реализовано в `main`; ожидает публикации runtime release и production acceptance.**
+
+Restricted Deploy Agent, Owner-only UI, persistent `operation_id` journal, no-replay startup recovery, published-tag validation, explicit downgrade confirmation и host-side install tooling уже слиты в `main`. Первый `v4.19.0` по-прежнему должен быть развернут вручную; после этого Deploy Agent подключается локально и проходит production same-release/recovery smoke.
+
 До завершения v4.x допускается добавить обновление production bot из `/admin`, но только через отдельный ограниченный deploy control plane. Сам Telegram bot container не получает Docker socket, host shell, GitHub deploy key или произвольный host filesystem access.
 
 Целевая схема:
@@ -252,7 +256,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 1. `RBAC / Roles & Privileges catalog` — ✅ выполнено в `v4.14.0`;
 2. `Extended direct-node backup` — ✅ выполнено в `v4.14.1`;
-3. `Safe Bot Self-Update` — ⬜ запланировано; следующий целевой release `v4.19.0`;
+3. `Safe Bot Self-Update` — 🟡 реализовано в `main`; ожидает `v4.19.0` и production acceptance;
 4. Host Control startup recovery — ✅ выполнено в `v4.13.2`;
 5. versioned SQLite migrations — ✅ выполнено в `v4.15.0`;
 6. расширенный regression coverage критических admin/business/recovery путей — ✅ выполнено в `v4.16.0`;
