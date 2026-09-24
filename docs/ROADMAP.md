@@ -165,9 +165,9 @@ success / failed / unknown
 
 ##### Версионные миграции SQLite
 
-**Статус: 🟡 Реализовано в `main`; ожидает публикации runtime release.**
+**Статус: ✅ Выполнено в `v4.15.0`.**
 
-Versioned migration framework уже слит в `main`: `schema_migrations` хранит journal/version, migrations выполняются только вперёд, dangerous steps требуют проверенную recovery copy, а `running`/`failed`/newer schema блокируют startup fail-closed. До публикации соответствующего runtime release пункт не переводится в `✅`.
+Versioned migration framework опубликован в `v4.15.0`: `schema_migrations` хранит journal/version, migrations выполняются только вперёд, dangerous steps требуют проверенную recovery copy, а `running`/`failed`/newer schema блокируют startup fail-closed. Production deployment и targeted smoke подтверждены: baseline `v1 baseline_v4_14_2` применился ровно один раз, `PRAGMA quick_check` вернул `ok`, повторный restart не replay'нул migration, а post-restart health/DB/3x-ui checks остались зелёными.
 
 Минимальный контракт:
 
