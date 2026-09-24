@@ -221,6 +221,10 @@ Roadmap не задаёт искусственный глобальный про
 
 ##### 3x-ui API compatibility / OpenAPI contract gate
 
+**Статус: 🟡 Реализовано в `main`; ожидает публикации runtime release.**
+
+Compatibility gate уже слит в `main`: поддерживаемая версия 3x-ui зафиксирована как `v3.8.5`, OpenAPI vendored из immutable upstream tag и привязан к exact Git blob SHA, а CI проверяет 51 реально используемый panel API endpoint на route/method, Bearer auth, request media type/mandatory fields, response envelope и parity с `xui.py`/`version_api.py`. Unknown upstream schema автоматически не принимается; единственное documented response exception — binary `GET /panel/api/server/getDb`.
+
 Современный 3x-ui публикует OpenAPI-схему, поэтому совместимость с upstream API до v5 должна проверяться машинно, а не только ручными smoke tests.
 
 Минимальный контракт:
