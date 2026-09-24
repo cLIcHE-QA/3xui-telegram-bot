@@ -288,6 +288,10 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         r"^admin:fleet:ro:(p|x):review$",
     )
     + _rules("versions.manage", "regex", r"^admin:ver:(run|cancel|check):[0-9a-f]{16}$")
+    # Exact router-filter declaration for CI route-catalog parity. Runtime role
+    # resolution is intentionally handled by the earlier safe/support and
+    # strict/admin rules, so this trailing declaration cannot weaken access.
+    + _rules("users.admin", "regex", r"^admin:u:provrun:\d+:(safe|strict)$")
 )
 
 
