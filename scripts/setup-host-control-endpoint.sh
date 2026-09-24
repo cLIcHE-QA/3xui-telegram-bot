@@ -19,14 +19,14 @@ Usage:
   sudo scripts/setup-host-control-endpoint.sh master \
     --alias MASTER --host-id master --name Master \
     --bridge-ip 172.19.0.1 --docker-subnet 172.19.0.0/16 \
-    [--proxy-port 18182] [--apply-ufw]
+    [--nginx-source /etc/nginx] [--proxy-port 18182] [--apply-ufw]
 
   sudo scripts/setup-host-control-endpoint.sh remote \
     --alias FI --host-id fi --name Finland \
     --listen-ip 203.0.113.10 --source-ip 198.51.100.20 \
     --public-host host-control-fi.example.com \
     --cert /path/fullchain.pem --key /path/privkey.pem \
-    [--proxy-port 18443] [--apply-ufw]
+    [--nginx-source /etc/nginx] [--proxy-port 18443] [--apply-ufw]
 
 Creates a separate restricted nginx process. Existing nginx/MTProxy configs are not edited.
 A mode-0600 enrollment file is written; it contains the dedicated token.
@@ -102,6 +102,7 @@ KEY_PATH=""
 PROXY_PORT=""
 APPLY_UFW=0
 ENROLLMENT_FILE=""
+NGINX_SOURCE=""
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -117,6 +118,7 @@ while [[ "$#" -gt 0 ]]; do
         --key) need_value "$@"; KEY_PATH="$2"; shift 2 ;;
         --proxy-port) need_value "$@"; PROXY_PORT="$2"; shift 2 ;;
         --enrollment-file) need_value "$@"; ENROLLMENT_FILE="$2"; shift 2 ;;
+        --nginx-source) need_value "$@"; NGINX_SOURCE="$2"; shift 2 ;;
         --apply-ufw) APPLY_UFW=1; shift ;;
         --help|-h) usage; exit 0 ;;
         *) die "unknown argument: $1" ;;
@@ -169,7 +171,11 @@ else
 fi
 
 printf 'Installing restricted Host Control Agent for %s...\n' "$HOST_ID"
-"$INSTALL_AGENT" "$HOST_ID"
+if [[ -n "$NGINX_SOURCE" ]]; then
+    "$INSTALL_AGENT" "$HOST_ID" --nginx-source "$NGINX_SOURCE"
+else
+    "$INSTALL_AGENT" "$HOST_ID"
+fi
 systemctl is-active --quiet 3xui-host-control.service || die "agent is not active"
 
 if ! id "$PROXY_USER" >/dev/null 2>&1; then
