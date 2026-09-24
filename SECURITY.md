@@ -30,7 +30,8 @@ Host-control в v4.10.0 не является каналом доступа к V
 - agent слушает только `127.0.0.1`;
 - remote доступ допускается только через restricted HTTPS reverse proxy и source allowlist;
 - Bearer token отдельный для каждого host и не переиспользуется между targets;
-- HTTP API не содержит SSH/shell/exec/file/Docker/firewall/reboot/package-management операций;
+- HTTP API не содержит SSH/shell/exec/Docker/firewall/reboot/package-management операций и не предоставляет general-purpose file access;
+- единственное чтение host filesystem — fixed read-only `GET /v1/snapshots/nginx` из локально заданного `HOST_CONTROL_AGENT_NGINX_SOURCE`; request не принимает path/filename/query selector;
 - action — только `start|stop|restart`, systemd unit жёстко задан как `x-ui.service`;
 - OS-команды формируются только статическим argv и запускаются с `shell=False`;
 - agent работает непривилегированным пользователем, sudoers разрешает только три точных systemctl-команды без wildcard;
@@ -42,3 +43,7 @@ Host-control в v4.10.0 не является каналом доступа к V
 ## Backup/Restore
 
 Полные backup-архивы содержат секреты и должны храниться вне публичных артефактов репозитория. Restore-операции следует выполнять только после preflight/dry-run и наличия rescue-копии текущего состояния.
+
+Direct-node snapshot собирается из двух раздельных privilege domains: `x-ui.db` приходит через dedicated `NODE_BACKUP_*` direct-admin token, а nginx configuration — через fixed read-only Host Control snapshot source. Telegram/Master не передаёт filesystem path на node. `node.json` и `manifest.json` не должны содержать API/Host Control tokens; manifest фиксирует checksums и явно отмечает missing/degraded components.
+
+Nginx configuration из remote node не применяется автоматически. При ручном восстановлении сначала проверяется содержимое bundle и локальная конфигурация валидируется штатным `nginx -t` до reload.
