@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Unreleased
+- Добавлен раздел `🌐 Fleet Operations` с read-only `Fleet Health`, controlled Fleet Maintenance, Fleet Jobs и последовательным rollout для direct nodes.
+- `Controlled Rollout` переиспользует существующий two-phase `UpdateService`: verified backup выполняется до intentional maintenance, затем update запускается строго по одной node с canary и explicit continue.
+- Rollout работает stop-on-failure: при `failed` или `unknown` проблемная node остаётся в maintenance, оставшиеся nodes не затрагиваются, state-changing request автоматически не повторяется.
+- Rollout eligibility требует direct online node, доступные Direct Panel API и Host Control, а также stable `node_id` binding для обоих privileged targets; transitive и legacy-name targets не мутируются.
+- После рестарта незавершённые fleet operations помечаются interrupted/unknown и не продолжаются автоматически; mass `Stop service` / `Stop Xray`, parallel rollout и automatic rollback намеренно не добавлены.
+- Scope и safety contract зафиксированы в `docs/FLEET_OPERATIONS.md`.
+
 ## v4.12.0 — Guided onboarding direct node
 - Добавлен guided wrapper `scripts/onboard-direct-node.sh`: `prepare` собирает/опционально копирует secret-free Host Control bundle и формирует remote install command, `bind` проводит node registration и оба privileged bindings через единый stable `NODE_ID`.
 - `import-node-admin-target.py` получил `--node-id`; ID из enrollment и explicit override проверяются на совпадение fail-closed.
