@@ -4,7 +4,7 @@ set -Eeuo pipefail
 REPO_ROOT="/opt/3xui-bot/3xui-telegram-bot"
 DEPLOY_SCRIPT="$REPO_ROOT/scripts/deploy-release.sh"
 EXPECTED_REPOSITORY="cLIcHE-QA/3xui-telegram-bot"
-SSH_KEY="/root/.ssh/3xui_bot_deploy"
+SSH_KEY="/etc/3xui-deploy-agent/deploy-key"
 PROJECT="3xui-telegram-bot"
 SERVICE="bot"
 HEALTH_URL="http://127.0.0.1:18080/healthz"
