@@ -17,6 +17,13 @@ for path in "$AGENT_SOURCE" "$HELPER_SOURCE" "$UNIT_SOURCE" "$SUDOERS_SOURCE"; d
     [ -f "$path" ] || { echo "Missing $path" >&2; exit 2; }
 done
 
+SOURCE_KEY="${DEPLOY_AGENT_SOURCE_KEY:-/root/.ssh/3xui_bot_deploy}"
+[ -f "$SOURCE_KEY" ] || {
+    echo "Deploy key not found: $SOURCE_KEY" >&2
+    echo "Set DEPLOY_AGENT_SOURCE_KEY locally if the existing read-only key lives elsewhere." >&2
+    exit 2
+}
+
 for bin in /usr/bin/python3 /usr/bin/systemctl /usr/bin/sudo /usr/sbin/visudo; do
     [ -x "$bin" ] || { echo "Required executable missing: $bin" >&2; exit 2; }
 done
@@ -32,6 +39,7 @@ install -d -o root -g root -m 0755 /usr/local/libexec
 
 install -o root -g root -m 0755 "$AGENT_SOURCE" /opt/3xui-deploy-agent/deploy_agent.py
 install -o root -g root -m 0755 "$HELPER_SOURCE" /usr/local/libexec/3xui-bot-deploy
+install -o root -g root -m 0600 "$SOURCE_KEY" /etc/3xui-deploy-agent/deploy-key
 
 TOKEN_FILE=/etc/3xui-deploy-agent/token
 if [ ! -f "$TOKEN_FILE" ]; then
@@ -80,4 +88,5 @@ install -o root -g root -m 0644 "$UNIT_SOURCE" /etc/systemd/system/3xui-deploy-a
 echo "3x-ui bot Deploy Agent installed."
 echo "Listener: 172.19.0.1:18184 (Docker-host private route only)."
 echo "Token stored in /etc/3xui-deploy-agent/token and was NOT printed."
+echo "Read-only Git deploy key copied to /etc/3xui-deploy-agent/deploy-key (root-only)."
 echo "Next: copy the token locally into DEPLOY_AGENT_TOKEN in the bot .env without sending it through chat."
