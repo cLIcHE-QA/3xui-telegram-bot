@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.13.2
+# Telegram-бот для 3x-ui v4.14.0
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
@@ -13,6 +13,22 @@
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.14.0 — RBAC и расширенные node snapshots
+
+Релиз централизует privilege boundaries административной панели: четыре фиксированные роли сохраняются, но admin callbacks теперь разрешаются через единый permission catalog и неизвестные действия блокируются fail-closed. Owner получает экран `/admin → Administrators → Roles & Privileges`.
+
+Direct-node backup теперь создаёт recovery-oriented `.tar.gz` с `x-ui.db`, nginx configuration, `node.json` и checksum-manifest. Nginx читается только через fixed read-only Host Control endpoint из source, заданного локально на node; Telegram/Master не передаёт filesystem path. Если source не настроен, snapshot честно помечается `degraded`.
+
+После обычного bot deploy Host Control Agent на direct nodes нужно обновить из того же release bundle/unit и локально настроить `/etc/3xui-host-control/nginx-snapshot.env` по [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md). Automatic nginx restore не выполняется.
+
+Production deployment:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+./scripts/deploy-release.sh v4.14.0
+./scripts/deploy-release.sh --status
+~~~
 
 ## v4.13.2 — Host Control startup recovery
 
