@@ -184,9 +184,9 @@ Versioned migration framework опубликован в `v4.15.0`: `schema_migra
 
 ##### Расширение regression coverage
 
-**Статус: 🟡 Реализовано в `main`; ожидает публикации runtime release.**
+**Статус: ✅ Выполнено в `v4.16.0`.**
 
-Целевой regression pack слит в `main`: business/catalog transitions, user lifecycle mutation ordering, provisioning idempotency/partial failure, subscription proxy compatibility/error paths, inbound mutation failure paths, disaster recovery и negative RBAC boundaries. Тесты также выявили и зафиксировали RBAC drift для per-user safe reconcile: `safe` соответствует роли `support`, `strict` остаётся `admin`.
+Целевой regression pack опубликован в `v4.16.0`: business/catalog transitions, user lifecycle mutation ordering, provisioning idempotency/partial failure, subscription proxy compatibility/error paths, inbound mutation failure paths, disaster recovery и negative RBAC boundaries. Production deployment и targeted smoke подтверждены: release commit развернут штатно, health/DB/3x-ui checks зелёные, а runtime privilege mapping соответствует contract — `safe=support`, `strict=admin`.
 
 Наиболее опасные operational части проекта уже имеют сильные тесты, прежде всего Host Control и update engine. Перед v5.0.0 требуется выровнять regression coverage для административного и business/backend слоя.
 
