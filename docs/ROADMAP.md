@@ -36,7 +36,7 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 #### RBAC / Roles & Privileges catalog
 
-**Статус: 🟡 Реализовано в `main`.**
+**Статус: ✅ Выполнено в `v4.14.0`.**
 
 Текущие роли `Read-only`, `Support`, `Administrator` и `Owner` сохраняются как фиксированные security boundaries.
 
@@ -53,7 +53,9 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 #### Extended direct-node backup
 
-**Статус: 🟡 Реализовано в `main`.**
+**Статус: ✅ Выполнено в `v4.14.1`.**
+
+Реализация впервые опубликована в `v4.14.0`, а production acceptance полностью закрыт в `v4.14.1` после исправления multi-chunk чтения Host Control nginx snapshot и upgrade restart path.
 
 Direct-node backup должен быть расширен от одной 3x-ui database до node snapshot, максимально полезного для operational recovery без превращения control plane в arbitrary remote file access.
 
