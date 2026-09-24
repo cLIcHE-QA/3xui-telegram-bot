@@ -59,6 +59,7 @@ Host Control Agent запускается как отдельный systemd serv
 - выполнять только start, stop и restart;
 - возвращать результат и текущее состояние;
 - хранить минимальный журнал host-control операций для idempotency/recovery;
+- отдавать read-only snapshot nginx configuration только из одного заранее заданного локального каталога;
 - писать безопасный audit trail в journald.
 
 ### Агент НЕ МОЖЕТ
@@ -68,6 +69,8 @@ Host Control Agent запускается как отдельный systemd serv
 - управлять другими сервисами;
 - выполнять sudo sh, bash -c, eval или shell=True;
 - принимать путь к executable из запроса;
+- принимать filesystem path, имя файла или source directory из HTTP-запроса;
+- предоставлять directory listing, arbitrary file read/write или general-purpose file API;
 - читать или изменять 3x-ui DB;
 - обновлять 3x-ui/Xray;
 - менять firewall;
@@ -232,7 +235,7 @@ JSON UTF-8.
   "state": "running",
   "active_state": "active",
   "sub_state": "running",
-  "agent_version": "0.1.0",
+  "agent_version": "0.2.0",
   "timestamp": "2026-09-23T17:30:00Z"
 }
 ~~~
@@ -338,6 +341,42 @@ restart
 ~~~
 
 Этот endpoint нужен для recovery после потерянного ответа на POST.
+
+### 8.4 GET /v1/snapshots/nginx
+
+Read-only endpoint для Extended direct-node backup. Он возвращает gzip tar только из локального source, настроенного на самом target VPS через `HOST_CONTROL_AGENT_NGINX_SOURCE`.
+
+HTTP request **не принимает** path, filename, glob, command, argv или другой selector. Query string также запрещён. Поэтому Master/Telegram не может попросить agent прочитать `/etc/passwd`, произвольный каталог или другой host file.
+
+Архив содержит:
+
+~~~text
+<nginx files...>
+_snapshot.json
+~~~
+
+`_snapshot.json` фиксирует:
+
+- `schema` и stable `host_id`;
+- timestamp;
+- список файлов;
+- размер и SHA-256 каждого файла;
+- пропущенные/недоступные элементы;
+- `complete=true|false`.
+
+Agent обходит только настроенный source, не следует в symlink-directory и не читает symlink, ведущий за пределы source. Special/device entries не попадают в snapshot. Число файлов и суммарный размер ограничены.
+
+Если source не настроен:
+
+~~~http
+404 Not Found
+~~~
+
+с безопасным code `nginx_snapshot_unconfigured`.
+
+Если часть конфигурации нельзя безопасно прочитать, snapshot может быть выдан как `complete=false`. Bot обязан отразить его как degraded/missing component, а не считать полным node backup.
+
+Этот endpoint не является file browser и не расширяет mutation allowlist: `POST /v1/actions` по-прежнему принимает только `start|stop|restart`.
 
 ---
 
@@ -517,8 +556,9 @@ agent /v1/status
 - 200 — status read или завершённая/cached operation;
 - 400 — invalid request/action/operation_id;
 - 401 — authentication failed;
-- 404 — operation not found;
+- 404 — operation not found или локальный nginx snapshot source не настроен;
 - 409 — concurrent operation или operation_id conflict;
+- 413 — nginx snapshot превышает ограничение размера/числа файлов;
 - 500 — internal agent error;
 - 503 — systemctl/post-condition failed;
 - 504 — timeout / uncertain execution.
@@ -566,11 +606,14 @@ HOST_CONTROL_AGENT_TOKEN_FILE=/etc/3xui-host-control/token
 HOST_CONTROL_AGENT_SERVICE=x-ui.service
 HOST_CONTROL_AGENT_DB=/var/lib/3xui-host-control/agent.sqlite3
 HOST_CONTROL_AGENT_OPERATION_TIMEOUT=20
+HOST_CONTROL_AGENT_NGINX_SOURCE=/etc/nginx
 ~~~
 
-HOST_CONTROL_AGENT_SERVICE читается только локально при startup.
+HOST_CONTROL_AGENT_SERVICE и HOST_CONTROL_AGENT_NGINX_SOURCE читаются только локально при startup.
 
-HTTP request не может изменить service name.
+`HOST_CONTROL_AGENT_NGINX_SOURCE` необязателен. Он должен быть абсолютным существующим каталогом, не filesystem root и не symlink. Его задаёт оператор локально на target VPS; это значение не входит в bot enrollment и не управляется через Telegram.
+
+HTTP request не может изменить service name или nginx source.
 
 ### 15.1 Deployment boundary
 
@@ -591,6 +634,7 @@ Installer запускается локально на конкретном VPS 
 - валидирует sudoers через `visudo -cf`;
 - устанавливает exact sudoers allowlist только для start/stop/restart `x-ui.service`;
 - запускает agent на `127.0.0.1:18181`;
+- опционально принимает локальный `--nginx-source <absolute-dir>` и сохраняет этот fixed read-only source при повторной установке;
 - **не меняет firewall, SSH, Docker или reverse proxy**.
 
 Agent никогда не слушает публичный или private-LAN interface напрямую.
