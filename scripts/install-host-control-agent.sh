@@ -190,3 +190,4 @@ echo "3x-ui host-control agent installed for host-id=$HOST_ID"
 echo "Listener is loopback-only: 127.0.0.1:18181"
 echo "Token is stored in /etc/3xui-host-control/token and was NOT printed."
 echo "Configure a restricted reverse proxy/firewall before adding a remote HOST_CONTROL_* target."
+# Git mode: executable rollout helper.

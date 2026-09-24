@@ -445,3 +445,4 @@ if [[ "$MODE" == "remote" ]]; then
     printf 'TLS refresh timer: 3xui-host-control-tls-refresh.timer\n'
 fi
 printf 'Token was NOT printed.\n'
+# Git mode: executable rollout helper.
