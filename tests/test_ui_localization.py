@@ -439,6 +439,8 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         inbounds = source("inbound_admin.py")
         node_admin = source("node_admin.py")
         node_ui = source("node_ui.py")
+        advanced_nodes = source("advanced_nodes.py")
+        users = source("advanced_users.py")
         host = source("host_control_ui.py")
         fleet = source("fleet_operations.py")
         versions = source("versions_updates.py")
@@ -473,7 +475,9 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertNotIn(old, inbounds)
 
         self.assertIn("Задержка API:", node_admin)
+        self.assertIn('"legacy_name": "привязка по старому имени"', node_admin)
         self.assertNotIn("Ping API:", node_admin)
+        self.assertNotIn('"legacy_name": "legacy name"', node_admin)
         for needle in (
             'f"Адрес: {endpoint}"',
             "Исходящий маршрут:",
@@ -486,6 +490,14 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertIn(needle, node_ui)
         for old in ("Endpoint:", "Outbound bridge:", "Ping API:", "Последний heartbeat:"):
             self.assertNotIn(old, node_ui)
+
+        self.assertIn("Старое действие больше не выполняет изменение напрямую.", advanced_nodes)
+        self.assertIn("Сначала перенеси или удали inbound'ы", advanced_nodes)
+        self.assertNotIn("Старый callback больше не выполняет изменение напрямую.", advanced_nodes)
+        self.assertNotIn("Сначала удали/detach inbound'ы", advanced_nodes)
+
+        self.assertIn("Затронуто записей: {affected}", users)
+        self.assertNotIn("Трафик сброшен. affected=", users)
 
         self.assertIn("systemd сообщает, что сервис работает", host)
         self.assertNotIn("systemd сообщает running", host)
@@ -501,6 +513,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "Привязка Host Control=",
             '"legacy_name": "привязка по старому имени"',
             "Прямое подключение:",
+            "новую сессию операций с нодами",
         ):
             self.assertIn(needle, fleet)
         for old in (
@@ -515,6 +528,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             '"legacy_name": "legacy name"',
             " · Direct: ",
             " · Host: ",
+            "новую fleet-сессию",
         ):
             self.assertNotIn(old, fleet)
         self.assertIn('"canary": pending[0] if pending else 0', fleet)
