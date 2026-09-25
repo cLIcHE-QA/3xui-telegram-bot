@@ -44,6 +44,7 @@
 - `Audit Log` → `Журнал аудита`;
 - `Backups` → `Резервные копии`;
 - `Versions & Updates` → `Версии и обновления`;
+- `Bot Updates` → `Обновления бота`;
 - `Administrators` → `Администраторы`;
 - `Settings` → `Настройки`;
 - `Readiness` → `Готовность`.
