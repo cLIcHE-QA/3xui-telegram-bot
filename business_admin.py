@@ -101,13 +101,13 @@ async def guard_message(message: Message, state: FSMContext, *, minimum: str = "
 
 def dashboard_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
     ])
 
 
 def system_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
+        [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ])
 
 
@@ -177,17 +177,17 @@ async def payments_list(call: CallbackQuery):
         )])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить платёж", callback_data="admin:paymentadd:start")],
-        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
     ]
     paid_text = ", ".join(f"{money(v, c)}" for c, v in sorted(totals.items())) or "—"
     await render_callback(call, 
-        "💳 Payments\n\n"
+        "💳 Платежи\n\n"
         f"Всего: {await db.count_payments()}\n"
-        f"🟢 Paid: {summary.get('paid', 0)}\n"
-        f"🟡 Pending: {summary.get('pending', 0)}\n"
-        f"↩️ Refunded: {summary.get('refunded', 0)}\n"
-        f"Выручка по paid: {paid_text}\n\n"
-        "Пока это внутренний платёжный ledger. Интеграция с платёжным провайдером "
+        f"🟢 Оплачено: {summary.get('paid', 0)}\n"
+        f"🟡 Ожидают: {summary.get('pending', 0)}\n"
+        f"↩️ Возвращено: {summary.get('refunded', 0)}\n"
+        f"Выручка по оплаченным: {paid_text}\n\n"
+        "Пока это внутренний журнал платежей. Интеграция с платёжным провайдером "
         "будет подключаться поверх него без изменения истории.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -206,28 +206,28 @@ async def payment_detail(call: CallbackQuery):
     user = await db.get(item.telegram_id)
     plan = await db.get_plan(item.plan_id) if item.plan_id else None
     lines = [
-        f"💳 Payment #{item.id}", "",
-        f"User: {user.email if user else 'не найден'} · TG {item.telegram_id}",
-        f"Plan: {plan.name if plan else 'не привязан'}",
-        f"Amount: {money(item.amount_minor, item.currency)}",
-        f"Status: {PAYMENT_STATUSES.get(item.status, item.status)}",
-        f"Provider: {item.provider}",
+        f"💳 Платёж #{item.id}", "",
+        f"Пользователь: {user.email if user else 'не найден'} · TG {item.telegram_id}",
+        f"Тариф: {plan.name if plan else 'не привязан'}",
+        f"Сумма: {money(item.amount_minor, item.currency)}",
+        f"Статус: {PAYMENT_STATUSES.get(item.status, item.status)}",
+        f"Провайдер: {item.provider}",
         f"Reference: {item.external_id or '—'}",
-        f"Created: {utc_text(item.created_at)}",
-        f"Paid: {utc_text(item.paid_at)}",
+        f"Создан: {utc_text(item.created_at)}",
+        f"Оплачен: {utc_text(item.paid_at)}",
     ]
     if item.note:
-        lines.append(f"Note: {item.note}")
+        lines.append(f"Заметка: {item.note}")
     rows = [
         [
-            InlineKeyboardButton(text="🟢 Paid", callback_data=f"admin:payment:status:{item.id}:paid"),
-            InlineKeyboardButton(text="🟡 Pending", callback_data=f"admin:payment:status:{item.id}:pending"),
+            InlineKeyboardButton(text="🟢 Оплачен", callback_data=f"admin:payment:status:{item.id}:paid"),
+            InlineKeyboardButton(text="🟡 Ожидает", callback_data=f"admin:payment:status:{item.id}:pending"),
         ],
         [
-            InlineKeyboardButton(text="↩️ Refunded", callback_data=f"admin:payment:status:{item.id}:refunded"),
-            InlineKeyboardButton(text="⚪ Cancelled", callback_data=f"admin:payment:status:{item.id}:cancelled"),
+            InlineKeyboardButton(text="↩️ Возвращён", callback_data=f"admin:payment:status:{item.id}:refunded"),
+            InlineKeyboardButton(text="⚪ Отменён", callback_data=f"admin:payment:status:{item.id}:cancelled"),
         ],
-        [InlineKeyboardButton(text="⬅ Payments", callback_data="admin:payments")],
+        [InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")],
     ]
     await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
@@ -254,10 +254,10 @@ async def payment_status(call: CallbackQuery):
     )
     await call.answer("Статус обновлён")
     await render_callback(call, 
-        f"✅ Payment #{payment_id}: {PAYMENT_STATUSES[status]}",
+        f"✅ Платёж #{payment_id}: {PAYMENT_STATUSES[status]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть платёж", callback_data=f"admin:payment:{payment_id}")],
-            [InlineKeyboardButton(text="⬅ Payments", callback_data="admin:payments")],
+            [InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")],
         ]),
     )
 
@@ -332,8 +332,8 @@ async def payment_add_amount(message: Message, state: FSMContext):
         "Шаг 4/5. Начальный статус платежа?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [
-                InlineKeyboardButton(text="🟢 Paid", callback_data="admin:paymentadd:status:paid"),
-                InlineKeyboardButton(text="🟡 Pending", callback_data="admin:paymentadd:status:pending"),
+                InlineKeyboardButton(text="🟢 Оплачен", callback_data="admin:paymentadd:status:paid"),
+                InlineKeyboardButton(text="🟡 Ожидает", callback_data="admin:paymentadd:status:pending"),
             ],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:paymentadd:cancel")],
         ]),
@@ -373,10 +373,10 @@ async def payment_add_reference(message: Message, state: FSMContext):
     await state.set_state(AddPaymentStates.review)
     await render_input(message, 
         "Проверь платёж:\n\n"
-        f"User: {data['email']} · TG {data['telegram_id']}\n"
-        f"Plan: {plan.name if plan else 'не привязан'}\n"
-        f"Amount: {money(data['amount_minor'], data['currency'])}\n"
-        f"Status: {PAYMENT_STATUSES[data['status']]}\n"
+        f"Пользователь: {data['email']} · TG {data['telegram_id']}\n"
+        f"Тариф: {plan.name if plan else 'не привязан'}\n"
+        f"Сумма: {money(data['amount_minor'], data['currency'])}\n"
+        f"Статус: {PAYMENT_STATUSES[data['status']]}\n"
         f"Reference: {ref or '—'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сохранить", callback_data="admin:paymentadd:save")],
@@ -403,10 +403,10 @@ async def payment_add_save(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await call.answer("Платёж сохранён")
     await render_callback(call, 
-        f"✅ Payment #{payment_id} создан.",
+        f"✅ Платёж #{payment_id} создан.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:payment:{payment_id}")],
-            [InlineKeyboardButton(text="⬅ Payments", callback_data="admin:payments")],
+            [InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")],
         ]),
     )
 
@@ -457,12 +457,12 @@ async def promo_list(call: CallbackQuery):
         )])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить промокод", callback_data="admin:promoadd:start")],
-        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
     ]
     await render_callback(call, 
-        "🎟 Promo Codes\n\n"
+        "🎟 Промокоды\n\n"
         f"Промокодов: {len(promos)} · активных: {active}\n\n"
-        "Каталог готов для будущего checkout. Пока промокоды не применяются к /create автоматически.",
+        "Каталог готов для будущей оплаты. Пока промокоды не применяются к /create автоматически.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -483,16 +483,16 @@ async def promo_detail(call: CallbackQuery):
     toggle = "⛔ Отключить" if item.active else "✅ Включить"
     await render_callback(call, 
         f"🎟 {item.code}\n\n"
-        f"Status: {icon} {state}\n"
-        f"Discount: {promo_value_text(item)}\n"
-        f"Plan: {plan.name if plan else 'все тарифы'}\n"
-        f"Uses: {uses}\n"
+        f"Статус: {icon} {promo_state_text(state)}\n"
+        f"Скидка: {promo_value_text(item)}\n"
+        f"Тариф: {plan.name if plan else 'все тарифы'}\n"
+        f"Использовано: {uses}\n"
         f"Expires: {utc_text(item.expires_at) if item.expires_at else 'без срока'}\n"
-        f"Created: {utc_text(item.created_at)}",
+        f"Создан: {utc_text(item.created_at)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=toggle, callback_data=f"admin:promo:toggle:{item.id}")],
             [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:promo:deleteask:{item.id}")],
-            [InlineKeyboardButton(text="⬅ Promo Codes", callback_data="admin:promo")],
+            [InlineKeyboardButton(text="⬅ Промокоды", callback_data="admin:promo")],
         ]),
     )
     await call.answer()
@@ -641,9 +641,9 @@ async def promo_add_expires(message: Message, state: FSMContext):
     await state.set_state(AddPromoStates.review)
     await render_input(message, 
         "Проверь промокод:\n\n"
-        f"Code: {data['code']}\n"
-        f"Discount: {display_value}\n"
-        f"Plan: {plan.name if plan else 'все тарифы'}\n"
+        f"Код: {data['code']}\n"
+        f"Скидка: {display_value}\n"
+        f"Тариф: {plan.name if plan else 'все тарифы'}\n"
         f"Max uses: {data['max_uses'] or '∞'}\n"
         f"Expires: {utc_text(expires_at) if expires_at else 'без срока'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -677,7 +677,7 @@ async def promo_add_save(call: CallbackQuery, state: FSMContext):
         f"✅ Промокод {data['code']} создан.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:promo:{promo_id}")],
-            [InlineKeyboardButton(text="⬅ Promo Codes", callback_data="admin:promo")],
+            [InlineKeyboardButton(text="⬅ Промокоды", callback_data="admin:promo")],
         ]),
     )
 
@@ -707,10 +707,10 @@ async def promo_toggle(call: CallbackQuery):
     )
     await call.answer("Статус изменён")
     await render_callback(call, 
-        f"✅ {item.code}: {'enabled' if new_state else 'disabled'}",
+        f"✅ {item.code}: {'включён' if new_state else 'отключён'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть промокод", callback_data=f"admin:promo:{promo_id}")],
-            [InlineKeyboardButton(text="⬅ Promo Codes", callback_data="admin:promo")],
+            [InlineKeyboardButton(text="⬅ Промокоды", callback_data="admin:promo")],
         ]),
     )
 
@@ -775,14 +775,14 @@ async def administrators_list(call: CallbackQuery):
     rows += [
         [InlineKeyboardButton(text="➕ Добавить администратора", callback_data="admin:administratoradd:start")],
         [InlineKeyboardButton(text="🔐 Roles & Privileges", callback_data="admin:privileges")],
-        [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
+        [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ]
     await render_callback(call, 
-        "👮 Administrators\n\n"
+        "👮 Администраторы\n\n"
         "ENV Owner — аварийный владелец из ADMIN_TELEGRAM_IDS; его нельзя отключить из Telegram.\n\n"
         "Роли:\n"
         "👑 Owner — полный доступ и управление администраторами\n"
-        "🛡 Administrator — все рабочие операции и safe settings\n"
+        "🛡 Administrator — все рабочие операции и безопасные настройки\n"
         "🧑‍💻 Support — просмотр админки + операции с пользователями\n"
         "👁 Read-only — просмотр без изменений",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -816,7 +816,7 @@ async def roles_privileges(call: CallbackQuery):
         call,
         "\n".join(lines),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
+            [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
         ]),
     )
     await call.answer()
@@ -829,10 +829,10 @@ async def administrator_detail(call: CallbackQuery):
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
         await render_callback(call, 
-            f"👑 TG {tg_id}\n\nRole: Owner\nSource: ADMIN_TELEGRAM_IDS (.env)\nStatus: 🟢 enabled\n\n"
+            f"👑 TG {tg_id}\n\nРоль: Owner\nИсточник: ADMIN_TELEGRAM_IDS (.env)\nСтатус: 🟢 включён\n\n"
             "Этот владелец защищён от изменения через Telegram.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
+                [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
             ]),
         )
         await call.answer()
@@ -855,12 +855,12 @@ async def administrator_detail(call: CallbackQuery):
             callback_data=f"admin:administrator:toggle:{tg_id}",
         )],
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:administrator:deleteask:{tg_id}")],
-        [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
+        [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
     ]
     await render_callback(call, 
         f"👮 TG {tg_id}\n\n"
         f"Role: {role_button(rec.role)}\n"
-        f"Status: {'🟢 enabled' if rec.enabled else '⚪ disabled'}\n"
+        f"Статус: {'🟢 включён' if rec.enabled else '⚪ отключён'}\n"
         f"Added by: TG {rec.added_by or 'system'}\n"
         f"Created: {utc_text(rec.created_at)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -937,7 +937,7 @@ async def administrator_add_role(call: CallbackQuery, state: FSMContext):
         f"✅ TG {tg_id} · {ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:administrator:{tg_id}")],
-            [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
+            [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
         ]),
     )
 
@@ -971,7 +971,7 @@ async def administrator_role(call: CallbackQuery):
         f"✅ TG {tg_id}: {ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:administrator:{tg_id}")],
-            [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
+            [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
         ]),
     )
 
@@ -993,10 +993,10 @@ async def administrator_toggle(call: CallbackQuery):
     await audit_from_call(db, call, "administrator.toggle", target_type="administrator", target_id=tg_id, details=f"enabled={int(new_enabled)}")
     await call.answer("Статус изменён")
     await render_callback(call, 
-        f"✅ TG {tg_id}: {'enabled' if new_enabled else 'disabled'}",
+        f"✅ TG {tg_id}: {'включён' if new_enabled else 'отключён'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:administrator:{tg_id}")],
-            [InlineKeyboardButton(text="⬅ Administrators", callback_data="admin:administrators")],
+            [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
         ]),
     )
 
@@ -1053,22 +1053,22 @@ async def settings_view(call: CallbackQuery):
         return
     values = {key: await effective_setting(key) for key in SAFE_SETTING_SPECS}
     rows = [
-        [InlineKeyboardButton(text=f"🗓 Trial days · {values['trial_days']}", callback_data="admin:settings:edit:trial_days")],
-        [InlineKeyboardButton(text=f"📦 Trial traffic · {values['trial_traffic_gb']} GB", callback_data="admin:settings:edit:trial_traffic_gb")],
-        [InlineKeyboardButton(text=f"📱 Trial IP limit · {values['trial_ip_limit']}", callback_data="admin:settings:edit:trial_ip_limit")],
-        [InlineKeyboardButton(text=f"💱 Default currency · {values['default_currency']}", callback_data="admin:settings:edit:default_currency")],
-        [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
+        [InlineKeyboardButton(text=f"🗓 Дней пробного доступа · {values['trial_days']}", callback_data="admin:settings:edit:trial_days")],
+        [InlineKeyboardButton(text=f"📦 Трафик пробного доступа · {values['trial_traffic_gb']} GB", callback_data="admin:settings:edit:trial_traffic_gb")],
+        [InlineKeyboardButton(text=f"📱 Лимит IP пробного доступа · {values['trial_ip_limit']}", callback_data="admin:settings:edit:trial_ip_limit")],
+        [InlineKeyboardButton(text=f"💱 Валюта по умолчанию · {values['default_currency']}", callback_data="admin:settings:edit:default_currency")],
+        [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ]
     await render_callback(call, 
-        "🔧 Settings\n\n"
-        "Safe runtime settings — применяются без изменения .env:\n"
-        f"🗓 Trial days: {values['trial_days']}\n"
-        f"📦 Trial traffic: {values['trial_traffic_gb']} GB\n"
-        f"📱 Trial IP limit: {values['trial_ip_limit']}\n"
-        f"💱 Default currency: {values['default_currency']}\n\n"
+        "🔧 Настройки\n\n"
+        "Безопасные runtime-настройки — применяются без изменения .env:\n"
+        f"🗓 Дней пробного доступа: {values['trial_days']}\n"
+        f"📦 Трафик пробного доступа: {values['trial_traffic_gb']} GB\n"
+        f"📱 Лимит IP пробного доступа: {values['trial_ip_limit']}\n"
+        f"💱 Валюта по умолчанию: {values['default_currency']}\n\n"
         "Environment (read-only):\n"
-        f"💾 Backup: {'on' if settings.backup_enabled else 'off'}, {settings.backup_hour_utc:02d}:00 UTC, keep {settings.backup_keep}\n"
-        f"🔐 Verify TLS: {'on' if settings.verify_tls else 'off'}\n"
+        f"💾 Резервные копии: {'включены' if settings.backup_enabled else 'выключены'}, {settings.backup_hour_utc:02d}:00 UTC, хранить {settings.backup_keep}\n"
+        f"🔐 Проверка TLS: {'включена' if settings.verify_tls else 'выключена'}\n"
         f"🖥 Master: {settings.master_flag} {settings.master_name}\n\n"
         "BOT_TOKEN, PANEL_API_TOKEN и другие секреты через Telegram не редактируются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -1093,7 +1093,7 @@ async def settings_edit(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         f"{spec[0]}\n\nТекущее значение: {current}\nОтправь новое значение ({hint}).",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="↩ Сбросить к .env/default", callback_data=f"admin:settings:reset:{key}")],
+            [InlineKeyboardButton(text="↩ Сбросить к значению .env по умолчанию", callback_data=f"admin:settings:reset:{key}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:settings:cancel")],
         ]),
     )
