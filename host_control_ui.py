@@ -20,6 +20,7 @@ from backup_manager import BackupManager
 from config import HostControlTarget, load_settings
 from db import Database
 from host_control import HostControlClient, HostControlError, HostControlOperation
+from node_ui import xray_state_text
 from system_backup import SystemBackupService
 from xui import XUIClient, XUIError, XUIMutationError
 
@@ -37,6 +38,30 @@ STOP_CONFIRM_TTL = 120.0
 
 class HostControlStates(StatesGroup):
     stop_phrase = State()
+
+
+SERVICE_ACTION_LABELS = {
+    "start": "запуск сервиса",
+    "stop": "остановка сервиса",
+    "restart": "перезапуск сервиса",
+}
+
+
+HOST_SERVICE_STATE_LABELS = {
+    "running": "работает",
+    "stopped": "остановлен",
+    "transitioning": "переходное состояние",
+    "unavailable": "недоступен",
+}
+
+
+def _service_action_text(action: str) -> str:
+    return SERVICE_ACTION_LABELS.get(action, action)
+
+
+def _service_state_text(state: str) -> str:
+    value = (state or "").lower()
+    return HOST_SERVICE_STATE_LABELS.get(value, state or "неизвестно")
 
 
 @dataclass(frozen=True)
@@ -91,7 +116,7 @@ async def _resolve_target(key: str) -> ControlTarget:
             host_target=_host_target_for(settings.master_name, master=True),
         )
     if not key.startswith("n") or not key[1:].isdigit():
-        raise ValueError("invalid target")
+        raise ValueError("Некорректная цель")
     node_id = int(key[1:])
     node = await xui.node_get(node_id)
     if node.transitive:
@@ -130,26 +155,26 @@ def _screen_keyboard(target: ControlTarget, role: str | None, xray_running: bool
     rank = ROLE_RANK.get(role or "", 0)
     if target.host_target is not None and rank >= ROLE_RANK["admin"]:
         rows.append([
-            InlineKeyboardButton(text="▶ Start service", callback_data=f"admin:hostctl:{target.key}:ss:ask"),
-            InlineKeyboardButton(text="🔄 Restart service", callback_data=f"admin:hostctl:{target.key}:sr:ask"),
+            InlineKeyboardButton(text="▶ Запустить сервис", callback_data=f"admin:hostctl:{target.key}:ss:ask"),
+            InlineKeyboardButton(text="🔄 Перезапустить сервис", callback_data=f"admin:hostctl:{target.key}:sr:ask"),
         ])
     if target.host_target is not None and rank >= ROLE_RANK["owner"]:
         rows.append([
-            InlineKeyboardButton(text="⏹ Stop service", callback_data=f"admin:hostctl:{target.key}:sp:ask"),
+            InlineKeyboardButton(text="⏹ Остановить сервис", callback_data=f"admin:hostctl:{target.key}:sp:ask"),
         ])
     if target.panel_client is not None and rank >= ROLE_RANK["admin"]:
         rows.append([
-            InlineKeyboardButton(text="♻️ Restart Panel process", callback_data=f"admin:hostctl:{target.key}:pr:ask"),
+            InlineKeyboardButton(text="♻️ Перезапустить процесс панели", callback_data=f"admin:hostctl:{target.key}:pr:ask"),
         ])
         rows.append([
             InlineKeyboardButton(
-                text="🔄 Restart Xray" if xray_running else "▶ Start Xray",
+                text="🔄 Перезапустить Xray" if xray_running else "▶ Запустить Xray",
                 callback_data=f"admin:hostctl:{target.key}:xr:ask",
             ),
         ])
     if target.panel_client is not None and rank >= ROLE_RANK["owner"]:
         rows.append([
-            InlineKeyboardButton(text="⏹ Stop Xray", callback_data=f"admin:hostctl:{target.key}:xs:ask"),
+            InlineKeyboardButton(text="⏹ Остановить Xray", callback_data=f"admin:hostctl:{target.key}:xs:ask"),
         ])
     rows.append([
         InlineKeyboardButton(
@@ -224,7 +249,7 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
         return "🔴 Host Control Agent для этого сервера не настроен.", False, "target_not_configured"
     if action in {"start", "restart"} and target.panel_client is None:
         return (
-            "🔴 Direct admin connection к 3x-ui не настроен; post-condition Panel API проверить нельзя.",
+            "🔴 Подключение Direct Admin к 3x-ui не настроено; post-condition API панели проверить нельзя.",
             False,
             "panel_direct_connection_missing",
         )
@@ -249,7 +274,7 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
         details = _operation_details(target, op)
         if op.result == "failed":
             await _finish_job(run_id, started=started, status="failed", details=details)
-            return f"🔴 {action} service: failed ({op.error_code or 'unknown'}).", False, details
+            return f"🔴 Операция «{_service_action_text(action)}» завершилась ошибкой ({op.error_code or 'unknown'}).", False, details
         if op.result == "uncertain":
             await _finish_job(run_id, started=started, status="unknown", details=details)
             return (
@@ -267,14 +292,14 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
                 details += "; panel_postcondition=unconfirmed"
                 await _finish_job(run_id, started=started, status="unknown", details=details)
                 return (
-                    "🟡 systemd сообщает running, но Panel API не вернулся. Команда повторно НЕ отправлялась.",
+                    "🟡 systemd сообщает running, но API панели не вернулся. Команда повторно НЕ отправлялась.",
                     False,
                     details,
                 )
             details += "; panel_postcondition=online"
 
         await _finish_job(run_id, started=started, status="success", details=details)
-        return f"✅ {action} service выполнен.", True, details
+        return f"✅ Операция «{_service_action_text(action)}» выполнена.", True, details
     except HostControlError as exc:
         status = "unknown" if exc.uncertain else "failed"
         details = (
@@ -284,7 +309,7 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
         await _finish_job(run_id, started=started, status=status, details=details)
         if exc.uncertain:
             return (
-                "🟡 Результат не подтверждён. Mutation POST не повторялся; проверь статус вручную.",
+                "🟡 Результат не подтверждён. POST мутации не повторялся; проверь статус вручную.",
                 False,
                 details,
             )
@@ -434,7 +459,7 @@ async def recover_control_jobs() -> int:
 
 async def _run_panel_restart(target: ControlTarget, actor_id: int) -> tuple[str, bool, str]:
     if target.panel_client is None:
-        return "🔴 Direct admin connection к 3x-ui не настроен.", False, "panel_direct_connection_missing"
+        return "🔴 Подключение Direct Admin к 3x-ui не настроено.", False, "panel_direct_connection_missing"
     run_id = await db.start_job_run(name="panel.restart", trigger="admin", actor_id=actor_id)
     started = time.monotonic()
     dispatched = False
@@ -457,7 +482,7 @@ async def _run_panel_restart(target: ControlTarget, actor_id: int) -> tuple[str,
         if not dispatched:
             details = f"target={target.name}; result=failed; error_code={error_code}"
             await _finish_job(run_id, started=started, status="failed", details=details)
-            return "🔴 3x-ui отклонил Restart Panel process.", False, details
+            return "🔴 3x-ui отклонил перезапуск процесса панели.", False, details
 
         if uncertain_dispatch:
             verified = await _verify_uncertain_panel_restart(target.panel_client)
@@ -472,7 +497,7 @@ async def _run_panel_restart(target: ControlTarget, actor_id: int) -> tuple[str,
                 f"dispatch={'uncertain_recovered' if uncertain_dispatch else 'accepted'}"
             )
             await _finish_job(run_id, started=started, status="success", details=details)
-            return "✅ Restart Panel process подтверждён: Panel API снова online.", True, details
+            return "✅ Перезапуск процесса панели подтверждён: API панели снова доступен.", True, details
 
         details = (
             f"target={target.name}; result=uncertain; "
@@ -480,21 +505,21 @@ async def _run_panel_restart(target: ControlTarget, actor_id: int) -> tuple[str,
         )
         await _finish_job(run_id, started=started, status="unknown", details=details)
         return (
-            "🟡 Restart Panel process не удалось подтвердить. POST повторно НЕ отправлялся.",
+            "🟡 Перезапуск процесса панели не удалось подтвердить. POST повторно НЕ отправлялся.",
             False,
             details,
         )
     except Exception as exc:
         details = f"target={target.name}; result=failed; error={type(exc).__name__}"
         await _finish_job(run_id, started=started, status="failed", details=details)
-        return "🔴 Ошибка Restart Panel process. Подробности доступны в локальном журнале.", False, details
+        return "🔴 Ошибка перезапуска процесса панели. Подробности доступны в локальном журнале.", False, details
 
 
 async def _run_xray_action(target: ControlTarget, action: str, actor_id: int) -> tuple[str, bool, str]:
     if target.panel_client is None:
-        return "🔴 Direct admin connection к 3x-ui не настроен.", False, "panel_direct_connection_missing"
+        return "🔴 Подключение Direct Admin к 3x-ui не настроено.", False, "panel_direct_connection_missing"
     if action not in {"stop", "restart"}:
-        return "🔴 Недопустимое Xray action.", False, "invalid_action"
+        return "🔴 Недопустимая операция Xray.", False, "invalid_action"
 
     job_name = "xray.stop" if action == "stop" else "xray.restart"
     run_id = await db.start_job_run(name=job_name, trigger="admin", actor_id=actor_id)
@@ -513,7 +538,7 @@ async def _run_xray_action(target: ControlTarget, action: str, actor_id: int) ->
                 )
                 await _finish_job(run_id, started=started, status="unknown", details=details)
                 return (
-                    "🟡 Ответ Xray operation не подтверждён. Запрос повторно НЕ отправлялся.",
+                    "🟡 Ответ операции Xray не подтверждён. Запрос повторно НЕ отправлялся.",
                     False,
                     details,
                 )
@@ -522,12 +547,12 @@ async def _run_xray_action(target: ControlTarget, action: str, actor_id: int) ->
                 f"error_code={exc.code or 'panel_rejected'}"
             )
             await _finish_job(run_id, started=started, status="failed", details=details)
-            return "🔴 3x-ui отклонил Xray operation.", False, details
+            return "🔴 3x-ui отклонил операцию Xray.", False, details
         except (aiohttp.ClientError, TimeoutError):
             details = f"target={target.name}; action={action}; result=uncertain; error_code=lost_response"
             await _finish_job(run_id, started=started, status="unknown", details=details)
             return (
-                "🟡 Ответ Xray operation потерян. Запрос повторно НЕ отправлялся.",
+                "🟡 Ответ операции Xray потерян. Запрос повторно НЕ отправлялся.",
                 False,
                 details,
             )
@@ -543,11 +568,11 @@ async def _run_xray_action(target: ControlTarget, action: str, actor_id: int) ->
 
         details = f"target={target.name}; action={action}; result=uncertain; xray_state={state}"
         await _finish_job(run_id, started=started, status="unknown", details=details)
-        return "🟡 Xray post-condition не подтверждён. Повтор запроса не выполнялся.", False, details
+        return "🟡 Post-condition Xray не подтверждён. Повтор запроса не выполнялся.", False, details
     except Exception as exc:
         details = f"target={target.name}; action={action}; result=failed; error={type(exc).__name__}"
         await _finish_job(run_id, started=started, status="failed", details=details)
-        return "🔴 Ошибка Xray operation. Подробности доступны в локальном журнале.", False, details
+        return "🔴 Ошибка операции Xray. Подробности доступны в локальном журнале.", False, details
 
 
 async def _show_screen(call: CallbackQuery, key: str) -> None:
@@ -557,40 +582,40 @@ async def _show_screen(call: CallbackQuery, key: str) -> None:
     try:
         target = await _resolve_target(key)
     except (ValueError, XUIError) as exc:
-        await call.answer("Target недоступен", show_alert=True)
-        await render_callback(call, f"🔴 Не удалось открыть 3x-ui Control: {str(exc)[:240]}")
+        await call.answer("Цель недоступна", show_alert=True)
+        await render_callback(call, f"🔴 Не удалось открыть «Управление 3x-ui»: {str(exc)[:240]}")
         return
 
-    service_line = "⚪ Service: host-control не настроен"
+    service_line = "⚪ Сервис: Host Control не настроен"
     if target.host_target is not None:
         try:
             state = await _host_client(target.host_target).status()
             icon = "🟢" if state.state == "running" else "🟡" if state.state == "transitioning" else "🔴"
-            service_line = f"{icon} Service: {state.state} · agent {state.agent_version or '?'}"
+            service_line = f"{icon} Сервис: {_service_state_text(state.state)} · агент {state.agent_version or '?'}"
         except HostControlError as exc:
-            service_line = f"🔴 Service: agent unavailable ({exc.code or 'error'})"
+            service_line = f"🔴 Сервис: агент недоступен ({exc.code or 'error'})"
 
     panel_ok, xray_state, xray_running = await _panel_snapshot(target.panel_client)
-    panel_line = "🟢 Panel API: online" if panel_ok else (
-        "⚪ Panel API: direct admin connection не настроен"
-        if target.panel_client is None else "🔴 Panel API: unavailable"
+    panel_line = "🟢 API панели: доступен" if panel_ok else (
+        "⚪ API панели: подключение Direct Admin не настроено"
+        if target.panel_client is None else "🔴 API панели: недоступен"
     )
     xray_line = (
-        f"{'🟢' if xray_running else '🔴'} Xray Core: {xray_state}"
-        if panel_ok else "⚪ Xray Core: unknown"
+        f"{'🟢' if xray_running else '🔴'} Ядро Xray: {xray_state_text(xray_state)}"
+        if panel_ok else "⚪ Ядро Xray: неизвестно"
     )
 
     await render_callback(
         call,
         "\n".join([
-            f"🧩 3x-ui Control · {target.name}",
+            f"🧩 Управление 3x-ui · {target.name}",
             "",
             service_line,
             panel_line,
             xray_line,
             "",
-            "Service actions идут только через restricted Host Control Agent.",
-            "Panel/Xray actions идут только через штатный 3x-ui API.",
+            "Действия с сервисом выполняются только через restricted Host Control Agent.",
+            "Действия с панелью/Xray выполняются только через штатный 3x-ui API.",
         ]),
         reply_markup=_screen_keyboard(target, role, xray_running),
     )
@@ -619,25 +644,25 @@ async def host_control_action_ask(call: CallbackQuery):
 
     prompts = {
         "ss": (
-            f"▶ Запустить 3x-ui service на {target.name}?",
-            "▶ Да, start service",
+            f"▶ Запустить сервис 3x-ui на {target.name}?",
+            "▶ Да, запустить сервис",
         ),
         "sr": (
-            f"⚠️ Перезапустить 3x-ui service на {target.name}?\n\nPanel API кратковременно станет недоступен.",
-            "🔄 Да, restart service",
+            f"⚠️ Перезапустить сервис 3x-ui на {target.name}?\n\nAPI панели кратковременно станет недоступен.",
+            "🔄 Да, перезапустить сервис",
         ),
         "pr": (
-            f"⚠️ Выполнить штатный Restart Panel process на {target.name}?\n\n"
+            f"⚠️ Выполнить штатный перезапуск процесса панели на {target.name}?\n\n"
             "Будет отправлен ровно один POST /panel/api/setting/restartPanel.",
-            "♻️ Да, restart panel",
+            "♻️ Да, перезапустить панель",
         ),
         "xs": (
-            f"⚠️ Остановить Xray Core на {target.name}?\n\nVPN через этот сервер перестанет работать.",
-            "⏹ Да, stop Xray",
+            f"⚠️ Остановить ядро Xray на {target.name}?\n\nVPN через этот сервер перестанет работать.",
+            "⏹ Да, остановить Xray",
         ),
         "xr": (
-            f"🔄 Restart / Start Xray Core на {target.name}?\n\nАктивные подключения могут кратковременно оборваться.",
-            "🔄 Да, restart/start Xray",
+            f"🔄 Перезапустить / запустить ядро Xray на {target.name}?\n\nАктивные подключения могут кратковременно оборваться.",
+            "🔄 Да, перезапустить/запустить Xray",
         ),
     }
     text, label = prompts[action]
@@ -690,7 +715,7 @@ async def host_control_action_run(call: CallbackQuery):
         call,
         message + "\n\nОткрой экран контроля для свежего состояния.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🧩 Обновить 3x-ui Control", callback_data=f"admin:hostctl:{target.key}")],
+            [InlineKeyboardButton(text="🧩 Обновить состояние 3x-ui", callback_data=f"admin:hostctl:{target.key}")],
             [InlineKeyboardButton(
                 text="⬅ Master" if target.key == "m" else "⬅ Нода",
                 callback_data=target.back_callback,
@@ -725,9 +750,9 @@ async def host_control_stop_ask(call: CallbackQuery, state: FSMContext):
     await call.answer()
     await render_callback(
         call,
-        f"⛔ STOP 3x-ui service · {target.name}\n\n"
-        "Это Owner-only операция. После stop Panel API будет недоступен, "
-        "но Host Control Agent останется доступен для Start.\n\n"
+        f"⛔ ОСТАНОВКА сервиса 3x-ui · {target.name}\n\n"
+        "Это Owner-only операция. После остановки API панели будет недоступен, "
+        "но Host Control Agent останется доступен для запуска.\n\n"
         f"Для подтверждения отправь точную фразу:\nSTOP {target.name}\n\n"
         "Подтверждение одноразовое и действует 2 минуты.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
@@ -753,7 +778,7 @@ async def host_control_stop_phrase(message: Message, state: FSMContext):
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="owner")
     if not ok:
         await state.clear()
-        await render_input(message, "Недостаточно прав. Stop service требует Owner.")
+        await render_input(message, "Недостаточно прав. Остановка сервиса требует Owner.")
         return
     data = await state.get_data()
     key = str(data.get("key") or "")
@@ -762,7 +787,7 @@ async def host_control_stop_phrase(message: Message, state: FSMContext):
     nonce = str(data.get("nonce") or "")
     if not nonce or time.time() - created > STOP_CONFIRM_TTL:
         await state.clear()
-        await render_input(message, "Подтверждение истекло. Открой 3x-ui Control заново.")
+        await render_input(message, "Подтверждение истекло. Открой «Управление 3x-ui» заново.")
         return
     if (message.text or "") != f"STOP {target_name}":
         await render_input(message, f"Нужна точная фраза: STOP {target_name}")
@@ -773,10 +798,10 @@ async def host_control_stop_phrase(message: Message, state: FSMContext):
     try:
         target = await _resolve_target(key)
     except (ValueError, XUIError) as exc:
-        await render_input(message, f"🔴 Target недоступен: {str(exc)[:200]}")
+        await render_input(message, f"🔴 Цель недоступна: {str(exc)[:200]}")
         return
     if target.name != target_name:
-        await render_input(message, "🔴 Target изменился после подтверждения. Stop заблокирован.")
+        await render_input(message, "🔴 Цель изменилась после подтверждения. Остановка заблокирована.")
         return
 
     result, success, details = await _run_service_action(target, "stop", int(message.from_user.id))
@@ -793,6 +818,6 @@ async def host_control_stop_phrase(message: Message, state: FSMContext):
         message,
         result,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="🧩 3x-ui Control", callback_data=f"admin:hostctl:{target.key}")
+            InlineKeyboardButton(text="🧩 Управление 3x-ui", callback_data=f"admin:hostctl:{target.key}")
         ]]),
     )
