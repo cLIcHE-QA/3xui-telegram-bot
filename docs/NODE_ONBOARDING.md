@@ -20,12 +20,12 @@ v4.11 добавляет рекомендуемый путь подключен�
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/onboard-direct-node.sh prepare \
-  --alias DE \
-  --host-id de \
-  --name Germany \
+  --alias NODE1 \
+  --host-id edge-1 \
+  --name Edge-1 \
   --listen-ip 203.0.113.10 \
   --source-ip 198.51.100.20 \
-  --public-host panel-de.example.com \
+  --public-host host-control-node1.example.com \
   --copy-to root@203.0.113.10 \
   --ssh-port 22
 ~~~
@@ -44,18 +44,18 @@ bash scripts/onboard-direct-node.sh prepare \
 
 ~~~bash
 bash scripts/onboard-direct-node.sh bind \
-  --node-enrollment /root/3xui-node-de.env \
-  --admin-enrollment /root/3xui-node-admin-de.env \
-  --host-control-enrollment /root/3xui-host-control-de.env
+  --node-enrollment /root/3xui-node-node1.env \
+  --admin-enrollment /root/3xui-node-admin-node1.env \
+  --host-control-enrollment /root/3xui-host-control-node1.env
 ~~~
 
 Для новой node preflight ничего не меняет. После проверки запусти тот же flow с explicit mutation:
 
 ~~~bash
 bash scripts/onboard-direct-node.sh bind \
-  --node-enrollment /root/3xui-node-de.env \
-  --admin-enrollment /root/3xui-node-admin-de.env \
-  --host-control-enrollment /root/3xui-host-control-de.env \
+  --node-enrollment /root/3xui-node-node1.env \
+  --admin-enrollment /root/3xui-node-admin-node1.env \
+  --host-control-enrollment /root/3xui-host-control-node1.env \
   --apply
 ~~~
 
