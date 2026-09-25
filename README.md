@@ -113,7 +113,7 @@ client_access.py
 └─ /start, /inbounds, /create, /subscription
 
 admin_shell.py
-└─ /admin, Dashboard, top-level navigation и compatibility redirects
+└─ /admin, Обзор, top-level navigation и compatibility redirects
 
 domain routers
 ├─ advanced_users.py
