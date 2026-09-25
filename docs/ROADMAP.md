@@ -256,7 +256,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 1. `RBAC / Roles & Privileges catalog` — ✅ выполнено в `v4.14.0`;
 2. `Extended direct-node backup` — ✅ выполнено в `v4.14.1`;
-3. `Safe Bot Self-Update` — 🟡 реализовано в `main`; ожидает `v4.19.0` и production acceptance;
+3. `Safe Bot Self-Update` — ✅ выполнено в `v4.19.1`; production same-release/recovery acceptance закрыт (`mutation_not_retried=true`, exact tag/SHA, Health/DB/3x-ui connectivity `ok`);
 4. Host Control startup recovery — ✅ выполнено в `v4.13.2`;
 5. versioned SQLite migrations — ✅ выполнено в `v4.15.0`;
 6. расширенный regression coverage критических admin/business/recovery путей — ✅ выполнено в `v4.16.0`;
