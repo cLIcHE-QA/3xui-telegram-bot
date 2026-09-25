@@ -1,16 +1,15 @@
 import asyncio
 import logging
-import secrets
 import shutil
 import time
 from datetime import datetime, timedelta, timezone
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
 
 from backup_manager import BackupManager
 from config import load_settings
-from db import Database, UserRecord
+from db import Database
 from xui import XUIClient, XUIError, NodeInfo
 from version import APP_VERSION
 from versions_updates import versions_router
@@ -46,6 +45,7 @@ from node_ui import master_detail_keyboard, node_detail_keyboard
 from node_admin import node_admin_router, nodes_menu, node_detail_text as _node_detail_text
 from system_admin import system_admin_router, admin_master_detail
 from storage_admin import storage_admin_router
+from client_access import client_access_router
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -58,25 +58,6 @@ offsite_backup = service_from_settings(settings, offsite_restore_manager)
 provisioner = ProvisioningEngine(db, xui, settings)
 
 
-def is_allowed(tg_id: int) -> bool:
-    return tg_id in settings.allowed_telegram_ids or tg_id in settings.admin_telegram_ids
-
-def is_admin(tg_id: int) -> bool:
-    return tg_id in settings.admin_telegram_ids
-
-def user_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔍 Проверить inbound'ы", callback_data="inbounds")],
-        [InlineKeyboardButton(text="🧪 Создать тестовый доступ", callback_data="create")],
-        [InlineKeyboardButton(text="🔗 Моя подписка", callback_data="subscription")],
-    ])
-
-async def guard_message(message: Message) -> bool:
-    if not message.from_user or not is_allowed(message.from_user.id):
-        await message.answer("Нет доступа.")
-        return False
-    return True
-
 async def guard_admin_call(call: CallbackQuery) -> bool:
     ok, _ = await authorize_callback(db, settings, call)
     return ok
@@ -84,30 +65,12 @@ async def guard_admin_call(call: CallbackQuery) -> bool:
 def is_managed_inbound(i) -> bool:
     return inbound_is_managed(settings, i)
 
-def choose_inbounds(inbounds):
-    return [i for i in inbounds if i.enable and is_managed_inbound(i)]
-
-def sub_url(sub_id: str) -> str:
-    template = settings.compat_subscription_url_template or settings.subscription_url_template
-    return template.format(sub_id=sub_id)
-
-def fmt_date(ms: int) -> str:
-    if not ms:
-        return "без срока"
-    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-
 def human_bytes(n: int) -> str:
     n = int(n or 0)
     for unit in ("B", "KB", "MB", "GB", "TB"):
         if n < 1024 or unit == "TB":
             return f"{n:.1f} {unit}" if unit != "B" else f"{n} B"
         n /= 1024
-
-@router.message(CommandStart())
-async def start(message: Message):
-    if not await guard_message(message):
-        return
-    await message.answer(f"3x-ui Telegram bot v{APP_VERSION}", reply_markup=user_menu())
 
 @router.message(Command("admin"))
 async def admin(message: Message):
@@ -450,150 +413,6 @@ async def admin_home(call: CallbackQuery):
     await render_callback(call, "⚙️ Admin Panel", reply_markup=admin_menu())
     await call.answer()
 
-@router.message(Command("inbounds"))
-async def inbounds_cmd(message: Message):
-    if not await guard_message(message):
-        return
-    await show_inbounds(message)
-
-@router.callback_query(F.data == "inbounds")
-async def inbounds_cb(call: CallbackQuery):
-    if not call.from_user or not is_allowed(call.from_user.id):
-        await call.answer("Нет доступа.", show_alert=True)
-        return
-    await show_inbounds(call.message)
-    await call.answer()
-
-async def show_inbounds(message: Message):
-    try:
-        all_inbounds = await xui.inbound_options()
-        chosen = choose_inbounds(all_inbounds)
-        lines = [
-            f"• ID #{i.id} | {i.port} | {i.protocol}\n  tag: {i.tag}\n  name: {i.remark}"
-            for i in chosen
-        ]
-        await message.answer("Будут выданы:\n\n" + ("\n\n".join(lines) or "Ничего"))
-    except XUIError as e:
-        await message.answer(f"Ошибка 3x-ui: {e}")
-
-@router.message(Command("create"))
-async def create_cmd(message: Message):
-    if not await guard_message(message):
-        return
-    await create_user(message.from_user.id, message)
-
-@router.callback_query(F.data == "create")
-async def create_cb(call: CallbackQuery):
-    if not call.from_user or not is_allowed(call.from_user.id):
-        await call.answer("Нет доступа.", show_alert=True)
-        return
-    await create_user(call.from_user.id, call.message)
-    await call.answer()
-
-async def create_user(tg_id: int, message: Message):
-    existing = await db.get(tg_id)
-    if existing:
-        await message.answer(f"Уже создан:\n{sub_url(existing.sub_id)}")
-        return
-    try:
-        panel_matches = await xui.get_client_by_tg_id(tg_id)
-        if panel_matches:
-            item = panel_matches[0]
-            client = item.get("client", item)
-            if client.get("email") and client.get("subId"):
-                rec = UserRecord(
-                    tg_id, client["email"], client["subId"],
-                    int(client.get("expiryTime") or 0), int(time.time())
-                )
-                await db.put(rec)
-                await message.answer(f"Восстановлен:\n{sub_url(rec.sub_id)}")
-                return
-
-        default_plan, policy = await provisioner.new_user_plan()
-        now = int(time.time())
-        provisioning_note = ""
-        if default_plan and policy:
-            inbound_ids = list(policy.actionable_inbound_ids)
-            if not inbound_ids:
-                await message.answer(
-                    "Provisioning default Plan настроен, но сейчас нет доступных target inbound'ов. "
-                    "Попроси администратора проверить Plan → Server Group → Nodes/Inbounds."
-                )
-                return
-            duration_days = max(0, default_plan.duration_days)
-            traffic_gb = max(0, default_plan.traffic_gb)
-            ip_limit = max(0, default_plan.ip_limit)
-            expiry = (now + duration_days * 86400) * 1000 if duration_days else 0
-            provisioning_note = f"Plan: {default_plan.name}"
-        else:
-            chosen = choose_inbounds(await xui.inbound_options())
-            if not chosen:
-                await message.answer("Нет подходящих inbound'ов.")
-                return
-            inbound_ids = [i.id for i in chosen]
-            try:
-                duration_days = int(await db.get_runtime_setting("trial_days", str(settings.test_days)) or settings.test_days)
-                traffic_gb = int(await db.get_runtime_setting("trial_traffic_gb", str(settings.test_traffic_gb)) or settings.test_traffic_gb)
-                ip_limit = int(await db.get_runtime_setting("trial_ip_limit", str(settings.test_ip_limit)) or settings.test_ip_limit)
-            except (TypeError, ValueError):
-                duration_days = settings.test_days
-                traffic_gb = settings.test_traffic_gb
-                ip_limit = settings.test_ip_limit
-            expiry = (now + duration_days * 86400) * 1000
-            provisioning_note = "Trial legacy policy"
-
-        username = ""
-        if getattr(message, "chat", None) and getattr(message.chat, "username", None):
-            username = message.chat.username.strip().lower()
-        email = f"tg_{username}" if username else f"tg_{tg_id}"
-        sid = secrets.token_urlsafe(18)
-        await xui.create_client(
-            email=email, telegram_id=tg_id, sub_id=sid,
-            inbound_ids=inbound_ids,
-            total_bytes=traffic_gb * 1024**3,
-            expiry_time_ms=expiry, limit_ip=ip_limit,
-            comment=f"Created by Telegram bot v{APP_VERSION} · {provisioning_note}",
-            flow=settings.vless_flow,
-        )
-        if settings.vless_flow:
-            await xui.bulk_adjust_clients([email], flow=settings.vless_flow)
-        await db.put(UserRecord(tg_id, email, sid, expiry, now))
-        if default_plan and policy:
-            await db.upsert_user_profile(
-                tg_id,
-                plan_id=default_plan.id,
-                server_group_id=default_plan.server_group_id,
-                note="",
-                preserve_unspecified=False,
-            )
-        lines = ["✅ Создан", "", sub_url(sid)]
-        if default_plan and policy:
-            lines += ["", f"💎 Plan: {default_plan.name}", f"📡 Inbounds: {', '.join(map(str, inbound_ids))}"]
-            if policy.unavailable_members:
-                lines.append("⏸ Часть нод недоступна; администратор сможет выполнить reconcile позже.")
-        await message.answer("\n".join(lines))
-    except XUIError as e:
-        await message.answer(f"Ошибка 3x-ui: {e}")
-
-@router.message(Command("subscription"))
-async def sub_cmd(message: Message):
-    if not await guard_message(message):
-        return
-    rec = await db.get(message.from_user.id)
-    if rec:
-        await message.answer(sub_url(rec.sub_id))
-    else:
-        await message.answer("Сначала /create")
-
-@router.callback_query(F.data == "subscription")
-async def sub_cb(call: CallbackQuery):
-    if not call.from_user or not is_allowed(call.from_user.id):
-        await call.answer("Нет доступа.", show_alert=True)
-        return
-    rec = await db.get(call.from_user.id)
-    await render_callback(call, sub_url(rec.sub_id) if rec else "Сначала создай доступ.")
-    await call.answer()
-
 async def _seconds_until_backup_hour() -> float:
     now = datetime.now(timezone.utc)
     target = now.replace(
@@ -731,6 +550,7 @@ async def main():
     dp = Dispatcher()
     dp.callback_query.outer_middleware(AdminPanelSessionMiddleware())
     dp.include_router(router)
+    dp.include_router(client_access_router)
     dp.include_router(node_admin_router)
     dp.include_router(system_admin_router)
     dp.include_router(storage_admin_router)
