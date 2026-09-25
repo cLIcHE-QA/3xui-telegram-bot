@@ -862,7 +862,7 @@ async def administrator_detail(call: CallbackQuery):
         f"Роль: {role_button(rec.role)}\n"
         f"Статус: {'🟢 включён' if rec.enabled else '⚪ отключён'}\n"
         f"Added by: TG {rec.added_by or 'system'}\n"
-        f"Created: {utc_text(rec.created_at)}",
+        f"Создан: {utc_text(rec.created_at)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
