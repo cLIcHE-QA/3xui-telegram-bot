@@ -159,7 +159,7 @@ async def traffic_view(call: CallbackQuery):
 
     lines += [
         "",
-        "ℹ️ Это накопительные счётчики 3x-ui с момента последнего reset, не «трафик за сегодня».",
+        "ℹ️ Это накопительные счётчики 3x-ui с момента последнего сброса, не «трафик за сегодня».",
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:traffic")],
