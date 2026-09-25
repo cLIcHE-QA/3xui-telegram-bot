@@ -66,7 +66,7 @@ Wrapper:
 3. preflight-проверяет direct-admin и Host Control enrollment с одним и тем же ID;
 4. импортирует direct-admin binding без recreate;
 5. импортирует Host Control binding и пересоздаёт только service `bot` один раз;
-6. оставляет финальную проверку `🧭 Readiness` оператору.
+6. оставляет финальную проверку `🧭 Готовность` оператору.
 
 Wrapper не выполняет `docker compose down`, не запускает generic remote shell/SSH commands, не выводит enrollment contents и не объединяет node-sync/direct-admin/Host Control secrets.
 
@@ -210,7 +210,7 @@ Stable identity: node_id
 
 При наличии `NODE_BACKUP_*_NODE_ID` и `HOST_CONTROL_*_NODE_ID` переименование node в 3x-ui не ломает privileged bindings.
 
-Name-only target остаётся совместимым fallback для старых deployments, но Readiness показывает `legacy_name` и предлагает миграцию на `NODE_ID`.
+Name-only target остаётся совместимым fallback для старых deployments, но экран «Готовность» показывает `legacy_name` и предлагает миграцию на `NODE_ID`.
 
 ## 7. Что остаётся разделённым намеренно
 
