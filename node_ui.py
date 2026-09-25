@@ -194,17 +194,17 @@ def node_detail_text(node: NodeInfo, *, backup_configured: bool) -> str:
         "",
         f"{status_icon} Панель: {node_status_text(node.status)}",
         f"{'🟢 Включена' if node.enable else '🛠 Обслуживание / отключена'}",
-        f"Endpoint: {endpoint}",
+        f"Адрес: {endpoint}",
         f"{xray_state_icon} Xray: {xray_state_text(node.xray_state)}"
         + (f" {node.xray_version}" if node.xray_version else ""),
     ]
     if node.panel_version:
         lines.append(f"3x-ui: {node.panel_version}")
-    lines.append(f"Проверка TLS: {node.tls_verify_mode} · синхронизация inbound'ов: {node.inbound_sync_mode}")
+    lines.append(f"Проверка TLS: {tls_verify_mode_text(node.tls_verify_mode)} · синхронизация inbound'ов: {inbound_sync_mode_text(node.inbound_sync_mode)}")
     if node.outbound_tag:
-        lines.append(f"Outbound bridge: {node.outbound_tag}")
+        lines.append(f"Исходящий маршрут: {node.outbound_tag}")
     if node.latency_ms:
-        lines.append(f"Ping API: {node.latency_ms} ms")
+        lines.append(f"Задержка API: {node.latency_ms} ms")
     if node.net_up or node.net_down:
         lines.append(f"Сеть: ↑ {_human_bytes(node.net_up)}/s · ↓ {_human_bytes(node.net_down)}/s")
     lines += [
@@ -213,7 +213,7 @@ def node_detail_text(node: NodeInfo, *, backup_configured: bool) -> str:
         f"⏱ Время работы: {duration_text(node.uptime_secs)}",
         f"🌐 Inbound'ов: {node.inbound_count}",
         f"👥 Клиентов: {node.client_count} · активных {node.active_count} · в сети {node.online_count}",
-        f"Последний heartbeat: {epoch_text(node.last_heartbeat)}",
+        f"Последний сигнал: {epoch_text(node.last_heartbeat)}",
     ]
     if node.config_dirty:
         lines.append("🟡 Конфигурация ожидает синхронизации")
