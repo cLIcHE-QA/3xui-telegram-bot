@@ -80,6 +80,12 @@ def _back(node_id: int) -> InlineKeyboardMarkup:
     ])
 
 
+def _rename_cancel(node_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:nodectl:{node_id}:cancel")],
+    ])
+
+
 def _confirm(node_id: int, action: str, label: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=label, callback_data=f"admin:nodectl:{node_id}:{action}:run")],
@@ -194,16 +200,16 @@ async def node_edit_cancel(call: CallbackQuery, state: FSMContext):
 async def node_rename_finish(message: Message, state: FSMContext):
     if not message.from_user:
         return
+    data = await state.get_data()
+    node_id = int(data.get("node_id") or 0)
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="admin")
     if not ok:
         await state.clear()
-        await render_input(message, "Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.", reply_markup=_back(node_id))
         return
-    data = await state.get_data()
-    node_id = int(data.get("node_id") or 0)
     name = (message.text or "").strip()
     if not (1 <= len(name) <= 64) or "\n" in name:
-        await render_input(message, "Имя должно содержать 1–64 символа одной строкой.")
+        await render_input(message, "Имя должно содержать 1–64 символа одной строкой.", reply_markup=_rename_cancel(node_id))
         return
     try:
         raw = await xui.node_get_raw(node_id)
@@ -233,7 +239,7 @@ async def node_rename_finish(message: Message, state: FSMContext):
             db, message, "node.rename", target_type="node", target_id=node_id,
             details=str(exc), success=False,
         )
-        await render_input(message, f"🔴 Не удалось переименовать ноду: {exc}")
+        await render_input(message, f"🔴 Не удалось переименовать ноду: {exc}", reply_markup=_rename_cancel(node_id))
         return
     await state.clear()
     warnings: list[str] = []
