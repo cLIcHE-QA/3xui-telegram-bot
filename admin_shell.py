@@ -218,7 +218,7 @@ async def admin_subscriptions(call: CallbackQuery):
             text=f"🔗 {u.email}",
             callback_data=f"adminsub:{u.telegram_id}",
         )])
-    rows.append([InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")])
+    rows.append([InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")])
     text = (
         "🔗 Подписки\n\n"
         f"Всего подписок в локальной БД: {len(users)}\n"
@@ -235,7 +235,7 @@ async def admin_infrastructure(call: CallbackQuery):
     await render_callback(call, 
         _section_header(
             "🌐 Инфраструктура",
-            "Управление панелями, нодами, inbound'ами, хостами и группами серверов.",
+            "Управление нодами, inbound'ами, хостами и группами серверов.",
         ),
         reply_markup=infrastructure_menu(),
     )
