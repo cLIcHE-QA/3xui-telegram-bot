@@ -635,5 +635,101 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertNotIn(old, style)
 
 
+    def test_operational_summary_emoji_contract(self):
+        node_ui = source("node_ui.py")
+        system = source("system_admin.py")
+        observability = source("admin_observability.py")
+        storage = source("storage_admin.py")
+        versions = source("versions_updates.py")
+        bot_updates = source("bot_updates.py")
+        alerts = source("logs_alerts.py")
+        fleet = source("fleet_operations.py")
+        style = source("docs/UI_STYLE.md")
+        roadmap = source("docs/ROADMAP.md")
+
+        for needle in (
+            "🔗 Адрес:",
+            "🔐 Проверка TLS:",
+            "🧭 Исходящий маршрут:",
+            "📶 Задержка API:",
+            "📊 Сеть:",
+            "🕒 Последний сигнал:",
+            "🧮 CPU:",
+            "🧠 RAM:",
+            "⏱ Время работы:",
+            "🌐 Inbound",
+            "👥 Клиент",
+            "💾 Резервная копия",
+        ):
+            self.assertIn(needle, node_ui)
+
+        for needle in (
+            "🧮 CPU",
+            "🧠 RAM",
+            "📶 {node.latency_ms} ms",
+            "👥 Клиентов",
+            "🌐 Inbound",
+            "⏱ Время работы",
+        ):
+            self.assertIn(needle, system)
+
+        for needle in (
+            "👥 Клиентов 3x-ui:",
+            "👥 Пользователей бота:",
+            "📊 Использовано:",
+            "💾 Ежедневная резервная копия",
+            "⏭ Следующий запуск:",
+            "☁️ Последняя внешняя копия:",
+        ):
+            self.assertIn(needle, observability)
+
+        for needle in (
+            "🕘 Последняя:",
+            "📦 Размер:",
+            "🗄 Хранится полных копий:",
+            "🗓 Ежедневно:",
+            "📤 Отправка администраторам:",
+            "🌍 Резервные копии нод:",
+        ):
+            self.assertIn(needle, storage)
+
+        for needle in (
+            "📦 3x-ui:",
+            "⚡ Xray:",
+            "⚙️ Операция:",
+            "📦 Текущая версия:",
+            "🆕 Последняя стабильная:",
+        ):
+            self.assertIn(needle, versions)
+
+        for needle in (
+            "📦 Текущий релиз:",
+            "🤖 Бот:",
+            "🆕 Последний опубликованный:",
+            "🧩 Агент:",
+            "🩺 Состояние:",
+            "⚙️ Активная операция:",
+        ):
+            self.assertIn(needle, bot_updates)
+
+        self.assertIn("🔎 Фильтр:", alerts)
+        for needle in ("🟢 Здоровы:", "🛠 Обслуживание:", "🟡 Деградация:", "🔴 Не в сети:"):
+            self.assertIn(needle, fleet)
+
+        for needle in (
+            "🔗 Адрес",
+            "🔐 Проверка TLS",
+            "🧭 Исходящий маршрут",
+            "📶 Задержка API",
+            "📊 Сеть",
+            "🕒 Последний сигнал",
+            "🔎",
+        ):
+            self.assertIn(needle, style)
+
+        self.assertIn("##### Аудит emoji-префиксов в информационных текстах Telegram UI", roadmap)
+        self.assertIn("Статус: 🟡 Реализовано в main.", roadmap)
+
+
 if __name__ == "__main__":
     unittest.main()
