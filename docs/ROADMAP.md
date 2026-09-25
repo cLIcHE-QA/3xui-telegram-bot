@@ -311,17 +311,22 @@ README теперь является текущей картой проекта 
 
 ##### Консистентная русская локализация Telegram UI
 
-До финальной заморозки v4.x нужно провести системный проход по пользовательским и административным текстам Telegram и привести их к единому языковому контракту.
+Статус: ✅ завершено в cleanup-цикле после `v4.19.1`.
 
-Правила:
+Системный проход выполнен для client access, Admin Shell, Nodes, Monitoring/Logs/Alerts, Backups/DR, Host Control/Fleet, Versions & Updates/Bot Updates и domain UI Users/Catalog/Business/Inbounds.
+
+Зафиксированный контракт:
 
 - кнопки, заголовки, пояснения, предупреждения и пользовательские статусы по умолчанию оформляются на русском языке;
-- технические названия и термины не переводятся, если это ухудшает точность или узнаваемость: например `3x-ui`, `Xray`, `Reality`, `fingerprint`, названия протоколов, API/URL/UUID и точные identifiers;
-- одна и та же сущность не должна называться по-разному в соседних экранах;
-- перевод не меняет callback identifiers, API fields, service names и другие machine contracts;
-- после локализации обновляются связанные tests/docs, которые проверяют точные display labels.
+- технические названия сохраняются там, где перевод ухудшает точность: `3x-ui`, `Xray`, `Reality`, `Host Control`, `Deploy Agent`, `Inbound`, `fingerprint`, protocol names, API/TLS/URL/UUID и точные identifiers;
+- фиксированные RBAC role names `Read-only`, `Support`, `Administrator`, `Owner` остаются security-boundary identifiers;
+- typed confirmation phrases `STOP`, `RESTORE ...`, `UNLOCK ...`, `DOWNGRADE ...` не переводятся и не меняются;
+- callback identifiers, API fields, service names, audit/job keys и persisted machine states не менялись ради локализации;
+- для machine states используются отдельные русские display mappings;
+- `tests/test_ui_localization.py` закрепляет основные labels и запрещает возврат прежнего смешанного UI;
+- постоянный словарь и исключения зафиксированы в `docs/UI_STYLE.md`.
 
-Постоянные правила для последующей разработки фиксируются в `docs/UI_STYLE.md`, чтобы смешанный русско-английский интерфейс не возвращался с новыми PR.
+Repo-wide source audit после domain-прохода не выявил обычных английских display labels вне документированных технических исключений.
 
 ##### Аудит emoji-префиксов в информационных текстах Telegram UI
 
@@ -332,7 +337,7 @@ README теперь является текущей картой проекта 
 Минимальный контракт:
 
 - одинаковые поля на Master и direct-node экранах используют одинаковые emoji и, где это возможно, одинаковые display labels;
-- для общих resource/status полей базовым ориентиром является уже используемый Master-формат: `🧮 CPU`, `🧠 RAM`, `💽 Disk`, `⏱ Uptime`, `🌐 Inbound'ы`, `👥 Пользователи/клиенты`, `💾 Backup`;
+- для общих resource/status полей базовым ориентиром является уже используемый Master-формат: `🧮 CPU`, `🧠 RAM`, `💽 Диск`, `⏱ Время работы`, `🌐 Inbound'ы`, `👥 Пользователи/клиенты`, `💾 Резервная копия`;
 - health/state строки сохраняют семантические status icons: `🟢` healthy/online/enabled/running, `🟡` warning/degraded/pending и `🔴` failed/offline/stopped, если соответствующее состояние действительно известно;
 - для node-specific operational полей выбираются и затем используются последовательно отдельные префиксы, например для Endpoint, TLS, API latency/network и последнего heartbeat;
 - чисто техническая строка без отдельного status/type смысла может оставаться без emoji, например `3x-ui: 3.8.5`; цель — визуальная консистентность, а не декоративное заполнение каждой строки;
@@ -348,7 +353,7 @@ README теперь является текущей картой проекта 
 
 Проверяются:
 
-- логичность top-level группировки `Dashboard / Пользователи / Подписки / Платежи / Тарифы / Промокоды / Infrastructure / Monitoring / System` после локализации;
+- логичность top-level группировки `Обзор / Пользователи / Подписки / Платежи / Тарифы / Промокоды / Инфраструктура / Мониторинг / Система` после локализации;
 - отсутствие функционально дублирующих входов и неожиданных переходов между разделами;
 - последовательные Back/Refresh/Cancel/Confirm flows;
 - возврат из FSM-форм в правильный parent screen;

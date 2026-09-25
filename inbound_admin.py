@@ -220,7 +220,7 @@ async def inbound_list_view() -> tuple[str, InlineKeyboardMarkup]:
     except XUIError:
         nodes = []
     rows: list[list[InlineKeyboardButton]] = []
-    lines = ["📡 Inbounds", "", f"Видимых: {len(inbounds)}", "✅ = provisioning-managed · ⚙️ = только admin"]
+    lines = ["📡 Inbound'ы", "", f"Видимых: {len(inbounds)}", "✅ = участвует в согласовании · ⚙️ = только администрирование"]
     for ib in sorted(inbounds, key=lambda x: (_node_key(x.get("nodeId")), int(x.get("port") or 0), int(x.get("id") or 0))):
         iid = int(ib.get("id") or 0)
         icon = "🟢" if bool(ib.get("enable", True)) else "🔴"
@@ -232,9 +232,9 @@ async def inbound_list_view() -> tuple[str, InlineKeyboardMarkup]:
             callback_data=f"admin:inbound:{iid}",
         )])
     rows += [
-        [InlineKeyboardButton(text="🧩 Templates", callback_data="admin:inboundtemplates")],
+        [InlineKeyboardButton(text="🧩 Шаблоны", callback_data="admin:inboundtemplates")],
         [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
-        [InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")],
+        [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -259,15 +259,15 @@ async def _inbound_card(inbound_id: int) -> tuple[str, InlineKeyboardMarkup]:
         "",
         f"ID: #{inbound_id}",
         f"Server: {_node_label(node_id, nodes)}",
-        f"Status: {'🟢 Enabled' if ib.get('enable', True) else '🔴 Disabled'}",
+        f"Статус: {'🟢 включён' if ib.get('enable', True) else '🔴 отключён'}",
         f"Protocol: {ib.get('protocol') or '-'}",
         f"Port: {ib.get('port') or 0}",
         f"Listen: {ib.get('listen') or '*'}",
         f"Transport: {network}",
         f"Security: {security}",
-        f"Provisioning: {'✅ managed' if _managed(ib) else '⚠️ not managed by current .env filters'}",
-        f"Clients: {len(clients)}",
-        f"Traffic: ↑ {_human_bytes(int(ib.get('up') or 0))} · ↓ {_human_bytes(int(ib.get('down') or 0))}",
+        f"Согласование: {'✅ управляется' if _managed(ib) else '⚠️ не управляется текущими фильтрами .env'}",
+        f"Клиентов: {len(clients)}",
+        f"Трафик: ↑ {_human_bytes(int(ib.get('up') or 0))} · ↓ {_human_bytes(int(ib.get('down') or 0))}",
     ]
     if network == "xhttp":
         lines += [
@@ -285,23 +285,23 @@ async def _inbound_card(inbound_id: int) -> tuple[str, InlineKeyboardMarkup]:
             f"Reality fingerprint: {reality_client.get('fingerprint') or reality.get('fingerprint') or '-'}",
         ]
 
-    toggle_text = "⛔ Disable" if ib.get("enable", True) else "✅ Enable"
+    toggle_text = "⛔ Отключить" if ib.get("enable", True) else "✅ Включить"
     rows = [
         [
-            InlineKeyboardButton(text="👥 Clients", callback_data=f"admin:inbound:clients:{inbound_id}"),
-            InlineKeyboardButton(text="✏️ Edit", callback_data=f"admin:inbound:edit:{inbound_id}"),
+            InlineKeyboardButton(text="👥 Клиенты", callback_data=f"admin:inbound:clients:{inbound_id}"),
+            InlineKeyboardButton(text="✏️ Изменить", callback_data=f"admin:inbound:edit:{inbound_id}"),
         ],
         [InlineKeyboardButton(text=toggle_text, callback_data=f"admin:inbound:toggle:{inbound_id}")],
         [
-            InlineKeyboardButton(text="🔄 Sync users", callback_data=f"admin:inbound:syncask:{inbound_id}"),
-            InlineKeyboardButton(text="♻️ Reset traffic", callback_data=f"admin:inbound:resetask:{inbound_id}"),
+            InlineKeyboardButton(text="🔄 Синхронизировать пользователей", callback_data=f"admin:inbound:syncask:{inbound_id}"),
+            InlineKeyboardButton(text="♻️ Сбросить трафик", callback_data=f"admin:inbound:resetask:{inbound_id}"),
         ],
         [
-            InlineKeyboardButton(text="📋 Clone", callback_data=f"admin:inbound:clone:{inbound_id}"),
-            InlineKeyboardButton(text="🧩 Save template", callback_data=f"admin:inbound:template:{inbound_id}"),
+            InlineKeyboardButton(text="📋 Клонировать", callback_data=f"admin:inbound:clone:{inbound_id}"),
+            InlineKeyboardButton(text="🧩 Сохранить шаблон", callback_data=f"admin:inbound:template:{inbound_id}"),
         ],
-        [InlineKeyboardButton(text="🗑 Delete inbound", callback_data=f"admin:inbound:deleteask:{inbound_id}")],
-        [InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")],
+        [InlineKeyboardButton(text="🗑 Удалить inbound", callback_data=f"admin:inbound:deleteask:{inbound_id}")],
+        [InlineKeyboardButton(text="⬅ Inbound'ы", callback_data="admin:infra:inbounds")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -333,7 +333,7 @@ async def inbound_clients(call: CallbackQuery):
     clients = _settings(ib).get("clients") or []
     if not isinstance(clients, list):
         clients = []
-    lines = [f"👥 Clients · #{inbound_id}", "", f"Всего: {len(clients)}"]
+    lines = [f"👥 Клиенты · #{inbound_id}", "", f"Всего: {len(clients)}"]
     rows: list[list[InlineKeyboardButton]] = []
     for client in clients[:50]:
         if not isinstance(client, dict):
@@ -361,7 +361,7 @@ def _edit_menu(ib: dict[str, Any]) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = [
         [
             InlineKeyboardButton(text="✏️ Название", callback_data=f"admin:inbound:editfield:{iid}:remark"),
-            InlineKeyboardButton(text="🔌 Port", callback_data=f"admin:inbound:editfield:{iid}:port"),
+            InlineKeyboardButton(text="🔌 Порт", callback_data=f"admin:inbound:editfield:{iid}:port"),
         ],
         [InlineKeyboardButton(text="👂 Listen", callback_data=f"admin:inbound:editfield:{iid}:listen")],
     ]
@@ -398,7 +398,7 @@ async def inbound_edit_menu(call: CallbackQuery):
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
         return
     await render_callback(call, 
-        "✏️ Edit inbound\n\n"
+        "✏️ Изменение inbound\n\n"
         "Из Telegram доступны только поля, которые можно обновить без показа приватных ключей. "
         "Полный settings/streamSettings сохраняется при каждом изменении.",
         reply_markup=_edit_menu(ib),
@@ -476,7 +476,7 @@ def _fingerprint_menu(iid: int, current: str) -> InlineKeyboardMarkup:
                 callback_data=f"admin:inbound:setfp:{iid}:{fingerprint}",
             ))
         rows.append(row)
-    rows.append([InlineKeyboardButton(text="⬅ Edit", callback_data=f"admin:inbound:edit:{iid}")])
+    rows.append([InlineKeyboardButton(text="⬅ Изменить", callback_data=f"admin:inbound:edit:{iid}")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -495,7 +495,7 @@ async def inbound_edit_fingerprint(call: CallbackQuery):
         await render_callback(
             call,
             "🪪 Reality fingerprint\n\n"
-            f"Current: {current or '-'}\n\n"
+            f"Текущее значение: {current or '-'}\n\n"
             "Выбери значение из списка 3x-ui:",
             reply_markup=_fingerprint_menu(iid, current),
         )
@@ -544,8 +544,8 @@ async def inbound_edit_mode(call: CallbackQuery):
     iid = int(call.data.rsplit(":", 1)[-1])
     rows = [[InlineKeyboardButton(text=f"⚙️ {mode}", callback_data=f"admin:inbound:setmode:{iid}:{mode}")]
             for mode in ("auto", "packet-up", "stream-up", "stream-one")]
-    rows.append([InlineKeyboardButton(text="⬅ Edit", callback_data=f"admin:inbound:edit:{iid}")])
-    await render_callback(call, "XHTTP mode:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    rows.append([InlineKeyboardButton(text="⬅ Изменить", callback_data=f"admin:inbound:edit:{iid}")])
+    await render_callback(call, "Режим XHTTP:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -571,7 +571,7 @@ async def inbound_set_mode(call: CallbackQuery):
     iid = int(parts[-2])
     mode = parts[-1]
     if mode not in {"auto", "packet-up", "stream-up", "stream-one"}:
-        await call.answer("Некорректный mode.", show_alert=True)
+        await call.answer("Некорректный режим.", show_alert=True)
         return
     try:
         await _apply_mode(call, iid, mode)
@@ -604,10 +604,10 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             try:
                 port = int(raw)
             except ValueError:
-                await render_input(message, "Нужен числовой port.")
+                await render_input(message, "Нужен числовой порт.")
                 return
             if not 1 <= port <= 65535:
-                await render_input(message, "Port должен быть 1-65535.")
+                await render_input(message, "Порт должен быть 1-65535.")
                 return
             if not await _port_free(_node_key(ib.get("nodeId")), port, exclude_inbound_id=iid):
                 await render_input(message, "Этот port уже занят на данном сервере.")
@@ -689,7 +689,7 @@ async def inbound_toggle(call: CallbackQuery):
             db, call, "inbound.enable" if enabled else "inbound.disable",
             target_type="inbound", target_id=str(iid),
         )
-        await call.answer("Enabled" if enabled else "Disabled")
+        await call.answer("Включён" if enabled else "Отключён")
         text, kb = await _inbound_card(iid)
         await render_callback(call, text, reply_markup=kb)
     except XUIError as exc:
@@ -703,7 +703,7 @@ async def inbound_sync_ask(call: CallbackQuery):
     iid = int(call.data.rsplit(":", 1)[-1])
     users = await db.list_users()
     await render_callback(call, 
-        f"🔄 Sync users → inbound #{iid}\n\n"
+        f"🔄 Синхронизация пользователей → inbound #{iid}\n\n"
         f"Все {len(users)} пользователей из локальной БД будут привязаны к этому inbound, "
         "если они ещё не привязаны. Лимиты и credentials не меняются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -729,7 +729,7 @@ async def inbound_sync_run(call: CallbackQuery):
             details=f"users={len(emails)}; result={str(obj)[:800]}",
         )
         await render_callback(call, 
-            f"✅ Sync завершён для inbound #{iid}.\nПользователей обработано: {len(emails)}",
+            f"✅ Синхронизация завершена для inbound #{iid}.\nПользователей обработано: {len(emails)}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")
             ]]),
@@ -749,9 +749,9 @@ async def inbound_reset_ask(call: CallbackQuery):
         return
     iid = int(call.data.rsplit(":", 1)[-1])
     await render_callback(call, 
-        f"♻️ Обнулить общий traffic inbound #{iid}?\n\nPer-client counters не изменяются.",
+        f"♻️ Обнулить общий трафик inbound #{iid}?\n\nСчётчики отдельных клиентов не изменяются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚠️ Reset", callback_data=f"admin:inbound:resetrun:{iid}")],
+            [InlineKeyboardButton(text="⚠️ Сбросить", callback_data=f"admin:inbound:resetrun:{iid}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inbound:{iid}")],
         ]),
     )
@@ -766,7 +766,7 @@ async def inbound_reset_run(call: CallbackQuery):
     try:
         await xui.inbound_reset_traffic(iid)
         await audit_from_call(db, call, "inbound.reset_traffic", target_type="inbound", target_id=str(iid))
-        await call.answer("Traffic обнулён.")
+        await call.answer("Трафик обнулён.")
         text, kb = await _inbound_card(iid)
         await render_callback(call, text, reply_markup=kb)
     except XUIError as exc:
@@ -797,7 +797,7 @@ async def inbound_clone_start(call: CallbackQuery):
         return
     iid = int(call.data.rsplit(":", 1)[-1])
     await render_callback(call, 
-        "📋 Clone inbound\n\nВыбери сервер. Клон создаётся disabled и без клиентов.",
+        "📋 Клонирование inbound\n\nВыбери сервер. Клон создаётся отключённым и без клиентов.",
         reply_markup=await _target_keyboard("admin:inbound:clonetarget", iid),
     )
     await call.answer()
@@ -825,7 +825,7 @@ async def inbound_clone_target(call: CallbackQuery, state: FSMContext):
         source_port = int(ib.get("port") or 0)
         if await _port_free(target_node, source_port):
             await _create_clone(call, iid, target_node, source_port)
-            await call.answer("Clone создан disabled.")
+            await call.answer("Клон создан отключённым.")
             text, kb = await inbound_list_view()
             await render_callback(call, text, reply_markup=kb)
             return
@@ -833,7 +833,7 @@ async def inbound_clone_target(call: CallbackQuery, state: FSMContext):
         await state.set_state(InboundEditStates.clone_port)
         await state.update_data(clone_inbound_id=iid, clone_target_node=target_node)
         await render_callback(call, 
-            f"На выбранном сервере port {source_port} уже занят.\n\nВведи другой port (1-65535):"
+            f"На выбранном сервере порт {source_port} уже занят.\n\nВведи другой порт (1-65535):"
         )
         await call.answer()
     except XUIError as exc:
@@ -847,16 +847,16 @@ async def inbound_clone_port(message: Message, state: FSMContext):
     try:
         port = int((message.text or "").strip())
     except ValueError:
-        await render_input(message, "Нужен числовой port.")
+        await render_input(message, "Нужен числовой порт.")
         return
     if not 1 <= port <= 65535:
-        await render_input(message, "Port должен быть 1-65535.")
+        await render_input(message, "Порт должен быть 1-65535.")
         return
     data = await state.get_data()
     iid = int(data.get("clone_inbound_id") or 0)
     target_node = int(data.get("clone_target_node") or 0)
     if not await _port_free(target_node, port):
-        await render_input(message, "Этот port уже занят на выбранном сервере.")
+        await render_input(message, "Этот порт уже занят на выбранном сервере.")
         return
     try:
         # This path has no CallbackQuery for audit, so record the mutation directly.
@@ -868,9 +868,9 @@ async def inbound_clone_port(message: Message, state: FSMContext):
         )
         await state.clear()
         await render_input(message, 
-            "✅ Clone создан disabled.",
+            "✅ Клон создан отключённым.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
+                InlineKeyboardButton(text="📡 Inbound'ы", callback_data="admin:infra:inbounds")
             ]]),
         )
     except XUIError as exc:
@@ -892,9 +892,9 @@ async def inbound_template_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(InboundEditStates.template_name)
     await state.update_data(template_source_id=iid)
     await render_callback(call, 
-        f"🧩 Save template from #{iid}\n\n"
+        f"🧩 Сохранение шаблона из #{iid}\n\n"
         f"Источник: {ib.get('remark') or '-'}\n"
-        "Введи имя template. В шаблон попадёт конфигурация inbound без clients; он будет храниться в bot.sqlite3.",
+        "Введи имя шаблона. В шаблон попадёт конфигурация inbound без клиентов; он будет храниться в bot.sqlite3.",
     )
     await call.answer()
 
@@ -924,13 +924,13 @@ async def inbound_template_save(message: Message, state: FSMContext):
         )
         await state.clear()
         await render_input(message, 
-            f"✅ Template создан: {name}",
+            f"✅ Шаблон создан: {name}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="🧩 Templates", callback_data="admin:inboundtemplates")
+                InlineKeyboardButton(text="🧩 Шаблоны", callback_data="admin:inboundtemplates")
             ]]),
         )
     except sqlite3.IntegrityError:
-        await render_input(message, "Template с таким именем уже существует.")
+        await render_input(message, "Шаблон с таким именем уже существует.")
     except XUIError as exc:
         await state.clear()
         await render_input(message, f"Ошибка 3x-ui: {exc}")
@@ -944,8 +944,8 @@ async def inbound_templates(call: CallbackQuery):
     rows = [[InlineKeyboardButton(
         text=f"🧩 {t.name} · {t.protocol}", callback_data=f"admin:inboundtemplate:{t.id}"
     )] for t in templates[:50]]
-    rows.append([InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")])
-    text = "🧩 Inbound Templates\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет.")
+    rows.append([InlineKeyboardButton(text="⬅ Inbound'ы", callback_data="admin:infra:inbounds")])
+    text = "🧩 Шаблоны inbound'ов\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет.")
     await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
@@ -957,7 +957,7 @@ async def inbound_template_card(call: CallbackQuery):
     tid = int(call.data.rsplit(":", 1)[-1])
     t = await db.get_inbound_template(tid)
     if not t:
-        await call.answer("Template не найден.", show_alert=True)
+        await call.answer("Шаблон не найден.", show_alert=True)
         return
     try:
         payload = json.loads(t.payload_json)
@@ -967,17 +967,17 @@ async def inbound_template_card(call: CallbackQuery):
     text = (
         f"🧩 {t.name}\n\n"
         f"ID: #{t.id}\n"
-        f"Protocol: {t.protocol}\n"
-        f"Port: {payload.get('port') or 0}\n"
-        f"Transport: {stream.get('network') or '-'}\n"
-        f"Security: {stream.get('security') or 'none'}\n"
-        f"Source inbound: #{t.source_inbound_id}\n\n"
-        "Deploy создаёт disabled inbound без clients."
+        f"Протокол: {t.protocol}\n"
+        f"Порт: {payload.get('port') or 0}\n"
+        f"Транспорт: {stream.get('network') or '-'}\n"
+        f"Безопасность: {stream.get('security') or 'none'}\n"
+        f"Исходный inbound: #{t.source_inbound_id}\n\n"
+        "Развёртывание создаёт отключённый inbound без клиентов."
     )
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Deploy", callback_data=f"admin:inboundtemplate:deploy:{tid}")],
-        [InlineKeyboardButton(text="🗑 Delete template", callback_data=f"admin:inboundtemplate:deleteask:{tid}")],
-        [InlineKeyboardButton(text="⬅ Templates", callback_data="admin:inboundtemplates")],
+        [InlineKeyboardButton(text="🚀 Развернуть", callback_data=f"admin:inboundtemplate:deploy:{tid}")],
+        [InlineKeyboardButton(text="🗑 Удалить шаблон", callback_data=f"admin:inboundtemplate:deleteask:{tid}")],
+        [InlineKeyboardButton(text="⬅ Шаблоны", callback_data="admin:inboundtemplates")],
     ])
     await render_callback(call, text, reply_markup=kb)
     await call.answer()
@@ -989,10 +989,10 @@ async def template_deploy_start(call: CallbackQuery):
         return
     tid = int(call.data.rsplit(":", 1)[-1])
     if not await db.get_inbound_template(tid):
-        await call.answer("Template не найден.", show_alert=True)
+        await call.answer("Шаблон не найден.", show_alert=True)
         return
     await render_callback(call, 
-        "🚀 Deploy template\n\nВыбери сервер. Новый inbound будет disabled и без clients.",
+        "🚀 Развёртывание шаблона\n\nВыбери сервер. Новый inbound будет отключён и без клиентов.",
         reply_markup=await _target_keyboard("admin:inboundtemplate:target", tid),
     )
     await call.answer()
@@ -1001,10 +1001,10 @@ async def template_deploy_start(call: CallbackQuery):
 async def _deploy_template(tid: int, target_node: int, port: int) -> None:
     t = await db.get_inbound_template(tid)
     if not t:
-        raise ValueError("Template not found")
+        raise ValueError("Шаблон не найден")
     payload = json.loads(t.payload_json)
     if not isinstance(payload, dict):
-        raise ValueError("Invalid template payload")
+        raise ValueError("Некорректные данные шаблона")
     await xui.inbound_add(_deploy_payload(payload, port=port, node_id=(target_node or None)))
 
 
@@ -1017,13 +1017,13 @@ async def template_deploy_target(call: CallbackQuery, state: FSMContext):
     target_node = int(parts[-1])
     t = await db.get_inbound_template(tid)
     if not t:
-        await call.answer("Template не найден.", show_alert=True)
+        await call.answer("Шаблон не найден.", show_alert=True)
         return
     try:
         payload = json.loads(t.payload_json)
         port = int(payload.get("port") or 0)
     except (json.JSONDecodeError, TypeError, ValueError):
-        await call.answer("Template повреждён.", show_alert=True)
+        await call.answer("Шаблон повреждён.", show_alert=True)
         return
     try:
         if port and await _port_free(target_node, port):
@@ -1032,7 +1032,7 @@ async def template_deploy_target(call: CallbackQuery, state: FSMContext):
                 db, call, "inbound_template.deploy", target_type="inbound_template",
                 target_id=str(tid), details=f"target_node={target_node}; port={port}",
             )
-            await call.answer("Deploy завершён. Inbound disabled.")
+            await call.answer("Развёртывание завершено. Inbound отключён.")
             text, kb = await inbound_list_view()
             await render_callback(call, text, reply_markup=kb)
             return
@@ -1040,7 +1040,7 @@ async def template_deploy_target(call: CallbackQuery, state: FSMContext):
         await state.set_state(InboundEditStates.template_port)
         await state.update_data(template_id=tid, template_target_node=target_node)
         await render_callback(call, 
-            f"Port {port} уже занят на выбранном сервере.\n\nВведи другой port (1-65535):"
+            f"Порт {port} уже занят на выбранном сервере.\n\nВведи другой порт (1-65535):"
         )
         await call.answer()
     except XUIError as exc:
@@ -1054,16 +1054,16 @@ async def template_deploy_port(message: Message, state: FSMContext):
     try:
         port = int((message.text or "").strip())
     except ValueError:
-        await render_input(message, "Нужен числовой port.")
+        await render_input(message, "Нужен числовой порт.")
         return
     if not 1 <= port <= 65535:
-        await render_input(message, "Port должен быть 1-65535.")
+        await render_input(message, "Порт должен быть 1-65535.")
         return
     data = await state.get_data()
     tid = int(data.get("template_id") or 0)
     target_node = int(data.get("template_target_node") or 0)
     if not await _port_free(target_node, port):
-        await render_input(message, "Этот port уже занят на выбранном сервере.")
+        await render_input(message, "Этот порт уже занят на выбранном сервере.")
         return
     try:
         await _deploy_template(tid, target_node, port)
@@ -1073,14 +1073,14 @@ async def template_deploy_port(message: Message, state: FSMContext):
         )
         await state.clear()
         await render_input(message, 
-            "✅ Deploy завершён. Новый inbound disabled.",
+            "✅ Развёртывание завершено. Новый inbound отключён.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
+                InlineKeyboardButton(text="📡 Inbound'ы", callback_data="admin:infra:inbounds")
             ]]),
         )
     except (XUIError, ValueError) as exc:
         await state.clear()
-        await render_input(message, f"Ошибка deploy: {exc}")
+        await render_input(message, f"Ошибка развёртывания: {exc}")
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inboundtemplate:deleteask:"))
@@ -1090,10 +1090,10 @@ async def template_delete_ask(call: CallbackQuery):
     tid = int(call.data.rsplit(":", 1)[-1])
     t = await db.get_inbound_template(tid)
     if not t:
-        await call.answer("Template не найден.", show_alert=True)
+        await call.answer("Шаблон не найден.", show_alert=True)
         return
     await render_callback(call, 
-        f"Удалить template «{t.name}»?\n\nРазвёрнутые inbound'ы не изменятся.",
+        f"Удалить шаблон «{t.name}»?\n\nРазвёрнутые inbound'ы не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Удалить", callback_data=f"admin:inboundtemplate:delete:{tid}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inboundtemplate:{tid}")],
@@ -1113,13 +1113,13 @@ async def template_delete(call: CallbackQuery):
         db, call, "inbound_template.delete", target_type="inbound_template", target_id=str(tid),
         details=f"name={t.name if t else ''}",
     )
-    await call.answer("Template удалён.")
+    await call.answer("Шаблон удалён.")
     templates = await db.list_inbound_templates()
     rows = [[InlineKeyboardButton(text=f"🧩 {x.name}", callback_data=f"admin:inboundtemplate:{x.id}")]
             for x in templates[:50]]
-    rows.append([InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")])
+    rows.append([InlineKeyboardButton(text="⬅ Inbound'ы", callback_data="admin:infra:inbounds")])
     await render_callback(call, 
-        "🧩 Inbound Templates\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет."),
+        "🧩 Шаблоны inbound'ов\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет."),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
 
@@ -1138,7 +1138,7 @@ async def inbound_delete_ask(call: CallbackQuery):
     await render_callback(call, 
         f"🗑 Удалить inbound #{iid} «{ib.get('remark') or '-'}»?\n\n"
         f"Клиентов внутри: {len(clients) if isinstance(clients, list) else 0}.\n"
-        "Удаление inbound необратимо. 3x-ui также удалит связанные с этим inbound traffic/stat rows; "
+        "Удаление inbound необратимо. 3x-ui также удалит связанные строки трафика/статистики; "
         "перед удалением проверь клиентские привязки.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить inbound", callback_data=f"admin:inbound:delete:{iid}")],

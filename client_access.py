@@ -152,9 +152,9 @@ async def create_user(tg_id: int, message: Message):
             inbound_ids = list(policy.actionable_inbound_ids)
             if not inbound_ids:
                 await message.answer(
-                    "Provisioning default Plan настроен, но сейчас нет доступных "
+                    "Тариф по умолчанию для согласования настроен, но сейчас нет доступных "
                     "target inbound'ов. Попроси администратора проверить "
-                    "Plan → Server Group → Nodes/Inbounds."
+                    "Тариф → Группа серверов → Ноды/Inbound'ы."
                 )
                 return
             duration_days = max(0, default_plan.duration_days)
@@ -165,7 +165,7 @@ async def create_user(tg_id: int, message: Message):
                 if duration_days
                 else 0
             )
-            provisioning_note = f"Plan: {default_plan.name}"
+            provisioning_note = f"Тариф: {default_plan.name}"
         else:
             chosen = choose_inbounds(await xui.inbound_options())
             if not chosen:
@@ -199,7 +199,7 @@ async def create_user(tg_id: int, message: Message):
                 traffic_gb = settings.test_traffic_gb
                 ip_limit = settings.test_ip_limit
             expiry = (now + duration_days * 86400) * 1000
-            provisioning_note = "Trial legacy policy"
+            provisioning_note = "Legacy-политика пробного доступа"
 
         username = ""
         if (
@@ -219,7 +219,7 @@ async def create_user(tg_id: int, message: Message):
             expiry_time_ms=expiry,
             limit_ip=ip_limit,
             comment=(
-                f"Created by Telegram bot v{APP_VERSION} · "
+                f"Создано Telegram-ботом v{APP_VERSION} · "
                 f"{provisioning_note}"
             ),
             flow=settings.vless_flow,
@@ -245,7 +245,7 @@ async def create_user(tg_id: int, message: Message):
         if default_plan and policy:
             lines += [
                 "",
-                f"💎 Plan: {default_plan.name}",
+                f"💎 Тариф: {default_plan.name}",
                 f"📡 Inbounds: {', '.join(map(str, inbound_ids))}",
             ]
             if policy.unavailable_members:
