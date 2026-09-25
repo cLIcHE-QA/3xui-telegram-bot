@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.3 — Production smoke fixes для backup integrity и Admin UI
+- Исправлен Full Backup integrity contract: корневой `manifest.json` по-прежнему не хеширует сам себя, но nested `nodes/*/manifest.json` теперь входит в `integrity.files`; embedded node backup проходит `RestoreManager.inspect_backup()` без ложной ошибки `manifest integrity не покрывает файлы`.
+- В Disaster Recovery detail/preflight и история восстановления возвращаются к непосредственному parent `Аварийное восстановление`; restore остаётся fail-closed и Owner-only, mutation semantics не менялись.
+- Detail подписки сохраняет контекст входа: из top-level `Подписки` Back возвращает в `Подписки`, а из карточки пользователя — к пользователю; отдельный `adminsublist:<tg_id>` зарегистрирован в RBAC как `read_only`.
+- `Состояние системы` теперь имеет локальный `Обновить` и `Назад в Мониторинг`; Server Groups используют общий `node_display_name()`, поэтому direct nodes отображаются единообразно, например `🇫🇮 Finland`.
+- Убраны stale operator-facing версии `v4.5`/`v3.9`, сокращена обрезавшаяся подпись inbound sync и устранена тавтология `Master: <flag> Master` на экране настроек.
+- Regression coverage расширен на production smoke findings, включая реальный Full Backup → restore inspection contract; SQLite schema, 3x-ui/OpenAPI, Host Control API, Deploy Agent/helper и privilege boundaries не изменены. `v4.20.3` устанавливается обычным Safe Bot Self-Update без host-side обновления Agent/helper.
+
 ## v4.20.2 — Исправление parent navigation Admin Control Plane
 - Исправлены отклонения от существующего navigation-контракта `docs/UI_STYLE.md`: вложенные экраны возвращаются к фактическому непосредственному parent, а validation/error paths не теряют Back/Cancel.
 - `Система → Обновления бота → История обновлений` теперь возвращает в `Обновления бота`; node log view — к источникам выбранной ноды; Host Control и Disaster Recovery сохраняют корректный parent/Cancel в typed-confirmation/error flows.
