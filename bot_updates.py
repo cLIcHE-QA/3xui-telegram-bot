@@ -545,7 +545,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
         return
 
     lines = [
-        "🤖 Bot Updates",
+        "🤖 Обновления бота",
         "",
         f"Текущий релиз: {status.current_release or 'неизвестно'}",
         f"Бот: {status.bot_version or APP_VERSION}",
