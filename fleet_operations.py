@@ -134,7 +134,7 @@ def _keyboard(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
 
 def _call_binding(call: CallbackQuery) -> dict[str, int]:
     if not call.from_user or not isinstance(call.message, Message):
-        raise FleetError("Открой /admin заново, чтобы создать новую fleet-сессию.")
+        raise FleetError("Открой /admin заново, чтобы создать новую сессию операций с нодами.")
     return {
         "actor": int(call.from_user.id),
         "chat": int(call.message.chat.id),
