@@ -194,15 +194,15 @@ Agent port `18181` никогда не открывается через UFW/ipt
 3. Настроить Master Docker-bridge reverse proxy.
 4. Добавить только `HOST_CONTROL_MASTER_*` в bot `.env`.
 5. Пересоздать только bot container.
-6. Открыть `Master → 🧩 3x-ui Control` и проверить Status.
-7. Выполнить безопасный `Start service` при уже running состоянии — agent должен вернуть `changed=false`.
+6. Открыть `Master → 🧩 Управление 3x-ui` и проверить Status.
+7. Выполнить безопасный `Запустить сервис` при уже running состоянии — agent должен вернуть `changed=false`.
 8. Проверить `♻️ Restart Panel process`.
 9. Проверить `🔄 Restart service`.
 10. Только после успешного Master smoke test устанавливать agent на Finland.
 11. Настроить Finland HTTPS reverse proxy + source allowlist.
 12. Добавить `HOST_CONTROL_FI_*` в bot `.env`.
 13. Проверить Finland Status / Restart Panel / Restart service.
-14. `Stop service` тестировать последним и только при готовом recovery path.
+14. `Остановить сервис` тестировать последним и только при готовом recovery path.
 
 ## 7. Перед первым Stop service
 
@@ -248,7 +248,7 @@ host filesystem mount в bot container
 → Infrastructure
 → Nodes
 → Master / Finland
-→ 🧩 3x-ui Control
+→ 🧩 Управление 3x-ui
 ~~~
 
 Ожидается:

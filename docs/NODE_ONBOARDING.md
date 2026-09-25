@@ -204,7 +204,7 @@ Runtime readiness: ready
 Stable identity: node_id
 ~~~
 
-После этого открой `🧩 3x-ui Control` и выполни обычный smoke-test.
+После этого открой `🧩 Управление 3x-ui` и выполни обычный smoke-test.
 
 ## 6. Rename
 

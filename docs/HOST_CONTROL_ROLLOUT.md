@@ -313,4 +313,4 @@ sudo systemctl disable --now 3xui-host-control.service
 
 Host Control Agent на новом VPS всегда enroll заново: старый host token не должен автоматически переезжать на новый сервер.
 
-Для полноценного `🧩 3x-ui Control` remote node также нужен проверенный direct admin target в `NODE_BACKUP_TARGETS`: Panel/Xray actions и post-condition после Start/Restart используют штатный 3x-ui API. v4.10.x оставляет этот credential отдельным fail-safe конфигом; объединённый onboarding/readiness flow относится к v4.11.0.
+Для полноценного `🧩 Управление 3x-ui` remote node также нужен проверенный direct admin target в `NODE_BACKUP_TARGETS`: Panel/Xray actions и post-condition после Start/Restart используют штатный 3x-ui API. v4.10.x оставляет этот credential отдельным fail-safe конфигом; объединённый onboarding/readiness flow относится к v4.11.0.

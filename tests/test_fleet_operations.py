@@ -43,7 +43,7 @@ class FleetOperationsContractTests(unittest.TestCase):
         self.assertIn('await _finish_rollout_job(plan, "success")', create_review)
 
         rollout_run = text[text.index("async def rollout_run("):text.index("async def fleet_jobs(")]
-        cancel_block = rollout_run[rollout_run.index('if action == "cancel":'):rollout_run.index('await _render_plan(call, plan, "⏹ Rollout остановлен оператором.')]
+        cancel_block = rollout_run[rollout_run.index('if action == "cancel":'):rollout_run.index('await _render_plan(call, plan, "⏹ Обновление остановлено оператором.')]
         self.assertIn("await _start_rollout_job(plan)", cancel_block)
         self.assertIn('await _finish_rollout_job(plan, "cancelled")', cancel_block)
 

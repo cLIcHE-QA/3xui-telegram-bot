@@ -47,6 +47,11 @@
 - `Administrators` → `Администраторы`;
 - `Settings` → `Настройки`;
 - `Readiness` → `Готовность`.
+- `Fleet Operations` → `Операции с нодами`;
+- `Fleet Health` → `Состояние нод`;
+- `Controlled Rollout` → `Контролируемое обновление`;
+- `Maintenance` → `Обслуживание`;
+- `3x-ui Control` → `Управление 3x-ui`.
 
 Технические названия `3x-ui`, `Xray`, `Host Control`, `Inbound`, `API`, `TLS`, `URL`, protocol names и machine status values в коде не переименовываются. В пользовательской фразе вокруг них используется русский контекст.
 

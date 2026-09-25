@@ -6,10 +6,10 @@
 
 v4.13 добавляет четыре связанные возможности:
 
-1. `🩺 Fleet Health` — read-only сводка по direct nodes.
-2. `🛠 Fleet Maintenance` — controlled массовый вход/выход из maintenance.
-3. `🚀 Controlled Rollout` — последовательное обновление 3x-ui или Xray.
-4. `🧾 Fleet Jobs` — история fleet jobs и результатов.
+1. `🩺 Состояние нод` — read-only сводка по direct nodes.
+2. `🛠 Обслуживание нод` — controlled массовый вход/выход из maintenance.
+3. `🚀 Контролируемое обновление` — последовательное обновление 3x-ui или Xray.
+4. `🧾 Задания по нодам` — история fleet jobs и результатов.
 
 Fleet layer оркестрирует существующие single-node механизмы. Он не создаёт второй update engine и не обходит backup, audit, no-retry, stable identity или post-condition проверки.
 
@@ -126,7 +126,7 @@ Rollout plan хранится рядом с bot DB в private journal `fleet/rol
 - Controlled Rollout: Admin+.
 - Mass stop service / stop Xray в v4.13 отсутствуют намеренно.
 
-Destructive `Stop service` и `Stop Xray` остаются только per-node Owner operations через `🧩 3x-ui Control`.
+Destructive `Stop service` и `Stop Xray` остаются только per-node Owner operations через `🧩 Управление 3x-ui`.
 
 ## Audit / Jobs
 
@@ -143,12 +143,12 @@ Audit фиксирует start/completion fleet operation и per-node rollout ou
 
 ~~~text
 Infrastructure
-└─ 🌐 Fleet Operations
-   ├─ 🩺 Fleet Health
-   ├─ 🛠 Enter maintenance
-   ├─ ▶ Exit maintenance
-   ├─ 🚀 Controlled rollout
-   └─ 🧾 Fleet Jobs
+└─ 🌐 Операции с нодами
+   ├─ 🩺 Состояние нод
+   ├─ 🛠 Включить обслуживание
+   ├─ ▶ Выключить обслуживание
+   ├─ 🚀 Контролируемое обновление
+   └─ 🧾 Задания по нодам
 ~~~
 
 ## Не входит в v4.13

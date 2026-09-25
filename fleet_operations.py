@@ -33,6 +33,7 @@ from backup_manager import BackupManager
 from config import HostControlTarget, load_settings
 from db import Database
 from host_control import HostControlClient, HostControlError
+from node_ui import node_status_text
 from system_backup import SystemBackupService
 from version_api import same_version
 from version_service import UpdateError, safe_error
@@ -79,7 +80,7 @@ class FleetPlanStore:
 
     def _path(self, plan_id: str) -> Path:
         if not PLAN_ID_RE.fullmatch(plan_id or ""):
-            raise FleetError("Invalid fleet plan id.")
+            raise FleetError("Некорректный ID плана fleet rollout.")
         return self.root / f"rollout-{plan_id}.json"
 
     def save(self, plan: dict[str, Any]) -> None:
@@ -100,13 +101,13 @@ class FleetPlanStore:
     def get(self, plan_id: str) -> dict[str, Any]:
         path = self._path(plan_id)
         if not path.is_file():
-            raise FleetError("Fleet rollout plan not found.")
+            raise FleetError("План fleet rollout не найден.")
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            raise FleetError("Fleet rollout journal is unreadable; mutation blocked.") from exc
+            raise FleetError("Журнал fleet rollout недоступен для чтения; mutation заблокирована.") from exc
         if not isinstance(data, dict) or data.get("id") != plan_id:
-            raise FleetError("Fleet rollout journal failed identity validation.")
+            raise FleetError("Журнал fleet rollout не прошёл проверку идентичности.")
         return data
 
     def list(self) -> list[dict[str, Any]]:
@@ -133,7 +134,7 @@ def _keyboard(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
 
 def _call_binding(call: CallbackQuery) -> dict[str, int]:
     if not call.from_user or not isinstance(call.message, Message):
-        raise FleetError("Open /admin again to create a usable fleet session.")
+        raise FleetError("Открой /admin заново, чтобы создать новую fleet-сессию.")
     return {
         "actor": int(call.from_user.id),
         "chat": int(call.message.chat.id),
@@ -231,15 +232,15 @@ async def _assess_node(node: NodeInfo) -> dict[str, Any]:
 
     problems: list[str] = []
     if not master_online:
-        problems.append(f"Master={node.status}")
+        problems.append(f"Master={node_status_text(node.status)}")
     if not direct_online:
-        problems.append("Direct API unavailable" + (f" ({direct_error})" if direct_error else ""))
+        problems.append("Direct API недоступен" + (f" ({direct_error})" if direct_error else ""))
     if host_state != "running":
-        problems.append(f"Host Control={host_state}")
+        problems.append(f"Host Control={_host_state_text(host_state)}")
     if direct_binding != "node_id":
-        problems.append(f"Direct binding={direct_binding}")
+        problems.append(f"Direct привязка={_binding_text(direct_binding)}")
     if host_binding != "node_id":
-        problems.append(f"Host binding={host_binding}")
+        problems.append(f"Host привязка={_binding_text(host_binding)}")
 
     return {
         "node_id": node.id,
@@ -273,16 +274,86 @@ def _health_icon(state: str) -> str:
     }.get(state, "🟡")
 
 
+HEALTH_STATE_LABELS = {
+    "healthy": "здоровы",
+    "maintenance": "обслуживание",
+    "offline": "не в сети",
+    "degraded": "деградация",
+}
+
+
+BINDING_LABELS = {
+    "node_id": "node_id",
+    "legacy_name": "legacy name",
+    "missing": "не настроена",
+}
+
+
+HOST_STATE_LABELS = {
+    "running": "работает",
+    "stopped": "остановлен",
+    "transitioning": "переходное состояние",
+    "unavailable": "недоступен",
+    "missing": "не настроен",
+}
+
+
+RESULT_LABELS = {
+    "success": "успешно",
+    "skipped": "без изменений",
+    "failed": "ошибка",
+    "unknown": "неизвестно",
+    "not_touched": "не затронута",
+    "pending": "ожидает",
+    "changed": "изменено",
+    "cancelled": "отменено",
+    "running": "выполняется",
+}
+
+
+PLAN_STATE_LABELS = {
+    "review": "проверка",
+    "canary_running": "canary выполняется",
+    "canary_passed": "canary успешно",
+    "running": "выполняется",
+    "success": "успешно",
+    "cancelled": "отменено",
+    "stopped_unknown": "остановлено: результат неизвестен",
+    "stopped_failed": "остановлено: ошибка",
+    "interrupted": "прервано",
+}
+
+
+def _health_state_text(state: str) -> str:
+    return HEALTH_STATE_LABELS.get(state, state or "неизвестно")
+
+
+def _binding_text(value: str) -> str:
+    return BINDING_LABELS.get(value, value or "не настроена")
+
+
+def _host_state_text(value: str) -> str:
+    return HOST_STATE_LABELS.get(value, value or "неизвестно")
+
+
+def _result_text(value: str) -> str:
+    return RESULT_LABELS.get(value, value or "неизвестно")
+
+
+def _plan_state_text(value: str) -> str:
+    return PLAN_STATE_LABELS.get(value, value or "неизвестно")
+
+
 def _fleet_home_keyboard() -> InlineKeyboardMarkup:
     return _keyboard([
-        [("🩺 Fleet Health", "admin:fleet:health")],
+        [("🩺 Состояние нод", "admin:fleet:health")],
         [
-            ("🛠 Enter maintenance", "admin:fleet:mt:e"),
-            ("▶ Exit maintenance", "admin:fleet:mt:x"),
+            ("🛠 Включить обслуживание", "admin:fleet:mt:e"),
+            ("▶ Выключить обслуживание", "admin:fleet:mt:x"),
         ],
-        [("🚀 Controlled rollout", "admin:fleet:rollout")],
-        [("🧾 Fleet Jobs", "admin:fleet:jobs")],
-        [("⬅ Infrastructure", "admin:section:infrastructure")],
+        [("🚀 Контролируемое обновление", "admin:fleet:rollout")],
+        [("🧾 Задания по нодам", "admin:fleet:jobs")],
+        [("⬅ Инфраструктура", "admin:section:infrastructure")],
     ])
 
 
@@ -295,9 +366,9 @@ async def fleet_home(call: CallbackQuery, state: FSMContext):
     await call.answer()
     await render_callback(
         call,
-        "🌐 Fleet Operations\n\n"
-        "Массовые mutation выполняются только по direct nodes, последовательно и fail-closed. "
-        "Controlled rollout использует canary и останавливается на первом failed/unknown результате.",
+        "🌐 Операции с нодами\n\n"
+        "Массовые изменения выполняются только для direct nodes, последовательно и fail-closed. "
+        "Контролируемое обновление использует canary и останавливается при первой ошибке или неизвестном результате.",
         reply_markup=_fleet_home_keyboard(),
     )
 
@@ -308,34 +379,34 @@ async def fleet_health(call: CallbackQuery):
     if not ok:
         return
     await call.answer()
-    await render_callback(call, "🩺 Проверяю fleet…")
+    await render_callback(call, "🩺 Проверяю ноды…")
     try:
         nodes = await _direct_nodes()
         assessments = await _fleet_assessments(nodes)
     except Exception as exc:
-        await render_callback(call, f"🔴 Fleet Health: {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
+        await render_callback(call, f"🔴 Состояние нод: {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
         return
 
     counts = {name: 0 for name in ("healthy", "maintenance", "degraded", "offline")}
-    lines = ["🩺 Fleet Health", ""]
+    lines = ["🩺 Состояние нод", ""]
     for item in assessments:
         counts[item["state"]] = counts.get(item["state"], 0) + 1
     lines.append(
-        f"Healthy: {counts['healthy']} · Maintenance: {counts['maintenance']} · "
-        f"Degraded: {counts['degraded']} · Offline: {counts['offline']}"
+        f"Здоровы: {counts['healthy']} · Обслуживание: {counts['maintenance']} · "
+        f"Деградация: {counts['degraded']} · Не в сети: {counts['offline']}"
     )
     lines.append("")
     for item in assessments[:50]:
         lines.append(
-            f"{_health_icon(item['state'])} {item['name']} · ID {item['node_id']}\n"
-            f"   Master: {item['master_status']} · Direct: "
-            f"{'online' if item['direct_online'] else 'offline'} ({item['direct_binding']}) · "
-            f"Host: {item['host_state']} ({item['host_binding']})"
+            f"{_health_icon(item['state'])} {item['name']} · {_health_state_text(str(item['state']))} · ID {item['node_id']}\n"
+            f"   Master: {node_status_text(str(item['master_status']))} · Direct: "
+            f"{'в сети' if item['direct_online'] else 'не в сети'} ({_binding_text(str(item['direct_binding']))}) · "
+            f"Host: {_host_state_text(str(item['host_state']))} ({_binding_text(str(item['host_binding']))})"
         )
         if item["problems"]:
             lines.append("   " + "; ".join(item["problems"][:3]))
     if not assessments:
-        lines.append("Direct nodes не найдены.")
+        lines.append("Прямые ноды не найдены.")
     if len(assessments) > 50:
         lines.append(f"\nПоказаны первые 50 из {len(assessments)}.")
 
@@ -344,7 +415,7 @@ async def fleet_health(call: CallbackQuery):
         "\n".join(lines),
         reply_markup=_keyboard([
             [("🔄 Обновить", "admin:fleet:health")],
-            [("⬅ Fleet Operations", "admin:fleet")],
+            [("⬅ Операции с нодами", "admin:fleet")],
         ]),
     )
 
@@ -388,12 +459,12 @@ async def _render_selection(call: CallbackQuery, state: FSMContext) -> None:
     selected = [node_id for node_id in selected if node_id in node_map]
     await state.update_data(fleet_selected=selected)
 
-    title = "🛠 Fleet Maintenance" if kind == "maintenance" else "🚀 Controlled Rollout"
+    title = "🛠 Обслуживание нод" if kind == "maintenance" else "🚀 Контролируемое обновление"
     mode_text = {
-        ("maintenance", "e"): "Enter maintenance",
-        ("maintenance", "x"): "Exit maintenance",
-        ("rollout", "p"): "3x-ui latest stable",
-        ("rollout", "x"): "Xray Core",
+        ("maintenance", "e"): "Включить обслуживание",
+        ("maintenance", "x"): "Выключить обслуживание",
+        ("rollout", "p"): "3x-ui: последняя стабильная",
+        ("rollout", "x"): "Ядро Xray",
     }.get((kind, mode), mode)
 
     rows: list[list[tuple[str, str]]] = []
@@ -406,15 +477,15 @@ async def _render_selection(call: CallbackQuery, state: FSMContext) -> None:
         )])
     if selected:
         rows.append([(
-            "➡ Review" if kind == "maintenance" or mode == "p" else "➡ Choose Xray version",
+            "➡ Проверить" if kind == "maintenance" or mode == "p" else "➡ Выбрать версию Xray",
             f"{prefix}:{mode}:review",
         )])
     rows.append([("✖ Отмена", "admin:fleet")])
 
     await render_callback(
         call,
-        f"{title}\n\nMode: {mode_text}\nSelected: {len(selected)}/{MAX_MUTATION_TARGETS}\n\n"
-        "Выбери direct nodes. Mutation ещё не выполняется.",
+        f"{title}\n\nРежим: {mode_text}\nВыбрано: {len(selected)}/{MAX_MUTATION_TARGETS}\n\n"
+        "Выбери direct nodes. Изменения ещё не выполняются.",
         reply_markup=_keyboard(rows),
     )
 
@@ -422,16 +493,16 @@ async def _render_selection(call: CallbackQuery, state: FSMContext) -> None:
 async def _toggle_selection(call: CallbackQuery, state: FSMContext, *, kind: str, mode: str, node_id: int) -> None:
     selected, stored_kind, stored_mode = await _selection_data(state)
     if (stored_kind, stored_mode) != (kind, mode):
-        raise FleetError("Fleet selection expired. Start again.")
+        raise FleetError("Выбор нод устарел. Начни заново.")
     nodes = await _direct_nodes()
     valid = {node.id for node in nodes}
     if node_id not in valid:
-        raise FleetError("Node is not an eligible direct node.")
+        raise FleetError("Нода не является доступной direct node.")
     if node_id in selected:
         selected.remove(node_id)
     else:
         if len(selected) >= MAX_MUTATION_TARGETS:
-            raise FleetError(f"At most {MAX_MUTATION_TARGETS} nodes can be changed in one fleet job.")
+            raise FleetError(f"За одно fleet-задание можно изменить не более {MAX_MUTATION_TARGETS} нод.")
         selected.append(node_id)
     await state.update_data(fleet_selected=selected)
     await _render_selection(call, state)
@@ -467,18 +538,18 @@ async def maintenance_review(call: CallbackQuery, state: FSMContext):
         return
     selected, kind, mode = await _selection_data(state)
     if kind != "maintenance" or not selected:
-        await call.answer("Selection expired", show_alert=True)
+        await call.answer("Выбор устарел", show_alert=True)
         return
     nodes = {node.id: node for node in await _direct_nodes()}
     names = [nodes[node_id].name for node_id in selected if node_id in nodes]
-    desired = "maintenance" if mode == "e" else "enabled"
+    desired = "обслуживание" if mode == "e" else "включена"
     await call.answer()
     await render_callback(
         call,
-        "🛠 Fleet Maintenance · review\n\n"
-        f"Target state: {desired}\n"
-        f"Nodes ({len(names)}): " + ", ".join(names) + "\n\n"
-        "Операции выполняются последовательно. При неизвестном результате batch останавливается; "
+        "🛠 Обслуживание нод · проверка\n\n"
+        f"Целевое состояние: {desired}\n"
+        f"Ноды ({len(names)}): " + ", ".join(names) + "\n\n"
+        "Операции выполняются последовательно. При неизвестном результате пакет останавливается; "
         "mutation автоматически не повторяется.",
         reply_markup=_keyboard([
             [("✅ Выполнить", f"admin:fleet:mt:{mode}:run")],
@@ -491,19 +562,19 @@ async def maintenance_review(call: CallbackQuery, state: FSMContext):
 async def _set_node_enabled(node_id: int, enabled: bool) -> str:
     node = await xui.node_get(node_id)
     if node.transitive:
-        raise FleetError("Transitive node mutation is forbidden.")
+        raise FleetError("Изменение транзитной ноды запрещено.")
     if node.enable == enabled:
         return "skipped"
     try:
         await xui.node_set_enable(node_id, enabled)
     except Exception as exc:
         raise FleetMutationUnknown(
-            f"Node {node_id} maintenance outcome is unknown; request was not retried ({type(exc).__name__})."
+            f"Результат изменения обслуживания ноды {node_id} неизвестен; запрос не повторялся ({type(exc).__name__})."
         ) from exc
     check = await xui.node_get(node_id)
     if check.enable != enabled:
         raise FleetMutationUnknown(
-            f"Node {node_id} did not confirm the requested maintenance state; request was not retried."
+            f"Нода {node_id} не подтвердила запрошенное состояние обслуживания; запрос не повторялся."
         )
     return "changed"
 
@@ -516,12 +587,12 @@ async def maintenance_run(call: CallbackQuery, state: FSMContext):
     selected, kind, stored_mode = await _selection_data(state)
     mode = (call.data or "").split(":")[3]
     if kind != "maintenance" or stored_mode != mode or not selected:
-        await call.answer("Selection expired", show_alert=True)
+        await call.answer("Выбор устарел", show_alert=True)
         return
     desired_enabled = mode == "x"
     actor = int(call.from_user.id) if call.from_user else 0
     await call.answer()
-    await render_callback(call, "🛠 Fleet Maintenance: выполняю последовательно…")
+    await render_callback(call, "🛠 Обслуживание нод: выполняю последовательно…")
 
     run_id = await db.start_job_run(
         name="fleet.maintenance",
@@ -542,15 +613,15 @@ async def maintenance_run(call: CallbackQuery, state: FSMContext):
     for index, node_id in enumerate(selected):
         try:
             outcome = await _set_node_enabled(node_id, desired_enabled)
-            results.append(f"✅ n{node_id}: {outcome}")
+            results.append(f"✅ n{node_id}: {_result_text(outcome)}")
         except FleetMutationUnknown as exc:
-            results.append(f"🟡 n{node_id}: unknown")
-            results.extend(f"⏸ n{pending}: not touched" for pending in selected[index + 1:])
+            results.append(f"🟡 n{node_id}: неизвестно")
+            results.extend(f"⏸ n{pending}: не затронута" for pending in selected[index + 1:])
             status = "unknown"
             break
         except Exception as exc:
             results.append(f"🔴 n{node_id}: {type(exc).__name__}")
-            results.extend(f"⏸ n{pending}: not touched" for pending in selected[index + 1:])
+            results.extend(f"⏸ n{pending}: не затронута" for pending in selected[index + 1:])
             status = "failed"
             break
 
@@ -572,7 +643,7 @@ async def maintenance_run(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await render_callback(
         call,
-        "🛠 Fleet Maintenance · result\n\n" + "\n".join(results),
+        "🛠 Обслуживание нод · результат\n\n" + "\n".join(results),
         reply_markup=_fleet_home_keyboard(),
     )
 
@@ -586,14 +657,14 @@ async def rollout_home(call: CallbackQuery, state: FSMContext):
     await call.answer()
     await render_callback(
         call,
-        "🚀 Controlled Rollout\n\n"
-        "Canary → explicit continue → remaining nodes one-by-one. "
-        "Each node gets the existing update preflight + verified backup. "
-        "On failed/unknown the rollout stops and the failing node stays in maintenance.",
+        "🚀 Контролируемое обновление\n\n"
+        "Canary → явное продолжение → остальные ноды по одной. "
+        "Для каждой ноды выполняются существующий update preflight и проверенная резервная копия. "
+        "При ошибке или неизвестном результате обновление останавливается, а проблемная нода остаётся в обслуживании.",
         reply_markup=_keyboard([
-            [("⬆️ 3x-ui latest stable", "admin:fleet:ro:p")],
-            [("⚡ Xray Core", "admin:fleet:ro:x")],
-            [("⬅ Fleet Operations", "admin:fleet")],
+            [("⬆️ 3x-ui: последняя стабильная", "admin:fleet:ro:p")],
+            [("⚡ Ядро Xray", "admin:fleet:ro:x")],
+            [("⬅ Операции с нодами", "admin:fleet")],
         ]),
     )
 
@@ -627,10 +698,10 @@ async def _common_xray_versions(node_ids: list[int]) -> list[str]:
     for node_id in node_ids:
         node = nodes.get(node_id)
         if node is None:
-            raise FleetError(f"Node {node_id} disappeared.")
+            raise FleetError(f"Нода {node_id} исчезла.")
         assessment = await _assess_node(node)
         if not assessment["ready"]:
-            raise FleetError(f"{node.name} is not rollout-ready: " + "; ".join(assessment["problems"]))
+            raise FleetError(f"{node.name} не готова к обновлению: " + "; ".join(assessment["problems"]))
         target = await resolve_target(f"n{node_id}")
         lists.append(await target.client.get_xray_versions())
     if not lists:
@@ -648,11 +719,11 @@ async def rollout_review(call: CallbackQuery, state: FSMContext):
         return
     selected, kind, mode = await _selection_data(state)
     if kind != "rollout" or not selected:
-        await call.answer("Selection expired", show_alert=True)
+        await call.answer("Выбор устарел", show_alert=True)
         return
     await call.answer()
     if mode == "x":
-        await render_callback(call, "⚡ Проверяю common Xray versions…")
+        await render_callback(call, "⚡ Проверяю общие версии Xray…")
         try:
             versions = await _common_xray_versions(selected)
         except Exception as exc:
@@ -661,7 +732,7 @@ async def rollout_review(call: CallbackQuery, state: FSMContext):
         if not versions:
             await render_callback(
                 call,
-                "🔴 У выбранных нод нет общей Xray version.",
+                "🔴 У выбранных нод нет общей версии Xray.",
                 reply_markup=_fleet_home_keyboard(),
             )
             return
@@ -669,8 +740,8 @@ async def rollout_review(call: CallbackQuery, state: FSMContext):
         rows.append([("⬅ Изменить выбор", "admin:fleet:ro:x")])
         await render_callback(
             call,
-            "⚡ Xray controlled rollout\n\nВыбери общую версию для всех выбранных нод. "
-            "Показаны первые 10 common versions.",
+            "⚡ Контролируемое обновление Xray\n\nВыбери общую версию для всех выбранных нод. "
+            "Показаны первые 10 общих версий.",
             reply_markup=_keyboard(rows),
         )
         return
@@ -687,7 +758,7 @@ async def rollout_xray_version(call: CallbackQuery, state: FSMContext):
         return
     selected, kind, mode = await _selection_data(state)
     if kind != "rollout" or mode != "x" or not selected:
-        await call.answer("Selection expired", show_alert=True)
+        await call.answer("Выбор устарел", show_alert=True)
         return
     desired = (call.data or "").split(":")[-1]
     await call.answer()
@@ -706,7 +777,7 @@ async def _create_rollout_review(
 ) -> None:
     selected, kind, _ = await _selection_data(state)
     if kind != "rollout" or not selected:
-        raise FleetError("Selection expired.")
+        raise FleetError("Выбор устарел.")
     binding = _call_binding(call)
     nodes = {node.id: node for node in await _direct_nodes()}
     pending: list[int] = []
@@ -714,14 +785,14 @@ async def _create_rollout_review(
     desired_by_node: dict[str, str] = {}
     names: dict[str, str] = {}
 
-    await render_callback(call, "🚀 Проверяю rollout eligibility и версии…")
+    await render_callback(call, "🚀 Проверяю готовность к обновлению и версии…")
     for node_id in selected:
         node = nodes.get(node_id)
         if node is None:
-            raise FleetError(f"Node {node_id} disappeared.")
+            raise FleetError(f"Нода {node_id} исчезла.")
         assessment = await _assess_node(node)
         if not assessment["ready"]:
-            raise FleetError(f"{node.name} is not rollout-ready: " + "; ".join(assessment["problems"]))
+            raise FleetError(f"{node.name} не готова к обновлению: " + "; ".join(assessment["problems"]))
         target = await resolve_target(f"n{node_id}")
         snapshot = await read_state(target)
         if component == "panel":
@@ -730,7 +801,7 @@ async def _create_rollout_review(
         else:
             available = await target.client.get_xray_versions()
             if desired not in available:
-                raise FleetError(f"{node.name}: selected Xray version is not available.")
+                raise FleetError(f"{node.name}: выбранная версия Xray недоступна.")
             node_desired = desired
             current = snapshot.xray
         desired_by_node[str(node_id)] = node_desired
@@ -780,15 +851,15 @@ def _plan_status_icon(value: str) -> str:
 def _plan_text(plan: dict[str, Any]) -> str:
     component = "3x-ui" if plan["component"] == "panel" else "Xray"
     lines = [
-        f"🚀 Controlled Rollout · {component}",
+        f"🚀 Контролируемое обновление · {component}",
         "",
-        f"Plan: {plan['id']}",
-        f"State: {plan['state']}",
-        f"Targets: {len(plan['selected'])} · pending: {len(plan['pending'])}",
+        f"План: {plan['id']}",
+        f"Состояние: {_plan_state_text(str(plan['state']))}",
+        f"Целей: {len(plan['selected'])} · ожидают: {len(plan['pending'])}",
     ]
     if plan.get("canary"):
         node_id = int(plan["canary"])
-        lines.append(f"Canary: {plan['names'].get(str(node_id), 'node')} · ID {node_id}")
+        lines.append(f"Canary: {plan['names'].get(str(node_id), 'нода')} · ID {node_id}")
     lines.append("")
     results = plan.get("results") or {}
     for node_id in plan["selected"]:
@@ -796,12 +867,12 @@ def _plan_text(plan: dict[str, Any]) -> str:
         if raw:
             lines.append(
                 f"{_plan_status_icon(str(raw.get('status')))} "
-                f"{plan['names'].get(str(node_id), 'node')} · {raw.get('status')}"
+                f"{plan['names'].get(str(node_id), 'нода')} · {_result_text(str(raw.get('status') or ''))}"
             )
         elif node_id in plan.get("skipped", []):
-            lines.append(f"⏭ {plan['names'].get(str(node_id), 'node')} · already current")
+            lines.append(f"⏭ {plan['names'].get(str(node_id), 'нода')} · уже актуальна")
         else:
-            lines.append(f"• {plan['names'].get(str(node_id), 'node')} · pending")
+            lines.append(f"• {plan['names'].get(str(node_id), 'нода')} · ожидает")
     return "\n".join(lines)
 
 
@@ -813,8 +884,8 @@ def _plan_keyboard(plan: dict[str, Any]) -> InlineKeyboardMarkup:
     elif plan["state"] == "canary_passed":
         rows.append([("✅ Продолжить остальные", f"admin:fleet:run:{plan['id']}:continue")])
         rows.append([("⏹ Завершить после canary", f"admin:fleet:run:{plan['id']}:cancel")])
-    rows.append([("🧾 Fleet Jobs", "admin:fleet:jobs")])
-    rows.append([("⬅ Fleet Operations", "admin:fleet")])
+    rows.append([("🧾 Задания по нодам", "admin:fleet:jobs")])
+    rows.append([("⬅ Операции с нодами", "admin:fleet")])
     return _keyboard(rows)
 
 
@@ -832,7 +903,7 @@ def _validate_plan_call(plan: dict[str, Any], call: CallbackQuery) -> None:
     if (int(plan.get("actor") or 0), int(plan.get("chat") or 0)) != (
         binding["actor"], binding["chat"]
     ):
-        raise FleetError("This rollout belongs to another admin session.")
+        raise FleetError("Этот rollout принадлежит другой сессии администратора.")
 
 
 async def _start_rollout_job(plan: dict[str, Any]) -> None:
@@ -1013,7 +1084,7 @@ async def rollout_run(call: CallbackQuery):
             _validate_plan_call(plan, call)
             if action == "cancel":
                 if plan["state"] not in {"review", "canary_passed"}:
-                    raise FleetError("This rollout can no longer be cancelled without manual inspection.")
+                    raise FleetError("Этот rollout больше нельзя отменить без ручной проверки.")
                 plan["state"] = "cancelled"
                 for node_id in list(plan["pending"]):
                     (plan.setdefault("results", {}))[str(node_id)] = {
@@ -1026,19 +1097,19 @@ async def rollout_run(call: CallbackQuery):
                 plan_store.save(plan)
                 await _start_rollout_job(plan)
                 await _finish_rollout_job(plan, "cancelled")
-                await _render_plan(call, plan, "⏹ Rollout остановлен оператором. Новые mutation не отправлялись.")
+                await _render_plan(call, plan, "⏹ Обновление остановлено оператором. Новые mutation не отправлялись.")
                 return
 
             await _start_rollout_job(plan)
 
             if action == "canary":
                 if plan["state"] != "review" or not plan.get("canary"):
-                    raise FleetError("Canary is not available for this plan.")
+                    raise FleetError("Canary недоступен для этого плана.")
                 node_id = int(plan["canary"])
                 plan["state"] = "canary_running"
                 plan["updated_at"] = int(time.time())
                 plan_store.save(plan)
-                await _render_plan(call, plan, f"🐤 Canary: {plan['names'].get(str(node_id), 'node')}…")
+                await _render_plan(call, plan, f"🐤 Canary: {plan['names'].get(str(node_id), 'нода')}…")
                 status, details = await _execute_rollout_node(plan, node_id, call)
                 await _record_plan_result(plan, node_id, status, details)
                 if status == "success":
@@ -1064,13 +1135,13 @@ async def rollout_run(call: CallbackQuery):
 
             if action == "continue":
                 if plan["state"] != "canary_passed":
-                    raise FleetError("Successful canary confirmation is required before continuing.")
+                    raise FleetError("Перед продолжением требуется успешный canary.")
                 plan["state"] = "running"
                 plan["updated_at"] = int(time.time())
                 plan_store.save(plan)
                 while plan["pending"]:
                     node_id = int(plan["pending"][0])
-                    await _render_plan(call, plan, f"🚀 Updating {plan['names'].get(str(node_id), 'node')}…")
+                    await _render_plan(call, plan, f"🚀 Обновляю {plan['names'].get(str(node_id), 'нода')}…")
                     status, details = await _execute_rollout_node(plan, node_id, call)
                     await _record_plan_result(plan, node_id, status, details)
                     if status != "success":
@@ -1109,7 +1180,7 @@ async def fleet_jobs(call: CallbackQuery):
     await call.answer()
     rows = await db.list_job_runs(limit=100)
     fleet = [row for row in rows if row.name.startswith("fleet.")][:15]
-    lines = ["🧾 Fleet Jobs", ""]
+    lines = ["🧾 Задания по нодам", ""]
     for row in fleet:
         icon = {
             "success": "✅",
@@ -1118,17 +1189,17 @@ async def fleet_jobs(call: CallbackQuery):
             "running": "⏳",
             "cancelled": "⏹",
         }.get(row.status, "•")
-        lines.append(f"{icon} #{row.id} · {row.name} · {row.status}")
+        lines.append(f"{icon} #{row.id} · {row.name} · {_result_text(row.status)}")
         if row.details:
             lines.append("   " + row.details[:180])
     if not fleet:
-        lines.append("Fleet jobs пока нет.")
+        lines.append("Заданий по нодам пока нет.")
     await render_callback(
         call,
         "\n".join(lines),
         reply_markup=_keyboard([
             [("🔄 Обновить", "admin:fleet:jobs")],
-            [("⬅ Fleet Operations", "admin:fleet")],
+            [("⬅ Операции с нодами", "admin:fleet")],
         ]),
     )
 
