@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.0 — Подготовка Admin Control Plane к заморозке
+- Завершена декомпозиция runtime: `bot.py` оставлен минимальным executable shim, lifecycle/startup/recovery вынесены в `app_runtime.py`, client flow — в `client_access.py`, admin shell и domain handlers — в отдельные routers с закреплённым single ownership.
+- Telegram UI Admin Control Plane системно приведён к русской локализации при сохранении технических identifiers, фиксированных RBAC role names и typed confirmation phrases; regression gate блокирует возврат смешанного operator-facing UI.
+- Проведён repo-wide аудит информационных emoji/status/resource префиксов и навигации `/admin`: убраны дублирующие входы, выровнены Back/Refresh/Cancel/Confirm flows и закрыты callback/FSM dead ends без изменения domain semantics.
+- README и актуальные operator runbook'и синхронизированы с текущей архитектурой и русскими UI-paths; public-facing примеры очищены от private deployment привязок и защищены отдельным public-readiness regression contract.
+- Добавлены regression/source-inspection gates на runtime/router ownership, Admin navigation, UI localization, emoji conventions и актуальность public documentation; SQLite schema, pinned 3x-ui OpenAPI contract и существующие Host Control/Deploy Agent privilege boundaries не расширяются.
+- Релиз закрывает cleanup/freeze-prep scope раздела roadmap «Желательно закрыть до финальной заморозки v4.x»; отдельный production drill encrypted off-site backup/restore остаётся обязательным pre-v5 gate перед окончательной заморозкой v4.x.
+
 ## v4.19.1 — Safe Bot Self-Update acceptance hotfix
 - Исправлен production blocker Deploy Agent под hardened systemd sandbox: root helper теперь задаёт отдельный `DOCKER_CONFIG=/var/lib/3xui-deploy-agent/docker-config`, поэтому `docker compose build` не пытается создать `/root/.docker` при `ProtectHome=true`.
 - Installer создаёт отдельный root-only writable Docker config directory внутри уже разрешённого `/var/lib/3xui-deploy-agent`; privilege boundary, sudoers allowlist и отсутствие Docker socket в bot container не меняются.
