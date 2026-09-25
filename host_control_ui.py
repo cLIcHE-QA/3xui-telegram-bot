@@ -140,6 +140,24 @@ def _back(target: ControlTarget) -> InlineKeyboardMarkup:
     ]])
 
 
+def _parent_back_from_key(key: str) -> InlineKeyboardMarkup:
+    if key == "m":
+        label, callback = "⬅ Master", "admin:master"
+    elif re.fullmatch(r"n[1-9][0-9]{0,18}", key):
+        label, callback = "⬅ Нода", f"admin:node:{int(key[1:])}"
+    else:
+        label, callback = "⬅ Инфраструктура", "admin:section:infrastructure"
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text=label, callback_data=callback)
+    ]])
+
+
+def _control_cancel(key: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:hostctl:{key}")
+    ]])
+
+
 def _confirm(target: ControlTarget, action: str, label: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
@@ -583,7 +601,11 @@ async def _show_screen(call: CallbackQuery, key: str) -> None:
         target = await _resolve_target(key)
     except (ValueError, XUIError) as exc:
         await call.answer("Цель недоступна", show_alert=True)
-        await render_callback(call, f"🔴 Не удалось открыть «Управление 3x-ui»: {str(exc)[:240]}")
+        await render_callback(
+            call,
+            f"🔴 Не удалось открыть «Управление 3x-ui»: {str(exc)[:240]}",
+            reply_markup=_parent_back_from_key(key),
+        )
         return
 
     service_line = "⚪ Сервис: Host Control не настроен"
@@ -775,22 +797,34 @@ async def host_control_stop_cancel(call: CallbackQuery, state: FSMContext):
 async def host_control_stop_phrase(message: Message, state: FSMContext):
     if not message.from_user:
         return
+    data = await state.get_data()
+    key = str(data.get("key") or "")
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="owner")
     if not ok:
         await state.clear()
-        await render_input(message, "Недостаточно прав. Остановка сервиса требует Owner.")
+        await render_input(
+            message,
+            "Недостаточно прав. Остановка сервиса требует Owner.",
+            reply_markup=_parent_back_from_key(key),
+        )
         return
-    data = await state.get_data()
-    key = str(data.get("key") or "")
     target_name = str(data.get("target_name") or "")
     created = float(data.get("created") or 0)
     nonce = str(data.get("nonce") or "")
     if not nonce or time.time() - created > STOP_CONFIRM_TTL:
         await state.clear()
-        await render_input(message, "Подтверждение истекло. Открой «Управление 3x-ui» заново.")
+        await render_input(
+            message,
+            "Подтверждение истекло. Открой «Управление 3x-ui» заново.",
+            reply_markup=_control_cancel(key),
+        )
         return
     if (message.text or "") != f"STOP {target_name}":
-        await render_input(message, f"Нужна точная фраза: STOP {target_name}")
+        await render_input(
+            message,
+            f"Нужна точная фраза: STOP {target_name}",
+            reply_markup=_control_cancel(key),
+        )
         return
 
     # One-time confirmation: consume state BEFORE mutation dispatch.
@@ -798,10 +832,18 @@ async def host_control_stop_phrase(message: Message, state: FSMContext):
     try:
         target = await _resolve_target(key)
     except (ValueError, XUIError) as exc:
-        await render_input(message, f"🔴 Цель недоступна: {str(exc)[:200]}")
+        await render_input(
+            message,
+            f"🔴 Цель недоступна: {str(exc)[:200]}",
+            reply_markup=_parent_back_from_key(key),
+        )
         return
     if target.name != target_name:
-        await render_input(message, "🔴 Цель изменилась после подтверждения. Остановка заблокирована.")
+        await render_input(
+            message,
+            "🔴 Цель изменилась после подтверждения. Остановка заблокирована.",
+            reply_markup=_parent_back_from_key(key),
+        )
         return
 
     result, success, details = await _run_service_action(target, "stop", int(message.from_user.id))
