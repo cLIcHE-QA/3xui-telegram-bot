@@ -277,9 +277,11 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Таким образом off-site acceptance остаётся обязательным pre-v5 gate, но выполняется после архитектурной и UX-подготовки Admin Control Plane, непосредственно перед финальным freeze.
 
+Cleanup/freeze-подготовка этого раздела прошла production acceptance в `v4.20.1`. Следующий обязательный gate — отложенный production drill для off-site backup.
+
 ##### Декомпозиция bot.py
 
-Статус: 🟡 Реализовано в main.
+Статус: ✅ Выполнено в `v4.20.1`.
 
 `bot.py` теперь является минимальным executable entrypoint. Startup/background orchestration вынесена в `app_runtime.py`, client-facing flow — в `client_access.py`, admin shell/navigation — в `admin_shell.py`, а domain handlers распределены по тематическим routers.
 
@@ -296,7 +298,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 ##### Синхронизация README с текущим состоянием
 
-Статус: 🟡 Реализовано в main.
+Статус: ✅ Выполнено в `v4.20.1`.
 
 README теперь является текущей картой проекта и точкой входа в канонические runbook'и, а не второй копией release history.
 
@@ -311,7 +313,7 @@ README теперь является текущей картой проекта 
 
 ##### Консистентная русская локализация Telegram UI
 
-Статус: 🟡 Реализовано в main.
+Статус: ✅ Выполнено в `v4.20.1`.
 
 Системный проход выполнен для client access, Admin Shell, Nodes, Monitoring/Logs/Alerts, Backups/DR, Host Control/Fleet, Versions & Updates/Bot Updates и domain UI Users/Catalog/Business/Inbounds.
 
@@ -330,7 +332,7 @@ Repo-wide source audit после domain-прохода не выявил обы
 
 ##### Аудит emoji-префиксов в информационных текстах Telegram UI
 
-Статус: 🟡 Реализовано в main.
+Статус: ✅ Выполнено в `v4.20.1`.
 
 Для inline-кнопок emoji/navigation prefix уже является постоянным UI-контрактом. Repo-wide проход выровнял семантические префиксы в информационных сообщениях без механического добавления emoji на каждую строку.
 
@@ -351,7 +353,7 @@ Repo-wide source audit после domain-прохода не выявил обы
 
 ##### Аудит информационной архитектуры и навигации
 
-Статус: 🟡 Реализовано в main.
+Статус: ✅ Выполнено в `v4.20.1`.
 
 Repo-wide проход `/admin` выполнен как пользовательский сценарий, а не только как проверка существующих callback routes. Убраны дублирующие входы, выровнены parent/back flows и закрыты callback/FSM dead ends без изменения domain logic.
 
@@ -380,7 +382,7 @@ Repo-wide проход `/admin` выполнен как пользователь
 
 ##### Редактура пользовательских текстов и public-repository readiness
 
-Статус: 🟡 Реализовано в main.
+Статус: ✅ Выполнено в `v4.20.1`.
 
 Repo-wide проход актуальных Telegram hints, README, `.env.example`, install/onboarding/Host Control runbook'ов и operator helper usage выполнен. Исторические deployment-примеры нейтрализованы, актуальные UI-paths синхронизированы с русскими labels, а regression gate защищает public-facing examples от возврата private-deployment drift.
 
