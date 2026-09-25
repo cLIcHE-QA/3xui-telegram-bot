@@ -1,4 +1,4 @@
-"""Owner-only Safe Bot Self-Update UI and startup recovery."""
+"""Owner-only UI обновления бота и startup recovery."""
 from __future__ import annotations
 
 import asyncio
@@ -56,6 +56,22 @@ DEPLOY_STATE_LABELS = {
 
 def _deploy_state_text(value: str) -> str:
     return DEPLOY_STATE_LABELS.get(value, value or "неизвестно")
+
+
+STATUS_LABELS = {
+    "ok": "норма",
+    "healthy": "норма",
+    "ready": "готово",
+    "success": "успешно",
+    "failed": "ошибка",
+    "error": "ошибка",
+    "unknown": "неизвестно",
+}
+
+
+def _status_text(value: str) -> str:
+    raw = (value or "").lower()
+    return STATUS_LABELS.get(raw, value or "неизвестно")
 
 
 def _client() -> DeployControlClient | None:
@@ -365,7 +381,7 @@ async def _dispatch(
                 await render_callback(
                     call,
                     "🤖 Обновления бота\n\n🟡 Ответ на deploy POST потерян, а журнал операции пока недоступен. "
-                    "Mutation повторно НЕ отправлялась.",
+                    "Мутация повторно НЕ отправлялась.",
                     reply_markup=_back(),
                 )
                 return
@@ -551,7 +567,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
         f"Бот: {status.bot_version or APP_VERSION}",
         f"Последний опубликованный: {latest}",
         f"Агент: {status.agent_version or 'неизвестно'}",
-        f"Состояние: {status.health} · БД: {status.db} · 3x-ui: {status.connectivity}",
+        f"Состояние: {_status_text(status.health)} · БД: {_status_text(status.db)} · 3x-ui: {_status_text(status.connectivity)}",
     ]
     if status.active_operation:
         lines += ["", f"Активная операция: {status.active_operation}"]
