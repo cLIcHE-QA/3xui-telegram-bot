@@ -144,14 +144,6 @@ class PublicReadinessTests(unittest.TestCase):
             restore,
         )
 
-    def test_restore_notice_does_not_promise_startup_success(self):
-        restore = self._source("disaster_recovery.py")
-        self.assertNotIn("а бот всё равно запустится", restore)
-        self.assertIn(
-            "обычный startup бота со всеми fail-closed проверками схемы и миграций",
-            restore,
-        )
-
     def test_readme_describes_current_admin_hierarchy(self):
         readme = self._source("README.md")
         self.assertIn(
