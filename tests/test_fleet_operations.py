@@ -32,7 +32,7 @@ class FleetOperationsContractTests(unittest.TestCase):
         self.assertIn('"canary": pending[0] if pending else 0', text)
         self.assertIn('"canary_passed"', text)
         self.assertIn('"not_touched"', text)
-        self.assertIn('"stop-on-failure"', text)
+        self.assertIn('"остановлено после ошибки"', text)
         self.assertIn("rollout_lock = asyncio.Lock()", text)
 
     def test_terminal_rollout_paths_create_parent_jobs(self):

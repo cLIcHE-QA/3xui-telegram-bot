@@ -69,7 +69,7 @@ def _inspection_summary(info: BackupInspection, *, deep: bool = False) -> str:
         f"Резервная копия: {info.path.name}",
         f"Создан: {info.created_at.strftime('%Y-%m-%d %H:%M UTC')}",
         f"Размер: {human_bytes(info.size)}",
-        f"Версия manifest: {manifest_version}",
+        f"Версия манифеста: {manifest_version}",
         f"Архив: {'✅ корректен' if info.valid else '🔴 некорректен'}",
         "",
         "Компоненты:",
@@ -106,7 +106,7 @@ def _inspection_summary(info: BackupInspection, *, deep: bool = False) -> str:
 def _backup_actions(info: BackupInspection) -> InlineKeyboardMarkup:
     bid = info.backup_id
     rows: list[list[InlineKeyboardButton]] = [
-        [InlineKeyboardButton(text="🧪 Проверка (dry-run / preflight)", callback_data=f"admin:restore:pre:{bid}")],
+        [InlineKeyboardButton(text="🧪 Предварительная проверка (без изменений)", callback_data=f"admin:restore:pre:{bid}")],
     ]
     if info.has_bot_db:
         rows.append([InlineKeyboardButton(text="🤖 Восстановить bot.sqlite3", callback_data=f"admin:restore:bot:{bid}")])
@@ -141,7 +141,7 @@ async def restore_list(call: CallbackQuery):
     lines = [
         "🧯 Аварийное восстановление",
         "",
-        "Восстановление доступно только Owner. Перед любым опасным восстановлением выполняется preflight и создаётся rescue-копия текущего состояния.",
+        "Восстановление доступно только Owner. Перед любой опасной операцией выполняется предварительная проверка и создаётся защитная копия текущего состояния.",
         "",
     ]
     if restore_manager.pending_bot_restore():
@@ -202,7 +202,7 @@ async def restore_preflight(call: CallbackQuery):
             details=f"valid={info.valid}; nodes={len(info.nodes)}; warnings={len(info.warnings)}; errors={len(info.errors)}",
             success=info.valid,
         )
-        status = "✅ Проверка завершена. Никакие данные не изменены." if info.valid else "🔴 Preflight не пройден. Восстановление заблокировано до исправления ошибок."
+        status = "✅ Проверка завершена. Никакие данные не изменены." if info.valid else "🔴 Предварительная проверка не пройдена. Восстановление заблокировано до исправления ошибок."
         await render_callback(call, 
             _inspection_summary(info, deep=True) + "\n\n" + status,
             reply_markup=_backup_actions(info),
@@ -212,7 +212,7 @@ async def restore_preflight(call: CallbackQuery):
             db, call, "restore.preflight", target_type="backup", target_id=bid,
             details=f"{type(exc).__name__}: {exc}", success=False,
         )
-        await render_callback(call, f"🔴 Ошибка preflight: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_callback(call, f"🔴 Ошибка предварительной проверки: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
 
 
 async def _start_confirmation(
@@ -235,7 +235,7 @@ async def _start_confirmation(
     await call.answer()
     await render_callback(call, 
         warning
-        + "\n\nЭто destructive-операция. Для второго подтверждения отправь отдельным сообщением точно:\n\n"
+        + "\n\nЭто опасная операция. Для второго подтверждения отправь отдельным сообщением точно:\n\n"
         + phrase,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:restore:cancel:{backup_id}")
@@ -253,7 +253,7 @@ async def restore_bot_start(call: CallbackQuery, state: FSMContext):
         path = _backup_by_id(bid)
         info = await asyncio.to_thread(restore_manager.inspect_backup, path, deep=True)
         if not info.valid or info.bot_db_ok is not True:
-            raise RestoreError("bot.sqlite3 не прошёл preflight")
+            raise RestoreError("bot.sqlite3 не прошёл предварительную проверку")
     except Exception as exc:
         await call.answer("Восстановление заблокировано", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
@@ -263,8 +263,8 @@ async def restore_bot_start(call: CallbackQuery, state: FSMContext):
         action="bot", backup_id=bid, phrase="RESTORE BOT",
         warning=(
             "🤖 Восстановление bot.sqlite3\n\n"
-            "Будет создан rescue snapshot текущей БД бота, затем контейнер бота автоматически перезапустится и до старта Python заменит SQLite. "
-            "После запуска versioned SQLite migrations проверят и при необходимости обновят схему до версии текущего кода; состояния failed/running/newer schema блокируют startup fail-closed. .env, 3x-ui и nginx не изменяются."
+            "Будет создан защитный снимок текущей БД бота, затем контейнер бота автоматически перезапустится и до старта Python заменит SQLite. "
+            "После запуска версионированные миграции SQLite проверят и при необходимости обновят схему до версии текущего кода; ошибка, незавершённая миграция или более новая схема блокируют запуск. .env, 3x-ui и nginx не изменяются."
         ),
     )
 
@@ -284,7 +284,7 @@ async def restore_xui_start(call: CallbackQuery, state: FSMContext):
             current_panel_token=settings.panel_api_token,
         )
         if not info.valid or info.xui_db_ok is not True:
-            raise RestoreError("x-ui.db не прошёл preflight")
+            raise RestoreError("x-ui.db не прошёл предварительную проверку")
     except Exception as exc:
         await call.answer("Восстановление заблокировано", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
@@ -300,7 +300,7 @@ async def restore_xui_start(call: CallbackQuery, state: FSMContext):
         action="xui", backup_id=bid, phrase=phrase,
         warning=(
             "🖥 Восстановление Master x-ui.db\n\n"
-            "Перед импортом бот скачает свежую rescue-копию текущей базы Master. Затем база будет импортирована через штатный 3x-ui importDB с keepHostSettings=true. "
+            "Перед импортом бот скачает свежую защитную копию текущей базы Master. Затем база будет импортирована через штатный 3x-ui importDB с keepHostSettings=true. "
             "3x-ui перезапустит панель/Xray после импорта. bot.sqlite3 и nginx не меняются."
             + token_warning
         ),
@@ -320,7 +320,7 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
         info = await asyncio.to_thread(restore_manager.inspect_backup, path, deep=True)
         node = info.nodes[idx]
         if not info.valid:
-            raise RestoreError("резервная копия не прошла preflight")
+            raise RestoreError("резервная копия не прошла предварительную проверку")
         if system_backup.direct_client_for(node.name, getattr(node, "id", None)) is None:
             raise RestoreError(
                 f"Для {node.name} не настроен Direct Admin token в NODE_BACKUP_TARGETS; автоматическое восстановление запрещено."
@@ -329,7 +329,7 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
         if node.database_filename.lower().endswith(".db"):
             ok_db, detail = restore_manager._sqlite_check_bytes(data)
             if not ok_db:
-                raise RestoreError(f"node DB quick_check failed: {detail}")
+                raise RestoreError(f"БД ноды не прошла SQLite quick_check: {detail}")
     except Exception as exc:
         await call.answer("Восстановление ноды заблокировано", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
@@ -339,7 +339,7 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
         action="node", backup_id=bid, node_index=idx, phrase="RESTORE NODE",
         warning=(
             f"🌍 Восстановление ноды: {node.name}\n\n"
-            "Перед импортом будет скачана rescue-копия текущей DB этой ноды. Затем используется штатный importDB с keepHostSettings=true. "
+            "Перед импортом будет скачана защитная копия текущей БД этой ноды. Затем используется штатный importDB с keepHostSettings=true. "
             "Нода перезапустит свою панель/Xray. Остальные ноды и Master не изменяются."
         ),
     )
@@ -389,7 +389,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             current_panel_token=settings.panel_api_token,
         )
         if not info.valid:
-            raise RestoreError("Резервная копия больше не проходит preflight.")
+            raise RestoreError("Резервная копия больше не проходит предварительную проверку.")
 
         if action == "bot":
             marker = await asyncio.to_thread(
@@ -403,7 +403,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             )
             await render_input(message, 
                 "✅ Восстановление bot.sqlite3 подготовлено.\n\n"
-                "Контейнер бота перезапустится примерно через 2 секунды. На старте restore-bootstrap заменит БД атомарно; при ошибке старая БД останется, а бот всё равно запустится."
+                "Контейнер бота перезапустится примерно через 2 секунды. При старте механизм восстановления заменит БД атомарно; при ошибке старая БД останется, а бот всё равно запустится."
             )
             asyncio.create_task(_exit_for_bot_restore())
             return
@@ -417,7 +417,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 restore_manager.save_rescue_blob, "master-xui", current_name, current
             )
             await render_input(message, 
-                f"💾 Rescue-копия текущего Master сохранена: {rescue.name}\nЗапускаю importDB…"
+                f"💾 Защитная копия текущего Master сохранена: {rescue.name}\nЗапускаю importDB…"
             )
             await xui.import_database(archived, "x-ui.db", keep_host_settings=True)
             await asyncio.to_thread(restore_manager.append_history, {
@@ -444,13 +444,13 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             if node.database_filename.lower().endswith(".db"):
                 ok_db, detail = restore_manager._sqlite_check_bytes(archived)
                 if not ok_db:
-                    raise RestoreError(f"node DB quick_check failed: {detail}")
+                    raise RestoreError(f"БД ноды не прошла SQLite quick_check: {detail}")
             current, current_name = await client.download_database()
             rescue = await asyncio.to_thread(
                 restore_manager.save_rescue_blob, f"node-{node.name}", current_name, current
             )
             await render_input(message, 
-                f"💾 Rescue-копия текущей БД {node.name} сохранена: {rescue.name}\nЗапускаю importDB…"
+                f"💾 Защитная копия текущей БД {node.name} сохранена: {rescue.name}\nЗапускаю importDB…"
             )
             await client.import_database(
                 archived,
@@ -569,7 +569,7 @@ async def send_boot_restore_notice(bot) -> None:
         text = (
             "✅ Аварийное восстановление: bot.sqlite3 восстановлена до запуска бота.\n"
             f"Резервная копия: {result.get('backup_name') or result.get('backup_id') or '—'}\n"
-            f"Rescue-копия предыдущей БД: {Path(str(result.get('rescue') or '')).name or '—'}"
+            f"Защитная копия предыдущей БД: {Path(str(result.get('rescue') or '')).name or '—'}"
         )
     else:
         text = (

@@ -30,6 +30,9 @@ class NodeUiTests(unittest.TestCase):
         self.assertEqual(node_ui.node_status_text("offline"), "не в сети")
         self.assertEqual(node_ui.xray_state_text("running"), "работает")
         self.assertEqual(node_ui.xray_state_text("stopped"), "остановлен")
+        self.assertEqual(node_ui.tls_verify_mode_text("verify"), "проверять")
+        self.assertEqual(node_ui.tls_verify_mode_text("skip"), "без проверки")
+        self.assertEqual(node_ui.inbound_sync_mode_text("all"), "все inbound'ы")
 
     def test_formatters_are_stable(self):
         self.assertEqual(node_ui.duration_text(0), "0ч 0м")
@@ -128,7 +131,11 @@ class NodeUiTests(unittest.TestCase):
         missing = node_ui.node_detail_text(node, backup_configured=False)
         self.assertIn("🌍 🇫🇮 Finland", configured)
         self.assertIn("🟢 Панель: в сети", configured)
+        self.assertIn("Адрес: https://fi.example.invalid:2053/base/", configured)
+        self.assertIn("Проверка TLS: проверять · синхронизация inbound'ов: все inbound'ы", configured)
+        self.assertIn("Задержка API: 42 ms", configured)
         self.assertIn("Сеть: ↑ 1.0 KB/s · ↓ 2.0 KB/s", configured)
+        self.assertIn("Последний сигнал: никогда", configured)
         self.assertIn("⏱ Время работы: 1д 1ч 1м", configured)
         self.assertIn("💾 Резервная копия БД: настроена", configured)
         self.assertIn("💾 Резервная копия БД: не настроена", missing)

@@ -1045,7 +1045,7 @@ async def host_add_label(message: Message, state: FSMContext):
     await state.update_data(label=label)
     await state.set_state(AddHostStates.hostname)
     await render_input(message, 
-        "🌐 Новый хост · 2/3\n\nHostname, IP или URL. Например:\nsub.example.com\nhttps://panel.example.com/basepath"
+        "🌐 Новый хост · 2/3\n\nИмя хоста, IP или URL. Например:\nsub.example.com\nhttps://panel.example.com/basepath"
     )
 
 
@@ -1056,7 +1056,7 @@ async def host_add_hostname(message: Message, state: FSMContext):
     try:
         hostname = _normalize_hostname(message.text or "")
     except ValueError:
-        await render_input(message, "Некорректный hostname/IP/URL.")
+        await render_input(message, "Некорректное имя хоста/IP/URL.")
         return
     await state.update_data(hostname=hostname)
     await state.set_state(AddHostStates.role)

@@ -119,11 +119,11 @@ Emoji в body text используются как семантические в
 
 - `🧮 CPU`;
 - `🧠 RAM`;
-- `💽 Disk`;
-- `⏱ Uptime`;
+- `💽 Диск`;
+- `⏱ Время работы`;
 - `🌐 Inbound'ы`;
 - `👥 Пользователи/клиенты`;
-- `💾 Backup`.
+- `💾 Резервная копия`.
 
 Статусные строки используют icon по фактическому состоянию: `🟢` для healthy/online/enabled/running, `🟡` для warning/degraded/pending и `🔴` для failed/offline/stopped. Нельзя показывать зелёный icon, если underlying state неизвестен или только предполагается.
 

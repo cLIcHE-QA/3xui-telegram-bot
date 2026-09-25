@@ -19,6 +19,7 @@ from db import AlertRuleRecord, Database
 from system_backup import SystemBackupService
 from logging_setup import bot_log_path
 from xui import XUIClient, XUIError
+from node_ui import node_status_text, xray_state_text
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -43,6 +44,28 @@ RULE_LABELS = {
 RECOVERY_LABELS = {
     "job_failed": "Фоновое задание снова выполняется успешно",
 }
+
+JOB_STATUS_LABELS = {
+    "success": "успешно",
+    "failed": "ошибка",
+    "unknown": "результат неизвестен",
+    "running": "выполняется",
+    "cancelled": "отменено",
+}
+
+LOG_LEVEL_LABELS = {
+    "all": "Все",
+    "warning": "Предупреждения",
+    "error": "Ошибки",
+}
+
+
+def _log_level_text(value: str) -> str:
+    return LOG_LEVEL_LABELS.get((value or "").lower(), value or "неизвестно")
+
+
+def _job_status_text(value: str) -> str:
+    return JOB_STATUS_LABELS.get((value or "").lower(), value or "неизвестно")
 
 
 def monitoring_back() -> InlineKeyboardMarkup:
@@ -122,9 +145,9 @@ def _log_controls(source: str, count: int, level: str, *, node_id: int | None = 
             InlineKeyboardButton(text=("✅ " if count == 200 else "📄 ") + "200", callback_data=f"{base}:200:{level}"),
         ],
         [
-            InlineKeyboardButton(text=("✅ " if level == "all" else "📋 ") + "ALL", callback_data=f"{base}:{count}:all"),
-            InlineKeyboardButton(text=("✅ " if level == "warning" else "⚠️ ") + "WARN+", callback_data=f"{base}:{count}:warning"),
-            InlineKeyboardButton(text=("✅ " if level == "error" else "❌ ") + "ERROR", callback_data=f"{base}:{count}:error"),
+            InlineKeyboardButton(text=("✅ " if level == "all" else "📋 ") + "Все", callback_data=f"{base}:{count}:all"),
+            InlineKeyboardButton(text=("✅ " if level == "warning" else "⚠️ ") + "Предупр.", callback_data=f"{base}:{count}:warning"),
+            InlineKeyboardButton(text=("✅ " if level == "error" else "❌ ") + "Ошибки", callback_data=f"{base}:{count}:error"),
         ],
         [InlineKeyboardButton(text="🔄 Обновить", callback_data=f"{base}:{count}:{level}")],
         [InlineKeyboardButton(text="⬅ Журналы", callback_data="admin:logs")],
@@ -176,7 +199,7 @@ async def _master_log_lines(source: str, count: int, level: str) -> tuple[str, l
     if source == "ngacc":
         path = NGINX_LOG_DIR / "access.log"
         return "📨 Nginx access.log", _filter_lines(_tail_file(path, fetch_count), level)
-    raise ValueError("unknown log source")
+    raise ValueError("неизвестный источник журнала")
 
 
 @logs_alerts_router.callback_query(F.data == "admin:logs")
@@ -215,7 +238,7 @@ async def master_log_view(call: CallbackQuery):
         return
     shown = lines[-count:]
     await render_callback(call, 
-        f"{title}\nФильтр: {level.upper()} · последние {count}\n\n{_excerpt(shown)}",
+        f"{title}\nФильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(shown)}",
         reply_markup=_log_controls(source, count, level),
     )
 
@@ -295,7 +318,7 @@ async def node_log_view(call: CallbackQuery):
         await call.answer()
         return
     await render_callback(call, 
-        f"{title}\nФильтр: {level.upper()} · последние {count}\n\n{_excerpt(lines[-count:])}",
+        f"{title}\nФильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(lines[-count:])}",
         reply_markup=_log_controls(source, count, level, node_id=node_id),
     )
     await call.answer()
@@ -476,8 +499,8 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
         xray = status.get("xray") if isinstance(status.get("xray"), dict) else {}
         xray_state = str(xray.get("state") or "unknown").lower()
         xray_bad = xray_state not in {"running", "started", "online"}
-        await _set_incident(bot, code="xray_down", target=settings.master_name, active=xray_bad, value=f"state={xray_state}", notify=notify)
-        results.append(("🔴" if xray_bad else "✅") + f" Xray {xray_state}")
+        await _set_incident(bot, code="xray_down", target=settings.master_name, active=xray_bad, value=f"Состояние Xray: {xray_state_text(xray_state)}", notify=notify)
+        results.append(("🔴" if xray_bad else "✅") + f" Xray: {xray_state_text(xray_state)}")
 
         disk = status.get("disk") if isinstance(status.get("disk"), dict) else {}
         total = int(disk.get("total") or 0)
@@ -485,7 +508,7 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
         pct = (used * 100 / total) if total else 0.0
         disk_rule = rules.get("disk_high")
         disk_bad = bool(total and disk_rule and pct >= disk_rule.threshold)
-        await _set_incident(bot, code="disk_high", target=settings.master_name, active=disk_bad, value=f"disk={pct:.1f}%", notify=notify)
+        await _set_incident(bot, code="disk_high", target=settings.master_name, active=disk_bad, value=f"Диск: {pct:.1f}%", notify=notify)
         results.append(("🔴" if disk_bad else "✅") + f" Диск {pct:.1f}%")
 
     try:
@@ -495,11 +518,11 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
             target = node.name or f"node-{node.id}"
             seen_targets.add(target)
             offline = bool(node.enable and node.status != "online")
-            await _set_incident(bot, code="node_offline", target=target, active=offline, value=f"status={node.status}; enabled={node.enable}", notify=notify)
+            await _set_incident(bot, code="node_offline", target=target, active=offline, value=f"Статус ноды: {node_status_text(node.status)}; включена: {'да' if node.enable else 'нет'}", notify=notify)
             if node.enable and node.status == "online":
                 state = (node.xray_state or "unknown").lower()
                 xray_bad = state not in {"running", "started", "online"}
-                await _set_incident(bot, code="xray_down", target=target, active=xray_bad, value=f"state={state}", notify=notify)
+                await _set_incident(bot, code="xray_down", target=target, active=xray_bad, value=f"Состояние Xray: {xray_state_text(state)}", notify=notify)
 
                 direct = system_backup.direct_client_for(target)
                 if direct is not None:
@@ -511,7 +534,7 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
                         pct = (used * 100 / total) if total else 0.0
                         disk_rule = rules.get("disk_high")
                         disk_bad = bool(total and disk_rule and pct >= disk_rule.threshold)
-                        await _set_incident(bot, code="disk_high", target=target, active=disk_bad, value=f"disk={pct:.1f}%", notify=notify)
+                        await _set_incident(bot, code="disk_high", target=target, active=disk_bad, value=f"Диск: {pct:.1f}%", notify=notify)
                     except Exception as exc:
                         LOG.warning("Node disk check failed for %s: %s", target, exc)
             else:
@@ -538,7 +561,7 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
             latest_by_name.setdefault(run.name, run)
         for name, run in latest_by_name.items():
             failed = (run.status or "").lower() == "failed"
-            value = f"status={run.status}; {run.details[:260]}"
+            value = f"Статус: {_job_status_text(run.status)}" + (f"; детали: {run.details[:260]}" if run.details else "")
             await _set_incident(bot, code="job_failed", target=name, active=failed, value=value, notify=notify)
         results.append(f"✅ Проверено заданий: {len(latest_by_name)}")
     except Exception as exc:

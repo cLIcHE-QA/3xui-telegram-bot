@@ -80,7 +80,7 @@ class FleetPlanStore:
 
     def _path(self, plan_id: str) -> Path:
         if not PLAN_ID_RE.fullmatch(plan_id or ""):
-            raise FleetError("Некорректный ID плана fleet rollout.")
+            raise FleetError("Некорректный ID плана обновления нод.")
         return self.root / f"rollout-{plan_id}.json"
 
     def save(self, plan: dict[str, Any]) -> None:
@@ -101,13 +101,13 @@ class FleetPlanStore:
     def get(self, plan_id: str) -> dict[str, Any]:
         path = self._path(plan_id)
         if not path.is_file():
-            raise FleetError("План fleet rollout не найден.")
+            raise FleetError("План обновления нод не найден.")
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            raise FleetError("Журнал fleet rollout недоступен для чтения; mutation заблокирована.") from exc
+            raise FleetError("Журнал плана обновления недоступен для чтения; изменение заблокировано.") from exc
         if not isinstance(data, dict) or data.get("id") != plan_id:
-            raise FleetError("Журнал fleet rollout не прошёл проверку идентичности.")
+            raise FleetError("Журнал плана обновления не прошёл проверку идентичности.")
         return data
 
     def list(self) -> list[dict[str, Any]]:
@@ -134,7 +134,7 @@ def _keyboard(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
 
 def _call_binding(call: CallbackQuery) -> dict[str, int]:
     if not call.from_user or not isinstance(call.message, Message):
-        raise FleetError("Открой /admin заново, чтобы создать новую fleet-сессию.")
+        raise FleetError("Открой /admin заново, чтобы создать новую сессию операций с нодами.")
     return {
         "actor": int(call.from_user.id),
         "chat": int(call.message.chat.id),
@@ -234,13 +234,13 @@ async def _assess_node(node: NodeInfo) -> dict[str, Any]:
     if not master_online:
         problems.append(f"Master={node_status_text(node.status)}")
     if not direct_online:
-        problems.append("Direct API недоступен" + (f" ({direct_error})" if direct_error else ""))
+        problems.append("API прямого подключения недоступен" + (f" ({direct_error})" if direct_error else ""))
     if host_state != "running":
         problems.append(f"Host Control={_host_state_text(host_state)}")
     if direct_binding != "node_id":
-        problems.append(f"Direct привязка={_binding_text(direct_binding)}")
+        problems.append(f"Привязка Direct Admin={_binding_text(direct_binding)}")
     if host_binding != "node_id":
-        problems.append(f"Host привязка={_binding_text(host_binding)}")
+        problems.append(f"Привязка Host Control={_binding_text(host_binding)}")
 
     return {
         "node_id": node.id,
@@ -284,7 +284,7 @@ HEALTH_STATE_LABELS = {
 
 BINDING_LABELS = {
     "node_id": "node_id",
-    "legacy_name": "legacy name",
+    "legacy_name": "привязка по старому имени",
     "missing": "не настроена",
 }
 
@@ -313,8 +313,8 @@ RESULT_LABELS = {
 
 PLAN_STATE_LABELS = {
     "review": "проверка",
-    "canary_running": "canary выполняется",
-    "canary_passed": "canary успешно",
+    "canary_running": "контрольная нода: выполняется",
+    "canary_passed": "контрольная нода: успешно",
     "running": "выполняется",
     "success": "успешно",
     "cancelled": "отменено",
@@ -367,8 +367,8 @@ async def fleet_home(call: CallbackQuery, state: FSMContext):
     await render_callback(
         call,
         "🌐 Операции с нодами\n\n"
-        "Массовые изменения выполняются только для direct nodes, последовательно и fail-closed. "
-        "Контролируемое обновление использует canary и останавливается при первой ошибке или неизвестном результате.",
+        "Массовые изменения выполняются только для нод с прямым подключением, последовательно и с блокировкой при неопределённости. "
+        "Контролируемое обновление сначала проверяется на одной контрольной ноде и останавливается при первой ошибке или неизвестном результате.",
         reply_markup=_fleet_home_keyboard(),
     )
 
@@ -399,9 +399,9 @@ async def fleet_health(call: CallbackQuery):
     for item in assessments[:50]:
         lines.append(
             f"{_health_icon(item['state'])} {item['name']} · {_health_state_text(str(item['state']))} · ID {item['node_id']}\n"
-            f"   Master: {node_status_text(str(item['master_status']))} · Direct: "
+            f"   Master: {node_status_text(str(item['master_status']))} · Прямое подключение: "
             f"{'в сети' if item['direct_online'] else 'не в сети'} ({_binding_text(str(item['direct_binding']))}) · "
-            f"Host: {_host_state_text(str(item['host_state']))} ({_binding_text(str(item['host_binding']))})"
+            f"Host Control: {_host_state_text(str(item['host_state']))} ({_binding_text(str(item['host_binding']))})"
         )
         if item["problems"]:
             lines.append("   " + "; ".join(item["problems"][:3]))
@@ -485,7 +485,7 @@ async def _render_selection(call: CallbackQuery, state: FSMContext) -> None:
     await render_callback(
         call,
         f"{title}\n\nРежим: {mode_text}\nВыбрано: {len(selected)}/{MAX_MUTATION_TARGETS}\n\n"
-        "Выбери direct nodes. Изменения ещё не выполняются.",
+        "Выбери ноды с прямым подключением. Изменения ещё не выполняются.",
         reply_markup=_keyboard(rows),
     )
 
@@ -497,12 +497,12 @@ async def _toggle_selection(call: CallbackQuery, state: FSMContext, *, kind: str
     nodes = await _direct_nodes()
     valid = {node.id for node in nodes}
     if node_id not in valid:
-        raise FleetError("Нода не является доступной direct node.")
+        raise FleetError("Нода недоступна для прямого управления.")
     if node_id in selected:
         selected.remove(node_id)
     else:
         if len(selected) >= MAX_MUTATION_TARGETS:
-            raise FleetError(f"За одно fleet-задание можно изменить не более {MAX_MUTATION_TARGETS} нод.")
+            raise FleetError(f"За одно задание по нодам можно изменить не более {MAX_MUTATION_TARGETS} нод.")
         selected.append(node_id)
     await state.update_data(fleet_selected=selected)
     await _render_selection(call, state)
@@ -550,7 +550,7 @@ async def maintenance_review(call: CallbackQuery, state: FSMContext):
         f"Целевое состояние: {desired}\n"
         f"Ноды ({len(names)}): " + ", ".join(names) + "\n\n"
         "Операции выполняются последовательно. При неизвестном результате пакет останавливается; "
-        "mutation автоматически не повторяется.",
+        "изменение автоматически не повторяется.",
         reply_markup=_keyboard([
             [("✅ Выполнить", f"admin:fleet:mt:{mode}:run")],
             [("⬅ Изменить выбор", f"admin:fleet:mt:{mode}")],
@@ -658,8 +658,8 @@ async def rollout_home(call: CallbackQuery, state: FSMContext):
     await render_callback(
         call,
         "🚀 Контролируемое обновление\n\n"
-        "Canary → явное продолжение → остальные ноды по одной. "
-        "Для каждой ноды выполняются существующий update preflight и проверенная резервная копия. "
+        "Контрольная нода → явное продолжение → остальные ноды по одной. "
+        "Для каждой ноды выполняются предварительная проверка обновления и проверенная резервная копия. "
         "При ошибке или неизвестном результате обновление останавливается, а проблемная нода остаётся в обслуживании.",
         reply_markup=_keyboard([
             [("⬆️ 3x-ui: последняя стабильная", "admin:fleet:ro:p")],
@@ -859,7 +859,7 @@ def _plan_text(plan: dict[str, Any]) -> str:
     ]
     if plan.get("canary"):
         node_id = int(plan["canary"])
-        lines.append(f"Canary: {plan['names'].get(str(node_id), 'нода')} · ID {node_id}")
+        lines.append(f"Контрольная нода: {plan['names'].get(str(node_id), 'нода')} · ID {node_id}")
     lines.append("")
     results = plan.get("results") or {}
     for node_id in plan["selected"]:
@@ -879,11 +879,11 @@ def _plan_text(plan: dict[str, Any]) -> str:
 def _plan_keyboard(plan: dict[str, Any]) -> InlineKeyboardMarkup:
     rows: list[list[tuple[str, str]]] = []
     if plan["state"] == "review" and plan.get("canary"):
-        rows.append([("🐤 Запустить canary", f"admin:fleet:run:{plan['id']}:canary")])
+        rows.append([("🐤 Запустить контрольную ноду", f"admin:fleet:run:{plan['id']}:canary")])
         rows.append([("✖ Отмена", f"admin:fleet:run:{plan['id']}:cancel")])
     elif plan["state"] == "canary_passed":
         rows.append([("✅ Продолжить остальные", f"admin:fleet:run:{plan['id']}:continue")])
-        rows.append([("⏹ Завершить после canary", f"admin:fleet:run:{plan['id']}:cancel")])
+        rows.append([("⏹ Завершить после контрольной ноды", f"admin:fleet:run:{plan['id']}:cancel")])
     rows.append([("🧾 Задания по нодам", "admin:fleet:jobs")])
     rows.append([("⬅ Операции с нодами", "admin:fleet")])
     return _keyboard(rows)
@@ -903,7 +903,7 @@ def _validate_plan_call(plan: dict[str, Any], call: CallbackQuery) -> None:
     if (int(plan.get("actor") or 0), int(plan.get("chat") or 0)) != (
         binding["actor"], binding["chat"]
     ):
-        raise FleetError("Этот rollout принадлежит другой сессии администратора.")
+        raise FleetError("Этот план обновления принадлежит другой сессии администратора.")
 
 
 async def _start_rollout_job(plan: dict[str, Any]) -> None:
@@ -962,7 +962,7 @@ async def _execute_rollout_node(
     node = await xui.node_get(node_id)
     assessment = await _assess_node(node)
     if not assessment["ready"]:
-        return "failed", "eligibility changed before preflight"
+        return "failed", "доступность изменилась до предварительной проверки"
 
     key = f"n{node_id}"
     desired = str(plan["desired"][str(node_id)])
@@ -976,7 +976,7 @@ async def _execute_rollout_node(
             **ids,
         )
     except Exception as exc:
-        return "failed", f"preflight: {safe_error(exc)}"
+        return "failed", f"предварительная проверка: {safe_error(exc)}"
 
     try:
         await _set_node_enabled(node_id, False)
@@ -991,7 +991,7 @@ async def _execute_rollout_node(
             await update_service.cancel(op.nonce, **ids)
         except Exception:
             pass
-        return "failed", f"maintenance: {safe_error(exc)}"
+        return "failed", f"обслуживание: {safe_error(exc)}"
 
     try:
         target = await resolve_target(key)
@@ -1001,13 +1001,13 @@ async def _execute_rollout_node(
                 await update_service.cancel(op.nonce, **ids)
             except Exception:
                 pass
-            return "failed", "direct health failed after entering maintenance; update was not dispatched"
+            return "failed", "проверка прямого подключения не пройдена после включения обслуживания; обновление не отправлялось"
     except Exception as exc:
         try:
             await update_service.cancel(op.nonce, **ids)
         except Exception:
             pass
-        return "failed", f"direct pre-dispatch health: {safe_error(exc)}"
+        return "failed", f"проверка прямого подключения перед отправкой: {safe_error(exc)}"
 
     try:
         result = await update_service.execute(
@@ -1016,22 +1016,22 @@ async def _execute_rollout_node(
             **ids,
         )
     except Exception as exc:
-        return "unknown", f"execute: {safe_error(exc)}"
+        return "unknown", f"выполнение обновления: {safe_error(exc)}"
 
     if result.state != "success":
         return ("unknown" if result.state in {"dispatching", "verifying", "unconfirmed"} else "failed",
-                f"update outcome={result.state}; operation={result.nonce}")
+                f"результат обновления={result.state}; operation={result.nonce}")
 
     try:
         await _set_node_enabled(node_id, True)
     except Exception as exc:
-        return "unknown", f"update succeeded but exit maintenance is unconfirmed: {safe_error(exc)}"
+        return "unknown", f"обновление выполнено, но выход из обслуживания не подтверждён: {safe_error(exc)}"
 
     try:
         await xui.node_probe(node_id)
     except XUIError:
         pass
-    return "success", f"operation={result.nonce}; desired={result.desired}; actual={result.actual}"
+    return "success", f"operation={result.nonce}; целевая={result.desired}; фактическая={result.actual}"
 
 
 async def _record_plan_result(
@@ -1084,12 +1084,12 @@ async def rollout_run(call: CallbackQuery):
             _validate_plan_call(plan, call)
             if action == "cancel":
                 if plan["state"] not in {"review", "canary_passed"}:
-                    raise FleetError("Этот rollout больше нельзя отменить без ручной проверки.")
+                    raise FleetError("Этот план обновления больше нельзя отменить без ручной проверки.")
                 plan["state"] = "cancelled"
                 for node_id in list(plan["pending"]):
                     (plan.setdefault("results", {}))[str(node_id)] = {
                         "status": "not_touched",
-                        "details": "cancelled before dispatch",
+                        "details": "отменено до отправки",
                         "at": int(time.time()),
                     }
                 plan["pending"] = []
@@ -1097,19 +1097,19 @@ async def rollout_run(call: CallbackQuery):
                 plan_store.save(plan)
                 await _start_rollout_job(plan)
                 await _finish_rollout_job(plan, "cancelled")
-                await _render_plan(call, plan, "⏹ Обновление остановлено оператором. Новые mutation не отправлялись.")
+                await _render_plan(call, plan, "⏹ Обновление остановлено оператором. Новые изменения не отправлялись.")
                 return
 
             await _start_rollout_job(plan)
 
             if action == "canary":
                 if plan["state"] != "review" or not plan.get("canary"):
-                    raise FleetError("Canary недоступен для этого плана.")
+                    raise FleetError("Контрольная нода недоступна для этого плана.")
                 node_id = int(plan["canary"])
                 plan["state"] = "canary_running"
                 plan["updated_at"] = int(time.time())
                 plan_store.save(plan)
-                await _render_plan(call, plan, f"🐤 Canary: {plan['names'].get(str(node_id), 'нода')}…")
+                await _render_plan(call, plan, f"🐤 Контрольная нода: {plan['names'].get(str(node_id), 'нода')}…")
                 status, details = await _execute_rollout_node(plan, node_id, call)
                 await _record_plan_result(plan, node_id, status, details)
                 if status == "success":
@@ -1123,7 +1123,7 @@ async def rollout_run(call: CallbackQuery):
                     for pending in list(plan["pending"]):
                         (plan.setdefault("results", {}))[str(pending)] = {
                             "status": "not_touched",
-                            "details": "stopped after canary failure",
+                            "details": "остановлено после ошибки контрольной ноды",
                             "at": int(time.time()),
                         }
                     plan["pending"] = []
@@ -1135,7 +1135,7 @@ async def rollout_run(call: CallbackQuery):
 
             if action == "continue":
                 if plan["state"] != "canary_passed":
-                    raise FleetError("Перед продолжением требуется успешный canary.")
+                    raise FleetError("Перед продолжением требуется успешное обновление контрольной ноды.")
                 plan["state"] = "running"
                 plan["updated_at"] = int(time.time())
                 plan_store.save(plan)
@@ -1149,7 +1149,7 @@ async def rollout_run(call: CallbackQuery):
                         for pending in list(plan["pending"]):
                             (plan.setdefault("results", {}))[str(pending)] = {
                                 "status": "not_touched",
-                                "details": "stop-on-failure",
+                                "details": "остановлено после ошибки",
                                 "at": int(time.time()),
                             }
                         plan["pending"] = []

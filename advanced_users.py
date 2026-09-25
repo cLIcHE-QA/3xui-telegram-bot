@@ -853,7 +853,7 @@ async def user_reset_run(call: CallbackQuery):
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
             details=f"affected={affected}",
         )
-        await render_callback(call, f"✅ Трафик сброшен. affected={affected}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"✅ Трафик сброшен. Затронуто записей: {affected}", reply_markup=back_user(tg_id))
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,

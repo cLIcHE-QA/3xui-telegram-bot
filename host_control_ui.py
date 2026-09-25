@@ -278,13 +278,13 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
         if op.result == "uncertain":
             await _finish_job(run_id, started=started, status="unknown", details=details)
             return (
-                "🟡 Результат host-control не подтверждён. Команда повторно НЕ отправлялась.",
+                "🟡 Результат Host Control не подтверждён. Команда повторно НЕ отправлялась.",
                 False,
                 details,
             )
         if op.result != "success":
             await _finish_job(run_id, started=started, status="unknown", details=details)
-            return "🟡 Неожиданный результат host-control; повтор команды заблокирован.", False, details
+            return "🟡 Неожиданный результат Host Control; повтор команды заблокирован.", False, details
 
         if action in {"start", "restart"}:
             assert target.panel_client is not None
@@ -292,7 +292,7 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
                 details += "; panel_postcondition=unconfirmed"
                 await _finish_job(run_id, started=started, status="unknown", details=details)
                 return (
-                    "🟡 systemd сообщает running, но API панели не вернулся. Команда повторно НЕ отправлялась.",
+                    "🟡 systemd сообщает, что сервис работает, но API панели не вернулся. Команда повторно НЕ отправлялась.",
                     False,
                     details,
                 )
@@ -313,7 +313,7 @@ async def _run_service_action(target: ControlTarget, action: str, actor_id: int)
                 False,
                 details,
             )
-        return f"🔴 Host-control отклонил операцию ({exc.code or 'error'}).", False, details
+        return f"🔴 Host Control отклонил операцию ({exc.code or 'error'}).", False, details
 
 
 _RECOVERY_OPERATION_ID = re.compile(r"(?:^|; )operation_id=([0-9a-f]{32})(?:;|$)")

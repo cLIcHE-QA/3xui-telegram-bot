@@ -169,7 +169,7 @@ async def admin_dashboard(call: CallbackQuery):
     else:
         lines.append(f"📡 Inbound'ы: {managed_enabled}/{len(managed)} включено")
     if nodes_error:
-        lines.append(f"⚠️ Nodes API: {nodes_error}")
+        lines.append(f"⚠️ API нод: {nodes_error}")
     lines += [
         "",
         "Каталог",
@@ -193,7 +193,7 @@ async def admin_dashboard(call: CallbackQuery):
             traffic_total += int(traffic.get("up") or 0) + int(traffic.get("down") or 0)
         lines.append(f"📊 Использовано трафика: {human_bytes(traffic_total)}")
     if online_error:
-        lines.append(f"⚠️ Статус online: {online_error}")
+        lines.append(f"⚠️ Статус клиентов в сети: {online_error}")
     else:
         lines.append(f"🟢 Клиентов в сети: {len(set(online_clients))}")
     lines.append(f"{'🚨' if active_alerts else '✅'} Активных оповещений: {len(active_alerts)}")
@@ -355,7 +355,7 @@ COMING_SOON = {
     "jobs": ("⚙️ Задания", "Планировщик и история фоновых задач будут добавлены отдельно."),
     "audit": ("🧾 Журнал аудита", "Аудит административных действий будет добавлен отдельным модулем."),
     "administrators": ("👮 Администраторы", "Раздел «Администраторы» уже доступен."),
-    "settings": ("🔧 Настройки", "Раздел безопасных runtime-настроек уже доступен."),
+    "settings": ("🔧 Настройки", "Раздел безопасных настроек уже доступен."),
 }
 
 
