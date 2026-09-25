@@ -82,7 +82,7 @@ def _host_state_text(state: str) -> str:
         "stopped": "остановлен",
         "transitioning": "переходное состояние",
         "unavailable": "недоступен",
-        "не настроен": "не настроен",
+        "not configured": "не настроен",
     }.get((state or "").lower(), state or "неизвестно")
 
 
