@@ -115,6 +115,23 @@ class DeployAgentJournalTests(unittest.TestCase):
         self.assertEqual(record.state, "success")
         self.assertEqual(record.current_release, "v4.19.0")
 
+    def test_preflight_release_notes_fail_closed(self):
+        agent = DeployAgent(self.config)
+        agent._helper = lambda *args, **kwargs: (
+            (0, "PREFLIGHT_OK=1\nCURRENT_RELEASE=v4.19.0\nTARGET_SHA=" + "a" * 40 + "\nTARGET_VERSION=4.19.1\nDOWNGRADE=0\n", {
+                "PREFLIGHT_OK": "1",
+                "CURRENT_RELEASE": "v4.19.0",
+                "TARGET_SHA": "a" * 40,
+                "TARGET_VERSION": "4.19.1",
+                "DOWNGRADE": "0",
+            })
+            if args and args[0] == "preflight"
+            else (1, "ERROR_CODE=release_notes_missing\n", {"ERROR_CODE": "release_notes_missing"})
+        )
+        status, payload = agent.preflight_payload("v4.19.1")
+        self.assertEqual(status, 409)
+        self.assertEqual(payload["error"], "release_notes_missing")
+
 
 class DeployClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_lost_post_response_is_uncertain_and_never_retried(self):
@@ -234,6 +251,7 @@ class DeployAgentSecurityContractTests(unittest.TestCase):
         self.assertIn('SSH_KEY="/etc/3xui-deploy-agent/deploy-key"', text)
         self.assertIn('SSH_KNOWN_HOSTS="/etc/3xui-deploy-agent/known_hosts"', text)
         self.assertIn('git show "$release:CHANGELOG.md"', text)
+        self.assertIn('DOCKER_CONFIG="/var/lib/3xui-deploy-agent/docker-config"', text)
         self.assertNotIn("scripts/render-release-notes.py", text)
 
     def test_systemd_agent_is_unprivileged_and_scoped(self):
@@ -265,6 +283,7 @@ class DeployAgentSecurityContractTests(unittest.TestCase):
         self.assertIn("was NOT printed", text)
         self.assertIn("/etc/3xui-deploy-agent/deploy-key", text)
         self.assertIn("/etc/3xui-deploy-agent/known_hosts", text)
+        self.assertIn("/var/lib/3xui-deploy-agent/docker-config", text)
         for forbidden in [
             'cat "$TOKEN_FILE"',
             "cat $TOKEN_FILE",

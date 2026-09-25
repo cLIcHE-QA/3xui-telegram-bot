@@ -1,6 +1,6 @@
 # Safe Bot Self-Update
 
-`v4.19.0` добавляет Owner-only обновление production bot через отдельный restricted Deploy Agent.
+`v4.19.1` содержит production-ready hotfix для control plane, впервые добавленного в `v4.19.0`, и Owner-only обновление production bot через отдельный restricted Deploy Agent.
 
 ## Архитектура
 
@@ -76,7 +76,7 @@ unknown
 
 Перед deployment root helper проверяет strict tag `vX.Y.Z`, выполняет authenticated Git fetch через отдельный read-only deploy key и pinned SSH `known_hosts`, убеждается что tag существует и содержится в `origin/main`, проверяет exact `APP_VERSION`, clean tracked working tree, running container и текущие Health / DB / 3x-ui connectivity.
 
-Сам deployment выполняет существующий `scripts/deploy-release.sh`.
+Сам deployment выполняет существующий `scripts/deploy-release.sh`. Root helper задаёт отдельный `DOCKER_CONFIG=/var/lib/3xui-deploy-agent/docker-config`, чтобы Docker CLI работал внутри hardened systemd sandbox без записи в `/root`. Release notes обязательны: их ошибка или отсутствие блокируют preflight.
 
 ## Owner-only UI
 
@@ -106,9 +106,9 @@ DOWNGRADE vX.Y.Z
 
 ## Установка Deploy Agent на Master
 
-Первый release `v4.19.0` устанавливается обычным ручным способом. Self-update control plane начинает использоваться только после этого.
+Первый release control plane устанавливается обычным ручным способом. Для production используй patch `v4.19.1` или новее. Self-update control plane начинает использоваться только после этого.
 
-Из checkout `v4.19.0`:
+Из checkout текущего release:
 
 ~~~bash
 cd /opt/3xui-bot/3xui-telegram-bot
@@ -185,7 +185,7 @@ Host-side должны быть active/enabled `3xui-deploy-agent.service`. Toke
 
 После подключения `.env` открой `/admin -> System -> Bot Updates`. Ожидается current release, доступный agent, latest published release, history и работающий preflight.
 
-Для production acceptance `v4.19.0` допустим controlled same-release deployment `v4.19.0 -> v4.19.0`: он проверяет полный persistent operation/recreate/recovery path без изменения версии. После него exact tag/SHA, health, DB и 3x-ui connectivity должны остаться зелёными.
+Для production acceptance допустим controlled same-release deployment текущего release (например `v4.19.1 -> v4.19.1`): он проверяет полный persistent operation/recreate/recovery path без изменения версии. После него exact tag/SHA, health, DB и 3x-ui connectivity должны остаться зелёными.
 
 ## Manual break-glass
 

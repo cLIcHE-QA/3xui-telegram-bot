@@ -1,10 +1,10 @@
-# Telegram-бот для 3x-ui v4.19.0
+# Telegram-бот для 3x-ui v4.19.1
 
 Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
 
 Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
 
-**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.19.0`. Будущая client-facing часть будет документироваться отдельно.
+**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.19.1`. Будущая client-facing часть будет документироваться отдельно.
 
 Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
 Encrypted off-site Full Backup и recovery с нового VPS описаны в [Off-site Backup](docs/OFFSITE_BACKUP.md).
@@ -17,6 +17,12 @@ Owner-only Safe Bot Self-Update через restricted host Deploy Agent опис
 Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
 Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
 
+
+## v4.19.1 — Safe Bot Self-Update acceptance hotfix
+
+Patch release исправляет blocker, обнаруженный при первом production acceptance Deploy Agent: hardened systemd sandbox оставляет `/root` read-only, а Docker CLI пытался создать `/root/.docker` на build-stage. Теперь root helper использует отдельный `DOCKER_CONFIG` внутри `/var/lib/3xui-deploy-agent`, не ослабляя `ProtectHome=true` и не добавляя Docker socket в bot container.
+
+Preflight также fail-closed при недоступных release notes и отдельно показывает controlled same-release deployment. Для production сначала вручную разверни `v4.19.1`, затем повторно запусти `sudo ./scripts/install-deploy-agent.sh` из checkout patch release и выполни same-release acceptance через `/admin → System → Bot Updates`.
 
 ## v4.19.0 — Safe Bot Self-Update
 

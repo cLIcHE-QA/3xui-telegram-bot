@@ -34,7 +34,7 @@ from urllib.parse import urlsplit
 
 
 SCHEMA_VERSION = 1
-AGENT_VERSION = "0.1.0"
+AGENT_VERSION = "0.1.1"
 AGENT_NAME = "3xui-deploy-agent"
 SUDO = "/usr/bin/sudo"
 HELPER = "/usr/local/libexec/3xui-bot-deploy"
@@ -432,13 +432,27 @@ class DeployAgent:
                 "agent": AGENT_NAME,
                 "error": values.get("ERROR_CODE", "preflight_failed"),
             }
-        notes = ""
         try:
-            notes_code, notes_output, _ = self._helper("notes", release, timeout=30)
-            if notes_code == 0:
-                notes = notes_output[:6000].strip()
-        except (OSError, subprocess.SubprocessError, subprocess.TimeoutExpired):
-            pass
+            notes_code, notes_output, notes_values = self._helper("notes", release, timeout=30)
+        except subprocess.TimeoutExpired:
+            return HTTPStatus.GATEWAY_TIMEOUT, {
+                "schema": SCHEMA_VERSION,
+                "agent": AGENT_NAME,
+                "error": "release_notes_timeout",
+            }
+        except (OSError, subprocess.SubprocessError):
+            return HTTPStatus.SERVICE_UNAVAILABLE, {
+                "schema": SCHEMA_VERSION,
+                "agent": AGENT_NAME,
+                "error": "release_notes_unavailable",
+            }
+        notes = notes_output[:6000].strip()
+        if notes_code != 0 or not notes:
+            return HTTPStatus.CONFLICT, {
+                "schema": SCHEMA_VERSION,
+                "agent": AGENT_NAME,
+                "error": notes_values.get("ERROR_CODE", "release_notes_missing"),
+            }
         return HTTPStatus.OK, {
             "schema": SCHEMA_VERSION,
             "agent": AGENT_NAME,

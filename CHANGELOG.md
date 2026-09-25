@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.19.1 — Safe Bot Self-Update acceptance hotfix
+- Исправлен production blocker Deploy Agent под hardened systemd sandbox: root helper теперь задаёт отдельный `DOCKER_CONFIG=/var/lib/3xui-deploy-agent/docker-config`, поэтому `docker compose build` не пытается создать `/root/.docker` при `ProtectHome=true`.
+- Installer создаёт отдельный root-only writable Docker config directory внутри уже разрешённого `/var/lib/3xui-deploy-agent`; privilege boundary, sudoers allowlist и отсутствие Docker socket в bot container не меняются.
+- Release notes стали обязательной частью успешного Deploy Agent preflight: ошибка/timeout/missing notes теперь fail-closed, а не маскируются пустым блоком в Telegram.
+- Same-release production acceptance отображается как `same release`, а не как `upgrade`.
+- Hotfix закрывает defect, найденный при первом production acceptance `v4.19.0`: операция остановилась после verified backup и checkout, до `deploying`/container recreate, с `deploy_command_failed_before_dispatch`.
+
 ## v4.19.0 — Safe Bot Self-Update
 - Добавлен отдельный restricted Deploy Agent вне bot container: unprivileged systemd service, bearer-authenticated fixed API и persistent SQLite journal с stable `operation_id` и состояниями `queued/preflight/backup/building/deploying/verifying/success/failed/unknown`.
 - Bot container по-прежнему не получает Docker socket, host shell, Git deploy key или arbitrary filesystem access; root boundary сведена к одному root-owned helper с закрытым command surface для published `vX.Y.Z` releases.

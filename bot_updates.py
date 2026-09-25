@@ -73,6 +73,14 @@ def _job_details(operation_id: str, release: str, *, allow_downgrade: bool) -> s
     )
 
 
+def _preflight_direction(preflight: DeployPreflight) -> str:
+    if preflight.downgrade:
+        return "DOWNGRADE"
+    if preflight.current_release == preflight.release:
+        return "same release"
+    return "upgrade"
+
+
 def _operation_text(op: DeployOperation) -> str:
     labels = {
         "queued": "🟡 Операция поставлена в очередь.",
@@ -594,7 +602,7 @@ async def update_release_input(message: Message, state: FSMContext):
         f"Current: {preflight.current_release}",
         f"Target: {preflight.release}",
         f"Target SHA: {preflight.target_sha[:12]}",
-        f"Direction: {'DOWNGRADE' if preflight.downgrade else 'upgrade'}",
+        f"Direction: {_preflight_direction(preflight)}",
         "",
         "Release notes:",
         (preflight.notes or "нет release notes")[:2400],
@@ -642,7 +650,7 @@ async def update_preflight(call: CallbackQuery):
         f"Current: {preflight.current_release}",
         f"Target: {preflight.release}",
         f"Target SHA: {preflight.target_sha[:12]}",
-        f"Direction: {'DOWNGRADE' if preflight.downgrade else 'upgrade'}",
+        f"Direction: {_preflight_direction(preflight)}",
         "",
         "Release notes:",
         (preflight.notes or "нет release notes")[:2400],
