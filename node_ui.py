@@ -98,10 +98,10 @@ def add_node_retry_keyboard(tls_mode: str) -> InlineKeyboardMarkup:
 
 def master_detail_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🧩 3x-ui Control", callback_data="admin:hostctl:m")],
+        [InlineKeyboardButton(text="🧩 Управление 3x-ui", callback_data="admin:hostctl:m")],
         [
-            InlineKeyboardButton(text="⬆️ 3x-ui updates", callback_data="admin:ver:panel:m"),
-            InlineKeyboardButton(text="⚡ Xray Core", callback_data="admin:ver:xray:m:0"),
+            InlineKeyboardButton(text="⬆️ Обновления 3x-ui", callback_data="admin:ver:panel:m"),
+            InlineKeyboardButton(text="⚡ Ядро Xray", callback_data="admin:ver:xray:m:0"),
         ],
         [InlineKeyboardButton(text="🔄 Проверить", callback_data="admin:master")],
         [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
@@ -109,22 +109,22 @@ def master_detail_keyboard() -> InlineKeyboardMarkup:
 
 
 def node_detail_keyboard(node_id: int, enabled: bool | None = None) -> InlineKeyboardMarkup:
-    maintenance_text = "🛠 Enter maintenance" if enabled is not False else "▶️ Exit maintenance"
+    maintenance_text = "🛠 Включить обслуживание" if enabled is not False else "▶️ Выключить обслуживание"
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔍 Проверить", callback_data=f"admin:node:{node_id}")],
         [
-            InlineKeyboardButton(text="📡 Inbounds", callback_data=f"admin:nodectl:{node_id}:inbounds"),
-            InlineKeyboardButton(text="💾 Backup", callback_data=f"admin:nodectl:{node_id}:backup"),
+            InlineKeyboardButton(text="📡 Inbound'ы", callback_data=f"admin:nodectl:{node_id}:inbounds"),
+            InlineKeyboardButton(text="💾 Резервная копия", callback_data=f"admin:nodectl:{node_id}:backup"),
         ],
         [InlineKeyboardButton(text=maintenance_text, callback_data=f"admin:nodectl:{node_id}:maintenance")],
         [
-            InlineKeyboardButton(text="✏️ Rename", callback_data=f"admin:nodectl:{node_id}:rename"),
-            InlineKeyboardButton(text="🧩 3x-ui Control", callback_data=f"admin:hostctl:n{node_id}"),
+            InlineKeyboardButton(text="✏️ Переименовать", callback_data=f"admin:nodectl:{node_id}:rename"),
+            InlineKeyboardButton(text="🧩 Управление 3x-ui", callback_data=f"admin:hostctl:n{node_id}"),
         ],
-        [InlineKeyboardButton(text="🧭 Readiness", callback_data=f"admin:node:{node_id}:readiness")],
-        [InlineKeyboardButton(text="⬆️ Update 3x-ui", callback_data=f"admin:ver:panel:n{node_id}")],
-        [InlineKeyboardButton(text="⚡ Xray Core", callback_data=f"admin:ver:xray:n{node_id}:0")],
-        [InlineKeyboardButton(text="🗑 Delete node", callback_data=f"admin:nodectl:{node_id}:deleteask")],
+        [InlineKeyboardButton(text="🧭 Готовность", callback_data=f"admin:node:{node_id}:readiness")],
+        [InlineKeyboardButton(text="⬆️ Обновить 3x-ui", callback_data=f"admin:ver:panel:n{node_id}")],
+        [InlineKeyboardButton(text="⚡ Ядро Xray", callback_data=f"admin:ver:xray:n{node_id}:0")],
+        [InlineKeyboardButton(text="🗑 Удалить ноду", callback_data=f"admin:nodectl:{node_id}:deleteask")],
         [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
     ])
 
@@ -139,7 +139,7 @@ def nodes_menu(
     master_icon = "🟢" if master_online else "🔴"
     rows: list[list[InlineKeyboardButton]] = [
         [InlineKeyboardButton(
-            text=f"{master_flag} {master_name} · {master_icon} {'Online' if master_online else 'Offline'}",
+            text=f"{master_flag} {master_name} · {master_icon} {'В сети' if master_online else 'Не в сети'}",
             callback_data="admin:master",
         )]
     ]
@@ -152,7 +152,7 @@ def nodes_menu(
             rows.append([InlineKeyboardButton(text=text, callback_data="admin:nodes:noop")])
     rows.append([InlineKeyboardButton(text="➕ Добавить ноду", callback_data="admin:nodeadd:start")])
     rows.append([InlineKeyboardButton(text="🔄 Проверить все", callback_data="admin:nodes:refresh")])
-    rows.append([InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")])
+    rows.append([InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -172,36 +172,36 @@ def node_detail_text(node: NodeInfo, *, backup_configured: bool) -> str:
     lines = [
         f"🌍 {node_display_name(node.name)}",
         "",
-        f"{status_icon} Panel: {node.status}",
-        f"{'🟢 Enabled' if node.enable else '🛠 Maintenance / disabled'}",
+        f"{status_icon} Панель: {node.status}",
+        f"{'🟢 Включена' if node.enable else '🛠 Обслуживание / отключена'}",
         f"Endpoint: {endpoint}",
         f"{xray_state_icon} Xray: {node.xray_state}"
         + (f" {node.xray_version}" if node.xray_version else ""),
     ]
     if node.panel_version:
         lines.append(f"3x-ui: {node.panel_version}")
-    lines.append(f"TLS verify: {node.tls_verify_mode} · inbound sync: {node.inbound_sync_mode}")
+    lines.append(f"Проверка TLS: {node.tls_verify_mode} · синхронизация inbound'ов: {node.inbound_sync_mode}")
     if node.outbound_tag:
         lines.append(f"Outbound bridge: {node.outbound_tag}")
     if node.latency_ms:
         lines.append(f"Ping API: {node.latency_ms} ms")
     if node.net_up or node.net_down:
-        lines.append(f"Network: ↑ {_human_bytes(node.net_up)}/s · ↓ {_human_bytes(node.net_down)}/s")
+        lines.append(f"Сеть: ↑ {_human_bytes(node.net_up)}/s · ↓ {_human_bytes(node.net_down)}/s")
     lines += [
-        f"CPU: {node.cpu_pct:.1f}%",
-        f"RAM: {node.mem_pct:.1f}%",
-        f"Uptime: {duration_text(node.uptime_secs)}",
-        f"Inbound'ов: {node.inbound_count}",
-        f"Клиентов: {node.client_count} · active {node.active_count} · online {node.online_count}",
+        f"🧮 CPU: {node.cpu_pct:.1f}%",
+        f"🧠 RAM: {node.mem_pct:.1f}%",
+        f"⏱ Время работы: {duration_text(node.uptime_secs)}",
+        f"🌐 Inbound'ов: {node.inbound_count}",
+        f"👥 Клиентов: {node.client_count} · активных {node.active_count} · в сети {node.online_count}",
         f"Последний heartbeat: {epoch_text(node.last_heartbeat)}",
     ]
     if node.config_dirty:
         lines.append("🟡 Конфигурация ожидает синхронизации")
     if node.last_error:
-        lines.append(f"⚠️ Node error: {node.last_error[:240]}")
+        lines.append(f"⚠️ Ошибка ноды: {node.last_error[:240]}")
     if node.xray_error:
-        lines.append(f"⚠️ Xray error: {node.xray_error[:240]}")
-    lines.append("💾 Backup БД: " + ("настроен" if backup_configured else "не настроен"))
+        lines.append(f"⚠️ Ошибка Xray: {node.xray_error[:240]}")
+    lines.append("💾 Резервная копия БД: " + ("настроен" if backup_configured else "не настроен"))
     if node.transitive:
-        lines.append("ℹ️ Транзитная нода: read-only представление через родительскую ноду.")
+        lines.append("ℹ️ Транзитная нода: представление только для просмотра через родительскую ноду.")
     return "\n".join(lines)
