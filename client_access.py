@@ -153,7 +153,7 @@ async def create_user(tg_id: int, message: Message):
             if not inbound_ids:
                 await message.answer(
                     "Тариф по умолчанию для согласования настроен, но сейчас нет доступных "
-                    "target inbound'ов. Попроси администратора проверить "
+                    "целевых inbound'ов. Попроси администратора проверить "
                     "Тариф → Группа серверов → Ноды/Inbound'ы."
                 )
                 return
@@ -199,7 +199,7 @@ async def create_user(tg_id: int, message: Message):
                 traffic_gb = settings.test_traffic_gb
                 ip_limit = settings.test_ip_limit
             expiry = (now + duration_days * 86400) * 1000
-            provisioning_note = "Legacy-политика пробного доступа"
+            provisioning_note = "Политика совместимости пробного доступа"
 
         username = ""
         if (
@@ -246,12 +246,12 @@ async def create_user(tg_id: int, message: Message):
             lines += [
                 "",
                 f"💎 Тариф: {default_plan.name}",
-                f"📡 Inbounds: {', '.join(map(str, inbound_ids))}",
+                f"📡 Inbound'ы: {', '.join(map(str, inbound_ids))}",
             ]
             if policy.unavailable_members:
                 lines.append(
                     "⏸ Часть нод недоступна; администратор сможет "
-                    "выполнить reconcile позже."
+                    "выполнить согласование позже."
                 )
         await message.answer("\n".join(lines))
     except XUIError as exc:
