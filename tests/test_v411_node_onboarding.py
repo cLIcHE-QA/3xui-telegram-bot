@@ -235,7 +235,7 @@ class OnboardingImporterTests(unittest.TestCase):
         node_ui_source = (ROOT / "node_ui.py").read_text(encoding="utf-8")
         self.assertIn('text="🧭 Готовность"', node_ui_source)
         self.assertIn('admin:node:{node_id}:readiness', node_ui_source)
-        self.assertIn("Stable identity", node_admin_source)
+        self.assertIn("Стабильная идентичность", node_admin_source)
 
 
 if __name__ == "__main__":

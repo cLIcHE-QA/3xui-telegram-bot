@@ -81,13 +81,13 @@ def ago_text(ts: int) -> str:
 
 def monitoring_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Monitoring", callback_data="admin:section:monitoring")],
+        [InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")],
     ])
 
 
 def system_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
+        [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ])
 
 
@@ -100,7 +100,7 @@ async def traffic_view(call: CallbackQuery):
         clients = await xui.clients_list()
     except XUIError as exc:
         await render_callback(call, 
-            f"📊 Traffic\n\n🔴 3x-ui: {str(exc)[:500]}",
+            f"📊 Трафик\n\n🔴 3x-ui: {str(exc)[:500]}",
             reply_markup=monitoring_back(),
         )
         return
@@ -130,19 +130,19 @@ async def traffic_view(call: CallbackQuery):
 
     rows.sort(key=lambda item: item[0], reverse=True)
     lines = [
-        "📊 Traffic",
+        "📊 Трафик",
         "",
         f"Клиентов 3x-ui: {len(rows)}",
         f"Пользователей бота: {len(bot_users)}",
-        f"⬆ Upload: {human_bytes(total_up)}",
-        f"⬇ Download: {human_bytes(total_down)}",
+        f"⬆ Отправлено: {human_bytes(total_up)}",
+        f"⬇ Получено: {human_bytes(total_down)}",
         f"Σ Использовано: {human_bytes(total_up + total_down)}",
     ]
     if finite_quota:
         pct = min(999.9, finite_used * 100 / finite_quota)
         lines.append(f"Квоты с лимитом: {human_bytes(finite_used)} / {human_bytes(finite_quota)} ({pct:.1f}%)")
 
-    lines += ["", "Top traffic:"]
+    lines += ["", "Больше всего трафика:"]
     if not rows:
         lines.append("— данных пока нет")
     else:
@@ -150,9 +150,9 @@ async def traffic_view(call: CallbackQuery):
             marker = "👤" if known else "•"
             if quota > 0:
                 pct = min(999.9, used * 100 / quota)
-                suffix = f" · {pct:.1f}% quota"
+                suffix = f" · {pct:.1f}% квоты"
             else:
-                suffix = " · unlimited"
+                suffix = " · без лимита"
             lines.append(f"{marker} {email} — {human_bytes(used)}{suffix}")
         if len(rows) > 12:
             lines.append(f"… ещё {len(rows) - 12}")
@@ -163,7 +163,7 @@ async def traffic_view(call: CallbackQuery):
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:traffic")],
-        [InlineKeyboardButton(text="⬅ Monitoring", callback_data="admin:section:monitoring")],
+        [InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")],
     ])
     await render_callback(call, "\n".join(lines), reply_markup=kb)
 
@@ -172,7 +172,7 @@ async def traffic_view(call: CallbackQuery):
 async def online_view(call: CallbackQuery):
     if not await guard(call):
         return
-    await call.answer("Проверяю online…")
+    await call.answer("Проверяю клиентов в сети…")
     try:
         online, last_seen = await asyncio.gather(
             xui.online_clients(),
@@ -180,7 +180,7 @@ async def online_view(call: CallbackQuery):
         )
     except XUIError as exc:
         await render_callback(call, 
-            f"🟢 Online\n\n🔴 3x-ui: {str(exc)[:500]}",
+            f"🟢 Клиенты в сети\n\n🔴 3x-ui: {str(exc)[:500]}",
             reply_markup=monitoring_back(),
         )
         return
@@ -188,14 +188,14 @@ async def online_view(call: CallbackQuery):
     bot_users = {u.email: u for u in await db.list_users()}
     online_unique = sorted(set(online), key=str.casefold)
     lines = [
-        "🟢 Online",
+        "🟢 Клиенты в сети",
         "",
         f"Сейчас подключено: {len(online_unique)}",
         f"Из пользователей бота: {sum(1 for email in online_unique if email in bot_users)}",
         "",
     ]
     if online_unique:
-        lines.append("Сейчас online:")
+        lines.append("Сейчас в сети:")
         for email in online_unique[:25]:
             rec = bot_users.get(email)
             suffix = f" · TG {rec.telegram_id}" if rec else ""
@@ -203,7 +203,7 @@ async def online_view(call: CallbackQuery):
         if len(online_unique) > 25:
             lines.append(f"… ещё {len(online_unique) - 25}")
     else:
-        lines.append("Сейчас online-клиентов нет.")
+        lines.append("Сейчас клиентов в сети нет.")
 
     offline_recent = [
         (safe_int(ts), email)
@@ -218,7 +218,7 @@ async def online_view(call: CallbackQuery):
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:online")],
-        [InlineKeyboardButton(text="⬅ Monitoring", callback_data="admin:section:monitoring")],
+        [InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")],
     ])
     await render_callback(call, "\n".join(lines), reply_markup=kb)
 
@@ -242,11 +242,40 @@ def job_status_icon(status: str) -> str:
     }.get((status or "").lower(), "⚪")
 
 
+JOB_STATUS_LABELS = {
+    "success": "успешно",
+    "partial": "частично",
+    "failed": "ошибка",
+    "running": "выполняется",
+    "unknown": "неизвестно",
+    "cancelled": "отменено",
+}
+
+
+JOB_TRIGGER_LABELS = {
+    "scheduled": "по расписанию",
+    "admin": "администратор",
+    "startup": "запуск",
+    "manual": "вручную",
+    "system": "система",
+}
+
+
+def job_status_text(status: str) -> str:
+    value = (status or "").lower()
+    return JOB_STATUS_LABELS.get(value, status or "неизвестно")
+
+
+def job_trigger_text(trigger: str) -> str:
+    value = (trigger or "").lower()
+    return JOB_TRIGGER_LABELS.get(value, trigger or "—")
+
+
 def job_line(run: JobRunRecord | None) -> str:
     if run is None:
         return "ещё не запускалась"
     duration = f"{run.duration_ms / 1000:.1f}s" if run.duration_ms else "—"
-    return f"{job_status_icon(run.status)} {run.status} · {utc_text(run.started_at)} · {duration}"
+    return f"{job_status_icon(run.status)} {job_status_text(run.status)} · {utc_text(run.started_at)} · {duration}"
 
 
 @observability_router.callback_query(F.data == "admin:jobs")
@@ -259,23 +288,23 @@ async def jobs_view(call: CallbackQuery):
     provision = await db.last_job_run("provision.reconcile_all")
     history = await db.list_job_runs(limit=8)
     lines = [
-        "⚙️ Jobs",
+        "⚙️ Задания",
         "",
-        "Daily backup",
-        f"Статус расписания: {'🟢 enabled' if settings.backup_enabled else '⚪ disabled'}",
+        "Ежедневная резервная копия",
+        f"Статус расписания: {'🟢 включено' if settings.backup_enabled else '⚪ выключено'}",
         f"Следующий запуск: {next_backup_text()}",
-        f"Последний scheduled: {job_line(daily)}",
-        f"Последний manual: {job_line(manual)}",
-        f"Последний off-site: {job_line(offsite) if settings.offsite_backup_enabled else 'выключен'}",
+        f"Последний по расписанию: {job_line(daily)}",
+        f"Последний ручной: {job_line(manual)}",
+        f"Последний внешний (off-site): {job_line(offsite) if settings.offsite_backup_enabled else 'выключен'}",
         "",
         "Provisioning",
-        f"Последний fleet reconcile: {job_line(provision)}",
+        f"Последнее согласование пользователей: {job_line(provision)}",
         "",
         "Последние запуски:",
     ]
     if history:
         for run in history:
-            label = "scheduled" if run.trigger == "scheduled" else run.trigger
+            label = job_trigger_text(run.trigger)
             lines.append(
                 f"{job_status_icon(run.status)} {run.name} · {label} · "
                 f"{utc_text(run.started_at)} · {run.duration_ms / 1000:.1f}s"
@@ -283,9 +312,9 @@ async def jobs_view(call: CallbackQuery):
     else:
         lines.append("— история пока пуста")
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="▶ Запустить backup сейчас", callback_data="admin:jobs:backup")],
+        [InlineKeyboardButton(text="▶ Запустить резервное копирование", callback_data="admin:jobs:backup")],
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:jobs")],
-        [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
+        [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ])
     await render_callback(call, "\n".join(lines), reply_markup=kb)
     await call.answer()
@@ -296,9 +325,9 @@ async def jobs_run_backup(call: CallbackQuery):
     if not await guard(call):
         return
     if backup_lock.locked():
-        await call.answer("Backup уже выполняется.", show_alert=True)
+        await call.answer("Резервное копирование уже выполняется.", show_alert=True)
         return
-    await call.answer("Запускаю backup…")
+    await call.answer("Запускаю резервное копирование…")
     run_id = await db.start_job_run(
         name="backup.manual",
         trigger="admin",
@@ -338,19 +367,19 @@ async def jobs_run_backup(call: CallbackQuery):
             )
         offsite_line = ""
         if offsite_status == "success":
-            offsite_line = "\n☁️ Off-site: загружен и проверен"
+            offsite_line = "\n☁️ Внешняя копия: загружена и проверена"
         elif offsite_status == "partial":
-            offsite_line = "\n⚠️ Off-site: загружен и проверен, local backup неполный"
+            offsite_line = "\n⚠️ Внешняя копия: загружена и проверена, локальная резервная копия неполная"
         elif offsite_status == "failed":
-            offsite_line = f"\n🔴 Off-site: ошибка — {offsite_detail[:240]}"
+            offsite_line = f"\n🔴 Внешняя копия: ошибка — {offsite_detail[:240]}"
         await render_callback(call, 
-            "✅ Job завершён.\n\n"
+            "✅ Задание завершено.\n\n"
             f"Файл: {result.info.path.name}\n"
             f"Размер: {human_bytes(result.info.size)}\n"
             f"Время: {duration_ms / 1000:.1f}s"
             f"{offsite_line}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="⬅ Jobs", callback_data="admin:jobs")],
+                [InlineKeyboardButton(text="⬅ Задания", callback_data="admin:jobs")],
             ]),
         )
     except Exception as exc:
@@ -370,83 +399,83 @@ async def jobs_run_backup(call: CallbackQuery):
             success=False,
         )
         await render_callback(call, 
-            f"🔴 Backup job failed: {type(exc).__name__}: {str(exc)[:500]}",
+            f"🔴 Задание резервного копирования завершилось ошибкой: {type(exc).__name__}: {str(exc)[:500]}",
             reply_markup=system_back(),
         )
 
 
 ACTION_LABELS = {
-    "panel.update.prepared": "3x-ui update: prepared",
-    "panel.update.started": "3x-ui update: started",
-    "panel.update.success": "3x-ui update: success",
-    "panel.update.failed": "3x-ui update: failed",
-    "panel.update.unconfirmed": "3x-ui update: unconfirmed",
-    "panel.update.cancelled": "3x-ui update: cancelled",
-    "panel.update.acknowledged": "3x-ui update: acknowledged",
-    "xray.install.prepared": "Xray install: prepared",
-    "xray.install.started": "Xray install: started",
-    "xray.install.success": "Xray install: success",
-    "xray.install.failed": "Xray install: failed",
-    "xray.install.unconfirmed": "Xray install: unconfirmed",
-    "xray.install.cancelled": "Xray install: cancelled",
-    "xray.install.acknowledged": "Xray install: acknowledged",
-    "user.sync": "sync user",
-    "user.extend": "extend user",
-    "user.disable": "disable user",
-    "user.enable": "enable user",
-    "user.delete": "delete user",
-    "users.sync_all": "sync all users",
-    "node.add": "add node",
-    "node.maintenance": "toggle node maintenance",
-    "node.rename": "rename node",
-    "node.backup": "backup node",
-    "node.xray.restart": "restart node Xray",
-    "node.panel.update": "update node panel",
-    "node.delete": "delete node",
-    "host_control.start": "start 3x-ui service",
-    "host_control.stop": "stop 3x-ui service",
-    "host_control.restart": "restart 3x-ui service",
-    "panel.restart": "restart 3x-ui panel process",
-    "xray.stop": "stop Xray",
-    "xray.restart": "restart/start Xray",
-    "backup.create": "create backup",
-    "backup.download": "download backup",
-    "backup.offsite.upload": "replicate backup off-site",
-    "plan.create": "create plan",
-    "plan.toggle": "toggle plan",
-    "plan.set_group": "set plan group",
-    "plan.delete": "delete plan",
-    "plan.default": "set default plan",
-    "server_group.inbound_mode": "change group inbound mode",
-    "server_group.inbound": "change group provisioning inbound",
-    "user.provision.safe": "safe reconcile user",
-    "user.provision.strict": "strict reconcile user",
-    "user.plan.provision": "apply plan and provision",
-    "users.provision_all": "reconcile all users",
-    "server_group.create": "create server group",
-    "server_group.member": "change group member",
-    "server_group.delete": "delete server group",
-    "host.discover": "discover hosts",
-    "host.create": "create host",
-    "host.toggle": "toggle host",
-    "host.delete": "delete host",
-    "payment.create": "create payment",
-    "payment.status": "change payment status",
-    "promo.create": "create promo code",
-    "promo.toggle": "toggle promo code",
-    "promo.delete": "delete promo code",
-    "administrator.upsert": "add administrator",
-    "administrator.role": "change administrator role",
-    "administrator.toggle": "toggle administrator",
-    "administrator.delete": "delete administrator",
-    "settings.set": "change setting",
-    "settings.reset": "reset setting",
+    "panel.update.prepared": "обновление 3x-ui: подготовлено",
+    "panel.update.started": "обновление 3x-ui: запущено",
+    "panel.update.success": "обновление 3x-ui: успешно",
+    "panel.update.failed": "обновление 3x-ui: ошибка",
+    "panel.update.unconfirmed": "обновление 3x-ui: результат не подтверждён",
+    "panel.update.cancelled": "обновление 3x-ui: отменено",
+    "panel.update.acknowledged": "обновление 3x-ui: неопределённость подтверждена",
+    "xray.install.prepared": "установка Xray: подготовлена",
+    "xray.install.started": "установка Xray: запущена",
+    "xray.install.success": "установка Xray: успешно",
+    "xray.install.failed": "установка Xray: ошибка",
+    "xray.install.unconfirmed": "установка Xray: результат не подтверждён",
+    "xray.install.cancelled": "установка Xray: отменена",
+    "xray.install.acknowledged": "установка Xray: неопределённость подтверждена",
+    "user.sync": "синхронизация пользователя",
+    "user.extend": "продление пользователя",
+    "user.disable": "отключение пользователя",
+    "user.enable": "включение пользователя",
+    "user.delete": "удаление пользователя",
+    "users.sync_all": "синхронизация всех пользователей",
+    "node.add": "добавление ноды",
+    "node.maintenance": "изменение режима обслуживания ноды",
+    "node.rename": "переименование ноды",
+    "node.backup": "резервная копия ноды",
+    "node.xray.restart": "перезапуск Xray на ноде",
+    "node.panel.update": "обновление 3x-ui на ноде",
+    "node.delete": "удаление ноды",
+    "host_control.start": "запуск сервиса 3x-ui",
+    "host_control.stop": "остановка сервиса 3x-ui",
+    "host_control.restart": "перезапуск сервиса 3x-ui",
+    "panel.restart": "перезапуск процесса панели 3x-ui",
+    "xray.stop": "остановка Xray",
+    "xray.restart": "запуск/перезапуск Xray",
+    "backup.create": "создание резервной копии",
+    "backup.download": "скачивание резервной копии",
+    "backup.offsite.upload": "репликация внешней резервной копии",
+    "plan.create": "создание тарифа",
+    "plan.toggle": "изменение состояния тарифа",
+    "plan.set_group": "изменение группы тарифа",
+    "plan.delete": "удаление тарифа",
+    "plan.default": "назначение тарифа по умолчанию",
+    "server_group.inbound_mode": "изменение режима inbound'ов группы",
+    "server_group.inbound": "изменение provisioning inbound группы",
+    "user.provision.safe": "безопасное согласование пользователя",
+    "user.provision.strict": "строгое согласование пользователя",
+    "user.plan.provision": "применение тарифа и provisioning",
+    "users.provision_all": "согласование всех пользователей",
+    "server_group.create": "создание группы серверов",
+    "server_group.member": "изменение участника группы",
+    "server_group.delete": "удаление группы серверов",
+    "host.discover": "поиск хостов",
+    "host.create": "создание хоста",
+    "host.toggle": "изменение состояния хоста",
+    "host.delete": "удаление хоста",
+    "payment.create": "создание платежа",
+    "payment.status": "изменение статуса платежа",
+    "promo.create": "создание промокода",
+    "promo.toggle": "изменение состояния промокода",
+    "promo.delete": "удаление промокода",
+    "administrator.upsert": "добавление администратора",
+    "administrator.role": "изменение роли администратора",
+    "administrator.toggle": "изменение состояния администратора",
+    "administrator.delete": "удаление администратора",
+    "settings.set": "изменение настройки",
+    "settings.reset": "сброс настройки",
 }
 
 
 def audit_actor(item: AuditRecord) -> str:
     if item.actor_id == 0:
-        return "system"
+        return "система"
     if item.actor_username:
         return f"@{item.actor_username}"
     return f"TG {item.actor_id}"
@@ -470,7 +499,7 @@ async def audit_page(call: CallbackQuery, offset: int):
     total = await db.count_audit()
     offset = max(0, min(offset, max(0, total - 1))) if total else 0
     items = await db.list_audit(limit=page_size, offset=offset)
-    lines = ["🧾 Audit Log", "", f"Записей: {total}", ""]
+    lines = ["🧾 Журнал аудита", "", f"Записей: {total}", ""]
     if not items:
         lines.append("Аудит пока пуст.")
     else:
@@ -497,6 +526,6 @@ async def audit_page(call: CallbackQuery, offset: int):
     if nav:
         rows.append(nav)
     rows.append([InlineKeyboardButton(text="🔄 Обновить", callback_data=f"admin:audit:{offset}")])
-    rows.append([InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")])
+    rows.append([InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")])
     await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()

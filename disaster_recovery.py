@@ -46,14 +46,14 @@ def human_bytes(value: int | float) -> str:
 
 def _backup_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Backups", callback_data="admin:backups")],
+        [InlineKeyboardButton(text="⬅ Резервные копии", callback_data="admin:backups")],
     ])
 
 
 def _restore_back(backup_id: str | None = None) -> InlineKeyboardMarkup:
     target = f"admin:restore:b:{backup_id}" if backup_id else "admin:restore"
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Restore", callback_data=target)],
+        [InlineKeyboardButton(text="⬅ Восстановление", callback_data=target)],
     ])
 
 
@@ -64,26 +64,26 @@ def _backup_by_id(backup_id: str) -> Path:
 def _inspection_summary(info: BackupInspection, *, deep: bool = False) -> str:
     manifest_version = str(info.manifest.get("version") or "—") if info.manifest else "—"
     lines = [
-        "🧯 Disaster Recovery",
+        "🧯 Аварийное восстановление",
         "",
-        f"Backup: {info.path.name}",
+        f"Резервная копия: {info.path.name}",
         f"Создан: {info.created_at.strftime('%Y-%m-%d %H:%M UTC')}",
         f"Размер: {human_bytes(info.size)}",
-        f"Manifest version: {manifest_version}",
-        f"Архив: {'✅ valid' if info.valid else '🔴 invalid'}",
+        f"Версия manifest: {manifest_version}",
+        f"Архив: {'✅ корректен' if info.valid else '🔴 некорректен'}",
         "",
         "Компоненты:",
         f"{'✅' if info.has_bot_db else '—'} bot.sqlite3",
         f"{'✅' if info.has_xui_db else '—'} x-ui.db (Master)",
         f"{'✅' if info.has_bot_env else '—'} bot.env",
-        f"{'✅' if info.nginx_files else '—'} nginx/ ({info.nginx_files} files)",
-        f"{'✅' if info.nodes else '—'} node DBs ({len(info.nodes)})",
+        f"{'✅' if info.nginx_files else '—'} nginx/ ({info.nginx_files} файлов)",
+        f"{'✅' if info.nodes else '—'} БД нод ({len(info.nodes)})",
     ]
     if deep:
         if info.has_bot_db:
-            lines.append(f"bot.sqlite3 quick_check: {'✅ OK' if info.bot_db_ok else '🔴 FAIL'}")
+            lines.append(f"bot.sqlite3 quick_check: {'✅ успешно' if info.bot_db_ok else '🔴 ошибка'}")
         if info.has_xui_db:
-            lines.append(f"x-ui.db quick_check: {'✅ OK' if info.xui_db_ok else '🔴 FAIL'}")
+            lines.append(f"x-ui.db quick_check: {'✅ успешно' if info.xui_db_ok else '🔴 ошибка'}")
         if info.panel_token_matches is True:
             lines.append("PANEL_API_TOKEN: ✅ совпадает с текущим")
         elif info.panel_token_matches is False:
@@ -106,15 +106,15 @@ def _inspection_summary(info: BackupInspection, *, deep: bool = False) -> str:
 def _backup_actions(info: BackupInspection) -> InlineKeyboardMarkup:
     bid = info.backup_id
     rows: list[list[InlineKeyboardButton]] = [
-        [InlineKeyboardButton(text="🧪 Dry-run / Preflight", callback_data=f"admin:restore:pre:{bid}")],
+        [InlineKeyboardButton(text="🧪 Проверка (dry-run / preflight)", callback_data=f"admin:restore:pre:{bid}")],
     ]
     if info.has_bot_db:
-        rows.append([InlineKeyboardButton(text="🤖 Restore bot.sqlite3", callback_data=f"admin:restore:bot:{bid}")])
+        rows.append([InlineKeyboardButton(text="🤖 Восстановить bot.sqlite3", callback_data=f"admin:restore:bot:{bid}")])
     if info.has_xui_db:
-        rows.append([InlineKeyboardButton(text="🖥 Restore Master x-ui.db", callback_data=f"admin:restore:xui:{bid}")])
+        rows.append([InlineKeyboardButton(text="🖥 Восстановить Master x-ui.db", callback_data=f"admin:restore:xui:{bid}")])
     for idx, node in enumerate(info.nodes[:20]):
         rows.append([InlineKeyboardButton(
-            text=f"🌍 Restore node: {node.name}",
+            text=f"🌍 Восстановить ноду: {node.name}",
             callback_data=f"admin:restore:node:{bid}:{idx}",
         )])
     export_row: list[InlineKeyboardButton] = []
@@ -125,8 +125,8 @@ def _backup_actions(info: BackupInspection) -> InlineKeyboardMarkup:
     if export_row:
         rows.append(export_row)
     rows += [
-        [InlineKeyboardButton(text="🕘 Restore history", callback_data="admin:restore:history")],
-        [InlineKeyboardButton(text="⬅ Backups", callback_data="admin:backups")],
+        [InlineKeyboardButton(text="🕘 История восстановления", callback_data="admin:restore:history")],
+        [InlineKeyboardButton(text="⬅ Резервные копии", callback_data="admin:backups")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -139,16 +139,16 @@ async def restore_list(call: CallbackQuery):
     backups = restore_manager.list_backups()[:10]
     rows: list[list[InlineKeyboardButton]] = []
     lines = [
-        "🧯 Disaster Recovery",
+        "🧯 Аварийное восстановление",
         "",
-        "Restore доступен только Owner. Перед любым destructive restore выполняется preflight и создаётся rescue-copy текущего состояния.",
+        "Восстановление доступно только Owner. Перед любым опасным восстановлением выполняется preflight и создаётся rescue-копия текущего состояния.",
         "",
     ]
     if restore_manager.pending_bot_restore():
-        lines.append("⚠️ Есть ожидающее восстановление bot.sqlite3. Не создавай второй restore request.")
+        lines.append("⚠️ Есть ожидающее восстановление bot.sqlite3. Не создавай второй запрос восстановления.")
         lines.append("")
     if not backups:
-        lines.append("Полных backup пока нет.")
+        lines.append("Полных резервных копий пока нет.")
     for path in backups:
         bid = restore_manager.backup_id(path)
         stat = path.stat()
@@ -158,8 +158,8 @@ async def restore_list(call: CallbackQuery):
             callback_data=f"admin:restore:b:{bid}",
         )])
     rows += [
-        [InlineKeyboardButton(text="🕘 Restore history", callback_data="admin:restore:history")],
-        [InlineKeyboardButton(text="⬅ Backups", callback_data="admin:backups")],
+        [InlineKeyboardButton(text="🕘 История восстановления", callback_data="admin:restore:history")],
+        [InlineKeyboardButton(text="⬅ Резервные копии", callback_data="admin:backups")],
     ]
     await call.answer()
     await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
@@ -175,7 +175,7 @@ async def restore_detail(call: CallbackQuery):
         path = _backup_by_id(bid)
         info = await asyncio.to_thread(restore_manager.inspect_backup, path)
     except Exception as exc:
-        await call.answer("Backup недоступен", show_alert=True)
+        await call.answer("Резервная копия недоступна", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_backup_back())
         return
     await call.answer()
@@ -202,7 +202,7 @@ async def restore_preflight(call: CallbackQuery):
             details=f"valid={info.valid}; nodes={len(info.nodes)}; warnings={len(info.warnings)}; errors={len(info.errors)}",
             success=info.valid,
         )
-        status = "✅ Dry-run завершён. Никакие данные не изменены." if info.valid else "🔴 Preflight не пройден. Restore заблокирован до исправления ошибок."
+        status = "✅ Проверка завершена. Никакие данные не изменены." if info.valid else "🔴 Preflight не пройден. Восстановление заблокировано до исправления ошибок."
         await render_callback(call, 
             _inspection_summary(info, deep=True) + "\n\n" + status,
             reply_markup=_backup_actions(info),
@@ -212,7 +212,7 @@ async def restore_preflight(call: CallbackQuery):
             db, call, "restore.preflight", target_type="backup", target_id=bid,
             details=f"{type(exc).__name__}: {exc}", success=False,
         )
-        await render_callback(call, f"🔴 Preflight error: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_callback(call, f"🔴 Ошибка preflight: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
 
 
 async def _start_confirmation(
@@ -235,7 +235,7 @@ async def _start_confirmation(
     await call.answer()
     await render_callback(call, 
         warning
-        + "\n\nЭто destructive operation. Для второго подтверждения отправь отдельным сообщением точно:\n\n"
+        + "\n\nЭто destructive-операция. Для второго подтверждения отправь отдельным сообщением точно:\n\n"
         + phrase,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:restore:cancel:{backup_id}")
@@ -255,16 +255,16 @@ async def restore_bot_start(call: CallbackQuery, state: FSMContext):
         if not info.valid or info.bot_db_ok is not True:
             raise RestoreError("bot.sqlite3 не прошёл preflight")
     except Exception as exc:
-        await call.answer("Restore заблокирован", show_alert=True)
+        await call.answer("Восстановление заблокировано", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
         return
     await _start_confirmation(
         call, state,
         action="bot", backup_id=bid, phrase="RESTORE BOT",
         warning=(
-            "🤖 Restore bot.sqlite3\n\n"
-            "Будет создан rescue snapshot текущей bot DB, затем контейнер бота автоматически перезапустится и до старта Python заменит SQLite. "
-            "После запуска versioned SQLite migrations проверят и при необходимости обновят схему до версии текущего кода; failed/running/newer schema блокирует startup fail-closed. .env, 3x-ui и nginx не изменяются."
+            "🤖 Восстановление bot.sqlite3\n\n"
+            "Будет создан rescue snapshot текущей БД бота, затем контейнер бота автоматически перезапустится и до старта Python заменит SQLite. "
+            "После запуска versioned SQLite migrations проверят и при необходимости обновят схему до версии текущего кода; состояния failed/running/newer schema блокируют startup fail-closed. .env, 3x-ui и nginx не изменяются."
         ),
     )
 
@@ -286,12 +286,12 @@ async def restore_xui_start(call: CallbackQuery, state: FSMContext):
         if not info.valid or info.xui_db_ok is not True:
             raise RestoreError("x-ui.db не прошёл preflight")
     except Exception as exc:
-        await call.answer("Restore заблокирован", show_alert=True)
+        await call.answer("Восстановление заблокировано", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
         return
     phrase = "RESTORE XUI FORCE" if info.panel_token_matches is False else "RESTORE XUI"
     token_warning = (
-        "\n\n⚠️ PANEL_API_TOKEN в backup отличается от текущего. После restore текущий бот может потерять доступ к 3x-ui. "
+        "\n\n⚠️ PANEL_API_TOKEN в резервной копии отличается от текущего. После восстановления бот может потерять доступ к 3x-ui. "
         "Из архива можно скачать bot.env для ручного восстановления токена."
         if info.panel_token_matches is False else ""
     )
@@ -299,9 +299,9 @@ async def restore_xui_start(call: CallbackQuery, state: FSMContext):
         call, state,
         action="xui", backup_id=bid, phrase=phrase,
         warning=(
-            "🖥 Restore Master x-ui.db\n\n"
+            "🖥 Восстановление Master x-ui.db\n\n"
             "Перед импортом бот скачает свежую rescue-копию текущей базы Master. Затем база будет импортирована через штатный 3x-ui importDB с keepHostSettings=true. "
-            "3x-ui перезапустит panel/Xray после импорта. bot.sqlite3 и nginx не меняются."
+            "3x-ui перезапустит панель/Xray после импорта. bot.sqlite3 и nginx не меняются."
             + token_warning
         ),
     )
@@ -320,10 +320,10 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
         info = await asyncio.to_thread(restore_manager.inspect_backup, path, deep=True)
         node = info.nodes[idx]
         if not info.valid:
-            raise RestoreError("backup не прошёл preflight")
+            raise RestoreError("резервная копия не прошла preflight")
         if system_backup.direct_client_for(node.name, getattr(node, "id", None)) is None:
             raise RestoreError(
-                f"Для {node.name} не настроен direct admin token в NODE_BACKUP_TARGETS; автоматический restore запрещён."
+                f"Для {node.name} не настроен Direct Admin token в NODE_BACKUP_TARGETS; автоматическое восстановление запрещено."
             )
         data = await asyncio.to_thread(restore_manager.read_member, path, node.member_name)
         if node.database_filename.lower().endswith(".db"):
@@ -331,16 +331,16 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
             if not ok_db:
                 raise RestoreError(f"node DB quick_check failed: {detail}")
     except Exception as exc:
-        await call.answer("Restore node заблокирован", show_alert=True)
+        await call.answer("Восстановление ноды заблокировано", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
         return
     await _start_confirmation(
         call, state,
         action="node", backup_id=bid, node_index=idx, phrase="RESTORE NODE",
         warning=(
-            f"🌍 Restore node: {node.name}\n\n"
+            f"🌍 Восстановление ноды: {node.name}\n\n"
             "Перед импортом будет скачана rescue-копия текущей DB этой ноды. Затем используется штатный importDB с keepHostSettings=true. "
-            "Нода перезапустит свою panel/Xray. Остальные ноды и Master не изменяются."
+            "Нода перезапустит свою панель/Xray. Остальные ноды и Master не изменяются."
         ),
     )
 
@@ -353,7 +353,7 @@ async def restore_cancel(call: CallbackQuery, state: FSMContext):
     bid = (call.data or "").split(":", 3)[3]
     await state.clear()
     await call.answer("Отменено")
-    await render_callback(call, "Restore отменён. Данные не изменены.", reply_markup=_restore_back(bid))
+    await render_callback(call, "Восстановление отменено. Данные не изменены.", reply_markup=_restore_back(bid))
 
 
 async def _exit_for_bot_restore() -> None:
@@ -373,7 +373,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
     state_data = await state.get_data()
     phrase = str(state_data.get("phrase") or "")
     if (message.text or "").strip() != phrase:
-        await render_input(message, f"Фраза не совпала. Restore не выполнен. Для подтверждения отправь точно: {phrase}")
+        await render_input(message, f"Фраза не совпала. Восстановление не выполнено. Для подтверждения отправь точно: {phrase}")
         return
     action = str(state_data.get("restore_action") or "")
     bid = str(state_data.get("backup_id") or "")
@@ -389,7 +389,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             current_panel_token=settings.panel_api_token,
         )
         if not info.valid:
-            raise RestoreError("Backup больше не проходит preflight.")
+            raise RestoreError("Резервная копия больше не проходит preflight.")
 
         if action == "bot":
             marker = await asyncio.to_thread(
@@ -402,8 +402,8 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 details=f"rescue={marker.get('rescue_path')}",
             )
             await render_input(message, 
-                "✅ Restore bot.sqlite3 подготовлен.\n\n"
-                "Контейнер бота перезапустится примерно через 2 секунды. На старте restore-bootstrap заменит DB атомарно; при ошибке старая DB останется, а бот всё равно запустится."
+                "✅ Восстановление bot.sqlite3 подготовлено.\n\n"
+                "Контейнер бота перезапустится примерно через 2 секунды. На старте restore-bootstrap заменит БД атомарно; при ошибке старая БД останется, а бот всё равно запустится."
             )
             asyncio.create_task(_exit_for_bot_restore())
             return
@@ -417,7 +417,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 restore_manager.save_rescue_blob, "master-xui", current_name, current
             )
             await render_input(message, 
-                f"💾 Rescue текущего Master сохранён: {rescue.name}\nЗапускаю importDB…"
+                f"💾 Rescue-копия текущего Master сохранена: {rescue.name}\nЗапускаю importDB…"
             )
             await xui.import_database(archived, "x-ui.db", keep_host_settings=True)
             await asyncio.to_thread(restore_manager.append_history, {
@@ -429,8 +429,8 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 details=f"keepHostSettings=true; rescue={rescue.name}",
             )
             await render_input(message, 
-                "✅ Master x-ui DB импортирована. 3x-ui перезапускает panel/Xray.\n\n"
-                "Проверь через 5–10 секунд Monitoring → System Health. Если API token из backup отличался, возможно потребуется вернуть соответствующий PANEL_API_TOKEN в .env."
+                "✅ БД Master x-ui импортирована. 3x-ui перезапускает панель/Xray.\n\n"
+                "Проверь через 5–10 секунд «Мониторинг → Состояние системы». Если API token из резервной копии отличался, возможно потребуется вернуть соответствующий PANEL_API_TOKEN в .env."
             )
             return
 
@@ -450,7 +450,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 restore_manager.save_rescue_blob, f"node-{node.name}", current_name, current
             )
             await render_input(message, 
-                f"💾 Rescue текущей DB {node.name} сохранён: {rescue.name}\nЗапускаю importDB…"
+                f"💾 Rescue-копия текущей БД {node.name} сохранена: {rescue.name}\nЗапускаю importDB…"
             )
             await client.import_database(
                 archived,
@@ -466,13 +466,13 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 details=f"backup={path.name}; keepHostSettings=true; rescue={rescue.name}",
             )
             await render_input(message, 
-                f"✅ DB ноды {node.name} импортирована. Нода перезапускает panel/Xray.\n"
-                "Через несколько секунд открой Infrastructure → Nodes и выполни проверку. "
-                "Если backup содержал другой admin/API token, обнови соответствующий NODE_BACKUP_*_API_TOKEN в .env."
+                f"✅ БД ноды {node.name} импортирована. Нода перезапускает панель/Xray.\n"
+                "Через несколько секунд открой «Инфраструктура → Ноды» и выполни проверку. "
+                "Если резервная копия содержала другой admin/API token, обнови соответствующий NODE_BACKUP_*_API_TOKEN в .env."
             )
             return
 
-        raise RestoreError("Неизвестный restore action")
+        raise RestoreError("Неизвестное действие восстановления")
     except Exception as exc:
         await asyncio.to_thread(restore_manager.append_history, {
             "status": "failed", "kind": action or "unknown", "backup_id": bid,
@@ -482,7 +482,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             db, message, "restore.failed", target_type="backup", target_id=bid,
             details=f"action={action}; {type(exc).__name__}: {exc}", success=False,
         )
-        await render_input(message, f"🔴 Restore не выполнен: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
+        await render_input(message, f"🔴 Восстановление не выполнено: {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
 
 
 @disaster_recovery_router.callback_query(F.data.regexp(r"^admin:restore:env:[A-Za-z0-9._-]+$"))
@@ -496,7 +496,7 @@ async def restore_export_env(call: CallbackQuery):
         out = await asyncio.to_thread(restore_manager.export_member, path, "bot.env", filename="bot.env")
         await call.message.answer_document(
             FSInputFile(out),
-            caption="bot.env из backup. Содержит секреты. Бот НЕ применяет его автоматически.",
+            caption="bot.env из резервной копии. Содержит секреты. Бот НЕ применяет его автоматически.",
         )
         try:
             out.unlink()
@@ -505,7 +505,7 @@ async def restore_export_env(call: CallbackQuery):
         await audit_from_call(db, call, "restore.export_env", target_type="backup", target_id=path.name)
         await call.answer()
     except Exception as exc:
-        await call.answer("Ошибка export", show_alert=True)
+        await call.answer("Ошибка экспорта", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
 
 
@@ -521,7 +521,7 @@ async def restore_export_nginx(call: CallbackQuery):
         await call.message.answer_document(
             FSInputFile(out),
             caption=(
-                "nginx/ из backup. Автоматически НЕ применяется: восстанови вручную, затем обязательно `nginx -t` перед reload."
+                "nginx/ из резервной копии. Автоматически НЕ применяется: восстанови вручную, затем обязательно `nginx -t` перед reload."
             ),
         )
         try:
@@ -531,7 +531,7 @@ async def restore_export_nginx(call: CallbackQuery):
         await audit_from_call(db, call, "restore.export_nginx", target_type="backup", target_id=path.name)
         await call.answer()
     except Exception as exc:
-        await call.answer("Ошибка export", show_alert=True)
+        await call.answer("Ошибка экспорта", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
 
 
@@ -541,9 +541,9 @@ async def restore_history(call: CallbackQuery):
     if not ok:
         return
     items = await asyncio.to_thread(restore_manager.recent_history, 12)
-    lines = ["🕘 Restore history", ""]
+    lines = ["🕘 История восстановления", ""]
     if not items:
-        lines.append("Restore ещё не запускался.")
+        lines.append("Восстановление ещё не запускалось.")
     for item in items:
         status = str(item.get("status") or "?")
         icon = "✅" if status == "success" else "🔴" if status == "failed" else "🟡"
@@ -567,14 +567,14 @@ async def send_boot_restore_notice(bot) -> None:
     status = str(result.get("status") or "")
     if status == "success":
         text = (
-            "✅ Disaster Recovery: bot.sqlite3 восстановлена до запуска бота.\n"
-            f"Backup: {result.get('backup_name') or result.get('backup_id') or '—'}\n"
-            f"Rescue предыдущей DB: {Path(str(result.get('rescue') or '')).name or '—'}"
+            "✅ Аварийное восстановление: bot.sqlite3 восстановлена до запуска бота.\n"
+            f"Резервная копия: {result.get('backup_name') or result.get('backup_id') or '—'}\n"
+            f"Rescue-копия предыдущей БД: {Path(str(result.get('rescue') or '')).name or '—'}"
         )
     else:
         text = (
-            "🔴 Disaster Recovery: restore bot.sqlite3 НЕ выполнен. Бот запущен со старой DB.\n"
-            f"Ошибка: {result.get('error') or 'unknown'}"
+            "🔴 Аварийное восстановление: bot.sqlite3 НЕ восстановлена. Бот запущен со старой БД.\n"
+            f"Ошибка: {result.get('error') or 'неизвестно'}"
         )
     for admin_id in settings.admin_telegram_ids:
         try:

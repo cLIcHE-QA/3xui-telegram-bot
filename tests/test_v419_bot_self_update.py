@@ -346,8 +346,8 @@ class RecoveryAlertCopyTests(unittest.TestCase):
         }
         with patch.dict(os.environ, env, clear=False):
             import logs_alerts
-        self.assertEqual(logs_alerts.RULE_LABELS["job_failed"], "Background job failed")
-        self.assertEqual(logs_alerts.RECOVERY_LABELS["job_failed"], "Background job recovered")
+        self.assertEqual(logs_alerts.RULE_LABELS["job_failed"], "Фоновое задание завершилось ошибкой")
+        self.assertEqual(logs_alerts.RECOVERY_LABELS["job_failed"], "Фоновое задание снова выполняется успешно")
 
 
 if __name__ == "__main__":

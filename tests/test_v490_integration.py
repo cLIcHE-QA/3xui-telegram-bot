@@ -233,7 +233,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         ):
             text = self.storage.backup_status_text()
         self.assertIn('Последняя: ещё не создана', text)
-        self.assertIn('Backup нод: не настроен', text)
+        self.assertIn('Резервные копии нод: не настроены', text)
 
     def test_real_xui_client_has_version_api(self):
         from version_api import VersionAPIMixin

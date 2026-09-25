@@ -19,6 +19,7 @@ from node_ui import (
     master_detail_keyboard,
     node_status_icon,
     xray_icon,
+    xray_state_text,
 )
 from version_api import VersionAPIError
 from xui import NodeInfo, XUIClient, XUIError
@@ -117,19 +118,19 @@ async def admin_master_detail(call: CallbackQuery):
 
     lines = [f"{settings.master_flag} {settings.master_name}"]
     lines.append(
-        "🟢 Online · 3x-ui API"
+        "🟢 В сети · 3x-ui API"
         if status is not None
-        else f"🔴 Offline · 3x-ui API — {(api_error or 'unknown error')[:160]}"
+        else f"🔴 Не в сети · 3x-ui API — {(api_error or 'неизвестная ошибка')[:160]}"
     )
 
     if status:
         try:
             panel_info = await xui.get_panel_update_info()
             panel_version = str(
-                panel_info.get("currentVersion") or "unavailable"
+                panel_info.get("currentVersion") or "недоступно"
             )
         except VersionAPIError:
-            panel_version = "unavailable"
+            panel_version = "недоступно"
         lines.append(f"3x-ui: {panel_version}")
 
         xray = status.get("xray") or {}
@@ -137,7 +138,7 @@ async def admin_master_detail(call: CallbackQuery):
         xray_ok = xray_state in {"running", "started", "online"}
         xray_version = str(xray.get("version") or "")
         lines.append(
-            f"{'🟢' if xray_ok else '🔴'} Xray: {xray_state}"
+            f"{'🟢' if xray_ok else '🔴'} Xray: {xray_state_text(xray_state)}"
             + (f" {xray_version}" if xray_version else "")
         )
 
@@ -157,22 +158,22 @@ async def admin_master_detail(call: CallbackQuery):
         if disk.get("total"):
             lines.append(
                 usage_line(
-                    "💽 Disk",
+                    "💽 Диск",
                     int(disk.get("current") or 0),
                     int(disk["total"]),
                 )
             )
         if status.get("uptime") is not None:
             lines.append(
-                f"⏱ Uptime: {duration_text(int(status.get('uptime') or 0))}"
+                f"⏱ Время работы: {duration_text(int(status.get('uptime') or 0))}"
             )
 
     lines.append(
-        f"{'🟢' if local_ok else '🔴'} Subscription proxy"
+        f"{'🟢' if local_ok else '🔴'} Прокси подписок"
         + ("" if local_ok else f" — {local_detail}")
     )
     lines.append(
-        f"{'🟢' if public_ok else '🔴'} Public subscription"
+        f"{'🟢' if public_ok else '🔴'} Публичная подписка"
         + ("" if public_ok else f" — {public_detail}")
     )
 
@@ -186,12 +187,12 @@ async def admin_master_detail(call: CallbackQuery):
     latest = await asyncio.to_thread(backup_manager.latest_backup)
     if latest:
         lines.append(
-            "💾 Backup: "
+            "💾 Резервная копия: "
             + latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
             + f" ({human_bytes(latest.size)})"
         )
     else:
-        lines.append("⚠️ Backup: ещё не создан")
+        lines.append("⚠️ Резервная копия: ещё не создана")
 
     await render_callback(
         call,
@@ -254,10 +255,10 @@ async def admin_health(call: CallbackQuery):
     ]
 
     if inbounds is not None or server_status is not None:
-        lines.append("🟢 3x-ui API / panel route")
+        lines.append("🟢 3x-ui API / маршрут панели")
     else:
-        detail = (xui_error or "unknown error")[:160]
-        lines.append(f"🔴 3x-ui API / panel route — {detail}")
+        detail = (xui_error or "неизвестная ошибка")[:160]
+        lines.append(f"🔴 3x-ui API / маршрут панели — {detail}")
 
     if server_status:
         xray_status = server_status.get("xray") or {}
@@ -265,14 +266,14 @@ async def admin_health(call: CallbackQuery):
         xray_ok = xray_state in {"running", "started", "online"}
         xray_version = str(xray_status.get("version") or "")
         lines.append(
-            f"{'🟢' if xray_ok else '🔴'} Xray: {xray_state}"
+            f"{'🟢' if xray_ok else '🔴'} Xray: {xray_state_text(xray_state)}"
             + (f" {xray_version}" if xray_version else "")
         )
 
         awg = server_status.get("amneziawg") or {}
         if awg.get("configured"):
             lines.append(
-                f"{'🟢' if awg.get('running') else '🔴'} AmneziaWG core"
+                f"{'🟢' if awg.get('running') else '🔴'} Ядро AmneziaWG"
             )
 
         cpu = server_status.get("cpu")
@@ -291,22 +292,22 @@ async def admin_health(call: CallbackQuery):
         if disk.get("total"):
             lines.append(
                 usage_line(
-                    "💽 Disk",
+                    "💽 Диск",
                     int(disk.get("current") or 0),
                     int(disk["total"]),
                 )
             )
         if server_status.get("uptime") is not None:
             lines.append(
-                f"⏱ Uptime: {duration_text(int(server_status.get('uptime') or 0))}"
+                f"⏱ Время работы: {duration_text(int(server_status.get('uptime') or 0))}"
             )
 
     lines.append(
-        f"{'🟢' if local_ok else '🔴'} Subscription proxy (локально)"
+        f"{'🟢' if local_ok else '🔴'} Прокси подписок (локально)"
         + ("" if local_ok else f" — {local_detail}")
     )
     lines.append(
-        f"{'🟢' if public_ok else '🔴'} Subscription через nginx/TLS"
+        f"{'🟢' if public_ok else '🔴'} Подписка через nginx/TLS"
         + ("" if public_ok else f" — {public_detail}")
     )
 
@@ -315,7 +316,7 @@ async def admin_health(call: CallbackQuery):
             (item for item in inbounds if inbound_is_managed(settings, item)),
             key=lambda item: (item.port, item.protocol, item.id),
         )
-        lines += ["", "Inbound'ы master:"]
+        lines += ["", "Inbound'ы Master:"]
         if managed:
             for item in managed:
                 icon = "🟢" if item.enable else "🔴"
@@ -325,9 +326,9 @@ async def admin_health(call: CallbackQuery):
         else:
             lines.append("⚪ Нет inbound'ов после фильтров .env")
 
-    lines += ["", "Nodes"]
+    lines += ["", "Ноды"]
     if nodes_error:
-        lines.append(f"🔴 Nodes API — {nodes_error[:180]}")
+        lines.append(f"🔴 API нод — {nodes_error[:180]}")
     elif nodes:
         for node in nodes[:20]:
             icon = node_status_icon(node)
@@ -340,8 +341,8 @@ async def admin_health(call: CallbackQuery):
                 node_line += f" · {node.latency_ms}ms"
             lines.append(node_line)
             lines.append(
-                f"   clients {node.client_count} · online {node.online_count} · "
-                f"inbounds {node.inbound_count} · up {duration_text(node.uptime_secs)}"
+                f"   клиентов {node.client_count} · в сети {node.online_count} · "
+                f"inbound'ов {node.inbound_count} · работает {duration_text(node.uptime_secs)}"
             )
         if len(nodes) > 20:
             lines.append(f"… ещё {len(nodes) - 20}")
@@ -352,19 +353,19 @@ async def admin_health(call: CallbackQuery):
     latest_backup = await asyncio.to_thread(backup_manager.latest_backup)
     if latest_backup:
         lines.append(
-            "💾 Последний backup: "
+            "💾 Последняя резервная копия: "
             + latest_backup.created_at.strftime("%Y-%m-%d %H:%M UTC")
             + f" ({human_bytes(latest_backup.size)})"
         )
     else:
-        lines.append("⚠️ Backup: ещё не создан")
+        lines.append("⚠️ Резервная копия: ещё не создана")
 
     if settings.node_backup_targets:
         lines.append(
-            f"💾 Backup нод настроен: {len(settings.node_backup_targets)}"
+            f"💾 Резервные копии нод настроены: {len(settings.node_backup_targets)}"
         )
     elif nodes:
-        lines.append("⚠️ Backup БД нод: не настроен")
+        lines.append("⚠️ Резервные копии БД нод: не настроены")
 
     await render_callback(
         call,
