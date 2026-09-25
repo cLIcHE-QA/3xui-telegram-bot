@@ -28,11 +28,13 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         })
         cls.env.start()
         import bot
+        import client_access
         import advanced_users
         import system_admin
         import storage_admin
         import versions_updates
         cls.bot = bot
+        cls.client = client_access
         cls.users = advanced_users
         cls.system = system_admin
         cls.storage = storage_admin
@@ -69,7 +71,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
         root = Path(__file__).resolve().parents[1]
         files = [
-            'bot.py', 'node_admin.py', 'system_admin.py', 'storage_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
+            'bot.py', 'client_access.py', 'node_admin.py', 'system_admin.py', 'storage_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
             'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
             'fleet_operations.py',
@@ -131,6 +133,28 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             self.system.usage_line('RAM', 50, 100),
             'RAM: 50 B / 100 B (50%)',
+        )
+
+    def test_client_access_routes_have_single_owner(self):
+        client_source = inspect.getsource(self.client)
+        bot_source = inspect.getsource(self.bot)
+        for marker in (
+            '@client_access_router.message(CommandStart())',
+            '@client_access_router.message(Command("inbounds"))',
+            '@client_access_router.message(Command("create"))',
+            '@client_access_router.message(Command("subscription"))',
+            '@client_access_router.callback_query(F.data == "inbounds")',
+            '@client_access_router.callback_query(F.data == "create")',
+            '@client_access_router.callback_query(F.data == "subscription")',
+        ):
+            self.assertIn(marker, client_source)
+        self.assertNotIn('CommandStart()', bot_source)
+        self.assertNotIn('@router.message(Command("inbounds"))', bot_source)
+        self.assertNotIn('@router.message(Command("create"))', bot_source)
+        self.assertNotIn('@router.message(Command("subscription"))', bot_source)
+        self.assertEqual(
+            self.callback_values(self.client.user_menu()),
+            ['inbounds', 'create', 'subscription'],
         )
 
     def test_legacy_user_callbacks_are_owned_by_advanced_users(self):
@@ -238,6 +262,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('direct_client_for(', source)
 
     def test_router_registered_and_master_shows_panel_version(self):
+        self.assertIn('dp.include_router(client_access_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(node_admin_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(system_admin_router)', inspect.getsource(self.bot.main))
@@ -250,8 +275,8 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
     def test_single_source_for_runtime_version(self):
         from version import APP_VERSION
         self.assertEqual(APP_VERSION, '4.19.1')
-        self.assertIn('APP_VERSION', inspect.getsource(self.bot.start))
-        self.assertIn('APP_VERSION', inspect.getsource(self.bot.create_user))
+        self.assertIn('APP_VERSION', inspect.getsource(self.client.start))
+        self.assertIn('APP_VERSION', inspect.getsource(self.client.create_user))
         from system_backup import SystemBackupService
         self.assertIn('version=APP_VERSION', inspect.getsource(SystemBackupService.create_full_backup))
 
