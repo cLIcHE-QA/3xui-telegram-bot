@@ -32,11 +32,11 @@
 Обнаружение нод и телеметрия по-прежнему поступают от Master. Для изменений нужна включённая, доступная, непосредственно подключённая нода — не транзитивная — и существующая конфигурация:
 
 ```env
-NODE_BACKUP_TARGETS=FI
-NODE_BACKUP_FI_NODE_NAME=Finland
-NODE_BACKUP_FI_PANEL_URL=https://fi-panel.example.com/basepath
-NODE_BACKUP_FI_API_TOKEN=replace_with_dedicated_admin_scope_token
-NODE_BACKUP_FI_VERIFY_TLS=true
+NODE_BACKUP_TARGETS=NODE1
+NODE_BACKUP_NODE1_NODE_NAME=Edge-1
+NODE_BACKUP_NODE1_PANEL_URL=https://panel-node1.example.com/basepath
+NODE_BACKUP_NODE1_API_TOKEN=replace_with_dedicated_admin_scope_token
+NODE_BACKUP_NODE1_VERIFY_TLS=true
 ```
 
 Выделенное подключение повторно используется для получения версий, копирования базы и API обновления сервера. Новый токен через интерфейс не запрашивается. Старые кнопки `updatepanel:run` ведут на новый экран и не позволяют обойти резервное копирование и подтверждение. Ноды без прямого токена остаются видны по телеметрии, но обновлять их через этот сценарий нельзя.
