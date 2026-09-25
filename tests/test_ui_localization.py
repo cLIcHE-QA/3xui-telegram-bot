@@ -182,7 +182,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text="💎 Тариф"',
             'text="🚀 Согласование"',
             'text="🔄 Сбросить трафик"',
-            '"👥 Пользователи\\n\\n"',
+            'f"👥 Пользователи\\n\\nПользователи в БД бота:',
             '"☑️ Массовые действия с пользователями\\n\\n"',
         ):
             self.assertIn(needle, users)
