@@ -643,7 +643,7 @@ async def server_groups_list(call: CallbackQuery):
         "🗂 Группы серверов\n\n"
         f"Групп: {len(groups)}\n\n"
         "Группа объединяет Master и/или ноды и задаёт область согласования. "
-        "Для каждой группы можно использовать все managed inbound'ы или выбрать конкретные.",
+        "Для каждой группы можно использовать все управляемые inbound'ы или выбрать конкретные.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
