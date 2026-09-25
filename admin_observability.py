@@ -132,15 +132,15 @@ async def traffic_view(call: CallbackQuery):
     lines = [
         "📊 Трафик",
         "",
-        f"Клиентов 3x-ui: {len(rows)}",
-        f"Пользователей бота: {len(bot_users)}",
+        f"👥 Клиентов 3x-ui: {len(rows)}",
+        f"👥 Пользователей бота: {len(bot_users)}",
         f"⬆ Отправлено: {human_bytes(total_up)}",
         f"⬇ Получено: {human_bytes(total_down)}",
-        f"Σ Использовано: {human_bytes(total_up + total_down)}",
+        f"📊 Использовано: {human_bytes(total_up + total_down)}",
     ]
     if finite_quota:
         pct = min(999.9, finite_used * 100 / finite_quota)
-        lines.append(f"Квоты с лимитом: {human_bytes(finite_used)} / {human_bytes(finite_quota)} ({pct:.1f}%)")
+        lines.append(f"🎯 Квоты с лимитом: {human_bytes(finite_used)} / {human_bytes(finite_quota)} ({pct:.1f}%)")
 
     lines += ["", "Больше всего трафика:"]
     if not rows:
@@ -190,8 +190,8 @@ async def online_view(call: CallbackQuery):
     lines = [
         "🟢 Клиенты в сети",
         "",
-        f"Сейчас подключено: {len(online_unique)}",
-        f"Из пользователей бота: {sum(1 for email in online_unique if email in bot_users)}",
+        f"👥 Сейчас подключено: {len(online_unique)}",
+        f"👥 Из пользователей бота: {sum(1 for email in online_unique if email in bot_users)}",
         "",
     ]
     if online_unique:
@@ -290,17 +290,17 @@ async def jobs_view(call: CallbackQuery):
     lines = [
         "⚙️ Задания",
         "",
-        "Ежедневная резервная копия",
-        f"Статус расписания: {'🟢 включено' if settings.backup_enabled else '⚪ выключено'}",
-        f"Следующий запуск: {next_backup_text()}",
-        f"Последний по расписанию: {job_line(daily)}",
-        f"Последний ручной: {job_line(manual)}",
-        f"Последняя внешняя копия: {job_line(offsite) if settings.offsite_backup_enabled else 'выключена'}",
+        "💾 Ежедневная резервная копия",
+        f"{'🟢' if settings.backup_enabled else '⚪'} Статус расписания: {'включено' if settings.backup_enabled else 'выключено'}",
+        f"⏭ Следующий запуск: {next_backup_text()}",
+        f"🕘 Последний по расписанию: {job_line(daily)}",
+        f"👤 Последний ручной: {job_line(manual)}",
+        f"☁️ Последняя внешняя копия: {job_line(offsite) if settings.offsite_backup_enabled else 'выключена'}",
         "",
-        "Согласование",
-        f"Последнее согласование пользователей: {job_line(provision)}",
+        "🧩 Согласование",
+        f"🕘 Последнее согласование пользователей: {job_line(provision)}",
         "",
-        "Последние запуски:",
+        "🕘 Последние запуски:",
     ]
     if history:
         for run in history:

@@ -563,14 +563,14 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
     lines = [
         "🤖 Обновления бота",
         "",
-        f"Текущий релиз: {status.current_release or 'неизвестно'}",
-        f"Бот: {status.bot_version or APP_VERSION}",
-        f"Последний опубликованный: {latest}",
-        f"Агент: {status.agent_version or 'неизвестно'}",
-        f"Состояние: {_status_text(status.health)} · БД: {_status_text(status.db)} · 3x-ui: {_status_text(status.connectivity)}",
+        f"📦 Текущий релиз: {status.current_release or 'неизвестно'}",
+        f"🤖 Бот: {status.bot_version or APP_VERSION}",
+        f"🆕 Последний опубликованный: {latest}",
+        f"🧩 Агент: {status.agent_version or 'неизвестно'}",
+        f"🩺 Состояние: {_status_text(status.health)} · БД: {_status_text(status.db)} · 3x-ui: {_status_text(status.connectivity)}",
     ]
     if status.active_operation:
-        lines += ["", f"Активная операция: {status.active_operation}"]
+        lines += ["", f"⚙️ Активная операция: {status.active_operation}"]
 
     rows: list[list[tuple[str, str]]] = []
     if latest != status.current_release and not status.active_operation:
@@ -632,10 +632,10 @@ async def update_release_input(message: Message, state: FSMContext):
     lines = [
         "🤖 Проверка обновления бота",
         "",
-        f"Текущий релиз: {preflight.current_release}",
-        f"Целевой релиз: {preflight.release}",
-        f"Целевой SHA: {preflight.target_sha[:12]}",
-        f"Направление: {_preflight_direction(preflight)}",
+        f"📦 Текущий релиз: {preflight.current_release}",
+        f"🎯 Целевой релиз: {preflight.release}",
+        f"🔖 Целевой SHA: {preflight.target_sha[:12]}",
+        f"🧭 Направление: {_preflight_direction(preflight)}",
         "",
         "Примечания к релизу:",
         (preflight.notes or "нет примечаний к релизу")[:2400],
@@ -680,10 +680,10 @@ async def update_preflight(call: CallbackQuery):
     lines = [
         "🤖 Проверка обновления бота",
         "",
-        f"Текущий релиз: {preflight.current_release}",
-        f"Целевой релиз: {preflight.release}",
-        f"Целевой SHA: {preflight.target_sha[:12]}",
-        f"Направление: {_preflight_direction(preflight)}",
+        f"📦 Текущий релиз: {preflight.current_release}",
+        f"🎯 Целевой релиз: {preflight.release}",
+        f"🔖 Целевой SHA: {preflight.target_sha[:12]}",
+        f"🧭 Направление: {_preflight_direction(preflight)}",
         "",
         "Примечания к релизу:",
         (preflight.notes or "нет примечаний к релизу")[:2400],

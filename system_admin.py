@@ -334,15 +334,15 @@ async def admin_health(call: CallbackQuery):
             icon = node_status_icon(node)
             xicon = xray_icon(node)
             node_line = (
-                f"{icon} {node.name} · Xray {xicon} · "
-                f"CPU {node.cpu_pct:.0f}% · RAM {node.mem_pct:.0f}%"
+                f"{icon} {node.name} · {xicon} Xray · "
+                f"🧮 CPU {node.cpu_pct:.0f}% · 🧠 RAM {node.mem_pct:.0f}%"
             )
             if node.latency_ms:
-                node_line += f" · {node.latency_ms}ms"
+                node_line += f" · 📶 {node.latency_ms} ms"
             lines.append(node_line)
             lines.append(
-                f"   клиентов {node.client_count} · в сети {node.online_count} · "
-                f"inbound'ов {node.inbound_count} · работает {duration_text(node.uptime_secs)}"
+                f"   👥 Клиентов {node.client_count} · 📡 В сети {node.online_count} · "
+                f"🌐 Inbound'ов {node.inbound_count} · ⏱ Время работы {duration_text(node.uptime_secs)}"
             )
         if len(nodes) > 20:
             lines.append(f"… ещё {len(nodes) - 20}")

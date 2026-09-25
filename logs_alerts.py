@@ -238,7 +238,7 @@ async def master_log_view(call: CallbackQuery):
         return
     shown = lines[-count:]
     await render_callback(call, 
-        f"{title}\nФильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(shown)}",
+        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(shown)}",
         reply_markup=_log_controls(source, count, level),
     )
 
@@ -318,7 +318,7 @@ async def node_log_view(call: CallbackQuery):
         await call.answer()
         return
     await render_callback(call, 
-        f"{title}\nФильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(lines[-count:])}",
+        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(lines[-count:])}",
         reply_markup=_log_controls(source, count, level, node_id=node_id),
     )
     await call.answer()

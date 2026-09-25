@@ -58,25 +58,25 @@ def backup_status_text() -> str:
     lines = ["💾 Резервные копии", ""]
     if latest:
         ts = latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
-        lines.append(f"Последняя: {ts}")
-        lines.append(f"Размер: {human_bytes(latest.size)}")
+        lines.append(f"🕘 Последняя: {ts}")
+        lines.append(f"📦 Размер: {human_bytes(latest.size)}")
     else:
-        lines.append("Последняя: ещё не создана")
-    lines.append(f"Хранится полных копий: {len(items)} / {settings.backup_keep}")
-    lines.append(f"Автоматически: {'включено' if settings.backup_enabled else 'выключено'}")
+        lines.append("🕘 Последняя: ещё не создана")
+    lines.append(f"🗄 Хранится полных копий: {len(items)} / {settings.backup_keep}")
+    lines.append(f"{'🟢' if settings.backup_enabled else '⚪'} Автоматически: {'включено' if settings.backup_enabled else 'выключено'}")
     if settings.backup_enabled:
-        lines.append(f"Ежедневно: {settings.backup_hour_utc:02d}:00 UTC")
+        lines.append(f"🗓 Ежедневно: {settings.backup_hour_utc:02d}:00 UTC")
         if settings.backup_send_to_admins:
-            lines.append("Отправка администраторам: включена")
+            lines.append("📤 Отправка администраторам: включена")
     if settings.offsite_backup_enabled:
         lines.append(f"☁️ Внешняя копия: включена · шифрование · хранить {settings.offsite_backup_keep}")
     else:
         lines.append("☁️ Внешняя копия: выключена")
     names = system_backup.configured_node_names()
     if names:
-        lines.append(f"Резервные копии нод: {len(names)} — {', '.join(names)}")
+        lines.append(f"🌍 Резервные копии нод: {len(names)} — {', '.join(names)}")
     else:
-        lines.append("Резервные копии нод: не настроены")
+        lines.append("🌍 Резервные копии нод: не настроены")
     lines += ["", "⚠️ Полный архив содержит чувствительные данные."]
     return "\n".join(lines)
 
