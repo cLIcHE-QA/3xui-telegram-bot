@@ -313,7 +313,7 @@ async def node_restart_xray_legacy(call: CallbackQuery):
     await render_callback(
         call,
         "🔄 Управление Xray перенесено в единый раздел «🧩 Управление 3x-ui». "
-        "Старый callback больше не выполняет изменение напрямую.",
+        "Старое действие больше не выполняет изменение напрямую.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🧩 Управление 3x-ui", callback_data=f"admin:hostctl:n{node_id}")],
             [InlineKeyboardButton(text="⬅ Нода", callback_data=f"admin:node:{node_id}")],
@@ -346,7 +346,7 @@ async def node_delete_ask(call: CallbackQuery):
         await call.answer(str(exc)[:180], show_alert=True)
         return
     if attached:
-        await call.answer("Сначала удали/detach inbound'ы", show_alert=True)
+        await call.answer("Сначала перенеси или удали inbound'ы", show_alert=True)
         await render_callback(call, 
             f"🛡 Ноду {node.name} нельзя удалить: к ней привязано inbound'ов: {len(attached)}.\n"
             "Сначала перенеси или удали их. 3x-ui также блокирует удаление ноды с привязанными inbound'ами.",
