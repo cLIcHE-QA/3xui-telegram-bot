@@ -42,7 +42,7 @@ class GitConventionTests(unittest.TestCase):
             self.assertIn(needle, readme)
 
         self.assertNotRegex(readme, r"(?m)^## v\d")
-        self.assertNotRegex(readme, r"deploy-release\.sh v4\.\d")
+        self.assertNotRegex(readme, r"deploy-release\\.sh v\\d+\\.\\d+\\.\\d+")
         self.assertIn("./scripts/deploy-release.sh vX.Y.Z", readme)
 
     def test_pr_template_contains_required_sections(self):
