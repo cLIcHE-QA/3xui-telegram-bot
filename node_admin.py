@@ -23,6 +23,8 @@ from node_ui import (
     node_detail_text as node_detail_text_view,
     node_display_name,
     node_status_icon,
+    node_status_text,
+    xray_state_text,
     nodes_menu as nodes_menu_view,
 )
 from system_backup import SystemBackupService
@@ -66,6 +68,24 @@ def node_detail_text(node: NodeInfo) -> str:
     )
 
 
+def _binding_mode_text(mode: str) -> str:
+    return {
+        "node_id": "node_id",
+        "legacy_name": "legacy name",
+        "missing": "не настроена",
+    }.get(mode, mode or "не настроена")
+
+
+def _host_state_text(state: str) -> str:
+    return {
+        "running": "работает",
+        "stopped": "остановлен",
+        "transitioning": "переходное состояние",
+        "unavailable": "недоступен",
+        "не настроен": "не настроен",
+    }.get((state or "").lower(), state or "неизвестно")
+
+
 def _host_control_target_for_node(node: NodeInfo):
     for target in settings.host_control_targets:
         if target.node_id == node.id:
@@ -105,7 +125,7 @@ async def admin_nodes(call: CallbackQuery):
         1 for node in nodes if node.enable and node.status == "online"
     )
     total = 1 + len(nodes)
-    text = f"🌍 Ноды\n\nСерверов: {total} · online: {online}"
+    text = f"🌍 Ноды\n\nСерверов: {total} · в сети: {online}"
     if not nodes and not nodes_error:
         text += (
             "\n\nПока зарегистрированных нод нет. "
@@ -114,7 +134,7 @@ async def admin_nodes(call: CallbackQuery):
     if master_error:
         text += f"\n\n⚠️ Master: {master_error[:180]}"
     if nodes_error:
-        text += f"\n⚠️ Nodes API: {nodes_error[:180]}"
+        text += f"\n⚠️ API нод: {nodes_error[:180]}"
 
     await render_callback(call, text, reply_markup=nodes_menu(nodes, master_online))
     await call.answer()
@@ -275,20 +295,20 @@ async def _node_add_test_and_show(
         f"Имя: {node_display_name(str(data['name']))}",
         f"Адрес: {data['scheme']}://{data['address']}:{data['port']}{data['basePath']}",
         f"TLS: {mode}",
-        f"{status_icon} Panel: {status}",
+        f"{status_icon} Панель: {node_status_text(status)}",
     ]
     if result.get("panelVersion"):
         lines.append(f"3x-ui: {result['panelVersion']}")
     if result.get("xrayState"):
         lines.append(
-            f"Xray: {result['xrayState']} {result.get('xrayVersion') or ''}".rstrip()
+            f"Xray: {xray_state_text(str(result['xrayState']))} {result.get('xrayVersion') or ''}".rstrip()
         )
     if result.get("latencyMs") is not None:
         lines.append(f"Ping API: {int(result.get('latencyMs') or 0)} ms")
     if result.get("cpuPct") is not None:
-        lines.append(f"CPU: {float(result.get('cpuPct') or 0):.1f}%")
+        lines.append(f"🧮 CPU: {float(result.get('cpuPct') or 0):.1f}%")
     if result.get("memPct") is not None:
-        lines.append(f"RAM: {float(result.get('memPct') or 0):.1f}%")
+        lines.append(f"🧠 RAM: {float(result.get('memPct') or 0):.1f}%")
     if result.get("error"):
         lines.append(f"⚠️ {str(result['error'])[:240]}")
     if result.get("xrayError"):
@@ -372,7 +392,7 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
     await render_callback(
         call,
         f"✅ Нода {node_display_name(node.name)} добавлена.\n"
-        f"Статус: {node_status_icon(node)} {node.status}",
+        f"Статус: {node_status_icon(node)} {node_status_text(node.status)}",
         reply_markup=node_detail_keyboard(node.id, node.enable),
     )
 
@@ -424,7 +444,7 @@ async def admin_nodes_refresh(call: CallbackQuery):
         )
         await render_callback(
             call,
-            f"🌍 Ноды обновлены\n\nСерверов: {1 + len(nodes)} · online: {online}",
+            f"🌍 Ноды обновлены\n\nСерверов: {1 + len(nodes)} · в сети: {online}",
             reply_markup=nodes_menu(nodes, master_online),
         )
     except XUIError as exc:
@@ -432,8 +452,8 @@ async def admin_nodes_refresh(call: CallbackQuery):
             call,
             "🌍 Ноды обновлены\n\n"
             f"{settings.master_flag} {settings.master_name}: "
-            f"{'🟢 Online' if master_online else '🔴 Offline'}\n"
-            f"⚠️ Nodes API: {str(exc)[:180]}",
+            f"{'🟢 В сети' if master_online else '🔴 Не в сети'}\n"
+            f"⚠️ API нод: {str(exc)[:180]}",
             reply_markup=nodes_menu([], master_online),
         )
 
@@ -466,7 +486,7 @@ async def admin_node_detail(call: CallbackQuery):
 
     text = node_detail_text(node)
     if probe_error and not node.last_error:
-        text += f"\n⚠️ Probe: {probe_error[:240]}"
+        text += f"\n⚠️ Проверка: {probe_error[:240]}"
     await render_callback(
         call,
         text,
@@ -490,13 +510,13 @@ async def admin_node_readiness(call: CallbackQuery):
         await call.answer("Некорректный ID ноды", show_alert=True)
         return
 
-    await call.answer("Проверяю readiness…")
+    await call.answer("Проверяю готовность…")
     try:
         node = await xui.node_get_enriched(node_id)
     except XUIError as exc:
         await render_callback(
             call,
-            f"🧭 Node readiness\n\n🔴 Нода не найдена в Master: {str(exc)[:240]}",
+            f"🧭 Готовность ноды\n\n🔴 Нода не найдена в Master: {str(exc)[:240]}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")
             ]]),
@@ -542,49 +562,49 @@ async def admin_node_readiness(call: CallbackQuery):
             host_state = "unavailable"
 
     lines = [
-        f"🧭 Node readiness · {node_display_name(node.name)}",
+        f"🧭 Готовность ноды · {node_display_name(node.name)}",
         "",
-        f"Node ID: {node.id}",
-        f"{'🟢' if not node.transitive else '🔴'} Direct node: "
-        f"{'yes' if not node.transitive else 'no'}",
+        f"ID ноды: {node.id}",
+        f"{'🟢' if not node.transitive else '🔴'} Прямая нода: "
+        f"{'да' if not node.transitive else 'нет'}",
         f"{'🟢' if node.enable and node.status == 'online' else '🟡'} "
-        f"Master view: {node.status}",
+        f"Состояние в Master: {node_status_text(node.status)}",
         "",
-        "Privileged bindings",
-        f"{'🟢' if direct_ok else '🔴'} Direct Panel API: "
+        "Привязки привилегированных каналов",
+        f"{'🟢' if direct_ok else '🔴'} Прямой API панели: "
         + (
-            "online"
+            "в сети"
             if direct_ok
             else (
-                "not configured"
+                "не настроен"
                 if direct_target is None
-                else f"unavailable ({direct_error})"
+                else f"недоступен ({direct_error})"
             )
         ),
-        f"   binding: {direct_mode}",
-        f"{'🟢' if host_ok else '🔴'} Host Control: {host_state}"
+        f"   привязка: {_binding_mode_text(direct_mode)}",
+        f"{'🟢' if host_ok else '🔴'} Host Control: {_host_state_text(host_state)}"
         + (f" ({host_error})" if host_error else ""),
-        f"   binding: {host_mode}",
+        f"   привязка: {_binding_mode_text(host_mode)}",
     ]
 
     stable = direct_mode == "node_id" and host_mode == "node_id"
     runtime_ready = not node.transitive and direct_ok and host_ok
     lines += [
         "",
-        f"{'🟢' if runtime_ready else '🟡'} Runtime readiness: "
-        f"{'ready' if runtime_ready else 'incomplete'}",
-        f"{'🟢' if stable else '🟡'} Stable identity: "
-        f"{'node_id' if stable else 'migration needed'}",
+        f"{'🟢' if runtime_ready else '🟡'} Готовность к операциям: "
+        f"{'готово' if runtime_ready else 'неполно'}",
+        f"{'🟢' if stable else '🟡'} Стабильная идентичность: "
+        f"{'node_id' if stable else 'нужна миграция'}",
     ]
 
     hints: list[str] = []
     if direct_target is None:
         hints.append(
-            "Direct admin: импортируй local enrollment через "
+            "Direct Admin: импортируй локальный enrollment через "
             f"scripts/import-node-admin-target.py (NODE_ID={node.id})."
         )
     elif direct_mode != "node_id":
-        hints.append(f"Direct admin: добавь NODE_BACKUP_*_NODE_ID={node.id}.")
+        hints.append(f"Direct Admin: добавь NODE_BACKUP_*_NODE_ID={node.id}.")
     if host_target is None:
         hints.append(
             f"Host Control: импортируй enrollment с --node-id {node.id}."
@@ -606,7 +626,7 @@ async def admin_node_readiness(call: CallbackQuery):
             ],
             [
                 InlineKeyboardButton(
-                    text="🧩 3x-ui Control",
+                    text="🧩 Управление 3x-ui",
                     callback_data=f"admin:hostctl:n{node.id}",
                 )
             ],
