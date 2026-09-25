@@ -69,7 +69,7 @@ def backup_status_text() -> str:
         if settings.backup_send_to_admins:
             lines.append("Отправка администраторам: включена")
     if settings.offsite_backup_enabled:
-        lines.append(f"☁️ Внешняя копия (off-site): включена · шифрование · хранить {settings.offsite_backup_keep}")
+        lines.append(f"☁️ Внешняя копия: включена · шифрование · хранить {settings.offsite_backup_keep}")
     else:
         lines.append("☁️ Внешняя копия (off-site): выключена")
     names = system_backup.configured_node_names()
