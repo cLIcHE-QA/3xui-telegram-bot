@@ -77,6 +77,53 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         self.assertNotIn("Node readiness", nodes)
         self.assertNotIn("Stable identity", nodes)
 
+    def test_host_control_and_fleet_are_localized(self):
+        host = source("host_control_ui.py")
+        fleet = source("fleet_operations.py")
+        nodes = source("advanced_nodes.py")
+
+        for needle in (
+            'text="▶ Запустить сервис"',
+            'text="🔄 Перезапустить сервис"',
+            'text="⏹ Остановить сервис"',
+            'text="♻️ Перезапустить процесс панели"',
+            '"🧩 Управление 3x-ui',
+            '"Сервис: Host Control не настроен"',
+        ):
+            self.assertIn(needle, host)
+        for old in (
+            'text="▶ Start service"',
+            'text="🔄 Restart service"',
+            'text="⏹ Stop service"',
+            'text="♻️ Restart Panel process"',
+            '"🧩 3x-ui Control',
+        ):
+            self.assertNotIn(old, host)
+        self.assertIn('f"STOP {target_name}"', host)
+
+        for needle in (
+            '"🌐 Операции с нодами\\n\\n"',
+            '("🩺 Состояние нод", "admin:fleet:health")',
+            '("🛠 Включить обслуживание", "admin:fleet:mt:e")',
+            '("🚀 Контролируемое обновление", "admin:fleet:rollout")',
+            '("🧾 Задания по нодам", "admin:fleet:jobs")',
+            '"Состояние: {_plan_state_text',
+        ):
+            self.assertIn(needle, fleet)
+        for old in (
+            '"🌐 Fleet Operations\\n\\n"',
+            '("🩺 Fleet Health", "admin:fleet:health")',
+            '("🛠 Enter maintenance", "admin:fleet:mt:e")',
+            '("🚀 Controlled rollout", "admin:fleet:rollout")',
+            '("🧾 Fleet Jobs", "admin:fleet:jobs")',
+        ):
+            self.assertNotIn(old, fleet)
+
+        self.assertIn("📡 Inbound'ы ·", nodes)
+        self.assertIn("✏️ Переименование ноды", nodes)
+        self.assertIn("💾 Снимок ноды", nodes)
+        self.assertNotIn("✏️ Rename node", nodes)
+
     def test_disaster_recovery_ui_is_localized_but_confirmation_contract_is_stable(self):
         text = source("disaster_recovery.py")
         for needle in (
