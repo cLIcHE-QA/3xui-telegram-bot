@@ -123,7 +123,7 @@ Helper:
 
 ## 3. Импортируй direct admin credential
 
-Node-sync token, сохранённый Master 3x-ui, намеренно не читается обратно. Для backup, Panel/Xray actions, restore и Versions & Updates нужен отдельный admin-scope token.
+Node-sync token, сохранённый Master 3x-ui, намеренно не читается обратно. Для backup, Panel/Xray actions, restore и Версии и обновления нужен отдельный admin-scope token.
 
 Создай на Master mode-0600 файл:
 

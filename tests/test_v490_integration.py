@@ -76,9 +76,9 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('admin:ver:xray:n2:0', self.callback_values(self.node_ui.node_detail_keyboard(2)))
 
     def test_versions_navigation_labels_are_consistent(self):
-        home = self.updates.keyboard([[('⬅ System', 'admin:section:system')]])
-        self.assertEqual(home.inline_keyboard[0][0].text, '⬅ System')
-        self.assertEqual(self.updates.back().inline_keyboard[0][0].text, '⬅ Versions & Updates')
+        home = self.updates.keyboard([[('⬅ Система', 'admin:section:system')]])
+        self.assertEqual(home.inline_keyboard[0][0].text, '⬅ Система')
+        self.assertEqual(self.updates.back().inline_keyboard[0][0].text, '⬅ Версии и обновления')
         self.assertEqual(self.updates.back('m').inline_keyboard[0][0].text, '⬅ Сервер')
 
     def test_static_inline_buttons_start_with_visual_marker(self):

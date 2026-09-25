@@ -77,10 +77,10 @@ PRIVILEGES: tuple[Privilege, ...] = (
     Privilege("host_control.destructive", "Host Control: destructive stop", "owner"),
     Privilege("fleet.view", "Fleet: просмотр", "read_only"),
     Privilege("fleet.manage", "Fleet: maintenance/rollout", "admin"),
-    Privilege("versions.view", "Versions & Updates: просмотр", "read_only"),
-    Privilege("versions.manage", "Versions & Updates: установка", "admin"),
-    Privilege("versions.unlock", "Versions & Updates: uncertain unlock", "owner"),
-    Privilege("bot_updates.manage", "Bot Updates: published release deployment", "owner"),
+    Privilege("versions.view", "Версии и обновления: просмотр", "read_only"),
+    Privilege("versions.manage", "Версии и обновления: установка", "admin"),
+    Privilege("versions.unlock", "Версии и обновления: снятие блокировки после ручной проверки", "owner"),
+    Privilege("bot_updates.manage", "Обновления бота: развёртывание опубликованного релиза", "owner"),
     Privilege("legacy.manage", "Legacy admin compatibility routes", "admin"),
 )
 

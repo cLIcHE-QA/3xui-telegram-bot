@@ -1,4 +1,4 @@
-"""System -> Versions & Updates: single-message UI and production adapters."""
+"""Система -> Версии и обновления: single-message UI and production adapters."""
 from __future__ import annotations
 
 import asyncio
@@ -21,6 +21,7 @@ from config import load_settings
 from db import Database
 from restore_manager import RestoreManager
 from runtime_jobs import backup_lock
+from node_ui import xray_state_text
 from system_backup import SystemBackupService
 from update_backups import validate_database
 from version import APP_VERSION
@@ -46,6 +47,34 @@ class UnlockStates(StatesGroup):
     phrase = State()
 
 
+COMPONENT_LABELS = {
+    "panel": "3x-ui",
+    "xray": "Xray",
+}
+
+
+OPERATION_STATE_LABELS = {
+    "prepared": "ожидает подтверждения",
+    "preparing": "подготовка",
+    "checking": "проверка",
+    "running": "выполняется",
+    "success": "успешно",
+    "failed": "ошибка",
+    "cancelled": "отменено",
+    "expired": "подтверждение истекло",
+    "unconfirmed": "результат не подтверждён",
+    "acknowledged": "проверено вручную",
+}
+
+
+def component_text(value: str) -> str:
+    return COMPONENT_LABELS.get(value, value or "неизвестно")
+
+
+def operation_state_text(value: str) -> str:
+    return OPERATION_STATE_LABELS.get(value, value or "неизвестно")
+
+
 def _target(key: str, name: str, client: XUIClient, identity: str = "", *, eligible: bool = True) -> Target:
     binding = "\0".join((key, name, client.base_url, client.token, str(client.verify_tls), identity))
     return Target(key, name, hashlib.sha256(binding.encode()).hexdigest(), client, eligible)
@@ -55,13 +84,13 @@ async def resolve_target(key: str) -> Target:
     if key == "m":
         return _target("m", settings.master_name, xui)
     if not re.fullmatch(KEY, key):
-        raise UpdateError("Invalid target.")
+        raise UpdateError("Некорректная цель.")
     node = await xui.node_get(int(key[1:]))
     if node.transitive:
-        raise UpdateError("Transitive nodes are read-only; use their own administrator.")
+        raise UpdateError("Транзитные ноды доступны только для просмотра; используй их собственного администратора.")
     client = system_backup.direct_client_for(node.name, getattr(node, "id", None))
     if client is None:
-        raise UpdateError("Direct admin connection required: configure this node in NODE_BACKUP_TARGETS.")
+        raise UpdateError("Требуется подключение Direct Admin: настрой эту ноду в NODE_BACKUP_TARGETS.")
     identity = f"{node.scheme}|{node.address}|{node.port}|{node.base_path}"
     return _target(key, node.name, client, identity, eligible=node.enable and node.status == "online")
 
@@ -107,10 +136,10 @@ async def create_update_backup(target: Target, nonce: str) -> BackupReceipt:
         if target.key == "m":
             result = await system_backup.create_full_backup()
             if result.missing:
-                raise UpdateError("Full backup is incomplete. Fix missing components before updating.")
+                raise UpdateError("Полная резервная копия неполная. Исправь отсутствующие компоненты перед обновлением.")
             info = await asyncio.to_thread(restore_manager.inspect_backup, result.info.path, deep=True)
             if not (info.valid and info.bot_db_ok and info.xui_db_ok and info.has_bot_env):
-                raise UpdateError("Master full backup failed preflight; update blocked.")
+                raise UpdateError("Полная резервная копия Master не прошла preflight; обновление заблокировано.")
             path = root / f"pre-update-{nonce}.tar.gz"
             await asyncio.to_thread(_copy_private, result.info.path, path)
         else:
@@ -160,18 +189,18 @@ def keyboard(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
 
 
 def back(key: str = "") -> InlineKeyboardMarkup:
-    label = "⬅ Сервер" if key else "⬅ Versions & Updates"
+    label = "⬅ Сервер" if key else "⬅ Версии и обновления"
     return keyboard([[(label, f"admin:ver:target:{key}" if key else "admin:versions")]])
 
 
 def binding(call: CallbackQuery) -> dict[str, int]:
     if not isinstance(call.message, Message):
-        raise UpdateError("Open /admin again to create a usable confirmation message.")
+        raise UpdateError("Открой /admin заново, чтобы создать корректное сообщение подтверждения.")
     return {"actor": call.from_user.id, "chat": call.message.chat.id, "message": call.message.message_id}
 
 
 async def error_screen(call: CallbackQuery, exc: Exception, key: str = "") -> None:
-    await render_callback(call, "Versions & Updates\n\n" + safe_error(exc), reply_markup=back(key))
+    await render_callback(call, "Версии и обновления\n\n" + safe_error(exc), reply_markup=back(key))
 
 
 def operation_text(op: Operation) -> str:
@@ -184,10 +213,10 @@ def operation_text(op: Operation) -> str:
         "acknowledged": "Owner подтвердил ручную проверку. Повторная установка не запускалась.",
     }
     title = labels.get(op.state, "Результат не подтверждён. Повторная установка заблокирована.")
-    return (f"{title}\n\nTarget: {op.target}\nComponent: {op.component}\n"
-            f"Previous: {op.previous}\nSelected: {op.desired}\n"
-            f"Observed: {op.actual or 'ещё не проверено'}\nXray: {op.xray_state}\n"
-            f"Backup: {Path(op.backup).name or 'не создан'}\nOperation: {op.nonce}"
+    return (f"{title}\n\nСервер: {op.target}\nКомпонент: {component_text(op.component)}\n"
+            f"Было: {op.previous}\nВыбрано: {op.desired}\n"
+            f"Наблюдается: {op.actual or 'ещё не проверено'}\nXray: {xray_state_text(op.xray_state)}\n"
+            f"Резервная копия: {Path(op.backup).name or 'не создана'}\nОперация: {op.nonce}"
             + (f"\n\n{op.error}" if op.error else ""))
 
 
@@ -217,9 +246,9 @@ async def versions_home(call: CallbackQuery, state: FSMContext):
     master, nodes = await asyncio.gather(
         read_state(_target("m", settings.master_name, xui)), xui.nodes_list(), return_exceptions=True,
     )
-    lines = [f"🧩 Versions & Updates | Bot {APP_VERSION}", "", settings.master_name]
+    lines = [f"🧩 Версии и обновления | Бот {APP_VERSION}", "", settings.master_name]
     if isinstance(master, VersionState):
-        lines += [f"3x-ui: {master.panel or 'недоступно'}", f"Xray: {master.xray or 'недоступно'} | {master.xray_state}"]
+        lines += [f"3x-ui: {master.panel or 'недоступно'}", f"Xray: {master.xray or 'недоступно'} | {xray_state_text(master.xray_state)}"]
     else:
         lines.append("Не удалось получить версии Master.")
     rows = [[(f"🖥 {settings.master_name}", "admin:ver:target:m")]]
@@ -229,10 +258,10 @@ async def versions_home(call: CallbackQuery, state: FSMContext):
             if node.id > 0 and not node.transitive:
                 rows.append([(f"🌍 {node.name}", f"admin:ver:target:n{node.id}")])
         if len(nodes) > 30:
-            lines.append(f"Показано 30 из {len(nodes)} нод; остальные доступны через Infrastructure.")
+            lines.append(f"Показано 30 из {len(nodes)} нод; остальные доступны через «Инфраструктура».")
     else:
         lines += ["", "Не удалось получить список нод."]
-    rows += [[("🔄 Обновить", "admin:versions")], [("⬅ System", "admin:section:system")]]
+    rows += [[("🔄 Обновить", "admin:versions")], [("⬅ Система", "admin:section:system")]]
     await render_callback(call, "\n".join(lines)[:3900], reply_markup=keyboard(rows))
 
 
@@ -251,16 +280,16 @@ async def version_target(call: CallbackQuery, state: FSMContext):
             node = await xui.node_get(int(key[1:]))
             name = node.name
             snapshot = VersionState(node.panel_version, node.xray_version, node.xray_state)
-        rows = [[("⬆️ 3x-ui update", f"admin:ver:panel:{key}")],
-                [("⚡ Xray versions", f"admin:ver:xray:{key}:0")]]
+        rows = [[("⬆️ Обновление 3x-ui", f"admin:ver:panel:{key}")],
+                [("⚡ Версии Xray", f"admin:ver:xray:{key}:0")]]
         text = (f"{name}\n\n3x-ui: {snapshot.panel or 'недоступно'}\n"
-                f"Xray: {snapshot.xray or 'недоступно'} | {snapshot.xray_state}\n\n"
+                f"Xray: {snapshot.xray or 'недоступно'} | {xray_state_text(snapshot.xray_state)}\n\n"
                 "Только ручные обновления: свежая проверенная копия и подтверждение.")
         op = store.get(key)
         if op and op.state in UNCERTAIN_STATES | {"prepared", "preparing", "checking"}:
-            text += f"\n\nОперация: {op.state} ({op.nonce})"
+            text += f"\n\nОперация: {operation_state_text(op.state)} ({op.nonce})"
             rows.append([("📋 Статус операции", f"admin:ver:check:{op.nonce}")])
-        rows += [[("🔄 Обновить", f"admin:ver:target:{key}")], [("⬅ Versions & Updates", "admin:versions")]]
+        rows += [[("🔄 Обновить", f"admin:ver:target:{key}")], [("⬅ Версии и обновления", "admin:versions")]]
         await render_callback(call, text, reply_markup=keyboard(rows))
     except Exception as exc:
         await error_screen(call, exc)
@@ -277,13 +306,13 @@ async def show_panel_screen(call: CallbackQuery, key: str) -> None:
         info = await target.client.get_panel_update_info()
         latest = await latest_stable_panel(info)
         current = str(info.get("currentVersion") or "")
-        text = (f"3x-ui | {target.name}\n\nCurrent: {current or 'недоступно'}\n"
-                f"Latest stable: {latest}\n\n"
-                "Штатный updater перезапускает панель. VPN-сессии могут прерваться.\n"
-                "Используется stable; сохранённая настройка канала не меняется.")
+        text = (f"3x-ui | {target.name}\n\nТекущая версия: {current or 'недоступно'}\n"
+                f"Последняя стабильная: {latest}\n\n"
+                "Штатное средство обновления перезапускает панель. VPN-сессии могут прерваться.\n"
+                "Используется стабильный канал; сохранённая настройка канала не меняется.")
         rows = []
         if target.eligible and ROLE_RANK.get(role or "", 0) >= ROLE_RANK["admin"] and not same_version(current, latest):
-            rows.append([("💾 Создать backup и перейти к подтверждению", f"admin:ver:prepare:{key}:panel")])
+            rows.append([("💾 Создать резервную копию и перейти к подтверждению", f"admin:ver:prepare:{key}:panel")])
         rows.append([("⬅ Сервер", f"admin:ver:target:{key}")])
         await render_callback(call, text, reply_markup=keyboard(rows))
     except Exception as exc:
@@ -310,11 +339,11 @@ async def xray_versions(call: CallbackQuery):
         page = min(page, (len(values) - 1) // 8)
         rows = []
         can_change = target.eligible and ROLE_RANK.get(role or "", 0) >= ROLE_RANK["admin"]
-        lines = [f"Xray Core | {target.name}", f"Current: {snapshot.xray or 'недоступно'}", "",
-                 "Доступные версии из API 3x-ui (upgrade/downgrade):"]
+        lines = [f"Ядро Xray | {target.name}", f"Текущая версия: {snapshot.xray or 'недоступно'}", "",
+                 "Доступные версии из API 3x-ui (обновление/откат):"]
         for value in values[page * 8:(page + 1) * 8]:
             current = same_version(value, snapshot.xray)
-            label = value + (" | current" if current else "")
+            label = value + (" | текущая" if current else "")
             lines.append(label)
             if can_change and not current:
                 rows.append([(f"📦 {label}", f"admin:ver:pick:{key}:{value}")])
@@ -373,7 +402,7 @@ async def operate(call: CallbackQuery):
     await call.answer()
     try:
         if action == "run":
-            await render_callback(call, "Устанавливаю и проверяю. Не запускай другой update или restore на этом сервере.")
+            await render_callback(call, "Устанавливаю и проверяю. Не запускай другое обновление или восстановление на этом сервере.")
             op = await service.execute(nonce, **binding(call))
         elif action == "cancel":
             op = await service.cancel(nonce, **binding(call))

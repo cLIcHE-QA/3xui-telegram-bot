@@ -83,7 +83,7 @@ unknown
 ~~~text
 /admin
   -> System
-     -> Bot Updates
+     -> Обновления бота
 ~~~
 
 Экран показывает current release, latest published release, Deploy Agent version, Health / DB / 3x-ui status, active operation и update history.
@@ -183,7 +183,7 @@ PY
 
 Host-side должны быть active/enabled `3xui-deploy-agent.service`. Token не выводить.
 
-После подключения `.env` открой `/admin -> System -> Bot Updates`. Ожидается current release, доступный agent, latest published release, history и работающий preflight.
+После подключения `.env` открой `/admin -> Система -> Обновления бота`. Ожидается current release, доступный agent, latest published release, history и работающий preflight.
 
 Для production acceptance допустим controlled same-release deployment текущего release (например `v4.19.1 -> v4.19.1`): он проверяет полный persistent operation/recreate/recovery path без изменения версии. После него exact tag/SHA, health, DB и 3x-ui connectivity должны остаться зелёными.
 

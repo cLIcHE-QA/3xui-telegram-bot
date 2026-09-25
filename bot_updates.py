@@ -1,4 +1,4 @@
-"""Owner-only Safe Bot Self-Update UI and startup recovery."""
+"""Owner-only UI обновления бота и startup recovery."""
 from __future__ import annotations
 
 import asyncio
@@ -41,6 +41,39 @@ class BotUpdateStates(StatesGroup):
     downgrade_phrase = State()
 
 
+DEPLOY_STATE_LABELS = {
+    "queued": "в очереди",
+    "preflight": "предварительная проверка",
+    "backup": "резервное копирование",
+    "building": "сборка",
+    "deploying": "развёртывание",
+    "verifying": "проверка",
+    "success": "успешно",
+    "failed": "ошибка",
+    "unknown": "результат неизвестен",
+}
+
+
+def _deploy_state_text(value: str) -> str:
+    return DEPLOY_STATE_LABELS.get(value, value or "неизвестно")
+
+
+STATUS_LABELS = {
+    "ok": "норма",
+    "healthy": "норма",
+    "ready": "готово",
+    "success": "успешно",
+    "failed": "ошибка",
+    "error": "ошибка",
+    "unknown": "неизвестно",
+}
+
+
+def _status_text(value: str) -> str:
+    raw = (value or "").lower()
+    return STATUS_LABELS.get(raw, value or "неизвестно")
+
+
 def _client() -> DeployControlClient | None:
     if not settings.deploy_agent_enabled:
         return None
@@ -57,7 +90,7 @@ def _keyboard(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
 def _back() -> InlineKeyboardMarkup:
     return _keyboard([
         [("🔄 Обновить", "admin:botupd")],
-        [("⬅ System", "admin:section:system")],
+        [("⬅ Система", "admin:section:system")],
     ])
 
 
@@ -75,39 +108,39 @@ def _job_details(operation_id: str, release: str, *, allow_downgrade: bool) -> s
 
 def _preflight_direction(preflight: DeployPreflight) -> str:
     if preflight.downgrade:
-        return "DOWNGRADE"
+        return "откат"
     if preflight.current_release == preflight.release:
-        return "same release"
-    return "upgrade"
+        return "та же версия"
+    return "обновление"
 
 
 def _operation_text(op: DeployOperation) -> str:
     labels = {
         "queued": "🟡 Операция поставлена в очередь.",
-        "preflight": "🟡 Выполняется preflight.",
-        "backup": "🟡 Создаётся deployment backup.",
-        "building": "🟡 Собирается новый bot image.",
-        "deploying": "🟡 Новый release разворачивается.",
-        "verifying": "🟡 Выполняются post-deploy проверки.",
-        "success": "🟢 Deployment успешно завершён и проверен.",
-        "failed": "🔴 Deployment завершился ошибкой до подтверждённого успеха.",
-        "unknown": "🟡 Итог deployment не удалось доказать. Автоповтор запрещён.",
+        "preflight": "🟡 Выполняется предварительная проверка.",
+        "backup": "🟡 Создаётся резервная копия перед развёртыванием.",
+        "building": "🟡 Собирается новый образ бота.",
+        "deploying": "🟡 Новый релиз разворачивается.",
+        "verifying": "🟡 Выполняются проверки после развёртывания.",
+        "success": "🟢 Развёртывание успешно завершено и проверено.",
+        "failed": "🔴 Развёртывание завершилось ошибкой до подтверждённого успеха.",
+        "unknown": "🟡 Итог развёртывания не удалось подтвердить. Автоповтор запрещён.",
     }
     lines = [
         labels.get(op.state, "🟡 Неизвестное состояние."),
         "",
-        f"Release: {op.release}",
-        f"Operation: {op.operation_id}",
-        f"State: {op.state}",
+        f"Релиз: {op.release}",
+        f"Операция: {op.operation_id}",
+        f"Состояние: {_deploy_state_text(op.state)}",
     ]
     if op.current_release:
-        lines.append(f"Observed production: {op.current_release}")
+        lines.append(f"Фактический production-релиз: {op.current_release}")
     if op.target_sha:
-        lines.append(f"Target SHA: {op.target_sha[:12]}")
+        lines.append(f"Целевой SHA: {op.target_sha[:12]}")
     if op.error_code:
-        lines.append(f"Error: {op.error_code}")
+        lines.append(f"Ошибка: {op.error_code}")
     if op.allow_downgrade:
-        lines.append("Downgrade: explicitly confirmed")
+        lines.append("Откат: явно подтверждён")
     return "\n".join(lines)
 
 
@@ -268,7 +301,7 @@ async def _dispatch(
     if client is None:
         await render_callback(
             call,
-            "🤖 Bot Updates\n\n🔴 Deploy Agent не настроен.",
+            "🤖 Обновления бота\n\n🔴 Deploy Agent не настроен.",
             reply_markup=_back(),
         )
         return
@@ -318,7 +351,7 @@ async def _dispatch(
                 )
                 await render_callback(
                     call,
-                    f"🤖 Bot Updates\n\n🔴 Deploy Agent отклонил операцию: {exc.code or 'error'}",
+                    f"🤖 Обновления бота\n\n🔴 Deploy Agent отклонил операцию: {exc.code or 'error'}",
                     reply_markup=_back(),
                 )
                 return
@@ -347,8 +380,8 @@ async def _dispatch(
                 )
                 await render_callback(
                     call,
-                    "🤖 Bot Updates\n\n🟡 Ответ на deploy POST потерян, а operation journal пока недоступен. "
-                    "Mutation повторно НЕ отправлялась.",
+                    "🤖 Обновления бота\n\n🟡 Ответ на deploy POST потерян, а журнал операции пока недоступен. "
+                    "Мутация повторно НЕ отправлялась.",
                     reply_markup=_back(),
                 )
                 return
@@ -370,13 +403,13 @@ async def _dispatch(
 
         await render_callback(
             call,
-            "🤖 Bot Updates\n\n"
+            "🤖 Обновления бота\n\n"
             + _operation_text(op)
-            + "\n\nПри переходе к deploying текущий bot container будет пересоздан. "
-              "После старта новый bot восстановит итог только через operation journal.",
+            + "\n\nПри переходе к развёртыванию текущий контейнер бота будет пересоздан. "
+              "После старта новый бот восстановит итог только через журнал операции.",
             reply_markup=_keyboard([
                 [("📋 Статус", f"admin:botupd:op:{operation_id}")],
-                [("⬅ Bot Updates", "admin:botupd")],
+                [("⬅ Обновления бота", "admin:botupd")],
             ]),
         )
     except Exception as exc:
@@ -398,8 +431,8 @@ async def _dispatch(
         )
         await render_callback(
             call,
-            "🤖 Bot Updates\n\n🟡 Локальная ошибка после подготовки операции. "
-            "Автоматический повтор deployment запрещён.",
+            "🤖 Обновления бота\n\n🟡 Локальная ошибка после подготовки операции. "
+            "Автоматический повтор развёртывания запрещён.",
             reply_markup=_back(),
         )
 
@@ -465,16 +498,16 @@ async def _dispatch_message(
                 )
                 await render_input(
                     message,
-                    "🟡 Ответ на deploy POST потерян; mutation повторно НЕ отправлялась.",
+                    "🟡 Ответ на deploy POST потерян; мутация повторно НЕ отправлялась.",
                 )
                 return
 
         await render_input(
             message,
-            "🤖 Bot Update запущен.\n\n"
+            "🤖 Обновление бота запущено.\n\n"
             + _operation_text(op)
-            + "\n\nТекущий bot container может быть пересоздан. "
-              "После старта итог восстановится из Deploy Agent journal; POST повторно не отправляется.",
+            + "\n\nТекущий контейнер бота может быть пересоздан. "
+              "После старта итог восстановится из журнала Deploy Agent; POST повторно не отправляется.",
         )
     except Exception as exc:
         unknown = (
@@ -489,7 +522,7 @@ async def _dispatch_message(
         )
         await render_input(
             message,
-            "🟡 Локальная ошибка после подготовки deployment. Автоматический повтор запрещён.",
+            "🟡 Локальная ошибка после подготовки развёртывания. Автоматический повтор запрещён.",
         )
 
 
@@ -504,13 +537,13 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
     if client is None:
         await render_callback(
             call,
-            "🤖 Bot Updates\n\n"
-            f"Current bot: {APP_VERSION}\n"
+            "🤖 Обновления бота\n\n"
+            f"Текущий бот: {APP_VERSION}\n"
             "Deploy Agent: не настроен\n\n"
             "Установи restricted Deploy Agent на Master и добавь локальные "
             "DEPLOY_AGENT_URL/DEPLOY_AGENT_TOKEN. Docker socket и Git deploy key "
-            "в bot container не требуются.",
-            reply_markup=_keyboard([[("⬅ System", "admin:section:system")]]),
+            "в контейнере бота не требуются.",
+            reply_markup=_keyboard([[("⬅ Система", "admin:section:system")]]),
         )
         return
 
@@ -520,33 +553,33 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
     except DeployControlError as exc:
         await render_callback(
             call,
-            "🤖 Bot Updates\n\n"
-            f"Current bot: {APP_VERSION}\n"
+            "🤖 Обновления бота\n\n"
+            f"Текущий бот: {APP_VERSION}\n"
             f"🔴 Deploy Agent недоступен: {exc.code or 'error'}",
             reply_markup=_back(),
         )
         return
 
     lines = [
-        "🤖 Bot Updates",
+        "🤖 Обновления бота",
         "",
-        f"Current: {status.current_release or 'unknown'}",
-        f"Bot: {status.bot_version or APP_VERSION}",
-        f"Latest published: {latest}",
-        f"Agent: {status.agent_version or 'unknown'}",
-        f"Health: {status.health} · DB: {status.db} · 3x-ui: {status.connectivity}",
+        f"Текущий релиз: {status.current_release or 'неизвестно'}",
+        f"Бот: {status.bot_version or APP_VERSION}",
+        f"Последний опубликованный: {latest}",
+        f"Агент: {status.agent_version or 'неизвестно'}",
+        f"Состояние: {_status_text(status.health)} · БД: {_status_text(status.db)} · 3x-ui: {_status_text(status.connectivity)}",
     ]
     if status.active_operation:
-        lines += ["", f"Active operation: {status.active_operation}"]
+        lines += ["", f"Активная операция: {status.active_operation}"]
 
     rows: list[list[tuple[str, str]]] = []
     if latest != status.current_release and not status.active_operation:
-        rows.append([("🔍 Preflight latest", f"admin:botupd:pre:{latest}")])
+        rows.append([("🔍 Проверить последний релиз", f"admin:botupd:pre:{latest}")])
     if not status.active_operation:
-        rows.append([("📦 Выбрать published tag", "admin:botupd:choose")])
-    rows.append([("📜 Update history", "admin:botupd:history")])
+        rows.append([("📦 Выбрать опубликованный тег", "admin:botupd:choose")])
+    rows.append([("📜 История обновлений", "admin:botupd:history")])
     rows.append([("🔄 Обновить", "admin:botupd")])
-    rows.append([("⬅ System", "admin:section:system")])
+    rows.append([("⬅ Система", "admin:section:system")])
     await render_callback(call, "\n".join(lines), reply_markup=_keyboard(rows))
 
 
@@ -560,9 +593,9 @@ async def update_choose(call: CallbackQuery, state: FSMContext):
     await call.answer()
     await render_callback(
         call,
-        "🤖 Bot Updates\n\n"
-        "Отправь точный published release tag вида vX.Y.Z. "
-        "Deploy Agent примет только существующий tag, содержащийся в origin/main, "
+        "🤖 Обновления бота\n\n"
+        "Отправь точный опубликованный тег релиза вида vX.Y.Z. "
+        "Deploy Agent примет только существующий тег, содержащийся в origin/main, "
         "с совпадающим APP_VERSION.",
         reply_markup=_keyboard([[("✖ Отмена", "admin:botupd")]]),
     )
@@ -578,7 +611,7 @@ async def update_release_input(message: Message, state: FSMContext):
         return
     release = (message.text or "").strip()
     if not RELEASE_RE.fullmatch(release):
-        await render_input(message, "Нужен точный release tag вида vX.Y.Z.")
+        await render_input(message, "Нужен точный тег релиза вида vX.Y.Z.")
         return
 
     client = _client()
@@ -591,33 +624,33 @@ async def update_release_input(message: Message, state: FSMContext):
     except DeployControlError as exc:
         await render_input(
             message,
-            f"🔴 Release/preflight отклонён: {exc.code or 'error'}.",
+            f"🔴 Релиз/preflight отклонён: {exc.code or 'error'}.",
         )
         return
 
     await state.clear()
     lines = [
-        "🤖 Bot Update preflight",
+        "🤖 Проверка обновления бота",
         "",
-        f"Current: {preflight.current_release}",
-        f"Target: {preflight.release}",
-        f"Target SHA: {preflight.target_sha[:12]}",
-        f"Direction: {_preflight_direction(preflight)}",
+        f"Текущий релиз: {preflight.current_release}",
+        f"Целевой релиз: {preflight.release}",
+        f"Целевой SHA: {preflight.target_sha[:12]}",
+        f"Направление: {_preflight_direction(preflight)}",
         "",
-        "Release notes:",
-        (preflight.notes or "нет release notes")[:2400],
+        "Примечания к релизу:",
+        (preflight.notes or "нет примечаний к релизу")[:2400],
         "",
-        "Deployment разрешён только для published tag из origin/main.",
-        "Автоматического rollback/retry mutation нет.",
+        "Развёртывание разрешено только для опубликованного тега из origin/main.",
+        "Автоматического отката/повтора мутации нет.",
     ]
     if preflight.downgrade:
         rows = [
-            [("⚠️ Подтвердить downgrade", f"admin:botupd:down:{release}")],
+            [("⚠️ Подтвердить откат", f"admin:botupd:down:{release}")],
             [("✖ Отмена", "admin:botupd")],
         ]
     else:
         rows = [
-            [("✅ Обновить bot", f"admin:botupd:run:{release}")],
+            [("✅ Обновить бота", f"admin:botupd:run:{release}")],
             [("✖ Отмена", "admin:botupd")],
         ]
     await render_input(message, "\n".join(lines)[:3900], reply_markup=_keyboard(rows))
@@ -628,7 +661,7 @@ async def update_preflight(call: CallbackQuery):
     ok, _ = await authorize_callback(db, settings, call, minimum="owner")
     if not ok:
         return
-    await call.answer("Проверяю release…")
+    await call.answer("Проверяю релиз…")
     release = (call.data or "").rsplit(":", 1)[-1]
     client = _client()
     if client is None:
@@ -639,33 +672,33 @@ async def update_preflight(call: CallbackQuery):
     except DeployControlError as exc:
         await render_callback(
             call,
-            f"🤖 Bot Updates\n\n🔴 Preflight failed: {exc.code or 'error'}",
+            f"🤖 Обновления бота\n\n🔴 Preflight завершился ошибкой: {exc.code or 'error'}",
             reply_markup=_back(),
         )
         return
 
     lines = [
-        "🤖 Bot Update preflight",
+        "🤖 Проверка обновления бота",
         "",
-        f"Current: {preflight.current_release}",
-        f"Target: {preflight.release}",
-        f"Target SHA: {preflight.target_sha[:12]}",
-        f"Direction: {_preflight_direction(preflight)}",
+        f"Текущий релиз: {preflight.current_release}",
+        f"Целевой релиз: {preflight.release}",
+        f"Целевой SHA: {preflight.target_sha[:12]}",
+        f"Направление: {_preflight_direction(preflight)}",
         "",
-        "Release notes:",
-        (preflight.notes or "нет release notes")[:2400],
+        "Примечания к релизу:",
+        (preflight.notes or "нет примечаний к релизу")[:2400],
         "",
-        "Deployment выполняется только через published tag и existing deploy-release.sh.",
-        "Автоматического rollback/retry mutation нет.",
+        "Развёртывание выполняется только через опубликованный тег и существующий deploy-release.sh.",
+        "Автоматического отката/повтора мутации нет.",
     ]
     if preflight.downgrade:
         rows = [
-            [("⚠️ Перейти к подтверждению downgrade", f"admin:botupd:down:{release}")],
+            [("⚠️ Перейти к подтверждению отката", f"admin:botupd:down:{release}")],
             [("✖ Отмена", "admin:botupd")],
         ]
     else:
         rows = [
-            [("✅ Обновить bot", f"admin:botupd:run:{release}")],
+            [("✅ Обновить бота", f"admin:botupd:run:{release}")],
             [("✖ Отмена", "admin:botupd")],
         ]
     await render_callback(call, "\n".join(lines)[:3900], reply_markup=_keyboard(rows))
@@ -676,7 +709,7 @@ async def update_run(call: CallbackQuery):
     ok, _ = await authorize_callback(db, settings, call, minimum="owner")
     if not ok:
         return
-    await call.answer("Запускаю deployment…")
+    await call.answer("Запускаю развёртывание…")
     release = (call.data or "").rsplit(":", 1)[-1]
     client = _client()
     if client is None:
@@ -685,12 +718,12 @@ async def update_run(call: CallbackQuery):
     try:
         preflight = await client.preflight(release)
     except DeployControlError as exc:
-        await render_callback(call, f"Preflight failed: {exc.code or 'error'}", reply_markup=_back())
+        await render_callback(call, f"Preflight завершился ошибкой: {exc.code or 'error'}", reply_markup=_back())
         return
     if preflight.downgrade:
         await render_callback(
             call,
-            "Downgrade требует отдельного усиленного подтверждения.",
+            "Откат требует отдельного усиленного подтверждения.",
             reply_markup=_back(),
         )
         return
@@ -709,9 +742,9 @@ async def downgrade_start(call: CallbackQuery, state: FSMContext):
     await call.answer()
     await render_callback(
         call,
-        "⚠️ Downgrade bot\n\n"
+        "⚠️ Откат версии бота\n\n"
         f"Для подтверждения отправь точную фразу:\nDOWNGRADE {release}\n\n"
-        "Downgrade никогда не запускается автоматически.",
+        "Откат никогда не запускается автоматически.",
         reply_markup=_keyboard([[("✖ Отмена", "admin:botupd")]]),
     )
 
@@ -730,7 +763,7 @@ async def downgrade_phrase(message: Message, state: FSMContext):
     if phrase != f"DOWNGRADE {release}" or not _DOWNGRADE_PHRASE_RE.fullmatch(phrase):
         await render_input(
             message,
-            f"Фраза не совпала. Для downgrade отправь ровно: DOWNGRADE {release}",
+            f"Фраза не совпала. Для отката отправь ровно: DOWNGRADE {release}",
         )
         return
 
@@ -743,17 +776,17 @@ async def downgrade_phrase(message: Message, state: FSMContext):
         preflight = await client.preflight(release)
     except DeployControlError as exc:
         await state.clear()
-        await render_input(message, f"Preflight failed: {exc.code or 'error'}")
+        await render_input(message, f"Preflight завершился ошибкой: {exc.code or 'error'}")
         return
     if not preflight.downgrade:
         await state.clear()
-        await render_input(message, "Направление больше не является downgrade. Открой Bot Updates заново.")
+        await render_input(message, "Направление больше не является откатом. Открой «Обновления бота» заново.")
         return
 
     await state.clear()
     await render_input(
         message,
-        f"✅ Downgrade {release} подтверждён фразой. Запускаю deployment…",
+        f"✅ Откат до {release} подтверждён фразой. Запускаю развёртывание…",
     )
     await _dispatch_message(message, release, allow_downgrade=True)
 
@@ -772,18 +805,18 @@ async def operation_status(call: CallbackQuery):
     try:
         op = await client.get_operation(operation_id)
     except DeployControlError as exc:
-        await render_callback(call, f"Operation lookup failed: {exc.code or 'error'}", reply_markup=_back())
+        await render_callback(call, f"Не удалось получить операцию: {exc.code or 'error'}", reply_markup=_back())
         return
     if op is None:
-        await render_callback(call, "Operation не найдена.", reply_markup=_back())
+        await render_callback(call, "Операция не найдена.", reply_markup=_back())
         return
     await reconcile_deploy_jobs(wait_seconds=0)
     await render_callback(
         call,
-        "🤖 Bot Updates\n\n" + _operation_text(op),
+        "🤖 Обновления бота\n\n" + _operation_text(op),
         reply_markup=_keyboard([
             [("🔄 Обновить статус", f"admin:botupd:op:{operation_id}")],
-            [("⬅ Bot Updates", "admin:botupd")],
+            [("⬅ Обновления бота", "admin:botupd")],
         ]),
     )
 
@@ -801,13 +834,13 @@ async def update_history(call: CallbackQuery):
     try:
         history = await client.history()
     except DeployControlError as exc:
-        await render_callback(call, f"History unavailable: {exc.code or 'error'}", reply_markup=_back())
+        await render_callback(call, f"История недоступна: {exc.code or 'error'}", reply_markup=_back())
         return
 
-    lines = ["🤖 Bot Update history", ""]
+    lines = ["🤖 История обновлений бота", ""]
     if not history:
         lines.append("Операций пока нет.")
     for op in history[:12]:
         icon = "🟢" if op.state == "success" else "🔴" if op.state == "failed" else "🟡"
-        lines.append(f"{icon} {op.release} · {op.state} · {op.operation_id[:8]}")
+        lines.append(f"{icon} {op.release} · {_deploy_state_text(op.state)} · {op.operation_id[:8]}")
     await render_callback(call, "\n".join(lines), reply_markup=_back())

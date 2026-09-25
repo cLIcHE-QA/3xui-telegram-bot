@@ -940,7 +940,7 @@ Mutation запрещается, если:
 24. Sudoers использует только точные allowlisted команды для `x-ui.service`, без wildcard.
 25. Audit/job records не содержат secrets.
 26. Finland remote transport работает с TLS verification.
-27. Существующие Backup, Xray restart, provisioning, subscription и Versions & Updates не регрессируют.
+27. Существующие Backup, Xray restart, provisioning, subscription и Версии и обновления не регрессируют.
 
 ---
 

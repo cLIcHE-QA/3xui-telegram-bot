@@ -124,6 +124,53 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         self.assertIn("💾 Снимок ноды", nodes)
         self.assertNotIn("✏️ Rename node", nodes)
 
+    def test_versions_and_bot_updates_are_localized(self):
+        versions = source("versions_updates.py")
+        bot_updates = source("bot_updates.py")
+
+        for needle in (
+            '"⬅ Версии и обновления"',
+            '"🧩 Версии и обновления | Бот',
+            '("⬆️ Обновление 3x-ui",',
+            '("⚡ Версии Xray",',
+            '"Текущая версия: ',
+            '"Последняя стабильная: ',
+            '"Резервная копия: {Path(op.backup)',
+        ):
+            self.assertIn(needle, versions)
+        for old in (
+            '"⬅ Versions & Updates"',
+            '"🧩 Versions & Updates | Bot',
+            '("⬆️ 3x-ui update",',
+            '("⚡ Xray versions",',
+            '"Current: ',
+            '"Latest stable: ',
+        ):
+            self.assertNotIn(old, versions)
+        self.assertIn('f"Введи точно: UNLOCK {nonce}"', versions)
+
+        for needle in (
+            '"🤖 Обновления бота"',
+            '"🤖 Проверка обновления бота"',
+            '"Текущий релиз: ',
+            '"Последний опубликованный: ',
+            '("📜 История обновлений",',
+            '("🔍 Проверить последний релиз",',
+            '"Состояние: {_deploy_state_text',
+        ):
+            self.assertIn(needle, bot_updates)
+        for old in (
+            '"🤖 Bot Updates"',
+            '"🤖 Bot Update preflight"',
+            '"Current bot: ',
+            '"Latest published: ',
+            '("📜 Update history",',
+            '("🔍 Preflight latest",',
+        ):
+            self.assertNotIn(old, bot_updates)
+        self.assertIn('f"DOWNGRADE {release}"', bot_updates)
+        self.assertIn('_DOWNGRADE_PHRASE_RE', bot_updates)
+
     def test_disaster_recovery_ui_is_localized_but_confirmation_contract_is_stable(self):
         text = source("disaster_recovery.py")
         for needle in (
