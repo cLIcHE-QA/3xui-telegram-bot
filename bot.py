@@ -4,10 +4,6 @@ import secrets
 import shutil
 import time
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urlsplit, urlunsplit
-
-import aiohttp
-
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
@@ -17,7 +13,6 @@ from config import load_settings
 from db import Database, UserRecord
 from xui import XUIClient, XUIError, NodeInfo
 from version import APP_VERSION
-from version_api import VersionAPIError
 from versions_updates import versions_router
 from bot_updates import bot_updates_router, reconcile_deploy_jobs
 from system_backup import SystemBackupService
@@ -50,15 +45,9 @@ from admin_navigation import (
     confirm_sync_all_keyboard,
     backup_menu,
 )
-from node_ui import (
-    node_status_icon as _node_status_icon,
-    xray_icon as _xray_icon,
-    duration_text as _duration_text,
-    node_display_name as _node_display_name,
-    master_detail_keyboard,
-    node_detail_keyboard,
-)
+from node_ui import master_detail_keyboard, node_detail_keyboard
 from node_admin import node_admin_router, nodes_menu, node_detail_text as _node_detail_text
+from system_admin import system_admin_router, admin_master_detail
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -710,71 +699,6 @@ async def admin_stats(call: CallbackQuery):
     )
     await call.answer()
 
-def _public_health_url() -> str | None:
-    template = settings.compat_subscription_url_template.strip()
-    if not template:
-        return None
-    try:
-        parts = urlsplit(template.format(sub_id="health-probe"))
-    except ValueError:
-        return None
-    if not parts.scheme or not parts.netloc:
-        return None
-    return urlunsplit((parts.scheme, parts.netloc, "/healthz", "", ""))
-
-
-async def _check_http(url: str, *, verify_tls: bool = True) -> tuple[bool, str]:
-    timeout = aiohttp.ClientTimeout(total=6)
-    try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(
-                url,
-                ssl=None if verify_tls else False,
-                allow_redirects=True,
-            ) as resp:
-                body = (await resp.text()).strip()
-                if resp.status == 200:
-                    return True, body[:80] or "HTTP 200"
-                return False, f"HTTP {resp.status}"
-    except (aiohttp.ClientError, asyncio.TimeoutError, TimeoutError) as exc:
-        return False, type(exc).__name__
-
-
-def _memory_stats() -> tuple[int, int] | None:
-    values: dict[str, int] = {}
-    try:
-        with open("/proc/meminfo", "r", encoding="utf-8") as fh:
-            for line in fh:
-                key, raw = line.split(":", 1)
-                if key in {"MemTotal", "MemAvailable"}:
-                    values[key] = int(raw.strip().split()[0]) * 1024
-    except (OSError, ValueError):
-        return None
-    total = values.get("MemTotal", 0)
-    available = values.get("MemAvailable", 0)
-    if not total:
-        return None
-    return total - available, total
-
-
-def _uptime_text() -> str | None:
-    try:
-        seconds = int(float(open("/proc/uptime", "r", encoding="utf-8").read().split()[0]))
-    except (OSError, ValueError, IndexError):
-        return None
-    days, rem = divmod(seconds, 86400)
-    hours, rem = divmod(rem, 3600)
-    minutes = rem // 60
-    if days:
-        return f"{days}д {hours}ч {minutes}м"
-    return f"{hours}ч {minutes}м"
-
-
-def _usage_line(label: str, used: int, total: int) -> str:
-    pct = (used / total * 100) if total else 0
-    return f"{label}: {human_bytes(used)} / {human_bytes(total)} ({pct:.0f}%)"
-
-
 def _backup_status_text() -> str:
     items = backup_manager.list_backups()
     latest = items[0] if items else None
@@ -945,235 +869,6 @@ async def admin_backup_full(call: CallbackQuery):
         )
         logging.exception("Full backup download failed")
         await render_callback(call, f"🔴 Ошибка отправки backup: {type(exc).__name__}: {exc}")
-
-
-@router.callback_query(F.data == "admin:master")
-async def admin_master_detail(call: CallbackQuery):
-    if not await guard_admin_call(call):
-        return
-    await call.answer("Проверяю Master…")
-
-    local_url = f"http://127.0.0.1:{settings.subscription_proxy_port}/healthz"
-    public_url = _public_health_url()
-    local_task = asyncio.create_task(_check_http(local_url, verify_tls=False))
-    public_task = (
-        asyncio.create_task(_check_http(public_url, verify_tls=settings.verify_tls))
-        if public_url else None
-    )
-
-    status = None
-    inbounds = None
-    api_error = None
-    try:
-        status = await xui.server_status()
-        inbounds = await xui.inbound_options()
-    except XUIError as exc:
-        api_error = str(exc)
-
-    local_ok, local_detail = await local_task
-    if public_task:
-        public_ok, public_detail = await public_task
-    else:
-        public_ok, public_detail = False, "COMPAT URL не настроен"
-
-    lines = [f"{settings.master_flag} {settings.master_name}"]
-    lines.append(
-        "🟢 Online · 3x-ui API" if status is not None else
-        f"🔴 Offline · 3x-ui API — {(api_error or 'unknown error')[:160]}"
-    )
-
-    if status:
-        try:
-            panel_info = await xui.get_panel_update_info()
-            panel_version = str(panel_info.get("currentVersion") or "unavailable")
-        except VersionAPIError:
-            panel_version = "unavailable"
-        lines.append(f"3x-ui: {panel_version}")
-        xray = status.get("xray") or {}
-        xray_state = str(xray.get("state") or "unknown").lower()
-        xray_ok = xray_state in {"running", "started", "online"}
-        xray_version = str(xray.get("version") or "")
-        lines.append(
-            f"{'🟢' if xray_ok else '🔴'} Xray: {xray_state}"
-            + (f" {xray_version}" if xray_version else "")
-        )
-        cpu = status.get("cpu")
-        if cpu is not None:
-            lines.append(f"🧮 CPU: {float(cpu):.1f}%")
-        mem = status.get("mem") or {}
-        if mem.get("total"):
-            lines.append(_usage_line("🧠 RAM", int(mem.get("current") or 0), int(mem["total"])))
-        disk = status.get("disk") or {}
-        if disk.get("total"):
-            lines.append(_usage_line("💽 Disk", int(disk.get("current") or 0), int(disk["total"])))
-        if status.get("uptime") is not None:
-            lines.append(f"⏱ Uptime: {_duration_text(int(status.get('uptime') or 0))}")
-
-    lines.append(f"{'🟢' if local_ok else '🔴'} Subscription proxy" + ("" if local_ok else f" — {local_detail}"))
-    lines.append(f"{'🟢' if public_ok else '🔴'} Public subscription" + ("" if public_ok else f" — {public_detail}"))
-
-    if inbounds is not None:
-        managed = [i for i in inbounds if is_managed_inbound(i)]
-        enabled = sum(1 for i in managed if i.enable)
-        lines.append(f"🌐 Inbound'ы: {enabled}/{len(managed)} включено")
-
-    users = await db.list_users()
-    lines.append(f"👥 Пользователей в БД бота: {len(users)}")
-    latest = await asyncio.to_thread(backup_manager.latest_backup)
-    if latest:
-        lines.append(
-            "💾 Backup: "
-            + latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
-            + f" ({human_bytes(latest.size)})"
-        )
-    else:
-        lines.append("⚠️ Backup: ещё не создан")
-
-    await render_callback(call, "\n".join(lines), reply_markup=master_detail_keyboard())
-
-
-@router.callback_query(F.data == "admin:health")
-async def admin_health(call: CallbackQuery):
-    if not await guard_admin_call(call):
-        return
-
-    await call.answer("Проверяю…")
-
-    local_url = f"http://127.0.0.1:{settings.subscription_proxy_port}/healthz"
-    public_url = _public_health_url()
-
-    local_task = asyncio.create_task(_check_http(local_url, verify_tls=False))
-    public_task = (
-        asyncio.create_task(_check_http(public_url, verify_tls=settings.verify_tls))
-        if public_url else None
-    )
-
-    inbounds = None
-    server_status = None
-    nodes: list[NodeInfo] = []
-    nodes_error = None
-    xui_error = None
-
-    try:
-        inbounds = await xui.inbound_options()
-    except XUIError as exc:
-        xui_error = str(exc)
-
-    try:
-        server_status = await xui.server_status()
-    except XUIError as exc:
-        if xui_error is None:
-            xui_error = str(exc)
-
-    try:
-        nodes = await xui.nodes_list()
-    except XUIError as exc:
-        nodes_error = str(exc)
-        nodes = []
-
-    local_ok, local_detail = await local_task
-    if public_task:
-        public_ok, public_detail = await public_task
-    else:
-        public_ok, public_detail = False, "COMPAT URL не настроен"
-
-    users = await db.list_users()
-    lines = ["🩺 Состояние системы", "", f"{settings.master_flag} {settings.master_name}"]
-
-    if inbounds is not None or server_status is not None:
-        lines.append("🟢 3x-ui API / panel route")
-    else:
-        detail = (xui_error or "unknown error")[:160]
-        lines.append(f"🔴 3x-ui API / panel route — {detail}")
-
-    if server_status:
-        xray_status = server_status.get("xray") or {}
-        xray_state = str(xray_status.get("state") or "unknown").lower()
-        xray_ok = xray_state in {"running", "started", "online"}
-        xray_version = str(xray_status.get("version") or "")
-        lines.append(
-            f"{'🟢' if xray_ok else '🔴'} Xray: {xray_state}"
-            + (f" {xray_version}" if xray_version else "")
-        )
-
-        awg = server_status.get("amneziawg") or {}
-        if awg.get("configured"):
-            lines.append(f"{'🟢' if awg.get('running') else '🔴'} AmneziaWG core")
-
-        cpu = server_status.get("cpu")
-        if cpu is not None:
-            lines.append(f"🧮 CPU: {float(cpu):.1f}%")
-        mem = server_status.get("mem") or {}
-        if mem.get("total"):
-            lines.append(_usage_line("🧠 RAM", int(mem.get("current") or 0), int(mem["total"])))
-        disk = server_status.get("disk") or {}
-        if disk.get("total"):
-            lines.append(_usage_line("💽 Disk", int(disk.get("current") or 0), int(disk["total"])))
-        if server_status.get("uptime") is not None:
-            lines.append(f"⏱ Uptime: {_duration_text(int(server_status.get('uptime') or 0))}")
-
-    lines.append(
-        f"{'🟢' if local_ok else '🔴'} Subscription proxy (локально)"
-        + ("" if local_ok else f" — {local_detail}")
-    )
-    lines.append(
-        f"{'🟢' if public_ok else '🔴'} Subscription через nginx/TLS"
-        + ("" if public_ok else f" — {public_detail}")
-    )
-
-    if inbounds is not None:
-        managed = sorted(
-            (i for i in inbounds if is_managed_inbound(i)),
-            key=lambda i: (i.port, i.protocol, i.id),
-        )
-        lines += ["", "Inbound'ы master:"]
-        if managed:
-            for i in managed:
-                icon = "🟢" if i.enable else "🔴"
-                lines.append(f"{icon} {i.port} {i.protocol.upper()} — {i.remark}")
-        else:
-            lines.append("⚪ Нет inbound'ов после фильтров .env")
-
-    lines += ["", "Nodes"]
-    if nodes_error:
-        lines.append(f"🔴 Nodes API — {nodes_error[:180]}")
-    elif nodes:
-        for node in nodes[:20]:
-            icon = _node_status_icon(node)
-            xicon = _xray_icon(node)
-            node_line = (
-                f"{icon} {node.name} · Xray {xicon} · "
-                f"CPU {node.cpu_pct:.0f}% · RAM {node.mem_pct:.0f}%"
-            )
-            if node.latency_ms:
-                node_line += f" · {node.latency_ms}ms"
-            lines.append(node_line)
-            lines.append(
-                f"   clients {node.client_count} · online {node.online_count} · "
-                f"inbounds {node.inbound_count} · up {_duration_text(node.uptime_secs)}"
-            )
-        if len(nodes) > 20:
-            lines.append(f"… ещё {len(nodes) - 20}")
-    else:
-        lines.append("⚪ Удалённые ноды не зарегистрированы")
-
-    lines += ["", f"👥 Пользователей в БД бота: {len(users)}"]
-    latest_backup = await asyncio.to_thread(backup_manager.latest_backup)
-    if latest_backup:
-        lines.append(
-            "💾 Последний backup: "
-            + latest_backup.created_at.strftime("%Y-%m-%d %H:%M UTC")
-            + f" ({human_bytes(latest_backup.size)})"
-        )
-    else:
-        lines.append("⚠️ Backup: ещё не создан")
-
-    if settings.node_backup_targets:
-        lines.append(f"💾 Backup нод настроен: {len(settings.node_backup_targets)}")
-    elif nodes:
-        lines.append("⚠️ Backup БД нод: не настроен")
-
-    await render_callback(call, "\n".join(lines), reply_markup=monitoring_menu())
 
 
 @router.callback_query(F.data == "admin:home")
@@ -1694,6 +1389,7 @@ async def main():
     dp.callback_query.outer_middleware(AdminPanelSessionMiddleware())
     dp.include_router(router)
     dp.include_router(node_admin_router)
+    dp.include_router(system_admin_router)
     dp.include_router(versions_router)
     dp.include_router(bot_updates_router)
     dp.include_router(advanced_users_router)
