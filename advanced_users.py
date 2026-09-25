@@ -548,7 +548,7 @@ async def user_group_menu(call: CallbackQuery):
         )])
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
     await render_callback(call, 
-        "🗂 Группа серверов\n\nГруппа определяет целевой набор provisioning. Само назначение не меняет 3x-ui мгновенно — используй «🚀 Согласование».",
+        "🗂 Группа серверов\n\nГруппа определяет целевой набор согласования. Само назначение не меняет 3x-ui мгновенно — используй «🚀 Согласование».",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -597,12 +597,12 @@ async def user_provisioning_card(call: CallbackQuery):
         lines = [
             f"🚀 Согласование · {rec.email}",
             "",
-            f"Source: {policy.source}",
+            f"Источник: {policy.source}",
             f"Тариф: {policy.plan.name if policy.plan else 'не назначен'}",
             f"Группа серверов: {policy.group.name if policy.group else 'legacy all-managed'}",
             f"Режим inbound'ов: {policy.inbound_mode}",
             "",
-            f"Desired: {len(desired)} · {', '.join(map(str, sorted(desired))) if desired else 'нет'}",
+            f"Целевые: {len(desired)} · {', '.join(map(str, sorted(desired))) if desired else 'нет'}",
             f"Текущие: {len(current)} · {', '.join(map(str, sorted(current))) if current else 'нет'}",
             f"Missing: {len(missing)} · actionable now: {len(actionable_missing)}",
             f"Extra managed: {len(extra)}",
@@ -610,7 +610,7 @@ async def user_provisioning_card(call: CallbackQuery):
         if policy.unavailable_members:
             lines.append(f"Unavailable nodes: {', '.join(policy.unavailable_members)}")
         if policy.warnings:
-            lines += ["", "Warnings:"] + [f"⚠️ {w}" for w in policy.warnings]
+            lines += ["", "Предупреждения:"] + [f"⚠️ {w}" for w in policy.warnings]
         rows = [
             [InlineKeyboardButton(text="✅ Безопасное согласование", callback_data=f"admin:u:provrun:{tg_id}:safe")],
             [InlineKeyboardButton(text="⚠️ Строгое согласование", callback_data=f"admin:u:provstrictask:{tg_id}")],
@@ -1495,7 +1495,7 @@ async def _bulk_render(state: FSMContext) -> tuple[str, InlineKeyboardMarkup]:
     )])
     rows.append([InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")])
     return (
-        "☑️ Bulk user actions\n\n"
+        "☑️ Массовые действия с пользователями\n\n"
         f"Выбрано: {len(selected)} из {len(users)}\n"
         "Отметь пользователей и открой «Действия».",
         InlineKeyboardMarkup(inline_keyboard=rows),
