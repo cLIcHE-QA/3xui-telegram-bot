@@ -46,6 +46,19 @@ def xray_state_text(state: str) -> str:
     }.get((state or "").lower(), state or "неизвестно")
 
 
+def tls_verify_mode_text(value: str) -> str:
+    return {
+        "verify": "проверять",
+        "skip": "без проверки",
+    }.get((value or "").lower(), value or "неизвестно")
+
+
+def inbound_sync_mode_text(value: str) -> str:
+    return {
+        "all": "все inbound'ы",
+    }.get((value or "").lower(), value or "неизвестно")
+
+
 def duration_text(seconds: int) -> str:
     seconds = max(0, int(seconds or 0))
     days, rem = divmod(seconds, 86400)
