@@ -92,6 +92,22 @@ class PublicReadinessTests(unittest.TestCase):
         self.assertIn("# HOST_CONTROL_NODE1_NAME=Edge-1", env)
         self.assertIn("# NODE_BACKUP_TARGETS=NODE1", env)
         self.assertIn("# NODE_BACKUP_NODE1_NODE_NAME=Edge-1", env)
+        self.assertIn(
+            "# HOST_CONTROL_NODE1_URL=https://host-control-node1.example.com",
+            env,
+        )
+
+        config = self._source("config.py")
+        self.assertIn('os.getenv("MASTER_FLAG", "🖥")', config)
+
+        admin_setup = self._source("docs/ADMIN_SETUP.md")
+        self.assertIn(
+            "Host Control URL: https://host-control-node1.example.com:18443",
+            admin_setup,
+        )
+
+        helper = self._source("scripts/setup-host-control-endpoint.sh")
+        self.assertIn("--public-host host-control-node1.example.com", helper)
 
         node_admin = self._source("node_admin.py")
         self.assertIn('"Например: Edge-1"', node_admin)
