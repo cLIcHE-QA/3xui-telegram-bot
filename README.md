@@ -45,7 +45,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 
 Если на Master установлен restricted Deploy Agent, Owner может использовать:
 
-`/admin → System → Bot Updates`
+`/admin → Система → Обновления бота`
 
 Полный safety/acceptance contract:
 
@@ -234,10 +234,10 @@ Client-access compatibility flow:
 Admin Control Plane:
 
 - `/admin`;
-- Users / Subscriptions / Payments / Plans / Promo Codes;
-- Infrastructure / Nodes / Inbounds / Fleet / Host Control;
-- Monitoring / Logs / Alerts;
-- System / Jobs / Audit / Backup / Versions & Updates / Bot Updates.
+- Пользователи / Подписки / Платежи / Тарифы / Промокоды;
+- Инфраструктура / Ноды / Inbound'ы / Операции с нодами / Host Control;
+- Мониторинг / Журналы / Оповещения;
+- Система / Задания / Журнал аудита / Резервные копии / Версии и обновления / Обновления бота.
 
 Наличие v4 client-access команд не означает, что v5 Client Portal уже реализован. Новый client-facing product flow должен сохранять отдельную authorization/navigation boundary от `/admin`.
 
