@@ -135,8 +135,8 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             '"🧩 Версии и обновления | Бот',
             '("⬆️ Обновление 3x-ui",',
             '("⚡ Версии Xray",',
-            '"Текущая версия: ',
-            '"Последняя стабильная: ',
+            '"📦 Текущая версия: ',
+            '"🆕 Последняя стабильная: ',
             '"Резервная копия: {Path(op.backup)',
         ):
             self.assertIn(needle, versions)
@@ -154,8 +154,8 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         for needle in (
             '"🤖 Обновления бота"',
             '"🤖 Проверка обновления бота"',
-            '"Текущий релиз: ',
-            '"Последний опубликованный: ',
+            '"📦 Текущий релиз: ',
+            '"🆕 Последний опубликованный: ',
             '("📜 История обновлений",',
             '("🔍 Проверить последний релиз",',
             '"Состояние: {_deploy_state_text',
@@ -479,10 +479,10 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         self.assertNotIn("Ping API:", node_admin)
         self.assertNotIn('"legacy_name": "legacy name"', node_admin)
         for needle in (
-            'f"Адрес: {endpoint}"',
-            "Исходящий маршрут:",
-            "Задержка API:",
-            "Последний сигнал:",
+            'f"🔗 Адрес: {endpoint}"',
+            "🧭 Исходящий маршрут:",
+            "📶 Задержка API:",
+            "🕒 Последний сигнал:",
             '"verify": "проверять"',
             '"skip": "без проверки"',
             '"all": "все inbound\'ы"',
@@ -565,7 +565,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             '"all": "Все"',
             '"warning": "Предупреждения"',
             '"error": "Ошибки"',
-            "Фильтр: {_log_level_text(level)}",
+            "🔎 Фильтр: {_log_level_text(level)}",
         ):
             self.assertIn(needle, alerts)
         for old in (
@@ -624,7 +624,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
 
         observability = source("admin_observability.py")
         storage = source("storage_admin.py")
-        self.assertIn("Последняя внешняя копия:", observability)
+        self.assertIn("☁️ Последняя внешняя копия:", observability)
         self.assertNotIn("Последний внешний (off-site):", observability)
         self.assertIn("☁️ Внешняя копия: включена", storage)
         self.assertNotIn("Внешняя копия (off-site)", storage)
