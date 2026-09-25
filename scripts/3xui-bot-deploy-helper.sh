@@ -26,6 +26,8 @@ cd "$REPO_ROOT" 2>/dev/null || die "repo_unavailable"
 need_file "$DEPLOY_SCRIPT"
 need_file "$SSH_KEY"
 need_file "$SSH_KNOWN_HOSTS"
+mkdir -p /var/lib/3xui-deploy-agent/docker-config
+chmod 700 /var/lib/3xui-deploy-agent/docker-config
 
 export HOME="/root"
 export DEPLOY_REPO_ROOT="$REPO_ROOT"
@@ -37,6 +39,7 @@ export DEPLOY_SSH_KEY="$SSH_KEY"
 export DEPLOY_SSH_KNOWN_HOSTS="$SSH_KNOWN_HOSTS"
 export DEPLOY_EXPECTED_REPOSITORY="$EXPECTED_REPOSITORY"
 export DEPLOY_LOCK_FILE="$LOCK_FILE"
+export DOCKER_CONFIG="/var/lib/3xui-deploy-agent/docker-config"
 unset DEPLOY_ALLOW_DOWNGRADE
 
 validate_origin() {
