@@ -34,20 +34,20 @@ NGINX_LOG_DIR = Path("/app/log_sources/nginx")
 RULE_LABELS = {
     "master_down": "Master / 3x-ui недоступен",
     "xray_down": "Xray не работает",
-    "node_offline": "Node offline",
-    "job_failed": "Background job failed",
-    "disk_high": "Disk usage высокий",
-    "backup_stale": "Backup устарел",
+    "node_offline": "Нода не в сети",
+    "job_failed": "Фоновое задание завершилось ошибкой",
+    "disk_high": "Высокое использование диска",
+    "backup_stale": "Резервная копия устарела",
 }
 
 RECOVERY_LABELS = {
-    "job_failed": "Background job recovered",
+    "job_failed": "Фоновое задание снова выполняется успешно",
 }
 
 
 def monitoring_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Monitoring", callback_data="admin:section:monitoring")],
+        [InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")],
     ])
 
 
@@ -65,7 +65,7 @@ def _tail_file(path: Path, count: int = 100) -> list[str]:
             lines = fh.readlines()
         return [line.rstrip("\n") for line in lines[-count:]]
     except OSError as exc:
-        return [f"[read error] {type(exc).__name__}: {exc}"]
+        return [f"[ошибка чтения] {type(exc).__name__}: {exc}"]
 
 
 def _redact_line(line: str) -> str:
@@ -127,7 +127,7 @@ def _log_controls(source: str, count: int, level: str, *, node_id: int | None = 
             InlineKeyboardButton(text=("✅ " if level == "error" else "❌ ") + "ERROR", callback_data=f"{base}:{count}:error"),
         ],
         [InlineKeyboardButton(text="🔄 Обновить", callback_data=f"{base}:{count}:{level}")],
-        [InlineKeyboardButton(text="⬅ Logs", callback_data="admin:logs")],
+        [InlineKeyboardButton(text="⬅ Журналы", callback_data="admin:logs")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -135,7 +135,7 @@ def _log_controls(source: str, count: int, level: str, *, node_id: int | None = 
 def _logs_menu(node_count: int) -> InlineKeyboardMarkup:
     rows = [
         [
-            InlineKeyboardButton(text="🤖 Bot", callback_data="admin:logs:view:bot:50:all"),
+            InlineKeyboardButton(text="🤖 Бот", callback_data="admin:logs:view:bot:50:all"),
             InlineKeyboardButton(text="🧩 3x-ui", callback_data="admin:logs:view:panel:50:warning"),
         ],
         [
@@ -143,33 +143,33 @@ def _logs_menu(node_count: int) -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🛡 AWG", callback_data="admin:logs:view:awg:50:all"),
         ],
         [
-            InlineKeyboardButton(text="🌐 Nginx error", callback_data="admin:logs:view:ngerr:50:all"),
-            InlineKeyboardButton(text="📨 Nginx access", callback_data="admin:logs:view:ngacc:50:all"),
+            InlineKeyboardButton(text="🌐 Ошибки Nginx", callback_data="admin:logs:view:ngerr:50:all"),
+            InlineKeyboardButton(text="📨 Доступ Nginx", callback_data="admin:logs:view:ngacc:50:all"),
         ],
-        [InlineKeyboardButton(text="🖥 System journal", callback_data="admin:logs:view:syslog:50:warning")],
+        [InlineKeyboardButton(text="🖥 Системный журнал", callback_data="admin:logs:view:syslog:50:warning")],
     ]
     if node_count:
-        rows.append([InlineKeyboardButton(text=f"🌍 Node logs ({node_count})", callback_data="admin:logs:nodes")])
-    rows.append([InlineKeyboardButton(text="⬅ Monitoring", callback_data="admin:section:monitoring")])
+        rows.append([InlineKeyboardButton(text=f"🌍 Журналы нод ({node_count})", callback_data="admin:logs:nodes")])
+    rows.append([InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 async def _master_log_lines(source: str, count: int, level: str) -> tuple[str, list[str]]:
     fetch_count = min(500, max(count, 200 if level != "all" else count))
     if source == "bot":
-        return "🤖 Bot log", _filter_lines(_tail_file(BOT_LOG, fetch_count), level)
+        return "🤖 Журнал бота", _filter_lines(_tail_file(BOT_LOG, fetch_count), level)
     if source == "panel":
         api_level = "info" if level == "all" else level
-        return "🧩 3x-ui panel log", await xui.panel_logs(fetch_count, level=api_level, syslog=False)
+        return "🧩 Журнал панели 3x-ui", await xui.panel_logs(fetch_count, level=api_level, syslog=False)
     if source == "syslog":
         api_level = "info" if level == "all" else level
-        return "🖥 System journal", await xui.panel_logs(fetch_count, level=api_level, syslog=True)
+        return "🖥 Системный журнал", await xui.panel_logs(fetch_count, level=api_level, syslog=True)
     if source == "xray":
         lines = await xui.xray_logs(fetch_count)
-        return "⚡ Xray log", _filter_lines(lines, level)
+        return "⚡ Журнал Xray", _filter_lines(lines, level)
     if source == "awg":
         lines = await xui.amneziawg_logs(fetch_count)
-        return "🛡 AmneziaWG log", _filter_lines(lines, level)
+        return "🛡 Журнал AmneziaWG", _filter_lines(lines, level)
     if source == "ngerr":
         path = NGINX_LOG_DIR / "error.log"
         return "🌐 Nginx error.log", _filter_lines(_tail_file(path, fetch_count), level)
@@ -189,10 +189,10 @@ async def logs_home(call: CallbackQuery):
         nodes = []
     direct = sum(1 for n in nodes if system_backup.direct_client_for(n.name, getattr(n, "id", None)) is not None)
     text = (
-        "📜 Logs\n\n"
+        "📜 Журналы\n\n"
         "Просмотр последних строк без shell-доступа. Фильтры применяются только к выдаче; "
         "логи не удаляются и настройки сервисов не меняются.\n\n"
-        "Node logs доступны для нод, у которых настроен direct admin token (NODE_BACKUP_TARGETS)."
+        "Журналы нод доступны для нод, у которых настроен Direct Admin token (NODE_BACKUP_TARGETS)."
     )
     await render_callback(call, text, reply_markup=_logs_menu(direct))
     await call.answer()
@@ -209,13 +209,13 @@ async def master_log_view(call: CallbackQuery):
         title, lines = await _master_log_lines(source, count, level)
     except (XUIError, OSError, ValueError) as exc:
         await render_callback(call, 
-            f"📜 Logs\n\n🔴 {type(exc).__name__}: {str(exc)[:500]}",
+            f"📜 Журналы\n\n🔴 {type(exc).__name__}: {str(exc)[:500]}",
             reply_markup=_log_controls(source, count, level),
         )
         return
     shown = lines[-count:]
     await render_callback(call, 
-        f"{title}\nFilter: {level.upper()} · last {count}\n\n{_excerpt(shown)}",
+        f"{title}\nФильтр: {level.upper()} · последние {count}\n\n{_excerpt(shown)}",
         reply_markup=_log_controls(source, count, level),
     )
 
@@ -235,9 +235,9 @@ async def node_logs_list(call: CallbackQuery):
             icon = "🟢" if node.enable and node.status == "online" else "🔴"
             rows.append([InlineKeyboardButton(text=f"{icon} {node.name}", callback_data=f"admin:logs:node:{node.id}")])
     if not rows:
-        rows.append([InlineKeyboardButton(text="⚠️ direct tokens не настроены", callback_data="admin:logs")])
-    rows.append([InlineKeyboardButton(text="⬅ Logs", callback_data="admin:logs")])
-    await render_callback(call, "🌍 Node logs\n\nВыбери ноду:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+        rows.append([InlineKeyboardButton(text="⚠️ Direct Admin tokens не настроены", callback_data="admin:logs")])
+    rows.append([InlineKeyboardButton(text="⬅ Журналы", callback_data="admin:logs")])
+    await render_callback(call, "🌍 Журналы нод\n\nВыбери ноду:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -260,9 +260,9 @@ async def node_logs_sources(call: CallbackQuery):
             InlineKeyboardButton(text="⚡ Xray", callback_data=f"admin:logs:nview:{node_id}:xray:50:warning"),
         ],
         [InlineKeyboardButton(text="🛡 AmneziaWG", callback_data=f"admin:logs:nview:{node_id}:awg:50:all")],
-        [InlineKeyboardButton(text="⬅ Node logs", callback_data="admin:logs:nodes")],
+        [InlineKeyboardButton(text="⬅ Журналы нод", callback_data="admin:logs:nodes")],
     ])
-    await render_callback(call, f"📜 Logs · {node.name}\n\nВыбери источник:", reply_markup=kb)
+    await render_callback(call, f"📜 Журналы · {node.name}\n\nВыбери источник:", reply_markup=kb)
     await call.answer()
 
 
@@ -276,7 +276,7 @@ async def node_log_view(call: CallbackQuery):
         node = await xui.node_get(node_id)
         client = system_backup.direct_client_for(node.name, getattr(node, "id", None))
         if client is None:
-            raise RuntimeError("direct admin token is not configured")
+            raise RuntimeError("Direct Admin token не настроен")
         fetch_count = min(500, max(count, 200 if level != "all" else count))
         if source == "panel":
             lines = await client.panel_logs(fetch_count, level="info" if level == "all" else level)
@@ -289,13 +289,13 @@ async def node_log_view(call: CallbackQuery):
             title = f"🛡 AmneziaWG · {node.name}"
     except Exception as exc:
         await render_callback(call, 
-            f"📜 Node logs\n\n🔴 {type(exc).__name__}: {str(exc)[:500]}",
+            f"📜 Журналы ноды\n\n🔴 {type(exc).__name__}: {str(exc)[:500]}",
             reply_markup=_log_controls(source, count, level, node_id=node_id),
         )
         await call.answer()
         return
     await render_callback(call, 
-        f"{title}\nFilter: {level.upper()} · last {count}\n\n{_excerpt(lines[-count:])}",
+        f"{title}\nФильтр: {level.upper()} · последние {count}\n\n{_excerpt(lines[-count:])}",
         reply_markup=_log_controls(source, count, level, node_id=node_id),
     )
     await call.answer()
@@ -303,7 +303,7 @@ async def node_log_view(call: CallbackQuery):
 
 def _rule_text(rule: AlertRuleRecord) -> str:
     label = RULE_LABELS.get(rule.code, rule.code)
-    state = "🟢 ON" if rule.enabled else "⚪ OFF"
+    state = "🟢 ВКЛ" if rule.enabled else "⚪ ВЫКЛ"
     if rule.code == "disk_high":
         return f"{state} {label} ≥ {rule.threshold}%"
     if rule.code == "backup_stale":
@@ -322,17 +322,17 @@ def _alerts_keyboard(rules: list[AlertRuleRecord]) -> InlineKeyboardMarkup:
     backup = next((r for r in rules if r.code == "backup_stale"), None)
     if disk:
         rows.append([
-            InlineKeyboardButton(text=f"💽 Disk {v}%" + (" ✓" if disk.threshold == v else ""), callback_data=f"admin:alerts:disk:{v}")
+            InlineKeyboardButton(text=f"💽 Диск {v}%" + (" ✓" if disk.threshold == v else ""), callback_data=f"admin:alerts:disk:{v}")
             for v in (80, 85, 90, 95)
         ])
     if backup:
         rows.append([
-            InlineKeyboardButton(text=f"💾 {v}h" + (" ✓" if backup.threshold == v else ""), callback_data=f"admin:alerts:backup:{v}")
+            InlineKeyboardButton(text=f"💾 {v} ч" + (" ✓" if backup.threshold == v else ""), callback_data=f"admin:alerts:backup:{v}")
             for v in (24, 36, 48, 72)
         ])
     rows += [
         [InlineKeyboardButton(text="🔍 Проверить сейчас", callback_data="admin:alerts:check")],
-        [InlineKeyboardButton(text="⬅ Monitoring", callback_data="admin:section:monitoring")],
+        [InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -340,8 +340,8 @@ def _alerts_keyboard(rules: list[AlertRuleRecord]) -> InlineKeyboardMarkup:
 async def _send_alerts_view(call: CallbackQuery) -> None:
     rules = await db.list_alert_rules()
     active = await db.list_alert_states(active_only=True)
-    lines = ["🚨 Alerts", "", "Rules:"] + [_rule_text(r) for r in rules]
-    lines += ["", f"Active incidents: {len(active)}"]
+    lines = ["🚨 Оповещения", "", "Правила:"] + [_rule_text(r) for r in rules]
+    lines += ["", f"Активных инцидентов: {len(active)}"]
     if active:
         for item in active[:12]:
             lines.append(f"🔴 {RULE_LABELS.get(item.code, item.code)} · {item.target} · {item.last_value}")
@@ -349,7 +349,7 @@ async def _send_alerts_view(call: CallbackQuery) -> None:
             lines.append(f"… ещё {len(active) - 12}")
     else:
         lines.append("✅ Активных инцидентов нет")
-    lines += ["", "Проверка выполняется автоматически примерно раз в 5 минут. Уведомления повторяются только после cooldown."]
+    lines += ["", "Проверка выполняется автоматически примерно раз в 5 минут. Повторное уведомление отправляется только после периода ожидания."]
     await render_callback(call, "\n".join(lines), reply_markup=_alerts_keyboard(rules))
 
 
@@ -368,7 +368,7 @@ async def alert_toggle(call: CallbackQuery):
     code = (call.data or "").rsplit(":", 1)[-1]
     rule = await db.get_alert_rule(code)
     if not rule:
-        await call.answer("Rule not found", show_alert=True)
+        await call.answer("Правило не найдено", show_alert=True)
         return
     enabled = not bool(rule.enabled)
     await db.set_alert_rule_enabled(code, enabled)
@@ -387,7 +387,7 @@ async def alert_disk_threshold(call: CallbackQuery):
     threshold = int((call.data or "").rsplit(":", 1)[-1])
     await db.set_alert_rule_threshold("disk_high", threshold)
     await audit_from_call(db, call, "alerts.rule.threshold", target_type="alert_rule", target_id="disk_high", details=f"threshold={threshold}")
-    await call.answer(f"Disk threshold: {threshold}%")
+    await call.answer(f"Порог диска: {threshold}%")
     await _send_alerts_view(call)
 
 
@@ -398,7 +398,7 @@ async def alert_backup_threshold(call: CallbackQuery):
     threshold = int((call.data or "").rsplit(":", 1)[-1])
     await db.set_alert_rule_threshold("backup_stale", threshold)
     await audit_from_call(db, call, "alerts.rule.threshold", target_type="alert_rule", target_id="backup_stale", details=f"hours={threshold}")
-    await call.answer(f"Backup threshold: {threshold}h")
+    await call.answer(f"Порог резервной копии: {threshold} ч")
     await _send_alerts_view(call)
 
 
@@ -444,10 +444,10 @@ async def _set_incident(bot: Bot | None, *, code: str, target: str, active: bool
     if not notify or bot is None or not (should_alert or should_recover):
         return
     if should_alert:
-        message = f"🚨 {RULE_LABELS.get(code, code)}\nTarget: {target}\n{value}"
+        message = f"🚨 {RULE_LABELS.get(code, code)}\nЦель: {target}\n{value}"
     else:
         label = RECOVERY_LABELS.get(code, RULE_LABELS.get(code, code))
-        message = f"✅ RECOVERED: {label}\nTarget: {target}\n{value}"
+        message = f"✅ Восстановлено: {label}\nЦель: {target}\n{value}"
     for admin_id in await _recipients():
         try:
             await bot.send_message(admin_id, message)
@@ -486,7 +486,7 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
         disk_rule = rules.get("disk_high")
         disk_bad = bool(total and disk_rule and pct >= disk_rule.threshold)
         await _set_incident(bot, code="disk_high", target=settings.master_name, active=disk_bad, value=f"disk={pct:.1f}%", notify=notify)
-        results.append(("🔴" if disk_bad else "✅") + f" Disk {pct:.1f}%")
+        results.append(("🔴" if disk_bad else "✅") + f" Диск {pct:.1f}%")
 
     try:
         nodes = await xui.nodes_list()
@@ -525,9 +525,9 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
             if state.code in {"node_offline", "xray_down", "disk_high"}:
                 await _set_incident(bot, code=state.code, target=state.target, active=False, value="node no longer registered", notify=notify)
 
-        results.append(f"✅ Nodes checked: {len(nodes)}")
+        results.append(f"✅ Проверено нод: {len(nodes)}")
     except Exception as exc:
-        results.append(f"⚠️ Nodes check: {type(exc).__name__}")
+        results.append(f"⚠️ Проверка нод: {type(exc).__name__}")
 
     # Alert on the latest state of each background job. A later successful run
     # automatically resolves an earlier failed incident for the same job name.
@@ -540,9 +540,9 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
             failed = (run.status or "").lower() == "failed"
             value = f"status={run.status}; {run.details[:260]}"
             await _set_incident(bot, code="job_failed", target=name, active=failed, value=value, notify=notify)
-        results.append(f"✅ Jobs checked: {len(latest_by_name)}")
+        results.append(f"✅ Проверено заданий: {len(latest_by_name)}")
     except Exception as exc:
-        results.append(f"⚠️ Jobs check: {type(exc).__name__}")
+        results.append(f"⚠️ Проверка заданий: {type(exc).__name__}")
 
     backup_rule = rules.get("backup_stale")
     if backup_rule and settings.backup_enabled:
@@ -550,15 +550,15 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
         if latest:
             age_h = max(0.0, (time.time() - latest.created_at.timestamp()) / 3600)
             stale = age_h >= backup_rule.threshold
-            value = f"last backup {age_h:.1f}h ago"
+            value = f"последняя резервная копия {age_h:.1f} ч назад"
         else:
             stale = True
-            value = "no full backup found"
+            value = "полная резервная копия не найдена"
         await _set_incident(bot, code="backup_stale", target=settings.master_name, active=stale, value=value, notify=notify)
-        results.append(("🔴" if stale else "✅") + f" Backup: {value}")
+        results.append(("🔴" if stale else "✅") + f" Резервная копия: {value}")
     else:
         await db.update_alert_state(
-            code="backup_stale", target=settings.master_name, active=False, value="automatic backup disabled"
+            code="backup_stale", target=settings.master_name, active=False, value="автоматическое резервное копирование выключено"
         )
 
     return results
@@ -571,8 +571,8 @@ async def alert_manual_check(call: CallbackQuery):
     await call.answer("Проверяю…")
     results = await alert_check_once(None, notify=False)
     await audit_from_call(db, call, "alerts.check", target_type="monitoring", details="; ".join(results)[:1400])
-    await render_callback(call, "🚨 Alert check\n\n" + "\n".join(results), reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Alerts", callback_data="admin:alerts")]
+    await render_callback(call, "🚨 Проверка оповещений\n\n" + "\n".join(results), reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅ Оповещения", callback_data="admin:alerts")]
     ]))
 
 
