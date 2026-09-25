@@ -44,7 +44,7 @@ class V492UITests(unittest.TestCase):
         from version import APP_VERSION
 
         text = self.shell.system_section_text()
-        self.assertIn(f"🤖 Bot: v{APP_VERSION}", text)
+        self.assertIn(f"🤖 Бот: v{APP_VERSION}", text)
 
     def test_fingerprint_callbacks_require_admin_role(self):
         from admin_auth import required_role_for_callback
