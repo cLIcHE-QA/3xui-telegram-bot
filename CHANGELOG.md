@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.2 — Исправление parent navigation Admin Control Plane
+- Исправлены отклонения от существующего navigation-контракта `docs/UI_STYLE.md`: вложенные экраны возвращаются к фактическому непосредственному parent, а validation/error paths не теряют Back/Cancel.
+- `Система → Обновления бота → История обновлений` теперь возвращает в `Обновления бота`; node log view — к источникам выбранной ноды; Host Control и Disaster Recovery сохраняют корректный parent/Cancel в typed-confirmation/error flows.
+- Owner unlock flow в `Версии и обновления` получил отдельный read-only operation view `admin:ver:op:<nonce>`, чтобы Cancel возвращал к исходной операции без повторного update/recheck mutation; callback зарегистрирован в RBAC как `read_only`.
+- Regression coverage расширен на nested parent flows; source-audit admin UI подтверждает, что без навигации остаются только намеренные progress/transition screens и существующие terminal authorization guards.
+- SQLite schema, 3x-ui/OpenAPI contract, Host Control API, Deploy Agent API/host helper и privilege boundaries не изменены; `v4.20.2` можно устанавливать обычным Safe Bot Self-Update без отдельного host-side обновления Agent/helper.
+
 ## v4.20.1 — Safe Bot Self-Update release-notes hotfix
 - Исправлен intermittent blocker Safe Bot Self-Update: `notes_cmd` больше не использует SIGPIPE-sensitive pipeline `printf | awk` под `set -o pipefail`, из-за которого корректный published release иногда отклонялся как `release_notes_missing` с exit code 141.
 - Release notes по-прежнему читаются только из `CHANGELOG.md` целевого опубликованного тега после обычной release validation; fail-closed поведение при реально отсутствующих/ошибочных notes сохраняется.
