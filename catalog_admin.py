@@ -675,7 +675,7 @@ async def server_group_add_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.set_state(AddServerGroupStates.name)
     await render_callback(call, 
-        "🗂 Новая группа серверов · 1/2\n\nНазвание, например Europe или Premium:",
+        "🗂 Новая группа серверов · 1/2\n\nНазвание, например Основная или Резервная:",
         reply_markup=cancel_keyboard("admin:servergroupadd:cancel"),
     )
     await call.answer()
@@ -1047,7 +1047,7 @@ async def host_add_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.set_state(AddHostStates.label)
     await render_callback(call, 
-        "🌐 Новый хост · 1/3\n\nНазвание, например Публичная подписка или NL VPN:",
+        "🌐 Новый хост · 1/3\n\nНазвание, например Публичная подписка или VPN-шлюз:",
         reply_markup=cancel_keyboard("admin:hostadd:cancel"),
     )
     await call.answer()
