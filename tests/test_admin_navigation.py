@@ -163,6 +163,52 @@ class AdminNavigationTests(unittest.TestCase):
         self.assertIn('f"admin:ver:op:{op.nonce}"', versions)
         self.assertIn('f"admin:ver:op:{nonce}"', versions)
 
+    def test_production_smoke_parent_and_ui_contracts(self):
+        root = Path(__file__).resolve().parents[1]
+
+        restore = (root / "disaster_recovery.py").read_text(encoding="utf-8")
+        self.assertIn(
+            'InlineKeyboardButton(text="⬅ Аварийное восстановление", callback_data="admin:restore")',
+            restore,
+        )
+        self.assertNotIn('def _backup_back()', restore)
+
+        shell = (root / "admin_shell.py").read_text(encoding="utf-8")
+        self.assertIn('callback_data=f"adminsublist:{u.telegram_id}"', shell)
+        self.assertNotIn("Этот раздел уже доступен в v3.9.", shell)
+
+        users = (root / "advanced_users.py").read_text(encoding="utf-8")
+        self.assertIn('F.data.startswith("adminsublist:")', users)
+        self.assertIn(
+            'InlineKeyboardButton(text="⬅ Подписки", callback_data="admin:subscriptions")',
+            users,
+        )
+
+        catalog = (root / "catalog_admin.py").read_text(encoding="utf-8")
+        self.assertIn("from node_ui import node_display_name", catalog)
+        self.assertIn("node_display_name(node.name)", catalog)
+        self.assertNotIn("согласовании доступа v4.5", catalog)
+        self.assertNotIn("v3.9 не меняет DNS", catalog)
+
+        inbound = (root / "inbound_admin.py").read_text(encoding="utf-8")
+        self.assertIn("🔄 Синхронизировать клиентов", inbound)
+        self.assertNotIn("🔄 Синхронизировать пользователей", inbound)
+
+        business = (root / "business_admin.py").read_text(encoding="utf-8")
+        self.assertIn('f"🖥 Master-сервер: {settings.master_name}', business)
+        self.assertNotIn('f"🖥 Master: {settings.master_flag} {settings.master_name}', business)
+
+        health = (root / "system_admin.py").read_text(encoding="utf-8")
+        self.assertIn(
+            'InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")',
+            health,
+        )
+        self.assertIn(
+            'InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:health")',
+            health,
+        )
+        self.assertNotIn("reply_markup=monitoring_menu()", health)
+
     def test_user_action_callbacks_are_stable(self):
         enabled = callback_values(admin_navigation.user_admin_keyboard(123, enabled=True))
         disabled = callback_values(admin_navigation.user_admin_keyboard(123, enabled=False))
