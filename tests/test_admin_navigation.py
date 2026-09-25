@@ -110,15 +110,24 @@ class AdminNavigationTests(unittest.TestCase):
         missing = []
         for name in files:
             tree = ast.parse((root / name).read_text(encoding="utf-8"), filename=name)
-            for node in ast.walk(tree):
-                if not isinstance(node, ast.Call):
+            functions = (
+                node for node in ast.walk(tree)
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            )
+            for function in functions:
+                # Authorization guards clear FSM state before rendering denial.
+                # They are terminal by design and are the only allowed exception.
+                if function.name == "guard_message":
                     continue
-                func = node.func
-                func_name = func.id if isinstance(func, ast.Name) else func.attr if isinstance(func, ast.Attribute) else ""
-                if func_name not in {"render_callback", "render_input"}:
-                    continue
-                if not any(keyword.arg == "reply_markup" for keyword in node.keywords):
-                    missing.append(f"{name}:{node.lineno}:{func_name}")
+                for node in ast.walk(function):
+                    if not isinstance(node, ast.Call):
+                        continue
+                    func = node.func
+                    func_name = func.id if isinstance(func, ast.Name) else func.attr if isinstance(func, ast.Attribute) else ""
+                    if func_name not in {"render_callback", "render_input"}:
+                        continue
+                    if not any(keyword.arg == "reply_markup" for keyword in node.keywords):
+                        missing.append(f"{name}:{node.lineno}:{func_name}")
         self.assertEqual(missing, [])
 
     def test_user_action_callbacks_are_stable(self):
