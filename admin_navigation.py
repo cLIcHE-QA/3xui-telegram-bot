@@ -6,22 +6,22 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 def admin_menu() -> InlineKeyboardMarkup:
     """Production admin navigation with stable callback identifiers."""
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📊 Dashboard", callback_data="admin:dashboard")],
+        [InlineKeyboardButton(text="📊 Обзор", callback_data="admin:dashboard")],
         [
-            InlineKeyboardButton(text="👥 Users", callback_data="admin:users"),
-            InlineKeyboardButton(text="🔗 Subscriptions", callback_data="admin:subscriptions"),
+            InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users"),
+            InlineKeyboardButton(text="🔗 Подписки", callback_data="admin:subscriptions"),
         ],
         [
-            InlineKeyboardButton(text="💳 Payments", callback_data="admin:payments"),
-            InlineKeyboardButton(text="💎 Plans", callback_data="admin:plans"),
+            InlineKeyboardButton(text="💳 Платежи", callback_data="admin:payments"),
+            InlineKeyboardButton(text="💎 Тарифы", callback_data="admin:plans"),
         ],
         [
-            InlineKeyboardButton(text="🎟 Promo Codes", callback_data="admin:promo"),
-            InlineKeyboardButton(text="🌐 Infrastructure", callback_data="admin:section:infrastructure"),
+            InlineKeyboardButton(text="🎟 Промокоды", callback_data="admin:promo"),
+            InlineKeyboardButton(text="🌐 Инфраструктура", callback_data="admin:section:infrastructure"),
         ],
         [
-            InlineKeyboardButton(text="📈 Monitoring", callback_data="admin:section:monitoring"),
-            InlineKeyboardButton(text="⚙️ System", callback_data="admin:section:system"),
+            InlineKeyboardButton(text="📈 Мониторинг", callback_data="admin:section:monitoring"),
+            InlineKeyboardButton(text="⚙️ Система", callback_data="admin:section:system"),
         ],
     ])
 
@@ -29,46 +29,46 @@ def admin_menu() -> InlineKeyboardMarkup:
 def infrastructure_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🖥 Panels", callback_data="admin:versions"),
-            InlineKeyboardButton(text="🌍 Nodes", callback_data="admin:nodes"),
+            InlineKeyboardButton(text="🖥 Панели", callback_data="admin:versions"),
+            InlineKeyboardButton(text="🌍 Ноды", callback_data="admin:nodes"),
         ],
         [
-            InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds"),
-            InlineKeyboardButton(text="🌐 Hosts", callback_data="admin:hosts"),
+            InlineKeyboardButton(text="📡 Inbound'ы", callback_data="admin:infra:inbounds"),
+            InlineKeyboardButton(text="🌐 Хосты", callback_data="admin:hosts"),
         ],
-        [InlineKeyboardButton(text="🌐 Fleet Operations", callback_data="admin:fleet")],
-        [InlineKeyboardButton(text="🗂 Server Groups", callback_data="admin:servergroups")],
-        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+        [InlineKeyboardButton(text="🌐 Операции с нодами", callback_data="admin:fleet")],
+        [InlineKeyboardButton(text="🗂 Группы серверов", callback_data="admin:servergroups")],
+        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
     ])
 
 
 def monitoring_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="📊 Traffic", callback_data="admin:traffic"),
-            InlineKeyboardButton(text="🟢 Online", callback_data="admin:online"),
+            InlineKeyboardButton(text="📊 Трафик", callback_data="admin:traffic"),
+            InlineKeyboardButton(text="🟢 В сети", callback_data="admin:online"),
         ],
-        [InlineKeyboardButton(text="🩺 System Health", callback_data="admin:health")],
+        [InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:health")],
         [
-            InlineKeyboardButton(text="📜 Logs", callback_data="admin:logs"),
-            InlineKeyboardButton(text="🚨 Alerts", callback_data="admin:alerts"),
+            InlineKeyboardButton(text="📜 Журналы", callback_data="admin:logs"),
+            InlineKeyboardButton(text="🚨 Оповещения", callback_data="admin:alerts"),
         ],
-        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
     ])
 
 
 def system_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🤖 Bot Updates", callback_data="admin:botupd")],
-        [InlineKeyboardButton(text="🧩 Versions & Updates", callback_data="admin:versions")],
+        [InlineKeyboardButton(text="🤖 Обновления бота", callback_data="admin:botupd")],
+        [InlineKeyboardButton(text="🧩 Версии и обновления", callback_data="admin:versions")],
         [
-            InlineKeyboardButton(text="⚙️ Jobs", callback_data="admin:jobs"),
-            InlineKeyboardButton(text="💾 Backups", callback_data="admin:backups"),
+            InlineKeyboardButton(text="⚙️ Задания", callback_data="admin:jobs"),
+            InlineKeyboardButton(text="💾 Резервные копии", callback_data="admin:backups"),
         ],
-        [InlineKeyboardButton(text="🧾 Audit Log", callback_data="admin:audit")],
-        [InlineKeyboardButton(text="👮 Administrators", callback_data="admin:administrators")],
-        [InlineKeyboardButton(text="🔧 Settings", callback_data="admin:settings")],
-        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+        [InlineKeyboardButton(text="🧾 Журнал аудита", callback_data="admin:audit")],
+        [InlineKeyboardButton(text="👮 Администраторы", callback_data="admin:administrators")],
+        [InlineKeyboardButton(text="🔧 Настройки", callback_data="admin:settings")],
+        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
     ])
 
 
@@ -107,7 +107,7 @@ def backup_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💾 Создать сейчас", callback_data="admin:backup:create")],
         [InlineKeyboardButton(text="📥 Скачать bot.sqlite3", callback_data="admin:backup:botdb")],
-        [InlineKeyboardButton(text="📦 Скачать полный backup", callback_data="admin:backup:full")],
-        [InlineKeyboardButton(text="🧯 Restore / DR", callback_data="admin:restore")],
-        [InlineKeyboardButton(text="⬅ System", callback_data="admin:section:system")],
+        [InlineKeyboardButton(text="📦 Скачать полную резервную копию", callback_data="admin:backup:full")],
+        [InlineKeyboardButton(text="🧯 Восстановление / DR", callback_data="admin:restore")],
+        [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ])
