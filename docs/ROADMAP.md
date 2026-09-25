@@ -311,17 +311,22 @@ README теперь является текущей картой проекта 
 
 ##### Консистентная русская локализация Telegram UI
 
-До финальной заморозки v4.x нужно провести системный проход по пользовательским и административным текстам Telegram и привести их к единому языковому контракту.
+Статус: ✅ завершено в cleanup-цикле после `v4.19.1`.
 
-Правила:
+Системный проход выполнен для client access, Admin Shell, Nodes, Monitoring/Logs/Alerts, Backups/DR, Host Control/Fleet, Versions & Updates/Bot Updates и domain UI Users/Catalog/Business/Inbounds.
+
+Зафиксированный контракт:
 
 - кнопки, заголовки, пояснения, предупреждения и пользовательские статусы по умолчанию оформляются на русском языке;
-- технические названия и термины не переводятся, если это ухудшает точность или узнаваемость: например `3x-ui`, `Xray`, `Reality`, `fingerprint`, названия протоколов, API/URL/UUID и точные identifiers;
-- одна и та же сущность не должна называться по-разному в соседних экранах;
-- перевод не меняет callback identifiers, API fields, service names и другие machine contracts;
-- после локализации обновляются связанные tests/docs, которые проверяют точные display labels.
+- технические названия сохраняются там, где перевод ухудшает точность: `3x-ui`, `Xray`, `Reality`, `Host Control`, `Deploy Agent`, `Inbound`, `fingerprint`, protocol names, API/TLS/URL/UUID и точные identifiers;
+- фиксированные RBAC role names `Read-only`, `Support`, `Administrator`, `Owner` остаются security-boundary identifiers;
+- typed confirmation phrases `STOP`, `RESTORE ...`, `UNLOCK ...`, `DOWNGRADE ...` не переводятся и не меняются;
+- callback identifiers, API fields, service names, audit/job keys и persisted machine states не менялись ради локализации;
+- для machine states используются отдельные русские display mappings;
+- `tests/test_ui_localization.py` закрепляет основные labels и запрещает возврат прежнего смешанного UI;
+- постоянный словарь и исключения зафиксированы в `docs/UI_STYLE.md`.
 
-Постоянные правила для последующей разработки фиксируются в `docs/UI_STYLE.md`, чтобы смешанный русско-английский интерфейс не возвращался с новыми PR.
+Repo-wide source audit после domain-прохода не выявил обычных английских display labels вне документированных технических исключений.
 
 ##### Аудит emoji-префиксов в информационных текстах Telegram UI
 
