@@ -194,7 +194,7 @@ Plain HTTP через публичную сеть запрещён.
 
 ~~~text
 master
-fi
+edge-1
 ~~~
 
 Он задаётся при установке и возвращается каждым API response.
@@ -230,7 +230,7 @@ JSON UTF-8.
 ~~~json
 {
   "schema": 1,
-  "host_id": "fi",
+  "host_id": "edge-1",
   "service": "x-ui.service",
   "state": "running",
   "active_state": "active",
@@ -295,7 +295,7 @@ restart
 ~~~json
 {
   "schema": 1,
-  "host_id": "fi",
+  "host_id": "edge-1",
   "operation_id": "2f31b7a8d6bf4e4f8f9ef0c4d4c635de",
   "action": "restart",
   "result": "success",
@@ -322,7 +322,7 @@ restart
 ~~~json
 {
   "schema": 1,
-  "host_id": "fi",
+  "host_id": "edge-1",
   "operation_id": "2f31b7a8d6bf4e4f8f9ef0c4d4c635de",
   "action": "restart",
   "result": "success",
@@ -600,7 +600,7 @@ Host-control config не переиспользует NODE_BACKUP_TARGETS: эт�
 Предварительный local config:
 
 ~~~env
-HOST_CONTROL_AGENT_ID=fi
+HOST_CONTROL_AGENT_ID=edge-1
 HOST_CONTROL_AGENT_LISTEN=127.0.0.1:18181
 HOST_CONTROL_AGENT_TOKEN_FILE=/etc/3xui-host-control/token
 HOST_CONTROL_AGENT_SERVICE=x-ui.service
