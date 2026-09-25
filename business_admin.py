@@ -212,7 +212,7 @@ async def payment_detail(call: CallbackQuery):
         f"Сумма: {money(item.amount_minor, item.currency)}",
         f"Статус: {PAYMENT_STATUSES.get(item.status, item.status)}",
         f"Провайдер: {item.provider}",
-        f"Reference: {item.external_id or '—'}",
+        f"Внешний ID: {item.external_id or '—'}",
         f"Создан: {utc_text(item.created_at)}",
         f"Оплачен: {utc_text(item.paid_at)}",
     ]
@@ -365,7 +365,7 @@ async def payment_add_reference(message: Message, state: FSMContext):
     if ref == "-":
         ref = ""
     if len(ref) > 160:
-        await render_input(message, "Reference слишком длинный (максимум 160 символов).")
+        await render_input(message, "Внешний ID слишком длинный (максимум 160 символов).")
         return
     await state.update_data(external_id=ref)
     data = await state.get_data()
@@ -377,7 +377,7 @@ async def payment_add_reference(message: Message, state: FSMContext):
         f"Тариф: {plan.name if plan else 'не привязан'}\n"
         f"Сумма: {money(data['amount_minor'], data['currency'])}\n"
         f"Статус: {PAYMENT_STATUSES[data['status']]}\n"
-        f"Reference: {ref or '—'}",
+        f"Внешний ID: {ref or '—'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сохранить", callback_data="admin:paymentadd:save")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:paymentadd:cancel")],
@@ -487,7 +487,7 @@ async def promo_detail(call: CallbackQuery):
         f"Скидка: {promo_value_text(item)}\n"
         f"Тариф: {plan.name if plan else 'все тарифы'}\n"
         f"Использовано: {uses}\n"
-        f"Expires: {utc_text(item.expires_at) if item.expires_at else 'без срока'}\n"
+        f"Действует до: {utc_text(item.expires_at) if item.expires_at else 'без срока'}\n"
         f"Создан: {utc_text(item.created_at)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=toggle, callback_data=f"admin:promo:toggle:{item.id}")],
@@ -645,7 +645,7 @@ async def promo_add_expires(message: Message, state: FSMContext):
         f"Скидка: {display_value}\n"
         f"Тариф: {plan.name if plan else 'все тарифы'}\n"
         f"Максимум использований: {data['max_uses'] or '∞'}\n"
-        f"Expires: {utc_text(expires_at) if expires_at else 'без срока'}",
+        f"Действует до: {utc_text(expires_at) if expires_at else 'без срока'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сохранить", callback_data="admin:promoadd:save")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:promoadd:cancel")],
