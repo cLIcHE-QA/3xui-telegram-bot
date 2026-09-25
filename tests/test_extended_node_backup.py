@@ -243,6 +243,10 @@ class ExtendedNodeBackupTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("nodes/Finland/node.json", names)
             self.assertIn("nodes/Finland/manifest.json", names)
             global_manifest = json.load(archive.extractfile("manifest.json"))
+            integrity_paths = {
+                item["path"] for item in global_manifest["integrity"]["files"]
+            }
+            self.assertIn("nodes/Finland/manifest.json", integrity_paths)
             node = global_manifest["nodes"][0]
             self.assertEqual(node["node_id"], 2)
             self.assertTrue(node["ok"])
