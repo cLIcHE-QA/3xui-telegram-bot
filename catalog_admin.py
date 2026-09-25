@@ -86,13 +86,31 @@ async def guard_message(message: Message, state: FSMContext) -> bool:
 
 def dashboard_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ])
 
 
 def infrastructure_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
+    ])
+
+
+def plans_back() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅ Тарифы", callback_data="admin:plans")],
+    ])
+
+
+def server_groups_back() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅ Группы серверов", callback_data="admin:servergroups")],
+    ])
+
+
+def hosts_back() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅ Хосты", callback_data="admin:hosts")],
     ])
 
 
@@ -182,7 +200,7 @@ async def plans_list(call: CallbackQuery):
         )])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить тариф", callback_data="admin:planadd:start")],
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ]
     active = sum(1 for p in plans if p.active)
     await render_callback(call, 
@@ -269,11 +287,11 @@ async def plan_add_name(message: Message, state: FSMContext):
         return
     name = (message.text or "").strip()
     if not 1 <= len(name) <= 64:
-        await render_input(message, "Название должно быть от 1 до 64 символов.")
+        await render_input(message, "Название должно быть от 1 до 64 символов.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(name=name)
     await state.set_state(AddPlanStates.duration)
-    await render_input(message, "💎 Новый тариф · 2/5\n\nСрок действия в днях, например 30:")
+    await render_input(message, "💎 Новый тариф · 2/5\n\nСрок действия в днях, например 30:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
 
 
 @catalog_router.message(AddPlanStates.duration)
@@ -285,11 +303,11 @@ async def plan_add_duration(message: Message, state: FSMContext):
         if not 1 <= value <= 3650:
             raise ValueError
     except ValueError:
-        await render_input(message, "Введите целое число от 1 до 3650.")
+        await render_input(message, "Введите целое число от 1 до 3650.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(duration_days=value)
     await state.set_state(AddPlanStates.traffic)
-    await render_input(message, "💎 Новый тариф · 3/5\n\nЛимит трафика в GB. 0 = без лимита:")
+    await render_input(message, "💎 Новый тариф · 3/5\n\nЛимит трафика в GB. 0 = без лимита:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
 
 
 @catalog_router.message(AddPlanStates.traffic)
@@ -301,11 +319,11 @@ async def plan_add_traffic(message: Message, state: FSMContext):
         if not 0 <= value <= 1_000_000:
             raise ValueError
     except ValueError:
-        await render_input(message, "Введите целое число от 0 до 1000000.")
+        await render_input(message, "Введите целое число от 0 до 1000000.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(traffic_gb=value)
     await state.set_state(AddPlanStates.ip_limit)
-    await render_input(message, "💎 Новый тариф · 4/5\n\nЛимит IP/устройств. 0 = без лимита:")
+    await render_input(message, "💎 Новый тариф · 4/5\n\nЛимит IP/устройств. 0 = без лимита:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
 
 
 @catalog_router.message(AddPlanStates.ip_limit)
@@ -317,12 +335,13 @@ async def plan_add_ip_limit(message: Message, state: FSMContext):
         if not 0 <= value <= 1000:
             raise ValueError
     except ValueError:
-        await render_input(message, "Введите целое число от 0 до 1000.")
+        await render_input(message, "Введите целое число от 0 до 1000.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(ip_limit=value)
     await state.set_state(AddPlanStates.price)
     await render_input(message, 
-        "💎 Новый тариф · 5/5\n\nЦена, например:\n499\n499.90 RUB\n5 EUR\n\n0 = бесплатно."
+        "💎 Новый тариф · 5/5\n\nЦена, например:\n499\n499.90 RUB\n5 EUR\n\n0 = бесплатно.",
+        reply_markup=cancel_keyboard("admin:planadd:cancel"),
     )
 
 
@@ -334,7 +353,7 @@ async def plan_add_price(message: Message, state: FSMContext):
         default_currency = str(await db.get_runtime_setting("default_currency", "RUB") or "RUB").upper()
         price_minor, currency = _parse_price(message.text or "", default_currency)
     except ValueError:
-        await render_input(message, "Не понял цену. Пример: 499 RUB, 4.99 EUR или 0.")
+        await render_input(message, "Не понял цену. Пример: 499 RUB, 4.99 EUR или 0.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(price_minor=price_minor, currency=currency)
     await state.set_state(AddPlanStates.group)
@@ -402,7 +421,7 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
             server_group_id=data.get("server_group_id"),
         )
     except sqlite3.IntegrityError:
-        await render_callback(call, "Тариф с таким названием уже существует.", reply_markup=dashboard_back())
+        await render_callback(call, "Тариф с таким названием уже существует.", reply_markup=plans_back())
         await state.clear()
         await call.answer()
         return
@@ -426,7 +445,7 @@ async def plan_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await render_callback(call, "Создание тарифа отменено.", reply_markup=dashboard_back())
+    await render_callback(call, "Создание тарифа отменено.", reply_markup=plans_back())
     await call.answer()
 
 
@@ -577,7 +596,7 @@ async def plan_preview(call: CallbackQuery):
             lines += ["", "Предупреждения:"] + [f"⚠️ {w}" for w in policy.warnings]
         await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
     except Exception as exc:
-        await render_callback(call, f"🔴 Предпросмотр согласования: {type(exc).__name__}: {exc}")
+        await render_callback(call, f"🔴 Предпросмотр согласования: {type(exc).__name__}: {exc}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
     await call.answer()
 
 
@@ -614,7 +633,7 @@ async def plan_delete(call: CallbackQuery):
         db, call, "plan.delete", target_type="plan", target_id=str(plan_id),
         details=f"name={plan.name if plan else ''}",
     )
-    await render_callback(call, "✅ Тариф удалён из каталога.", reply_markup=dashboard_back())
+    await render_callback(call, "✅ Тариф удалён из каталога.", reply_markup=plans_back())
     await call.answer()
 
 
@@ -668,11 +687,11 @@ async def server_group_add_name(message: Message, state: FSMContext):
         return
     name = (message.text or "").strip()
     if not 1 <= len(name) <= 64:
-        await render_input(message, "Название должно быть от 1 до 64 символов.")
+        await render_input(message, "Название должно быть от 1 до 64 символов.", reply_markup=cancel_keyboard("admin:servergroupadd:cancel"))
         return
     await state.update_data(name=name)
     await state.set_state(AddServerGroupStates.description)
-    await render_input(message, "🗂 Новая группа серверов · 2/2\n\nОписание или «-», если не нужно:")
+    await render_input(message, "🗂 Новая группа серверов · 2/2\n\nОписание или «-», если не нужно:", reply_markup=cancel_keyboard("admin:servergroupadd:cancel"))
 
 
 @catalog_router.message(AddServerGroupStates.description)
@@ -684,12 +703,12 @@ async def server_group_add_description(message: Message, state: FSMContext):
     if description == "-":
         description = ""
     if len(description) > 300:
-        await render_input(message, "Описание слишком длинное. Максимум 300 символов.")
+        await render_input(message, "Описание слишком длинное. Максимум 300 символов.", reply_markup=cancel_keyboard("admin:servergroupadd:cancel"))
         return
     try:
         group_id = await db.create_server_group(name=str(data["name"]), description=description)
     except sqlite3.IntegrityError:
-        await render_input(message, "Группа с таким названием уже существует.", reply_markup=infrastructure_back())
+        await render_input(message, "Группа с таким названием уже существует.", reply_markup=server_groups_back())
         await state.clear()
         return
     await audit_from_message(
@@ -711,7 +730,7 @@ async def server_group_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await render_callback(call, "Создание группы серверов отменено.", reply_markup=infrastructure_back())
+    await render_callback(call, "Создание группы серверов отменено.", reply_markup=server_groups_back())
     await call.answer()
 
 
@@ -946,7 +965,7 @@ async def server_group_delete(call: CallbackQuery):
         db, call, "server_group.delete", target_type="server_group", target_id=str(group_id),
         details=f"name={group.name if group else ''}",
     )
-    await render_callback(call, "✅ Группа серверов удалена.", reply_markup=infrastructure_back())
+    await render_callback(call, "✅ Группа серверов удалена.", reply_markup=server_groups_back())
     await call.answer()
 
 
@@ -1040,12 +1059,13 @@ async def host_add_label(message: Message, state: FSMContext):
         return
     label = (message.text or "").strip()
     if not 1 <= len(label) <= 80:
-        await render_input(message, "Название должно быть от 1 до 80 символов.")
+        await render_input(message, "Название должно быть от 1 до 80 символов.", reply_markup=cancel_keyboard("admin:hostadd:cancel"))
         return
     await state.update_data(label=label)
     await state.set_state(AddHostStates.hostname)
     await render_input(message, 
-        "🌐 Новый хост · 2/3\n\nИмя хоста, IP или URL. Например:\nsub.example.com\nhttps://panel.example.com/basepath"
+        "🌐 Новый хост · 2/3\n\nИмя хоста, IP или URL. Например:\nsub.example.com\nhttps://panel.example.com/basepath",
+        reply_markup=cancel_keyboard("admin:hostadd:cancel"),
     )
 
 
@@ -1056,7 +1076,7 @@ async def host_add_hostname(message: Message, state: FSMContext):
     try:
         hostname = _normalize_hostname(message.text or "")
     except ValueError:
-        await render_input(message, "Некорректное имя хоста/IP/URL.")
+        await render_input(message, "Некорректное имя хоста/IP/URL.", reply_markup=cancel_keyboard("admin:hostadd:cancel"))
         return
     await state.update_data(hostname=hostname)
     await state.set_state(AddHostStates.role)
@@ -1087,7 +1107,7 @@ async def host_add_role(call: CallbackQuery, state: FSMContext):
     except sqlite3.IntegrityError:
         await render_callback(call, 
             "Такой hostname с этой ролью уже есть в реестре.",
-            reply_markup=infrastructure_back(),
+            reply_markup=hosts_back(),
         )
         await state.clear()
         await call.answer()
@@ -1112,7 +1132,7 @@ async def host_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await render_callback(call, "Добавление хоста отменено.", reply_markup=infrastructure_back())
+    await render_callback(call, "Добавление хоста отменено.", reply_markup=hosts_back())
     await call.answer()
 
 
@@ -1199,5 +1219,5 @@ async def host_delete(call: CallbackQuery):
         db, call, "host.delete", target_type="host", target_id=str(host_id),
         details=f"hostname={host.hostname if host else ''}",
     )
-    await render_callback(call, "✅ Хост удалён из реестра.", reply_markup=infrastructure_back())
+    await render_callback(call, "✅ Хост удалён из реестра.", reply_markup=hosts_back())
     await call.answer()

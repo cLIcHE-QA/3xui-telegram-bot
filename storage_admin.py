@@ -219,6 +219,7 @@ async def admin_backup_botdb(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Ошибка резервной копии SQLite: {type(exc).__name__}: {exc}",
+            reply_markup=backup_menu(),
         )
 
 
@@ -235,6 +236,7 @@ async def admin_backup_full(call: CallbackQuery):
                 await render_callback(
                     call,
                     "Резервная копия уже создаётся. Повтори скачивание чуть позже.",
+                    reply_markup=backup_menu(),
                 )
                 return
             async with backup_lock:
@@ -269,4 +271,5 @@ async def admin_backup_full(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Ошибка отправки резервной копии: {type(exc).__name__}: {exc}",
+            reply_markup=backup_menu(),
         )

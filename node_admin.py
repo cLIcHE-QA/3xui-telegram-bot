@@ -7,7 +7,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_auth import authorize_callback, authorize_message
-from admin_navigation import admin_menu
 from admin_ui import render_callback, render_input
 from audit import audit_from_call
 from backup_manager import BackupManager
@@ -47,6 +46,18 @@ node_admin_router = Router(name="node_admin")
 async def _guard_admin_call(call: CallbackQuery) -> bool:
     ok, _ = await authorize_callback(db, settings, call)
     return ok
+
+
+def nodes_back() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")
+    ]])
+
+
+def node_add_cancel_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✖ Отмена", callback_data="admin:nodeadd:cancel")
+    ]])
 
 
 def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeyboardMarkup:
@@ -151,9 +162,7 @@ async def admin_node_add_start(call: CallbackQuery, state: FSMContext):
         "➕ Добавление ноды\n\n"
         "Шаг 1/4. Отправь имя ноды.\n"
         "Например: Finland",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:nodeadd:cancel")]
-        ]),
+        reply_markup=node_add_cancel_keyboard(),
     )
     await call.answer()
 
@@ -170,11 +179,11 @@ async def admin_node_add_name(message: Message, state: FSMContext):
     )
     if not ok:
         await state.clear()
-        await render_input(message, "Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.", reply_markup=nodes_back())
         return
     name = (message.text or "").strip()
     if not name or len(name) > 64:
-        await render_input(message, "Имя должно содержать от 1 до 64 символов.")
+        await render_input(message, "Имя должно содержать от 1 до 64 символов.", reply_markup=node_add_cancel_keyboard())
         return
     await state.update_data(name=name)
     await state.set_state(AddNodeStates.url)
@@ -185,6 +194,7 @@ async def admin_node_add_name(message: Message, state: FSMContext):
         "https://fi.example.com:2053/my-base/panel/\n\n"
         "Можно вставить URL прямо из браузера: завершающий /panel/ будет убран автоматически. "
         "Если схема не указана, будет использован https.",
+        reply_markup=node_add_cancel_keyboard(),
     )
 
 
@@ -200,12 +210,12 @@ async def admin_node_add_url(message: Message, state: FSMContext):
     )
     if not ok:
         await state.clear()
-        await render_input(message, "Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.", reply_markup=nodes_back())
         return
     try:
         parsed = parse_node_url(message.text or "")
     except ValueError as exc:
-        await render_input(message, f"Не удалось разобрать URL: {exc}\nПопробуй ещё раз.")
+        await render_input(message, f"Не удалось разобрать URL: {exc}\nПопробуй ещё раз.", reply_markup=node_add_cancel_keyboard())
         return
     await state.update_data(**parsed)
     await state.set_state(AddNodeStates.token)
@@ -214,6 +224,7 @@ async def admin_node_add_url(message: Message, state: FSMContext):
         "Шаг 3/4. Отправь API token этой ноды.\n\n"
         "Токен 3x-ui является полным административным секретом. "
         "Сообщение с токеном бот попробует удалить сразу после получения.",
+        reply_markup=node_add_cancel_keyboard(),
     )
 
 
@@ -229,13 +240,14 @@ async def admin_node_add_token(message: Message, state: FSMContext):
     )
     if not ok:
         await state.clear()
-        await render_input(message, "Недостаточно прав.")
+        await render_input(message, "Недостаточно прав.", reply_markup=nodes_back())
         return
     token = (message.text or "").strip()
     if len(token) < 8:
         await render_input(
             message,
             "Токен выглядит слишком коротким. Отправь API token ноды ещё раз.",
+            reply_markup=node_add_cancel_keyboard(),
         )
         return
     await state.update_data(apiToken=token)
@@ -264,7 +276,7 @@ async def _node_add_test_and_show(
         await render_callback(
             call,
             "Сессия добавления ноды истекла. Начни добавление заново.",
-            reply_markup=admin_menu(),
+            reply_markup=nodes_back(),
         )
         return
     if tls_mode:
@@ -406,7 +418,7 @@ async def admin_node_add_cancel(call: CallbackQuery, state: FSMContext):
     await render_callback(
         call,
         "Добавление ноды отменено.",
-        reply_markup=admin_menu(),
+        reply_markup=nodes_back(),
     )
 
 
@@ -480,7 +492,7 @@ async def admin_node_detail(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Нода недоступна: {exc}",
-            reply_markup=admin_menu(),
+            reply_markup=nodes_back(),
         )
         return
 

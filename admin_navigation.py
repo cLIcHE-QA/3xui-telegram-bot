@@ -28,17 +28,14 @@ def admin_menu() -> InlineKeyboardMarkup:
 
 def infrastructure_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🖥 Панели", callback_data="admin:versions"),
-            InlineKeyboardButton(text="🌍 Ноды", callback_data="admin:nodes"),
-        ],
+        [InlineKeyboardButton(text="🌍 Ноды", callback_data="admin:nodes")],
         [
             InlineKeyboardButton(text="📡 Inbound'ы", callback_data="admin:infra:inbounds"),
             InlineKeyboardButton(text="🌐 Хосты", callback_data="admin:hosts"),
         ],
         [InlineKeyboardButton(text="🌐 Операции с нодами", callback_data="admin:fleet")],
         [InlineKeyboardButton(text="🗂 Группы серверов", callback_data="admin:servergroups")],
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ])
 
 
@@ -53,7 +50,7 @@ def monitoring_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📜 Журналы", callback_data="admin:logs"),
             InlineKeyboardButton(text="🚨 Оповещения", callback_data="admin:alerts"),
         ],
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ])
 
 
@@ -68,7 +65,7 @@ def system_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🧾 Журнал аудита", callback_data="admin:audit")],
         [InlineKeyboardButton(text="👮 Администраторы", callback_data="admin:administrators")],
         [InlineKeyboardButton(text="🔧 Настройки", callback_data="admin:settings")],
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ])
 
 
@@ -99,7 +96,7 @@ def confirm_delete_keyboard(tg_id: int) -> InlineKeyboardMarkup:
 def confirm_sync_all_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Синхронизировать всех", callback_data="admin:syncall:run")],
-        [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:home")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
     ])
 
 

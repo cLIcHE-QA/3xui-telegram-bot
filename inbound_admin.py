@@ -63,6 +63,30 @@ async def guard_message(message: Message, state: FSMContext, *, minimum: str = "
     return True
 
 
+def inbound_cancel_keyboard(iid: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inbound:{iid}")
+    ]])
+
+
+def inbound_back_keyboard(iid: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")
+    ]])
+
+
+def template_cancel_keyboard(tid: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inboundtemplate:{tid}")
+    ]])
+
+
+def template_back_keyboard(tid: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Шаблон", callback_data=f"admin:inboundtemplate:{tid}")
+    ]])
+
+
 def _json_obj(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return json.loads(json.dumps(value))
@@ -233,7 +257,6 @@ async def inbound_list_view() -> tuple[str, InlineKeyboardMarkup]:
         )])
     rows += [
         [InlineKeyboardButton(text="🧩 Шаблоны", callback_data="admin:inboundtemplates")],
-        [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
         [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
@@ -596,7 +619,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         new_display = raw
         if field == "remark":
             if not 1 <= len(raw) <= 128:
-                await render_input(message, "Название должно быть от 1 до 128 символов.")
+                await render_input(message, "Название должно быть от 1 до 128 символов.", reply_markup=inbound_cancel_keyboard(iid))
                 return
             old_display = str(ib.get("remark") or "")
             ib["remark"] = raw
@@ -604,13 +627,13 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             try:
                 port = int(raw)
             except ValueError:
-                await render_input(message, "Нужен числовой порт.")
+                await render_input(message, "Нужен числовой порт.", reply_markup=inbound_cancel_keyboard(iid))
                 return
             if not 1 <= port <= 65535:
-                await render_input(message, "Порт должен быть 1-65535.")
+                await render_input(message, "Порт должен быть 1-65535.", reply_markup=inbound_cancel_keyboard(iid))
                 return
             if not await _port_free(_node_key(ib.get("nodeId")), port, exclude_inbound_id=iid):
-                await render_input(message, "Этот port уже занят на данном сервере.")
+                await render_input(message, "Этот port уже занят на данном сервере.", reply_markup=inbound_cancel_keyboard(iid))
                 return
             old_display = str(ib.get("port") or 0)
             ib["port"] = port
@@ -622,7 +645,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         elif field in {"path", "host", "padding"}:
             stream = _stream(ib)
             if str(stream.get("network") or "") != "xhttp":
-                await render_input(message, "Этот inbound не использует XHTTP.")
+                await render_input(message, "Этот inbound не использует XHTTP.", reply_markup=inbound_back_keyboard(iid))
                 await state.clear()
                 return
             xhttp = _json_obj(stream.get("xhttpSettings"))
@@ -630,7 +653,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             old_display = str(xhttp.get(key) or "")
             value = "" if raw == "-" else raw
             if field == "path" and value and not value.startswith("/"):
-                await render_input(message, "XHTTP path должен начинаться с /.")
+                await render_input(message, "XHTTP path должен начинаться с /.", reply_markup=inbound_cancel_keyboard(iid))
                 return
             xhttp[key] = value
             stream["xhttpSettings"] = xhttp
@@ -639,12 +662,12 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         elif field == "sni":
             stream = _stream(ib)
             if str(stream.get("security") or "") != "reality":
-                await render_input(message, "Этот inbound не использует Reality.")
+                await render_input(message, "Этот inbound не использует Reality.", reply_markup=inbound_back_keyboard(iid))
                 await state.clear()
                 return
             values = [x.strip() for x in raw.split(",") if x.strip()]
             if not values:
-                await render_input(message, "Укажи хотя бы один SNI.")
+                await render_input(message, "Укажи хотя бы один SNI.", reply_markup=inbound_cancel_keyboard(iid))
                 return
             reality = _json_obj(stream.get("realitySettings"))
             old_display = ",".join(map(str, reality.get("serverNames") or []))
@@ -656,7 +679,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             ib["streamSettings"] = stream
             new_display = ",".join(values)
         else:
-            await render_input(message, "Поле не поддерживается.")
+            await render_input(message, "Поле не поддерживается.", reply_markup=inbound_back_keyboard(iid))
             await state.clear()
             return
         await xui.inbound_update(iid, _update_payload(ib))
@@ -673,7 +696,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             db, message, "inbound.update", target_type="inbound", target_id=str(iid),
             details=f"field={field}; error={str(exc)[:300]}", success=False,
         )
-        await render_input(message, f"Ошибка 3x-ui: {exc}")
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=inbound_back_keyboard(iid))
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:toggle:"))
@@ -833,7 +856,8 @@ async def inbound_clone_target(call: CallbackQuery, state: FSMContext):
         await state.set_state(InboundEditStates.clone_port)
         await state.update_data(clone_inbound_id=iid, clone_target_node=target_node)
         await render_callback(call, 
-            f"На выбранном сервере порт {source_port} уже занят.\n\nВведи другой порт (1-65535):"
+            f"На выбранном сервере порт {source_port} уже занят.\n\nВведи другой порт (1-65535):",
+            reply_markup=inbound_cancel_keyboard(iid),
         )
         await call.answer()
     except XUIError as exc:
@@ -847,16 +871,16 @@ async def inbound_clone_port(message: Message, state: FSMContext):
     try:
         port = int((message.text or "").strip())
     except ValueError:
-        await render_input(message, "Нужен числовой порт.")
+        await render_input(message, "Нужен числовой порт.", reply_markup=inbound_cancel_keyboard(iid))
         return
     if not 1 <= port <= 65535:
-        await render_input(message, "Порт должен быть 1-65535.")
+        await render_input(message, "Порт должен быть 1-65535.", reply_markup=inbound_cancel_keyboard(iid))
         return
     data = await state.get_data()
     iid = int(data.get("clone_inbound_id") or 0)
     target_node = int(data.get("clone_target_node") or 0)
     if not await _port_free(target_node, port):
-        await render_input(message, "Этот порт уже занят на выбранном сервере.")
+        await render_input(message, "Этот порт уже занят на выбранном сервере.", reply_markup=inbound_cancel_keyboard(iid))
         return
     try:
         # This path has no CallbackQuery for audit, so record the mutation directly.
@@ -875,7 +899,7 @@ async def inbound_clone_port(message: Message, state: FSMContext):
         )
     except XUIError as exc:
         await state.clear()
-        await render_input(message, f"Ошибка 3x-ui: {exc}")
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=inbound_back_keyboard(iid))
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:template:"))
@@ -895,6 +919,7 @@ async def inbound_template_start(call: CallbackQuery, state: FSMContext):
         f"🧩 Сохранение шаблона из #{iid}\n\n"
         f"Источник: {ib.get('remark') or '-'}\n"
         "Введи имя шаблона. В шаблон попадёт конфигурация inbound без клиентов; он будет храниться в bot.sqlite3.",
+        reply_markup=inbound_cancel_keyboard(iid),
     )
     await call.answer()
 
@@ -905,7 +930,7 @@ async def inbound_template_save(message: Message, state: FSMContext):
         return
     name = (message.text or "").strip()
     if not 1 <= len(name) <= 64:
-        await render_input(message, "Имя должно быть от 1 до 64 символов.")
+        await render_input(message, "Имя должно быть от 1 до 64 символов.", reply_markup=inbound_cancel_keyboard(iid))
         return
     data = await state.get_data()
     iid = int(data.get("template_source_id") or 0)
@@ -930,16 +955,17 @@ async def inbound_template_save(message: Message, state: FSMContext):
             ]]),
         )
     except sqlite3.IntegrityError:
-        await render_input(message, "Шаблон с таким именем уже существует.")
+        await render_input(message, "Шаблон с таким именем уже существует.", reply_markup=inbound_cancel_keyboard(iid))
     except XUIError as exc:
         await state.clear()
-        await render_input(message, f"Ошибка 3x-ui: {exc}")
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=inbound_back_keyboard(iid))
 
 
 @inbound_admin_router.callback_query(F.data == "admin:inboundtemplates")
-async def inbound_templates(call: CallbackQuery):
+async def inbound_templates(call: CallbackQuery, state: FSMContext):
     if not await guard(call):
         return
+    await state.clear()
     templates = await db.list_inbound_templates()
     rows = [[InlineKeyboardButton(
         text=f"🧩 {t.name} · {t.protocol}", callback_data=f"admin:inboundtemplate:{t.id}"
@@ -951,9 +977,10 @@ async def inbound_templates(call: CallbackQuery):
 
 
 @inbound_admin_router.callback_query(F.data.regexp(r"^admin:inboundtemplate:\d+$"))
-async def inbound_template_card(call: CallbackQuery):
+async def inbound_template_card(call: CallbackQuery, state: FSMContext):
     if not await guard(call):
         return
+    await state.clear()
     tid = int(call.data.rsplit(":", 1)[-1])
     t = await db.get_inbound_template(tid)
     if not t:
@@ -1040,7 +1067,8 @@ async def template_deploy_target(call: CallbackQuery, state: FSMContext):
         await state.set_state(InboundEditStates.template_port)
         await state.update_data(template_id=tid, template_target_node=target_node)
         await render_callback(call, 
-            f"Порт {port} уже занят на выбранном сервере.\n\nВведи другой порт (1-65535):"
+            f"Порт {port} уже занят на выбранном сервере.\n\nВведи другой порт (1-65535):",
+            reply_markup=template_cancel_keyboard(tid),
         )
         await call.answer()
     except XUIError as exc:
@@ -1054,16 +1082,16 @@ async def template_deploy_port(message: Message, state: FSMContext):
     try:
         port = int((message.text or "").strip())
     except ValueError:
-        await render_input(message, "Нужен числовой порт.")
+        await render_input(message, "Нужен числовой порт.", reply_markup=template_cancel_keyboard(tid))
         return
     if not 1 <= port <= 65535:
-        await render_input(message, "Порт должен быть 1-65535.")
+        await render_input(message, "Порт должен быть 1-65535.", reply_markup=template_cancel_keyboard(tid))
         return
     data = await state.get_data()
     tid = int(data.get("template_id") or 0)
     target_node = int(data.get("template_target_node") or 0)
     if not await _port_free(target_node, port):
-        await render_input(message, "Этот порт уже занят на выбранном сервере.")
+        await render_input(message, "Этот порт уже занят на выбранном сервере.", reply_markup=template_cancel_keyboard(tid))
         return
     try:
         await _deploy_template(tid, target_node, port)
@@ -1080,7 +1108,7 @@ async def template_deploy_port(message: Message, state: FSMContext):
         )
     except (XUIError, ValueError) as exc:
         await state.clear()
-        await render_input(message, f"Ошибка развёртывания: {exc}")
+        await render_input(message, f"Ошибка развёртывания: {exc}", reply_markup=template_back_keyboard(tid))
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inboundtemplate:deleteask:"))
