@@ -150,7 +150,12 @@ def _log_controls(source: str, count: int, level: str, *, node_id: int | None = 
             InlineKeyboardButton(text=("✅ " if level == "error" else "❌ ") + "Ошибки", callback_data=f"{base}:{count}:error"),
         ],
         [InlineKeyboardButton(text="🔄 Обновить", callback_data=f"{base}:{count}:{level}")],
-        [InlineKeyboardButton(text="⬅ Журналы", callback_data="admin:logs")],
+        [
+            InlineKeyboardButton(
+                text="⬅ Источники ноды" if node_id is not None else "⬅ Журналы",
+                callback_data=f"admin:logs:node:{node_id}" if node_id is not None else "admin:logs",
+            )
+        ],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
