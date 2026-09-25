@@ -11,7 +11,9 @@ PUBLIC_SURFACES = (
     "README.md",
     "config.py",
     "node_admin.py",
+    "advanced_users.py",
     "catalog_admin.py",
+    "business_admin.py",
     "scripts/setup-host-control-endpoint.sh",
     "docs/ADMIN_SETUP.md",
     "docs/HOST_CONTROL_AGENT.md",
@@ -87,6 +89,20 @@ class PublicReadinessTests(unittest.TestCase):
         catalog = self._source("catalog_admin.py")
         self.assertIn("Название, например Основная или Резервная", catalog)
         self.assertIn("Название, например Публичная подписка или VPN-шлюз", catalog)
+
+    def test_destructive_confirmations_state_their_scope(self):
+        users = self._source("advanced_users.py")
+        self.assertIn(
+            "Клиент и его профиль будут удалены; платёжная история сохранится.",
+            users,
+        )
+
+        business = self._source("business_admin.py")
+        self.assertIn(
+            "Административный доступ через эту запись будет удалён; "
+            "пользовательские данные и 3x-ui не изменятся.",
+            business,
+        )
 
     def test_readme_describes_current_admin_hierarchy(self):
         readme = self._source("README.md")
