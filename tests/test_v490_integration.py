@@ -28,8 +28,10 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         })
         cls.env.start()
         import bot
+        import system_admin
         import versions_updates
         cls.bot = bot
+        cls.system = system_admin
         cls.updates = versions_updates
 
     @classmethod
@@ -63,7 +65,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
         root = Path(__file__).resolve().parents[1]
         files = [
-            'bot.py', 'node_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
+            'bot.py', 'node_admin.py', 'system_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
             'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
             'fleet_operations.py',
@@ -115,6 +117,17 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
                     if not marked(label.value):
                         missing.append(f'line {node.lineno}: {label.value}')
         self.assertEqual(missing, [])
+
+    def test_system_admin_helpers_are_stable(self):
+        self.assertEqual(
+            self.system.public_health_url('https://sub.example.invalid/sub/{sub_id}'),
+            'https://sub.example.invalid/healthz',
+        )
+        self.assertIsNone(self.system.public_health_url(''))
+        self.assertEqual(
+            self.system.usage_line('RAM', 50, 100),
+            'RAM: 50 B / 100 B (50%)',
+        )
 
     def test_real_xui_client_has_version_api(self):
         from version_api import VersionAPIMixin
@@ -178,6 +191,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
     def test_router_registered_and_master_shows_panel_version(self):
         self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(node_admin_router)', inspect.getsource(self.bot.main))
+        self.assertIn('dp.include_router(system_admin_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(fleet_router)', inspect.getsource(self.bot.main))
         self.assertIn('get_panel_update_info', inspect.getsource(self.bot.admin_master_detail))
