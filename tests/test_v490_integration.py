@@ -151,6 +151,16 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
                 f'F.data.startswith("{callback}")',
                 bot_source,
             )
+        for callback in (
+            'admin:users',
+            'admin:provision:all:ask',
+            'admin:provision:all:run',
+            'admin:syncall:ask',
+            'admin:syncall:run',
+            'admin:stats',
+        ):
+            self.assertIn(f'F.data == "{callback}"', user_source)
+            self.assertNotIn(f'F.data == "{callback}"', bot_source)
         self.assertIn('inbound_is_managed(settings, i)', inspect.getsource(self.users.is_managed_inbound))
 
     def test_storage_admin_uses_shared_backup_lock(self):
