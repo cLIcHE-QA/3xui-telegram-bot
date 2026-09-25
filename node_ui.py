@@ -127,3 +127,81 @@ def node_detail_keyboard(node_id: int, enabled: bool | None = None) -> InlineKey
         [InlineKeyboardButton(text="🗑 Delete node", callback_data=f"admin:nodectl:{node_id}:deleteask")],
         [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
     ])
+
+
+def nodes_menu(
+    nodes: list[NodeInfo],
+    master_online: bool = True,
+    *,
+    master_flag: str,
+    master_name: str,
+) -> InlineKeyboardMarkup:
+    master_icon = "🟢" if master_online else "🔴"
+    rows: list[list[InlineKeyboardButton]] = [
+        [InlineKeyboardButton(
+            text=f"{master_flag} {master_name} · {master_icon} {'Online' if master_online else 'Offline'}",
+            callback_data="admin:master",
+        )]
+    ]
+    for node in nodes[:40]:
+        suffix = " ↳" if node.transitive else ""
+        text = f"{node_status_icon(node)} {node_display_name(node.name)}{suffix}"
+        if node.id > 0 and not node.transitive:
+            rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:node:{node.id}")])
+        else:
+            rows.append([InlineKeyboardButton(text=text, callback_data="admin:nodes:noop")])
+    rows.append([InlineKeyboardButton(text="➕ Добавить ноду", callback_data="admin:nodeadd:start")])
+    rows.append([InlineKeyboardButton(text="🔄 Проверить все", callback_data="admin:nodes:refresh")])
+    rows.append([InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def _human_bytes(value: int) -> str:
+    n = int(value or 0)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024 or unit == "TB":
+            return f"{n:.1f} {unit}" if unit != "B" else f"{n} B"
+        n /= 1024
+    return "0 B"
+
+
+def node_detail_text(node: NodeInfo, *, backup_configured: bool) -> str:
+    status_icon = node_status_icon(node)
+    xray_state_icon = xray_icon(node)
+    endpoint = f"{node.scheme}://{node.address}:{node.port}{node.base_path}"
+    lines = [
+        f"🌍 {node_display_name(node.name)}",
+        "",
+        f"{status_icon} Panel: {node.status}",
+        f"{'🟢 Enabled' if node.enable else '🛠 Maintenance / disabled'}",
+        f"Endpoint: {endpoint}",
+        f"{xray_state_icon} Xray: {node.xray_state}"
+        + (f" {node.xray_version}" if node.xray_version else ""),
+    ]
+    if node.panel_version:
+        lines.append(f"3x-ui: {node.panel_version}")
+    lines.append(f"TLS verify: {node.tls_verify_mode} · inbound sync: {node.inbound_sync_mode}")
+    if node.outbound_tag:
+        lines.append(f"Outbound bridge: {node.outbound_tag}")
+    if node.latency_ms:
+        lines.append(f"Ping API: {node.latency_ms} ms")
+    if node.net_up or node.net_down:
+        lines.append(f"Network: ↑ {_human_bytes(node.net_up)}/s · ↓ {_human_bytes(node.net_down)}/s")
+    lines += [
+        f"CPU: {node.cpu_pct:.1f}%",
+        f"RAM: {node.mem_pct:.1f}%",
+        f"Uptime: {duration_text(node.uptime_secs)}",
+        f"Inbound'ов: {node.inbound_count}",
+        f"Клиентов: {node.client_count} · active {node.active_count} · online {node.online_count}",
+        f"Последний heartbeat: {epoch_text(node.last_heartbeat)}",
+    ]
+    if node.config_dirty:
+        lines.append("🟡 Конфигурация ожидает синхронизации")
+    if node.last_error:
+        lines.append(f"⚠️ Node error: {node.last_error[:240]}")
+    if node.xray_error:
+        lines.append(f"⚠️ Xray error: {node.xray_error[:240]}")
+    lines.append("💾 Backup БД: " + ("настроен" if backup_configured else "не настроен"))
+    if node.transitive:
+        lines.append("ℹ️ Транзитная нода: read-only представление через родительскую ноду.")
+    return "\n".join(lines)
