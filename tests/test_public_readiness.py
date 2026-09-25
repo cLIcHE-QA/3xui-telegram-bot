@@ -58,6 +58,10 @@ STALE_UI_PATHS = (
     "`System → Jobs",
     "`/admin → Backups",
     "`⬅ System`",
+    "Monitoring -> Logs",
+    "/admin, Dashboard,",
+    "`🧭 Readiness`",
+    "но Readiness показывает",
 )
 
 
