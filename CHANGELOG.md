@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.1 — Safe Bot Self-Update release-notes hotfix
+- Исправлен intermittent blocker Safe Bot Self-Update: `notes_cmd` больше не использует SIGPIPE-sensitive pipeline `printf | awk` под `set -o pipefail`, из-за которого корректный published release иногда отклонялся как `release_notes_missing` с exit code 141.
+- Release notes по-прежнему читаются только из `CHANGELOG.md` целевого опубликованного тега после обычной release validation; fail-closed поведение при реально отсутствующих/ошибочных notes сохраняется.
+- Deploy Agent version повышена до `0.1.2`, чтобы установленный host-side control plane можно было однозначно отличить от версии с дефектным helper.
+- Добавлен regression source-contract, запрещающий возврат SIGPIPE-sensitive notes pipeline; API surface, sudoers allowlist, mutation semantics, SQLite schema и 3x-ui compatibility contract не изменены.
+- Поскольку helper устанавливается host-side и не заменяется пересозданием bot container, перед повторной попыткой self-update production Deploy Agent должен быть обновлён до host bundle из `v4.20.1`.
+
 ## v4.20.0 — Подготовка Admin Control Plane к заморозке
 - Завершена декомпозиция runtime: `bot.py` оставлен минимальным executable shim, lifecycle/startup/recovery вынесены в `app_runtime.py`, client flow — в `client_access.py`, admin shell и domain handlers — в отдельные routers с закреплённым single ownership.
 - Telegram UI Admin Control Plane системно приведён к русской локализации при сохранении технических identifiers, фиксированных RBAC role names и typed confirmation phrases; regression gate блокирует возврат смешанного operator-facing UI.
