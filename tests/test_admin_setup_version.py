@@ -17,9 +17,9 @@ class AdminSetupReleaseVersionTests(unittest.TestCase):
         tag = f"v{version}"
 
         self.assertIn(f"Guide ориентирован на release {tag}.", doc)
-        self.assertIn(f"Для bot release \`{tag}\`", doc)
+        self.assertIn(f"Для bot release `{tag}`", doc)
         self.assertIn(f"git checkout --detach {tag}", doc)
-        self.assertIn(f"~~~text\\n{version}\\n~~~", doc)
+        self.assertIn("~~~text\n" + version + "\n~~~", doc)
         self.assertIn(f"3xui-host-control-bundle-{tag}.tar.gz", doc)
         self.assertIn(f"Git tag: {tag}", doc)
         self.assertIn(f"Bot version: {version}", doc)
