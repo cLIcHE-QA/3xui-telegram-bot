@@ -73,7 +73,7 @@ async def admin_dashboard(call: CallbackQuery):
 
     users = await db.list_users()
     now_ms = int(time.time() * 1000)
-    активных = sum(1 for u in users if not u.expiry_time or u.expiry_time > now_ms)
+    active = sum(1 for u in users if not u.expiry_time or u.expiry_time > now_ms)
     soon = sum(
         1 for u in users
         if u.expiry_time and now_ms < u.expiry_time <= now_ms + 3 * 86400 * 1000
@@ -87,8 +87,8 @@ async def admin_dashboard(call: CallbackQuery):
     inbounds_error = None
     traffic_rows: list[dict] = []
     traffic_error = None
-    в сети_clients: list[str] = []
-    в сети_error = None
+    online_clients: list[str] = []
+    online_error = None
 
     try:
         await xui.server_status()
@@ -112,15 +112,15 @@ async def admin_dashboard(call: CallbackQuery):
         xui.online_clients(),
         return_exceptions=True,
     )
-    traffic_result, в сети_result = monitoring_results
+    traffic_result, online_result = monitoring_results
     if isinstance(traffic_result, Exception):
         traffic_error = str(traffic_result)[:120]
     else:
         traffic_rows = traffic_result
     if isinstance(online_result, Exception):
-        в сети_error = str(online_result)[:120]
+        online_error = str(online_result)[:120]
     else:
-        в сети_clients = в сети_result
+        online_clients = online_result
 
     remote_online = sum(1 for n in nodes if n.enable and n.status == "online")
     servers_total = 1 + len(nodes)
@@ -131,15 +131,15 @@ async def admin_dashboard(call: CallbackQuery):
 
     plans = await db.list_plans()
     server_groups = await db.list_server_groups()
-    хостами = await db.list_хостами()
-    активных_plans = sum(1 for p in plans if p.active)
+    hosts = await db.list_hosts()
+    active_plans = sum(1 for p in plans if p.active)
     default_plan = await provisioner.default_plan()
-    включено_хостами = sum(1 for h in хостами if h.enabled)
+    enabled_hosts = sum(1 for h in hosts if h.enabled)
     payment_summary = await db.payment_summary()
     promo_codes = await db.list_promo_codes()
-    активных_alerts = await db.list_alert_states(active_only=True)
+    active_alerts = await db.list_alert_states(active_only=True)
     now_s = int(time.time())
-    активных_promos = sum(
+    active_promos = sum(
         1 for promo in promo_codes
         if promo.active
         and (not promo.expires_at or promo.expires_at >= now_s)
@@ -165,7 +165,7 @@ async def admin_dashboard(call: CallbackQuery):
         f"🌍 Серверы: {servers_online}/{servers_total} в сети",
     ]
     if inbounds_error:
-        lines.append(f"⚠️ Inbounds: {inbounds_error}")
+        lines.append(f"⚠️ Inbound'ы: {inbounds_error}")
     else:
         lines.append(f"📡 Inbound'ы: {managed_enabled}/{len(managed)} включено")
     if nodes_error:
@@ -176,7 +176,7 @@ async def admin_dashboard(call: CallbackQuery):
         f"💎 Тарифы: {active_plans}/{len(plans)} активных",
         f"⭐ По умолчанию для /create: {default_plan.name if default_plan else 'legacy trial policy'}",
         f"🗂 Группы серверов: {len(server_groups)}",
-        f"🌐 Хосты: {enabled_хостами}/{len(хостами)} включено",
+        f"🌐 Хосты: {enabled_hosts}/{len(hosts)} включено",
         "",
         "Бизнес",
         f"💳 Платежи: {sum(payment_summary.get(k, 0) for k in ('pending', 'paid', 'refunded', 'cancelled'))} · оплачено {payment_summary.get('paid', 0)}",
@@ -192,11 +192,11 @@ async def admin_dashboard(call: CallbackQuery):
             traffic = row.get("traffic") if isinstance(row, dict) and isinstance(row.get("traffic"), dict) else {}
             traffic_total += int(traffic.get("up") or 0) + int(traffic.get("down") or 0)
         lines.append(f"📊 Использовано трафика: {human_bytes(traffic_total)}")
-    if в сети_error:
+    if online_error:
         lines.append(f"⚠️ Статус online: {online_error}")
     else:
         lines.append(f"🟢 Клиентов в сети: {len(set(online_clients))}")
-    lines.append(f"{'🚨' if активных_alerts else '✅'} Активных оповещений: {len(active_alerts)}")
+    lines.append(f"{'🚨' if active_alerts else '✅'} Активных оповещений: {len(active_alerts)}")
     lines += [
         "",
         "Система",
@@ -249,7 +249,7 @@ async def admin_monitoring(call: CallbackQuery):
     await render_callback(call, 
         _section_header(
             "📈 Мониторинг",
-            "Трафик, в сети-состояние, здоровье системы и журналы.",
+            "Трафик, состояние клиентов в сети, здоровье системы и журналы.",
         ),
         reply_markup=monitoring_menu(),
     )
@@ -284,14 +284,14 @@ async def admin_infrastructure_inbounds(call: CallbackQuery):
 
 
 @admin_shell_router.callback_query(F.data == "admin:coming:plans")
-@admin_shell_router.callback_query(F.data == "admin:coming:хостами")
+@admin_shell_router.callback_query(F.data == "admin:coming:hosts")
 @admin_shell_router.callback_query(F.data == "admin:coming:servergroups")
 async def admin_legacy_catalog_callback(call: CallbackQuery):
     if not await guard_admin_call(call):
         return
     target = {
         "admin:coming:plans": ("💎 Тарифы", "admin:plans"),
-        "admin:coming:хостами": ("🌐 Хосты", "admin:хостами"),
+        "admin:coming:hosts": ("🌐 Хосты", "admin:hosts"),
         "admin:coming:servergroups": ("🗂 Группы серверов", "admin:servergroups"),
     }[call.data]
     await render_callback(call, 
@@ -350,8 +350,8 @@ COMING_SOON = {
     "payments": ("💳 Платежи", "Раздел «Платежи» уже доступен."),
     "promo": ("🎟 Промокоды", "Раздел «Промокоды» уже доступен."),
     "panels": ("🖥 Панели", "Раздел панелей зарезервирован. Текущий Master продолжает работать без изменений."),
-    "traffic": ("📊 Трафик", "Агрегация трафика будет добавлена на этапе Мониторинг."),
-    "online": ("🟢 В сети", "Online-клиенты будут добавлены на этапе Мониторинг."),
+    "traffic": ("📊 Трафик", "Агрегация трафика будет добавлена на этапе «Мониторинг»."),
+    "online": ("🟢 В сети", "Клиенты в сети будут добавлены на этапе «Мониторинг»."),
     "jobs": ("⚙️ Задания", "Планировщик и история фоновых задач будут добавлены отдельно."),
     "audit": ("🧾 Журнал аудита", "Аудит административных действий будет добавлен отдельным модулем."),
     "administrators": ("👮 Администраторы", "Раздел «Администраторы» уже доступен."),
@@ -365,7 +365,7 @@ async def admin_coming_soon(call: CallbackQuery):
         return
     key = call.data.rsplit(":", 1)[-1]
     title, body = COMING_SOON.get(key, ("Раздел", "Раздел зарезервирован для следующего этапа."))
-    if key in {"panels", "хостами", "servergroups"}:
+    if key in {"panels", "hosts", "servergroups"}:
         back = infrastructure_menu()
     elif key in {"traffic", "online", "logs"}:
         back = monitoring_menu()
