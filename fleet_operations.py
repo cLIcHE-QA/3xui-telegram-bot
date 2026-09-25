@@ -234,13 +234,13 @@ async def _assess_node(node: NodeInfo) -> dict[str, Any]:
     if not master_online:
         problems.append(f"Master={node_status_text(node.status)}")
     if not direct_online:
-        problems.append("Direct API недоступен" + (f" ({direct_error})" if direct_error else ""))
+        problems.append("API прямого подключения недоступен" + (f" ({direct_error})" if direct_error else ""))
     if host_state != "running":
         problems.append(f"Host Control={_host_state_text(host_state)}")
     if direct_binding != "node_id":
-        problems.append(f"Direct привязка={_binding_text(direct_binding)}")
+        problems.append(f"Привязка Direct Admin={_binding_text(direct_binding)}")
     if host_binding != "node_id":
-        problems.append(f"Host привязка={_binding_text(host_binding)}")
+        problems.append(f"Привязка Host Control={_binding_text(host_binding)}")
 
     return {
         "node_id": node.id,
@@ -284,7 +284,7 @@ HEALTH_STATE_LABELS = {
 
 BINDING_LABELS = {
     "node_id": "node_id",
-    "legacy_name": "legacy name",
+    "legacy_name": "привязка по старому имени",
     "missing": "не настроена",
 }
 
@@ -399,9 +399,9 @@ async def fleet_health(call: CallbackQuery):
     for item in assessments[:50]:
         lines.append(
             f"{_health_icon(item['state'])} {item['name']} · {_health_state_text(str(item['state']))} · ID {item['node_id']}\n"
-            f"   Master: {node_status_text(str(item['master_status']))} · Direct: "
+            f"   Master: {node_status_text(str(item['master_status']))} · Прямое подключение: "
             f"{'в сети' if item['direct_online'] else 'не в сети'} ({_binding_text(str(item['direct_binding']))}) · "
-            f"Host: {_host_state_text(str(item['host_state']))} ({_binding_text(str(item['host_binding']))})"
+            f"Host Control: {_host_state_text(str(item['host_state']))} ({_binding_text(str(item['host_binding']))})"
         )
         if item["problems"]:
             lines.append("   " + "; ".join(item["problems"][:3]))
