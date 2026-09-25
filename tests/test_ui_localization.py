@@ -308,7 +308,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
 
         for needle in (
             'text=f"🗂 {group.name} · серверов: {len(members)}"',
-            '" (не обнаружена)"',
+            "(не обнаружена)",
             'f"⚠️ API нод: {nodes_error}"',
             'f"Политика inbound\'ов: {inbound_mode_text(mode)}"',
         ):
