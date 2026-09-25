@@ -132,7 +132,7 @@ success / failed / unknown
 Предварительный UI:
 
 ~~~text
-/admin → System → Bot Updates
+/admin → Система → Обновления бота
 ├─ Current version
 ├─ Latest published release
 ├─ Release notes
@@ -241,7 +241,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 Минимальный контракт:
 
 - поддерживаемая версия 3x-ui и используемая OpenAPI schema фиксируются явно;
-- CI проверяет наличие и сигнатуры критических endpoints, на которые опираются `XUIClient`, Versions & Updates, provisioning, node operations и subscription proxy;
+- CI проверяет наличие и сигнатуры критических endpoints, на которые опираются `XUIClient`, Версии и обновления, provisioning, node operations и subscription proxy;
 - удаление/переименование endpoint, изменение HTTP method или несовместимое изменение обязательных request/response fields должно падать в CI до merge;
 - проверка должна быть fail-closed и не маскировать несовместимость fallback-логикой;
 - generated client не является обязательным условием первого этапа: допустимо начать с contract tests поверх текущего `xui.py`;
@@ -337,7 +337,7 @@ README теперь является текущей картой проекта 
 - для node-specific operational полей выбираются и затем используются последовательно отдельные префиксы, например для Endpoint, TLS, API latency/network и последнего heartbeat;
 - чисто техническая строка без отдельного status/type смысла может оставаться без emoji, например `3x-ui: 3.8.5`; цель — визуальная консистентность, а не декоративное заполнение каждой строки;
 - внутри одного смыслового блока не должно быть случайной смеси маркированных и немаркированных однотипных метрик без UX-причины;
-- аудит охватывает как минимум Master status, Nodes list/detail, Monitoring, Backups, Versions & Updates, Jobs/Alerts и другие read-only operational summaries;
+- аудит охватывает как минимум Master status, Nodes list/detail, Monitoring, Backups, Версии и обновления, Jobs/Alerts и другие read-only operational summaries;
 - изменение display text не меняет callback/API identifiers и сопровождается обновлением regression tests там, где exact labels являются частью проверяемого UI-контракта.
 
 Постоянные правила для новых экранов и последующих PR фиксируются в `docs/UI_STYLE.md`.
@@ -348,7 +348,7 @@ README теперь является текущей картой проекта 
 
 Проверяются:
 
-- логичность top-level группировки `Dashboard / Users / Subscriptions / Payments / Plans / Promo Codes / Infrastructure / Monitoring / System` после локализации;
+- логичность top-level группировки `Dashboard / Пользователи / Подписки / Платежи / Тарифы / Промокоды / Infrastructure / Monitoring / System` после локализации;
 - отсутствие функционально дублирующих входов и неожиданных переходов между разделами;
 - последовательные Back/Refresh/Cancel/Confirm flows;
 - возврат из FSM-форм в правильный parent screen;
