@@ -26,6 +26,26 @@ def xray_icon(node: NodeInfo) -> str:
     return "🟡"
 
 
+def node_status_text(status: str) -> str:
+    return {
+        "online": "в сети",
+        "offline": "не в сети",
+        "unknown": "неизвестно",
+    }.get((status or "").lower(), status or "неизвестно")
+
+
+def xray_state_text(state: str) -> str:
+    return {
+        "running": "работает",
+        "started": "работает",
+        "online": "работает",
+        "stopped": "остановлен",
+        "failed": "ошибка",
+        "error": "ошибка",
+        "unknown": "неизвестно",
+    }.get((state or "").lower(), state or "неизвестно")
+
+
 def duration_text(seconds: int) -> str:
     seconds = max(0, int(seconds or 0))
     days, rem = divmod(seconds, 86400)
@@ -46,7 +66,7 @@ def epoch_text(seconds: int) -> str:
 
 
 def node_display_name(name: str) -> str:
-    value = (name or "Node").strip()
+    value = (name or "Нода").strip()
     lower = value.lower()
     if value.startswith(("🇫🇮", "🇳🇱", "🇩🇪", "🇸🇪", "🇳🇴", "🇫🇷", "🇬🇧", "🇺🇸")):
         return value
@@ -172,10 +192,10 @@ def node_detail_text(node: NodeInfo, *, backup_configured: bool) -> str:
     lines = [
         f"🌍 {node_display_name(node.name)}",
         "",
-        f"{status_icon} Панель: {node.status}",
+        f"{status_icon} Панель: {node_status_text(node.status)}",
         f"{'🟢 Включена' if node.enable else '🛠 Обслуживание / отключена'}",
         f"Endpoint: {endpoint}",
-        f"{xray_state_icon} Xray: {node.xray_state}"
+        f"{xray_state_icon} Xray: {xray_state_text(node.xray_state)}"
         + (f" {node.xray_version}" if node.xray_version else ""),
     ]
     if node.panel_version:
@@ -201,7 +221,7 @@ def node_detail_text(node: NodeInfo, *, backup_configured: bool) -> str:
         lines.append(f"⚠️ Ошибка ноды: {node.last_error[:240]}")
     if node.xray_error:
         lines.append(f"⚠️ Ошибка Xray: {node.xray_error[:240]}")
-    lines.append("💾 Резервная копия БД: " + ("настроен" if backup_configured else "не настроен"))
+    lines.append("💾 Резервная копия БД: " + ("настроена" if backup_configured else "не настроена"))
     if node.transitive:
         lines.append("ℹ️ Транзитная нода: представление только для просмотра через родительскую ноду.")
     return "\n".join(lines)
