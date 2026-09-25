@@ -36,6 +36,11 @@
 - `Subscriptions` → `Подписки`;
 - `Payments` → `Платежи`;
 - `Plans` → `Тарифы`;
+- `Plan` → `Тариф`;
+- `Server Group` → `Группа серверов`;
+- `Server Groups` → `Группы серверов`;
+- `Hosts` → `Хосты`;
+- `Provisioning` / `reconcile` в display text → `Согласование` / `согласовать`;
 - `Promo Codes` → `Промокоды`;
 - `Infrastructure` → `Инфраструктура`;
 - `Monitoring` → `Мониторинг`;
@@ -47,7 +52,7 @@
 - `Bot Updates` → `Обновления бота`;
 - `Administrators` → `Администраторы`;
 - `Settings` → `Настройки`;
-- `Readiness` → `Готовность`.
+- `Readiness` → `Готовность`;
 - `Fleet Operations` → `Операции с нодами`;
 - `Fleet Health` → `Состояние нод`;
 - `Controlled Rollout` → `Контролируемое обновление`;
