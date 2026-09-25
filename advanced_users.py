@@ -11,7 +11,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
-from admin_navigation import confirm_delete_keyboard, confirm_sync_all_keyboard, user_admin_keyboard
+from admin_navigation import confirm_delete_keyboard, confirm_sync_all_keyboard
 from inbound_policy import is_managed_inbound as inbound_is_managed
 from audit import audit_from_call, audit_from_message
 from config import load_settings
@@ -942,7 +942,7 @@ async def admin_users(call: CallbackQuery):
     for u in users[:40]:
         rows.append([InlineKeyboardButton(
             text=f"👤 {u.email} | TG {u.telegram_id}",
-            callback_data=f"adminuser:{u.telegram_id}"
+            callback_data=f"admin:u:{u.telegram_id}"
         )])
     rows.append([InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk")])
     rows.append([InlineKeyboardButton(text="🚀 Согласовать доступ", callback_data="admin:provision:all:ask")])
@@ -1187,47 +1187,14 @@ async def admin_stats(call: CallbackQuery):
 
 
 @advanced_users_router.callback_query(F.data.startswith("adminuser:"))
-async def admin_user(call: CallbackQuery):
-    if not await guard(call):
+async def admin_user(call: CallbackQuery, state: FSMContext):
+    """Compatibility route for buttons in messages sent before v4.20.4."""
+    if not await guard(call, minimum="read_only"):
         return
+    await state.clear()
     tg_id = int(call.data.split(":", 1)[1])
-    rec = await db.get(tg_id)
-    if not rec:
-        await call.answer("Пользователь не найден.", show_alert=True)
-        return
-    try:
-        obj = await xui.get_client(rec.email)
-        client = obj.get("client", obj)
-        enabled = bool(client.get("enable", True))
-        traffic = await xui.traffic(rec.email)
-        up = int(traffic.get("up") or traffic.get("uplink") or 0)
-        down = int(traffic.get("down") or traffic.get("downlink") or 0)
-        total = int(client.get("totalGB") or 0)
-        inbound_ids = obj.get("inboundIds") or []
-        inbound_text = ", ".join(str(x) for x in inbound_ids) if inbound_ids else "нет"
-        flow = str(client.get("flow") or "none")
-        text = (
-            f"👤 {rec.email}\n"
-            f"Telegram ID: {rec.telegram_id}\n"
-            f"Статус: {'✅ включён' if enabled else '⛔ отключён'}\n"
-            f"Срок: {fmt_date(int(client.get('expiryTime') or rec.expiry_time))}\n"
-            f"Лимит: {human_bytes(total) if total else 'без лимита'}\n"
-            f"Использовано: {human_bytes(up + down)}\n"
-            f"Flow: {flow}\n"
-            f"Inbound ID: {inbound_text}\n"
-            f"subId: {rec.sub_id}"
-        )
-    except XUIError as exc:
-        enabled = True
-        text = (
-            f"👤 {rec.email}\nTelegram ID: {rec.telegram_id}\n\n"
-            f"Ошибка 3x-ui: {exc}"
-        )
-    await render_callback(
-        call,
-        text,
-        reply_markup=user_admin_keyboard(tg_id, enabled),
-    )
+    text, kb = await render_user(tg_id)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
