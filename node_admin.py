@@ -304,7 +304,7 @@ async def _node_add_test_and_show(
             f"Xray: {xray_state_text(str(result['xrayState']))} {result.get('xrayVersion') or ''}".rstrip()
         )
     if result.get("latencyMs") is not None:
-        lines.append(f"Ping API: {int(result.get('latencyMs') or 0)} ms")
+        lines.append(f"Задержка API: {int(result.get('latencyMs') or 0)} ms")
     if result.get("cpuPct") is not None:
         lines.append(f"🧮 CPU: {float(result.get('cpuPct') or 0):.1f}%")
     if result.get("memPct") is not None:
