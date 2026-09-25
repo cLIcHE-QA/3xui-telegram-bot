@@ -71,7 +71,7 @@ def node_detail_text(node: NodeInfo) -> str:
 def _binding_mode_text(mode: str) -> str:
     return {
         "node_id": "node_id",
-        "legacy_name": "legacy name",
+        "legacy_name": "привязка по старому имени",
         "missing": "не настроена",
     }.get(mode, mode or "не настроена")
 
