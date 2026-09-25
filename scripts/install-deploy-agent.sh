@@ -41,6 +41,7 @@ fi
 install -d -o root -g root -m 0755 /opt/3xui-deploy-agent
 install -d -o root -g root -m 0755 /etc/3xui-deploy-agent
 install -d -o 3xui-deploy -g 3xui-deploy -m 0700 /var/lib/3xui-deploy-agent
+install -d -o root -g root -m 0700 /var/lib/3xui-deploy-agent/docker-config
 install -d -o root -g root -m 0755 /usr/local/libexec
 
 install -o root -g root -m 0755 "$AGENT_SOURCE" /opt/3xui-deploy-agent/deploy_agent.py
