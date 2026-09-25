@@ -14,6 +14,15 @@ def callback_values(markup) -> set[str]:
     }
 
 
+def labels_by_callback(markup) -> dict[str, str]:
+    return {
+        button.callback_data: button.text
+        for row in markup.inline_keyboard
+        for button in row
+        if button.callback_data
+    }
+
+
 class AdminNavigationTests(unittest.TestCase):
     def test_top_level_admin_callbacks_are_stable(self):
         self.assertEqual(
@@ -30,6 +39,27 @@ class AdminNavigationTests(unittest.TestCase):
                 "admin:section:system",
             },
         )
+
+    def test_core_navigation_labels_use_russian_vocabulary(self):
+        top = labels_by_callback(admin_navigation.admin_menu())
+        self.assertEqual(top["admin:dashboard"], "📊 Обзор")
+        self.assertEqual(top["admin:users"], "👥 Пользователи")
+        self.assertEqual(top["admin:subscriptions"], "🔗 Подписки")
+        self.assertEqual(top["admin:payments"], "💳 Платежи")
+        self.assertEqual(top["admin:plans"], "💎 Тарифы")
+        self.assertEqual(top["admin:promo"], "🎟 Промокоды")
+        self.assertEqual(top["admin:section:infrastructure"], "🌐 Инфраструктура")
+        self.assertEqual(top["admin:section:monitoring"], "📈 Мониторинг")
+        self.assertEqual(top["admin:section:system"], "⚙️ Система")
+
+        system = labels_by_callback(admin_navigation.system_menu())
+        self.assertEqual(system["admin:botupd"], "🤖 Обновления бота")
+        self.assertEqual(system["admin:versions"], "🧩 Версии и обновления")
+        self.assertEqual(system["admin:jobs"], "⚙️ Задания")
+        self.assertEqual(system["admin:backups"], "💾 Резервные копии")
+        self.assertEqual(system["admin:audit"], "🧾 Журнал аудита")
+        self.assertEqual(system["admin:administrators"], "👮 Администраторы")
+        self.assertEqual(system["admin:settings"], "🔧 Настройки")
 
     def test_section_navigation_callbacks_are_stable(self):
         self.assertIn("admin:versions", callback_values(admin_navigation.infrastructure_menu()))

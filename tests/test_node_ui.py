@@ -26,6 +26,10 @@ class NodeUiTests(unittest.TestCase):
         self.assertEqual(node_ui.xray_icon(SimpleNamespace(xray_state="running")), "🟢")
         self.assertEqual(node_ui.xray_icon(SimpleNamespace(xray_state="failed")), "🔴")
         self.assertEqual(node_ui.xray_icon(SimpleNamespace(xray_state="unknown")), "🟡")
+        self.assertEqual(node_ui.node_status_text("online"), "в сети")
+        self.assertEqual(node_ui.node_status_text("offline"), "не в сети")
+        self.assertEqual(node_ui.xray_state_text("running"), "работает")
+        self.assertEqual(node_ui.xray_state_text("stopped"), "остановлен")
 
     def test_formatters_are_stable(self):
         self.assertEqual(node_ui.duration_text(0), "0ч 0м")
@@ -42,6 +46,25 @@ class NodeUiTests(unittest.TestCase):
         )
         self.assertIn("admin:nodeadd:save", callback_values(node_ui.add_node_review_keyboard("verify")))
         self.assertIn("admin:nodeadd:test", callback_values(node_ui.add_node_retry_keyboard("verify")))
+
+    def test_node_action_labels_are_localized(self):
+        master_labels = {
+            button.callback_data: button.text
+            for row in node_ui.master_detail_keyboard().inline_keyboard
+            for button in row
+            if button.callback_data
+        }
+        node_labels = {
+            button.callback_data: button.text
+            for row in node_ui.node_detail_keyboard(2).inline_keyboard
+            for button in row
+            if button.callback_data
+        }
+        self.assertEqual(master_labels["admin:hostctl:m"], "🧩 Управление 3x-ui")
+        self.assertEqual(master_labels["admin:ver:panel:m"], "⬆️ Обновления 3x-ui")
+        self.assertEqual(node_labels["admin:nodectl:2:maintenance"], "🛠 Включить обслуживание")
+        self.assertEqual(node_labels["admin:node:2:readiness"], "🧭 Готовность")
+        self.assertEqual(node_labels["admin:nodectl:2:deleteask"], "🗑 Удалить ноду")
 
     def test_node_detail_callbacks_are_stable(self):
         self.assertIn("admin:hostctl:m", callback_values(node_ui.master_detail_keyboard()))
@@ -66,7 +89,7 @@ class NodeUiTests(unittest.TestCase):
             master_flag="🇫🇮",
             master_name="Master",
         )
-        self.assertEqual(markup.inline_keyboard[0][0].text, "🇫🇮 Master · 🟢 Online")
+        self.assertEqual(markup.inline_keyboard[0][0].text, "🇫🇮 Master · 🟢 В сети")
         self.assertIn("admin:node:2", callback_values(markup))
         self.assertIn("admin:nodeadd:start", callback_values(markup))
 
@@ -104,11 +127,11 @@ class NodeUiTests(unittest.TestCase):
         configured = node_ui.node_detail_text(node, backup_configured=True)
         missing = node_ui.node_detail_text(node, backup_configured=False)
         self.assertIn("🌍 🇫🇮 Finland", configured)
-        self.assertIn("🟢 Panel: online", configured)
-        self.assertIn("Network: ↑ 1.0 KB/s · ↓ 2.0 KB/s", configured)
-        self.assertIn("Uptime: 1д 1ч 1м", configured)
-        self.assertIn("💾 Backup БД: настроен", configured)
-        self.assertIn("💾 Backup БД: не настроен", missing)
+        self.assertIn("🟢 Панель: в сети", configured)
+        self.assertIn("Сеть: ↑ 1.0 KB/s · ↓ 2.0 KB/s", configured)
+        self.assertIn("⏱ Время работы: 1д 1ч 1м", configured)
+        self.assertIn("💾 Резервная копия БД: настроена", configured)
+        self.assertIn("💾 Резервная копия БД: не настроена", missing)
 
 if __name__ == "__main__":
     unittest.main()

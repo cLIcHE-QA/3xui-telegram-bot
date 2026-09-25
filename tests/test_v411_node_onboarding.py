@@ -233,7 +233,7 @@ class OnboardingImporterTests(unittest.TestCase):
     def test_readiness_button_is_present_on_node_card(self):
         node_admin_source = (ROOT / "node_admin.py").read_text(encoding="utf-8")
         node_ui_source = (ROOT / "node_ui.py").read_text(encoding="utf-8")
-        self.assertIn('text="🧭 Readiness"', node_ui_source)
+        self.assertIn('text="🧭 Готовность"', node_ui_source)
         self.assertIn('admin:node:{node_id}:readiness', node_ui_source)
         self.assertIn("Stable identity", node_admin_source)
 
