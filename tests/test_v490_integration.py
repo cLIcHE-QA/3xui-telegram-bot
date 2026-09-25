@@ -28,6 +28,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         })
         cls.env.start()
         import bot
+        import app_runtime
         import admin_navigation
         import admin_shell
         import client_access
@@ -37,6 +38,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         import storage_admin
         import versions_updates
         cls.bot = bot
+        cls.runtime = app_runtime
         cls.nav = admin_navigation
         cls.shell = admin_shell
         cls.client = client_access
@@ -53,6 +55,14 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
     def callback_values(self, markup):
         return [button.callback_data for row in markup.inline_keyboard for button in row]
+
+    def test_bot_is_thin_runtime_entrypoint(self):
+        source = inspect.getsource(self.bot)
+        self.assertIn('from app_runtime import main', source)
+        self.assertNotIn('Dispatcher(', source)
+        self.assertNotIn('include_router(', source)
+        self.assertNotIn('automatic_backup_loop', source)
+        self.assertIn('asyncio.run(main())', source)
 
     def test_navigation_shortcuts(self):
         self.assertIn('admin:versions', self.callback_values(self.nav.system_menu()))
@@ -211,7 +221,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('inbound_is_managed(settings, i)', inspect.getsource(self.users.is_managed_inbound))
 
     def test_storage_admin_uses_shared_backup_lock(self):
-        self.assertIs(self.storage.backup_lock, self.bot.backup_lock)
+        self.assertIs(self.storage.backup_lock, self.runtime.backup_lock)
         source = inspect.getsource(self.storage.admin_backup_create)
         self.assertIn('replicate_with_job', source)
         self.assertIn('system_backup.create_full_backup', source)
@@ -285,14 +295,14 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('direct_client_for(', source)
 
     def test_router_registered_and_master_shows_panel_version(self):
-        self.assertIn('dp.include_router(admin_shell_router)', inspect.getsource(self.bot.main))
-        self.assertIn('dp.include_router(client_access_router)', inspect.getsource(self.bot.main))
-        self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.bot.main))
-        self.assertIn('dp.include_router(node_admin_router)', inspect.getsource(self.bot.main))
-        self.assertIn('dp.include_router(system_admin_router)', inspect.getsource(self.bot.main))
-        self.assertIn('dp.include_router(storage_admin_router)', inspect.getsource(self.bot.main))
-        self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.bot.main))
-        self.assertIn('dp.include_router(fleet_router)', inspect.getsource(self.bot.main))
+        self.assertIn('dp.include_router(admin_shell_router)', inspect.getsource(self.runtime.main))
+        self.assertIn('dp.include_router(client_access_router)', inspect.getsource(self.runtime.main))
+        self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.runtime.main))
+        self.assertIn('dp.include_router(node_admin_router)', inspect.getsource(self.runtime.main))
+        self.assertIn('dp.include_router(system_admin_router)', inspect.getsource(self.runtime.main))
+        self.assertIn('dp.include_router(storage_admin_router)', inspect.getsource(self.runtime.main))
+        self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.runtime.main))
+        self.assertIn('dp.include_router(fleet_router)', inspect.getsource(self.runtime.main))
         self.assertIn('get_panel_update_info', inspect.getsource(self.system.admin_master_detail))
         self.assertIn('3x-ui:', inspect.getsource(self.system.admin_master_detail))
 
