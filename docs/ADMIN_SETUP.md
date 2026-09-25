@@ -827,7 +827,7 @@ Stable identity: node_id
 Сначала только read-only/benign checks:
 
 1. открой node;
-2. открой 🧩 3x-ui Control;
+2. открой 🧩 Управление 3x-ui;
 3. проверь Status;
 4. убедись, что Agent отвечает running;
 5. destructive Stop service / Stop Xray на этапе первоначального onboarding не нужны.
