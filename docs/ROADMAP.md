@@ -296,15 +296,18 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 ##### Синхронизация README с текущим состоянием
 
-README сохраняет полезную историю проекта, но старые v2/v3 инструкции и исторические operational sections не должны выглядеть как текущая рекомендуемая процедура.
+Статус: ✅ завершено в cleanup-цикле после `v4.19.1`.
 
-До финальной заморозки v4.x желательно:
+README теперь является текущей картой проекта и точкой входа в канонические runbook'и, а не второй копией release history.
 
-- явно отделить current production setup от исторических upgrade notes;
-- проверить, что current deployment/update/recovery instructions ссылаются на актуальные scripts и документы;
-- убрать или пометить устаревшие команды, которые могут конфликтовать с текущим tag-based deploy;
-- сохранить release history, но не дублировать противоречащие друг другу источники истины;
-- использовать специализированные документы в `docs/` как канонический подробный контракт, а README — как актуальную карту входа в них.
+Зафиксированное состояние:
+
+- current install/update/recovery paths ведут в `docs/ADMIN_SETUP.md`, `docs/RELEASES.md`, `docs/VPS_RECOVERY.md` и профильные runbook'и;
+- release-by-release история живёт в `CHANGELOG.md` и GitHub Releases;
+- version-specific deploy команды старых релизов не публикуются в README как текущая процедура;
+- актуальный Subscription Compatibility Proxy contract сохранён, потому что на него ссылается `.env.example`;
+- README фиксирует текущие module boundaries после декомпозиции `bot.py`;
+- regression test запрещает возвращать в README release headings и hard-coded старые `deploy-release.sh v4.*` инструкции.
 
 ##### Консистентная русская локализация Telegram UI
 

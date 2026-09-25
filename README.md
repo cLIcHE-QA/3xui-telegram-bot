@@ -1,439 +1,208 @@
 # Telegram-бот для 3x-ui v4.19.1
 
-Админ-панель для 3x-ui в Telegram, предназначенная для рабочей эксплуатации.
+Административный Telegram Control Plane для 3x-ui. Текущая production-линия проекта — **v4.x Admin Control Plane**; полноценный client-facing Client Portal запланирован отдельно для v5.x.
 
-Документация написана на русском языке. Названия кнопок и разделов интерфейса, команды, пути API, имена переменных и точные фразы подтверждения сохранены в исходном виде для сопоставления с приложением.
+Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
 
-**Установка Admin Control Plane с нуля:** [Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md). Руководство покрывает запуск бота, Master, direct nodes, Host Control Agent и Extended direct-node backup/nginx snapshot для `v4.19.1`. Будущая client-facing часть будет документироваться отдельно.
+> README — актуальная карта проекта и точка входа в runbook'и. Исторические upgrade-инструкции и release-by-release описание не дублируются здесь: для них используются `CHANGELOG.md`, GitHub Releases и специализированные документы в `docs/`.
 
-Архитектурный контракт `v4.10.0` зафиксирован в [Host Control Agent](docs/HOST_CONTROL_AGENT.md).
-Encrypted off-site Full Backup и recovery с нового VPS описаны в [Off-site Backup](docs/OFFSITE_BACKUP.md).
-Owner-only Safe Bot Self-Update через restricted host Deploy Agent описан в [Bot Self-Update](docs/BOT_SELF_UPDATE.md).
-Безопасная production-схема установки Master/remote agent описана в [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md).
-Повторяемый rollout, deployment bundle и enrollment-import описаны в [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
-Рекомендуемый guided onboarding direct node без передачи секретов через Telegram описан в [Node Onboarding](docs/NODE_ONBOARDING.md).
-Массовые health/maintenance/controlled rollout операции описаны в [Fleet Operations](docs/FLEET_OPERATIONS.md).
-Восстановление бота после замены/форматирования VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
-Стиль и автоматическая публикация tag/GitHub Release зафиксированы в [Release workflow](docs/RELEASES.md).
-Граница `v4.x`/`v5.x` и предварительный Client Portal зафиксированы в [Product Roadmap](docs/ROADMAP.md).
+## Текущий production path
 
+### Новая установка
 
-## v4.19.1 — Safe Bot Self-Update acceptance hotfix
+Каноническое руководство для чистого Master VPS и direct nodes:
 
-Patch release исправляет blocker, обнаруженный при первом production acceptance Deploy Agent: hardened systemd sandbox оставляет `/root` read-only, а Docker CLI пытался создать `/root/.docker` на build-stage. Теперь root helper использует отдельный `DOCKER_CONFIG` внутри `/var/lib/3xui-deploy-agent`, не ослабляя `ProtectHome=true` и не добавляя Docker socket в bot container.
+**[Admin Setup — Master + direct nodes](docs/ADMIN_SETUP.md)**
 
-Preflight также fail-closed при недоступных release notes и отдельно показывает controlled same-release deployment. Для production сначала вручную разверни `v4.19.1`, затем повторно запусти `sudo ./scripts/install-deploy-agent.sh` из checkout patch release и выполни same-release acceptance через `/admin → System → Bot Updates`.
+Оно является источником истины для:
 
-## v4.19.0 — Safe Bot Self-Update
+- Master 3x-ui и bot container;
+- `.env`, Docker/network/firewall и TLS;
+- direct-node onboarding;
+- dedicated Direct Admin credentials;
+- Host Control Agent;
+- Extended direct-node backup;
+- Safe Bot Self-Update Deploy Agent;
+- обязательных preflight/post-deploy проверок.
 
-Релиз закрывает обязательный pre-v5 gate Safe Bot Self-Update через отдельный restricted host Deploy Agent. Bot container не получает Docker socket, host shell или Git deploy key; deployment разрешён только для published tag `vX.Y.Z` и выполняется существующим `scripts/deploy-release.sh`.
+README не заменяет этот runbook и не содержит отдельной сокращённой последовательности установки.
 
-Первый deploy `v4.19.0` выполняется вручную:
+### Обновление существующего production
 
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.19.0
-./scripts/deploy-release.sh --status
-~~~
+Release, GitHub tag и production deployment — отдельные стадии. Канонический контракт публикации и проверки релиза:
 
-После успешного manual deploy Deploy Agent устанавливается отдельно на Master:
+**[Release workflow](docs/RELEASES.md)**
 
-~~~bash
-sudo ./scripts/install-deploy-agent.sh
-~~~
-
-Agent token не печатается и переносится в `.env` только локально. Затем bot service пересоздаётся, и `/admin → System → Bot Updates` получает Owner-only current/latest/preflight/update/history flow.
-
-Production acceptance требует controlled same-release deployment `v4.19.0 → v4.19.0` через новый control plane и подтверждение, что после recreate exact tag/SHA, Health, DB и 3x-ui connectivity остались зелёными. Полный runbook: [Safe Bot Self-Update](docs/BOT_SELF_UPDATE.md).
-
-## v4.18.0 — Encrypted off-site backup
-
-Релиз закрывает реализацию pre-v5 off-site recovery path: Full Backup получает checksummed manifest schema 2, а optional S3-compatible transport шифрует проверенный archive client-side через AES-256-GCM и хранит local/off-site outcomes раздельно.
-
-External upload считается успешным только после remote download/decrypt/SHA/deep-validation round trip. Bucket/prefix/credentials задаются только локально, feature выключена по умолчанию, а Telegram не получает arbitrary object key/path или remote filesystem access.
-
-Подробная настройка и recovery с нового VPS: [Encrypted off-site Full Backup](docs/OFFSITE_BACKUP.md).
-
-Production deployment:
+Для ручного deployment используется только опубликованный release tag:
 
 ~~~bash
 cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.18.0
+./scripts/deploy-release.sh vX.Y.Z
 ./scripts/deploy-release.sh --status
 ~~~
 
-Первичный deploy безопасен с `OFFSITE_BACKUP_ENABLED=false`. Финальный production acceptance roadmap-пункта требует отдельной настройки реального внешнего target, успешного manual Full Backup с `backup.offsite` и проверенного recovery fetch. Не передавай S3 credentials или encryption key через Telegram/chat.
+Не используй старые version-specific команды из истории проекта как инструкцию для текущего production. После deployment выполняется targeted smoke именно изменённой области и повторная базовая health/status-проверка.
 
-## v4.17.0 — 3x-ui OpenAPI compatibility gate
+Если на Master установлен restricted Deploy Agent, Owner может использовать:
 
-Релиз закрывает pre-v5 gate по совместимости native API 3x-ui. Поддерживаемый contract pinned к 3x-ui `v3.8.5`: immutable OpenAPI schema хранится в repository, а CI сверяет 51 реально используемый endpoint с manifest и фактическими routes клиента.
+`/admin → System → Bot Updates`
 
-Gate работает fail-closed для route/method, Bearer auth, request media type/mandatory fields, response envelope и source parity. Upstream `main` не скачивается во время CI, а runtime не переключается автоматически на неизвестную schema. Полный contract и upgrade procedure: [3x-ui OpenAPI compatibility contract](docs/3XUI_OPENAPI_CONTRACT.md).
+Полный safety/acceptance contract:
 
-Runtime API behavior, SQLite schema, Host Control API и deployment topology не меняются.
+**[Safe Bot Self-Update](docs/BOT_SELF_UPDATE.md)**
 
-Production deployment:
+Deploy Agent принимает только опубликованные `vX.Y.Z` tags и не предоставляет Telegram-боту Docker socket, host shell или Git deploy key.
 
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.17.0
-./scripts/deploy-release.sh --status
-~~~
+### Восстановление после потери Master VPS
 
-После deploy targeted smoke должен подтвердить обычные health/DB/3x-ui checks и host-side contract checker из release checkout:
+Канонический disaster-recovery runbook:
 
-~~~bash
-python3 scripts/check-3xui-openapi-contract.py
-~~~
+**[VPS Recovery](docs/VPS_RECOVERY.md)**
 
-Checker запускается на host из repository checkout: каталог `scripts/` исключён из Docker image через `.dockerignore`, поэтому эту проверку не нужно выполнять через `docker compose exec`.
+Bootstrap helper намеренно не является универсальным installer инфраструктуры. ОС, Docker, Master 3x-ui, DNS/TLS/firewall и другие host-level слои подготавливаются отдельно.
 
-## v4.16.0 — Regression coverage hardening
+### Direct nodes и Host Control
 
-Релиз закрывает pre-v5 gate по regression coverage критических административных и backend-путей. Новые tests фиксируют state transitions, failure semantics, idempotency и authorization boundaries для Payments/Promo/Plans/Server Groups, user lifecycle, provisioning, subscription proxy, inbound mutations и disaster recovery.
+Рекомендуемый onboarding новой direct node:
 
-В ходе hardening найден и исправлен RBAC drift для per-user provisioning: `Safe reconcile` соответствует роли `Support`, а `Strict reconcile` остаётся `Administrator`. Схема SQLite, 3x-ui API и Host Control API не меняются.
+**[Node Onboarding](docs/NODE_ONBOARDING.md)**
 
-Production deployment:
+Host-level управление `x-ui.service`:
 
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.16.0
-./scripts/deploy-release.sh --status
-~~~
+- [Host Control Agent — security contract](docs/HOST_CONTROL_AGENT.md)
+- [Host Control Deploy](docs/HOST_CONTROL_DEPLOY.md)
+- [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md)
+- [Fleet Operations](docs/FLEET_OPERATIONS.md)
 
-После deploy targeted smoke должен подтвердить обычные health/DB/3x-ui checks и read-only privilege mapping: `admin:u:provrun:<id>:safe → support`, `admin:u:provrun:<id>:strict → admin`.
+Для direct node используются независимые privilege domains:
 
-## v4.15.0 — Versioned SQLite migrations
+1. node-sync token: Master 3x-ui → node;
+2. dedicated admin-scope token: bot → direct 3x-ui API;
+3. отдельный Host Control token.
 
-Релиз переводит локальную `bot.sqlite3` на явный forward-only migration framework с persistent journal `schema_migrations`. Существующая схема v4.14.2 принимается как baseline `v1`, поэтому production DB без journal обновляется in-place без удаления данных.
+Один token не переиспользуется между этими domains.
 
-Startup теперь блокируется fail-closed при `running`/`failed` migration, неизвестной более новой schema version или schema/integrity mismatch. Future dangerous migrations обязаны создать проверенную recovery copy перед mutation; automatic down migrations, automatic restore и mutation replay не добавлены.
+### Backup и off-site recovery
 
-Полный contract и recovery semantics: [Versioned SQLite migrations](docs/SQLITE_MIGRATIONS.md).
+Full Backup включает recovery-ориентированные данные Master и, при настроенных targets, direct-node snapshots.
 
-Production deployment:
+Encrypted off-site replication и recovery:
 
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.15.0
-./scripts/deploy-release.sh --status
-~~~
+**[Off-site Backup](docs/OFFSITE_BACKUP.md)**
 
-После deploy targeted smoke должен подтвердить `schema_migrations` со статусом `success`, `PRAGMA quick_check = ok` и повторный startup без повторного применения baseline migration.
+Off-site transport выключен по умолчанию. Full Backup содержит secrets; Telegram и GitHub не являются backup storage.
 
-## v4.14.2 — Исправление guided onboarding direct node
+## Архитектура v4.x
 
-Patch-релиз исправляет `scripts/onboard-direct-node.sh bind`: параметры direct-admin и Host Control enrollment теперь корректно разбираются и доходят до штатных preflight/import helpers. Добавлен исполняемый regression test на реальный argument parsing.
-
-Security boundary не меняется: три privilege domain остаются раздельными, stable `node_id` binding обязателен, а bot service по-прежнему пересоздаётся только один раз после успешных preflight.
-
-Production deployment:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.14.2
-./scripts/deploy-release.sh --status
-~~~
-
-Для новой direct node после обновления рекомендуется guided flow из [Admin Setup](docs/ADMIN_SETUP.md).
-
-## v4.14.1 — Исправление Host Control snapshot rollout
-
-Patch-релиз исправляет два production-дефекта, выявленных targeted smoke после v4.14.0: bot client корректно дочитывает multi-chunk nginx snapshot response до EOF перед SHA-256 validation, а installer Host Control Agent явно перезапускает `3xui-host-control.service` после обновления файлов/unit.
-
-Security boundary не расширяется: fixed read-only snapshot endpoint, локальный `HOST_CONTROL_AGENT_NGINX_SOURCE`, TLS/host identity/checksum validation и allowlist mutations остаются прежними.
-
-Production deployment:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.14.1
-./scripts/deploy-release.sh --status
-~~~
-
-После bot deploy direct-node Host Control Agent нужно повторно обновить из bundle v4.14.1; installer теперь сам перезапустит agent.
-
-## v4.14.0 — RBAC и расширенные node snapshots
-
-Релиз централизует privilege boundaries административной панели: четыре фиксированные роли сохраняются, но admin callbacks теперь разрешаются через единый permission catalog и неизвестные действия блокируются fail-closed. Owner получает экран `/admin → Administrators → Roles & Privileges`.
-
-Direct-node backup теперь создаёт recovery-oriented `.tar.gz` с `x-ui.db`, nginx configuration, `node.json` и checksum-manifest. Nginx читается только через fixed read-only Host Control endpoint из source, заданного локально на node; Telegram/Master не передаёт filesystem path. Если source не настроен, snapshot честно помечается `degraded`.
-
-После обычного bot deploy Host Control Agent на direct nodes нужно обновить из того же release bundle/unit и локально настроить `/etc/3xui-host-control/nginx-snapshot.env` по [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md). Automatic nginx restore не выполняется.
-
-Production deployment:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.14.0
-./scripts/deploy-release.sh --status
-~~~
-
-## v4.13.2 — Host Control startup recovery
-
-Patch-релиз подключает уже существующий read-only recovery незавершённых Host Control jobs к startup path бота. Recovery выполняется до generic stale-job cleanup и использует persistent `operation_id` для проверки operation journal Host Control Agent.
-
-State-changing mutation после рестарта автоматически не повторяется. Если итог нельзя доказать read-only проверкой, job остаётся `unknown`.
-
-Production deployment:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.13.2
-./scripts/deploy-release.sh --status
-~~~
-
-## v4.13.1 — Исправление Fleet Rollout jobs
-
-Patch-релиз исправляет accounting terminal `Controlled Rollout` operations: no-op plan для уже актуальных версий теперь фиксируется parent `fleet.rollout` job как `success`, а отмена до запуска canary — как `cancelled`. Для уже актуальных targets job summary показывает `skipped` вместо `pending`.
-
-Update/maintenance mutation semantics не меняются: `already current` и cancel-before-canary не отправляют update mutation.
-
-Production deployment:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.13.1
-./scripts/deploy-release.sh --status
-~~~
-
-
-## v4.13.0 — Fleet Operations
-
-В `Infrastructure → 🌐 Fleet Operations` добавлены read-only `Fleet Health`, controlled Fleet Maintenance, история Fleet Jobs и последовательный `Controlled Rollout` для direct nodes.
-
-Rollout переиспользует существующий two-phase update workflow: для каждой node выполняются eligibility/preflight и fresh verified backup, затем intentional maintenance, update и post-condition проверки. Первая node работает как canary; продолжение остальных требует отдельного подтверждения. При `failed` или `unknown` rollout останавливается, оставшиеся nodes не затрагиваются, а state-changing request автоматически не повторяется.
-
-Fleet rollout требует stable `node_id` bindings для Direct Admin и Host Control. Transitive, legacy-name, offline/degraded targets не мутируются. После рестарта незавершённый rollout не продолжается автоматически. Mass `Stop service` / `Stop Xray`, parallel rollout и automatic rollback в v4.13.0 намеренно отсутствуют.
-
-Полный safety contract: [Fleet Operations](docs/FLEET_OPERATIONS.md).
-
-Production deployment:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.13.0
-./scripts/deploy-release.sh --status
-~~~
-
-
-## v4.12.0 — Guided onboarding direct node
-
-Для новой direct node добавлен единый guided wrapper `scripts/onboard-direct-node.sh`. Этап `prepare` собирает secret-free Host Control bundle, при необходимости копирует только bundle и checksum на remote VPS и формирует точную команду установки restricted Host Control endpoint.
-
-Этап `bind` выполняет node preflight/registration, получает стабильный `NODE_ID`, проверяет direct-admin и Host Control enrollment с одним ID, импортирует оба binding и пересоздаёт только service `bot` один раз. Node-sync, direct-admin и Host Control secrets остаются раздельными mode-0600 файлами и не передаются через Telegram.
-
-Порядок работы и fallback manual flow описаны в [Node Onboarding](docs/NODE_ONBOARDING.md).
-
-Production deployment:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.12.0
-./scripts/deploy-release.sh --status
-~~~
-
-## v4.10.1 — Operational rollout и recovery
-
-Patch-релиз не меняет runtime semantics `🧩 3x-ui Control`, но делает эксплуатацию v4.10 воспроизводимой: добавлены recovery helper для нового Master VPS, secret-free Host Control bundle для remote nodes, безопасный enrollment-import в bot `.env`, TLS refresh timer для отдельного management proxy и managed UFW reconfiguration.
-
-Для обычного обновления production используется опубликованный tag:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.10.1
-./scripts/deploy-release.sh --status
-~~~
-
-Host Control Agent/proxy на Master и remote nodes обновляется отдельно по [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md). Восстановление после замены/форматирования Master VPS описано в [VPS Recovery](docs/VPS_RECOVERY.md).
-
-## v4.10.0 — Безопасный 3x-ui Control
-
-Релиз добавляет отдельный экран `🧩 3x-ui Control` для Master и direct nodes. Host-level `Start / Stop / Restart service` выполняются только через restricted Host Control Agent, а `Restart Panel process` и Xray controls используют штатные API 3x-ui.
-
-Host Control Agent не является SSH gateway: он слушает только `127.0.0.1`, не принимает command/path/unit из Telegram и умеет управлять только жёстко заданным `x-ui.service`. Remote node публикует agent только через restricted HTTPS reverse proxy; backend port agent наружу не открывается.
-
-Destructive `Stop service` и `Stop Xray` доступны только роли Owner. `Stop service` дополнительно требует одноразовую typed-фразу. Mutation requests не повторяются автоматически после timeout/lost response.
-
-
-## v4.11.1 — Исправление Readiness callback
-
-Patch-релиз исправляет routing кнопки `🧭 Readiness`: общий handler карточки ноды больше не перехватывает readiness callback и не показывает ошибку `Некорректный ID ноды`.
-
-Production deployment:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.11.1
-./scripts/deploy-release.sh --status
-~~~
-
-## v4.11.0 — Node readiness / onboarding
-
-Privileged bindings direct nodes используют стабильный `node.id` через `NODE_BACKUP_*_NODE_ID` и `HOST_CONTROL_*_NODE_ID`; legacy name-only конфигурация остаётся совместимым fallback, но explicit mismatched ID не обходится по имени.
-
-В карточке node появился read-only `🧭 Readiness`, который проверяет direct Panel API, Host Control и stable identity. Для новых серверов рекомендуется local onboarding по [Node Onboarding](docs/NODE_ONBOARDING.md): node-sync, direct-admin и Host Control secrets остаются в mode-0600 файлах на VPS и не передаются через Telegram.
-
-Production deployment выполняется только по опубликованному tag:
-
-~~~bash
-cd /opt/3xui-bot/3xui-telegram-bot
-./scripts/deploy-release.sh v4.11.0
-./scripts/deploy-release.sh --status
-~~~
-
-## v4.9.3 — Исправление счётчиков карточки ноды
-
-Карточка `Infrastructure → Nodes → <node>` теперь использует enriched-данные списка нод 3x-ui для вычисляемых счётчиков inbound'ов и клиентов. Это исправляет ситуацию, когда рабочая удалённая нода с синхронизированными inbound'ами и реальным трафиком показывала `Inbound'ов: 0` и `Клиентов: 0`.
-
-Если list API временно недоступен, бот сохраняет fallback на detail endpoint, поэтому административные действия с нодой остаются доступны.
-
-## v4.9.2 — Deploy helper и улучшения System/Reality
-
-В `System` теперь отображается текущая версия бота из `APP_VERSION`. Для Reality inbound'ов fingerprint выбирается кнопками из списка, используемого актуальным 3x-ui, вместо произвольного ручного ввода в Telegram.
-
-Для повторяемого развёртывания опубликованных релизов добавлен `scripts/deploy-release.sh`. Он проверяет тег и `APP_VERSION`, создаёт резервную копию, проверяет Compose/Docker-сеть, пересоздаёт только сервис `bot` и выполняет post-deploy проверки health, SQLite и доступности upstream 3x-ui. Скрипт не обновляет 3x-ui/Xray и не выполняет автоматический откат базы данных.
-
-Порядок первого внедрения helper и дальнейших обновлений описан в [описании Git-процесса](docs/GIT_WORKFLOW.md).
-
-## v4.9.1 — Стабилизация сети и интерфейса
-
-Patch-релиз закрепляет Docker-подсеть проекта через `BOT_DOCKER_SUBNET` (по умолчанию `172.19.0.0/16`), чтобы пересоздание Compose-сети не меняло источник трафика к локальной панели 3x-ui. Правило UFW для порта панели должно соответствовать выбранной подсети.
-
-Навигация административной панели приведена к единому стилю: действия, возврат, подтверждение, отмена и пагинация используют emoji или навигационные символы. CI дополнительно проверяет конфигурацию Compose и статические inline-кнопки.
-
-Схема SQLite, API-контракты 3x-ui, логика подписок и механизм обновления 3x-ui/Xray не изменены.
-
-## v4.9.0 — Версии и обновления
-
-Открой `/admin -> System -> Versions & Updates`. Карточки Master и нод, а также `Infrastructure -> Panels` ведут в тот же интерфейс управления версиями.
-
-Модуль показывает версии 3x-ui и Xray, обновляет 3x-ui через штатный механизм стабильного канала и позволяет администратору выбрать конкретную версию Xray — как более новую, так и более старую. Для каждой операции создаётся и проверяется свежая резервная копия. Затем требуется одноразовое подтверждение, действующее пять минут. После установки проверяются фактическая версия и работающее состояние Xray, а не только успешный HTTP-ответ.
-
-Для обновления нод необходимо уже предусмотренное прямое административное подключение из `NODE_BACKUP_TARGETS`. Неполная или некорректная резервная копия блокирует установку. Автоматических обновлений и автоматического отката нет. Неподтверждённые результаты сохраняются и блокируют новые обновления до проверки без повторной установки либо явного подтверждения владельца `Owner`.
-
-Назначение ресурсов пользователям, подписки, платежи и схема SQLite не изменены.
-
-Порядок восстановления, ограничения и проверки при развёртывании описаны в [руководстве по версиям и обновлениям](docs/VERSIONS_UPDATES.md). Краткая история находится в [журнале изменений](CHANGELOG.md), правила работы с репозиторием — в [описании Git-процесса](docs/GIT_WORKFLOW.md).
-
-> Разделы ниже сохраняют подробную историю проекта и описывают поведение соответствующих версий. Исторические команды копирования каталогов не являются универсальной инструкцией развёртывания v4.9.0.
-
-## Extended direct-node backup
-
-Актуальный direct-node backup собирает не одиночный DB-файл, а recovery-oriented node snapshot:
+После cleanup-декомпозиции entrypoint и runtime разделены:
 
 ~~~text
-nodes/<node>/
-├─ x-ui.db
-├─ nginx/
-├─ node.json
-└─ manifest.json
+bot.py
+└─ минимальный executable shim
+   └─ app_runtime.main()
+
+app_runtime.py
+├─ startup / recovery order
+├─ Subscription Proxy lifecycle
+├─ background backup + alerts
+├─ Router registration
+├─ Telegram polling
+└─ graceful task cancellation
+
+client_access.py
+└─ /start, /inbounds, /create, /subscription
+
+admin_shell.py
+└─ /admin, Dashboard, top-level navigation и compatibility redirects
+
+domain routers
+├─ advanced_users.py
+├─ advanced_nodes.py
+├─ inbound_admin.py
+├─ catalog_admin.py
+├─ business_admin.py
+├─ admin_observability.py
+├─ system_admin.py
+├─ storage_admin.py
+├─ versions_updates.py
+├─ bot_updates.py
+├─ host_control_ui.py
+├─ fleet_operations.py
+└─ disaster_recovery.py
 ~~~
 
-`x-ui.db` по-прежнему скачивается через dedicated admin-scope connection из `NODE_BACKUP_TARGETS`. Nginx configuration получает restricted Host Control Agent через fixed read-only endpoint `GET /v1/snapshots/nginx`: source directory задаётся локально на самой node через `HOST_CONTROL_AGENT_NGINX_SOURCE` в `/etc/3xui-host-control/agent.env`, а Telegram/Master не может передать произвольный filesystem path.
+`bot.py` сохраняется как стабильный executable path, в том числе для `restore_bootstrap.py`, но не владеет domain handlers или lifecycle implementation.
 
-`manifest.json` фиксирует stable `node_id/host_id`, timestamp, доступные версии, component status, список файлов, размеры и SHA-256. Если nginx source не настроен или часть файлов нельзя безопасно прочитать, DB сохраняется, но snapshot явно помечается как `degraded`/missing component.
+### 3x-ui API contract
 
-Ручной backup ноды выдаёт `.tar.gz` snapshot; обычный Full Backup включает такой же каталог `nodes/<node>/`. Автоматический remote nginx restore не выполняется: bundle предназначен для контролируемого восстановления с локальной проверкой `nginx -t`.
+Native 3x-ui API используется через `xui.py` / `version_api.py`.
 
-Подробности security boundary и rollout: [Host Control Agent](docs/HOST_CONTROL_AGENT.md) и [Host Control Rollout](docs/HOST_CONTROL_ROLLOUT.md).
+Текущий pinned compatibility contract:
 
-## Стабильная Docker-сеть
+- 3x-ui: `v3.8.5`;
+- vendored OpenAPI: `contracts/3xui/v3.8.5/openapi.json`;
+- используемый API surface: `contracts/3xui/contract.json`.
 
-Compose фиксирует подсеть проекта через `BOT_DOCKER_SUBNET` со значением по умолчанию `172.19.0.0/16`. Это важно, если 3x-ui на том же VPS доступен через публичный адрес и UFW разрешает порт панели только из Docker-подсети.
+CI проверяет route/method, Bearer auth, request/response contract и source parity fail-closed.
 
-Для текущего развёртывания правило UFW должно соответствовать этой подсети, например:
+Подробнее: **[3x-ui OpenAPI compatibility contract](docs/3XUI_OPENAPI_CONTRACT.md)**.
 
-```bash
-sudo ufw allow from 172.19.0.0/16 to any port 2096 proto tcp comment '3xui bot docker network'
-```
+### SQLite
 
-Если `BOT_DOCKER_SUBNET` изменяется, соответствующее правило firewall нужно изменить одновременно. Старые правила для прежних подсетей можно удалять только после завершения периода отката.
+Локальное состояние хранится в SQLite. С v4.15 используется явный forward-only migration framework с persistent `schema_migrations` journal.
 
-## Команды администратора
+Подробнее: **[SQLite migrations](docs/SQLITE_MIGRATIONS.md)**.
 
-`/admin`
+## Основные security boundaries
 
-Возможности:
-- список пользователей из локальной базы бота;
-- открытие карточки пользователя;
-- просмотр подписки;
-- просмотр срока действия и трафика, если их возвращает 3x-ui;
-- продление на 30 дней;
-- включение и отключение пользователя;
-- удаление из 3x-ui и локальной SQLite.
+Проект намеренно разделяет Telegram UI и privileged host operations.
 
-## Обновление с v2 без потери пользователей
+- Bot container не получает Docker socket или generic host shell.
+- Host Control Agent не является SSH gateway и принимает только фиксированный allowlist операций для `x-ui.service`.
+- Xray restart, panel-process restart и host-level service restart — разные операции без fallback между privilege domains.
+- Direct Admin, Host Control, panel token, Deploy Agent token и object-storage credentials не переиспользуются.
+- Unknown admin callbacks должны fail closed через centralized privilege catalog.
+- Interrupted state-changing Host Control/Fleet/Deploy mutations автоматически не replay'ятся.
+- Backups, `.env`, API tokens, subscription IDs/URLs, private keys и enrollment contents нельзя публиковать в GitHub issues/PR/chat.
 
-1. Останови прежний проект: `docker compose down`.
-2. Создай копию базы данных: `cp data/bot.sqlite3 data/bot.sqlite3.backup`.
-3. Скопируй файлы v3 в каталог проекта, сохранив свои `.env` и `data/`.
-4. Добавь в `.env`: `ADMIN_TELEGRAM_IDS=YOUR_TELEGRAM_ID`.
-5. Запусти проект: `docker compose up -d --build`.
-6. Открой Telegram и отправь `/admin`.
+Общие правила: **[SECURITY.md](SECURITY.md)**.
 
-Схема SQLite в v3 совместима с v2.
+## Subscription Compatibility Proxy
 
-## Важно
+V4 сохраняет встроенный compatibility proxy для подписок, управляемых ботом.
 
-API обновления клиента 3x-ui заменяет запись целиком, а не изменяет отдельные поля. Бот сначала получает полный объект клиента, сохраняет общие поля и затем меняет только срок действия или состояние включения.
+Он:
 
-## Имена клиентов 3x-ui на основе имени пользователя
+- обслуживает `GET /compat/{sub_id}`;
+- предоставляет `GET /healthz`;
+- получает upstream subscription через `SUBSCRIPTION_URL_TEMPLATE`;
+- проверяет, что `sub_id` принадлежит пользователю из локальной SQLite;
+- для raw/machine subscription преобразует 3x-ui AmneziaWG `vpn://` в `amneziawg://`;
+- сохраняет штатное HTML-представление 3x-ui;
+- проксирует assets встроенной subscription page через `/compat/assets/`;
+- применяет ограниченную Shadowrocket compatibility только к соответствующим VLESS/XHTTP/Reality links.
 
-Имена новых пользователей формируются так:
+Основные переменные:
 
-- `tg_<telegram_username>`, если у пользователя Telegram есть имя пользователя;
-- `tg_<telegram_id>`, если имя пользователя не задано.
-
-В локальной базе стабильным идентификатором по-прежнему служит числовой Telegram ID.
-
-## v3.3 — Массовая синхронизация inbound'ов
-
-В меню `/admin` добавлена кнопка `🔄 Синхронизировать всех`.
-
-После подтверждения бот читает разрешённый набор inbound'ов из `.env` и вызывает `POST /panel/api/clients/bulkAttach` для каждого пользователя из своей SQLite. Уже существующие пары «клиент — inbound» 3x-ui пропускает, недостающие привязки создаёт.
-
-Это полезно после добавления нового inbound'а или протокола, например AmneziaWG. Массовая операция затрагивает только пользователей, присутствующих в локальной базе бота.
-
-## v3.4 — Прокси подписок AmneziaWG для совместимости с INCY
-
-В этой версии 3x-ui выдаёт ссылки AmneziaWG в машинном формате как `vpn://<base64url-conf>`. Мобильный INCY ожидает `amneziawg://` или `awg://` в смешанных подписках со ссылками по одной на строку.
-
-v3.4 запускает небольшой HTTP-прокси совместимости внутри контейнера бота:
-
-- внутренний маршрут: `GET /compat/{sub_id}`;
-- проверка доступности: `GET /healthz`;
-- исходная подписка 3x-ui загружается по `SUBSCRIPTION_URL_TEMPLATE`;
-- поддерживаются как подписки в Base64, так и обычный текст;
-- преобразуются только ссылки `vpn://...` в `amneziawg://...`;
-- строки VLESS, Hysteria и других протоколов сохраняются без изменений;
-- сохраняется исходный способ представления: Base64 или обычный текст;
-- передаются полезные заголовки подписки, например `Subscription-Userinfo`;
-- проверяется наличие `{sub_id}` в локальной SQLite бота.
-
-Настройка:
-
-```env
-# Исходный адрес подписки 3x-ui в машинном формате.
+~~~env
 SUBSCRIPTION_URL_TEMPLATE=https://sub.example.com:2096/sub/{sub_id}
-
-# Адрес, который бот отправляет пользователям.
 COMPAT_SUBSCRIPTION_URL_TEMPLATE=https://sub.example.com/compat/{sub_id}
 
 SUBSCRIPTION_PROXY_HOST=0.0.0.0
 SUBSCRIPTION_PROXY_PORT=8080
-```
+~~~
 
-Docker публикует прокси только на локальном интерфейсе хоста:
+Если `COMPAT_SUBSCRIPTION_URL_TEMPLATE` пуст, бот продолжает выдавать исходный URL 3x-ui.
 
-```text
-127.0.0.1:18080 -> контейнер:8080
-```
+Docker Compose публикует proxy только на loopback Master:
 
-Пример блока nginx на VPS, обслуживающем `sub.example.com`:
+~~~text
+127.0.0.1:18080 -> container:8080
+~~~
 
-```nginx
+Пример reverse-proxy route:
+
+~~~nginx
 location /compat/ {
     proxy_pass http://127.0.0.1:18080;
     proxy_http_version 1.1;
@@ -441,1197 +210,86 @@ location /compat/ {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
-```
+~~~
 
-Перезагрузи конфигурацию nginx, затем сначала выполни локальную проверку:
+Локальная health-проверка:
 
-```bash
+~~~bash
 curl -fsS http://127.0.0.1:18080/healthz
-```
+~~~
 
-Для существующего пользователя бота проверь маршрут совместимости:
+Не публикуй реальный `sub_id` в issue/PR/chat.
 
-```bash
-curl -fsS http://127.0.0.1:18080/compat/YOUR_SUB_ID | base64 -d
-```
+## Telegram surfaces
 
-Если у исходной подписки 3x-ui задано `subEncrypt=false`, убери `| base64 -d`. Ожидаемый набор строк выглядит примерно так:
+Текущий v4 содержит два разных UI boundary.
 
-```text
-vless://...
-vless://...
-hysteria2://...
-amneziawg://...
-```
+Client-access compatibility flow:
 
-Важно: прежний адрес подписки, уже сохранённый в VPN-клиенте, сам не изменится. Один раз добавь новый адрес `/compat/{sub_id}` или замени им старую подписку. Дальнейшие обновления будут проходить через прокси совместимости.
+- `/start`;
+- `/inbounds`;
+- `/create`;
+- `/subscription`.
 
-## v3.5 — Штатная страница 3x-ui и совместимость AmneziaWG с INCY
+Admin Control Plane:
 
-Один публичный адрес работает в двух режимах:
+- `/admin`;
+- Users / Subscriptions / Payments / Plans / Promo Codes;
+- Infrastructure / Nodes / Inbounds / Fleet / Host Control;
+- Monitoring / Logs / Alerts;
+- System / Jobs / Audit / Backup / Versions & Updates / Bot Updates.
 
-- браузер (`Accept: text/html`, `?html=1` или `?view=html`) получает **штатную страницу подписки 3x-ui**;
-- VPN-приложение получает подписку в машинном формате с сохранением исходной упаковки Base64; преобразуются только ссылки AmneziaWG из `vpn://` в `amneziawg://`.
+Наличие v4 client-access команд не означает, что v5 Client Portal уже реализован. Новый client-facing product flow должен сохранять отдельную authorization/navigation boundary от `/admin`.
 
-Штатная страница 3x-ui загружается с исходного сервера подписок, а не создаётся заново. Ссылки на ресурсы Vite `/assets/...` направляются через `/compat/assets/...`, поэтому существующий блок nginx `location ^~ /compat/` продолжает работать без дополнительного публичного маршрута.
+## CI и regression gates
 
-Прокси также передаёт запросы с `?format=info`, которые страница подписки 3x-ui использует для обновления состояния и трафика.
+Основной CI выполняет:
 
-Рекомендуемые настройки остаются прежними:
+~~~bash
+python -m compileall -q .
+python -m unittest discover -s tests -v
+python3 scripts/check-3xui-openapi-contract.py
+git diff --check
+~~~
 
-```env
-SUBSCRIPTION_URL_TEMPLATE=https://panel.example.com:2096/sub/{sub_id}
-COMPAT_SUBSCRIPTION_URL_TEMPLATE=https://sub.example.com/compat/{sub_id}
-SUBSCRIPTION_PROXY_HOST=0.0.0.0
-SUBSCRIPTION_PROXY_PORT=8080
-```
+Дополнительно regression tests закрепляют:
 
-Быстрые проверки:
+- centralized RBAC catalog и fail-closed unknown callbacks;
+- single ownership Router'ов после декомпозиции;
+- Host Control / Deploy Agent startup recovery order;
+- отсутствие automatic mutation replay;
+- provisioning/user mutation ordering;
+- backup/restore/off-site integrity semantics;
+- release/Git workflow conventions.
 
-```bash
-# HTML для браузера.
-curl -fsS -H 'Accept: text/html' 'https://sub.example.com/compat/SUB_ID' | head
+## Карта документации
 
-# Подписка в машинном формате для VPN-клиента.
-curl -fsS 'https://sub.example.com/compat/SUB_ID' | base64 -d
-```
+| Задача | Канонический документ |
+|---|---|
+| Установка Admin Control Plane | [docs/ADMIN_SETUP.md](docs/ADMIN_SETUP.md) |
+| Release/tag/deployment contract | [docs/RELEASES.md](docs/RELEASES.md) |
+| Git/PR/issue conventions | [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) |
+| Product roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
+| UI style | [docs/UI_STYLE.md](docs/UI_STYLE.md) |
+| Direct-node onboarding | [docs/NODE_ONBOARDING.md](docs/NODE_ONBOARDING.md) |
+| Host Control security | [docs/HOST_CONTROL_AGENT.md](docs/HOST_CONTROL_AGENT.md) |
+| Host Control deployment | [docs/HOST_CONTROL_DEPLOY.md](docs/HOST_CONTROL_DEPLOY.md) |
+| Host Control rollout | [docs/HOST_CONTROL_ROLLOUT.md](docs/HOST_CONTROL_ROLLOUT.md) |
+| Fleet Operations | [docs/FLEET_OPERATIONS.md](docs/FLEET_OPERATIONS.md) |
+| Bot Self-Update | [docs/BOT_SELF_UPDATE.md](docs/BOT_SELF_UPDATE.md) |
+| Off-site Backup | [docs/OFFSITE_BACKUP.md](docs/OFFSITE_BACKUP.md) |
+| VPS recovery | [docs/VPS_RECOVERY.md](docs/VPS_RECOVERY.md) |
+| SQLite migrations | [docs/SQLITE_MIGRATIONS.md](docs/SQLITE_MIGRATIONS.md) |
+| 3x-ui OpenAPI contract | [docs/3XUI_OPENAPI_CONTRACT.md](docs/3XUI_OPENAPI_CONTRACT.md) |
 
-## v3.5.1 — Исправление загрузки ресурсов встроенной страницы 3x-ui
+## История проекта
 
-3x-ui отдаёт ресурсы встроенного одностраничного приложения подписки относительно настроенного пути подписки, например `/clichegamesub/assets/...`. v3.5 ошибочно запрашивала `/assets/...`: HTML загружался, но могла отображаться белая страница. v3.5.1 получает префикс ресурсов непосредственно из `SUBSCRIPTION_URL_TEMPLATE` и проксирует их через `/compat/assets/...`.
+Release history не поддерживается второй копией внутри README.
 
-В nginx сохрани `proxy_buffering off;`. Для больших сборок Vite, используемых 3x-ui, внутри блока `/compat/` также можно добавить `proxy_max_temp_file_size 0;`.
+Используй:
 
-## v3.5.2 — Сохранение штатного отображения AmneziaWG в 3x-ui
+- **[CHANGELOG.md](CHANGELOG.md)** — канонический список изменений по версиям;
+- GitHub Releases — опубликованные release notes и immutable tags;
+- **[docs/RELEASES.md](docs/RELEASES.md)** — правила публикации и production acceptance.
 
-В HTML-режиме ссылки AmneziaWG `vpn://`, полученные от 3x-ui, больше не изменяются. Благодаря этому сохраняются встроенная карточка AmneziaWG, её название, QR-код, копирование и отдельная строка конфигурации AmneziaWG на штатной странице подписки.
-
-Режим машинной подписки не изменён: `vpn://` по-прежнему преобразуется в `amneziawg://` для совместимости с INCY. Один адрес `/compat/{sub_id}` отдаёт штатную страницу 3x-ui браузеру и адаптированную подписку VPN-клиентам.
-
-## v3.5.3 — Синхронизация VLESS XTLS flow
-
-Добавлена настройка `VLESS_FLOW` со значением по умолчанию `xtls-rprx-vision`. Новые клиенты создаются с этим значением `flow`, затем оно нормализуется через `POST /panel/api/clients/bulkAdjust` в 3x-ui. Этот же метод вызывается кнопками синхронизации inbound'ов для одного пользователя и для всех пользователей. Существующие записи можно исправить без удаления и повторного создания.
-
-Добавь в `.env`:
-
-```env
-VLESS_FLOW=xtls-rprx-vision
-```
-
-Установи `VLESS_FLOW=`, чтобы не менять существующие значения `flow`. 3x-ui применяет значение только там, где inbound поддерживает запрошенный XTLS flow.
-
-После обновления используй один из вариантов:
-
-- `/admin` → пользователь → `Синхронизировать inbound'ы` — для одного пользователя;
-- `/admin` → `Синхронизировать всех` — для всех пользователей из SQLite бота.
-
-Карточка пользователя также показывает сохранённое у клиента значение `flow`.
-
-## v3.5.4 — Совместимость Shadowrocket с XHTTP Reality
-
-Маршрут совместимой подписки определяет Shadowrocket по `User-Agent`. Только для Shadowrocket удаляется параметр `fp` из ссылок `vless://`, у которых одновременно заданы `type=xhttp` и `security=reality`.
-
-Остальное поведение не изменено:
-
-- браузер получает штатную страницу подписки 3x-ui;
-- INCY и другие клиенты сохраняют исходный отпечаток XHTTP;
-- ссылки VLESS TCP Reality сохраняют свой отпечаток;
-- ссылки AmneziaWG в машинной подписке по-прежнему преобразуются из `vpn://` в `amneziawg://`.
-
-Изменения nginx и новые переменные `.env` не требуются.
-
-## v3.5.5 — Состояние сервера и ограничение журналов Docker
-
-В меню `/admin` добавлен раздел `🩺 Состояние сервера`. Он проверяет:
-
-- API 3x-ui через настроенный адрес панели;
-- локальный прокси совместимости подписок;
-- публичный маршрут `/healthz` подписки через nginx и TLS;
-- состояние включения управляемых inbound'ов по данным 3x-ui;
-- использование диска и оперативной памяти, время работы и число пользователей в локальной базе бота.
-
-Состояние inbound'ов намеренно берётся из API 3x-ui. Проверка TCP/UDP-сокетов не используется: успешное TCP-соединение не проверяет работоспособность REALITY/XHTTP, а UDP-сервисы нельзя надёжно проверить универсальным подключением.
-
-Размер журналов Docker `json-file` также ограничен в `docker-compose.yml`:
-
-```yaml
-logging:
-  driver: "json-file"
-  options:
-    max-size: "10m"
-    max-file: "3"
-```
-
-Ограничение применяется после пересоздания контейнера с новой конфигурацией Compose.
-
-## v3.6.0 — Резервное копирование из админки
-
-В `/admin` добавлен раздел `💾 Резервные копии`:
-
-- немедленное создание полного архива;
-- скачивание свежего согласованного снимка `bot.sqlite3`;
-- скачивание последнего полного архива `.tar.gz`;
-- автоматическое ежедневное копирование с ограничением числа хранимых копий.
-
-Полный архив может содержать:
-
-- `bot.sqlite3` — согласованную SQLite-копию базы бота;
-- `x-ui.db` — согласованную SQLite-копию 3x-ui;
-- `bot.env` — текущий файл `.env` бота;
-- `docker-compose.yml`;
-- `nginx/` — подключённый каталог конфигурации nginx;
-- `manifest.json` и инструкции по восстановлению.
-
-**Полный архив содержит секреты. Обращайся с ним как с файлом паролей или учётных данных.** В v3.6.0 кнопки резервного копирования доступны только Telegram ID из `ADMIN_TELEGRAM_IDS`.
-
-Настройки резервного копирования по умолчанию:
-
-```env
-BACKUP_ENABLED=true
-BACKUP_DIR=/app/data/backups
-BACKUP_KEEP=14
-BACKUP_HOUR_UTC=2
-BACKUP_SEND_TO_ADMINS=false
-```
-
-Полные автоматические копии создаются ежедневно в час `BACKUP_HOUR_UTC` по UTC. Сохраняются последние `BACKUP_KEEP` полных архивов. Для вручную создаваемых снимков SQLite, предназначенных для скачивания, хранятся только три последних файла.
-
-При `OFFSITE_BACKUP_ENABLED=true` каждый новый Full Backup после локального создания проходит checksum/deep validation, шифруется client-side AES-256-GCM и реплицируется в фиксированный S3-compatible bucket/prefix. Upload имеет отдельный `backup.offsite` job: ошибка внешнего хранилища не превращает уже созданный локальный backup в failure. После upload выполняется remote download/decrypt/deep-verify round trip, затем применяется отдельный `OFFSITE_BACKUP_KEEP` retention. Подробный recovery flow: [Off-site Backup](docs/OFFSITE_BACKUP.md).
-
-В этом варианте развёртывания Compose подключает стандартный каталог базы 3x-ui и отдельный каталог конфигурации nginx только для чтения:
-
-```env
-BACKUP_XUI_DIR_HOST_PATH=/etc/x-ui
-BACKUP_NGINX_CONF_HOST_PATH=/opt/mtproxyl-nginx/conf
-```
-
-Если nginx расположен иначе, перед запуском v3.6.0 задай `BACKUP_NGINX_CONF_HOST_PATH` в `.env`. По умолчанию 3x-ui использует `/etc/x-ui/x-ui.db`.
-
-Необязательная отправка копии за пределы сервера через Telegram:
-
-```env
-BACKUP_SEND_TO_ADMINS=true
-```
-
-При включении каждая автоматическая полная копия отправляется во все чаты администраторов. По умолчанию это отключено, поскольку архив содержит секреты.
-
-v3.6.0 также добавляет `.dockerignore`: `.env`, базы данных и каталог `data/` больше не копируются в образ Docker при `docker compose build`.
-
-## v3.7.0 — Основа работы со штатными нодами 3x-ui
-
-v3.7.0 подключает бот к **штатному API Nodes панели Master 3x-ui**. Бот не хранит второй реестр нод и не требует токенов синхронизации, которые Master хранит у себя.
-
-Новые возможности админки:
-
-- `🌍 Ноды` показывает все ноды, зарегистрированные на Master;
-- `🔄 Проверить все` просит Master проверить все непосредственно подключённые ноды;
-- у каждой прямой ноды есть подробная карточка: состояние панели, состояние и версия Xray, задержка API, процессор, оперативная память, время работы, количество inbound'ов и клиентов;
-- `🩺 Состояние системы` показывает Master и все ноды в одном отчёте;
-- показатели процессора, памяти, диска и времени работы Master читаются из `/panel/api/server/status`, а не вычисляются по контейнеру бота.
-
-### Первая нода Finland
-
-Зарегистрируй сервер Finland в разделе **Nodes** панели Master 3x-ui. Рекомендуется простое имя, например `Finland`: бот использует то же название. После регистрации нода автоматически появляется в `/admin -> 🌍 Ноды`; менять `.env` бота для мониторинга не требуется.
-
-Для штатных нод 3x-ui поддерживает доверие по токену, закрепление сертификата и mTLS. После первоначальной настройки соединения предпочитай HTTPS с проверкой сертификата или mTLS вместо `skip`.
-
-### Резервное копирование баз нод
-
-API Nodes на Master намеренно не возвращает API-токен ноды. Поэтому проверка её состояния работает автоматически, а **резервное копирование базы настраивается отдельно** для каждой ноды, которую нужно включать в полный архив бота.
-
-Бот скачивает согласованную копию через штатный метод ноды `GET /panel/api/server/getDb`. Поддерживаются панели с SQLite и PostgreSQL: возвращаемый файл может иметь расширение `.db` или `.dump`.
-
-Когда нода Finland будет готова, добавь в существующий `.env`:
-
-```env
-NODE_BACKUP_TARGETS=FI
-NODE_BACKUP_FI_NODE_NAME=Finland
-NODE_BACKUP_FI_PANEL_URL=https://fi-panel.example.com/basepath
-NODE_BACKUP_FI_API_TOKEN=replace_with_dedicated_admin_scope_token
-NODE_BACKUP_FI_VERIFY_TLS=true
-```
-
-`NODE_BACKUP_FI_NODE_NAME` должен совпадать с именем ноды на Master. Для резервного копирования используй **отдельный API-токен с административными правами на ноде Finland**. Ограниченному токену синхронизации или мониторинга скачивание базы может быть запрещено. Никогда не добавляй этот токен в Git.
-
-После настройки кнопка `💾 Создать сейчас` и ежедневное автоматическое копирование добавляют в архив файлы вида:
-
-```text
-nodes/
-  Finland/
-    x-ui.db        # либо PostgreSQL .dump, возвращённый нодой
-    node.json      # метаданные источника без секретов
-```
-
-Ошибка копирования ноды не отменяет копию Master. Архив всё равно создаётся; недоступная нода указывается в списке `missing` и манифесте.
-
-### v3.7.1 — Карточка Master в разделе нод
-
-В `/admin -> 🌍 Ноды` Master всегда отображается первой доступной для нажатия строкой. По умолчанию её вид — `🇳🇱 Master · 🟢 Online`; название и флаг меняются через `MASTER_NAME` и `MASTER_FLAG`.
-
-Карточка Master открывает краткую сводку: 3x-ui/Xray, процессор, память, диск, время работы, прокси подписок, управляемые inbound'ы, пользователи бота и последняя резервная копия. Master учитывается в общем числе серверов и числе доступных серверов.
-
-## v3.7.2 — Добавление нод из Telegram
-
-`/admin → 🌍 Ноды → ➕ Добавить ноду` открывает мастер из четырёх шагов:
-
-1. Имя ноды.
-2. Полный адрес панели 3x-ui; схема, хост, порт и базовый путь разбираются автоматически.
-3. API-токен ноды; бот пытается удалить сообщение Telegram сразу после чтения.
-4. Режим проверки TLS: рекомендуется `verify`, а `skip` используется только при необходимости.
-
-Перед сохранением бот вызывает `/panel/api/nodes/test` на Master и показывает состояние панели/Xray и задержку. Окончательное сохранение использует `/panel/api/nodes/add`; учётные данные остаются в Master 3x-ui, а не в SQLite бота.
-
-Если удалённых нод пока нет, подсказка намеренно нейтральна: для подключения сервера используй кнопку **➕ Добавить ноду**.
-
-## v3.8.0 — Основа рабочей админ-панели
-
-Поведение v3.7.2 сохранено: управление нодами, резервные копии, проверки доступности, подписки, операции с пользователями и логика прокси совместимости не переписаны. v3.8.0 добавляет устойчивую навигацию поверх существующих обработчиков.
-
-Верхний уровень `/admin`:
-
-- `Dashboard` — сводка;
-- `Users` — пользователи;
-- `Subscriptions` — подписки;
-- `Payments` — платежи;
-- `Plans` — тарифы;
-- `Promo Codes` — промокоды;
-- `Infrastructure` — инфраструктура;
-- `Monitoring` — мониторинг;
-- `System` — система.
-
-В этой базовой версии реализованы:
-
-- сводка Dashboard: пользователи, истекающий доступ, доступность Master и нод, состояние управляемых inbound'ов и последняя резервная копия;
-- Users: существующие карточки пользователей, массовая синхронизация inbound'ов и статистика;
-- Subscriptions: список локальных подписок бота без показа адреса до открытия конкретной записи;
-- Infrastructure: существующий интерфейс Nodes и просмотр управляемых Inbounds;
-- Monitoring: существующий раздел System Health;
-- System: существующий раздел Backups.
-
-Зарезервированные модули видны, но явно помечены как ещё не реализованные: Payments, Promo Codes, Panels, Traffic, Online, Logs, Jobs, Audit Log, Administrators и Settings. Они не имитируют рабочие операции и не выполняют разрушительных действий.
-
-## v3.9.0 — Тарифы, группы серверов и адреса
-
-Версия добавляет три административных каталога, не меняя существующее назначение ресурсов, подписки, работу нод и резервное копирование. Dashboard также показывает число активных и всех тарифов, число групп серверов и число включённых и всех адресов.
-
-### Тарифы — Plans
-
-`/admin -> Plans` поддерживает:
-
-- создание тарифа;
-- срок действия в днях;
-- лимит трафика в GB, где `0` означает отсутствие лимита;
-- лимит IP/устройств, где `0` означает отсутствие лимита;
-- цену и трёхбуквенный код валюты;
-- необязательную привязку Server Group;
-- включение и отключение;
-- удаление.
-
-Важно: в v3.9 Plans — только каталог уровня управления. Сценарий `/create` по-прежнему использует `TEST_DAYS`, `TEST_TRAFFIC_GB` и `TEST_IP_LIMIT`. Подключение тарифов к назначению ресурсов намеренно отложено, чтобы не менять работающий пользовательский сценарий без явного согласования.
-
-### Группы серверов — Server Groups
-
-`/admin -> Infrastructure -> Server Groups` поддерживает:
-
-- создание и удаление групп;
-- необязательное описание;
-- добавление и удаление Master из группы;
-- добавление и удаление штатных нод 3x-ui, обнаруженных через Master;
-- назначение группы тарифу.
-
-Состав группы хранится в SQLite бота. В этой версии он ещё не меняет автоматически подписки и привязки клиентов к inbound'ам.
-
-### Реестр адресов — Hosts
-
-`/admin -> Infrastructure -> Hosts` — централизованный реестр метаданных доменов и IP-адресов. Он поддерживает роли панели, подписки, VPN-сервера и Reality/SNI, включение/отключение, удаление и обнаружение адресов из `PANEL_URL`, публичной совместимой подписки и исходной подписки 3x-ui.
-
-В v3.9 реестр Hosts не редактирует DNS, nginx, сертификаты и настройки 3x-ui. Это разделение сделано для безопасного внедрения в рабочую среду.
-
-### Изменения базы данных
-
-Ручная миграция не требуется. При запуске бот создаёт дополнительные таблицы SQLite (`plans`, `server_groups`, `server_group_members`, `hosts`) через `CREATE TABLE IF NOT EXISTS`. Существующие записи `users` остаются без изменений.
-
-### Обновление с v3.8.0
-
-Новые переменные окружения не требуются.
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v3.8.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v3.8.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v3.9.0/.env
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v3.9.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v3.8.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v3.9.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v3.9.0
-docker compose up -d --build
-```
-
-При первом запуске выполняется только добавление новых таблиц каталогов через `CREATE TABLE IF NOT EXISTS`. Существующая таблица `users` и поведение 3x-ui сохраняются.
-
-## v4.0.0 — Мониторинг, задания и журнал аудита
-
-v4.0 сохраняет рабочую логику уровня управления v3.9 и реализует модули Monitoring/System, которые раньше были заглушками.
-
-### Мониторинг трафика — Monitoring → Traffic
-
-`/admin -> Monitoring -> Traffic` читает список самостоятельных клиентских записей 3x-ui и агрегирует данные об их трафике. Страница показывает:
-
-- суммарные отправленные и полученные данные и общий объём передачи;
-- количество клиентов в 3x-ui и количество клиентов, связанных с SQLite бота;
-- суммарное использование ограниченных квот;
-- клиентов с наибольшим накопленным трафиком.
-
-Счётчики намеренно обозначены как **накопительные**. Это данные 3x-ui с момента последнего сброса, а не выдуманный показатель «за сегодня».
-
-### Активные подключения — Monitoring → Online
-
-Используются штатные методы мониторинга клиентов 3x-ui. Страница показывает адреса `email` подключённых клиентов без повторов между Master и нодами, отмечает известных боту пользователей их Telegram ID и выводит короткий список недавно активных клиентов. Исходные IP-адреса клиентов в Telegram не показываются.
-
-### Задания — System → Jobs
-
-Страница Jobs использует новую таблицу SQLite `job_runs`. v4.0 записывает реальные запуски резервного копирования, а не показывает условные задания:
-
-- `backup.daily` — автоматическое копирование по расписанию;
-- `backup.manual` — копирование, запущенное администратором.
-
-Для каждого запуска сохраняются источник запуска, статус, время начала и окончания, длительность и краткий результат. Со страницы Jobs можно запустить копирование через `Run backup now`. Общая блокировка в процессе не позволяет одновременно создавать два полных архива.
-
-### Журнал аудита — System → Audit Log
-
-Новая таблица SQLite `audit_log` записывает изменения, выполняемые администраторами, без сохранения API-токенов и секретов подписки. В v4.0 аудит охватывает основные операции:
-
-- синхронизацию пользователя, продление на 30 дней, включение/отключение и удаление;
-- массовую синхронизацию inbound'ов;
-- добавление нод;
-- создание и скачивание резервных копий;
-- создание, включение/отключение, назначение группы и удаление тарифов;
-- создание групп серверов, изменение состава и удаление;
-- обнаружение, создание, включение/отключение и удаление адресов.
-
-Журнал аудита разбит на страницы; кнопки очистки намеренно нет.
-
-### Главная сводка — Dashboard
-
-Dashboard дополнен текущей сводкой мониторинга:
-
-- накопительный трафик по данным 3x-ui;
-- число подключённых клиентов.
-
-Если API мониторинга временно недоступен, Dashboard показывает предупреждение для этого блока, не нарушая работу остальных разделов админки.
-
-### Изменения базы данных
-
-Существующие таблицы не переписываются. `db.init()` добавляет только:
-
-```text
-audit_log
-job_runs
-```
-
-Существующие `users`, `plans`, `server_groups`, `server_group_members` и `hosts` сохраняют совместимость с v3.9.0.
-
-### Обновление с v3.9.0
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v3.9.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v3.9.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v4.0.0/.env
-
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.0.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v3.9.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v4.0.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v4.0.0
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=100 bot
-```
-
-Затем проверь:
-
-```text
-/admin
- -> Dashboard
- -> Monitoring -> Traffic
- -> Monitoring -> Online
- -> System -> Jobs
- -> System -> Audit Log
-```
-
-Для v4.0.0 новые переменные `.env` не требуются.
-
-## v4.1.0 — Платежи, промокоды, роли администраторов и безопасные настройки
-
-v4.1.0 дополняет v4.0.0. Существующее назначение ресурсов пользователям, операции 3x-ui, подписки, прокси совместимости, Nodes, Backups, Monitoring, Jobs и Audit Log сохранены.
-
-### Платежи — Payments
-
-`/admin -> Payments` предоставляет внутренний реестр платежей:
-
-- список последних платежей и количество записей в статусах оплаты, ожидания и возврата;
-- ручное создание платежа для существующего пользователя бота;
-- необязательную связь с тарифом;
-- сумму и трёхбуквенный код валюты;
-- статусы `pending`, `paid`, `refunded`, `cancelled`;
-- необязательный внешний идентификатор платежа;
-- суммы оплаченных платежей с группировкой по валюте;
-- записи аудита создания и изменения статуса.
-
-Эта версия не создаёт видимость подключения внешнего платёжного провайдера. Будущие интеграции смогут записывать данные в тот же реестр без переписывания истории платежей.
-
-### Промокоды — Promo Codes
-
-`/admin -> Promo Codes` поддерживает:
-
-- скидку в процентах или фиксированную сумму;
-- необязательное ограничение конкретным тарифом;
-- максимальное число использований, где `0` означает отсутствие ограничения;
-- необязательный срок действия по UTC;
-- включение/отключение и удаление;
-- записи аудита.
-
-Каталог подготовлен для будущего оформления покупки. В v4.1.0 промокоды **не применяются** автоматически к существующему пробному сценарию `/create`.
-
-### Администраторы и роли
-
-`/admin -> System -> Administrators` добавляет администраторов, хранящихся в базе данных. `ADMIN_TELEGRAM_IDS` остаются неизменяемыми аварийными владельцами `Owner`; отключить их из Telegram нельзя.
-
-Роли:
-
-- `Owner` — полный доступ, включая управление администраторами;
-- `Administrator` — рабочие операции и безопасные настройки;
-- `Support` — просмотр админки и обычные действия с пользователями: продление, синхронизация, включение/отключение;
-- `Read-only` — только просмотр админки и мониторинга.
-
-Существующие ID администраторов из окружения сохраняют полный доступ после обновления.
-
-### Безопасные настройки времени выполнения
-
-`/admin -> System -> Settings` показывает только несекретные изменяемые настройки:
-
-- срок пробного доступа в днях;
-- пробный объём трафика в GB;
-- лимит IP/устройств пробного доступа;
-- валюту по умолчанию.
-
-Настройки пробного доступа немедленно применяются к **новым** операциям `/create`. Валюта по умолчанию используется при вводе тарифа, платежа или промокода с фиксированной скидкой без явно указанной валюты.
-
-Секреты `BOT_TOKEN`, `PANEL_API_TOKEN`, API-токены нод, политика TLS, подключения каталогов резервного копирования и другие инфраструктурные настройки остаются вне редактирования через Telegram. Расписание и число хранимых резервных копий, а также проверка TLS показываются из `.env` только для чтения.
-
-### Изменения базы данных
-
-Существующие таблицы не переписываются. `db.init()` добавляет только:
-
-```text
-payments
-promo_codes
-administrators
-runtime_settings
-```
-
-Данные v4.0.0 остаются совместимыми.
-
-### Обновление с v4.0.0
-
-Новые переменные `.env` не требуются.
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v4.0.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v4.0.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v4.1.0/.env
-
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.1.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v4.0.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v4.1.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v4.1.0
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=100 bot
-```
-
-Затем проверь:
-
-```text
-/admin
- -> Payments
- -> Promo Codes
- -> System -> Administrators
- -> System -> Settings
-```
-
-## v4.2.0 — Расширенное управление пользователями
-
-v4.2.0 дополняет v4.1.0. Существующее назначение ресурсов, совместимость подписок, Nodes, Plans, Server Groups, Payments, Monitoring, Backups, Administrators/Roles и Settings не заменяются.
-
-### Расширенная карточка пользователя
-
-Открой `/admin -> Users` → пользователь → `Advanced management`.
-
-Карточка показывает текущие данные 3x-ui вместе с метаданными уровня управления:
-
-- состояние включения;
-- срок действия;
-- лимит и использованный объём трафика;
-- лимит IP;
-- ID привязанных inbound'ов;
-- VLESS flow;
-- назначенный тариф;
-- назначенную группу серверов;
-- внутреннюю заметку администратора.
-
-### Прямое редактирование
-
-Администраторы с ролью Support и выше могут менять:
-
-- срок действия: `+30`, абсолютная дата `YYYY-MM-DD` или `0` без ограничения;
-- лимит трафика в GB, где `0` означает отсутствие лимита;
-- лимит IP, где `0` означает отсутствие лимита;
-- назначенный тариф;
-- назначенную группу серверов;
-- внутреннюю заметку;
-- привязку к отдельным управляемым inbound'ам.
-
-Отсоединение последнего управляемого inbound'а блокируется, чтобы случайно не оставить пользователя бота без пригодного для работы inbound'а.
-
-Назначение Plan и Server Group хранится как метаданные в новой таблице `user_profiles`. Само назначение тарифа не меняет незаметно работающего клиента 3x-ui. Явная операция `Apply Plan to limits` применяет срок действия, квоту трафика и лимит IP из тарифа. Если у тарифа есть Server Group, эта группа также сохраняется в профиле пользователя.
-
-### Сброс трафика
-
-`Reset traffic` вызывает метод массового сброса счётчиков самостоятельных клиентских записей 3x-ui с одним `email`. Сбрасываются общие счётчики клиента на всех связанных inbound'ах; используется та же модель клиентов с поддержкой нескольких нод, что и в 3x-ui.
-
-### Смена идентификатора подписки
-
-Owner/Administrator может сменить `subId` пользователя из Telegram. Операция:
-
-1. Создаёт новый уникальный случайный идентификатор подписки.
-2. Обновляет клиентскую запись 3x-ui.
-3. Обновляет строку в SQLite бота.
-4. Создаёт запись Audit Log.
-5. Возвращает новый адрес совместимой подписки.
-
-После смены идентификатора старый адрес подписки перестаёт обновляться. Уже импортированные конфигурации не удаляются удалённо с устройств пользователей.
-
-Учётные данные протоколов — VLESS UUID, данные авторизации Hysteria и ключи AmneziaWG — намеренно не меняются этой операцией. Их смена требует отдельного сценария с учётом протокола и не смешивается со сменой идентификатора подписки.
-
-### Массовые действия
-
-`/admin -> Users -> Bulk actions` предоставляет выбор пользователей с постраничной навигацией и действия:
-
-- продлить на 30 дней;
-- включить;
-- отключить;
-- сбросить трафик;
-- синхронизировать управляемые inbound'ы и VLESS flow.
-
-Массовые изменения используют методы `/panel/api/clients/bulk*`, где они доступны, и создают записи Audit Log. Массовое удаление намеренно отсутствует: разрушительные операции остаются явными для каждого пользователя.
-
-### Изменения базы данных
-
-Существующие таблицы не переписываются. `db.init()` добавляет только:
-
-```text
-user_profiles
-```
-
-Таблица `users` остаётся стабильной связью Telegram ID, `email` и `subId`. Удаление пользователя бота теперь также удаляет связанную запись `user_profiles`, если она есть.
-
-### Обновление с v4.1.0
-
-Новые переменные `.env` не требуются.
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v4.1.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v4.1.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v4.2.0/.env
-
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.2.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v4.1.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v4.2.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v4.2.0
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=100 bot
-```
-
-Затем проверь:
-
-```text
-/admin
- -> Users
- -> открыть пользователя
- -> Advanced management
-
-/admin
- -> Users
- -> Bulk actions
-```
-
-## v4.3.0 — Расширенное управление inbound'ами
-
-v4.3.0 дополняет v4.2.0. Назначение ресурсов пользователям, Plans, Server Groups, совместимость подписок, резервные копии, ноды, мониторинг и управление пользователями сохранены. Страница `Infrastructure → Inbounds` открывает полноценные карточки inbound'ов вместо простого списка состояний.
-
-### Карточки inbound'ов
-
-Управляемый inbound можно открыть так:
-
-```text
-/admin
-→ Infrastructure
-→ Inbounds
-→ выбрать inbound
-```
-
-Карточка показывает сервер или ноду, состояние включения, протокол, порт, адрес прослушивания, транспорт и защиту, число клиентов и счётчики трафика. Для XHTTP также показываются путь, хост, режим и заполнение. Для REALITY — SNI и публичная настройка отпечатка клиента; приватные ключи никогда не выводятся в Telegram.
-
-Доступные действия:
-
-```text
-Clients
-Edit
-Enable / Disable
-Sync users
-Reset inbound traffic
-Clone
-Save as template
-Delete inbound (с подтверждением)
-```
-
-### Безопасное редактирование
-
-Редактирование из Telegram использует документированный формат полной замены inbound'а, сохраняя существующие объекты `settings`, `streamSettings` и `sniffing`. Доступны только выбранные рабочие поля:
-
-```text
-remark
-port
-listen
-XHTTP path
-XHTTP host
-XHTTP mode
-XHTTP xPaddingBytes
-REALITY serverNames / SNI
-REALITY client fingerprint
-```
-
-Приватный ключ REALITY, приватные данные AWG и другие секретные поля не показываются и не запрашиваются. Они сохраняются в полной конфигурации, отправляемой обратно в 3x-ui.
-
-Включение и отключение используют отдельный метод `/panel/api/inbounds/setEnable/:id`, а не сериализацию всего inbound'а ради смены одного состояния.
-
-### Клиенты и синхронизация
-
-`Clients` показывает клиентов, привязанных к inbound'у. Для клиентов, известных Telegram-боту, доступны ссылки на существующие административные карточки пользователей.
-
-`Sync users` — явная массовая операция с подтверждением. Она привязывает всех пользователей локальной SQLite бота к выбранному inbound'у, не меняя учётные данные и лимиты. Уже существующие привязки 3x-ui пропускает.
-
-### Клонирование и развёртывание на нодах
-
-Клонирование повторяет поведение панели 3x-ui: создаётся отключённый клон без клиентов, с нулевыми счётчиками inbound'а, пустым адресом прослушивания и конфигурацией источника. Целью может быть Master или любая доступная штатная нода 3x-ui. Если исходный порт свободен на выбранном сервере, используется он; иначе бот запрашивает другой порт.
-
-### Шаблоны inbound'ов
-
-Существующий inbound можно сохранить как шаблон. Шаблоны хранятся в `bot.sqlite3` и содержат конфигурацию, необходимую для воспроизведения inbound'а. Поэтому база бота и её резервные копии являются секретными данными.
-
-```text
-Infrastructure
-→ Inbounds
-→ Templates
-→ выбрать шаблон
-→ Deploy
-→ Master / нода
-```
-
-`Deploy` создаёт отключённый inbound без клиентов. Используется порт шаблона, если он свободен на целевом сервере; при конфликте запрашивается другой.
-
-### Изменения базы данных
-
-Автоматически добавляется одна таблица:
-
-```text
-inbound_templates
-```
-
-Существующие таблицы не перестраиваются и не переписываются.
-
-### Обновление с v4.2.0
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v4.2.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v4.2.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v4.3.0/.env
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.3.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v4.2.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v4.3.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v4.3.0
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=100 bot
-```
-
-## v4.4.0 — Расширенное управление нодами
-
-v4.4.0 дополняет v4.3.0. Логика пользователей, подписок, inbound'ов, мониторинга, резервных копий и бизнес-операций сохранена. Карточка штатной ноды 3x-ui получает действия для повседневного администрирования.
-
-Открой:
-
-```text
-/admin
-→ Infrastructure
-→ Nodes
-→ выбрать ноду
-```
-
-Карточка показывает состояние панели и Xray, версии 3x-ui и Xray, адрес подключения, режим проверки TLS, режим синхронизации inbound'ов, задержку API, процессор, память, время работы, скорость передачи данных, число inbound'ов и клиентов, состояние периодических сигналов доступности и возможность резервного копирования ноды.
-
-### Действия с нодой
-
-```text
-Test / probe
-Inbounds
-Per-node DB backup
-Maintenance mode
-Rename
-Restart Xray
-Update 3x-ui
-Delete node
-```
-
-`Maintenance mode` использует штатное включение и отключение ноды на Master. VPS не выключается: Master прекращает активное управление нодой до её повторного включения.
-
-`Inbounds` показывает только известные Master inbound'ы, назначенные этой ноде; каждая строка ведёт в карточку расширенного управления inbound'ом из v4.3.0.
-
-### Копирование базы отдельной ноды и перезапуск Xray
-
-3x-ui намеренно не возвращает токен синхронизации ноды через API Master. Поэтому операции, которым нужно прямое обращение к удалённой панели, используют уже поддерживаемый отдельный административный токен из `NODE_BACKUP_TARGETS`.
-
-Одно подключение используется для:
-
-```text
-скачивания базы отдельной ноды
-перезапуска удалённого Xray
-```
-
-Если подключение не настроено, кнопки объясняют требование, а не пытаются получить токен небезопасным способом. Ручные снимки нод сохраняются в `BACKUP_DIR/nodes/<node>/`; хранятся пять последних файлов.
-
-Пример с теми же переменными, что и в предыдущих версиях:
-
-```env
-NODE_BACKUP_TARGETS=FI
-NODE_BACKUP_FI_NODE_NAME=Finland
-NODE_BACKUP_FI_PANEL_URL=https://fi-panel.example.com/basepath
-NODE_BACKUP_FI_API_TOKEN=replace_with_dedicated_admin_scope_token
-NODE_BACKUP_FI_VERIFY_TLS=true
-```
-
-После переименования ноды с настроенным резервным копированием обнови соответствующее значение `NODE_BACKUP_*_NODE_NAME` и перезапусти или пересоздай контейнер бота, чтобы прямое подключение соответствовало новому имени.
-
-### Обновление панели
-
-В v4.4.0 `Update 3x-ui` использует штатный метод Master для обновления панелей нод и запускает официальный механизм обновления стабильного канала на выбранной включённой и доступной ноде. Требуется подтверждение, поскольку удалённая панель перезапускается во время обновления.
-
-### Безопасное удаление
-
-Перед окончательным подтверждением удаления бот проверяет наличие inbound'ов, назначенных ноде. Сама 3x-ui также отказывается удалять ноду, пока такие привязки существуют. Удаление ноды из Master не удаляет VPS и не деинсталлирует на нём 3x-ui.
-
-### Изменения базы и окружения
-
-В v4.4.0 миграция SQLite бота и новые переменные `.env` не требуются. Все изменения нод записываются в существующий Audit Log.
-
-### Обновление с v4.3.0
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v4.3.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v4.3.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v4.4.0/.env
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.4.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v4.3.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v4.4.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v4.4.0
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=100 bot
-```
-
-## v4.5.0 — Механизм назначения ресурсов пользователям
-
-v4.5.0 задействует модель уровня управления, введённую в предыдущих версиях:
-
-```text
-Plan
-  -> Server Group
-     -> Master / Nodes
-        -> управляемые Inbounds
-           -> привязки клиентов
-```
-
-Существующая логика пользователей, inbound'ов, нод, подписок, резервных копий и совместимости остаётся доступной. Назначение ресурсов, или provisioning, выполняется явно и дополняет текущие привязки: само назначение Plan или Server Group не удаляет их незаметно.
-
-### Тариф по умолчанию для `/create`
-
-В карточке Plan добавлены действия:
-
-```text
-Preview provisioning
-Set as default /create
-```
-
-Если активный тариф выбран по умолчанию, новые пользователи `/create` получают срок действия, квоту трафика и лимит IP из тарифа. Если у тарифа есть Server Group, новый клиент привязывается только к доступным сейчас inbound'ам этой группы для назначения ресурсов. Недоступные ноды остаются расхождением между желаемым и текущим состоянием; их можно согласовать позднее.
-
-Если действующий тариф по умолчанию не настроен, сохраняется прежний пробный сценарий: `TEST_*`, изменяемые настройки пробного доступа и существующий фильтр всех управляемых inbound'ов.
-
-### Политика inbound'ов группы серверов
-
-У каждой Server Group появился экран `Provisioning inbounds` с двумя режимами:
-
-```text
-ALL managed
-SELECTED
-```
-
-`ALL managed` динамически выбирает все включённые inbound'ы на серверах группы, проходящие существующие фильтры `INBOUND_IDS`, `ALLOWED_PORTS`, `ALLOWED_PROTOCOLS`, исключённых тегов и протоколов.
-
-`SELECTED` хранит явно выбранный набор. При переходе из ALL в SELECTED этот набор заполняется текущими управляемыми inbound'ами группы, чтобы исходное состояние выбора сохранялось. После этого администратор может исключать отдельные inbound'ы.
-
-Автоматически добавляются две таблицы SQLite:
-
-```text
-server_group_provisioning
-server_group_inbounds
-```
-
-Существующие таблицы не перестраиваются.
-
-### Назначение ресурсов отдельному пользователю
-
-Расширенная карточка пользователя показывает расхождения назначения ресурсов и добавляет действия:
-
-```text
-Provisioning
-Safe reconcile
-Strict reconcile
-Plan + Provision
-```
-
-`Safe reconcile` только добавляет недостающие желаемые inbound'ы, доступные сейчас. Существующие привязки никогда не удаляются.
-
-`Strict reconcile` доступен только администратору и требует подтверждения. Он добавляет недостающие inbound'ы и удаляет управляемые привязки, не входящие в желаемую политику. Намеренно оставлять клиента вообще без inbound'ов запрещено.
-
-`Plan + Provision` применяет срок действия, трафик и лимит IP тарифа, а затем выполняет безопасное согласование. Server Group тарифа назначается пользователю.
-
-### Согласование всех пользователей
-
-```text
-/admin
--> Users
--> Reconcile provisioning
-```
-
-Эта операция выполняет безопасное согласование для каждого пользователя локальной базы бота. Ошибка одного пользователя или недоступная нода не останавливают остальных. Запуск записывается в `job_runs` как `provision.reconcile_all`, а действия — в Audit Log.
-
-### Работа с несколькими нодами
-
-Самостоятельные клиентские записи 3x-ui привязываются к ID inbound'ов, которыми управляет Master. Inbound'ы на нодах содержат `nodeId`; механизм назначения сопоставляет участников Server Group (`master`, `node_<id>`) с этими ID. Недоступные и отключённые ноды сохраняются в желаемой политике, но пропускаются при безопасном назначении до следующего согласования.
-
-### Обновление с v4.4.0
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v4.4.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v4.4.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v4.5.0/.env
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.5.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v4.4.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v4.5.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v4.5.0
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=100 bot
-```
-
-Новые переменные `.env` не требуются.
-
-## v4.6.0 — Журналы и уведомления
-
-v4.6.0 добавляет централизованную диагностику, не меняя существующую работу назначения ресурсов, пользователей, inbound'ов, нод, подписок и резервных копий.
-
-### Журналы
-
-```text
-/admin
--> Monitoring
-   -> Logs
-```
-
-Доступные источники на Master:
-
-```text
-Бот
-Панель 3x-ui
-Xray
-AmneziaWG
-Nginx error.log
-Nginx access.log
-Системный журнал через 3x-ui
-```
-
-Просмотр поддерживает 50 или 200 последних записей и фильтры `ALL`, `WARN+`, `ERROR`. Журналы 3x-ui, Xray и AmneziaWG читаются через серверный API 3x-ui с авторизацией. Журналы ноды доступны, если для неё в `NODE_BACKUP_TARGETS` настроен прямой административный токен. Токен синхронизации ноды с Master бот не раскрывает.
-
-Бот также ведёт небольшой локальный журнал с ротацией:
-
-```text
-/app/data/logs/bot.log
-```
-
-Сохраняются три файла по 5 MB. Существующие ограничения Docker `json-file` остаются прежними: три файла по 10 MB.
-
-Журналы nginx доступны только для чтения. Docker Compose подключает:
-
-```text
-${NGINX_LOG_HOST_PATH:-/var/log/nginx} -> /app/log_sources/nginx
-```
-
-Если журналы nginx находятся в другом месте, задай `NGINX_LOG_HOST_PATH` в `.env`. Бот не меняет конфигурацию nginx.
-
-### Уведомления
-
-```text
-/admin
--> Monitoring
-   -> Alerts
-```
-
-При первом запуске добавляются правила по умолчанию:
-
-```text
-Master / 3x-ui недоступен
-Xray не работает
-Нода недоступна
-Фоновое задание завершилось ошибкой
-Использование диска >= 85%
-Полная резервная копия старше 36 часов
-```
-
-Мониторинг запускается примерно каждые пять минут. Уведомления получают `ADMIN_TELEGRAM_IDS` и включённые администраторы из базы с ролями Owner/Admin. Повторы инцидентов объединяются, между оповещениями выдерживаются интервалы, поэтому один сбой не создаёт непрерывный поток сообщений. После устранения ранее сообщённого инцидента отправляется уведомление о восстановлении.
-
-Пороги `Disk` и `Backup stale` можно менять в Telegram с помощью предусмотренных безопасных значений. Отдельные правила можно включать и отключать. Отключённые ноды 3x-ui в режиме обслуживания не вызывают уведомления `Node offline`.
-
-Автоматически добавляются две таблицы SQLite:
-
-```text
-alert_rules
-alert_state
-```
-
-Существующие таблицы не перестраиваются.
-
-### Обновление с v4.5.0
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v4.5.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v4.5.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v4.6.0/.env
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.6.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v4.5.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v4.6.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v4.6.0
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=100 bot
-```
-
-`NGINX_LOG_HOST_PATH` необязателен; без него используется `/var/log/nginx`. Остальные настройки уведомлений v4.6 хранятся в SQLite и меняются через админку.
-
-## v4.7.0 — Аварийное восстановление
-
-v4.7.0 добавляет защищённый сценарий восстановления поверх существующей системы резервного копирования. Работа пользователей, назначения ресурсов, нод, inbound'ов, мониторинга, уведомлений и подписок не изменена.
-
-### Интерфейс восстановления
-
-```text
-/admin
--> System
-   -> Backups
-      -> Restore / DR
-```
-
-Восстановление доступно **только Owner**. Бот показывает локальные полные архивы, их манифест и состав, а также действие `Dry-run / Preflight` для проверки без применения. Проверяются структура gzip/tar и ограничения размера; отклоняются выход за пределы пути, символические ссылки и файлы устройств; разбираются метаданные нод. Для `bot.sqlite3` и `x-ui.db` Master выполняется SQLite `PRAGMA quick_check`.
-
-Поддерживаемые защищённые действия:
-
-```text
-bot.sqlite3       -> автоматическое восстановление при перезапуске контейнера
-Master x-ui.db    -> 3x-ui /panel/api/server/importDB
-База ноды        -> прямой importDB ноды при настроенном NODE_BACKUP_TARGETS
-bot.env           -> только экспорт и скачивание
-nginx/            -> только экспорт и скачивание
-```
-
-Бот намеренно **не применяет автоматически** `.env` и конфигурацию nginx. `bot.env` содержит секреты; перед перезагрузкой nginx конфигурацию нужно проверять командой `nginx -t`.
-
-### Восстановление bot.sqlite3
-
-Для базы бота используется двухэтапное восстановление с учётом перезапуска:
-
-1. Owner выбирает архив и проходит предварительную проверку.
-2. Создаётся аварийный SQLite-снимок текущего состояния.
-3. Выбранная база подготавливается в `data/restore/`.
-4. Owner должен ввести точную фразу `RESTORE BOT`.
-5. Процесс бота завершается; политика Docker `restart: unless-stopped` перезапускает контейнер.
-6. `restore_bootstrap.py` проверяет SHA-256 подготовленного файла и SQLite `quick_check` **до** запуска `bot.py`, создаёт вторую аварийную копию, атомарно заменяет базу и удаляет устаревшие WAL/SHM.
-7. Если восстановление при начальной загрузке не удалось, прежняя база остаётся на месте, а бот запускается. После запуска аварийные владельцы получают результат.
-
-История восстановления также записывается за пределами SQLite бота:
-
-```text
-/app/data/restore/restore-history.jsonl
-```
-
-Поэтому восстановление старой базы не стирает историю аварийного восстановления.
-
-### Восстановление 3x-ui
-
-Базы Master и настроенных нод восстанавливаются через API 3x-ui `importDB` с авторизацией и параметром `keepHostSettings=true`. Перед каждым импортом бот скачивает текущую базу целевого сервера и сохраняет её в:
-
-```text
-data/backups/rescue/
-```
-
-Для Master требуется ввести `RESTORE XUI`. Если `PANEL_API_TOKEN` из архива отличается от действующего токена, интерфейс предупреждает о возможной потере связи по API и требует усиленную фразу `RESTORE XUI FORCE`.
-
-Для восстановления ноды нужны её прямой административный токен в `NODE_BACKUP_TARGETS` и фраза `RESTORE NODE`. Другие ноды и Master не изменяются.
-
-### Обновление с v4.6.0
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v4.6.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v4.6.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v4.7.0/.env
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.7.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v4.6.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v4.7.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v4.7.0
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=100 bot
-```
-
-Новые переменные `.env` не требуются. v4.7 меняет точку входа контейнера только для безопасного применения ожидающего восстановления базы до запуска Telegram-процесса.
-
-## v4.8.0 — Админ-панель в одном сообщении
-
-v4.8.0 меняет только отображение и навигацию Telegram. Бизнес-логика v4.7, операции 3x-ui, назначение ресурсов, мониторинг, резервные копии, восстановление, уведомления, подписки и схема SQLite остаются прежними.
-
-### Одно активное сообщение админки
-
-`/admin` создаёт новое сообщение админ-панели. После этого встроенная навигация редактирует то же сообщение, а не отправляет новое меню при каждом нажатии:
-
-```text
-/admin
-  -> Dashboard
-     -> Infrastructure
-        -> Nodes
-           -> карточка ноды
-              -> Back
-```
-
-В обычном сценарии все эти экраны используют один Telegram `message_id`. Повторная команда `/admin` намеренно создаёт новое сообщение панели.
-
-То же редактирование на месте используется во встроенном пользовательском меню бота. Команды `/start`, `/inbounds`, `/create`, `/subscription` и `/admin` продолжают создавать новые сообщения: свежая команда всегда даёт новую точку входа.
-
-### Формы больше не засоряют чат
-
-Административные FSM-формы запоминают активную панель. Это касается добавления и переименования нод, лимитов пользователей, Plans, Server Groups, Hosts, Payments, Promo Codes, Settings, редактирования inbound'ов, шаблонов и подтверждения аварийного восстановления. Введённый администратором текст удаляется, когда Telegram это разрешает, а исходная панель показывает следующий шаг или результат.
-
-Если активное сообщение нельзя отредактировать, например после необычного перехода между сообщениями Telegram, бот отправляет замену и делает её новой активной панелью.
-
-### Сообщения, которые остаются отдельными
-
-Некоторые результаты являются событиями или файлами, а не навигацией, поэтому по-прежнему приходят отдельными сообщениями Telegram:
-
-- уведомления о проблемах и восстановлении;
-- архивы `.tar.gz` и скачиваемые снимки SQLite;
-- файлы экспорта аварийного восстановления, например `bot.env` и архивы `nginx`;
-- доставка резервных копий по расписанию, если она включена.
-
-### Особенности реализации
-
-`admin_ui.py` содержит общий механизм отрисовки и промежуточный обработчик сессии панели. Экраны встроенных кнопок используют `edit_text()` через общий механизм; ответ Telegram `message is not modified` считается нормальным обновлением.
-
-Сессия существует только внутри процесса и содержит ссылки на чат и сообщение Telegram. Новые таблицы SQLite и переменные `.env` не вводятся.
-
-### Обновление с v4.7.0
-
-Дополнительная настройка сервера не требуется.
-
-```bash
-cd /opt/3xui-bot/3xui-telegram-bot-v4.7.0
-docker compose down
-cp .env .env.backup
-cp data/bot.sqlite3 data/bot.sqlite3.backup
-
-cp /opt/3xui-bot/3xui-telegram-bot-v4.7.0/.env \
-   /opt/3xui-bot/3xui-telegram-bot-v4.8.0/.env
-mkdir -p /opt/3xui-bot/3xui-telegram-bot-v4.8.0/data
-cp -a /opt/3xui-bot/3xui-telegram-bot-v4.7.0/data/. \
-   /opt/3xui-bot/3xui-telegram-bot-v4.8.0/data/.
-
-cd /opt/3xui-bot/3xui-telegram-bot-v4.8.0
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=100 bot
-```
-
-Быстрая проверка интерфейса:
-
-```text
-/admin
--> Infrastructure
--> Nodes
--> Back
--> Monitoring
--> Logs
--> Back
-```
-
-При этой навигации должно изменяться одно и то же сообщение бота. Затем открой любую форму с текстовым вводом, введи значение и проверь, что введённое сообщение исчезло, а сама панель перешла к следующему шагу.
+Старые v2/v3/v4 upgrade-команды из исторических релизов не являются текущей процедурой deployment.
