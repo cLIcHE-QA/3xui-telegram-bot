@@ -141,6 +141,23 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
             'RAM: 50 B / 100 B (50%)',
         )
 
+    def test_admin_shell_routes_have_single_owner(self):
+        shell_source = inspect.getsource(self.shell)
+        bot_source = inspect.getsource(self.bot)
+        self.assertIn('@admin_shell_router.message(Command("admin"))', shell_source)
+        self.assertNotIn('@router.message(Command("admin"))', bot_source)
+        for callback in (
+            'admin:dashboard',
+            'admin:subscriptions',
+            'admin:section:infrastructure',
+            'admin:section:monitoring',
+            'admin:section:system',
+            'admin:infra:inbounds',
+            'admin:home',
+        ):
+            self.assertIn(f'F.data == "{callback}"', shell_source)
+            self.assertNotIn(f'F.data == "{callback}"', bot_source)
+
     def test_client_access_routes_have_single_owner(self):
         client_source = inspect.getsource(self.client)
         bot_source = inspect.getsource(self.bot)
