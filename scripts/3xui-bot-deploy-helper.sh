@@ -167,7 +167,7 @@ notes_cmd() {
     local changelog notes
     changelog="$(git show "$release:CHANGELOG.md" 2>/dev/null)" || die "release_notes_failed"
     notes="$(
-        printf '%s\n' "$changelog" | awk -v heading="## $release" '
+        awk -v heading="## $release" '
             index($0, heading) == 1 {capture=1}
             capture && index($0, "## ") == 1 && index($0, heading) != 1 {exit}
             capture {
@@ -175,7 +175,7 @@ notes_cmd() {
                 count += 1
                 if (count >= 120) exit
             }
-        '
+        ' <<<"$changelog"
     )"
     [[ -n "$notes" ]] || die "release_notes_missing"
     printf '%s\n' "$notes"
