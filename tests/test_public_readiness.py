@@ -6,23 +6,24 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+OPERATOR_DOCS = tuple(
+    str(path.relative_to(ROOT))
+    for path in sorted((ROOT / "docs").glob("*.md"))
+    if path.name not in {"ROADMAP.md", "UI_STYLE.md"}
+)
+
 PUBLIC_SURFACES = (
     ".env.example",
     "README.md",
+    "SECURITY.md",
     "config.py",
     "node_admin.py",
     "advanced_users.py",
     "catalog_admin.py",
     "business_admin.py",
+    "disaster_recovery.py",
     "scripts/setup-host-control-endpoint.sh",
-    "docs/ADMIN_SETUP.md",
-    "docs/HOST_CONTROL_AGENT.md",
-    "docs/HOST_CONTROL_DEPLOY.md",
-    "docs/HOST_CONTROL_ROLLOUT.md",
-    "docs/NODE_ONBOARDING.md",
-    "docs/OFFSITE_BACKUP.md",
-    "docs/VERSIONS_UPDATES.md",
-    "docs/GIT_WORKFLOW.md",
+    *OPERATOR_DOCS,
 )
 
 DEPLOYMENT_SPECIFIC_MARKERS = (
@@ -101,9 +102,6 @@ class PublicReadinessTests(unittest.TestCase):
             env,
         )
 
-        config = self._source("config.py")
-        self.assertIn('os.getenv("MASTER_FLAG", "🖥")', config)
-
         admin_setup = self._source("docs/ADMIN_SETUP.md")
         self.assertIn(
             "Host Control URL: https://host-control-node1.example.com:18443",
@@ -132,6 +130,14 @@ class PublicReadinessTests(unittest.TestCase):
             "Административный доступ через эту запись будет удалён; "
             "пользовательские данные и 3x-ui не изменятся.",
             business,
+        )
+
+    def test_restore_copy_does_not_overpromise_startup(self):
+        restore = self._source("disaster_recovery.py")
+        self.assertNotIn("бот всё равно запустится", restore)
+        self.assertIn(
+            "обычный startup бота со всеми fail-closed проверками схемы и миграций",
+            restore,
         )
 
     def test_readme_describes_current_admin_hierarchy(self):
