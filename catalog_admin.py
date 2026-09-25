@@ -558,7 +558,7 @@ async def plan_preview(call: CallbackQuery):
         lines = [
             f"🚀 Предпросмотр согласования · {plan.name}",
             "",
-            f"Группа серверов: {policy.group.name if policy.group else 'legacy all-managed'}",
+            f"Группа серверов: {policy.group.name if policy.group else 'режим совместимости «все управляемые»'}",
             f"Режим: {inbound_mode_text(policy.inbound_mode)}",
             f"Целевых inbound'ов: {len(policy.desired_inbound_ids)}",
             f"Доступно сейчас: {len(policy.actionable_inbound_ids)}",
@@ -632,7 +632,7 @@ async def server_groups_list(call: CallbackQuery):
     for group in groups[:40]:
         members = await db.list_server_group_members(group.id)
         rows.append([InlineKeyboardButton(
-            text=f"🗂 {group.name} · {len(members)} servers",
+            text=f"🗂 {group.name} · серверов: {len(members)}",
             callback_data=f"admin:servergroup:{group.id}",
         )])
     rows += [
@@ -732,7 +732,7 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
         if key == "master":
             continue
         node = node_by_key.get(key)
-        selected.append(node.name if node else f"{key} (not discovered)")
+        selected.append(node.name if node else f"{key} (не обнаружена)")
 
     lines = [
         f"🗂 {group.name}",
@@ -744,12 +744,12 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
     if selected:
         lines += ["", "Участники:"] + [f"• {name}" for name in selected]
     if nodes_error:
-        lines += ["", f"⚠️ Nodes API: {nodes_error}"]
+        lines += ["", f"⚠️ API нод: {nodes_error}"]
     mode = await db.get_server_group_inbound_mode(group.id)
     selected_inbounds = await db.list_server_group_inbounds(group.id)
     lines += [
         "",
-        f"Inbound policy: {'all managed' if mode == 'all_managed' else f'selected ({len(selected_inbounds)})'}",
+        f"Политика inbound'ов: {inbound_mode_text(mode)}" + (f" ({len(selected_inbounds)})" if mode == "selected" else ""),
         "Изменения применяются к пользователям через безопасное/строгое согласование; автоматически существующих клиентов не перестраиваем.",
     ]
 
