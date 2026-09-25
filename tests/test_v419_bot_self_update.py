@@ -24,7 +24,7 @@ INSTALLER = ROOT / "scripts/install-deploy-agent.sh"
 UNIT = ROOT / "deploy/deploy-agent/3xui-deploy-agent.service"
 SUDOERS = ROOT / "deploy/deploy-agent/3xui-deploy-agent.sudoers"
 COMPOSE = ROOT / "docker-compose.yml"
-BOT = ROOT / "bot.py"
+BOT = ROOT / "app_runtime.py"
 
 
 class RecoveringAgent(DeployAgent):
