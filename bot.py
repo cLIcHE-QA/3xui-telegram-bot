@@ -11,7 +11,6 @@ import aiohttp
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
 
 from backup_manager import BackupManager
@@ -65,6 +64,11 @@ from node_ui import (
     master_detail_keyboard,
     node_detail_keyboard,
 )
+from node_onboarding import (
+    AddNodeStates,
+    parse_node_url as _parse_node_url,
+    node_mutation_payload as _node_mutation_payload,
+)
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -75,13 +79,6 @@ system_backup = SystemBackupService(backup_manager, settings.node_backup_targets
 offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
 offsite_backup = service_from_settings(settings, offsite_restore_manager)
 provisioner = ProvisioningEngine(db, xui, settings)
-
-
-class AddNodeStates(StatesGroup):
-    name = State()
-    url = State()
-    token = State()
-    review = State()
 
 
 def is_allowed(tg_id: int) -> bool:
@@ -96,65 +93,6 @@ def user_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🧪 Создать тестовый доступ", callback_data="create")],
         [InlineKeyboardButton(text="🔗 Моя подписка", callback_data="subscription")],
     ])
-
-def _parse_node_url(raw: str) -> dict[str, object]:
-    value = (raw or "").strip()
-    if not value:
-        raise ValueError("URL пустой")
-    if "://" not in value:
-        value = "https://" + value
-    parsed = urlsplit(value)
-    scheme = parsed.scheme.lower()
-    if scheme not in {"http", "https"}:
-        raise ValueError("схема должна быть http или https")
-    if parsed.username or parsed.password:
-        raise ValueError("логин/пароль в URL не поддерживаются")
-    if not parsed.hostname:
-        raise ValueError("не найден адрес сервера")
-    try:
-        port = parsed.port or (443 if scheme == "https" else 80)
-    except ValueError as exc:
-        raise ValueError("некорректный порт") from exc
-    base_path = parsed.path or "/"
-    if not base_path.startswith("/"):
-        base_path = "/" + base_path
-    # A copied browser URL normally ends in /panel/.  The node API expects
-    # the web base path before that route, because the master appends
-    # /panel/api/... itself.
-    stripped = base_path.rstrip("/")
-    if stripped.lower().endswith("/panel"):
-        stripped = stripped[:-len("/panel")]
-        base_path = stripped or "/"
-    if not base_path.endswith("/"):
-        base_path += "/"
-    return {
-        "scheme": scheme,
-        "address": parsed.hostname,
-        "port": int(port),
-        "basePath": base_path,
-    }
-
-
-def _node_mutation_payload(data: dict[str, object]) -> dict[str, object]:
-    return {
-        "id": 0,
-        "name": str(data["name"]),
-        "remark": "",
-        "scheme": str(data["scheme"]),
-        "address": str(data["address"]),
-        "port": int(data["port"]),
-        "basePath": str(data["basePath"]),
-        "apiToken": str(data["apiToken"]),
-        "clearApiToken": False,
-        "enable": True,
-        "allowPrivateAddress": False,
-        "inboundSyncMode": "all",
-        "inboundTags": [],
-        "outboundTag": "",
-        "pinnedCertSha256": "",
-        "tlsVerifyMode": str(data.get("tlsVerifyMode") or "verify"),
-    }
-
 
 def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeyboardMarkup:
     master_icon = "🟢" if master_online else "🔴"
