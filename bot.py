@@ -63,6 +63,8 @@ from node_ui import (
     add_node_retry_keyboard,
     master_detail_keyboard,
     node_detail_keyboard,
+    nodes_menu as _nodes_menu_view,
+    node_detail_text as _node_detail_text_view,
 )
 from node_onboarding import (
     AddNodeStates,
@@ -95,24 +97,12 @@ def user_menu() -> InlineKeyboardMarkup:
     ])
 
 def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeyboardMarkup:
-    master_icon = "🟢" if master_online else "🔴"
-    rows: list[list[InlineKeyboardButton]] = [
-        [InlineKeyboardButton(
-            text=f"{settings.master_flag} {settings.master_name} · {master_icon} {'Online' if master_online else 'Offline'}",
-            callback_data="admin:master",
-        )]
-    ]
-    for node in nodes[:40]:
-        suffix = " ↳" if node.transitive else ""
-        text = f"{_node_status_icon(node)} {_node_display_name(node.name)}{suffix}"
-        if node.id > 0 and not node.transitive:
-            rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:node:{node.id}")])
-        else:
-            rows.append([InlineKeyboardButton(text=text, callback_data="admin:nodes:noop")])
-    rows.append([InlineKeyboardButton(text="➕ Добавить ноду", callback_data="admin:nodeadd:start")])
-    rows.append([InlineKeyboardButton(text="🔄 Проверить все", callback_data="admin:nodes:refresh")])
-    rows.append([InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    return _nodes_menu_view(
+        nodes,
+        master_online,
+        master_flag=settings.master_flag,
+        master_name=settings.master_name,
+    )
 
 
 async def guard_message(message: Message) -> bool:
@@ -979,48 +969,13 @@ async def admin_backup_full(call: CallbackQuery):
 
 
 def _node_detail_text(node: NodeInfo) -> str:
-    status_icon = _node_status_icon(node)
-    xray_icon = _xray_icon(node)
-    endpoint = f"{node.scheme}://{node.address}:{node.port}{node.base_path}"
-    lines = [
-        f"🌍 {_node_display_name(node.name)}",
-        "",
-        f"{status_icon} Panel: {node.status}",
-        f"{'🟢 Enabled' if node.enable else '🛠 Maintenance / disabled'}",
-        f"Endpoint: {endpoint}",
-        f"{xray_icon} Xray: {node.xray_state}"
-        + (f" {node.xray_version}" if node.xray_version else ""),
-    ]
-    if node.panel_version:
-        lines.append(f"3x-ui: {node.panel_version}")
-    lines.append(f"TLS verify: {node.tls_verify_mode} · inbound sync: {node.inbound_sync_mode}")
-    if node.outbound_tag:
-        lines.append(f"Outbound bridge: {node.outbound_tag}")
-    if node.latency_ms:
-        lines.append(f"Ping API: {node.latency_ms} ms")
-    if node.net_up or node.net_down:
-        lines.append(f"Network: ↑ {human_bytes(node.net_up)}/s · ↓ {human_bytes(node.net_down)}/s")
-    lines += [
-        f"CPU: {node.cpu_pct:.1f}%",
-        f"RAM: {node.mem_pct:.1f}%",
-        f"Uptime: {_duration_text(node.uptime_secs)}",
-        f"Inbound'ов: {node.inbound_count}",
-        f"Клиентов: {node.client_count} · active {node.active_count} · online {node.online_count}",
-        f"Последний heartbeat: {_epoch_text(node.last_heartbeat)}",
-    ]
-    if node.config_dirty:
-        lines.append("🟡 Конфигурация ожидает синхронизации")
-    if node.last_error:
-        lines.append(f"⚠️ Node error: {node.last_error[:240]}")
-    if node.xray_error:
-        lines.append(f"⚠️ Xray error: {node.xray_error[:240]}")
-    lines.append(
-        "💾 Backup БД: "
-        + ("настроен" if system_backup.has_target_for(node.name, getattr(node, "id", None)) else "не настроен")
+    return _node_detail_text_view(
+        node,
+        backup_configured=system_backup.has_target_for(
+            node.name,
+            getattr(node, "id", None),
+        ),
     )
-    if node.transitive:
-        lines.append("ℹ️ Транзитная нода: read-only представление через родительскую ноду.")
-    return "\n".join(lines)
 
 
 @router.callback_query(F.data == "admin:nodes")

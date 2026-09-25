@@ -52,5 +52,63 @@ class NodeUiTests(unittest.TestCase):
         self.assertIn("admin:node:2:readiness", node_callbacks)
 
 
+    def test_nodes_menu_uses_injected_master_identity(self):
+        node = SimpleNamespace(
+            enable=True,
+            status="online",
+            name="Finland",
+            transitive=False,
+            id=2,
+        )
+        markup = node_ui.nodes_menu(
+            [node],
+            True,
+            master_flag="🇫🇮",
+            master_name="Master",
+        )
+        self.assertEqual(markup.inline_keyboard[0][0].text, "🇫🇮 Master · 🟢 Online")
+        self.assertIn("admin:node:2", callback_values(markup))
+        self.assertIn("admin:nodeadd:start", callback_values(markup))
+
+    def test_node_detail_text_uses_injected_backup_state(self):
+        node = SimpleNamespace(
+            enable=True,
+            status="online",
+            xray_state="running",
+            xray_version="25.9.5",
+            scheme="https",
+            address="fi.example.invalid",
+            port=2053,
+            base_path="/base/",
+            name="Finland",
+            panel_version="3.8.5",
+            tls_verify_mode="verify",
+            inbound_sync_mode="all",
+            outbound_tag="",
+            latency_ms=42,
+            net_up=1024,
+            net_down=2048,
+            cpu_pct=12.5,
+            mem_pct=34.5,
+            uptime_secs=90061,
+            inbound_count=3,
+            client_count=4,
+            active_count=3,
+            online_count=2,
+            last_heartbeat=0,
+            config_dirty=False,
+            last_error="",
+            xray_error="",
+            transitive=False,
+        )
+        configured = node_ui.node_detail_text(node, backup_configured=True)
+        missing = node_ui.node_detail_text(node, backup_configured=False)
+        self.assertIn("🌍 🇫🇮 Finland", configured)
+        self.assertIn("🟢 Panel: online", configured)
+        self.assertIn("Network: ↑ 1.0 KB/s · ↓ 2.0 KB/s", configured)
+        self.assertIn("Uptime: 1д 1ч 1м", configured)
+        self.assertIn("💾 Backup БД: настроен", configured)
+        self.assertIn("💾 Backup БД: не настроен", missing)
+
 if __name__ == "__main__":
     unittest.main()
