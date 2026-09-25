@@ -285,13 +285,14 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Зафиксированное состояние:
 
-- `bot.py` остаётся небольшим composition/startup module;
-- domain/admin handlers переносятся в тематические routers;
+- `bot.py` — минимальный executable shim, запускающий `app_runtime.main()`;
+- `app_runtime.py` владеет composition/startup, recovery order, background tasks и lifecycle Telegram polling;
+- domain/admin handlers живут в тематических routers, а client-facing flow имеет отдельный `client_access_router`;
 - orchestration, которая нужна и Telegram UI, и background/recovery paths, живёт в services, а не внутри callback handlers;
-- существующие callback identifiers и внешнее поведение не меняются только ради рефакторинга;
-- перенос выполняется небольшими PR с regression tests, без одновременного переписывания бизнес-логики.
+- существующие callback identifiers и внешнее поведение не менялись только ради рефакторинга;
+- границы закреплены regression/source-inspection tests, включая startup recovery order и single route ownership.
 
-Декомпозиция особенно желательна до v5, чтобы Client Portal не добавлялся в уже перегруженный module и сохранял отдельную authorization/navigation boundary от `/admin`.
+Эта граница освобождает entrypoint от domain UI и позволяет развивать будущий Client Portal отдельно от `/admin`.
 
 ##### Синхронизация README с текущим состоянием
 
