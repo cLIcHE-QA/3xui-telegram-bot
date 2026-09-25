@@ -171,6 +171,97 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         self.assertIn('f"DOWNGRADE {release}"', bot_updates)
         self.assertIn('_DOWNGRADE_PHRASE_RE', bot_updates)
 
+    def test_domain_ui_is_localized(self):
+        users = source("advanced_users.py")
+        catalog = source("catalog_admin.py")
+        business = source("business_admin.py")
+        inbounds = source("inbound_admin.py")
+
+        for needle in (
+            'text="⬅ Пользователи"',
+            'text="💎 Тариф"',
+            'text="🚀 Согласование"',
+            'text="🔄 Сбросить трафик"',
+            '"👥 Пользователи\\n\\n"',
+            '"☑️ Массовые действия с пользователями\\n\\n"',
+        ):
+            self.assertIn(needle, users)
+        for old in (
+            'text="⬅ Users"',
+            'text="💎 Plan"',
+            'text="🚀 Provisioning"',
+            'text="🔄 Reset traffic"',
+            '"👥 Users\\n\\n"',
+            '"☑️ Bulk user actions\\n\\n"',
+        ):
+            self.assertNotIn(old, users)
+
+        for needle in (
+            '"💎 Тарифы\\n\\n"',
+            '"🗂 Группы серверов\\n\\n"',
+            '"🌐 Хосты\\n\\n"',
+            'text="⬅ Тарифы"',
+            'text="⬅ Группы серверов"',
+            'text="⬅ Хосты"',
+            '"Группа серверов: ',
+        ):
+            self.assertIn(needle, catalog)
+        for old in (
+            '"💎 Plans\\n\\n"',
+            '"🗂 Server Groups\\n\\n"',
+            '"🌐 Hosts\\n\\n"',
+            'text="⬅ Plans"',
+            'text="⬅ Server Groups"',
+            'text="⬅ Hosts"',
+        ):
+            self.assertNotIn(old, catalog)
+
+        for needle in (
+            '"💳 Платежи\\n\\n"',
+            '"🎟 Промокоды\\n\\n"',
+            '"👮 Администраторы\\n\\n"',
+            '"🔧 Настройки\\n\\n"',
+            '"pending": "🟡 Ожидает"',
+            '"paid": "🟢 Оплачен"',
+            'text="⬅ Платежи"',
+            'text="⬅ Промокоды"',
+            'text="⬅ Администраторы"',
+        ):
+            self.assertIn(needle, business)
+        for old in (
+            '"💳 Payments\\n\\n"',
+            '"🎟 Promo Codes\\n\\n"',
+            '"👮 Administrators\\n\\n"',
+            '"🔧 Settings\\n\\n"',
+            '"pending": "🟡 Pending"',
+            '"paid": "🟢 Paid"',
+            'text="⬅ Payments"',
+            'text="⬅ Promo Codes"',
+            'text="⬅ Administrators"',
+        ):
+            self.assertNotIn(old, business)
+        for role in ("Read-only", "Support", "Administrator", "Owner"):
+            self.assertIn(role, business)
+
+        for needle in (
+            '"📡 Inbound\'ы"',
+            'text="👥 Клиенты"',
+            'text="✏️ Изменить"',
+            'text="📋 Клонировать"',
+            'text="🧩 Сохранить шаблон"',
+            '"🧩 Шаблоны inbound\'ов\\n\\n"',
+        ):
+            self.assertIn(needle, inbounds)
+        for old in (
+            '"📡 Inbounds"',
+            'text="👥 Clients"',
+            'text="✏️ Edit"',
+            'text="📋 Clone"',
+            'text="🧩 Save template"',
+            '"🧩 Inbound Templates\\n\\n"',
+        ):
+            self.assertNotIn(old, inbounds)
+
     def test_disaster_recovery_ui_is_localized_but_confirmation_contract_is_stable(self):
         text = source("disaster_recovery.py")
         for needle in (
