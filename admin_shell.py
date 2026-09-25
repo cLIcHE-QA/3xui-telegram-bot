@@ -169,7 +169,7 @@ async def admin_dashboard(call: CallbackQuery):
     else:
         lines.append(f"📡 Inbound'ы: {managed_enabled}/{len(managed)} включено")
     if nodes_error:
-        lines.append(f"⚠️ Nodes API: {nodes_error}")
+        lines.append(f"⚠️ API нод: {nodes_error}")
     lines += [
         "",
         "Каталог",
