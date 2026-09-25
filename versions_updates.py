@@ -413,12 +413,36 @@ async def operate(call: CallbackQuery):
         await error_screen(call, exc)
 
 
+@versions_router.callback_query(F.data.regexp(r"^admin:ver:op:[0-9a-f]{16}$"))
+async def operation_view(call: CallbackQuery):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    nonce = (call.data or "").rsplit(":", 1)[-1]
+    await call.answer()
+    try:
+        op = store.by_nonce(nonce)
+        await render_callback(
+            call,
+            operation_text(op),
+            reply_markup=operation_keyboard(op, role, call),
+        )
+    except Exception as exc:
+        await error_screen(call, exc)
+
+
 @versions_router.callback_query(F.data.regexp(r"^admin:ver:unlock:[0-9a-f]{16}$"))
 async def unlock_start(call: CallbackQuery, state: FSMContext):
     ok, _ = await authorize_callback(db, settings, call, minimum="owner")
     if not ok:
         return
     nonce = (call.data or "").rsplit(":", 1)[-1]
+    try:
+        op = store.by_nonce(nonce)
+    except Exception as exc:
+        await call.answer()
+        await error_screen(call, exc)
+        return
     await state.set_state(UnlockStates.phrase)
     await state.update_data(update_nonce=nonce)
     await call.answer()
@@ -427,7 +451,7 @@ async def unlock_start(call: CallbackQuery, state: FSMContext):
         "Сначала вручную убедись, что средство обновления на сервере завершило работу. "
         "Это только снимает локальную блокировку — без повтора и без отката.\n\n"
         f"Введи точно: UNLOCK {nonce}",
-        reply_markup=keyboard([[('✖ Отмена', 'admin:versions')]]),
+        reply_markup=keyboard([[("✖ Отмена", f"admin:ver:op:{op.nonce}")]]),
     )
 
 
@@ -435,10 +459,23 @@ async def unlock_start(call: CallbackQuery, state: FSMContext):
 async def unlock_finish(message: Message, state: FSMContext):
     if not message.from_user:
         return
+    nonce = str((await state.get_data()).get("update_nonce") or "")
     try:
-        nonce = str((await state.get_data()).get("update_nonce") or "")
-        op = await service.acknowledge(nonce, actor=message.from_user.id, phrase=(message.text or "").strip())
+        op = await service.acknowledge(
+            nonce,
+            actor=message.from_user.id,
+            phrase=(message.text or "").strip(),
+        )
         await state.clear()
-        await render_input(message, operation_text(op), reply_markup=back(op.target))
+        await render_input(
+            message,
+            operation_text(op),
+            reply_markup=back(op.target),
+        )
     except Exception as exc:
-        await render_input(message, safe_error(exc), reply_markup=keyboard([[('✖ Отмена', 'admin:versions')]]))
+        cancel_target = f"admin:ver:op:{nonce}" if re.fullmatch(r"[0-9a-f]{16}", nonce) else "admin:versions"
+        await render_input(
+            message,
+            safe_error(exc),
+            reply_markup=keyboard([[("✖ Отмена", cancel_target)]]),
+        )

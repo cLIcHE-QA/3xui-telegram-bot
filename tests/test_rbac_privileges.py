@@ -59,6 +59,7 @@ class RBACPrivilegesTests(unittest.TestCase):
             "admin:fleet:rollout": "admin",
             "admin:versions": "read_only",
             "admin:ver:run:0123456789abcdef": "admin",
+            "admin:ver:op:0123456789abcdef": "read_only",
             "admin:ver:unlock:0123456789abcdef": "owner",
             "admin:botupd": "owner",
             "admin:botupd:choose": "owner",

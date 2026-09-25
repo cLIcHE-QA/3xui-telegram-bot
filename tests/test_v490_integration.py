@@ -250,6 +250,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
                      'admin:ver:run:0123456789abcdef', 'admin:ver:cancel:0123456789abcdef']:
             self.assertEqual(required_role_for_callback(data), 'admin', data)
         self.assertIsNone(required_role_for_callback('admin:ver:target:m:unexpected'))
+        self.assertEqual(required_role_for_callback('admin:ver:op:0123456789abcdef'), 'read_only')
         self.assertEqual(required_role_for_callback('admin:ver:unlock:0123456789abcdef'), 'owner')
         self.assertEqual(required_role_for_callback('admin:hostctl:m'), 'read_only')
         self.assertEqual(required_role_for_callback('admin:hostctl:n2'), 'read_only')

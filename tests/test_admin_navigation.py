@@ -125,6 +125,44 @@ class AdminNavigationTests(unittest.TestCase):
                         missing.append(f"{name}:{node.lineno}:{func_name}")
         self.assertEqual(missing, [])
 
+    def test_parent_flows_for_nested_operational_screens(self):
+        root = Path(__file__).resolve().parents[1]
+
+        bot_updates = (root / "bot_updates.py").read_text(encoding="utf-8")
+        self.assertIn('def _bot_updates_back(*, refresh: bool = False)', bot_updates)
+        self.assertIn('("⬅ Обновления бота", "admin:botupd")', bot_updates)
+        self.assertIn('def _system_back()', bot_updates)
+        self.assertIn('@bot_updates_router.callback_query(F.data == "admin:botupd:history")', bot_updates)
+        history = bot_updates.split(
+            '@bot_updates_router.callback_query(F.data == "admin:botupd:history")',
+            1,
+        )[1]
+        self.assertIn('reply_markup=_bot_updates_back()', history)
+
+        logs = (root / "logs_alerts.py").read_text(encoding="utf-8")
+        self.assertIn(
+            'callback_data=f"admin:logs:node:{node_id}" if node_id is not None else "admin:logs"',
+            logs,
+        )
+
+        host_control = (root / "host_control_ui.py").read_text(encoding="utf-8")
+        self.assertIn('def _parent_back_from_key(key: str)', host_control)
+        self.assertIn('def _control_cancel(key: str)', host_control)
+        self.assertIn('reply_markup=_control_cancel(key)', host_control)
+        self.assertIn('reply_markup=_parent_back_from_key(key)', host_control)
+
+        restore = (root / "disaster_recovery.py").read_text(encoding="utf-8")
+        self.assertIn('def _restore_cancel(backup_id: str)', restore)
+        self.assertIn('reply_markup=_restore_cancel(bid)', restore)
+
+        versions = (root / "versions_updates.py").read_text(encoding="utf-8")
+        self.assertIn(
+            '@versions_router.callback_query(F.data.regexp(r"^admin:ver:op:[0-9a-f]{16}$"))',
+            versions,
+        )
+        self.assertIn('f"admin:ver:op:{op.nonce}"', versions)
+        self.assertIn('f"admin:ver:op:{nonce}"', versions)
+
     def test_user_action_callbacks_are_stable(self):
         enabled = callback_values(admin_navigation.user_admin_keyboard(123, enabled=True))
         disabled = callback_values(admin_navigation.user_admin_keyboard(123, enabled=False))

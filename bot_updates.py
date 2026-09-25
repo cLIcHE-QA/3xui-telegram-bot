@@ -87,11 +87,20 @@ def _keyboard(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
     ])
 
 
-def _back() -> InlineKeyboardMarkup:
-    return _keyboard([
-        [("🔄 Обновить", "admin:botupd")],
-        [("⬅ Система", "admin:section:system")],
-    ])
+def _system_back() -> InlineKeyboardMarkup:
+    return _keyboard([[("⬅ Система", "admin:section:system")]])
+
+
+def _bot_updates_back(*, refresh: bool = False) -> InlineKeyboardMarkup:
+    rows: list[list[tuple[str, str]]] = []
+    if refresh:
+        rows.append([("🔄 Обновить", "admin:botupd")])
+    rows.append([("⬅ Обновления бота", "admin:botupd")])
+    return _keyboard(rows)
+
+
+def _bot_updates_cancel() -> InlineKeyboardMarkup:
+    return _keyboard([[("✖ Отмена", "admin:botupd")]])
 
 
 def _field(pattern: re.Pattern[str], details: str) -> str:
@@ -302,7 +311,7 @@ async def _dispatch(
         await render_callback(
             call,
             "🤖 Обновления бота\n\n🔴 Deploy Agent не настроен.",
-            reply_markup=_back(),
+            reply_markup=_bot_updates_back(),
         )
         return
 
@@ -352,7 +361,7 @@ async def _dispatch(
                 await render_callback(
                     call,
                     f"🤖 Обновления бота\n\n🔴 Deploy Agent отклонил операцию: {exc.code or 'error'}",
-                    reply_markup=_back(),
+                    reply_markup=_bot_updates_back(),
                 )
                 return
 
@@ -382,7 +391,7 @@ async def _dispatch(
                     call,
                     "🤖 Обновления бота\n\n🟡 Ответ на deploy POST потерян, а журнал операции пока недоступен. "
                     "Мутация повторно НЕ отправлялась.",
-                    reply_markup=_back(),
+                    reply_markup=_bot_updates_back(),
                 )
                 return
 
@@ -433,7 +442,7 @@ async def _dispatch(
             call,
             "🤖 Обновления бота\n\n🟡 Локальная ошибка после подготовки операции. "
             "Автоматический повтор развёртывания запрещён.",
-            reply_markup=_back(),
+            reply_markup=_bot_updates_back(),
         )
 
 
@@ -445,7 +454,11 @@ async def _dispatch_message(
 ) -> None:
     client = _client()
     if client is None:
-        await render_input(message, "Deploy Agent не настроен.")
+        await render_input(
+            message,
+            "Deploy Agent не настроен.",
+            reply_markup=_bot_updates_back(),
+        )
         return
 
     operation_id = secrets.token_hex(16)
@@ -482,7 +495,11 @@ async def _dispatch_message(
                     target_type="bot_release", target_id=release,
                     details=failed, success=False,
                 )
-                await render_input(message, f"🔴 Deploy Agent отклонил операцию: {exc.code or 'error'}")
+                await render_input(
+                    message,
+                    f"🔴 Deploy Agent отклонил операцию: {exc.code or 'error'}",
+                    reply_markup=_bot_updates_back(),
+                )
                 return
             try:
                 op = await client.get_operation(operation_id)
@@ -499,6 +516,7 @@ async def _dispatch_message(
                 await render_input(
                     message,
                     "🟡 Ответ на deploy POST потерян; мутация повторно НЕ отправлялась.",
+                    reply_markup=_bot_updates_back(),
                 )
                 return
 
@@ -523,6 +541,7 @@ async def _dispatch_message(
         await render_input(
             message,
             "🟡 Локальная ошибка после подготовки развёртывания. Автоматический повтор запрещён.",
+            reply_markup=_bot_updates_back(),
         )
 
 
@@ -556,7 +575,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
             "🤖 Обновления бота\n\n"
             f"Текущий бот: {APP_VERSION}\n"
             f"🔴 Deploy Agent недоступен: {exc.code or 'error'}",
-            reply_markup=_back(),
+            reply_markup=_system_back(),
         )
         return
 
@@ -611,13 +630,21 @@ async def update_release_input(message: Message, state: FSMContext):
         return
     release = (message.text or "").strip()
     if not RELEASE_RE.fullmatch(release):
-        await render_input(message, "Нужен точный тег релиза вида vX.Y.Z.")
+        await render_input(
+            message,
+            "Нужен точный тег релиза вида vX.Y.Z.",
+            reply_markup=_bot_updates_cancel(),
+        )
         return
 
     client = _client()
     if client is None:
         await state.clear()
-        await render_input(message, "Deploy Agent не настроен.")
+        await render_input(
+            message,
+            "Deploy Agent не настроен.",
+            reply_markup=_bot_updates_back(),
+        )
         return
     try:
         preflight = await client.preflight(release)
@@ -625,6 +652,7 @@ async def update_release_input(message: Message, state: FSMContext):
         await render_input(
             message,
             f"🔴 Релиз отклонён на предварительной проверке: {exc.code or 'error'}.",
+            reply_markup=_bot_updates_cancel(),
         )
         return
 
@@ -665,7 +693,7 @@ async def update_preflight(call: CallbackQuery):
     release = (call.data or "").rsplit(":", 1)[-1]
     client = _client()
     if client is None:
-        await render_callback(call, "Deploy Agent не настроен.", reply_markup=_back())
+        await render_callback(call, "Deploy Agent не настроен.", reply_markup=_bot_updates_back())
         return
     try:
         preflight = await client.preflight(release)
@@ -673,7 +701,7 @@ async def update_preflight(call: CallbackQuery):
         await render_callback(
             call,
             f"🤖 Обновления бота\n\n🔴 Предварительная проверка завершилась ошибкой: {exc.code or 'error'}",
-            reply_markup=_back(),
+            reply_markup=_bot_updates_back(),
         )
         return
 
@@ -713,18 +741,18 @@ async def update_run(call: CallbackQuery):
     release = (call.data or "").rsplit(":", 1)[-1]
     client = _client()
     if client is None:
-        await render_callback(call, "Deploy Agent не настроен.", reply_markup=_back())
+        await render_callback(call, "Deploy Agent не настроен.", reply_markup=_bot_updates_back())
         return
     try:
         preflight = await client.preflight(release)
     except DeployControlError as exc:
-        await render_callback(call, f"Предварительная проверка завершилась ошибкой: {exc.code or 'error'}", reply_markup=_back())
+        await render_callback(call, f"Предварительная проверка завершилась ошибкой: {exc.code or 'error'}", reply_markup=_bot_updates_back())
         return
     if preflight.downgrade:
         await render_callback(
             call,
             "Откат требует отдельного усиленного подтверждения.",
-            reply_markup=_back(),
+            reply_markup=_bot_updates_back(),
         )
         return
     await _dispatch(call, release, allow_downgrade=False)
@@ -764,23 +792,36 @@ async def downgrade_phrase(message: Message, state: FSMContext):
         await render_input(
             message,
             f"Фраза не совпала. Для отката отправь ровно: DOWNGRADE {release}",
+            reply_markup=_bot_updates_cancel(),
         )
         return
 
     client = _client()
     if client is None:
         await state.clear()
-        await render_input(message, "Deploy Agent не настроен.")
+        await render_input(
+            message,
+            "Deploy Agent не настроен.",
+            reply_markup=_bot_updates_back(),
+        )
         return
     try:
         preflight = await client.preflight(release)
     except DeployControlError as exc:
         await state.clear()
-        await render_input(message, f"Предварительная проверка завершилась ошибкой: {exc.code or 'error'}")
+        await render_input(
+            message,
+            f"Предварительная проверка завершилась ошибкой: {exc.code or 'error'}",
+            reply_markup=_bot_updates_back(),
+        )
         return
     if not preflight.downgrade:
         await state.clear()
-        await render_input(message, "Направление больше не является откатом. Открой «Обновления бота» заново.")
+        await render_input(
+            message,
+            "Направление больше не является откатом. Открой «Обновления бота» заново.",
+            reply_markup=_bot_updates_back(),
+        )
         return
 
     await state.clear()
@@ -800,15 +841,15 @@ async def operation_status(call: CallbackQuery):
     operation_id = (call.data or "").rsplit(":", 1)[-1]
     client = _client()
     if client is None:
-        await render_callback(call, "Deploy Agent не настроен.", reply_markup=_back())
+        await render_callback(call, "Deploy Agent не настроен.", reply_markup=_bot_updates_back())
         return
     try:
         op = await client.get_operation(operation_id)
     except DeployControlError as exc:
-        await render_callback(call, f"Не удалось получить операцию: {exc.code or 'error'}", reply_markup=_back())
+        await render_callback(call, f"Не удалось получить операцию: {exc.code or 'error'}", reply_markup=_bot_updates_back())
         return
     if op is None:
-        await render_callback(call, "Операция не найдена.", reply_markup=_back())
+        await render_callback(call, "Операция не найдена.", reply_markup=_bot_updates_back())
         return
     await reconcile_deploy_jobs(wait_seconds=0)
     await render_callback(
@@ -829,12 +870,12 @@ async def update_history(call: CallbackQuery):
     await call.answer()
     client = _client()
     if client is None:
-        await render_callback(call, "Deploy Agent не настроен.", reply_markup=_back())
+        await render_callback(call, "Deploy Agent не настроен.", reply_markup=_bot_updates_back())
         return
     try:
         history = await client.history()
     except DeployControlError as exc:
-        await render_callback(call, f"История недоступна: {exc.code or 'error'}", reply_markup=_back())
+        await render_callback(call, f"История недоступна: {exc.code or 'error'}", reply_markup=_bot_updates_back())
         return
 
     lines = ["🤖 История обновлений бота", ""]
@@ -843,4 +884,4 @@ async def update_history(call: CallbackQuery):
     for op in history[:12]:
         icon = "🟢" if op.state == "success" else "🔴" if op.state == "failed" else "🟡"
         lines.append(f"{icon} {op.release} · {_deploy_state_text(op.state)} · {op.operation_id[:8]}")
-    await render_callback(call, "\n".join(lines), reply_markup=_back())
+    await render_callback(call, "\n".join(lines), reply_markup=_bot_updates_back())
