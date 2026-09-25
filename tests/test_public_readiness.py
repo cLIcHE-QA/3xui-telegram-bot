@@ -92,6 +92,10 @@ class PublicReadinessTests(unittest.TestCase):
         env = self._source(".env.example")
         config = self._source("config.py")
         self.assertIn("MASTER_FLAG=🖥", env)
+        self.assertIn(
+            "Synthetic numeric placeholders for local validation; replace before deployment.",
+            env,
+        )
         self.assertIn('os.getenv("MASTER_FLAG", "🖥")', config)
         self.assertIn("# HOST_CONTROL_TARGETS=MASTER,NODE1", env)
         self.assertIn("# HOST_CONTROL_NODE1_NAME=Edge-1", env)
