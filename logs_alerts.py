@@ -464,13 +464,13 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
     status: dict = {}
     try:
         status = await xui.server_status()
-        await _set_incident(bot, code="master_down", target=settings.master_name, active=False, value="3x-ui API reachable", notify=notify)
-        results.append("✅ Master API")
+        await _set_incident(bot, code="master_down", target=settings.master_name, active=False, value="3x-ui API доступен", notify=notify)
+        results.append("✅ API Master")
     except Exception as exc:
         master_ok = False
         value = f"{type(exc).__name__}: {str(exc)[:240]}"
         await _set_incident(bot, code="master_down", target=settings.master_name, active=True, value=value, notify=notify)
-        results.append("🔴 Master API")
+        results.append("🔴 API Master")
 
     if master_ok:
         xray = status.get("xray") if isinstance(status.get("xray"), dict) else {}
@@ -515,15 +515,15 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
                     except Exception as exc:
                         LOG.warning("Node disk check failed for %s: %s", target, exc)
             else:
-                await _set_incident(bot, code="xray_down", target=target, active=False, value="node offline/disabled", notify=notify)
-                await _set_incident(bot, code="disk_high", target=target, active=False, value="node offline/disabled", notify=notify)
+                await _set_incident(bot, code="xray_down", target=target, active=False, value="нода не в сети/отключена", notify=notify)
+                await _set_incident(bot, code="disk_high", target=target, active=False, value="нода не в сети/отключена", notify=notify)
 
         # Resolve incidents belonging to nodes that were removed from the master.
         for state in await db.list_alert_states(active_only=True):
             if state.target == settings.master_name or state.target in seen_targets:
                 continue
             if state.code in {"node_offline", "xray_down", "disk_high"}:
-                await _set_incident(bot, code=state.code, target=state.target, active=False, value="node no longer registered", notify=notify)
+                await _set_incident(bot, code=state.code, target=state.target, active=False, value="нода больше не зарегистрирована", notify=notify)
 
         results.append(f"✅ Проверено нод: {len(nodes)}")
     except Exception as exc:
