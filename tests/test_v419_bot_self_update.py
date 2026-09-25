@@ -341,6 +341,8 @@ class RecoveryAlertCopyTests(unittest.TestCase):
             "PANEL_URL": "https://panel.example.invalid/base",
             "PANEL_API_TOKEN": "offline-v419-token",
             "SUBSCRIPTION_URL_TEMPLATE": "https://sub.example.invalid/sub/{sub_id}",
+            "ALLOWED_TELEGRAM_IDS": "1",
+            "ADMIN_TELEGRAM_IDS": "1",
         }
         with patch.dict(os.environ, env, clear=False):
             import logs_alerts
