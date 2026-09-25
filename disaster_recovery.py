@@ -141,7 +141,7 @@ async def restore_list(call: CallbackQuery):
     lines = [
         "🧯 Аварийное восстановление",
         "",
-        "Восстановление доступно только Owner. Перед любым destructive restore выполняется preflight и создаётся rescue-копия текущего состояния.",
+        "Восстановление доступно только Owner. Перед любым опасным восстановлением выполняется preflight и создаётся rescue-копия текущего состояния.",
         "",
     ]
     if restore_manager.pending_bot_restore():
