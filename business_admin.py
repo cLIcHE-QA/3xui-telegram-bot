@@ -23,10 +23,10 @@ db = Database(settings.db_path)
 business_router = Router(name="business_admin")
 
 PAYMENT_STATUSES = {
-    "pending": "🟡 Pending",
-    "paid": "🟢 Paid",
-    "refunded": "↩️ Refunded",
-    "cancelled": "⚪ Cancelled",
+    "pending": "🟡 Ожидает",
+    "paid": "🟢 Оплачен",
+    "refunded": "↩️ Возвращён",
+    "cancelled": "⚪ Отменён",
 }
 
 PROMO_TYPES = {
@@ -34,11 +34,23 @@ PROMO_TYPES = {
     "fixed": "Фиксированная сумма",
 }
 
+
+PROMO_STATE_LABELS = {
+    "disabled": "отключён",
+    "expired": "истёк",
+    "limit reached": "лимит использований исчерпан",
+    "active": "активен",
+}
+
+
+def promo_state_text(value: str) -> str:
+    return PROMO_STATE_LABELS.get(value, value)
+
 SAFE_SETTING_SPECS = {
-    "trial_days": ("🗓 Trial days", 1, 3650, "int"),
-    "trial_traffic_gb": ("📦 Trial traffic, GB", 0, 100000, "int"),
-    "trial_ip_limit": ("📱 Trial IP limit", 0, 1000, "int"),
-    "default_currency": ("💱 Default currency", None, None, "currency"),
+    "trial_days": ("🗓 Дней пробного доступа", 1, 3650, "int"),
+    "trial_traffic_gb": ("📦 Трафик пробного доступа, GB", 0, 100000, "int"),
+    "trial_ip_limit": ("📱 Лимит IP пробного доступа", 0, 1000, "int"),
+    "default_currency": ("💱 Валюта по умолчанию", None, None, "currency"),
 }
 
 
