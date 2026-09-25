@@ -11,7 +11,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
-from admin_navigation import admin_menu, confirm_delete_keyboard, confirm_sync_all_keyboard, user_admin_keyboard
+from admin_navigation import confirm_delete_keyboard, confirm_sync_all_keyboard, user_admin_keyboard
 from inbound_policy import is_managed_inbound as inbound_is_managed
 from audit import audit_from_call, audit_from_message
 from config import load_settings
@@ -118,6 +118,12 @@ def choose_inbounds(inbounds):
 def back_user(tg_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
+    ])
+
+
+def users_back() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
     ])
 
 
@@ -942,7 +948,7 @@ async def admin_users(call: CallbackQuery):
     rows.append([InlineKeyboardButton(text="🚀 Согласовать доступ", callback_data="admin:provision:all:ask")])
     rows.append([InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")])
     rows.append([InlineKeyboardButton(text="📊 Статистика пользователей", callback_data="admin:stats")])
-    rows.append([InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")])
+    rows.append([InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")])
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     await render_callback(
         call,
@@ -1031,19 +1037,19 @@ async def admin_sync_all_ask(call: CallbackQuery):
         available = choose_inbounds(await xui.inbound_options())
         target_ids = sorted({i.id for i in available})
     except XUIError as e:
-        await render_callback(call, f"Ошибка 3x-ui: {e}", reply_markup=admin_menu())
+        await render_callback(call, f"Ошибка 3x-ui: {e}", reply_markup=users_back())
         await call.answer()
         return
 
     if not users:
-        await render_callback(call, "В локальной БД нет пользователей.", reply_markup=admin_menu())
+        await render_callback(call, "В локальной БД нет пользователей.", reply_markup=users_back())
         await call.answer()
         return
     if not target_ids:
         await render_callback(call, 
             "После фильтрации в .env нет доступных inbound'ов. "
             "Проверь ALLOWED_PORTS, ALLOWED_PROTOCOLS и INBOUND_IDS.",
-            reply_markup=admin_menu(),
+            reply_markup=users_back(),
         )
         await call.answer()
         return
@@ -1067,7 +1073,7 @@ async def admin_sync_all_run(call: CallbackQuery):
 
     users = await db.list_users()
     if not users:
-        await render_callback(call, "В локальной БД нет пользователей.", reply_markup=admin_menu())
+        await render_callback(call, "В локальной БД нет пользователей.", reply_markup=users_back())
         await call.answer()
         return
 
@@ -1077,7 +1083,7 @@ async def admin_sync_all_run(call: CallbackQuery):
         if not target_ids:
             await render_callback(call, 
                 "Нет разрешённых inbound'ов после фильтрации .env.",
-                reply_markup=admin_menu(),
+                reply_markup=users_back(),
             )
             await call.answer()
             return
@@ -1139,7 +1145,7 @@ async def admin_sync_all_run(call: CallbackQuery):
             if preview:
                 lines += ["", "Первые ошибки:"] + preview
 
-        await render_callback(call, "\n".join(lines), reply_markup=admin_menu())
+        await render_callback(call, "\n".join(lines), reply_markup=users_back())
         await audit_from_call(
             db, call, "users.sync_all", target_type="users", target_id=str(len(users)),
             details=f"inbounds={target_ids}; errors={error_count}; flow={settings.vless_flow or 'unchanged'}",
@@ -1153,7 +1159,7 @@ async def admin_sync_all_run(call: CallbackQuery):
         await render_callback(call, 
             "Не удалось выполнить глобальную синхронизацию.\n\n"
             f"Ошибка 3x-ui: {e}",
-            reply_markup=admin_menu(),
+            reply_markup=users_back(),
         )
 
     await call.answer()
@@ -1170,7 +1176,7 @@ async def admin_stats(call: CallbackQuery):
     await render_callback(call, 
         f"📊 Локальная БД\n\nВсего: {len(users)}\n"
         f"Не истекли: {active}\nИстекают за 3 дня: {soon}",
-        reply_markup=admin_menu()
+        reply_markup=users_back()
     )
     await call.answer()
 
