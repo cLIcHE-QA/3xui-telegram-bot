@@ -279,7 +279,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 ##### Декомпозиция bot.py
 
-Статус: ✅ завершено в cleanup-цикле после `v4.19.1`.
+Статус: 🟡 Реализовано в main.
 
 `bot.py` теперь является минимальным executable entrypoint. Startup/background orchestration вынесена в `app_runtime.py`, client-facing flow — в `client_access.py`, admin shell/navigation — в `admin_shell.py`, а domain handlers распределены по тематическим routers.
 
