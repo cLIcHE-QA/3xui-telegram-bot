@@ -134,7 +134,7 @@ def _operation_text(op: DeployOperation) -> str:
         f"Состояние: {_deploy_state_text(op.state)}",
     ]
     if op.current_release:
-        lines.append(f"Фактический production-релиз: {op.current_release}")
+        lines.append(f"Фактический релиз: {op.current_release}")
     if op.target_sha:
         lines.append(f"Целевой SHA: {op.target_sha[:12]}")
     if op.error_code:
@@ -540,7 +540,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
             "🤖 Обновления бота\n\n"
             f"Текущий бот: {APP_VERSION}\n"
             "Deploy Agent: не настроен\n\n"
-            "Установи restricted Deploy Agent на Master и добавь локальные "
+            "Установи Deploy Agent с ограниченными полномочиями на Master и добавь локальные "
             "DEPLOY_AGENT_URL/DEPLOY_AGENT_TOKEN. Docker socket и Git deploy key "
             "в контейнере бота не требуются.",
             reply_markup=_keyboard([[("⬅ Система", "admin:section:system")]]),
@@ -624,7 +624,7 @@ async def update_release_input(message: Message, state: FSMContext):
     except DeployControlError as exc:
         await render_input(
             message,
-            f"🔴 Релиз/preflight отклонён: {exc.code or 'error'}.",
+            f"🔴 Релиз отклонён на предварительной проверке: {exc.code or 'error'}.",
         )
         return
 
@@ -641,7 +641,7 @@ async def update_release_input(message: Message, state: FSMContext):
         (preflight.notes or "нет примечаний к релизу")[:2400],
         "",
         "Развёртывание разрешено только для опубликованного тега из origin/main.",
-        "Автоматического отката/повтора мутации нет.",
+        "Автоматического отката или повтора изменения нет.",
     ]
     if preflight.downgrade:
         rows = [
@@ -672,7 +672,7 @@ async def update_preflight(call: CallbackQuery):
     except DeployControlError as exc:
         await render_callback(
             call,
-            f"🤖 Обновления бота\n\n🔴 Preflight завершился ошибкой: {exc.code or 'error'}",
+            f"🤖 Обновления бота\n\n🔴 Предварительная проверка завершилась ошибкой: {exc.code or 'error'}",
             reply_markup=_back(),
         )
         return
@@ -689,7 +689,7 @@ async def update_preflight(call: CallbackQuery):
         (preflight.notes or "нет примечаний к релизу")[:2400],
         "",
         "Развёртывание выполняется только через опубликованный тег и существующий deploy-release.sh.",
-        "Автоматического отката/повтора мутации нет.",
+        "Автоматического отката или повтора изменения нет.",
     ]
     if preflight.downgrade:
         rows = [
@@ -718,7 +718,7 @@ async def update_run(call: CallbackQuery):
     try:
         preflight = await client.preflight(release)
     except DeployControlError as exc:
-        await render_callback(call, f"Preflight завершился ошибкой: {exc.code or 'error'}", reply_markup=_back())
+        await render_callback(call, f"Предварительная проверка завершилась ошибкой: {exc.code or 'error'}", reply_markup=_back())
         return
     if preflight.downgrade:
         await render_callback(
@@ -776,7 +776,7 @@ async def downgrade_phrase(message: Message, state: FSMContext):
         preflight = await client.preflight(release)
     except DeployControlError as exc:
         await state.clear()
-        await render_input(message, f"Preflight завершился ошибкой: {exc.code or 'error'}")
+        await render_input(message, f"Предварительная проверка завершилась ошибкой: {exc.code or 'error'}")
         return
     if not preflight.downgrade:
         await state.clear()
