@@ -103,7 +103,7 @@ class OperationStore:
 
     def _path(self, key: str) -> Path:
         if not _TARGET.fullmatch(key):
-            raise UpdateError("Invalid update target.")
+            raise UpdateError("Некорректная цель обновления.")
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         return self.root / f"target-{key}.json"
 
@@ -115,7 +115,7 @@ class OperationStore:
             try:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as exc:
-                raise UpdateError("An operation on this target is already running.") from exc
+                raise UpdateError("Для этой цели уже выполняется операция.") from exc
             yield
         finally:
             os.close(fd)
@@ -130,16 +130,16 @@ class OperationStore:
                 raise ValueError("invalid operation identity")
             return op
         except (ValueError, TypeError) as exc:
-            raise UpdateError("Update journal is invalid; manual inspection required.") from exc
+            raise UpdateError("Журнал обновления повреждён; требуется ручная проверка.") from exc
 
     def by_nonce(self, nonce: str) -> Operation:
         if not _NONCE.fullmatch(nonce):
-            raise UpdateError("Invalid confirmation.")
+            raise UpdateError("Некорректное подтверждение.")
         for path in self.root.glob("target-*.json"):
             op = self.get(path.stem.removeprefix("target-"))
             if op and op.nonce == nonce:
                 return op
-        raise UpdateError("Confirmation expired or replaced. Start again.")
+        raise UpdateError("Подтверждение истекло или было заменено. Начни заново.")
 
     def save(self, op: Operation) -> None:
         path = self._path(op.target)
@@ -185,7 +185,7 @@ class UpdateService:
 
     async def _authorize(self, actor: int, minimum: str = "admin") -> None:
         if not await self.authorize(actor, minimum):
-            raise UpdateError(f"Permission denied; {minimum} role required.")
+            raise UpdateError(f"Недостаточно прав; требуется роль {minimum}.")
 
     async def _check_version(
         self,
@@ -197,23 +197,23 @@ class UpdateService:
         allow_prepared_maintenance: bool = False,
     ) -> None:
         if not target.eligible and not allow_prepared_maintenance:
-            raise UpdateError("Node must be enabled and online before an update.")
+            raise UpdateError("Перед обновлением нода должна быть включена и находиться в сети.")
         if component == "xray":
             if not valid_version(current):
-                raise UpdateError("Current Xray version is unknown; update blocked.")
+                raise UpdateError("Текущая версия Xray неизвестна; обновление заблокировано.")
             if not valid_version(desired) or desired not in await target.client.get_xray_versions():
-                raise UpdateError("Selected Xray version is no longer available.")
+                raise UpdateError("Выбранная версия Xray больше недоступна.")
         elif component == "panel":
             if not same_version(desired, await self.stable(target)):
-                raise UpdateError("Latest stable release changed. Review a fresh confirmation.")
+                raise UpdateError("Последний стабильный релиз изменился. Проверь новое подтверждение.")
             if version_order(current) and version_order(desired) < version_order(current):
-                raise UpdateError("Panel downgrade is not supported by this workflow.")
+                raise UpdateError("Этот сценарий не поддерживает откат панели.")
         else:
-            raise UpdateError("Unsupported update component.")
+            raise UpdateError("Неподдерживаемый компонент обновления.")
         if not current:
-            raise UpdateError("Current version is unknown; update blocked.")
+            raise UpdateError("Текущая версия неизвестна; обновление заблокировано.")
         if same_version(current, desired):
-            raise UpdateError("The selected version is already installed.")
+            raise UpdateError("Выбранная версия уже установлена.")
 
     async def prepare(
         self, key: str, component: str, desired: str, *, actor: int, chat: int, message: int,
@@ -225,7 +225,7 @@ class UpdateService:
                 previous_op.state in UNCERTAIN_STATES
                 or (previous_op.state in {"prepared", "preparing", "checking"} and previous_op.expires > time.time())
             ):
-                raise UpdateError("There is a pending operation. Check or cancel it first.")
+                raise UpdateError("Есть незавершённая операция. Сначала проверь или отмени её.")
             target = await self.resolve(key)
             state = await self.snapshot(target)
             if component == "panel":
@@ -242,7 +242,7 @@ class UpdateService:
                 receipt = await self.backup(target, op.nonce)
                 if (not Path(receipt.path).is_file()
                         or await asyncio.to_thread(file_hash, receipt.path) != receipt.sha256):
-                    raise UpdateError("Fresh backup could not be verified.")
+                    raise UpdateError("Не удалось проверить свежую резервную копию.")
                 op.backup, op.backup_sha256 = receipt.path, receipt.sha256
                 op.expires = time.time() + self.confirmation_seconds
                 op.state = "prepared"
@@ -258,7 +258,7 @@ class UpdateService:
 
     def _bound(self, op: Operation, actor: int, chat: int, message: int) -> None:
         if (op.actor, op.chat, op.message) != (actor, chat, message):
-            raise UpdateError("This confirmation belongs to a different admin session.")
+            raise UpdateError("Это подтверждение относится к другой сессии администратора.")
 
     async def rebind(self, nonce: str, *, actor: int, chat: int, old_message: int, new_message: int) -> None:
         op = self.store.by_nonce(nonce)
@@ -266,7 +266,7 @@ class UpdateService:
             op = self.store.by_nonce(nonce)
             self._bound(op, actor, chat, old_message)
             if op.state != "prepared":
-                raise UpdateError("Confirmation is no longer active.")
+                raise UpdateError("Подтверждение больше не активно.")
             op.message = new_message
             self.store.save(op)
 
@@ -276,9 +276,9 @@ class UpdateService:
         with self.store.lock(op.target):
             op = self.store.by_nonce(nonce)
             if (op.actor, op.chat) != (actor, chat):
-                raise UpdateError("This pending operation belongs to another admin session.")
+                raise UpdateError("Эта незавершённая операция относится к другой сессии администратора.")
             if op.state != "prepared":
-                raise UpdateError("An already dispatched update cannot be cancelled.")
+                raise UpdateError("Уже отправленное обновление нельзя отменить.")
             op.state = "cancelled"
             self.store.save(op)
             await self.record(op, "cancelled")
@@ -290,7 +290,7 @@ class UpdateService:
             if str(status.get("runId") or "") != op.upstream_run_id:
                 return False  # Never accept an older run's result.
             if status.get("state") == "failed":
-                op.state, op.error = "failed", "The panel updater reported failure for this run."
+                op.state, op.error = "failed", "Средство обновления панели сообщило об ошибке этой операции."
                 self.store.save(op)
                 return True
             if status.get("state") != "success":
@@ -318,7 +318,7 @@ class UpdateService:
         except TimeoutError:
             pass
         op.state = "unconfirmed"
-        op.error = "Outcome not verified. No retry was sent. Check status before any new update."
+        op.error = "Результат не подтверждён. Повторный запрос не отправлялся. Проверь статус перед новым обновлением."
         self.store.save(op)
 
     async def execute(
@@ -336,22 +336,22 @@ class UpdateService:
             op = self.store.by_nonce(nonce)
             self._bound(op, actor, chat, message)
             if op.state != "prepared":
-                raise UpdateError("Confirmation already used. No second request was sent.")
+                raise UpdateError("Подтверждение уже использовано. Второй запрос не отправлялся.")
             if time.time() >= op.expires:
                 op.state = "expired"
                 self.store.save(op)
-                raise UpdateError("Backup/confirmation expired. Create a fresh backup.")
+                raise UpdateError("Резервная копия или подтверждение устарели. Создай свежую резервную копию.")
             op.state = "checking"
             self.store.save(op)
             dispatched = False
             try:
                 target = await self.resolve(op.target)
                 if target.fingerprint != op.fingerprint:
-                    raise UpdateError("Target connection changed. Start again.")
+                    raise UpdateError("Подключение к цели изменилось. Начни заново.")
                 state = await self.snapshot(target)
                 current = state.panel if op.component == "panel" else state.xray
                 if not same_version(current, op.previous):
-                    raise UpdateError("Installed version changed since preflight. Start again.")
+                    raise UpdateError("Установленная версия изменилась после предварительной проверки. Начни заново.")
                 await self._check_version(
                     target,
                     op.component,
@@ -360,7 +360,7 @@ class UpdateService:
                     allow_prepared_maintenance=allow_prepared_maintenance,
                 )
                 if await asyncio.to_thread(file_hash, op.backup) != op.backup_sha256:
-                    raise UpdateError("Backup checksum changed. Update blocked.")
+                    raise UpdateError("Контрольная сумма резервной копии изменилась. Обновление заблокировано.")
                 await self._authorize(actor)  # Role may have been revoked during preflight.
                 op.started = time.time()
                 await self.record(op, "started")  # Abort if audit/job recording is unavailable.
@@ -382,7 +382,7 @@ class UpdateService:
                 await self._verify(op, target)
             except asyncio.CancelledError:
                 op.state = "unconfirmed" if dispatched else "failed"
-                op.error = "Local process stopped; verify the remote target before retrying."
+                op.error = "Локальный процесс остановился; перед повторной попыткой проверь удалённую цель."
                 self.store.save(op)
                 raise
             except Exception as exc:
@@ -403,7 +403,7 @@ class UpdateService:
                 return op
             target = await self.resolve(op.target)
             if target.fingerprint != op.fingerprint:
-                raise UpdateError("Target connection changed; manual verification required.")
+                raise UpdateError("Подключение к цели изменилось; требуется ручная проверка.")
             try:
                 await self._observe(op, target)
             except (VersionAPIError, OSError, TimeoutError):
@@ -417,15 +417,15 @@ class UpdateService:
     async def acknowledge(self, nonce: str, *, actor: int, phrase: str) -> Operation:
         await self._authorize(actor, "owner")
         if phrase != f"UNLOCK {nonce}":
-            raise UpdateError("Exact Owner acknowledgement phrase required.")
+            raise UpdateError("Требуется точная фраза подтверждения Owner.")
         op = self.store.by_nonce(nonce)
         with self.store.lock(op.target):
             op = self.store.by_nonce(nonce)
             if op.state not in UNCERTAIN_STATES:
-                raise UpdateError("This operation does not need manual acknowledgement.")
+                raise UpdateError("Этой операции не требуется ручное подтверждение результата.")
             op.state = "acknowledged"
             op.acknowledged_by = actor
-            op.error = f"Owner {actor} acknowledged an unverified outcome after manual inspection."
+            op.error = f"Owner {actor} подтвердил непроверенный результат после ручной проверки."
             self.store.save(op)
             await self.record(op, "acknowledged")
             return op
