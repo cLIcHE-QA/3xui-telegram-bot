@@ -25,10 +25,10 @@ class V492UITests(unittest.TestCase):
         })
         cls.env.start()
 
-        import bot
+        import admin_shell
         import inbound_admin
 
-        cls.bot = bot
+        cls.shell = admin_shell
         cls.inbound = inbound_admin
 
     @classmethod
@@ -43,7 +43,7 @@ class V492UITests(unittest.TestCase):
     def test_system_section_shows_single_source_app_version(self):
         from version import APP_VERSION
 
-        text = self.bot.system_section_text()
+        text = self.shell.system_section_text()
         self.assertIn(f"🤖 Bot: v{APP_VERSION}", text)
 
     def test_fingerprint_callbacks_require_admin_role(self):

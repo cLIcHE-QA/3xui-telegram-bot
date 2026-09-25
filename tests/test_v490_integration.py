@@ -28,14 +28,20 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         })
         cls.env.start()
         import bot
+        import admin_navigation
+        import admin_shell
         import client_access
         import advanced_users
+        import node_ui
         import system_admin
         import storage_admin
         import versions_updates
         cls.bot = bot
+        cls.nav = admin_navigation
+        cls.shell = admin_shell
         cls.client = client_access
         cls.users = advanced_users
+        cls.node_ui = node_ui
         cls.system = system_admin
         cls.storage = storage_admin
         cls.updates = versions_updates
@@ -49,15 +55,15 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         return [button.callback_data for row in markup.inline_keyboard for button in row]
 
     def test_navigation_shortcuts(self):
-        self.assertIn('admin:versions', self.callback_values(self.bot.system_menu()))
-        self.assertIn('admin:botupd', self.callback_values(self.bot.system_menu()))
-        self.assertIn('admin:versions', self.callback_values(self.bot.infrastructure_menu()))
-        self.assertIn('admin:hostctl:m', self.callback_values(self.bot.master_detail_keyboard()))
-        self.assertIn('admin:ver:panel:m', self.callback_values(self.bot.master_detail_keyboard()))
-        self.assertIn('admin:ver:xray:m:0', self.callback_values(self.bot.master_detail_keyboard()))
-        self.assertIn('admin:hostctl:n2', self.callback_values(self.bot.node_detail_keyboard(2)))
-        self.assertIn('admin:ver:panel:n2', self.callback_values(self.bot.node_detail_keyboard(2)))
-        self.assertIn('admin:ver:xray:n2:0', self.callback_values(self.bot.node_detail_keyboard(2)))
+        self.assertIn('admin:versions', self.callback_values(self.nav.system_menu()))
+        self.assertIn('admin:botupd', self.callback_values(self.nav.system_menu()))
+        self.assertIn('admin:versions', self.callback_values(self.nav.infrastructure_menu()))
+        self.assertIn('admin:hostctl:m', self.callback_values(self.node_ui.master_detail_keyboard()))
+        self.assertIn('admin:ver:panel:m', self.callback_values(self.node_ui.master_detail_keyboard()))
+        self.assertIn('admin:ver:xray:m:0', self.callback_values(self.node_ui.master_detail_keyboard()))
+        self.assertIn('admin:hostctl:n2', self.callback_values(self.node_ui.node_detail_keyboard(2)))
+        self.assertIn('admin:ver:panel:n2', self.callback_values(self.node_ui.node_detail_keyboard(2)))
+        self.assertIn('admin:ver:xray:n2:0', self.callback_values(self.node_ui.node_detail_keyboard(2)))
 
     def test_versions_navigation_labels_are_consistent(self):
         home = self.updates.keyboard([[('⬅ System', 'admin:section:system')]])
@@ -71,7 +77,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
         root = Path(__file__).resolve().parents[1]
         files = [
-            'bot.py', 'client_access.py', 'node_admin.py', 'system_admin.py', 'storage_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
+            'bot.py', 'admin_shell.py', 'client_access.py', 'node_admin.py', 'system_admin.py', 'storage_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
             'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
             'fleet_operations.py',
@@ -134,6 +140,23 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
             self.system.usage_line('RAM', 50, 100),
             'RAM: 50 B / 100 B (50%)',
         )
+
+    def test_admin_shell_routes_have_single_owner(self):
+        shell_source = inspect.getsource(self.shell)
+        bot_source = inspect.getsource(self.bot)
+        self.assertIn('@admin_shell_router.message(Command("admin"))', shell_source)
+        self.assertNotIn('@router.message(Command("admin"))', bot_source)
+        for callback in (
+            'admin:dashboard',
+            'admin:subscriptions',
+            'admin:section:infrastructure',
+            'admin:section:monitoring',
+            'admin:section:system',
+            'admin:infra:inbounds',
+            'admin:home',
+        ):
+            self.assertIn(f'F.data == "{callback}"', shell_source)
+            self.assertNotIn(f'F.data == "{callback}"', bot_source)
 
     def test_client_access_routes_have_single_owner(self):
         client_source = inspect.getsource(self.client)
@@ -204,9 +227,9 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
     def test_real_xui_client_has_version_api(self):
         from version_api import VersionAPIMixin
-        self.assertIsInstance(self.bot.xui, VersionAPIMixin)
-        self.assertTrue(callable(self.bot.xui.install_xray))
-        self.assertTrue(callable(self.bot.xui.get_panel_update_info))
+        self.assertIsInstance(self.shell.xui, VersionAPIMixin)
+        self.assertTrue(callable(self.shell.xui.install_xray))
+        self.assertTrue(callable(self.shell.xui.get_panel_update_info))
 
     def test_callback_permissions_are_explicit_and_fail_closed(self):
         from admin_auth import required_role_for_callback
@@ -262,6 +285,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('direct_client_for(', source)
 
     def test_router_registered_and_master_shows_panel_version(self):
+        self.assertIn('dp.include_router(admin_shell_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(client_access_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(node_admin_router)', inspect.getsource(self.bot.main))
@@ -269,8 +293,8 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('dp.include_router(storage_admin_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(fleet_router)', inspect.getsource(self.bot.main))
-        self.assertIn('get_panel_update_info', inspect.getsource(self.bot.admin_master_detail))
-        self.assertIn('3x-ui:', inspect.getsource(self.bot.admin_master_detail))
+        self.assertIn('get_panel_update_info', inspect.getsource(self.system.admin_master_detail))
+        self.assertIn('3x-ui:', inspect.getsource(self.system.admin_master_detail))
 
     def test_single_source_for_runtime_version(self):
         from version import APP_VERSION
