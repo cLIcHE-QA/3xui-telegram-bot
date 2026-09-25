@@ -57,6 +57,12 @@ def _restore_back(backup_id: str | None = None) -> InlineKeyboardMarkup:
     ])
 
 
+def _restore_cancel(backup_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:restore:cancel:{backup_id}")
+    ]])
+
+
 def _backup_by_id(backup_id: str) -> Path:
     return restore_manager.find_backup(backup_id)
 
@@ -237,9 +243,7 @@ async def _start_confirmation(
         warning
         + "\n\nЭто опасная операция. Для второго подтверждения отправь отдельным сообщением точно:\n\n"
         + phrase,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:restore:cancel:{backup_id}")
-        ]]),
+        reply_markup=_restore_cancel(backup_id),
     )
 
 
@@ -365,18 +369,26 @@ async def _exit_for_bot_restore() -> None:
 async def restore_confirm_message(message: Message, state: FSMContext):
     if not message.from_user:
         return
+    state_data = await state.get_data()
+    bid = str(state_data.get("backup_id") or "")
     ok, _ = await authorize_message(db, settings, message.from_user.id, minimum="owner")
     if not ok:
         await state.clear()
-        await render_input(message, "Недостаточно прав.")
+        await render_input(
+            message,
+            "Недостаточно прав.",
+            reply_markup=_restore_back(bid or None),
+        )
         return
-    state_data = await state.get_data()
     phrase = str(state_data.get("phrase") or "")
     if (message.text or "").strip() != phrase:
-        await render_input(message, f"Фраза не совпала. Восстановление не выполнено. Для подтверждения отправь точно: {phrase}")
+        await render_input(
+            message,
+            f"Фраза не совпала. Восстановление не выполнено. Для подтверждения отправь точно: {phrase}",
+            reply_markup=_restore_cancel(bid),
+        )
         return
     action = str(state_data.get("restore_action") or "")
-    bid = str(state_data.get("backup_id") or "")
     node_index = state_data.get("node_index")
     await state.clear()
 
@@ -428,9 +440,11 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 db, message, "restore.xui", target_type="backup", target_id=path.name,
                 details=f"keepHostSettings=true; rescue={rescue.name}",
             )
-            await render_input(message, 
+            await render_input(
+                message,
                 "✅ БД Master x-ui импортирована. 3x-ui перезапускает панель/Xray.\n\n"
-                "Проверь через 5–10 секунд «Мониторинг → Состояние системы». Если API token из резервной копии отличался, возможно потребуется вернуть соответствующий PANEL_API_TOKEN в .env."
+                "Проверь через 5–10 секунд «Мониторинг → Состояние системы». Если API token из резервной копии отличался, возможно потребуется вернуть соответствующий PANEL_API_TOKEN в .env.",
+                reply_markup=_restore_back(bid),
             )
             return
 
@@ -465,10 +479,12 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 db, message, "restore.node", target_type="node", target_id=node.name,
                 details=f"backup={path.name}; keepHostSettings=true; rescue={rescue.name}",
             )
-            await render_input(message, 
+            await render_input(
+                message,
                 f"✅ БД ноды {node.name} импортирована. Нода перезапускает панель/Xray.\n"
                 "Через несколько секунд открой «Инфраструктура → Ноды» и выполни проверку. "
-                "Если резервная копия содержала другой admin/API token, обнови соответствующий NODE_BACKUP_*_API_TOKEN в .env."
+                "Если резервная копия содержала другой admin/API token, обнови соответствующий NODE_BACKUP_*_API_TOKEN в .env.",
+                reply_markup=_restore_back(bid),
             )
             return
 
