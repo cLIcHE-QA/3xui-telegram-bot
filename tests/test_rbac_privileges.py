@@ -79,6 +79,7 @@ class RBACPrivilegesTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         files = (
             "bot.py",
+            "node_admin.py",
             "advanced_nodes.py",
             "advanced_users.py",
             "inbound_admin.py",
