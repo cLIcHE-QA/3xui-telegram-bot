@@ -252,6 +252,9 @@ class DeployAgentSecurityContractTests(unittest.TestCase):
         self.assertIn('SSH_KEY="/etc/3xui-deploy-agent/deploy-key"', text)
         self.assertIn('SSH_KNOWN_HOSTS="/etc/3xui-deploy-agent/known_hosts"', text)
         self.assertIn('git show "$release:CHANGELOG.md"', text)
+        notes_block = text[text.index("notes_cmd() {"):text.index("deploy_cmd() {")]
+        self.assertIn("' <<<\"$changelog\"", notes_block)
+        self.assertNotIn("printf '%s\\n' \"$changelog\" | awk", notes_block)
         self.assertIn('DOCKER_CONFIG="/var/lib/3xui-deploy-agent/docker-config"', text)
         self.assertNotIn("scripts/render-release-notes.py", text)
 

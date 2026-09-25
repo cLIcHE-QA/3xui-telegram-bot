@@ -34,7 +34,7 @@ from urllib.parse import urlsplit
 
 
 SCHEMA_VERSION = 1
-AGENT_VERSION = "0.1.1"
+AGENT_VERSION = "0.1.2"
 AGENT_NAME = "3xui-deploy-agent"
 SUDO = "/usr/bin/sudo"
 HELPER = "/usr/local/libexec/3xui-bot-deploy"
