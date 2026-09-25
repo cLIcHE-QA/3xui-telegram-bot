@@ -420,7 +420,7 @@ DEPLOY_AGENT_URL=http://172.19.0.1:18184
 DEPLOY_AGENT_TOKEN=<dedicated-agent-token>
 ~~~
 
-После изменения `.env` validate Compose и recreate только bot service. Затем `/admin → System → Bot Updates` должен показывать текущий production release и latest published release.
+После изменения `.env` validate Compose и recreate только bot service. Затем `/admin → Система → Обновления бота` должен показывать текущий production release и latest published release.
 
 Полный security/recovery/install contract: [Safe Bot Self-Update](BOT_SELF_UPDATE.md).
 
