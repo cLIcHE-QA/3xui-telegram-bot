@@ -23,6 +23,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text="⬅ Система"',
             '"успешно"',
             '"выполняется"',
+            '"ℹ️ Это накопительные счётчики 3x-ui с момента последнего сброса, не «трафик за сегодня»."',
         ):
             self.assertIn(needle, text)
         for old in (
@@ -32,6 +33,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             '"🧾 Audit Log"',
             'text="⬅ Monitoring"',
             'text="⬅ System"',
+            "последнего reset",
         ):
             self.assertNotIn(old, text)
 
@@ -313,7 +315,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'f"Политика inbound\'ов: {inbound_mode_text(mode)}"',
         ):
             self.assertIn(needle, catalog)
-        for old in (" servers", "(not discovered)", "Nodes API:", "Inbound policy:"):
+        for old in (" servers", "(not discovered)", "Nodes API:", "Inbound policy:", "managed inbound'ы"):
             self.assertNotIn(old, catalog)
 
         for needle in (
@@ -382,6 +384,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             '"Для выбранных серверов нет подходящих inbound\'ов согласования."',
             '"Недоступные ноды будут пропущены до следующего согласования."',
             '"Строгое согласование оставило бы клиента без inbound\'ов"',
+            'f"Нода #{inbound.node_id}"',
         ):
             self.assertIn(needle, provisioning)
         for machine_value in ('"legacy-all-managed"', '"all_managed"', '"selected"'):
@@ -394,6 +397,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "provisioning inbound'ов",
             "следующего reconcile",
             "Strict reconcile",
+            'f"Node #{inbound.node_id}"',
         ):
             self.assertNotIn(old, provisioning)
 
