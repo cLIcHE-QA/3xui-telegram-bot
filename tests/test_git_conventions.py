@@ -22,6 +22,29 @@ class GitConventionTests(unittest.TestCase):
         ]:
             self.assertIn(needle, doc)
 
+    def test_readme_is_current_state_map_not_release_history(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+        for needle in [
+            "## Текущий production path",
+            "docs/ADMIN_SETUP.md",
+            "docs/RELEASES.md",
+            "docs/VPS_RECOVERY.md",
+            "docs/OFFSITE_BACKUP.md",
+            "## Subscription Compatibility Proxy",
+            "COMPAT_SUBSCRIPTION_URL_TEMPLATE",
+            "127.0.0.1:18080 -> container:8080",
+            "CHANGELOG.md",
+            "app_runtime.py",
+            "client_access.py",
+            "admin_shell.py",
+        ]:
+            self.assertIn(needle, readme)
+
+        self.assertNotRegex(readme, r"(?m)^## v\d")
+        self.assertNotRegex(readme, r"deploy-release\.sh v4\.\d")
+        self.assertIn("./scripts/deploy-release.sh vX.Y.Z", readme)
+
     def test_pr_template_contains_required_sections(self):
         template = (ROOT / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
         for needle in [
