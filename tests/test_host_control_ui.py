@@ -52,7 +52,7 @@ class FakePanelClient:
 
 class HostControlStartupRecoveryContractTests(unittest.TestCase):
     def test_startup_runs_control_recovery_before_generic_stale_cleanup(self):
-        source = (Path(__file__).resolve().parents[1] / "bot.py").read_text(encoding="utf-8")
+        source = (Path(__file__).resolve().parents[1] / "app_runtime.py").read_text(encoding="utf-8")
         import_at = source.index(
             "from host_control_ui import host_control_router, recover_control_jobs"
         )
