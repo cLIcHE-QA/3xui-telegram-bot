@@ -33,6 +33,16 @@ class EditUserStates(StatesGroup):
     note = State()
 
 
+RECONCILE_LABELS = {
+    "safe": "Безопасное согласование",
+    "strict": "Строгое согласование",
+}
+
+
+def reconcile_text(mode: str) -> str:
+    return RECONCILE_LABELS.get(mode, mode)
+
+
 class BulkUserStates(StatesGroup):
     selecting = State()
 
@@ -117,11 +127,11 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
     rec = await db.get(tg_id)
     if not rec:
         return "Пользователь не найден.", InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅ Users", callback_data="admin:users")]
+            [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")]
         ])
 
     plan_name, group_name, note = await _profile_labels(tg_id)
-    provisioning_line = "🚀 Provisioning: unavailable"
+    provisioning_line = "🚀 Согласование: недоступно"
     try:
         policy = await provisioner.policy_for_user(tg_id)
         pobj = await xui.get_client(rec.email)
@@ -129,9 +139,9 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
         pdesired = set(policy.desired_inbound_ids)
         pmissing = len(pdesired - pcurrent)
         pextra = len((pcurrent & set(policy.managed_inbound_ids)) - pdesired)
-        provisioning_line = f"🚀 Provisioning: desired {len(pdesired)} · missing {pmissing} · extra {pextra}"
+        provisioning_line = f"🚀 Согласование: целевых {len(pdesired)} · не хватает {pmissing} · лишних {pextra}"
     except Exception as exc:
-        provisioning_line = f"🚀 Provisioning: ⚠️ {type(exc).__name__}"
+        provisioning_line = f"🚀 Согласование: ⚠️ {type(exc).__name__}"
     try:
         obj = await xui.get_client(rec.email)
         client = obj.get("client", obj)
@@ -147,58 +157,58 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
         lines = [
             f"👤 {rec.email}",
             f"Telegram ID: {rec.telegram_id}",
-            f"Статус: {'🟢 Enabled' if enabled else '⛔ Disabled'}",
+            f"Статус: {'🟢 включён' if enabled else '⛔ отключён'}",
             "",
-            f"💎 Plan: {plan_name}",
-            f"🗂 Server Group: {group_name}",
+            f"💎 Тариф: {plan_name}",
+            f"🗂 Группа серверов: {group_name}",
             provisioning_line,
-            f"⏳ Expiry: {fmt_date(expiry)}",
-            f"📦 Traffic limit: {human_bytes(total) if total else 'unlimited'}",
-            f"📊 Used: {human_bytes(up + down)}",
-            f"📱 IP limit: {limit_ip if limit_ip else 'unlimited'}",
-            f"📡 Inbounds: {', '.join(map(str, inbound_ids)) if inbound_ids else 'нет'}",
+            f"⏳ Срок: {fmt_date(expiry)}",
+            f"📦 Лимит трафика: {human_bytes(total) if total else 'без лимита'}",
+            f"📊 Использовано: {human_bytes(up + down)}",
+            f"📱 Лимит IP: {limit_ip if limit_ip else 'без лимита'}",
+            f"📡 Inbound'ы: {', '.join(map(str, inbound_ids)) if inbound_ids else 'нет'}",
             f"🔀 Flow: {flow}",
         ]
         if note:
-            lines += ["", f"📝 Note: {note}"]
+            lines += ["", f"📝 Заметка: {note}"]
     except XUIError as exc:
         enabled = True
         lines = [
             f"👤 {rec.email}",
             f"Telegram ID: {rec.telegram_id}",
             "",
-            f"💎 Plan: {plan_name}",
-            f"🗂 Server Group: {group_name}",
+            f"💎 Тариф: {plan_name}",
+            f"🗂 Группа серверов: {group_name}",
             provisioning_line,
             "",
             f"⚠️ 3x-ui: {exc}",
         ]
         if note:
-            lines += ["", f"📝 Note: {note}"]
+            lines += ["", f"📝 Заметка: {note}"]
 
     rows = [
         [
-            InlineKeyboardButton(text="⏳ Expiry", callback_data=f"admin:u:expiry:{tg_id}"),
-            InlineKeyboardButton(text="📦 Traffic", callback_data=f"admin:u:traffic:{tg_id}"),
+            InlineKeyboardButton(text="⏳ Срок", callback_data=f"admin:u:expiry:{tg_id}"),
+            InlineKeyboardButton(text="📦 Трафик", callback_data=f"admin:u:traffic:{tg_id}"),
         ],
         [
-            InlineKeyboardButton(text="📱 IP limit", callback_data=f"admin:u:ip:{tg_id}"),
-            InlineKeyboardButton(text="📡 Inbounds", callback_data=f"admin:u:inbounds:{tg_id}"),
+            InlineKeyboardButton(text="📱 Лимит IP", callback_data=f"admin:u:ip:{tg_id}"),
+            InlineKeyboardButton(text="📡 Inbound'ы", callback_data=f"admin:u:inbounds:{tg_id}"),
         ],
         [
-            InlineKeyboardButton(text="💎 Plan", callback_data=f"admin:u:plan:{tg_id}"),
-            InlineKeyboardButton(text="🗂 Server Group", callback_data=f"admin:u:group:{tg_id}"),
+            InlineKeyboardButton(text="💎 Тариф", callback_data=f"admin:u:plan:{tg_id}"),
+            InlineKeyboardButton(text="🗂 Группа серверов", callback_data=f"admin:u:group:{tg_id}"),
         ],
-        [InlineKeyboardButton(text="▶ Применить Plan к лимитам", callback_data=f"admin:u:planapplyask:{tg_id}")],
-        [InlineKeyboardButton(text="🚀 Provisioning", callback_data=f"admin:u:prov:{tg_id}")],
-        [InlineKeyboardButton(text="🚀 Plan + Provision", callback_data=f"admin:u:planprovask:{tg_id}")],
+        [InlineKeyboardButton(text="▶ Применить тариф к лимитам", callback_data=f"admin:u:planapplyask:{tg_id}")],
+        [InlineKeyboardButton(text="🚀 Согласование", callback_data=f"admin:u:prov:{tg_id}")],
+        [InlineKeyboardButton(text="🚀 Тариф + согласование", callback_data=f"admin:u:planprovask:{tg_id}")],
         [
-            InlineKeyboardButton(text="🔄 Reset traffic", callback_data=f"admin:u:resetask:{tg_id}"),
-            InlineKeyboardButton(text="📝 Note", callback_data=f"admin:u:note:{tg_id}"),
+            InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data=f"admin:u:resetask:{tg_id}"),
+            InlineKeyboardButton(text="📝 Заметка", callback_data=f"admin:u:note:{tg_id}"),
         ],
-        [InlineKeyboardButton(text="🔐 Rotate subscription ID", callback_data=f"admin:u:subrotateask:{tg_id}")],
+        [InlineKeyboardButton(text="🔐 Сменить ID подписки", callback_data=f"admin:u:subrotateask:{tg_id}")],
         [InlineKeyboardButton(text="🔗 Открыть подписку", callback_data=f"adminsub:{tg_id}")],
-        [InlineKeyboardButton(text="⬅ Users", callback_data="admin:users")],
+        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -273,7 +283,7 @@ async def user_expiry_save(message: Message, state: FSMContext):
             details=f"old={current}; new={new_expiry}",
         )
         await state.clear()
-        await render_input(message, f"✅ Expiry: {fmt_date(new_expiry)}", reply_markup=back_user(tg_id))
+        await render_input(message, f"✅ Срок: {fmt_date(new_expiry)}", reply_markup=back_user(tg_id))
     except (ValueError, XUIError) as exc:
         if isinstance(exc, XUIError):
             await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
@@ -290,7 +300,7 @@ async def user_traffic_start(call: CallbackQuery, state: FSMContext):
     await state.update_data(tg_id=tg_id)
     await state.set_state(EditUserStates.traffic)
     await render_callback(call, 
-        "📦 Новый traffic limit в GB.\n0 = unlimited.\nНапример: 100",
+        "📦 Новый лимит трафика в GB.\n0 = без лимита.\nНапример: 100",
         reply_markup=cancel_edit(tg_id),
     )
     await call.answer()
@@ -316,7 +326,7 @@ async def user_traffic_save(message: Message, state: FSMContext):
         )
         await state.clear()
         await render_input(message, 
-            f"✅ Traffic limit: {gb} GB" if gb else "✅ Traffic limit: unlimited",
+            f"✅ Лимит трафика: {gb} GB" if gb else "✅ Лимит трафика: без лимита",
             reply_markup=back_user(tg_id),
         )
     except ValueError:
@@ -334,7 +344,7 @@ async def user_ip_start(call: CallbackQuery, state: FSMContext):
     await state.update_data(tg_id=tg_id)
     await state.set_state(EditUserStates.ip_limit)
     await render_callback(call, 
-        "📱 Новый IP limit.\n0 = unlimited.\nНапример: 2",
+        "📱 Новый лимит IP.\n0 = без лимита.\nНапример: 2",
         reply_markup=cancel_edit(tg_id),
     )
     await call.answer()
@@ -360,7 +370,7 @@ async def user_ip_save(message: Message, state: FSMContext):
         )
         await state.clear()
         await render_input(message, 
-            f"✅ IP limit: {limit}" if limit else "✅ IP limit: unlimited",
+            f"✅ Лимит IP: {limit}" if limit else "✅ Лимит IP: без лимита",
             reply_markup=back_user(tg_id),
         )
     except ValueError:
@@ -425,7 +435,7 @@ async def user_plan_menu(call: CallbackQuery):
         )])
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
     await render_callback(call, 
-        "💎 Plan\n\nНазначение здесь — метаданные control-plane. Лимиты 3x-ui не меняются автоматически.",
+        "💎 Тариф\n\nНазначение здесь — метаданные control-plane. Лимиты 3x-ui не меняются автоматически.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -448,7 +458,7 @@ async def user_plan_set(call: CallbackQuery):
         details=f"plan_id={plan_id or None}; name={plan.name if plan else ''}",
     )
     await render_callback(call, 
-        f"✅ Plan: {plan.name if plan else 'не назначен'}", reply_markup=back_user(tg_id)
+        f"✅ Тариф: {plan.name if plan else 'не назначен'}", reply_markup=back_user(tg_id)
     )
     await call.answer()
 
@@ -462,14 +472,14 @@ async def user_plan_apply_ask(call: CallbackQuery):
     profile = await db.get_user_profile(tg_id)
     plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
     if not rec or not plan:
-        await call.answer("Сначала назначь пользователю Plan.", show_alert=True)
+        await call.answer("Сначала назначь пользователю тариф.", show_alert=True)
         return
     await render_callback(call, 
-        f"Применить Plan «{plan.name}» к {rec.email}?\n\n"
-        f"Expiry станет: сейчас + {plan.duration_days} дней\n"
-        f"Traffic: {plan.traffic_gb} GB{' (unlimited)' if plan.traffic_gb == 0 else ''}\n"
-        f"IP limit: {plan.ip_limit if plan.ip_limit else 'unlimited'}\n\n"
-        "Накопленный traffic не сбрасывается. Server Group сохраняется отдельно.",
+        f"Применить тариф «{plan.name}» к {rec.email}?\n\n"
+        f"Срок станет: сейчас + {plan.duration_days} дней\n"
+        f"Трафик: {plan.traffic_gb} GB{' (без лимита)' if plan.traffic_gb == 0 else ''}\n"
+        f"Лимит IP: {plan.ip_limit if plan.ip_limit else 'без лимита'}\n\n"
+        "Накопленный трафик не сбрасывается. Группа серверов сохраняется отдельно.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Применить", callback_data=f"admin:u:planapplyrun:{tg_id}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
@@ -487,7 +497,7 @@ async def user_plan_apply_run(call: CallbackQuery):
     profile = await db.get_user_profile(tg_id)
     plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
     if not rec or not plan:
-        await call.answer("Plan не найден.", show_alert=True)
+        await call.answer("Тариф не найден.", show_alert=True)
         return
     expiry = int((time.time() + max(0, plan.duration_days) * 86400) * 1000) if plan.duration_days else 0
     try:
@@ -508,7 +518,7 @@ async def user_plan_apply_run(call: CallbackQuery):
             ),
         )
         await render_callback(call, 
-            f"✅ Plan «{plan.name}» применён к лимитам 3x-ui.", reply_markup=back_user(tg_id)
+            f"✅ Тариф «{plan.name}» применён к лимитам 3x-ui.", reply_markup=back_user(tg_id)
         )
     except XUIError as exc:
         await audit_from_call(
@@ -538,7 +548,7 @@ async def user_group_menu(call: CallbackQuery):
         )])
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
     await render_callback(call, 
-        "🗂 Server Group\n\nГруппа определяет desired provisioning scope. Само назначение не меняет 3x-ui мгновенно — используй 🚀 Provisioning / reconcile.",
+        "🗂 Группа серверов\n\nГруппа определяет целевой набор provisioning. Само назначение не меняет 3x-ui мгновенно — используй «🚀 Согласование».",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -561,7 +571,7 @@ async def user_group_set(call: CallbackQuery):
         details=f"server_group_id={group_id or None}; name={group.name if group else ''}",
     )
     await render_callback(call, 
-        f"✅ Server Group: {group.name if group else 'не назначена'}", reply_markup=back_user(tg_id)
+        f"✅ Группа серверов: {group.name if group else 'не назначена'}", reply_markup=back_user(tg_id)
     )
     await call.answer()
 
@@ -585,15 +595,15 @@ async def user_provisioning_card(call: CallbackQuery):
         actionable_missing = sorted(set(policy.actionable_inbound_ids) - current)
         extra = sorted((current & managed) - desired)
         lines = [
-            f"🚀 Provisioning · {rec.email}",
+            f"🚀 Согласование · {rec.email}",
             "",
             f"Source: {policy.source}",
-            f"Plan: {policy.plan.name if policy.plan else 'не назначен'}",
-            f"Server Group: {policy.group.name if policy.group else 'legacy all-managed'}",
-            f"Inbound mode: {policy.inbound_mode}",
+            f"Тариф: {policy.plan.name if policy.plan else 'не назначен'}",
+            f"Группа серверов: {policy.group.name if policy.group else 'legacy all-managed'}",
+            f"Режим inbound'ов: {policy.inbound_mode}",
             "",
             f"Desired: {len(desired)} · {', '.join(map(str, sorted(desired))) if desired else 'нет'}",
-            f"Current: {len(current)} · {', '.join(map(str, sorted(current))) if current else 'нет'}",
+            f"Текущие: {len(current)} · {', '.join(map(str, sorted(current))) if current else 'нет'}",
             f"Missing: {len(missing)} · actionable now: {len(actionable_missing)}",
             f"Extra managed: {len(extra)}",
         ]
@@ -602,13 +612,13 @@ async def user_provisioning_card(call: CallbackQuery):
         if policy.warnings:
             lines += ["", "Warnings:"] + [f"⚠️ {w}" for w in policy.warnings]
         rows = [
-            [InlineKeyboardButton(text="✅ Safe reconcile", callback_data=f"admin:u:provrun:{tg_id}:safe")],
-            [InlineKeyboardButton(text="⚠️ Strict reconcile", callback_data=f"admin:u:provstrictask:{tg_id}")],
+            [InlineKeyboardButton(text="✅ Безопасное согласование", callback_data=f"admin:u:provrun:{tg_id}:safe")],
+            [InlineKeyboardButton(text="⚠️ Строгое согласование", callback_data=f"admin:u:provstrictask:{tg_id}")],
             [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
         ]
         await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     except Exception as exc:
-        await render_callback(call, f"🔴 Provisioning: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔴 Согласование: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -618,9 +628,9 @@ async def user_provisioning_strict_ask(call: CallbackQuery):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
     await render_callback(call, 
-        "⚠️ Strict reconcile не только добавит missing inbound'ы, но и отключит управляемые inbound'ы, которых нет в desired policy.\n\nПродолжить?",
+        "⚠️ Строгое согласование не только добавит отсутствующие inbound'ы, но и отключит управляемые inbound'ы, которых нет в целевой политике.\n\nПродолжить?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚠️ Да, strict reconcile", callback_data=f"admin:u:provrun:{tg_id}:strict")],
+            [InlineKeyboardButton(text="⚠️ Да, строгое согласование", callback_data=f"admin:u:provrun:{tg_id}:strict")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:prov:{tg_id}")],
         ]),
     )
@@ -646,7 +656,7 @@ async def user_provisioning_run(call: CallbackQuery):
             details=f"attached={result.attached_ids}; detached={result.detached_ids}; remaining={result.remaining_missing_ids}; extra={result.extra_ids}",
         )
         lines = [
-            f"✅ {mode.capitalize()} reconcile завершён.",
+            f"✅ {reconcile_text(mode)} завершено.",
             f"Attached: {result.attached_ids or 'нет'}",
             f"Detached: {result.detached_ids or 'нет'}",
             f"Still missing: {result.remaining_missing_ids or 'нет'}",
@@ -657,7 +667,7 @@ async def user_provisioning_run(call: CallbackQuery):
         await render_callback(call, "\n".join(lines), reply_markup=back_user(tg_id))
     except Exception as exc:
         await audit_from_call(db, call, f"user.provision.{mode}", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Provisioning error: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔴 Ошибка согласования: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -669,13 +679,13 @@ async def user_plan_provision_ask(call: CallbackQuery):
     profile = await db.get_user_profile(tg_id)
     plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
     if not plan:
-        await call.answer("Сначала назначь Plan.", show_alert=True)
+        await call.answer("Сначала назначь тариф.", show_alert=True)
         return
     await render_callback(call, 
-        f"Применить Plan «{plan.name}» к лимитам и выполнить safe provisioning?\n\n"
-        "Это обновит expiry/traffic/IP limit, назначит Server Group тарифа и добавит missing inbound'ы. Extra inbound'ы не удаляются.",
+        f"Применить тариф «{plan.name}» к лимитам и выполнить безопасное согласование?\n\n"
+        "Это обновит срок/трафик/лимит IP, назначит группу серверов тарифа и добавит отсутствующие inbound'ы. Лишние inbound'ы не удаляются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Plan + Provision", callback_data=f"admin:u:planprovrun:{tg_id}")],
+            [InlineKeyboardButton(text="✅ Тариф + согласование", callback_data=f"admin:u:planprovrun:{tg_id}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
         ]),
     )
@@ -698,12 +708,12 @@ async def user_plan_provision_run(call: CallbackQuery):
             details=f"plan={result.policy.plan.id if result.policy.plan else None}; attached={result.attached_ids}; remaining={result.remaining_missing_ids}",
         )
         await render_callback(call, 
-            f"✅ Plan + Provision завершён.\nAttached: {result.attached_ids or 'нет'}\nStill missing: {result.remaining_missing_ids or 'нет'}",
+            f"✅ Тариф + согласование завершены.\nДобавлены: {result.attached_ids or 'нет'}\nОстались отсутствующими: {result.remaining_missing_ids or 'нет'}",
             reply_markup=back_user(tg_id),
         )
     except Exception as exc:
         await audit_from_call(db, call, "user.plan.provision", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Plan + Provision: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔴 Тариф + согласование: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -728,7 +738,7 @@ async def user_inbounds(call: CallbackQuery):
             )])
         rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
         await render_callback(call, 
-            f"📡 Inbounds · {rec.email}\n\nНажатие подключает/отключает пользователя от конкретного inbound.",
+            f"📡 Inbound'ы · {rec.email}\n\nНажатие подключает/отключает пользователя от конкретного inbound.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
         )
     except XUIError as exc:
@@ -779,7 +789,7 @@ async def user_inbound_toggle(call: CallbackQuery):
             callback_data=f"admin:u:ibtoggle:{tg_id}:{i.id}",
         )] for i in all_inbounds[:40]]
         rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
-        await render_callback(call, "📡 Inbounds обновлены.", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+        await render_callback(call, "📡 Inbound'ы обновлены.", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.inbound.toggle", target_type="user", target_id=rec.email,
@@ -843,7 +853,7 @@ async def user_sub_rotate_ask(call: CallbackQuery):
         await call.answer("Пользователь не найден.", show_alert=True)
         return
     await render_callback(call, 
-        "🔐 Rotate subscription ID\n\n"
+        "🔐 Смена ID подписки\n\n"
         "Старый URL подписки перестанет работать. Уже импортированные конфиги в клиентах не удалятся, "
         "но обновлять их по старому URL будет нельзя.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -909,12 +919,12 @@ async def admin_users(call: CallbackQuery):
             callback_data=f"adminuser:{u.telegram_id}"
         )])
     rows.append([InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk")])
-    rows.append([InlineKeyboardButton(text="🚀 Reconcile provisioning", callback_data="admin:provision:all:ask")])
+    rows.append([InlineKeyboardButton(text="🚀 Согласовать доступ", callback_data="admin:provision:all:ask")])
     rows.append([InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")])
     rows.append([InlineKeyboardButton(text="📊 Статистика пользователей", callback_data="admin:stats")])
-    rows.append([InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")])
+    rows.append([InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")])
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
-    await render_callback(call, f"👥 Users\n\nПользователи в БД бота: {len(users)}", reply_markup=kb)
+    await render_callback(call, f"👥 Пользователи\n\nПользователи в БД бота: {len(users)}", reply_markup=kb)
     await call.answer()
 
 @advanced_users_router.callback_query(F.data == "admin:provision:all:ask")
@@ -924,13 +934,13 @@ async def admin_provision_all_ask(call: CallbackQuery):
         return
     users = await db.list_users()
     await render_callback(call, 
-        "🚀 Safe reconcile provisioning для всех пользователей\n\n"
+        "🚀 Безопасное согласование доступа для всех пользователей\n\n"
         f"Пользователей: {len(users)}\n"
-        "Для каждого пользователя будет рассчитан desired scope по User Profile → Plan → Server Group. "
-        "Будут только добавлены missing inbound'ы на доступных нодах; extra inbound'ы не удаляются.\n\n"
-        "Legacy-пользователи без Plan/Group сохраняют текущую all-managed policy.",
+        "Для каждого пользователя будет рассчитан целевой набор по профилю пользователя → Тариф → Группа серверов. "
+        "Будут только добавлены отсутствующие inbound'ы на доступных нодах; лишние inbound'ы не удаляются.\n\n"
+        "Legacy-пользователи без тарифа/группы сохраняют текущую all-managed policy.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Запустить safe reconcile", callback_data="admin:provision:all:run")],
+            [InlineKeyboardButton(text="✅ Запустить безопасное согласование", callback_data="admin:provision:all:run")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
         ]),
     )
@@ -946,7 +956,7 @@ async def admin_provision_all_run(call: CallbackQuery):
     if not users:
         await call.answer("Нет пользователей.", show_alert=True)
         return
-    await call.answer("Запускаю reconcile…")
+    await call.answer("Запускаю согласование…")
     run_id = await db.start_job_run(
         name="provision.reconcile_all", trigger="admin",
         actor_id=call.from_user.id if call.from_user else 0,
@@ -967,11 +977,11 @@ async def admin_provision_all_run(call: CallbackQuery):
             success=not bool(failed),
         )
         lines = [
-            "✅ Provisioning reconcile завершён." if not failed else "⚠️ Provisioning reconcile завершён частично.",
+            "✅ Согласование завершено." if not failed else "⚠️ Согласование завершено частично.",
             "",
             f"Пользователей: {len(users)}",
             f"Успешно: {summary.get('ok')}",
-            f"Attached inbound pairs: {summary.get('attached')}",
+            f"Добавлено связей inbound: {summary.get('attached')}",
             f"Ошибок: {len(failed)}",
             f"Время: {duration_ms / 1000:.1f}s",
         ]
@@ -979,12 +989,12 @@ async def admin_provision_all_run(call: CallbackQuery):
             lines += ["", "Первые ошибки:"]
             for tg_id, err in list(failed.items())[:8]:
                 lines.append(f"• TG {tg_id}: {err[:140]}")
-        await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Users", callback_data="admin:users")]]))
+        await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")]]))
     except Exception as exc:
         duration_ms = int((time.monotonic() - started) * 1000)
         await db.finish_job_run(run_id, status="failed", duration_ms=duration_ms, details=f"{type(exc).__name__}: {exc}")
         await audit_from_call(db, call, "users.provision_all", target_type="users", details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Provisioning job failed: {type(exc).__name__}: {exc}")
+        await render_callback(call, f"🔴 Задание согласования завершилось ошибкой: {type(exc).__name__}: {exc}")
 
 
 @advanced_users_router.callback_query(F.data == "admin:syncall:ask")
@@ -1483,7 +1493,7 @@ async def _bulk_render(state: FSMContext) -> tuple[str, InlineKeyboardMarkup]:
     rows.append([InlineKeyboardButton(
         text=f"⚙️ Действия ({len(selected)})", callback_data="admin:bulk:actions"
     )])
-    rows.append([InlineKeyboardButton(text="⬅ Users", callback_data="admin:bulk:close")])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")])
     return (
         "☑️ Bulk user actions\n\n"
         f"Выбрано: {len(selected)} из {len(users)}\n"
@@ -1573,7 +1583,7 @@ async def bulk_actions(call: CallbackQuery, state: FSMContext):
             InlineKeyboardButton(text="✅ Enable", callback_data="admin:bulk:run:enable"),
             InlineKeyboardButton(text="⛔ Disable", callback_data="admin:bulk:run:disable"),
         ],
-        [InlineKeyboardButton(text="🔄 Reset traffic", callback_data="admin:bulk:run:reset")],
+        [InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data="admin:bulk:run:reset")],
         [InlineKeyboardButton(text="📡 Sync inbounds", callback_data="admin:bulk:run:sync")],
         [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
     ])
@@ -1596,7 +1606,7 @@ async def bulk_close(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await render_callback(call, "Bulk selection закрыт.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Users", callback_data="admin:users")]
+        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")]
     ]))
     await call.answer()
 
@@ -1659,7 +1669,7 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
         )
         await render_callback(call, f"{message}\nПользователей: {len(emails)}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
-            [InlineKeyboardButton(text="⬅ Users", callback_data="admin:bulk:close")],
+            [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
         ]))
     except XUIError as exc:
         await audit_from_call(
