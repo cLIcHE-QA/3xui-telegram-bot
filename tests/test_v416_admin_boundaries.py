@@ -139,7 +139,7 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         db_mock.update_sub_id.assert_awaited_once_with(101, "new-sub-id")
 
     async def test_legacy_extend_keeps_local_expiry_when_remote_update_fails(self):
-        module = load_module("bot")
+        module = load_module("advanced_users")
         rec = SimpleNamespace(
             telegram_id=101,
             email="user101@example.test",
@@ -159,7 +159,7 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         )
 
         with (
-            patch.object(module, "guard_admin_call", new=AsyncMock(return_value=True)),
+            patch.object(module, "guard", new=AsyncMock(return_value=True)),
             patch.object(module, "db", db_mock),
             patch.object(module, "xui", xui_mock),
             patch.object(module, "audit_from_call", new=AsyncMock()),
@@ -170,7 +170,7 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         db_mock.update_expiry.assert_not_awaited()
 
     async def test_legacy_enable_disable_send_explicit_remote_state(self):
-        module = load_module("bot")
+        module = load_module("advanced_users")
         rec = SimpleNamespace(
             telegram_id=101,
             email="user101@example.test",
@@ -180,7 +180,7 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         xui_mock = SimpleNamespace(update_client=AsyncMock())
 
         with (
-            patch.object(module, "guard_admin_call", new=AsyncMock(return_value=True)),
+            patch.object(module, "guard", new=AsyncMock(return_value=True)),
             patch.object(module, "db", db_mock),
             patch.object(module, "xui", xui_mock),
             patch.object(module, "audit_from_call", new=AsyncMock()),
@@ -201,7 +201,7 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_legacy_delete_preserves_local_record_when_remote_delete_fails(self):
-        module = load_module("bot")
+        module = load_module("advanced_users")
         rec = SimpleNamespace(
             telegram_id=101,
             email="user101@example.test",
@@ -218,7 +218,7 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         )
 
         with (
-            patch.object(module, "guard_admin_call", new=AsyncMock(return_value=True)),
+            patch.object(module, "guard", new=AsyncMock(return_value=True)),
             patch.object(module, "db", db_mock),
             patch.object(module, "xui", xui_mock),
             patch.object(module, "audit_from_call", new=AsyncMock()),
@@ -230,7 +230,7 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         db_mock.delete.assert_not_awaited()
 
     async def test_legacy_delete_removes_local_record_only_after_remote_success(self):
-        module = load_module("bot")
+        module = load_module("advanced_users")
         rec = SimpleNamespace(
             telegram_id=101,
             email="user101@example.test",
@@ -257,7 +257,7 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
         )
 
         with (
-            patch.object(module, "guard_admin_call", new=AsyncMock(return_value=True)),
+            patch.object(module, "guard", new=AsyncMock(return_value=True)),
             patch.object(module, "db", db_mock),
             patch.object(module, "xui", xui_mock),
             patch.object(module, "audit_from_call", new=AsyncMock()),

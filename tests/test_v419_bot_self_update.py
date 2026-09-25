@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 import stat
 import tempfile
@@ -335,7 +336,16 @@ class DeployAgentSecurityContractTests(unittest.TestCase):
 
 class RecoveryAlertCopyTests(unittest.TestCase):
     def test_job_failed_recovery_label_is_positive(self):
-        import logs_alerts
+        env = {
+            "BOT_TOKEN": "123456789:offline-v419-token",
+            "PANEL_URL": "https://panel.example.invalid/base",
+            "PANEL_API_TOKEN": "offline-v419-token",
+            "SUBSCRIPTION_URL_TEMPLATE": "https://sub.example.invalid/sub/{sub_id}",
+            "ALLOWED_TELEGRAM_IDS": "1",
+            "ADMIN_TELEGRAM_IDS": "1",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            import logs_alerts
         self.assertEqual(logs_alerts.RULE_LABELS["job_failed"], "Background job failed")
         self.assertEqual(logs_alerts.RECOVERY_LABELS["job_failed"], "Background job recovered")
 
