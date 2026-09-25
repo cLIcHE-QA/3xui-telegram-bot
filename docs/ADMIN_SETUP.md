@@ -219,7 +219,7 @@ DEPLOY_AGENT_URL=
 DEPLOY_AGENT_TOKEN=
 
 MASTER_NAME=Master
-MASTER_FLAG=🇳🇱
+MASTER_FLAG=🖥
 
 BOT_DOCKER_SUBNET=172.19.0.0/16
 
@@ -429,11 +429,11 @@ DEPLOY_AGENT_TOKEN=<dedicated-agent-token>
 Ниже пример для одной ноды:
 
 ~~~text
-Alias: FI
-Name: Finland
-Host ID: fi
-Node panel: https://panel-fi.example.com/basepath
-Host Control URL: https://panel-fi.example.com:18443
+Alias: NODE1
+Name: Edge-1
+Host ID: edge-1
+Node panel: https://panel-node1.example.com/basepath
+Host Control URL: https://panel-node1.example.com:18443
 Master public IP: MASTER_PUBLIC_IP
 Node public IP: NODE_PUBLIC_IP
 SSH port: SSH_PORT
@@ -493,14 +493,14 @@ tar -xzf /root/3xui-host-control-bundle-v4.19.1.tar.gz \
 cd /root/3xui-host-control-install
 
 sudo scripts/setup-host-control-endpoint.sh remote \
-  --alias FI \
-  --host-id fi \
-  --name Finland \
+  --alias NODE1 \
+  --host-id edge-1 \
+  --name Edge-1 \
   --listen-ip NODE_PUBLIC_IP \
   --source-ip MASTER_PUBLIC_IP \
-  --public-host panel-fi.example.com \
-  --cert /etc/letsencrypt/live/panel-fi.example.com/fullchain.pem \
-  --key /etc/letsencrypt/live/panel-fi.example.com/privkey.pem \
+  --public-host panel-node1.example.com \
+  --cert /etc/letsencrypt/live/panel-node1.example.com/fullchain.pem \
+  --key /etc/letsencrypt/live/panel-node1.example.com/privkey.pem \
   --proxy-port 18443 \
   --apply-ufw
 ~~~
@@ -513,7 +513,7 @@ sudo scripts/setup-host-control-endpoint.sh remote \
 - restricted HTTPS proxy: NODE_PUBLIC_IP:18443;
 - firewall source: только MASTER_PUBLIC_IP;
 - TLS refresh timer enabled;
-- enrollment: /root/3xui-host-control-fi.env.
+- enrollment: /root/3xui-host-control-node1.env.
 
 Проверка:
 
@@ -579,10 +579,10 @@ Installer v4.14.2 при будущих upgrades не перезаписывае
 
 ~~~bash
 scp -P SSH_PORT \
-  root@NODE_PUBLIC_IP:/root/3xui-host-control-fi.env \
-  /root/3xui-host-control-fi.env
+  root@NODE_PUBLIC_IP:/root/3xui-host-control-node1.env \
+  /root/3xui-host-control-node1.env
 
-chmod 600 /root/3xui-host-control-fi.env
+chmod 600 /root/3xui-host-control-node1.env
 ~~~
 
 Не используй cat, Telegram, issue или PR для передачи содержимого этого файла.
@@ -593,15 +593,15 @@ chmod 600 /root/3xui-host-control-fi.env
 
 Создай три mode-0600 файла:
 
-1. node-sync enrollment: `/root/3xui-node-fi.env`;
-2. direct-admin enrollment: `/root/3xui-node-admin-fi.env`;
-3. Host Control enrollment: `/root/3xui-host-control-fi.env`, уже скопированный с node.
+1. node-sync enrollment: `/root/3xui-node-node1.env`;
+2. direct-admin enrollment: `/root/3xui-node-admin-node1.env`;
+3. Host Control enrollment: `/root/3xui-host-control-node1.env`, уже скопированный с node.
 
 Node-sync:
 
 ~~~env
-NODE_ONBOARD_NAME=Finland
-NODE_ONBOARD_PANEL_URL=https://panel-fi.example.com/basepath
+NODE_ONBOARD_NAME=Edge-1
+NODE_ONBOARD_PANEL_URL=https://panel-node1.example.com/basepath
 NODE_ONBOARD_SYNC_TOKEN=<node-sync-secret>
 NODE_ONBOARD_VERIFY_TLS=true
 ~~~
@@ -609,9 +609,9 @@ NODE_ONBOARD_VERIFY_TLS=true
 Direct-admin:
 
 ~~~env
-NODE_ADMIN_ALIAS=FI
-NODE_ADMIN_NODE_NAME=Finland
-NODE_ADMIN_PANEL_URL=https://panel-fi.example.com/basepath
+NODE_ADMIN_ALIAS=NODE1
+NODE_ADMIN_NODE_NAME=Edge-1
+NODE_ADMIN_PANEL_URL=https://panel-node1.example.com/basepath
 NODE_ADMIN_API_TOKEN=<dedicated-admin-secret>
 NODE_ADMIN_VERIFY_TLS=true
 ~~~
@@ -621,7 +621,7 @@ NODE_ADMIN_VERIFY_TLS=true
 Проверь права:
 
 ~~~bash
-chmod 600   /root/3xui-node-fi.env   /root/3xui-node-admin-fi.env   /root/3xui-host-control-fi.env
+chmod 600   /root/3xui-node-node1.env   /root/3xui-node-admin-node1.env   /root/3xui-host-control-node1.env
 ~~~
 
 ## 15. Guided bind: сначала preflight
@@ -629,7 +629,7 @@ chmod 600   /root/3xui-node-fi.env   /root/3xui-node-admin-fi.env   /root/3xui-h
 ~~~bash
 cd /opt/3xui-bot/3xui-telegram-bot
 
-bash scripts/onboard-direct-node.sh bind   --node-enrollment /root/3xui-node-fi.env   --admin-enrollment /root/3xui-node-admin-fi.env   --host-control-enrollment /root/3xui-host-control-fi.env   --env .env
+bash scripts/onboard-direct-node.sh bind   --node-enrollment /root/3xui-node-node1.env   --admin-enrollment /root/3xui-node-admin-node1.env   --host-control-enrollment /root/3xui-host-control-node1.env   --env .env
 ~~~
 
 Для новой node этот запуск выполняет node preflight без mutation. Если exact node уже существует, wrapper также получает её stable `NODE_ID` и preflight-проверяет оба privileged enrollment.
@@ -639,7 +639,7 @@ bash scripts/onboard-direct-node.sh bind   --node-enrollment /root/3xui-node-fi.
 После успешного preflight:
 
 ~~~bash
-bash scripts/onboard-direct-node.sh bind   --node-enrollment /root/3xui-node-fi.env   --admin-enrollment /root/3xui-node-admin-fi.env   --host-control-enrollment /root/3xui-host-control-fi.env   --env .env   --apply
+bash scripts/onboard-direct-node.sh bind   --node-enrollment /root/3xui-node-node1.env   --admin-enrollment /root/3xui-node-admin-node1.env   --host-control-enrollment /root/3xui-host-control-node1.env   --env .env   --apply
 ~~~
 
 Wrapper:
@@ -667,15 +667,15 @@ READY candidate: NODE_ID=<number>
 ## 14a. Manual fallback: создай node-sync enrollment на Master
 
 ~~~bash
-sudo install -o root -g root -m 0600 /dev/null /root/3xui-node-fi.env
-sudoedit /root/3xui-node-fi.env
+sudo install -o root -g root -m 0600 /dev/null /root/3xui-node-node1.env
+sudoedit /root/3xui-node-node1.env
 ~~~
 
 Содержимое:
 
 ~~~env
-NODE_ONBOARD_NAME=Finland
-NODE_ONBOARD_PANEL_URL=https://panel-fi.example.com/basepath
+NODE_ONBOARD_NAME=Edge-1
+NODE_ONBOARD_PANEL_URL=https://panel-node1.example.com/basepath
 NODE_ONBOARD_SYNC_TOKEN=<node-sync-secret>
 NODE_ONBOARD_VERIFY_TLS=true
 ~~~
@@ -686,7 +686,7 @@ Preflight без mutation:
 cd /opt/3xui-bot/3xui-telegram-bot
 
 .venv-admin/bin/python scripts/onboard-node.py \
-  /root/3xui-node-fi.env \
+  /root/3xui-node-node1.env \
   --env .env
 ~~~
 
@@ -696,7 +696,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 
 ~~~bash
 .venv-admin/bin/python scripts/onboard-node.py \
-  /root/3xui-node-fi.env \
+  /root/3xui-node-node1.env \
   --env .env \
   --apply
 ~~~
@@ -714,16 +714,16 @@ NODE_ID=<number>
 Этот token отдельный от node-sync token.
 
 ~~~bash
-sudo install -o root -g root -m 0600 /dev/null /root/3xui-node-admin-fi.env
-sudoedit /root/3xui-node-admin-fi.env
+sudo install -o root -g root -m 0600 /dev/null /root/3xui-node-admin-node1.env
+sudoedit /root/3xui-node-admin-node1.env
 ~~~
 
 Содержимое:
 
 ~~~env
-NODE_ADMIN_ALIAS=FI
-NODE_ADMIN_NODE_NAME=Finland
-NODE_ADMIN_PANEL_URL=https://panel-fi.example.com/basepath
+NODE_ADMIN_ALIAS=NODE1
+NODE_ADMIN_NODE_NAME=Edge-1
+NODE_ADMIN_PANEL_URL=https://panel-node1.example.com/basepath
 NODE_ADMIN_API_TOKEN=<dedicated-admin-secret>
 NODE_ADMIN_VERIFY_TLS=true
 ~~~
@@ -736,7 +736,7 @@ Preflight:
 
 ~~~bash
 .venv-admin/bin/python scripts/import-node-admin-target.py \
-  /root/3xui-node-admin-fi.env \
+  /root/3xui-node-admin-node1.env \
   --env .env \
   --node-id 2 \
   --check-only
@@ -746,7 +746,7 @@ Preflight:
 
 ~~~bash
 .venv-admin/bin/python scripts/import-node-admin-target.py \
-  /root/3xui-node-admin-fi.env \
+  /root/3xui-node-admin-node1.env \
   --env .env \
   --node-id 2
 ~~~
@@ -759,7 +759,7 @@ Preflight:
 
 ~~~bash
 .venv-admin/bin/python scripts/import-host-control-enrollment.py \
-  /root/3xui-host-control-fi.env \
+  /root/3xui-host-control-node1.env \
   --env .env \
   --node-id 2 \
   --check-only
@@ -769,7 +769,7 @@ Preflight:
 
 ~~~bash
 .venv-admin/bin/python scripts/import-host-control-enrollment.py \
-  /root/3xui-host-control-fi.env \
+  /root/3xui-host-control-node1.env \
   --env .env \
   --node-id 2 \
   --recreate-bot
@@ -778,18 +778,18 @@ Preflight:
 Итоговый .env должен логически содержать:
 
 ~~~env
-NODE_BACKUP_TARGETS=FI
-NODE_BACKUP_FI_NODE_NAME=Finland
-NODE_BACKUP_FI_NODE_ID=2
-NODE_BACKUP_FI_PANEL_URL=https://panel-fi.example.com/basepath
-NODE_BACKUP_FI_VERIFY_TLS=true
+NODE_BACKUP_TARGETS=NODE1
+NODE_BACKUP_NODE1_NODE_NAME=Finland
+NODE_BACKUP_NODE1_NODE_ID=2
+NODE_BACKUP_NODE1_PANEL_URL=https://panel-node1.example.com/basepath
+NODE_BACKUP_NODE1_VERIFY_TLS=true
 
-HOST_CONTROL_TARGETS=MASTER,FI
-HOST_CONTROL_FI_NAME=Finland
-HOST_CONTROL_FI_NODE_ID=2
-HOST_CONTROL_FI_HOST_ID=fi
-HOST_CONTROL_FI_URL=https://panel-fi.example.com:18443
-HOST_CONTROL_FI_VERIFY_TLS=true
+HOST_CONTROL_TARGETS=MASTER,NODE1
+HOST_CONTROL_NODE1_NAME=Edge-1
+HOST_CONTROL_NODE1_NODE_ID=2
+HOST_CONTROL_NODE1_HOST_ID=edge-1
+HOST_CONTROL_NODE1_URL=https://panel-node1.example.com:18443
+HOST_CONTROL_NODE1_VERIFY_TLS=true
 ~~~
 
 Token values намеренно не проверяй через grep/cat с выводом в shared terminal/log.
@@ -800,10 +800,10 @@ Token values намеренно не проверяй через grep/cat с в�
 
 ~~~text
 /admin
-→ Infrastructure
-→ Nodes
-→ Finland
-→ 🧭 Readiness
+→ Инфраструктура
+→ Ноды
+→ Edge-1
+→ 🧭 Готовность
 ~~~
 
 Желаемый результат:
@@ -846,7 +846,7 @@ systemctl show 3xui-host-control.service \
 Ожидаемая структура:
 
 ~~~text
-nodes/Finland/
+nodes/Edge-1/
 ├─ x-ui.db
 ├─ nginx/
 ├─ node.json
@@ -871,15 +871,15 @@ Snapshot считается успешно настроенным только �
 
 ~~~text
 /admin
-→ System
-→ Backups
+→ Система
+→ Резервные копии
 → Создать сейчас
 ~~~
 
 Full Backup должен включать тот же:
 
 ~~~text
-nodes/Finland/
+nodes/Edge-1/
 ~~~
 
 и не иметь missing для этой node.
@@ -913,15 +913,15 @@ DB: ok
 
 ~~~bash
 sudo rm -f \
-  /root/3xui-node-fi.env \
-  /root/3xui-node-admin-fi.env \
-  /root/3xui-host-control-fi.env
+  /root/3xui-node-node1.env \
+  /root/3xui-node-admin-node1.env \
+  /root/3xui-host-control-node1.env
 ~~~
 
 На node после подтверждённого импорта можно удалить enrollment copy:
 
 ~~~bash
-sudo rm -f /root/3xui-host-control-fi.env
+sudo rm -f /root/3xui-host-control-node1.env
 ~~~
 
 Не удаляй:
@@ -938,8 +938,8 @@ sudo rm -f /root/3xui-host-control-fi.env
 
 Обязательно уникальны:
 
-- Alias: FI, DE, NL, ...
-- Host ID: fi, de, nl, ...
+- Alias: NODE1, DE, NL, ...
+- Host ID: edge-1, de, nl, ...
 - 3x-ui node_id;
 - node-sync token;
 - direct-admin token;
