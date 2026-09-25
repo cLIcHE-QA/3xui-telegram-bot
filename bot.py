@@ -62,6 +62,9 @@ async def guard_admin_call(call: CallbackQuery) -> bool:
     ok, _ = await authorize_callback(db, settings, call)
     return ok
 
+def is_managed_inbound(i) -> bool:
+    return inbound_is_managed(settings, i)
+
 def human_bytes(n: int) -> str:
     n = int(n or 0)
     for unit in ("B", "KB", "MB", "GB", "TB"):
