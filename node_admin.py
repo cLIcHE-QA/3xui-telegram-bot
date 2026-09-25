@@ -161,7 +161,7 @@ async def admin_node_add_start(call: CallbackQuery, state: FSMContext):
         call,
         "➕ Добавление ноды\n\n"
         "Шаг 1/4. Отправь имя ноды.\n"
-        "Например: Finland",
+        "Например: Edge-1",
         reply_markup=node_add_cancel_keyboard(),
     )
     await call.answer()
