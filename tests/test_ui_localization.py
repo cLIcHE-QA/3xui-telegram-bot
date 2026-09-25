@@ -728,7 +728,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertIn(needle, style)
 
         self.assertIn("##### Аудит emoji-префиксов в информационных текстах Telegram UI", roadmap)
-        self.assertIn("Статус: 🟡 Реализовано в main.", roadmap)
+        self.assertIn("Статус: ✅ Выполнено в `v4.20.1`.", roadmap)
 
 
 if __name__ == "__main__":
