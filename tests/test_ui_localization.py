@@ -622,6 +622,13 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         for phrase in ("RESTORE BOT", "RESTORE XUI", "RESTORE NODE"):
             self.assertIn(phrase, restore)
 
+        observability = source("admin_observability.py")
+        storage = source("storage_admin.py")
+        self.assertIn("Последняя внешняя копия:", observability)
+        self.assertNotIn("Последний внешний (off-site):", observability)
+        self.assertIn("☁️ Внешняя копия: включена", storage)
+        self.assertNotIn("Внешняя копия (off-site)", storage)
+
         for needle in ("💽 Диск", "⏱ Время работы", "💾 Резервная копия"):
             self.assertIn(needle, style)
         for old in ("💽 Disk", "⏱ Uptime", "💾 Backup"):
