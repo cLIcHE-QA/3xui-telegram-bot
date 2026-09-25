@@ -644,7 +644,7 @@ async def promo_add_expires(message: Message, state: FSMContext):
         f"Код: {data['code']}\n"
         f"Скидка: {display_value}\n"
         f"Тариф: {plan.name if plan else 'все тарифы'}\n"
-        f"Max uses: {data['max_uses'] or '∞'}\n"
+        f"Максимум использований: {data['max_uses'] or '∞'}\n"
         f"Expires: {utc_text(expires_at) if expires_at else 'без срока'}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сохранить", callback_data="admin:promoadd:save")],
@@ -844,7 +844,7 @@ async def administrator_detail(call: CallbackQuery):
     rows = [
         [
             InlineKeyboardButton(text="👑 Owner", callback_data=f"admin:administrator:role:{tg_id}:owner"),
-            InlineKeyboardButton(text="🛡 Admin", callback_data=f"admin:administrator:role:{tg_id}:admin"),
+            InlineKeyboardButton(text="🛡 Administrator", callback_data=f"admin:administrator:role:{tg_id}:admin"),
         ],
         [
             InlineKeyboardButton(text="🧑‍💻 Support", callback_data=f"admin:administrator:role:{tg_id}:support"),
@@ -859,7 +859,7 @@ async def administrator_detail(call: CallbackQuery):
     ]
     await render_callback(call, 
         f"👮 TG {tg_id}\n\n"
-        f"Role: {role_button(rec.role)}\n"
+        f"Роль: {role_button(rec.role)}\n"
         f"Статус: {'🟢 включён' if rec.enabled else '⚪ отключён'}\n"
         f"Added by: TG {rec.added_by or 'system'}\n"
         f"Created: {utc_text(rec.created_at)}",
@@ -903,7 +903,7 @@ async def administrator_add_id(message: Message, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [
                 InlineKeyboardButton(text="👑 Owner", callback_data="admin:administratoradd:role:owner"),
-                InlineKeyboardButton(text="🛡 Admin", callback_data="admin:administratoradd:role:admin"),
+                InlineKeyboardButton(text="🛡 Administrator", callback_data="admin:administratoradd:role:admin"),
             ],
             [
                 InlineKeyboardButton(text="🧑‍💻 Support", callback_data="admin:administratoradd:role:support"),
