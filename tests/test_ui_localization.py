@@ -283,7 +283,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         observability = source("admin_observability.py")
 
         for needle in (
-            '"административные метаданные. Лимиты 3x-ui не меняются автоматически."',
+            "административные метаданные. Лимиты 3x-ui не меняются автоматически.",
             'f"Не хватает: {len(missing)} · доступно сейчас: {len(actionable_missing)}"',
             'f"Лишних управляемых: {len(extra)}"',
             'f"Недоступные ноды: {\', \'.join(policy.unavailable_members)}"',
