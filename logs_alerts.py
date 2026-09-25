@@ -40,6 +40,10 @@ RULE_LABELS = {
     "backup_stale": "Backup устарел",
 }
 
+RECOVERY_LABELS = {
+    "job_failed": "Background job recovered",
+}
+
 
 def monitoring_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -442,7 +446,8 @@ async def _set_incident(bot: Bot | None, *, code: str, target: str, active: bool
     if should_alert:
         message = f"🚨 {RULE_LABELS.get(code, code)}\nTarget: {target}\n{value}"
     else:
-        message = f"✅ RECOVERED: {RULE_LABELS.get(code, code)}\nTarget: {target}\n{value}"
+        label = RECOVERY_LABELS.get(code, RULE_LABELS.get(code, code))
+        message = f"✅ RECOVERED: {label}\nTarget: {target}\n{value}"
     for admin_id in await _recipients():
         try:
             await bot.send_message(admin_id, message)
