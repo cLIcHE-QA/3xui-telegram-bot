@@ -262,7 +262,7 @@ async def node_backup(call: CallbackQuery):
         await call.answer(str(exc)[:180], show_alert=True)
         return
     if not system_backup.has_target_for(node.name, node.id):
-        await call.answer("Target резервной копии не настроен", show_alert=True)
+        await call.answer("Цель резервной копии не настроена", show_alert=True)
         await render_callback(call, 
             "💾 Для резервной копии этой ноды нужен отдельный admin-scope API token в NODE_BACKUP_TARGETS.\n"
             "Master специально не раскрывает сохранённый node-sync token.",
