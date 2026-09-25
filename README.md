@@ -257,6 +257,7 @@ git diff --check
 - single ownership Router'ов после декомпозиции;
 - Host Control / Deploy Agent startup recovery order;
 - отсутствие automatic mutation replay;
+- public-readiness contract: нейтральные deployment-примеры и актуальные русские UI-paths в README/runbook'ах;
 - provisioning/user mutation ordering;
 - backup/restore/off-site integrity semantics;
 - release/Git workflow conventions.
