@@ -14,6 +14,7 @@ from backup_manager import BackupManager
 from config import HostControlTarget, NodeBackupTarget
 from host_control import HostControlError
 from system_backup import SystemBackupService
+from restore_manager import RestoreManager
 
 
 def nginx_bundle(host_id: str = "fi", *, complete: bool = True) -> bytes:
@@ -247,6 +248,11 @@ class ExtendedNodeBackupTests(unittest.IsolatedAsyncioTestCase):
                 item["path"] for item in global_manifest["integrity"]["files"]
             }
             self.assertIn("nodes/Finland/manifest.json", integrity_paths)
+            inspected = RestoreManager(
+                str(self.db_path),
+                str(result.info.path.parent),
+            ).inspect_backup(result.info.path)
+            self.assertTrue(inspected.valid, inspected.errors)
             node = global_manifest["nodes"][0]
             self.assertEqual(node["node_id"], 2)
             self.assertTrue(node["ok"])
