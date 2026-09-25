@@ -61,7 +61,7 @@ def inbound_member_key(inbound: InboundOption) -> str:
 
 
 def inbound_label(inbound: InboundOption) -> str:
-    server = "Master" if inbound.node_id is None else f"Node #{inbound.node_id}"
+    server = "Master" if inbound.node_id is None else f"Нода #{inbound.node_id}"
     return f"#{inbound.id} · {server} · {inbound.port}/{inbound.protocol} · {inbound.remark}"
 
 
