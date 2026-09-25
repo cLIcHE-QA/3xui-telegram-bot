@@ -69,14 +69,14 @@ def backup_status_text() -> str:
         if settings.backup_send_to_admins:
             lines.append("Отправка администраторам: включена")
     if settings.offsite_backup_enabled:
-        lines.append(f"☁️ Off-site: включён · encrypted · keep {settings.offsite_backup_keep}")
+        lines.append(f"☁️ Внешняя копия (off-site): включена · шифрование · хранить {settings.offsite_backup_keep}")
     else:
-        lines.append("☁️ Off-site: выключен")
+        lines.append("☁️ Внешняя копия (off-site): выключена")
     names = system_backup.configured_node_names()
     if names:
-        lines.append(f"Backup нод: {len(names)} — {', '.join(names)}")
+        lines.append(f"Резервные копии нод: {len(names)} — {', '.join(names)}")
     else:
-        lines.append("Backup нод: не настроен")
+        lines.append("Резервные копии нод: не настроены")
     lines += ["", "⚠️ Полный архив содержит чувствительные данные."]
     return "\n".join(lines)
 
@@ -94,10 +94,10 @@ async def admin_backup_create(call: CallbackQuery):
     if not await _guard(call):
         return
     if backup_lock.locked():
-        await call.answer("Backup уже выполняется.", show_alert=True)
+        await call.answer("Резервное копирование уже выполняется.", show_alert=True)
         return
 
-    await call.answer("Создаю backup…")
+    await call.answer("Создаю резервную копию…")
     run_id = await db.start_job_run(
         name="backup.manual",
         trigger="admin",
@@ -147,17 +147,17 @@ async def admin_backup_create(call: CallbackQuery):
             )
 
         lines = [
-            "✅ Полный backup создан.",
+            "✅ Полная резервная копия создана.",
             f"Файл: {result.info.path.name}",
             f"Размер: {human_bytes(result.info.size)}",
             f"Включено: {', '.join(result.included) or 'нет'}",
         ]
         if offsite_status == "success":
-            lines.append("☁️ Off-site: загружен и проверен")
+            lines.append("☁️ Внешняя копия: загружена и проверена")
         elif offsite_status == "partial":
-            lines.append("⚠️ Off-site: загружен и проверен, local backup неполный")
+            lines.append("⚠️ Внешняя копия: загружена и проверена, локальная резервная копия неполная")
         elif offsite_status == "failed":
-            lines.append(f"🔴 Off-site: ошибка — {offsite_detail[:240]}")
+            lines.append(f"🔴 Внешняя копия: ошибка — {offsite_detail[:240]}")
         if result.missing:
             lines.append(f"⚠️ Не найдено: {', '.join(result.missing)}")
 
@@ -181,7 +181,7 @@ async def admin_backup_create(call: CallbackQuery):
         logging.exception("Manual backup failed")
         await render_callback(
             call,
-            f"🔴 Не удалось создать backup: {type(exc).__name__}: {exc}",
+            f"🔴 Не удалось создать резервную копию: {type(exc).__name__}: {exc}",
             reply_markup=backup_menu(),
         )
 
@@ -218,7 +218,7 @@ async def admin_backup_botdb(call: CallbackQuery):
         logging.exception("Bot DB snapshot failed")
         await render_callback(
             call,
-            f"🔴 Ошибка backup SQLite: {type(exc).__name__}: {exc}",
+            f"🔴 Ошибка резервной копии SQLite: {type(exc).__name__}: {exc}",
         )
 
 
@@ -234,7 +234,7 @@ async def admin_backup_full(call: CallbackQuery):
             if backup_lock.locked():
                 await render_callback(
                     call,
-                    "Backup уже создаётся. Повтори скачивание чуть позже.",
+                    "Резервная копия уже создаётся. Повтори скачивание чуть позже.",
                 )
                 return
             async with backup_lock:
@@ -244,7 +244,7 @@ async def admin_backup_full(call: CallbackQuery):
         await call.message.answer_document(
             FSInputFile(info.path),
             caption=(
-                "Полный backup. Храните файл в защищённом месте.\n"
+                "Полная резервная копия. Храните файл в защищённом месте.\n"
                 f"Создан: {info.created_at.strftime('%Y-%m-%d %H:%M UTC')}"
             ),
         )
@@ -268,5 +268,5 @@ async def admin_backup_full(call: CallbackQuery):
         logging.exception("Full backup download failed")
         await render_callback(
             call,
-            f"🔴 Ошибка отправки backup: {type(exc).__name__}: {exc}",
+            f"🔴 Ошибка отправки резервной копии: {type(exc).__name__}: {exc}",
         )
