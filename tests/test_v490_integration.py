@@ -136,6 +136,15 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         source = inspect.getsource(self.storage.admin_backup_create)
         self.assertIn('replicate_with_job', source)
         self.assertIn('system_backup.create_full_backup', source)
+        self.assertEqual(self.storage.human_bytes(1024), '1.0 KB')
+        with patch.object(
+            self.storage.backup_manager, 'list_backups', return_value=[]
+        ), patch.object(
+            self.storage.system_backup, 'configured_node_names', return_value=[]
+        ):
+            text = self.storage.backup_status_text()
+        self.assertIn('Последняя: ещё не создана', text)
+        self.assertIn('Backup нод: не настроен', text)
 
     def test_real_xui_client_has_version_api(self):
         from version_api import VersionAPIMixin
