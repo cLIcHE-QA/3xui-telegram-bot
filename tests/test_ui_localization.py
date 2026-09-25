@@ -182,6 +182,10 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text="💎 Тариф"',
             'text="🚀 Согласование"',
             'text="🔄 Сбросить трафик"',
+            'text="✅ Включить"',
+            'text="⛔ Отключить"',
+            'text="📡 Синхронизировать inbound\'ы"',
+            'f"⚙️ Массовые действия\\n\\nВыбрано: {len(selected)}"',
             'f"👥 Пользователи\\n\\nПользователи в БД бота:',
             '"☑️ Массовые действия с пользователями\\n\\n"',
         ):
@@ -191,6 +195,10 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text="💎 Plan"',
             'text="🚀 Provisioning"',
             'text="🔄 Reset traffic"',
+            'text="✅ Enable"',
+            'text="⛔ Disable"',
+            'text="📡 Sync inbounds"',
+            'f"⚙️ Bulk actions\\n\\nВыбрано: {len(selected)}"',
             '"👥 Users\\n\\n"',
             '"☑️ Bulk user actions\\n\\n"',
         ):
