@@ -86,14 +86,14 @@ Bundle не содержит runtime secrets, token или TLS private key. Toke
 cd /root/3xui-host-control-install
 
 sudo scripts/setup-host-control-endpoint.sh remote \
-  --alias FI \
-  --host-id fi \
-  --name Finland \
+  --alias NODE1 \
+  --host-id edge-1 \
+  --name Edge-1 \
   --listen-ip 203.0.113.10 \
   --source-ip 198.51.100.20 \
-  --public-host host-control-fi.example.com \
-  --cert /etc/letsencrypt/live/host-control-fi.example.com/fullchain.pem \
-  --key /etc/letsencrypt/live/host-control-fi.example.com/privkey.pem \
+  --public-host host-control-node1.example.com \
+  --cert /etc/letsencrypt/live/host-control-node1.example.com/fullchain.pem \
+  --key /etc/letsencrypt/live/host-control-node1.example.com/privkey.pem \
   --proxy-port 18443 \
   --apply-ufw
 ~~~
@@ -101,7 +101,7 @@ sudo scripts/setup-host-control-endpoint.sh remote \
 Remote endpoint:
 
 ~~~text
-https://host-control-fi.example.com:18443
+https://host-control-node1.example.com:18443
 ~~~
 
 Он принимает соединения только с `--source-ip`.
@@ -201,7 +201,7 @@ Remote с Master:
 
 ~~~bash
 curl -sS -o /dev/null -w '%{http_code}\n' \
-  https://host-control-fi.example.com:18443/v1/status
+  https://host-control-node1.example.com:18443/v1/status
 ~~~
 
 Ожидается `401`.
@@ -211,10 +211,10 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 Enrollment file имеет вид:
 
 ~~~text
-HOST_CONTROL_ALIAS=FI
-HOST_CONTROL_NAME=Finland
-HOST_CONTROL_HOST_ID=fi
-HOST_CONTROL_URL=https://host-control-fi.example.com:18443
+HOST_CONTROL_ALIAS=NODE1
+HOST_CONTROL_NAME=Edge-1
+HOST_CONTROL_HOST_ID=edge-1
+HOST_CONTROL_URL=https://host-control-node1.example.com:18443
 HOST_CONTROL_VERIFY_TLS=true
 HOST_CONTROL_TOKEN=<secret>
 ~~~
@@ -226,13 +226,13 @@ HOST_CONTROL_TOKEN=<secret>
 ~~~bash
 cd /opt/3xui-bot/3xui-telegram-bot
 
-python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-fi.env   --env .env   --check-only
+python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-node1.env   --env .env   --check-only
 ~~~
 
 Затем импортируй и пересоздай только bot container:
 
 ~~~bash
-python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-fi.env   --env .env   --recreate-bot
+python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-node1.env   --env .env   --recreate-bot
 ~~~
 
 Helper:
@@ -249,15 +249,15 @@ Helper:
 
 После успешной проверки enrollment-файл на Master можно удалить.
 
-Для alias `FI` итоговые ключи bot env:
+Для alias `NODE1` итоговые ключи bot env:
 
 ~~~text
-HOST_CONTROL_TARGETS=MASTER,FI
-HOST_CONTROL_FI_NAME=Finland
-HOST_CONTROL_FI_HOST_ID=fi
-HOST_CONTROL_FI_URL=https://host-control-fi.example.com:18443
-HOST_CONTROL_FI_TOKEN=<secret>
-HOST_CONTROL_FI_VERIFY_TLS=true
+HOST_CONTROL_TARGETS=MASTER,NODE1
+HOST_CONTROL_NODE1_NAME=Edge-1
+HOST_CONTROL_NODE1_HOST_ID=edge-1
+HOST_CONTROL_NODE1_URL=https://host-control-node1.example.com:18443
+HOST_CONTROL_NODE1_TOKEN=<secret>
+HOST_CONTROL_NODE1_VERIFY_TLS=true
 ~~~
 
 ## 7. Production deploy bot

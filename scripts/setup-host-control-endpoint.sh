@@ -22,9 +22,9 @@ Usage:
     [--proxy-port 18182] [--apply-ufw]
 
   sudo scripts/setup-host-control-endpoint.sh remote \
-    --alias FI --host-id fi --name Finland \
+    --alias NODE1 --host-id edge-1 --name Edge-1 \
     --listen-ip 203.0.113.10 --source-ip 198.51.100.20 \
-    --public-host host-control-fi.example.com \
+    --public-host host-control-node1.example.com \
     --cert /path/fullchain.pem --key /path/privkey.pem \
     [--proxy-port 18443] [--apply-ufw]
 

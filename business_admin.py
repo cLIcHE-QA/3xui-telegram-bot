@@ -1010,7 +1010,8 @@ async def administrator_delete_ask(call: CallbackQuery):
         await call.answer("Owner из .env нельзя удалить.", show_alert=True)
         return
     await render_callback(call, 
-        f"Удалить администратора TG {tg_id}?",
+        f"Удалить администратора TG {tg_id}?\n\n"
+        "Административный доступ через эту запись будет удалён; пользовательские данные и 3x-ui не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:administrator:delete:{tg_id}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:administrator:{tg_id}")],

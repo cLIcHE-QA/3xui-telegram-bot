@@ -369,5 +369,5 @@ def load_settings() -> Settings:
         node_backup_targets=_load_node_backup_targets(),
         host_control_targets=_load_host_control_targets(),
         master_name=os.getenv("MASTER_NAME", "Master").strip() or "Master",
-        master_flag=os.getenv("MASTER_FLAG", "🇳🇱").strip() or "🇳🇱",
+        master_flag=os.getenv("MASTER_FLAG", "🖥").strip() or "🖥",
     )

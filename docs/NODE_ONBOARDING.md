@@ -20,12 +20,12 @@ v4.11 добавляет рекомендуемый путь подключен�
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/onboard-direct-node.sh prepare \
-  --alias DE \
-  --host-id de \
-  --name Germany \
+  --alias NODE1 \
+  --host-id edge-1 \
+  --name Edge-1 \
   --listen-ip 203.0.113.10 \
   --source-ip 198.51.100.20 \
-  --public-host panel-de.example.com \
+  --public-host host-control-node1.example.com \
   --copy-to root@203.0.113.10 \
   --ssh-port 22
 ~~~
@@ -44,18 +44,18 @@ bash scripts/onboard-direct-node.sh prepare \
 
 ~~~bash
 bash scripts/onboard-direct-node.sh bind \
-  --node-enrollment /root/3xui-node-de.env \
-  --admin-enrollment /root/3xui-node-admin-de.env \
-  --host-control-enrollment /root/3xui-host-control-de.env
+  --node-enrollment /root/3xui-node-node1.env \
+  --admin-enrollment /root/3xui-node-admin-node1.env \
+  --host-control-enrollment /root/3xui-host-control-node1.env
 ~~~
 
 Для новой node preflight ничего не меняет. После проверки запусти тот же flow с explicit mutation:
 
 ~~~bash
 bash scripts/onboard-direct-node.sh bind \
-  --node-enrollment /root/3xui-node-de.env \
-  --admin-enrollment /root/3xui-node-admin-de.env \
-  --host-control-enrollment /root/3xui-host-control-de.env \
+  --node-enrollment /root/3xui-node-node1.env \
+  --admin-enrollment /root/3xui-node-admin-node1.env \
+  --host-control-enrollment /root/3xui-host-control-node1.env \
   --apply
 ~~~
 
@@ -66,7 +66,7 @@ Wrapper:
 3. preflight-проверяет direct-admin и Host Control enrollment с одним и тем же ID;
 4. импортирует direct-admin binding без recreate;
 5. импортирует Host Control binding и пересоздаёт только service `bot` один раз;
-6. оставляет финальную проверку `🧭 Readiness` оператору.
+6. оставляет финальную проверку `🧭 Готовность` оператору.
 
 Wrapper не выполняет `docker compose down`, не запускает generic remote shell/SSH commands, не выводит enrollment contents и не объединяет node-sync/direct-admin/Host Control secrets.
 
@@ -88,17 +88,17 @@ Wrapper не выполняет `docker compose down`, не запускает g
 На Master создай mode-0600 файл, например:
 
 ~~~env
-NODE_ONBOARD_NAME=Finland
+NODE_ONBOARD_NAME=Edge-1
 NODE_ONBOARD_PANEL_URL=https://panel.example.com
 NODE_ONBOARD_SYNC_TOKEN=<node-sync-secret>
 NODE_ONBOARD_VERIFY_TLS=true
 ~~~
 
 ~~~bash
-chmod 600 /root/3xui-node-fi.env
+chmod 600 /root/3xui-node-node1.env
 cd /opt/3xui-bot/3xui-telegram-bot
 
-python3 scripts/onboard-node.py /root/3xui-node-fi.env --env .env
+python3 scripts/onboard-node.py /root/3xui-node-node1.env --env .env
 ~~~
 
 Без `--apply` helper выполняет только preflight через штатный 3x-ui nodes API и ничего не меняет.
@@ -106,7 +106,7 @@ python3 scripts/onboard-node.py /root/3xui-node-fi.env --env .env
 После успешного preflight:
 
 ~~~bash
-python3 scripts/onboard-node.py /root/3xui-node-fi.env --env .env --apply
+python3 scripts/onboard-node.py /root/3xui-node-node1.env --env .env --apply
 ~~~
 
 Helper:
@@ -128,9 +128,9 @@ Node-sync token, сохранённый Master 3x-ui, намеренно не ч
 Создай на Master mode-0600 файл:
 
 ~~~env
-NODE_ADMIN_ALIAS=FI
+NODE_ADMIN_ALIAS=NODE1
 NODE_ADMIN_NODE_ID=2
-NODE_ADMIN_NODE_NAME=Finland
+NODE_ADMIN_NODE_NAME=Edge-1
 NODE_ADMIN_PANEL_URL=https://panel.example.com
 NODE_ADMIN_API_TOKEN=<dedicated-admin-secret>
 NODE_ADMIN_VERIFY_TLS=true
@@ -139,19 +139,19 @@ NODE_ADMIN_VERIFY_TLS=true
 Проверка без изменений:
 
 ~~~bash
-python3 scripts/import-node-admin-target.py   /root/3xui-node-admin-fi.env   --env .env   --check-only
+python3 scripts/import-node-admin-target.py   /root/3xui-node-admin-node1.env   --env .env   --check-only
 ~~~
 
 Импорт:
 
 ~~~bash
-python3 scripts/import-node-admin-target.py   /root/3xui-node-admin-fi.env   --env .env
+python3 scripts/import-node-admin-target.py   /root/3xui-node-admin-node1.env   --env .env
 ~~~
 
-Helper добавляет/обновляет `NODE_BACKUP_FI_*`, включая:
+Helper добавляет/обновляет `NODE_BACKUP_NODE1_*`, включая:
 
 ~~~env
-NODE_BACKUP_FI_NODE_ID=2
+NODE_BACKUP_NODE1_NODE_ID=2
 ~~~
 
 и делает mode-0600 backup предыдущего `.env`.
@@ -163,26 +163,26 @@ NODE_BACKUP_FI_NODE_ID=2
 Проверка:
 
 ~~~bash
-python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-fi.env   --env .env   --node-id 2   --check-only
+python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-node1.env   --env .env   --node-id 2   --check-only
 ~~~
 
 Импорт и единственный recreate bot:
 
 ~~~bash
-python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-fi.env   --env .env   --node-id 2   --recreate-bot
+python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-node1.env   --env .env   --node-id 2   --recreate-bot
 ~~~
 
 Итоговая Host Control binding содержит:
 
 ~~~env
-HOST_CONTROL_FI_NODE_ID=2
+HOST_CONTROL_NODE1_NODE_ID=2
 ~~~
 
 ## 5. Проверь Telegram Readiness
 
 Открой:
 
-`Infrastructure → Nodes → <node> → 🧭 Readiness`
+`Инфраструктура → Ноды → <node> → 🧭 Готовность`
 
 Экран проверяет без mutation:
 
@@ -210,7 +210,7 @@ Stable identity: node_id
 
 При наличии `NODE_BACKUP_*_NODE_ID` и `HOST_CONTROL_*_NODE_ID` переименование node в 3x-ui не ломает privileged bindings.
 
-Name-only target остаётся совместимым fallback для старых deployments, но Readiness показывает `legacy_name` и предлагает миграцию на `NODE_ID`.
+Name-only target остаётся совместимым fallback для старых deployments, но экран «Готовность» показывает `legacy_name` и предлагает миграцию на `NODE_ID`.
 
 ## 7. Что остаётся разделённым намеренно
 

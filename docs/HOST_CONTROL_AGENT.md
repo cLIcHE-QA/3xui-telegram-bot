@@ -91,7 +91,7 @@ Master host
   x-ui.service
   3xui-host-control.service
 
-Finland host
+Edge-1 host
   x-ui.service
   3xui-host-control.service
 ~~~
@@ -101,7 +101,7 @@ Finland host
 - agent слушает только loopback или отдельный management interface;
 - TLS завершается reverse proxy;
 - remote endpoint ограничен firewall/source allowlist;
-- Finland принимает host-control трафик только от Master VPS;
+- Edge-1 принимает host-control трафик только от Master VPS;
 - endpoint не должен быть открыт всему Internet без source restriction.
 
 Для локального Master допустим отдельный private host route из Docker-сети, если он не публикуется наружу и защищён firewall.
@@ -152,7 +152,7 @@ Authorization: Bearer <dedicated-host-control-token>
 - token не пишется в логи;
 - сравнение token выполняется constant-time;
 - файлы с token имеют права не шире 0600;
-- token Finland не совпадает с token Master;
+- token Edge-1 не совпадает с token Master;
 - host-control token не совпадает с node/API/backup token.
 
 При неверном или отсутствующем token:
@@ -169,7 +169,7 @@ Authorization: Bearer <dedicated-host-control-token>
 
 ### Remote nodes
 
-Для Finland и последующих remote nodes:
+Для Edge-1 и последующих remote nodes:
 
 - только https://;
 - TLS verification включён;
@@ -194,7 +194,7 @@ Plain HTTP через публичную сеть запрещён.
 
 ~~~text
 master
-fi
+edge-1
 ~~~
 
 Он задаётся при установке и возвращается каждым API response.
@@ -230,7 +230,7 @@ JSON UTF-8.
 ~~~json
 {
   "schema": 1,
-  "host_id": "fi",
+  "host_id": "edge-1",
   "service": "x-ui.service",
   "state": "running",
   "active_state": "active",
@@ -295,7 +295,7 @@ restart
 ~~~json
 {
   "schema": 1,
-  "host_id": "fi",
+  "host_id": "edge-1",
   "operation_id": "2f31b7a8d6bf4e4f8f9ef0c4d4c635de",
   "action": "restart",
   "result": "success",
@@ -322,7 +322,7 @@ restart
 ~~~json
 {
   "schema": 1,
-  "host_id": "fi",
+  "host_id": "edge-1",
   "operation_id": "2f31b7a8d6bf4e4f8f9ef0c4d4c635de",
   "action": "restart",
   "result": "success",
@@ -572,7 +572,7 @@ agent /v1/status
 Предварительный env contract:
 
 ~~~env
-HOST_CONTROL_TARGETS=MASTER,FI
+HOST_CONTROL_TARGETS=MASTER,NODE1
 
 HOST_CONTROL_MASTER_NAME=Master
 HOST_CONTROL_MASTER_HOST_ID=master
@@ -580,11 +580,11 @@ HOST_CONTROL_MASTER_URL=https://host-control-master.example.com
 HOST_CONTROL_MASTER_TOKEN=replace_with_dedicated_token
 HOST_CONTROL_MASTER_VERIFY_TLS=true
 
-HOST_CONTROL_FI_NAME=Finland
-HOST_CONTROL_FI_HOST_ID=fi
-HOST_CONTROL_FI_URL=https://host-control-fi.example.com
-HOST_CONTROL_FI_TOKEN=replace_with_dedicated_token
-HOST_CONTROL_FI_VERIFY_TLS=true
+HOST_CONTROL_NODE1_NAME=Edge-1
+HOST_CONTROL_NODE1_HOST_ID=edge-1
+HOST_CONTROL_NODE1_URL=https://host-control-node1.example.com
+HOST_CONTROL_NODE1_TOKEN=replace_with_dedicated_token
+HOST_CONTROL_NODE1_VERIFY_TLS=true
 ~~~
 
 Tokens не выводятся в Telegram, logs, audit details или diagnostics.
@@ -600,7 +600,7 @@ Host-control config не переиспользует NODE_BACKUP_TARGETS: эт�
 Предварительный local config:
 
 ~~~env
-HOST_CONTROL_AGENT_ID=fi
+HOST_CONTROL_AGENT_ID=edge-1
 HOST_CONTROL_AGENT_LISTEN=127.0.0.1:18181
 HOST_CONTROL_AGENT_TOKEN_FILE=/etc/3xui-host-control/token
 HOST_CONTROL_AGENT_SERVICE=x-ui.service
@@ -645,14 +645,14 @@ Installer запускается локально на конкретном VPS 
 
 Agent никогда не слушает публичный или private-LAN interface напрямую.
 
-Для remote node (Finland) внешний доступ строится только так:
+Для remote node (Edge-1) внешний доступ строится только так:
 
 ~~~text
 Master bot
    |
    | HTTPS + Bearer token
    v
-restricted reverse proxy on Finland
+restricted reverse proxy on Edge-1
    |
    | loopback
    v
@@ -662,7 +662,7 @@ restricted reverse proxy on Finland
 Reverse proxy должен:
 
 - использовать валидный TLS certificate;
-- принимать host-control запросы только от management source (для Finland — Master VPS);
+- принимать host-control запросы только от management source (для Edge-1 — Master VPS);
 - не публиковать backend port 18181;
 - не логировать Authorization header;
 - проксировать только `/v1/` к loopback agent.
@@ -690,7 +690,7 @@ Transitive nodes — read-only, host-control mutations запрещены.
 ### Restart service confirmation
 
 ~~~text
-⚠️ Перезапустить 3x-ui service на Finland?
+⚠️ Перезапустить 3x-ui service на Edge-1?
 
 Панель и API будут кратковременно недоступны.
 VPN-сессии могут быть затронуты.
@@ -702,7 +702,7 @@ VPN-сессии могут быть затронуты.
 ### Restart Panel process confirmation
 
 ~~~text
-⚠️ Выполнить штатный Restart Panel process на Finland?
+⚠️ Выполнить штатный Restart Panel process на Edge-1?
 
 Будет отправлен ровно один POST /panel/api/setting/restartPanel.
 Panel API кратковременно станет недоступен.
@@ -718,7 +718,7 @@ Stop service — Owner-only и требует усиленного подтве�
 План v4.10.0: одноразовый confirmation nonce + явная фраза с именем target, например:
 
 ~~~text
-STOP Finland
+STOP Edge-1
 ~~~
 
 Nonce имеет короткий TTL и используется один раз.
@@ -732,7 +732,7 @@ Nonce имеет короткий TTL и используется один ра�
 На Master/direct node появляется отдельный экран:
 
 ~~~text
-🧩 3x-ui · Finland
+🧩 3x-ui · Edge-1
 
 🟢 Service: running
 🟢 Panel API: online
@@ -914,7 +914,7 @@ Mutation запрещается, если:
 
 Релиз считается готовым, если тестами и production smoke test подтверждено:
 
-1. Status работает для Master и Finland.
+1. Status работает для Master и Edge-1.
 2. Start уже running target не делает лишний restart.
 3. Stop уже stopped target безопасно idempotent.
 4. Restart выполняется ровно один раз.
@@ -939,7 +939,7 @@ Mutation запрещается, если:
 23. Агент не содержит SSH/shell/exec/file/Docker/firewall/reboot/package-management API.
 24. Sudoers использует только точные allowlisted команды для `x-ui.service`, без wildcard.
 25. Audit/job records не содержат secrets.
-26. Finland remote transport работает с TLS verification.
+26. Edge-1 remote transport работает с TLS verification.
 27. Существующие Backup, Xray restart, provisioning, subscription и Версии и обновления не регрессируют.
 
 ---

@@ -1448,7 +1448,8 @@ async def admin_del_ask(call: CallbackQuery):
     if rec:
         await render_callback(
             call,
-            f"Удалить {rec.email} из 3x-ui и локальной БД?",
+            f"Удалить {rec.email} из 3x-ui и локальной БД?\n\n"
+            "Клиент и его профиль будут удалены; платёжная история сохранится.",
             reply_markup=confirm_delete_keyboard(tg_id),
         )
     await call.answer()

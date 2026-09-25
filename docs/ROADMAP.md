@@ -380,7 +380,11 @@ Repo-wide проход `/admin` выполнен как пользователь
 
 ##### Редактура пользовательских текстов и public-repository readiness
 
-Отдельным проходом нужно проверить тексты Telegram UI и operator-facing documentation на логическую ясность, стилистическую последовательность и отсутствие случайной привязки к текущему private deployment.
+Статус: 🟡 Реализовано в main.
+
+Repo-wide проход актуальных Telegram hints, README, `.env.example`, install/onboarding/Host Control runbook'ов и operator helper usage выполнен. Исторические deployment-примеры нейтрализованы, актуальные UI-paths синхронизированы с русскими labels, а regression gate защищает public-facing examples от возврата private-deployment drift.
+
+Перед публикацией тексты Telegram UI и operator-facing documentation проверяются на логическую ясность, стилистическую последовательность и отсутствие случайной привязки к текущему private deployment.
 
 Критерии:
 
@@ -393,6 +397,15 @@ Repo-wide проход `/admin` выполнен как пользователь
 - README и docs используют актуальные названия UI и не описывают устаревшую навигацию как текущую.
 
 Эта работа рассматривается как часть подготовки проекта к будущему публичному репозиторию, а не как изменение business logic.
+
+Зафиксированный результат:
+
+- публичные примеры используют нейтральные `Edge-1` / `NODE1` вместо исторической географической привязки;
+- default `MASTER_FLAG` нейтрален и не предполагает страну deployment;
+- актуальные runbook'и используют фактические русские пути `Инфраструктура / Ноды / Готовность`, `Система / Резервные копии / Задания` и другие текущие labels;
+- README отдельно показывает top-level Admin Control Plane и вложенные разделы, не выдавая Host Control за top-level entry;
+- public-readiness regression test проверяет актуальные public surfaces; исторический `CHANGELOG.md` не переписывается ради этого cleanup.
+
 Крупные публичные customer-facing workflows не должны размывать scope v4.x. `/admin` остаётся Control Plane.
 
 ### v5.0.0 — Client Portal

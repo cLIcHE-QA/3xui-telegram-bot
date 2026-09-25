@@ -113,7 +113,7 @@ client_access.py
 └─ /start, /inbounds, /create, /subscription
 
 admin_shell.py
-└─ /admin, Dashboard, top-level navigation и compatibility redirects
+└─ /admin, Обзор, top-level navigation и compatibility redirects
 
 domain routers
 ├─ advanced_users.py
@@ -233,11 +233,10 @@ Client-access compatibility flow:
 
 Admin Control Plane:
 
-- `/admin`;
-- Пользователи / Подписки / Платежи / Тарифы / Промокоды;
-- Инфраструктура / Ноды / Inbound'ы / Операции с нодами / Host Control;
-- Мониторинг / Журналы / Оповещения;
-- Система / Задания / Журнал аудита / Резервные копии / Версии и обновления / Обновления бота.
+- `/admin` открывает корневую панель: Обзор / Пользователи / Подписки / Платежи / Тарифы / Промокоды / Инфраструктура / Мониторинг / Система;
+- Инфраструктура: Ноды / Inbound'ы / Хосты / Операции с нодами / Группы серверов; Host Control открывается из карточки конкретного Master/direct node;
+- Мониторинг: Трафик / В сети / Состояние системы / Журналы / Оповещения;
+- Система: Обновления бота / Версии и обновления / Задания / Резервные копии / Журнал аудита / Администраторы / Настройки.
 
 Наличие v4 client-access команд не означает, что v5 Client Portal уже реализован. Новый client-facing product flow должен сохранять отдельную authorization/navigation boundary от `/admin`.
 
@@ -258,6 +257,7 @@ git diff --check
 - single ownership Router'ов после декомпозиции;
 - Host Control / Deploy Agent startup recovery order;
 - отсутствие automatic mutation replay;
+- public-readiness contract: нейтральные deployment-примеры и актуальные русские UI-paths в README/runbook'ах;
 - provisioning/user mutation ordering;
 - backup/restore/off-site integrity semantics;
 - release/Git workflow conventions.

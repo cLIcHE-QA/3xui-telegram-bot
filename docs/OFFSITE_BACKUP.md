@@ -156,13 +156,13 @@ docker compose up -d --no-deps --force-recreate bot
 ./scripts/deploy-release.sh --status
 ~~~
 
-Затем запусти обычный manual Full Backup из `/admin → Backups → Создать сейчас` или `System → Jobs → Запустить backup сейчас`.
+Затем запусти обычный manual Full Backup из `/admin → Система → Резервные копии → Создать сейчас` или `Система → Задания → Запустить резервное копирование`.
 
 Ожидаемый результат:
 
 - local Full Backup создан;
 - UI показывает `☁️ Off-site: загружен и проверен`;
-- `System → Jobs` содержит отдельный `backup.offsite` со статусом `success` либо `partial`, если local backup содержит явно отмеченные missing optional components.
+- `Система → Задания` содержит отдельный `backup.offsite` со статусом `success` либо `partial`, если local backup содержит явно отмеченные missing optional components.
 
 ## Recovery secrets
 
