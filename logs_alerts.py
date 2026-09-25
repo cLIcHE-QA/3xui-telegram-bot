@@ -53,6 +53,16 @@ JOB_STATUS_LABELS = {
     "cancelled": "отменено",
 }
 
+LOG_LEVEL_LABELS = {
+    "all": "Все",
+    "warning": "Предупреждения",
+    "error": "Ошибки",
+}
+
+
+def _log_level_text(value: str) -> str:
+    return LOG_LEVEL_LABELS.get((value or "").lower(), value or "неизвестно")
+
 
 def _job_status_text(value: str) -> str:
     return JOB_STATUS_LABELS.get((value or "").lower(), value or "неизвестно")
@@ -135,9 +145,9 @@ def _log_controls(source: str, count: int, level: str, *, node_id: int | None = 
             InlineKeyboardButton(text=("✅ " if count == 200 else "📄 ") + "200", callback_data=f"{base}:200:{level}"),
         ],
         [
-            InlineKeyboardButton(text=("✅ " if level == "all" else "📋 ") + "ALL", callback_data=f"{base}:{count}:all"),
-            InlineKeyboardButton(text=("✅ " if level == "warning" else "⚠️ ") + "WARN+", callback_data=f"{base}:{count}:warning"),
-            InlineKeyboardButton(text=("✅ " if level == "error" else "❌ ") + "ERROR", callback_data=f"{base}:{count}:error"),
+            InlineKeyboardButton(text=("✅ " if level == "all" else "📋 ") + "Все", callback_data=f"{base}:{count}:all"),
+            InlineKeyboardButton(text=("✅ " if level == "warning" else "⚠️ ") + "Предупр.", callback_data=f"{base}:{count}:warning"),
+            InlineKeyboardButton(text=("✅ " if level == "error" else "❌ ") + "Ошибки", callback_data=f"{base}:{count}:error"),
         ],
         [InlineKeyboardButton(text="🔄 Обновить", callback_data=f"{base}:{count}:{level}")],
         [InlineKeyboardButton(text="⬅ Журналы", callback_data="admin:logs")],
@@ -189,7 +199,7 @@ async def _master_log_lines(source: str, count: int, level: str) -> tuple[str, l
     if source == "ngacc":
         path = NGINX_LOG_DIR / "access.log"
         return "📨 Nginx access.log", _filter_lines(_tail_file(path, fetch_count), level)
-    raise ValueError("unknown log source")
+    raise ValueError("неизвестный источник журнала")
 
 
 @logs_alerts_router.callback_query(F.data == "admin:logs")
@@ -228,7 +238,7 @@ async def master_log_view(call: CallbackQuery):
         return
     shown = lines[-count:]
     await render_callback(call, 
-        f"{title}\nФильтр: {level.upper()} · последние {count}\n\n{_excerpt(shown)}",
+        f"{title}\nФильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(shown)}",
         reply_markup=_log_controls(source, count, level),
     )
 
@@ -308,7 +318,7 @@ async def node_log_view(call: CallbackQuery):
         await call.answer()
         return
     await render_callback(call, 
-        f"{title}\nФильтр: {level.upper()} · последние {count}\n\n{_excerpt(lines[-count:])}",
+        f"{title}\nФильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(lines[-count:])}",
         reply_markup=_log_controls(source, count, level, node_id=node_id),
     )
     await call.answer()
