@@ -174,7 +174,7 @@ async def admin_dashboard(call: CallbackQuery):
         "",
         "Каталог",
         f"💎 Тарифы: {active_plans}/{len(plans)} активных",
-        f"⭐ По умолчанию для /create: {default_plan.name if default_plan else 'legacy trial policy'}",
+        f"⭐ По умолчанию для /create: {default_plan.name if default_plan else 'политика пробного доступа'}",
         f"🗂 Группы серверов: {len(server_groups)}",
         f"🌐 Хосты: {enabled_hosts}/{len(hosts)} включено",
         "",
