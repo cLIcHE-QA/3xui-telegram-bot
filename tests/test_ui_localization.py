@@ -88,7 +88,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text="⏹ Остановить сервис"',
             'text="♻️ Перезапустить процесс панели"',
             '"🧩 Управление 3x-ui',
-            '"Сервис: Host Control не настроен"',
+            '"⚪ Сервис: Host Control не настроен"',
         ):
             self.assertIn(needle, host)
         for old in (
