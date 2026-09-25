@@ -27,6 +27,14 @@ PUBLIC_SURFACES = (
 
 DEPLOYMENT_SPECIFIC_MARKERS = (
     "Finland",
+    "Germany",
+    " --alias DE",
+    "NODE_ADMIN_ALIAS=DE",
+    "3xui-node-de.env",
+    "3xui-node-admin-de.env",
+    "3xui-host-control-de.env",
+    "panel-de.example.com",
+    "host-control-de.example.com",
     "HOST_CONTROL_FI_",
     "NODE_BACKUP_FI_",
     "NODE_ONBOARD_NAME=Finland",
@@ -77,7 +85,9 @@ class PublicReadinessTests(unittest.TestCase):
 
     def test_neutral_examples_are_part_of_the_public_contract(self):
         env = self._source(".env.example")
+        config = self._source("config.py")
         self.assertIn("MASTER_FLAG=🖥", env)
+        self.assertIn('os.getenv("MASTER_FLAG", "🖥")', config)
         self.assertIn("# HOST_CONTROL_TARGETS=MASTER,NODE1", env)
         self.assertIn("# HOST_CONTROL_NODE1_NAME=Edge-1", env)
         self.assertIn("# NODE_BACKUP_TARGETS=NODE1", env)
