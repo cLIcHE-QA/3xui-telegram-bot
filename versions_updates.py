@@ -1,4 +1,4 @@
-"""System -> Versions & Updates: single-message UI and production adapters."""
+"""Система -> Версии и обновления: single-message UI and production adapters."""
 from __future__ import annotations
 
 import asyncio
