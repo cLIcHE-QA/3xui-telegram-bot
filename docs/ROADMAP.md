@@ -296,7 +296,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 ##### Синхронизация README с текущим состоянием
 
-Статус: ✅ завершено в cleanup-цикле после `v4.19.1`.
+Статус: 🟡 Реализовано в main.
 
 README теперь является текущей картой проекта и точкой входа в канонические runbook'и, а не второй копией release history.
 
@@ -311,7 +311,7 @@ README теперь является текущей картой проекта 
 
 ##### Консистентная русская локализация Telegram UI
 
-Статус: ✅ завершено в cleanup-цикле после `v4.19.1`.
+Статус: 🟡 Реализовано в main.
 
 Системный проход выполнен для client access, Admin Shell, Nodes, Monitoring/Logs/Alerts, Backups/DR, Host Control/Fleet, Versions & Updates/Bot Updates и domain UI Users/Catalog/Business/Inbounds.
 
