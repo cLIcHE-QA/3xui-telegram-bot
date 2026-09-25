@@ -1,294 +1,248 @@
-# Журнал изменений
+"""Real application integration with fake environment values, no live APIs."""
+from __future__ import annotations
 
-Все заметные изменения проекта фиксируются здесь на русском языке. Названия элементов интерфейса, API, переменных, таблиц и команд сохраняются в исходном виде, чтобы их можно было сопоставить с кодом.
+import inspect
+import json
+import os
+from pathlib import Path
+import sqlite3
+import tarfile
+import tempfile
+import unittest
+from unittest.mock import AsyncMock, patch
 
-История до перехода на Git восстановлена по сохранённым релизным архивам. Для исторических версий формулировки сокращены и приведены к единому виду.
 
-> Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
+class IntegrationTests(unittest.IsolatedAsyncioTestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.env = patch.dict(os.environ, {
+            'BOT_TOKEN': '123456789:offline-test-token-not-used-for-network',
+            'PANEL_URL': 'https://panel.example.invalid/base',
+            'PANEL_API_TOKEN': 'offline-test-placeholder',
+            'SUBSCRIPTION_URL_TEMPLATE': 'https://sub.example.invalid/sub/{sub_id}',
+            'ALLOWED_TELEGRAM_IDS': '1', 'ADMIN_TELEGRAM_IDS': '1',
+            'NODE_BACKUP_TARGETS': '',
+            'DB_PATH': str(Path(cls.tmp.name) / 'bot.sqlite3'),
+            'BACKUP_DIR': str(Path(cls.tmp.name) / 'backups'),
+        })
+        cls.env.start()
+        import bot
+        import versions_updates
+        cls.bot = bot
+        cls.updates = versions_updates
 
-## v4.19.0 — Safe Bot Self-Update
-- Добавлен отдельный restricted Deploy Agent вне bot container: unprivileged systemd service, bearer-authenticated fixed API и persistent SQLite journal с stable `operation_id` и состояниями `queued/preflight/backup/building/deploying/verifying/success/failed/unknown`.
-- Bot container по-прежнему не получает Docker socket, host shell, Git deploy key или arbitrary filesystem access; root boundary сведена к одному root-owned helper с закрытым command surface для published `vX.Y.Z` releases.
-- Published release validation проверяет tag в `origin/main`, exact `APP_VERSION`, pinned SSH known_hosts, clean tracked tree и текущий Health/DB/3x-ui status; release notes читаются read-only из target `CHANGELOG.md` без выполнения target code.
-- `/admin → System → Bot Updates` доступен только Owner: current/latest, release notes, preflight, exact published tag selection, operation history/status и явный update confirmation. Downgrade требует точной фразы `DOWNGRADE vX.Y.Z` и повторного preflight.
-- Потерянный deploy response и restart bot/agent никогда не приводят к автоматическому mutation replay: bot и agent восстанавливают результат только через read-only operation/status lookup; недоказанный итог становится `unknown`.
-- Startup recovery двухфазный: мгновенный lookup выполняется до generic stale cleanup, а ожидание terminal state начинается только после поднятия health endpoint, поэтому self-update не блокирует post-deploy health check.
-- Manual и agent deployment используют общий host lock под deploy backup root; ручной `scripts/deploy-release.sh vX.Y.Z` остаётся break-glass fallback.
-- Добавлены installer/systemd/sudoers tooling, isolated root-only Git key/known_hosts copy, private Docker-bridge listener и regression/security tests; SQLite app schema, 3x-ui OpenAPI contract, Host Control API и off-site backup contract не меняются.
+    @classmethod
+    def tearDownClass(cls):
+        cls.env.stop()
+        cls.tmp.cleanup()
 
-## v4.18.0 — Encrypted off-site backup
-- Full Backup manifest переведён на checksummed schema 2: для каждого обычного файла архива фиксируются path, size и SHA-256, а restore validation проверяет coverage/size/hash fail-closed; legacy archives остаются читаемыми обычным DR tooling.
-- Добавлена optional S3-compatible off-site replication, выключенная по умолчанию: canonical Full Backup шифруется client-side AES-256-GCM до upload, а bucket/prefix/endpoint/credentials задаются только локально и не управляются через Telegram.
-- Local backup и external replication имеют независимые outcomes: `backup.daily`/`backup.manual` фиксируют локальный archive, `backup.offsite` — внешний upload; ошибка provider-а не превращает уже созданную локальную копию в false failure.
-- Off-site success требует remote round trip: HEAD metadata verification, download, GCM authentication, plaintext SHA-256/size и повторный deep Full Backup validation; retention выполняется только после подтверждённой читаемости.
-- Добавлен host-side `scripts/fetch-offsite-backup.py`: recovery CLI получает latest canonical object только из fixed prefix, decrypt/validates его и выдаёт mode-0600 archive для существующего `bootstrap-bot-from-backup.sh`.
-- Добавлены regression tests на manifest tampering, encryption/round trip, fixed-prefix retention, target security boundaries и отдельный failed `backup.offsite` job; SQLite schema, 3x-ui API, Host Control API и RBAC не изменены.
+    def callback_values(self, markup):
+        return [button.callback_data for row in markup.inline_keyboard for button in row]
 
-## v4.17.0 — 3x-ui OpenAPI compatibility gate
-- Поддерживаемый native API contract зафиксирован на 3x-ui `v3.8.5`: vendored OpenAPI берётся из immutable upstream tag, а exact Git blob SHA хранится в contract manifest.
-- `contracts/3xui/contract.json` описывает 51 реально используемый endpoint; CI проверяет route/method, Bearer auth, request body required/media type/mandatory fields и общий JSON response envelope.
-- AST source-parity check сопоставляет manifest с фактическими `/panel/api/...` вызовами в `xui.py` и `version_api.py`, поэтому новый или удалённый route требует явного contract review до merge.
-- Проверка полностью offline/stdlib-only: CI не скачивает upstream `main` и runtime не переключается автоматически на неизвестную API schema.
-- Единственное documented response exception — `GET /panel/api/server/getDb`: OpenAPI v3.8.5 описывает generic JSON envelope, а live endpoint возвращает binary DB attachment; route/method/auth остаются под gate, binary semantics покрываются отдельными regression tests.
-- Добавлены regression tests на missing method, новый mandatory field, response-envelope drift, schema tampering и dynamic route discovery; SQLite schema, runtime 3x-ui requests, Host Control API и deployment topology не изменены.
+    def test_navigation_shortcuts(self):
+        self.assertIn('admin:versions', self.callback_values(self.bot.system_menu()))
+        self.assertIn('admin:botupd', self.callback_values(self.bot.system_menu()))
+        self.assertIn('admin:versions', self.callback_values(self.bot.infrastructure_menu()))
+        self.assertIn('admin:hostctl:m', self.callback_values(self.bot.master_detail_keyboard()))
+        self.assertIn('admin:ver:panel:m', self.callback_values(self.bot.master_detail_keyboard()))
+        self.assertIn('admin:ver:xray:m:0', self.callback_values(self.bot.master_detail_keyboard()))
+        self.assertIn('admin:hostctl:n2', self.callback_values(self.bot.node_detail_keyboard(2)))
+        self.assertIn('admin:ver:panel:n2', self.callback_values(self.bot.node_detail_keyboard(2)))
+        self.assertIn('admin:ver:xray:n2:0', self.callback_values(self.bot.node_detail_keyboard(2)))
 
-## v4.16.0 — Regression coverage hardening
-- Добавлен целевой regression pack для критических admin/business/recovery путей: payment/status и catalog relations, user lifecycle mutation ordering, provisioning idempotency/partial failure, subscription proxy compatibility/error paths, inbound mutation failure paths, disaster recovery и negative authorization boundaries.
-- Safe/strict provisioning теперь явно проверяются на разные privilege boundaries: per-user safe reconcile доступен роли `support`, strict reconcile остаётся `admin`; regression tests выявили и исправили drift, при котором privilege catalog излишне требовал `admin` и для safe reconcile.
-- User lifecycle tests подтверждают, что local expiry/record/subscription identity не меняются раньше успешной state-changing операции в 3x-ui; failed remote delete сохраняет локальную запись.
-- Provisioning tests фиксируют повторный safe reconcile без лишних mutations, stop-safe strict semantics, недоступные node как partial result и изоляцию batch failure одного пользователя от остальных.
-- Subscription proxy и restore tests покрывают plain/Base64 subscriptions, selective `vpn://` conversion, Shadowrocket compatibility, invalid `sub_id`, upstream failures, unsafe/malformed backup, staged SHA mismatch, rescue copy и отсутствие replay broken restore.
-- Схема SQLite, 3x-ui API contract, Host Control API и deployment topology не изменены.
+    def test_versions_navigation_labels_are_consistent(self):
+        home = self.updates.keyboard([[('⬅ System', 'admin:section:system')]])
+        self.assertEqual(home.inline_keyboard[0][0].text, '⬅ System')
+        self.assertEqual(self.updates.back().inline_keyboard[0][0].text, '⬅ Versions & Updates')
+        self.assertEqual(self.updates.back('m').inline_keyboard[0][0].text, '⬅ Сервер')
 
-## v4.15.0 — Versioned SQLite migrations
-- Добавлен versioned migration framework для локальной `bot.sqlite3`: source of truth хранится в `schema_migrations`, migrations идут только вперёд и имеют стабильные version/name.
-- Текущая схема v4.14.2 оформлена как идемпотентная baseline migration `v1 baseline_v4_14_2`, поэтому существующие installation без migration journal обновляются in-place с сохранением данных.
-- Startup работает fail-closed для `running`/`failed` migration, gap/unknown journal, более новой schema version, schema mismatch и failed `PRAGMA quick_check`; неопределённая state-changing migration автоматически не replay'ится.
-- Dangerous migrations с `requires_backup=True` до mutation создают проверенную SQLite Online Backup recovery copy в persistent `data/migration-backups/`; автоматических down migrations и automatic restore нет.
-- Добавлены regression tests для fresh/legacy DB, newer schema, interrupted/failed migration, обязательной recovery copy и rollback, а operational/developer contract зафиксирован в `docs/SQLITE_MIGRATIONS.md`.
-- Схема 3x-ui, Host Control API, RBAC privilege boundaries, provisioning и subscription semantics не изменены.
+    def test_static_inline_buttons_start_with_visual_marker(self):
+        import ast
+        import unicodedata
 
-## v4.14.2 — Исправление guided onboarding direct node
-- Исправлен разбор аргументов `--admin-enrollment` и `--host-control-enrollment` в `scripts/onboard-direct-node.sh bind`: значения теперь попадают в канонические переменные, поэтому guided bind проходит preflight/import вместо ложной ошибки отсутствующих enrollment files.
-- Добавлен исполняемый regression test, который запускает `bind` с временными enrollment-файлами и проверяет фактические вызовы direct-admin и Host Control importer preflight.
-- Security boundary не меняется: node-sync, direct-admin и Host Control credentials остаются раздельными; mutation semantics, stable `node_id` binding и single bot recreate сохранены.
+        root = Path(__file__).resolve().parents[1]
+        files = [
+            'bot.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
+            'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
+            'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
+            'fleet_operations.py',
+        ]
 
-## v4.14.1 — Исправление Host Control snapshot rollout
-- Исправлено чтение nginx snapshot в bot client: streaming HTTP response теперь читается до EOF с сохранением жёсткого лимита 10 MiB, поэтому multi-chunk ответы reverse proxy больше не дают ложный `checksum_mismatch`.
-- Installer Host Control Agent теперь явно перезапускает `3xui-host-control.service` после обновления runtime files/unit, поэтому повторный rollout действительно активирует новую версию agent без ручного restart.
-- Добавлены regression tests для multi-chunk snapshot response и upgrade restart path; security boundary fixed snapshot endpoint, host identity/TLS/checksum validation и mutation allowlist не расширены.
+        def marked(label: str) -> bool:
+            value = label.strip()
+            if not value:
+                return False
+            return unicodedata.category(value[0]) in {'So', 'Sm'}
 
-## v4.14.0 — RBAC и расширенные node snapshots
-- Добавлен централизованный каталог RBAC privileges для фиксированных ролей `Read-only`, `Support`, `Administrator` и `Owner`; authorization layer использует его как source of truth, неизвестные admin callbacks блокируются fail-closed, а `/admin → Administrators → Roles & Privileges` показывает действующие permission boundaries.
-- Direct-node backup расширен до recovery-oriented snapshot `nodes/<node>/` с `x-ui.db`, `nginx/`, `node.json` и `manifest.json`; manifest хранит stable node identity, component status, доступные версии, размеры и SHA-256 файлов, а тот же snapshot включается в обычный Full Backup.
-- Host Control Agent получил fixed read-only `GET /v1/snapshots/nginx`: endpoint не принимает filesystem path/filename/query selector, читает только локально настроенный `HOST_CONTROL_AGENT_NGINX_SOURCE` и не расширяет mutation allowlist за пределы `start|stop|restart`.
-- Отсутствующий или частично недоступный nginx source отражается как `degraded`/missing component, а не как ложный complete; bot дополнительно валидирует host identity, transport checksum, tar paths, file sizes и per-file checksums.
-- Для nginx snapshot source используется отдельный optional `/etc/3xui-host-control/nginx-snapshot.env`, который не входит в enrollment/bot `.env`; automatic remote nginx restore не добавлен, схема SQLite не изменена.
-- Добавлены regression/security tests для RBAC route coverage/fail-closed, fixed Host Control snapshot surface, archive integrity/path traversal и полного/degraded node backup.
+        missing = []
+        for name in files:
+            tree = ast.parse((root / name).read_text(encoding='utf-8'), filename=name)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                if not (isinstance(func, ast.Name) and func.id == 'InlineKeyboardButton'):
+                    continue
+                text_kw = next((kw.value for kw in node.keywords if kw.arg == 'text'), None)
+                if isinstance(text_kw, ast.Constant) and isinstance(text_kw.value, str):
+                    if not marked(text_kw.value):
+                        missing.append(f'{name}:{node.lineno}:{text_kw.value}')
+        self.assertEqual(missing, [])
 
-## v4.13.2 — Host Control startup recovery
-- Startup бота теперь запускает `recover_control_jobs()` сразу после `db.init()` и до общего stale-job cleanup, поэтому незавершённые Host Control jobs получают шанс восстановить точный итог из persistent operation journal.
-- Recovery использует только read-only lookup сохранённого `operation_id`; state-changing Host Control mutation после рестарта автоматически не повторяется, а недоказуемый результат остаётся `unknown`.
-- Добавлены regression tests на порядок startup recovery и отсутствие mutation replay; схема SQLite, Host Control Agent API и privilege boundaries не изменены.
-## v4.13.1 — Исправление Fleet Rollout jobs
-- Исправлен accounting `Controlled Rollout`: terminal no-op plan с уже актуальными версиями теперь создаёт и завершает parent `fleet.rollout` job со статусом `success`.
-- Отмена rollout до запуска canary теперь также фиксируется parent `fleet.rollout` job со статусом `cancelled`, поэтому `🧾 Fleet Jobs` и audit отражают terminal operation.
-- Для уже актуальных targets summary parent job использует `skipped`, а не `pending`; update/maintenance mutation при этих сценариях по-прежнему не отправляется.
+    def test_versions_static_tuple_buttons_start_with_visual_marker(self):
+        import ast
+        import unicodedata
 
-## v4.13.0 — Fleet Operations
-- Добавлен раздел `🌐 Fleet Operations` с read-only `Fleet Health`, controlled Fleet Maintenance, Fleet Jobs и последовательным rollout для direct nodes.
-- `Controlled Rollout` переиспользует существующий two-phase `UpdateService`: verified backup выполняется до intentional maintenance, затем update запускается строго по одной node с canary и explicit continue.
-- Rollout работает stop-on-failure: при `failed` или `unknown` проблемная node остаётся в maintenance, оставшиеся nodes не затрагиваются, state-changing request автоматически не повторяется.
-- Rollout eligibility требует direct online node, доступные Direct Panel API и Host Control, а также stable `node_id` binding для обоих privileged targets; transitive и legacy-name targets не мутируются.
-- После рестарта незавершённые fleet operations помечаются interrupted/unknown и не продолжаются автоматически; mass `Stop service` / `Stop Xray`, parallel rollout и automatic rollback намеренно не добавлены.
-- Scope и safety contract зафиксированы в `docs/FLEET_OPERATIONS.md`.
+        source = inspect.getsource(self.updates)
+        tree = ast.parse(source)
 
-## v4.12.0 — Guided onboarding direct node
-- Добавлен guided wrapper `scripts/onboard-direct-node.sh`: `prepare` собирает/опционально копирует secret-free Host Control bundle и формирует remote install command, `bind` проводит node registration и оба privileged bindings через единый stable `NODE_ID`.
-- `import-node-admin-target.py` получил `--node-id`; ID из enrollment и explicit override проверяются на совпадение fail-closed.
-- Guided flow сохраняет разделение node-sync/direct-admin/Host Control secrets, выполняет importer preflights до изменения bot `.env` и пересоздаёт только service `bot` один раз.
+        def marked(label: str) -> bool:
+            value = label.strip()
+            if not value:
+                return False
+            return unicodedata.category(value[0]) in {'So', 'Sm'}
 
-## v4.11.1 — Исправление Readiness callback
-- Исправлен routing кнопки `🧭 Readiness`: общий handler карточки ноды больше не перехватывает callback `admin:node:<id>:readiness`.
-- Node detail handler теперь принимает только точный callback `admin:node:<id>`, а readiness сохраняет отдельный маршрут.
-- Добавлен regression-test, который блокирует возврат broad `admin:node:` startswith-handler.
-- Stable `NODE_ID` bindings, onboarding helpers, privilege boundaries и схема SQLite не изменены.
+        missing = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Tuple) or len(node.elts) != 2:
+                continue
+            label, callback = node.elts
+            if (isinstance(label, ast.Constant) and isinstance(label.value, str)
+                    and isinstance(callback, (ast.Constant, ast.JoinedStr))):
+                cb_value = callback.value if isinstance(callback, ast.Constant) else None
+                if (cb_value is None or (isinstance(cb_value, str) and cb_value.startswith('admin:'))):
+                    if not marked(label.value):
+                        missing.append(f'line {node.lineno}: {label.value}')
+        self.assertEqual(missing, [])
 
-## v4.11.0 — Node readiness и безопасный onboarding
-- Privileged targets для direct nodes получили стабильную привязку к 3x-ui `node.id` через `NODE_BACKUP_*_NODE_ID` и `HOST_CONTROL_*_NODE_ID`; старый lookup по display name сохранён только как backward-compatible fallback.
-- Explicit mismatched `NODE_ID` работает fail-closed: target, привязанный к другому node ID, не может быть подобран только по совпавшему имени.
-- Переименование direct node больше не ломает backup, restore, Versions & Updates, Panel/Xray controls и Host Control при наличии stable `NODE_ID`.
-- В карточку direct node добавлен read-only экран `🧭 Readiness`: он проверяет Master view, direct Panel API, Host Control Agent, runtime readiness и тип binding без mutation.
-- Добавлен `scripts/onboard-node.py` для регистрации node локально на Master из mode-0600 enrollment-файла: по умолчанию только preflight, mutation выполняется только с `--apply`, automatic retry отсутствует.
-- Добавлен `scripts/import-node-admin-target.py` для безопасного импорта dedicated direct-admin credential; Host Control enrollment importer получил `--node-id`.
-- Рекомендуемый onboarding больше не требует передачи node-sync/direct-admin/Host Control secrets через Telegram; privilege domains остаются раздельными.
-- Новые onboarding helpers требуют verified HTTPS для новых direct node/admin endpoints и не печатают secrets.
-- Добавлен runbook `docs/NODE_ONBOARDING.md` и regression tests для stable identity, legacy fallback, fail-closed mismatch, local enrollment permissions и onboarding transport policy.
-- Схема SQLite, provisioning пользователей, подписки и privilege boundary Host Control Agent не изменены.
+    def test_real_xui_client_has_version_api(self):
+        from version_api import VersionAPIMixin
+        self.assertIsInstance(self.bot.xui, VersionAPIMixin)
+        self.assertTrue(callable(self.bot.xui.install_xray))
+        self.assertTrue(callable(self.bot.xui.get_panel_update_info))
 
-## v4.10.1 — Operational rollout и recovery
-- Добавлен `scripts/bootstrap-bot-from-backup.sh` для восстановления Telegram-бота на подготовленном новом VPS из Full Backup с проверкой tag/APP_VERSION, tar safety, SQLite `quick_check`, rescue-copy и post-check через `deploy-release.sh --status`.
-- Recovery по умолчанию требует совпадения версии backup с целевым release; intentional mismatch возможен только через `RECOVERY_ALLOW_VERSION_MISMATCH=1`.
-- При recovery намеренно отключаются `HOST_CONTROL_TARGETS` и `NODE_BACKUP_TARGETS`, чтобы privileged routes/tokens старого deployment не активировались автоматически.
-- Добавлен воспроизводимый Host Control rollout: secret-free deployment bundle, отдельный restricted proxy, enrollment-importer для безопасного обновления bot `.env`, идемпотентное добавление target и recreate только service `bot`.
-- Remote Host Control proxy получил ежедневный TLS refresh timer: source certificate/key проверяются на hostname и соответствие пары, proxy reload выполняется только при обновлении копий.
-- Повторный rollout с `--apply-ufw` хранит managed firewall state и при изменении management source/destination/port удаляет прежнее exact allow-rule перед добавлением нового.
-- Добавлены runbook `docs/HOST_CONTROL_ROLLOUT.md`, `docs/VPS_RECOVERY.md`, новые unit/security tests и CI-проверки executable bit/shell syntax для operational helpers.
-- Runtime semantics экрана `🧩 3x-ui Control`, privilege boundary Host Control Agent, схема SQLite и provisioning пользователей не изменены.
+    def test_callback_permissions_are_explicit_and_fail_closed(self):
+        from admin_auth import required_role_for_callback
+        for data in ['admin:versions', 'admin:ver:target:m', 'admin:ver:panel:n2',
+                     'admin:ver:xray:m:0', 'admin:ver:check:0123456789abcdef']:
+            self.assertEqual(required_role_for_callback(data), 'read_only', data)
+        for data in ['admin:ver:prepare:m:panel', 'admin:ver:pick:n2:v25.9.15',
+                     'admin:ver:run:0123456789abcdef', 'admin:ver:cancel:0123456789abcdef']:
+            self.assertEqual(required_role_for_callback(data), 'admin', data)
+        self.assertIsNone(required_role_for_callback('admin:ver:target:m:unexpected'))
+        self.assertEqual(required_role_for_callback('admin:ver:unlock:0123456789abcdef'), 'owner')
+        self.assertEqual(required_role_for_callback('admin:hostctl:m'), 'read_only')
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2'), 'read_only')
+        for data in [
+            'admin:hostctl:m:ss:ask', 'admin:hostctl:m:ss:run',
+            'admin:hostctl:n2:sr:ask', 'admin:hostctl:n2:pr:run',
+            'admin:hostctl:n2:xr:run',
+        ]:
+            self.assertEqual(required_role_for_callback(data), 'admin', data)
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2:xs:ask'), 'owner')
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2:xs:run'), 'owner')
+        self.assertEqual(required_role_for_callback('admin:hostctl:m:sp:ask'), 'owner')
+        self.assertEqual(required_role_for_callback('admin:hostctl:n2:stopcancel'), 'owner')
+        for data in ['admin:fleet', 'admin:fleet:health', 'admin:fleet:jobs']:
+            self.assertEqual(required_role_for_callback(data), 'read_only', data)
+        for data in [
+            'admin:fleet:mt:e', 'admin:fleet:mt:e:n2',
+            'admin:fleet:rollout', 'admin:fleet:ro:p',
+            'admin:fleet:run:012345abcdef:canary',
+        ]:
+            self.assertEqual(required_role_for_callback(data), 'admin', data)
 
-## v4.10.0 — Безопасный 3x-ui Control
-- Реализован restricted `Host Control Agent` для host-level `status/start/stop/restart x-ui.service`: listener только `127.0.0.1`, отдельный token на host, fixed service/action allowlist, `shell=False`, persistent `operation_id`, lost-response recovery без повторного mutation POST.
-- Добавлен единый экран `🧩 3x-ui Control` для Master и direct nodes: `Start/Restart service` доступны Admin+, destructive `Stop service` и `Stop Xray` — только Owner; Stop service требует одноразовую typed-фразу `STOP <target>`.
-- Добавлены native действия `♻️ Restart Panel process` через `POST /panel/api/setting/restartPanel`, `Stop Xray` через `/server/stopXrayService` и `Restart / Start Xray` через `/server/restartXrayService`.
-- Агент не предоставляет SSH/shell/exec/file/Docker/firewall/reboot/package-management API; systemd unit запускает его непривилегированным пользователем, а sudoers разрешает только три точных команды для `x-ui.service`.
-- Remote host-control targets требуют verified HTTPS; private HTTP разрешён только для локального `MASTER` через restricted management route.
-- Добавлены installer/systemd/sudoers assets, production deployment guide и CI-проверки executable bit, shell syntax, `visudo`, transport policy, host identity, no-retry, privilege boundary и security invariants.
+    def test_callback_data_fits_telegram_byte_limit(self):
+        key = 'n' + '9' * 19
+        tag = 'v12345.12345.12345-beta'
+        data = f'admin:ver:pick:{key}:{tag}'
+        self.assertLessEqual(len(data.encode('utf-8')), 64)
+        markup = self.updates.keyboard([[('version', data)]])
+        self.assertEqual(self.callback_values(markup), [data])
 
-## v4.9.3 — Исправление счётчиков карточки ноды
-- Карточка `Infrastructure → Nodes → <node>` теперь использует enriched-данные `/panel/api/nodes/list` для вычисляемых счётчиков `inboundCount`, `clientCount`, `activeCount` и `onlineCount`.
-- При недоступности list API или отсутствии нужной ноды сохраняется fallback на `/panel/api/nodes/get/{id}`, поэтому административные действия не блокируются.
-- Исправлен визуальный эффект, при котором рабочая удалённая нода показывала `Inbound'ов: 0` и `Клиентов: 0`, несмотря на реально синхронизированные inbound'ы и активный трафик.
-- Схема SQLite, provisioning, подписки, direct admin target и управление версиями не изменены.
+    def test_legacy_node_confirmation_has_no_direct_update_call(self):
+        from advanced_nodes import node_update_panel_legacy
+        source = inspect.getsource(node_update_panel_legacy)
+        self.assertIn('show_panel_screen', source)
+        self.assertNotIn('node_update_panels(', source)
+        self.assertNotIn('service.execute(', source)
 
-## v4.9.2 — Deploy helper и улучшения System/Reality
-- Добавлен `scripts/deploy-release.sh` для повторяемого развёртывания опубликованных тегов на VPS.
-- Перед cutover helper проверяет тег, `APP_VERSION`, текущее здоровье сервиса, SQLite, upstream 3x-ui и соответствие Docker-подсети.
-- Перед обновлением сохраняются `.env`, Compose-конфигурация, SHA/образ текущего состояния и согласованная копия `bot.sqlite3`.
-- Helper пересоздаёт только сервис `bot` и намеренно не выполняет `docker compose down`, `docker system prune`, обновление 3x-ui/Xray или автоматический откат базы.
-- Добавлены режим `--status`, явная защита от случайного downgrade и CI-проверка shell-синтаксиса helper.
-- В разделе `System` отображается текущая версия бота из единственного `APP_VERSION`.
-- Reality fingerprint inbound'а выбирается кнопками из актуального списка 3x-ui: `chrome`, `firefox`, `safari`, `ios`, `android`, `edge`, `360`, `qq`, `random`, `randomized`, `randomizednoalpn`, `unsafe`.
-- Произвольный ручной ввод fingerprint из Telegram удалён; остальные `Reality`/`streamSettings` сохраняются при изменении.
-- Схема SQLite и логика подписок не изменены.
+    def test_legacy_restart_xray_callback_cannot_mutate_directly(self):
+        from advanced_nodes import node_restart_xray_legacy
+        source = inspect.getsource(node_restart_xray_legacy)
+        self.assertIn('admin:hostctl:n', source)
+        self.assertNotIn('restart_xray(', source)
+        self.assertNotIn('direct_client_for(', source)
 
-## v4.9.1 — Стабилизация сети и интерфейса
-- Docker-подсеть проекта закреплена через `BOT_DOCKER_SUBNET` с дефолтом `172.19.0.0/16`, чтобы пересоздание Compose-сети не меняло источник трафика к локальной панели 3x-ui.
-- В документацию добавлено требование синхронизировать UFW-правило для порта панели с выбранной Docker-подсетью.
-- CI дополнен проверкой `docker compose config` на основе `.env.example`.
-- Навигация `Versions & Updates` приведена к общему стилю административной панели с явными кнопками возврата, обновления, подтверждения и пагинации.
-- Все статические inline-кнопки пользовательского и административного интерфейса приведены к правилу с emoji или навигационным символом; CI проверяет новые статические кнопки на соответствие этому правилу.
-- Схема SQLite, API-контракты 3x-ui и логика подписок не изменены.
+    def test_router_registered_and_master_shows_panel_version(self):
+        self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.bot.main))
+        self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.bot.main))
+        self.assertIn('dp.include_router(fleet_router)', inspect.getsource(self.bot.main))
+        self.assertIn('get_panel_update_info', inspect.getsource(self.bot.admin_master_detail))
+        self.assertIn('3x-ui:', inspect.getsource(self.bot.admin_master_detail))
 
-## v4.9.0 — Версии и обновления
-- Добавлен общий раздел `Versions & Updates` и переходы из карточек Master и нод.
-- Добавлены явный выбор стабильного канала обновления 3x-ui и установка конкретной версии Xray.
-- Перед установкой создаётся и проверяется свежая резервная копия; используются одноразовое подтверждение с ограниченным сроком действия, сохраняемая блокировка сервера и проверка результата обновления.
-- Проверяются идентификаторы запуска обновления панели; потеря ответа не приводит к автоматической повторной отправке команды.
-- Просмотр доступен роли `Read-only`, установка — `Admin` и `Owner`; снятие блокировки при неподтверждённом результате требует явного подтверждения `Owner`.
-- Повторно используются существующие таблицы аудита и заданий; схема SQLite не изменена.
-- Введён единый `APP_VERSION`, исправлены устаревшие номера версии в манифестах резервных копий.
-- Добавлены автоматизированные тесты API, сценариев обновления и интеграции, а также проверки PR в CI с правами только на чтение.
+    def test_single_source_for_runtime_version(self):
+        from version import APP_VERSION
+        self.assertEqual(APP_VERSION, '4.19.1')
+        self.assertIn('APP_VERSION', inspect.getsource(self.bot.start))
+        self.assertIn('APP_VERSION', inspect.getsource(self.bot.create_user))
+        from system_backup import SystemBackupService
+        self.assertIn('version=APP_VERSION', inspect.getsource(SystemBackupService.create_full_backup))
 
-## v4.8.0 — Админ-панель в одном сообщении
-- Админ-панель переведена на одно обновляемое сообщение Telegram.
-- Навигация встроенными кнопками, включая Back/Refresh/Confirm, больше не засоряет чат новыми сообщениями.
-- FSM-формы возвращают пользователя в исходную панель; введённые служебные сообщения по возможности удаляются.
-- Файлы, уведомления и внешние события намеренно остаются отдельными сообщениями.
+    def test_actual_backup_manifest_version(self):
+        from backup_manager import BackupManager
+        from version import APP_VERSION
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            db_path = root / 'bot.sqlite3'
+            with sqlite3.connect(db_path) as connection:
+                connection.execute('CREATE TABLE sample(id INTEGER PRIMARY KEY)')
+            manager = BackupManager(str(db_path), str(root / 'backups'))
+            manager.sources_root = root / 'sources'
+            result = manager.create_full_backup()
+            with tarfile.open(result.info.path) as archive:
+                manifest = json.load(archive.extractfile('manifest.json'))
+            self.assertEqual(manifest['version'], APP_VERSION)
 
-## v4.7.0 — Аварийное восстановление
-- Добавлен защищённый сценарий восстановления для `bot.sqlite3`, базы 3x-ui на Master и баз нод.
-- Добавлены предварительная проверка без применения изменений, SQLite `quick_check`, аварийные копии текущего состояния и двойное подтверждение.
-- Восстановление базы бота выполняется на этапе начальной загрузки до запуска основного процесса.
-- `bot.env` и конфигурация nginx доступны для извлечения, но не восстанавливаются автоматически.
+    async def test_audit_and_job_records(self):
+        await self.updates.db.init()
+        from version_service import Operation
+        now = __import__('time').time()
+        op = Operation('0123456789abcdef', 'm', 1, 10, 20, 'xray', '25.8.1', 'v25.9.15', 'fingerprint', now, now + 300)
+        await self.updates.record_operation(op, 'prepared')
+        await self.updates.record_operation(op, 'started')
+        op.actual = op.desired
+        op.xray_state = 'running'
+        await self.updates.record_operation(op, 'success')
+        job = await self.updates.db.last_job_run('xray.install')
+        self.assertEqual(job.status, 'success')
+        actions = [row.action for row in await self.updates.db.list_audit(limit=10)]
+        self.assertIn('xray.install.success', actions)
 
-## v4.6.0 — Журналы и уведомления
-- Добавлен централизованный просмотр журналов бота, 3x-ui, Xray, AmneziaWG и nginx.
-- Добавлены фильтры `ALL`/`WARN+`/`ERROR` и ограничение количества последних строк.
-- Добавлены правила уведомлений: недоступность Master/Xray/ноды, ошибка задания, превышение порога использования диска и устаревшая резервная копия.
-- Добавлены уведомления о восстановлении, интервалы между повторными оповещениями и маскирование чувствительных данных в журналах.
+    async def test_missing_direct_token_not_bypassed(self):
+        from types import SimpleNamespace
+        from version_service import UpdateError
+        node = SimpleNamespace(name='Finland', transitive=False, enable=True, status='online')
+        with patch.object(self.updates.xui, 'node_get', new=AsyncMock(return_value=node)):
+            with self.assertRaises(UpdateError):
+                await self.updates.resolve_target('n2')
 
-## v4.5.0 — Механизм назначения ресурсов пользователям
-- Связана цепочка `Plan → Server Group → Nodes → Inbounds → User`.
-- Для Server Group добавлена политика назначения ресурсов: все управляемые inbound'ы или выбранный набор.
-- Добавлены предварительный просмотр и оценка расхождений для пользователя, безопасное согласование `Safe reconcile` и строгое согласование `Strict reconcile`.
-- Добавлено массовое согласование пользователей с учётом их политик.
-- Тариф по умолчанию может управлять `/create`; прежний пробный режим сохраняется как резервный вариант.
+    async def test_transitive_node_read_only(self):
+        from types import SimpleNamespace
+        from version_service import UpdateError
+        with patch.object(self.updates.xui, 'node_get', new=AsyncMock(return_value=SimpleNamespace(transitive=True))):
+            with self.assertRaises(UpdateError):
+                await self.updates.resolve_target('n2')
 
-## v4.4.0 — Расширенное управление нодами
-- Расширена карточка ноды: состояние, версии, ресурсы, задержка ответа API, inbound'ы и активные подключения.
-- Добавлены проверка соединения и повторная проверка, режим обслуживания, переименование, резервное копирование отдельной ноды и перезапуск Xray.
-- Добавлены штатное обновление 3x-ui и безопасное удаление ноды с проверками.
+    async def test_partial_master_backup_blocks_update(self):
+        from types import SimpleNamespace
+        from version_service import UpdateError
+        target = self.updates._target('m', 'Master', self.updates.xui)
+        with patch.object(self.updates.system_backup, 'create_full_backup', new=AsyncMock(return_value=SimpleNamespace(missing=('x-ui.db',)))):
+            with self.assertRaises(UpdateError):
+                await self.updates.create_update_backup(target, '0123456789abcdef')
 
-## v4.3.0 — Расширенное управление inbound'ами
-- Добавлены карточки inbound'ов и список клиентов.
-- Добавлены безопасное редактирование, включение/отключение, синхронизация, сброс трафика и клонирование.
-- Добавлены шаблоны inbound'ов и их развёртывание на Master и нодах.
-- Приватные ключи не выводятся в интерфейсе Telegram.
 
-## v4.2.0 — Расширенное управление пользователями
-- Добавлено управление сроком действия, трафиком, лимитом IP, тарифом, группой серверов и заметкой пользователя.
-- Добавлены управление inbound'ами пользователя, сброс трафика и смена идентификатора подписки.
-- Добавлены массовые действия над пользователями.
-- Добавлена таблица `user_profiles` без изменения существующей `users`.
-
-## v4.1.0 — Платежи и администрирование
-- Добавлены внутренний реестр платежей `Payments` и каталог промокодов `Promo Codes`.
-- Добавлены администраторы с ролями `Owner` / `Administrator` / `Support` / `Read-only`.
-- `ADMIN_TELEGRAM_IDS` остаются защищёнными владельцами `Owner`.
-- Добавлены безопасные настройки времени выполнения для параметров пробного доступа и валюты по умолчанию.
-
-## v4.0.0 — Мониторинг, задания и аудит
-- Добавлены разделы `Monitoring → Traffic` и `Online`.
-- Добавлены разделы `System → Jobs` и `Audit Log`.
-- Добавлены общая блокировка заданий резервного копирования и журналирование действий администраторов.
-- Главная страница `Dashboard` дополнена сводкой мониторинга и состояния системы.
-
-## v3.9.0 — Тарифы, группы серверов и адреса
-- Добавлены тарифы `Plans` со сроком действия, объёмом трафика, лимитом IP, ценой и статусом.
-- Добавлены группы `Server Groups` и привязка серверов.
-- Добавлены реестр `Hosts` и обнаружение используемых адресов.
-
-## v3.8.0 — Основа рабочей админ-панели
-- Админка реорганизована в `Dashboard` / `Users` / `Subscriptions` / `Payments` / `Plans` / `Promo Codes` / `Infrastructure` / `Monitoring` / `System`.
-- Существующая бизнес-логика сохранена; изменён в основном навигационный слой.
-- Добавлены рабочая сводка `Dashboard` и отдельный раздел подписок `Subscriptions`.
-
-## v3.7.2 — Добавление нод из Telegram
-- Добавлен мастер `➕ Добавить ноду` через Telegram.
-- Добавлены проверка соединения, выбор режима проверки TLS и вызовы штатного API нод 3x-ui.
-- Текст пустого списка нод сделан нейтральным.
-
-## v3.7.1 — Карточка Master
-- Master отображается первой полноценной карточкой в разделе `Nodes`.
-- Master учитывается в общем числе серверов и доступных серверов и открывается как отдельная карточка состояния.
-
-## v3.7.0 — Основа работы с несколькими нодами
-- Добавлена интеграция со штатным API 3x-ui для управления несколькими нодами.
-- Добавлены отображение нод в `System Health` и подготовка резервного копирования их баз данных.
-- Заложена основа для первой внешней ноды.
-
-## v3.6.0 — Резервное копирование
-- Добавлен раздел `Backups` в `/admin`.
-- Добавлены ручные и ежедневные резервные копии с ограничением числа хранимых архивов.
-- Полный архив включает базу бота, базу 3x-ui, `.env`, Compose и nginx при их доступности.
-- Добавлен `.dockerignore`, чтобы секреты и рабочие данные не попадали в контекст сборки образа.
-
-## v3.5.5 — Состояние сервера и ограничение журналов Docker
-- В админку добавлен раздел `Состояние сервера`.
-- Добавлены показатели диска, оперативной памяти, времени работы и проверки доступности.
-- Журналы Docker `json-file` ограничены размером `10m × 3`.
-
-## v3.5.4 — Совместимость Shadowrocket с XHTTP
-- Для Shadowrocket в машинном формате подписки удаляется `fp` только у `VLESS + XHTTP + Reality`.
-- INCY и TCP Reality сохраняют прежнее поведение.
-- Клиент определяется по `User-Agent`.
-
-## v3.5.3 — Синхронизация VLESS XTLS flow
-- Добавлены настройка `VLESS_FLOW` и синхронизация `flow` для VLESS-клиентов там, где это применимо.
-
-## v3.5.2 — Штатное отображение AmneziaWG на странице 3x-ui
-- HTML-режим прокси совместимости больше не переписывает `vpn://` внутри страницы 3x-ui.
-- Машинный формат подписки продолжает преобразование в `amneziawg://` для совместимых клиентов.
-
-## v3.5.1 — Ресурсы страницы 3x-ui
-- Исправлено проксирование ресурсов встроенной страницы подписки 3x-ui через `/compat/`.
-
-## v3.5 — Штатная страница 3x-ui и совместимая подписка
-- Режим для браузера сохраняет штатную HTML-страницу 3x-ui.
-- Режим для VPN-клиента выдаёт подписку с преобразованиями для совместимости.
-
-## v3.4 — Прокси подписок AmneziaWG для INCY
-- Добавлен прокси совместимости поверх штатной подписки 3x-ui.
-- В машинном формате подписки `vpn://` преобразуется в `amneziawg://`.
-
-## v3.3 — Массовая синхронизация inbound'ов
-- Добавлена массовая синхронизация пользователей с разрешёнными inbound'ами.
-
-## v3.2 — Синхронизация inbound'ов отдельного пользователя
-- Добавлена синхронизация разрешённых inbound'ов для отдельного пользователя.
-
-## v3.1 — Имена клиентов на основе имени пользователя
-- Поля `email`/`remark` клиента 3x-ui для новых пользователей формируются из имени пользователя Telegram; при его отсутствии используется Telegram ID.
-
-## v3 — Админ-панель в Telegram
-- Добавлена Telegram-админка: пользователи, статистика, карточка пользователя, продление, включение/отключение и удаление.
-- SQLite остаётся базой связей и бизнес-данных, а 3x-ui — источником учётных данных протоколов и текущего состояния.
-
-## v2 — Фильтрация inbound'ов и настройка API для одного сервера
-- Добавлены фильтры разрешённых портов и протоколов, а также исключения для служебных inbound'ов и API.
-- Уточнена работа назначения ресурсов на одном сервере через API 3x-ui.
-
-## v1.0.0 — Первый исторический снимок
-- Первый сохранённый тестовый бот для одного сервера.
-- Базовые команды `/start`, `/inbounds`, `/create`, `/subscription`.
-- Python + aiogram + aiohttp + aiosqlite + Docker Compose.
+if __name__ == '__main__':
+    unittest.main()
