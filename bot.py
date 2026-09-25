@@ -26,6 +26,7 @@ from advanced_nodes import advanced_nodes_router
 from host_control_ui import host_control_router, recover_control_jobs
 from fleet_operations import fleet_router, recover_fleet_operations
 from admin_auth import authorize_callback, get_admin_role
+from inbound_policy import is_managed_inbound as inbound_is_managed
 from audit import audit_from_call, audit_system
 from runtime_jobs import backup_lock
 from provisioning import ProvisioningEngine
@@ -84,18 +85,7 @@ async def guard_admin_call(call: CallbackQuery) -> bool:
     return ok
 
 def is_managed_inbound(i) -> bool:
-    exact_ids = set(settings.inbound_ids)
-    if i.protocol in set(settings.ignored_protocols):
-        return False
-    if i.tag.lower() in set(settings.ignored_tags) or i.tag.lower().startswith("api"):
-        return False
-    if exact_ids and i.id not in exact_ids:
-        return False
-    if settings.allowed_ports and i.port not in set(settings.allowed_ports):
-        return False
-    if settings.allowed_protocols and i.protocol not in set(settings.allowed_protocols):
-        return False
-    return True
+    return inbound_is_managed(settings, i)
 
 def choose_inbounds(inbounds):
     return [i for i in inbounds if i.enable and is_managed_inbound(i)]
