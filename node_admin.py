@@ -49,6 +49,12 @@ async def _guard_admin_call(call: CallbackQuery) -> bool:
     return ok
 
 
+def nodes_back() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")
+    ]])
+
+
 def nodes_menu(nodes: list[NodeInfo], master_online: bool = True) -> InlineKeyboardMarkup:
     return nodes_menu_view(
         nodes,
@@ -264,7 +270,7 @@ async def _node_add_test_and_show(
         await render_callback(
             call,
             "Сессия добавления ноды истекла. Начни добавление заново.",
-            reply_markup=admin_menu(),
+            reply_markup=nodes_back(),
         )
         return
     if tls_mode:
@@ -406,7 +412,7 @@ async def admin_node_add_cancel(call: CallbackQuery, state: FSMContext):
     await render_callback(
         call,
         "Добавление ноды отменено.",
-        reply_markup=admin_menu(),
+        reply_markup=nodes_back(),
     )
 
 
@@ -480,7 +486,7 @@ async def admin_node_detail(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Нода недоступна: {exc}",
-            reply_markup=admin_menu(),
+            reply_markup=nodes_back(),
         )
         return
 
