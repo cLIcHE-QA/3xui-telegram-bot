@@ -49,13 +49,22 @@ class AddHostStates(StatesGroup):
 
 
 HOST_ROLE_LABELS = {
-    "panel": "🖥 Panel",
-    "subscription": "🔗 Subscription",
-    "subscription-upstream": "🔐 Subscription upstream",
+    "panel": "🖥 Панель",
+    "subscription": "🔗 Подписка",
+    "subscription-upstream": "🔐 Источник подписки",
     "vpn": "🌐 VPN endpoint",
     "reality": "🪞 Reality/SNI",
-    "other": "📌 Other",
+    "other": "📌 Другое",
 }
+
+INBOUND_MODE_LABELS = {
+    "all_managed": "все управляемые",
+    "selected": "выбранные",
+}
+
+
+def inbound_mode_text(value: str) -> str:
+    return INBOUND_MODE_LABELS.get(value, value)
 
 
 async def guard_call(call: CallbackQuery) -> bool:
@@ -77,13 +86,13 @@ async def guard_message(message: Message, state: FSMContext) -> bool:
 
 def dashboard_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
     ])
 
 
 def infrastructure_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")],
+        [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
     ])
 
 
@@ -173,14 +182,14 @@ async def plans_list(call: CallbackQuery):
         )])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить тариф", callback_data="admin:planadd:start")],
-        [InlineKeyboardButton(text="⬅ Dashboard", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
     ]
     active = sum(1 for p in plans if p.active)
     await render_callback(call, 
-        "💎 Plans\n\n"
+        "💎 Тарифы\n\n"
         f"Тарифов: {len(plans)} · активных: {active}\n\n"
         "Тарифы участвуют в provisioning v4.5. ⭐ отмечает тариф по умолчанию для /create. "
-        "Plan задаёт лимиты, а Server Group — серверы и inbound-политику.",
+        "Тариф задаёт лимиты, а группа серверов — серверы и inbound-политику.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -202,7 +211,7 @@ async def plan_detail(call: CallbackQuery):
     group_name = await _group_name(plan.server_group_id)
     traffic = "без лимита" if plan.traffic_gb == 0 else f"{plan.traffic_gb} GB"
     ip_limit = "без лимита" if plan.ip_limit == 0 else str(plan.ip_limit)
-    status = "🟢 active" if plan.active else "⚪ disabled"
+    status = "🟢 активен" if plan.active else "⚪ отключён"
     raw_default = await db.get_runtime_setting("default_plan_id", "")
     try:
         is_default = int(raw_default or 0) == plan.id
@@ -210,7 +219,7 @@ async def plan_detail(call: CallbackQuery):
         is_default = False
     try:
         policy = await provisioner.policy_for_plan(plan)
-        target_text = f"{len(policy.desired_inbound_ids)} desired / {len(policy.actionable_inbound_ids)} available"
+        target_text = f"{len(policy.desired_inbound_ids)} целевых / {len(policy.actionable_inbound_ids)} доступно"
         policy_warn = f"\n⚠️ {'; '.join(policy.warnings[:2])}" if policy.warnings else ""
     except Exception as exc:
         target_text = "ошибка расчёта"
@@ -218,24 +227,24 @@ async def plan_detail(call: CallbackQuery):
     text = (
         f"💎 {plan.name}\n\n"
         f"Статус: {status}\n"
-        f"Default /create: {'⭐ да' if is_default else 'нет'}\n"
+        f"По умолчанию для /create: {'⭐ да' if is_default else 'нет'}\n"
         f"Срок: {plan.duration_days} дней\n"
         f"Трафик: {traffic}\n"
-        f"IP limit: {ip_limit}\n"
+        f"Лимит IP: {ip_limit}\n"
         f"Цена: {_money(plan)}\n"
-        f"Server Group: {group_name}\n"
-        f"Provisioning targets: {target_text}"
+        f"Группа серверов: {group_name}\n"
+        f"Цели согласования: {target_text}"
         f"{policy_warn}"
     )
     toggle_text = "⛔ Отключить" if plan.active else "✅ Включить"
-    default_text = "⭐ Убрать из default /create" if is_default else "⭐ Сделать default /create"
+    default_text = "⭐ Убрать из /create по умолчанию" if is_default else "⭐ Сделать тарифом /create по умолчанию"
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🗂 Выбрать Server Group", callback_data=f"admin:plan:groups:{plan.id}")],
-        [InlineKeyboardButton(text="🚀 Preview provisioning", callback_data=f"admin:plan:preview:{plan.id}")],
+        [InlineKeyboardButton(text="🗂 Выбрать группу серверов", callback_data=f"admin:plan:groups:{plan.id}")],
+        [InlineKeyboardButton(text="🚀 Предпросмотр согласования", callback_data=f"admin:plan:preview:{plan.id}")],
         [InlineKeyboardButton(text=default_text, callback_data=f"admin:plan:default:{plan.id}")],
         [InlineKeyboardButton(text=toggle_text, callback_data=f"admin:plan:toggle:{plan.id}")],
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:plan:deleteask:{plan.id}")],
-        [InlineKeyboardButton(text="⬅ Plans", callback_data="admin:plans")],
+        [InlineKeyboardButton(text="⬅ Тарифы", callback_data="admin:plans")],
     ])
     await render_callback(call, text, reply_markup=kb)
     await call.answer()
@@ -338,7 +347,7 @@ async def plan_add_price(message: Message, state: FSMContext):
         )])
     rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")])
     await render_input(message, 
-        "Выбери Server Group для тарифа.\n"
+        "Выбери группу серверов для тарифа.\n"
         "Можно оставить без группы и назначить позже.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -368,7 +377,7 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
         f"Трафик: {traffic}\n"
         f"IP limit: {ips}\n"
         f"Цена: {price_text} {data['currency']}\n"
-        f"Server Group: {group_name}",
+        f"Группа серверов: {group_name}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Создать", callback_data="admin:planadd:save")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")],
@@ -406,7 +415,7 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
         f"✅ Тариф создан: #{plan_id} · {data['name']}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть тариф", callback_data=f"admin:plan:{plan_id}")],
-            [InlineKeyboardButton(text="⬅ Plans", callback_data="admin:plans")],
+            [InlineKeyboardButton(text="⬅ Тарифы", callback_data="admin:plans")],
         ]),
     )
     await call.answer()
@@ -440,7 +449,7 @@ async def plan_toggle(call: CallbackQuery):
         "✅ Статус тарифа обновлён.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть тариф", callback_data=f"admin:plan:{plan_id}")],
-            [InlineKeyboardButton(text="⬅ Plans", callback_data="admin:plans")],
+            [InlineKeyboardButton(text="⬅ Тарифы", callback_data="admin:plans")],
         ]),
     )
     await call.answer()
@@ -466,7 +475,7 @@ async def plan_group_select(call: CallbackQuery):
         )])
     rows.append([InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")])
     await render_callback(call, 
-        "Выбери Server Group для тарифа:",
+        "Выбери группу серверов для тарифа:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -488,11 +497,11 @@ async def plan_set_group(call: CallbackQuery):
         db, call, "plan.set_group", target_type="plan", target_id=str(plan_id),
         details=f"server_group_id={group_id}",
     )
-    await call.answer("Server Group сохранена.")
+    await call.answer("Группа серверов сохранена.")
     # Reuse detail rendering through a fresh synthetic callback is undesirable;
     # return a compact success card instead.
     await render_callback(call, 
-        f"✅ Server Group: {await _group_name(group_id)}",
+        f"✅ Группа серверов: {await _group_name(group_id)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")],
         ]),
@@ -516,7 +525,7 @@ async def plan_set_default(call: CallbackQuery):
     if current == plan_id:
         await db.delete_runtime_setting("default_plan_id")
         await audit_from_call(db, call, "plan.default", target_type="plan", target_id=str(plan_id), details="enabled=False")
-        await call.answer("Default /create снят.")
+        await call.answer("Тариф по умолчанию для /create снят.")
     else:
         if not plan.active:
             await call.answer("Сначала включи тариф.", show_alert=True)
@@ -524,15 +533,15 @@ async def plan_set_default(call: CallbackQuery):
         try:
             policy = await provisioner.policy_for_plan(plan)
         except Exception as exc:
-            await call.answer(f"Provisioning error: {str(exc)[:120]}", show_alert=True)
+            await call.answer(f"Ошибка согласования: {str(exc)[:120]}", show_alert=True)
             return
         if plan.server_group_id and not policy.desired_inbound_ids:
-            await call.answer("У Server Group нет provisioning inbound'ов.", show_alert=True)
+            await call.answer("У группы серверов нет inbound'ов для согласования.", show_alert=True)
             return
         await db.set_runtime_setting("default_plan_id", str(plan_id), updated_by=call.from_user.id if call.from_user else 0)
         await audit_from_call(db, call, "plan.default", target_type="plan", target_id=str(plan_id), details="enabled=True")
-        await call.answer("⭐ Default /create установлен.")
-    await render_callback(call, "Статус default обновлён.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
+        await call.answer("⭐ Тариф по умолчанию для /create установлен.")
+    await render_callback(call, "Статус тарифа по умолчанию обновлён.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
 
 
 @catalog_router.callback_query(F.data.startswith("admin:plan:preview:"))
@@ -547,28 +556,28 @@ async def plan_preview(call: CallbackQuery):
     try:
         policy = await provisioner.policy_for_plan(plan)
         lines = [
-            f"🚀 Provisioning preview · {plan.name}",
+            f"🚀 Предпросмотр согласования · {plan.name}",
             "",
-            f"Server Group: {policy.group.name if policy.group else 'legacy all-managed'}",
-            f"Mode: {policy.inbound_mode}",
-            f"Desired: {len(policy.desired_inbound_ids)}",
-            f"Available now: {len(policy.actionable_inbound_ids)}",
+            f"Группа серверов: {policy.group.name if policy.group else 'legacy all-managed'}",
+            f"Режим: {inbound_mode_text(policy.inbound_mode)}",
+            f"Целевых inbound'ов: {len(policy.desired_inbound_ids)}",
+            f"Доступно сейчас: {len(policy.actionable_inbound_ids)}",
         ]
         if policy.unavailable_members:
-            lines.append(f"Unavailable: {', '.join(policy.unavailable_members)}")
+            lines.append(f"Недоступны: {', '.join(policy.unavailable_members)}")
         if policy.desired_inbound_ids:
-            lines += ["", "Targets:"]
+            lines += ["", "Цели:"]
             for iid in policy.desired_inbound_ids[:30]:
                 ib = policy.inbounds.get(iid)
                 if ib:
-                    server = settings.master_name if ib.node_id is None else policy.nodes.get(ib.node_id).name if policy.nodes.get(ib.node_id) else f"Node #{ib.node_id}"
+                    server = settings.master_name if ib.node_id is None else policy.nodes.get(ib.node_id).name if policy.nodes.get(ib.node_id) else f"Нода #{ib.node_id}"
                     marker = "✅" if iid in policy.actionable_inbound_ids else "⏸"
                     lines.append(f"{marker} #{iid} · {server} · {ib.port}/{ib.protocol} · {ib.remark}")
         if policy.warnings:
-            lines += ["", "Warnings:"] + [f"⚠️ {w}" for w in policy.warnings]
+            lines += ["", "Предупреждения:"] + [f"⚠️ {w}" for w in policy.warnings]
         await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
     except Exception as exc:
-        await render_callback(call, f"🔴 Provisioning preview: {type(exc).__name__}: {exc}")
+        await render_callback(call, f"🔴 Предпросмотр согласования: {type(exc).__name__}: {exc}")
     await call.answer()
 
 
@@ -628,12 +637,12 @@ async def server_groups_list(call: CallbackQuery):
         )])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить группу", callback_data="admin:servergroupadd:start")],
-        [InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")],
+        [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
     ]
     await render_callback(call, 
-        "🗂 Server Groups\n\n"
+        "🗂 Группы серверов\n\n"
         f"Групп: {len(groups)}\n\n"
-        "Группа объединяет Master и/или ноды и задаёт provisioning scope. "
+        "Группа объединяет Master и/или ноды и задаёт область согласования. "
         "Для каждой группы можно использовать все managed inbound'ы или выбрать конкретные.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -647,7 +656,7 @@ async def server_group_add_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.set_state(AddServerGroupStates.name)
     await render_callback(call, 
-        "🗂 Новая Server Group · 1/2\n\nНазвание, например Europe или Premium:",
+        "🗂 Новая группа серверов · 1/2\n\nНазвание, например Europe или Premium:",
         reply_markup=cancel_keyboard("admin:servergroupadd:cancel"),
     )
     await call.answer()
@@ -663,7 +672,7 @@ async def server_group_add_name(message: Message, state: FSMContext):
         return
     await state.update_data(name=name)
     await state.set_state(AddServerGroupStates.description)
-    await render_input(message, "🗂 Новая Server Group · 2/2\n\nОписание или «-», если не нужно:")
+    await render_input(message, "🗂 Новая группа серверов · 2/2\n\nОписание или «-», если не нужно:")
 
 
 @catalog_router.message(AddServerGroupStates.description)
@@ -689,10 +698,10 @@ async def server_group_add_description(message: Message, state: FSMContext):
     )
     await state.clear()
     await render_input(message, 
-        f"✅ Server Group создана: #{group_id} · {data['name']}\n\nТеперь выбери серверы в карточке группы.",
+        f"✅ Группа серверов создана: #{group_id} · {data['name']}\n\nТеперь выбери серверы в карточке группы.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть группу", callback_data=f"admin:servergroup:{group_id}")],
-            [InlineKeyboardButton(text="⬅ Server Groups", callback_data="admin:servergroups")],
+            [InlineKeyboardButton(text="⬅ Группы серверов", callback_data="admin:servergroups")],
         ]),
     )
 
@@ -702,7 +711,7 @@ async def server_group_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await render_callback(call, "Создание Server Group отменено.", reply_markup=infrastructure_back())
+    await render_callback(call, "Создание группы серверов отменено.", reply_markup=infrastructure_back())
     await call.answer()
 
 
@@ -733,7 +742,7 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
         f"Серверов в группе: {len(members)}",
     ]
     if selected:
-        lines += ["", "Members:"] + [f"• {name}" for name in selected]
+        lines += ["", "Участники:"] + [f"• {name}" for name in selected]
     if nodes_error:
         lines += ["", f"⚠️ Nodes API: {nodes_error}"]
     mode = await db.get_server_group_inbound_mode(group.id)
@@ -763,9 +772,9 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
             callback_data=f"admin:servergroup:toggle:{group.id}:{stale_key}",
         )])
     rows += [
-        [InlineKeyboardButton(text="📡 Provisioning inbounds", callback_data=f"admin:servergroup:inbounds:{group.id}")],
+        [InlineKeyboardButton(text="📡 Inbound'ы согласования", callback_data=f"admin:servergroup:inbounds:{group.id}")],
         [InlineKeyboardButton(text="🗑 Удалить группу", callback_data=f"admin:servergroup:deleteask:{group.id}")],
-        [InlineKeyboardButton(text="⬅ Server Groups", callback_data="admin:servergroups")],
+        [InlineKeyboardButton(text="⬅ Группы серверов", callback_data="admin:servergroups")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -831,23 +840,23 @@ async def server_group_inbounds(call: CallbackQuery):
         nodes = {}
     rows: list[list[InlineKeyboardButton]] = []
     if mode == "all_managed":
-        rows.append([InlineKeyboardButton(text="✅ Mode: ALL managed", callback_data=f"admin:servergroup:inboundmode:{group_id}:selected")])
+        rows.append([InlineKeyboardButton(text="✅ Режим: все управляемые", callback_data=f"admin:servergroup:inboundmode:{group_id}:selected")])
     else:
-        rows.append([InlineKeyboardButton(text="🎯 Mode: SELECTED", callback_data=f"admin:servergroup:inboundmode:{group_id}:all_managed")])
+        rows.append([InlineKeyboardButton(text="🎯 Режим: выбранные", callback_data=f"admin:servergroup:inboundmode:{group_id}:all_managed")])
         for ib in options[:50]:
-            server = settings.master_name if ib.node_id is None else nodes.get(ib.node_id).name if nodes.get(ib.node_id) else f"Node #{ib.node_id}"
+            server = settings.master_name if ib.node_id is None else nodes.get(ib.node_id).name if nodes.get(ib.node_id) else f"Нода #{ib.node_id}"
             rows.append([InlineKeyboardButton(
                 text=f"{'✅' if ib.id in selected else '⬜'} #{ib.id} · {server} · {ib.port}/{ib.protocol}",
                 callback_data=f"admin:servergroup:ibtoggle:{group_id}:{ib.id}",
             )])
-    rows.append([InlineKeyboardButton(text="⬅ Server Group", callback_data=f"admin:servergroup:{group_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Группа серверов", callback_data=f"admin:servergroup:{group_id}")])
     text = (
-        f"📡 Provisioning inbounds · {group.name}\n\n"
-        f"Mode: {mode}\n"
-        f"Member servers: {len(members)}\n"
-        f"Available managed inbounds: {len(options)}\n\n"
-        "ALL managed автоматически включает все разрешённые .env inbound'ы на серверах группы. "
-        "SELECTED позволяет зафиксировать конкретный набор."
+        f"📡 Inbound'ы согласования · {group.name}\n\n"
+        f"Режим: {inbound_mode_text(mode)}\n"
+        f"Серверов-участников: {len(members)}\n"
+        f"Доступных управляемых inbound'ов: {len(options)}\n\n"
+        "Режим «все управляемые» автоматически включает все разрешённые .env inbound'ы на серверах группы. "
+        "Режим «выбранные» позволяет зафиксировать конкретный набор."
     )
     await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
@@ -861,7 +870,7 @@ async def server_group_inbound_mode(call: CallbackQuery):
     group_id = int(parts[-2])
     mode = parts[-1]
     if mode not in {"all_managed", "selected"}:
-        await call.answer("Некорректный mode.", show_alert=True)
+        await call.answer("Некорректный режим.", show_alert=True)
         return
     if mode == "selected":
         members = await db.list_server_group_members(group_id)
@@ -873,8 +882,8 @@ async def server_group_inbound_mode(call: CallbackQuery):
         await db.replace_server_group_inbounds(group_id, {i.id for i in options})
     await db.set_server_group_inbound_mode(group_id, mode)
     await audit_from_call(db, call, "server_group.inbound_mode", target_type="server_group", target_id=str(group_id), details=f"mode={mode}")
-    await call.answer("Inbound policy обновлена.")
-    await render_callback(call, "Открой provisioning inbounds ещё раз для настройки.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Provisioning inbounds", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
+    await call.answer("Политика inbound'ов обновлена.")
+    await render_callback(call, "Открой inbound'ы согласования ещё раз для настройки.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Inbound'ы согласования", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
 
 
 @catalog_router.callback_query(F.data.startswith("admin:servergroup:ibtoggle:"))
@@ -884,7 +893,7 @@ async def server_group_inbound_toggle(call: CallbackQuery):
     parts = call.data.split(":")
     group_id, inbound_id = int(parts[-2]), int(parts[-1])
     if await db.get_server_group_inbound_mode(group_id) != "selected":
-        await call.answer("Сначала включи SELECTED mode.", show_alert=True)
+        await call.answer("Сначала включи режим «выбранные».", show_alert=True)
         return
     members = await db.list_server_group_members(group_id)
     try:
@@ -896,13 +905,13 @@ async def server_group_inbound_toggle(call: CallbackQuery):
         await call.answer(f"3x-ui: {str(exc)[:120]}", show_alert=True)
         return
     if inbound_id not in valid:
-        await call.answer("Inbound не входит в managed scope этой Server Group.", show_alert=True)
+        await call.answer("Inbound не входит в управляемую область этой группы серверов.", show_alert=True)
         return
     selected = await db.list_server_group_inbounds(group_id)
     enabled = inbound_id not in selected
     await db.set_server_group_inbound(group_id, inbound_id, enabled)
     await audit_from_call(db, call, "server_group.inbound", target_type="server_group", target_id=str(group_id), details=f"inbound_id={inbound_id}; enabled={enabled}")
-    await call.answer("Inbound policy обновлена.")
+    await call.answer("Политика inbound'ов обновлена.")
     await render_callback(call, "Изменение сохранено.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Продолжить", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
 
 
@@ -916,8 +925,8 @@ async def server_group_delete_ask(call: CallbackQuery):
         await call.answer("Группа не найдена.", show_alert=True)
         return
     await render_callback(call, 
-        f"Удалить Server Group «{group.name}»?\n\n"
-        "У тарифов и user profiles эта группа будет снята. Текущие привязки 3x-ui не изменятся до reconcile.",
+        f"Удалить группу серверов «{group.name}»?\n\n"
+        "У тарифов и профилей пользователей эта группа будет снята. Текущие привязки 3x-ui не изменятся до согласования.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admin:servergroup:delete:{group_id}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:servergroup:{group_id}")],
@@ -937,7 +946,7 @@ async def server_group_delete(call: CallbackQuery):
         db, call, "server_group.delete", target_type="server_group", target_id=str(group_id),
         details=f"name={group.name if group else ''}",
     )
-    await render_callback(call, "✅ Server Group удалена.", reply_markup=infrastructure_back())
+    await render_callback(call, "✅ Группа серверов удалена.", reply_markup=infrastructure_back())
     await call.answer()
 
 
@@ -960,13 +969,13 @@ async def hosts_list(call: CallbackQuery):
             callback_data=f"admin:host:{host.id}",
         )])
     rows += [
-        [InlineKeyboardButton(text="➕ Добавить host", callback_data="admin:hostadd:start")],
-        [InlineKeyboardButton(text="🔎 Найти текущие hosts", callback_data="admin:hosts:discover")],
-        [InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")],
+        [InlineKeyboardButton(text="➕ Добавить хост", callback_data="admin:hostadd:start")],
+        [InlineKeyboardButton(text="🔎 Найти текущие хосты", callback_data="admin:hosts:discover")],
+        [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
     ]
     enabled = sum(1 for h in hosts if h.enabled)
     await render_callback(call, 
-        "🌐 Hosts\n\n"
+        "🌐 Хосты\n\n"
         f"Записей: {len(hosts)} · активных: {enabled}\n\n"
         "Это централизованный реестр доменов/IP и их ролей. v3.9 не меняет DNS, nginx "
         "или 3x-ui автоматически.",
@@ -980,9 +989,9 @@ async def hosts_discover(call: CallbackQuery):
     if not await guard_call(call):
         return
     candidates = [
-        (f"{settings.master_name} panel", settings.panel_url, "panel"),
-        ("Public subscription", settings.compat_subscription_url_template, "subscription"),
-        ("3x-ui subscription upstream", settings.subscription_url_template, "subscription-upstream"),
+        (f"{settings.master_name} панель", settings.panel_url, "panel"),
+        ("Публичная подписка", settings.compat_subscription_url_template, "subscription"),
+        ("Источник подписки 3x-ui", settings.subscription_url_template, "subscription-upstream"),
     ]
     added: list[str] = []
     for label, raw, role in candidates:
@@ -998,7 +1007,7 @@ async def hosts_discover(call: CallbackQuery):
         db, call, "host.discover", target_type="hosts", target_id=str(len(added)),
         details="; ".join(added),
     )
-    text = "✅ Текущие hosts синхронизированы с реестром."
+    text = "✅ Текущие хосты синхронизированы с реестром."
     if added:
         text += "\n\n" + "\n".join(f"• {x}" for x in added)
     else:
@@ -1006,7 +1015,7 @@ async def hosts_discover(call: CallbackQuery):
     await render_callback(call, 
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅ Hosts", callback_data="admin:hosts")],
+            [InlineKeyboardButton(text="⬅ Хосты", callback_data="admin:hosts")],
         ]),
     )
     await call.answer()
@@ -1019,7 +1028,7 @@ async def host_add_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.set_state(AddHostStates.label)
     await render_callback(call, 
-        "🌐 Новый host · 1/3\n\nНазвание, например Public Subscription или NL VPN:",
+        "🌐 Новый хост · 1/3\n\nНазвание, например Публичная подписка или NL VPN:",
         reply_markup=cancel_keyboard("admin:hostadd:cancel"),
     )
     await call.answer()
@@ -1036,7 +1045,7 @@ async def host_add_label(message: Message, state: FSMContext):
     await state.update_data(label=label)
     await state.set_state(AddHostStates.hostname)
     await render_input(message, 
-        "🌐 Новый host · 2/3\n\nHostname, IP или URL. Например:\nsub.example.com\nhttps://panel.example.com/basepath"
+        "🌐 Новый хост · 2/3\n\nHostname, IP или URL. Например:\nsub.example.com\nhttps://panel.example.com/basepath"
     )
 
 
@@ -1059,7 +1068,7 @@ async def host_add_hostname(message: Message, state: FSMContext):
         )])
     rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:hostadd:cancel")])
     await render_input(message, 
-        "🌐 Новый host · 3/3\n\nВыбери роль:",
+        "🌐 Новый хост · 3/3\n\nВыбери роль:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
 
@@ -1089,10 +1098,10 @@ async def host_add_role(call: CallbackQuery, state: FSMContext):
     )
     await state.clear()
     await render_callback(call, 
-        f"✅ Host добавлен: {data['hostname']} · {HOST_ROLE_LABELS[role]}",
+        f"✅ Хост добавлен: {data['hostname']} · {HOST_ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔎 Открыть host", callback_data=f"admin:host:{host_id}")],
-            [InlineKeyboardButton(text="⬅ Hosts", callback_data="admin:hosts")],
+            [InlineKeyboardButton(text="🔎 Открыть хост", callback_data=f"admin:host:{host_id}")],
+            [InlineKeyboardButton(text="⬅ Хосты", callback_data="admin:hosts")],
         ]),
     )
     await call.answer()
@@ -1103,7 +1112,7 @@ async def host_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await render_callback(call, "Добавление host отменено.", reply_markup=infrastructure_back())
+    await render_callback(call, "Добавление хоста отменено.", reply_markup=infrastructure_back())
     await call.answer()
 
 
@@ -1114,21 +1123,21 @@ async def host_detail(call: CallbackQuery):
     host_id = int(call.data.rsplit(":", 1)[-1])
     host = await db.get_host(host_id)
     if not host:
-        await call.answer("Host не найден.", show_alert=True)
+        await call.answer("Хост не найден.", show_alert=True)
         return
     role = HOST_ROLE_LABELS.get(host.role, host.role)
     text = (
         f"🌐 {host.label}\n\n"
-        f"Host: {host.hostname}\n"
-        f"Role: {role}\n"
-        f"Status: {'🟢 enabled' if host.enabled else '⚪ disabled'}\n\n"
-        "Эта запись — metadata registry. Изменения здесь не переписывают DNS/nginx/3x-ui."
+        f"Хост: {host.hostname}\n"
+        f"Роль: {role}\n"
+        f"Статус: {'🟢 включён' if host.enabled else '⚪ отключён'}\n\n"
+        "Эта запись — реестр метаданных. Изменения здесь не переписывают DNS/nginx/3x-ui."
     )
     toggle = "⛔ Отключить" if host.enabled else "✅ Включить"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=toggle, callback_data=f"admin:host:toggle:{host.id}")],
         [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:host:deleteask:{host.id}")],
-        [InlineKeyboardButton(text="⬅ Hosts", callback_data="admin:hosts")],
+        [InlineKeyboardButton(text="⬅ Хосты", callback_data="admin:hosts")],
     ])
     await render_callback(call, text, reply_markup=kb)
     await call.answer()
@@ -1141,7 +1150,7 @@ async def host_toggle(call: CallbackQuery):
     host_id = int(call.data.rsplit(":", 1)[-1])
     host = await db.get_host(host_id)
     if not host:
-        await call.answer("Host не найден.", show_alert=True)
+        await call.answer("Хост не найден.", show_alert=True)
         return
     new_enabled = not bool(host.enabled)
     await db.set_host_enabled(host_id, new_enabled)
@@ -1149,12 +1158,12 @@ async def host_toggle(call: CallbackQuery):
         db, call, "host.toggle", target_type="host", target_id=str(host_id),
         details=f"hostname={host.hostname}; enabled={new_enabled}",
     )
-    await call.answer("Статус host обновлён.")
+    await call.answer("Статус хоста обновлён.")
     await render_callback(call, 
         "✅ Статус обновлён.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔎 Открыть host", callback_data=f"admin:host:{host_id}")],
-            [InlineKeyboardButton(text="⬅ Hosts", callback_data="admin:hosts")],
+            [InlineKeyboardButton(text="🔎 Открыть хост", callback_data=f"admin:host:{host_id}")],
+            [InlineKeyboardButton(text="⬅ Хосты", callback_data="admin:hosts")],
         ]),
     )
 
@@ -1166,7 +1175,7 @@ async def host_delete_ask(call: CallbackQuery):
     host_id = int(call.data.rsplit(":", 1)[-1])
     host = await db.get_host(host_id)
     if not host:
-        await call.answer("Host не найден.", show_alert=True)
+        await call.answer("Хост не найден.", show_alert=True)
         return
     await render_callback(call, 
         f"Удалить из реестра {host.hostname} ({HOST_ROLE_LABELS.get(host.role, host.role)})?\n\n"
@@ -1190,5 +1199,5 @@ async def host_delete(call: CallbackQuery):
         db, call, "host.delete", target_type="host", target_id=str(host_id),
         details=f"hostname={host.hostname if host else ''}",
     )
-    await render_callback(call, "✅ Host удалён из реестра.", reply_markup=infrastructure_back())
+    await render_callback(call, "✅ Хост удалён из реестра.", reply_markup=infrastructure_back())
     await call.answer()
