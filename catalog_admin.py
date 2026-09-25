@@ -86,13 +86,31 @@ async def guard_message(message: Message, state: FSMContext) -> bool:
 
 def dashboard_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ])
 
 
 def infrastructure_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
+    ])
+
+
+def plans_back() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅ Тарифы", callback_data="admin:plans")],
+    ])
+
+
+def server_groups_back() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅ Группы серверов", callback_data="admin:servergroups")],
+    ])
+
+
+def hosts_back() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⬅ Хосты", callback_data="admin:hosts")],
     ])
 
 
@@ -182,7 +200,7 @@ async def plans_list(call: CallbackQuery):
         )])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить тариф", callback_data="admin:planadd:start")],
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ]
     active = sum(1 for p in plans if p.active)
     await render_callback(call, 
@@ -402,7 +420,7 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
             server_group_id=data.get("server_group_id"),
         )
     except sqlite3.IntegrityError:
-        await render_callback(call, "Тариф с таким названием уже существует.", reply_markup=dashboard_back())
+        await render_callback(call, "Тариф с таким названием уже существует.", reply_markup=plans_back())
         await state.clear()
         await call.answer()
         return
@@ -426,7 +444,7 @@ async def plan_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await render_callback(call, "Создание тарифа отменено.", reply_markup=dashboard_back())
+    await render_callback(call, "Создание тарифа отменено.", reply_markup=plans_back())
     await call.answer()
 
 
@@ -614,7 +632,7 @@ async def plan_delete(call: CallbackQuery):
         db, call, "plan.delete", target_type="plan", target_id=str(plan_id),
         details=f"name={plan.name if plan else ''}",
     )
-    await render_callback(call, "✅ Тариф удалён из каталога.", reply_markup=dashboard_back())
+    await render_callback(call, "✅ Тариф удалён из каталога.", reply_markup=plans_back())
     await call.answer()
 
 
@@ -689,7 +707,7 @@ async def server_group_add_description(message: Message, state: FSMContext):
     try:
         group_id = await db.create_server_group(name=str(data["name"]), description=description)
     except sqlite3.IntegrityError:
-        await render_input(message, "Группа с таким названием уже существует.", reply_markup=infrastructure_back())
+        await render_input(message, "Группа с таким названием уже существует.", reply_markup=server_groups_back())
         await state.clear()
         return
     await audit_from_message(
@@ -711,7 +729,7 @@ async def server_group_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await render_callback(call, "Создание группы серверов отменено.", reply_markup=infrastructure_back())
+    await render_callback(call, "Создание группы серверов отменено.", reply_markup=server_groups_back())
     await call.answer()
 
 
@@ -946,7 +964,7 @@ async def server_group_delete(call: CallbackQuery):
         db, call, "server_group.delete", target_type="server_group", target_id=str(group_id),
         details=f"name={group.name if group else ''}",
     )
-    await render_callback(call, "✅ Группа серверов удалена.", reply_markup=infrastructure_back())
+    await render_callback(call, "✅ Группа серверов удалена.", reply_markup=server_groups_back())
     await call.answer()
 
 
@@ -1087,7 +1105,7 @@ async def host_add_role(call: CallbackQuery, state: FSMContext):
     except sqlite3.IntegrityError:
         await render_callback(call, 
             "Такой hostname с этой ролью уже есть в реестре.",
-            reply_markup=infrastructure_back(),
+            reply_markup=hosts_back(),
         )
         await state.clear()
         await call.answer()
@@ -1112,7 +1130,7 @@ async def host_add_cancel(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.clear()
-    await render_callback(call, "Добавление хоста отменено.", reply_markup=infrastructure_back())
+    await render_callback(call, "Добавление хоста отменено.", reply_markup=hosts_back())
     await call.answer()
 
 
@@ -1199,5 +1217,5 @@ async def host_delete(call: CallbackQuery):
         db, call, "host.delete", target_type="host", target_id=str(host_id),
         details=f"hostname={host.hostname if host else ''}",
     )
-    await render_callback(call, "✅ Хост удалён из реестра.", reply_markup=infrastructure_back())
+    await render_callback(call, "✅ Хост удалён из реестра.", reply_markup=hosts_back())
     await call.answer()
