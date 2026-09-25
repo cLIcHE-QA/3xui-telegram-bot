@@ -101,7 +101,7 @@ async def guard_message(message: Message, state: FSMContext, *, minimum: str = "
 
 def dashboard_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ])
 
 
@@ -177,7 +177,7 @@ async def payments_list(call: CallbackQuery):
         )])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить платёж", callback_data="admin:paymentadd:start")],
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ]
     paid_text = ", ".join(f"{money(v, c)}" for c, v in sorted(totals.items())) or "—"
     await render_callback(call, 
@@ -457,7 +457,7 @@ async def promo_list(call: CallbackQuery):
         )])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить промокод", callback_data="admin:promoadd:start")],
-        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ]
     await render_callback(call, 
         "🎟 Промокоды\n\n"
