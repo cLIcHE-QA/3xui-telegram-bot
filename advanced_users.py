@@ -281,7 +281,7 @@ async def user_expiry_save(message: Message, state: FSMContext):
     rec = await db.get(tg_id)
     if not rec:
         await state.clear()
-        await render_input(message, "Пользователь не найден.")
+        await render_input(message, "Пользователь не найден.", reply_markup=users_back())
         return
     raw = (message.text or "").strip()
     try:
@@ -314,7 +314,7 @@ async def user_expiry_save(message: Message, state: FSMContext):
         if isinstance(exc, XUIError):
             await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
         else:
-            await render_input(message, "Формат: +30, YYYY-MM-DD или 0.")
+            await render_input(message, "Формат: +30, YYYY-MM-DD или 0.", reply_markup=cancel_edit(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:traffic:"))
@@ -356,7 +356,7 @@ async def user_traffic_save(message: Message, state: FSMContext):
             reply_markup=back_user(tg_id),
         )
     except ValueError:
-        await render_input(message, "Введи целое число GB от 0 до 1000000.")
+        await render_input(message, "Введи целое число GB от 0 до 1000000.", reply_markup=cancel_edit(tg_id))
     except XUIError as exc:
         await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
 
