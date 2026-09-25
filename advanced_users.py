@@ -924,7 +924,11 @@ async def admin_users(call: CallbackQuery):
     rows.append([InlineKeyboardButton(text="📊 Статистика пользователей", callback_data="admin:stats")])
     rows.append([InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:home")])
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
-    await render_callback(call, f"👥 Пользователи\n\nПользователи в БД бота: {len(users)}", reply_markup=kb)
+    await render_callback(
+        call,
+        "👥 Пользователи\n\n" f"Пользователи в БД бота: {len(users)}",
+        reply_markup=kb,
+    )
     await call.answer()
 
 @advanced_users_router.callback_query(F.data == "admin:provision:all:ask")
@@ -1580,14 +1584,14 @@ async def bulk_actions(call: CallbackQuery, state: FSMContext):
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="➕ +30 дней", callback_data="admin:bulk:run:extend30")],
         [
-            InlineKeyboardButton(text="✅ Enable", callback_data="admin:bulk:run:enable"),
-            InlineKeyboardButton(text="⛔ Disable", callback_data="admin:bulk:run:disable"),
+            InlineKeyboardButton(text="✅ Включить", callback_data="admin:bulk:run:enable"),
+            InlineKeyboardButton(text="⛔ Отключить", callback_data="admin:bulk:run:disable"),
         ],
         [InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data="admin:bulk:run:reset")],
-        [InlineKeyboardButton(text="📡 Sync inbounds", callback_data="admin:bulk:run:sync")],
+        [InlineKeyboardButton(text="📡 Синхронизировать inbound'ы", callback_data="admin:bulk:run:sync")],
         [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
     ])
-    await render_callback(call, f"⚙️ Bulk actions\n\nВыбрано: {len(selected)}", reply_markup=kb)
+    await render_callback(call, f"⚙️ Массовые действия\n\nВыбрано: {len(selected)}", reply_markup=kb)
     await call.answer()
 
 
@@ -1605,7 +1609,7 @@ async def bulk_close(call: CallbackQuery, state: FSMContext):
     if not await guard(call, minimum="support"):
         return
     await state.clear()
-    await render_callback(call, "Bulk selection закрыт.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+    await render_callback(call, "Выбор для массовых действий закрыт.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")]
     ]))
     await call.answer()
@@ -1643,11 +1647,11 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
         elif action == "enable":
             result = await xui.bulk_enable_clients(emails)
             details = str(result.get("obj") or {})[:1000]
-            message = "✅ Enable выполнен."
+            message = "✅ Пользователи включены."
         elif action == "disable":
             result = await xui.bulk_disable_clients(emails)
             details = str(result.get("obj") or {})[:1000]
-            message = "✅ Disable выполнен."
+            message = "✅ Пользователи отключены."
         elif action == "reset":
             result = await xui.bulk_reset_traffic(emails)
             details = str(result.get("obj") or {})[:1000]
@@ -1659,7 +1663,7 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
             if settings.vless_flow:
                 await xui.bulk_adjust_clients(emails, flow=settings.vless_flow)
             details = f"inbounds={ids_to_attach}; result={str(result.get('obj') or {})[:700]}"
-            message = "✅ Inbound sync выполнен."
+            message = "✅ Inbound'ы синхронизированы."
         else:
             await call.answer("Неизвестное действие.", show_alert=True)
             return
