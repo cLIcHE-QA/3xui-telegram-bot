@@ -280,7 +280,7 @@ async def node_backup(call: CallbackQuery):
                 f"missing={len(snapshot.missing)}"
             ),
         )
-        state = "✅ полный" if snapshot.complete else "⚠️ degraded"
+        state = "✅ полный" if snapshot.complete else "⚠️ неполный"
         missing = ""
         if snapshot.missing:
             missing = "\nОтсутствует/неполно: " + "; ".join(snapshot.missing[:4])
@@ -313,7 +313,7 @@ async def node_restart_xray_legacy(call: CallbackQuery):
     await render_callback(
         call,
         "🔄 Управление Xray перенесено в единый раздел «🧩 Управление 3x-ui». "
-        "Старый callback больше не выполняет mutation напрямую.",
+        "Старый callback больше не выполняет изменение напрямую.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🧩 Управление 3x-ui", callback_data=f"admin:hostctl:n{node_id}")],
             [InlineKeyboardButton(text="⬅ Нода", callback_data=f"admin:node:{node_id}")],
