@@ -332,5 +332,13 @@ class DeployAgentSecurityContractTests(unittest.TestCase):
         self.assertNotIn("reconcile_deploy_jobs(wait_seconds=45)", main)
 
 
+
+class RecoveryAlertCopyTests(unittest.TestCase):
+    def test_job_failed_recovery_label_is_positive(self):
+        import logs_alerts
+        self.assertEqual(logs_alerts.RULE_LABELS["job_failed"], "Background job failed")
+        self.assertEqual(logs_alerts.RECOVERY_LABELS["job_failed"], "Background job recovered")
+
+
 if __name__ == "__main__":
     unittest.main()
