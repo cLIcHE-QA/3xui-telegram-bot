@@ -88,17 +88,17 @@ Wrapper не выполняет `docker compose down`, не запускает g
 На Master создай mode-0600 файл, например:
 
 ~~~env
-NODE_ONBOARD_NAME=Finland
+NODE_ONBOARD_NAME=Edge-1
 NODE_ONBOARD_PANEL_URL=https://panel.example.com
 NODE_ONBOARD_SYNC_TOKEN=<node-sync-secret>
 NODE_ONBOARD_VERIFY_TLS=true
 ~~~
 
 ~~~bash
-chmod 600 /root/3xui-node-fi.env
+chmod 600 /root/3xui-node-node1.env
 cd /opt/3xui-bot/3xui-telegram-bot
 
-python3 scripts/onboard-node.py /root/3xui-node-fi.env --env .env
+python3 scripts/onboard-node.py /root/3xui-node-node1.env --env .env
 ~~~
 
 Без `--apply` helper выполняет только preflight через штатный 3x-ui nodes API и ничего не меняет.
@@ -106,7 +106,7 @@ python3 scripts/onboard-node.py /root/3xui-node-fi.env --env .env
 После успешного preflight:
 
 ~~~bash
-python3 scripts/onboard-node.py /root/3xui-node-fi.env --env .env --apply
+python3 scripts/onboard-node.py /root/3xui-node-node1.env --env .env --apply
 ~~~
 
 Helper:
@@ -128,9 +128,9 @@ Node-sync token, сохранённый Master 3x-ui, намеренно не ч
 Создай на Master mode-0600 файл:
 
 ~~~env
-NODE_ADMIN_ALIAS=FI
+NODE_ADMIN_ALIAS=NODE1
 NODE_ADMIN_NODE_ID=2
-NODE_ADMIN_NODE_NAME=Finland
+NODE_ADMIN_NODE_NAME=Edge-1
 NODE_ADMIN_PANEL_URL=https://panel.example.com
 NODE_ADMIN_API_TOKEN=<dedicated-admin-secret>
 NODE_ADMIN_VERIFY_TLS=true
@@ -139,19 +139,19 @@ NODE_ADMIN_VERIFY_TLS=true
 Проверка без изменений:
 
 ~~~bash
-python3 scripts/import-node-admin-target.py   /root/3xui-node-admin-fi.env   --env .env   --check-only
+python3 scripts/import-node-admin-target.py   /root/3xui-node-admin-node1.env   --env .env   --check-only
 ~~~
 
 Импорт:
 
 ~~~bash
-python3 scripts/import-node-admin-target.py   /root/3xui-node-admin-fi.env   --env .env
+python3 scripts/import-node-admin-target.py   /root/3xui-node-admin-node1.env   --env .env
 ~~~
 
-Helper добавляет/обновляет `NODE_BACKUP_FI_*`, включая:
+Helper добавляет/обновляет `NODE_BACKUP_NODE1_*`, включая:
 
 ~~~env
-NODE_BACKUP_FI_NODE_ID=2
+NODE_BACKUP_NODE1_NODE_ID=2
 ~~~
 
 и делает mode-0600 backup предыдущего `.env`.
@@ -163,26 +163,26 @@ NODE_BACKUP_FI_NODE_ID=2
 Проверка:
 
 ~~~bash
-python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-fi.env   --env .env   --node-id 2   --check-only
+python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-node1.env   --env .env   --node-id 2   --check-only
 ~~~
 
 Импорт и единственный recreate bot:
 
 ~~~bash
-python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-fi.env   --env .env   --node-id 2   --recreate-bot
+python3 scripts/import-host-control-enrollment.py   /root/3xui-host-control-node1.env   --env .env   --node-id 2   --recreate-bot
 ~~~
 
 Итоговая Host Control binding содержит:
 
 ~~~env
-HOST_CONTROL_FI_NODE_ID=2
+HOST_CONTROL_NODE1_NODE_ID=2
 ~~~
 
 ## 5. Проверь Telegram Readiness
 
 Открой:
 
-`Infrastructure → Nodes → <node> → 🧭 Readiness`
+`Инфраструктура → Ноды → <node> → 🧭 Готовность`
 
 Экран проверяет без mutation:
 
