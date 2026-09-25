@@ -233,7 +233,6 @@ async def inbound_list_view() -> tuple[str, InlineKeyboardMarkup]:
         )])
     rows += [
         [InlineKeyboardButton(text="🧩 Шаблоны", callback_data="admin:inboundtemplates")],
-        [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
         [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
