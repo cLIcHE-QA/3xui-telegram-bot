@@ -139,7 +139,7 @@ async def create_update_backup(target: Target, nonce: str) -> BackupReceipt:
                 raise UpdateError("Полная резервная копия неполная. Исправь отсутствующие компоненты перед обновлением.")
             info = await asyncio.to_thread(restore_manager.inspect_backup, result.info.path, deep=True)
             if not (info.valid and info.bot_db_ok and info.xui_db_ok and info.has_bot_env):
-                raise UpdateError("Полная резервная копия Master не прошла preflight; обновление заблокировано.")
+                raise UpdateError("Полная резервная копия Master не прошла предварительную проверку; обновление заблокировано.")
             path = root / f"pre-update-{nonce}.tar.gz"
             await asyncio.to_thread(_copy_private, result.info.path, path)
         else:
@@ -424,7 +424,7 @@ async def unlock_start(call: CallbackQuery, state: FSMContext):
     await call.answer()
     await render_callback(
         call,
-        "Сначала вручную убедись, что updater на сервере завершился. "
+        "Сначала вручную убедись, что средство обновления на сервере завершило работу. "
         "Это только снимает локальную блокировку — без повтора и без отката.\n\n"
         f"Введи точно: UNLOCK {nonce}",
         reply_markup=keyboard([[('✖ Отмена', 'admin:versions')]]),
