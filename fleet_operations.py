@@ -368,7 +368,7 @@ async def fleet_home(call: CallbackQuery, state: FSMContext):
         call,
         "🌐 Операции с нодами\n\n"
         "Массовые изменения выполняются только для direct nodes, последовательно и fail-closed. "
-        "Контролируемое обновление использует canary и останавливается при первом результате failed/unknown.",
+        "Контролируемое обновление использует canary и останавливается при первой ошибке или неизвестном результате.",
         reply_markup=_fleet_home_keyboard(),
     )
 
@@ -398,7 +398,7 @@ async def fleet_health(call: CallbackQuery):
     lines.append("")
     for item in assessments[:50]:
         lines.append(
-            f"{_health_icon(item['state'])} {item['name']} · ID {item['node_id']}\n"
+            f"{_health_icon(item['state'])} {item['name']} · {_health_state_text(str(item['state']))} · ID {item['node_id']}\n"
             f"   Master: {node_status_text(str(item['master_status']))} · Direct: "
             f"{'в сети' if item['direct_online'] else 'не в сети'} ({_binding_text(str(item['direct_binding']))}) · "
             f"Host: {_host_state_text(str(item['host_state']))} ({_binding_text(str(item['host_binding']))})"
@@ -660,7 +660,7 @@ async def rollout_home(call: CallbackQuery, state: FSMContext):
         "🚀 Контролируемое обновление\n\n"
         "Canary → явное продолжение → остальные ноды по одной. "
         "Для каждой ноды выполняются существующий update preflight и проверенная резервная копия. "
-        "При failed/unknown обновление останавливается, а проблемная нода остаётся в обслуживании.",
+        "При ошибке или неизвестном результате обновление останавливается, а проблемная нода остаётся в обслуживании.",
         reply_markup=_keyboard([
             [("⬆️ 3x-ui: последняя стабильная", "admin:fleet:ro:p")],
             [("⚡ Ядро Xray", "admin:fleet:ro:x")],
