@@ -28,10 +28,12 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         })
         cls.env.start()
         import bot
+        import advanced_users
         import system_admin
         import storage_admin
         import versions_updates
         cls.bot = bot
+        cls.users = advanced_users
         cls.system = system_admin
         cls.storage = storage_admin
         cls.updates = versions_updates
@@ -130,6 +132,26 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
             self.system.usage_line('RAM', 50, 100),
             'RAM: 50 B / 100 B (50%)',
         )
+
+    def test_legacy_user_callbacks_are_owned_by_advanced_users(self):
+        user_source = inspect.getsource(self.users)
+        bot_source = inspect.getsource(self.bot)
+        for callback in (
+            'adminuser:',
+            'adminsub:',
+            'adminsync:',
+            'adminextend:',
+            'admindisable:',
+            'adminenable:',
+            'admindelask:',
+            'admindel:',
+        ):
+            self.assertIn(callback, user_source)
+            self.assertNotIn(
+                f'F.data.startswith("{callback}")',
+                bot_source,
+            )
+        self.assertIn('inbound_is_managed(settings, i)', inspect.getsource(self.users.is_managed_inbound))
 
     def test_storage_admin_uses_shared_backup_lock(self):
         self.assertIs(self.storage.backup_lock, self.bot.backup_lock)
