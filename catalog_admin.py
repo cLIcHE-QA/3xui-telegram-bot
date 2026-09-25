@@ -188,7 +188,7 @@ async def plans_list(call: CallbackQuery):
     await render_callback(call, 
         "💎 Тарифы\n\n"
         f"Тарифов: {len(plans)} · активных: {active}\n\n"
-        "Тарифы участвуют в provisioning v4.5. ⭐ отмечает тариф по умолчанию для /create. "
+        "Тарифы участвуют в согласовании доступа v4.5. ⭐ отмечает тариф по умолчанию для /create. "
         "Тариф задаёт лимиты, а группа серверов — серверы и inbound-политику.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -375,7 +375,7 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
         f"Название: {data['name']}\n"
         f"Срок: {data['duration_days']} дней\n"
         f"Трафик: {traffic}\n"
-        f"IP limit: {ips}\n"
+        f"Лимит IP: {ips}\n"
         f"Цена: {price_text} {data['currency']}\n"
         f"Группа серверов: {group_name}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -750,7 +750,7 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
     lines += [
         "",
         f"Inbound policy: {'all managed' if mode == 'all_managed' else f'selected ({len(selected_inbounds)})'}",
-        "Изменения применяются к пользователям через safe/strict reconcile; автоматически существующих клиентов не перестраиваем.",
+        "Изменения применяются к пользователям через безопасное/строгое согласование; автоматически существующих клиентов не перестраиваем.",
     ]
 
     rows: list[list[InlineKeyboardButton]] = [[InlineKeyboardButton(
@@ -1011,7 +1011,7 @@ async def hosts_discover(call: CallbackQuery):
     if added:
         text += "\n\n" + "\n".join(f"• {x}" for x in added)
     else:
-        text += "\n\nПодходящих hosts в текущей конфигурации не найдено."
+        text += "\n\nПодходящих хостов в текущей конфигурации не найдено."
     await render_callback(call, 
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
