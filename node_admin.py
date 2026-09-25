@@ -7,7 +7,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_auth import authorize_callback, authorize_message
-from admin_navigation import admin_menu
 from admin_ui import render_callback, render_input
 from audit import audit_from_call
 from backup_manager import BackupManager
