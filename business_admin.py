@@ -282,11 +282,11 @@ async def payment_add_user(message: Message, state: FSMContext):
     try:
         tg_id = int((message.text or "").strip())
     except ValueError:
-        await render_input(message, "Нужен числовой Telegram ID.")
+        await render_input(message, "Нужен числовой Telegram ID.", reply_markup=cancel("admin:paymentadd:cancel"))
         return
     user = await db.get(tg_id)
     if not user:
-        await render_input(message, "Пользователь с таким Telegram ID не найден в БД бота.")
+        await render_input(message, "Пользователь с таким Telegram ID не найден в БД бота.", reply_markup=cancel("admin:paymentadd:cancel"))
         return
     await state.update_data(telegram_id=tg_id, email=user.email)
     plans = await db.list_plans()
@@ -324,7 +324,7 @@ async def payment_add_amount(message: Message, state: FSMContext):
     try:
         amount_minor, currency = parse_money(message.text or "", await default_currency())
     except ValueError:
-        await render_input(message, "Не понял сумму. Пример: 299 RUB или 4.99 USD")
+        await render_input(message, "Не понял сумму. Пример: 299 RUB или 4.99 USD", reply_markup=cancel("admin:paymentadd:cancel"))
         return
     await state.update_data(amount_minor=amount_minor, currency=currency)
     await state.set_state(AddPaymentStates.status)
@@ -365,7 +365,7 @@ async def payment_add_reference(message: Message, state: FSMContext):
     if ref == "-":
         ref = ""
     if len(ref) > 160:
-        await render_input(message, "Внешний ID слишком длинный (максимум 160 символов).")
+        await render_input(message, "Внешний ID слишком длинный (максимум 160 символов).", reply_markup=cancel("admin:paymentadd:cancel"))
         return
     await state.update_data(external_id=ref)
     data = await state.get_data()
@@ -517,7 +517,7 @@ async def promo_add_code(message: Message, state: FSMContext):
         return
     code = (message.text or "").strip().upper()
     if not re.fullmatch(r"[A-Z0-9_-]{3,32}", code):
-        await render_input(message, "Код: 3–32 символа, A-Z, 0-9, `_` или `-`.")
+        await render_input(message, "Код: 3–32 символа, A-Z, 0-9, `_` или `-`.", reply_markup=cancel("admin:promoadd:cancel"))
         return
     await state.update_data(code=code)
     await state.set_state(AddPromoStates.discount_type)
@@ -562,17 +562,17 @@ async def promo_add_value(message: Message, state: FSMContext):
         except ValueError:
             value = 0
         if not 1 <= value <= 100:
-            await render_input(message, "Процент должен быть от 1 до 100.")
+            await render_input(message, "Процент должен быть от 1 до 100.", reply_markup=cancel("admin:promoadd:cancel"))
             return
         await state.update_data(value=value, currency=await default_currency())
     else:
         try:
             value, currency = parse_money(message.text or "", await default_currency())
         except ValueError:
-            await render_input(message, "Не понял сумму. Пример: 100 RUB или 4.99 USD")
+            await render_input(message, "Не понял сумму. Пример: 100 RUB или 4.99 USD", reply_markup=cancel("admin:promoadd:cancel"))
             return
         if value <= 0:
-            await render_input(message, "Скидка должна быть больше нуля.")
+            await render_input(message, "Скидка должна быть больше нуля.", reply_markup=cancel("admin:promoadd:cancel"))
             return
         await state.update_data(value=value, currency=currency)
     plans = await db.list_plans()
@@ -607,7 +607,7 @@ async def promo_add_max_uses(message: Message, state: FSMContext):
     except ValueError:
         max_uses = -1
     if max_uses < 0 or max_uses > 10_000_000:
-        await render_input(message, "Нужно целое число от 0 до 10000000.")
+        await render_input(message, "Нужно целое число от 0 до 10000000.", reply_markup=cancel("admin:promoadd:cancel"))
         return
     await state.update_data(max_uses=max_uses)
     await state.set_state(AddPromoStates.expires)
@@ -629,10 +629,10 @@ async def promo_add_expires(message: Message, state: FSMContext):
             dt = datetime.strptime(raw, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
             expires_at = int(dt.timestamp())
         except ValueError:
-            await render_input(message, "Формат даты: YYYY-MM-DD или 0.")
+            await render_input(message, "Формат даты: YYYY-MM-DD или 0.", reply_markup=cancel("admin:promoadd:cancel"))
             return
         if expires_at <= int(time.time()):
-            await render_input(message, "Дата должна быть в будущем.")
+            await render_input(message, "Дата должна быть в будущем.", reply_markup=cancel("admin:promoadd:cancel"))
             return
     await state.update_data(expires_at=expires_at)
     data = await state.get_data()
@@ -888,13 +888,13 @@ async def administrator_add_id(message: Message, state: FSMContext):
     try:
         tg_id = int((message.text or "").strip())
     except ValueError:
-        await render_input(message, "Нужен числовой Telegram ID.")
+        await render_input(message, "Нужен числовой Telegram ID.", reply_markup=cancel("admin:administratoradd:cancel"))
         return
     if tg_id <= 0:
-        await render_input(message, "Telegram ID должен быть положительным.")
+        await render_input(message, "Telegram ID должен быть положительным.", reply_markup=cancel("admin:administratoradd:cancel"))
         return
     if tg_id in settings.admin_telegram_ids:
-        await render_input(message, "Этот Telegram ID уже является Owner из ADMIN_TELEGRAM_IDS (.env).")
+        await render_input(message, "Этот Telegram ID уже является Owner из ADMIN_TELEGRAM_IDS (.env).", reply_markup=cancel("admin:administratoradd:cancel"))
         return
     await state.update_data(telegram_id=tg_id)
     await state.set_state(AddAdministratorStates.role)
@@ -1109,22 +1109,22 @@ async def settings_value(message: Message, state: FSMContext):
     spec = SAFE_SETTING_SPECS.get(key)
     if not spec:
         await state.clear()
-        await render_input(message, "Настройка не найдена.")
+        await render_input(message, "Настройка не найдена.", reply_markup=system_back())
         return
     raw = (message.text or "").strip().upper() if spec[3] == "currency" else (message.text or "").strip()
     if spec[3] == "currency":
         if not re.fullmatch(r"[A-Z]{3}", raw):
-            await render_input(message, "Нужен трёхбуквенный код валюты, например RUB или USD.")
+            await render_input(message, "Нужен трёхбуквенный код валюты, например RUB или USD.", reply_markup=cancel("admin:settings:cancel"))
             return
         value = raw
     else:
         try:
             parsed = int(raw)
         except ValueError:
-            await render_input(message, "Нужно целое число.")
+            await render_input(message, "Нужно целое число.", reply_markup=cancel("admin:settings:cancel"))
             return
         if parsed < spec[1] or parsed > spec[2]:
-            await render_input(message, f"Допустимый диапазон: {spec[1]}..{spec[2]}.")
+            await render_input(message, f"Допустимый диапазон: {spec[1]}..{spec[2]}.", reply_markup=cancel("admin:settings:cancel"))
             return
         value = str(parsed)
     old = await effective_setting(key)
