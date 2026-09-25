@@ -234,7 +234,7 @@ async def inbound_list_view() -> tuple[str, InlineKeyboardMarkup]:
     rows += [
         [InlineKeyboardButton(text="🧩 Шаблоны", callback_data="admin:inboundtemplates")],
         [InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")],
-        [InlineKeyboardButton(text="⬅ Infrastructure", callback_data="admin:section:infrastructure")],
+        [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -266,7 +266,7 @@ async def _inbound_card(inbound_id: int) -> tuple[str, InlineKeyboardMarkup]:
         f"Transport: {network}",
         f"Security: {security}",
         f"Согласование: {'✅ управляется' if _managed(ib) else '⚠️ не управляется текущими фильтрами .env'}",
-        f"Clients: {len(clients)}",
+        f"Клиентов: {len(clients)}",
         f"Трафик: ↑ {_human_bytes(int(ib.get('up') or 0))} · ↓ {_human_bytes(int(ib.get('down') or 0))}",
     ]
     if network == "xhttp":
@@ -333,7 +333,7 @@ async def inbound_clients(call: CallbackQuery):
     clients = _settings(ib).get("clients") or []
     if not isinstance(clients, list):
         clients = []
-    lines = [f"👥 Clients · #{inbound_id}", "", f"Всего: {len(clients)}"]
+    lines = [f"👥 Клиенты · #{inbound_id}", "", f"Всего: {len(clients)}"]
     rows: list[list[InlineKeyboardButton]] = []
     for client in clients[:50]:
         if not isinstance(client, dict):
