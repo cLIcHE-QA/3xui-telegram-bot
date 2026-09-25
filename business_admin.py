@@ -767,19 +767,19 @@ async def administrators_list(call: CallbackQuery):
     rows = []
     for tg_id in all_ids:
         if tg_id in settings.admin_telegram_ids:
-            text = f"👑 TG {tg_id} · Owner · ENV"
+            text = f"👑 TG {tg_id} · Owner · .env"
         else:
             rec = db_admins[tg_id]
             text = f"{'🟢' if rec.enabled else '⚪'} TG {tg_id} · {ROLE_LABELS.get(rec.role, rec.role)}"
         rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:administrator:{tg_id}")])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить администратора", callback_data="admin:administratoradd:start")],
-        [InlineKeyboardButton(text="🔐 Roles & Privileges", callback_data="admin:privileges")],
+        [InlineKeyboardButton(text="🔐 Роли и права", callback_data="admin:privileges")],
         [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ]
     await render_callback(call, 
         "👮 Администраторы\n\n"
-        "ENV Owner — аварийный владелец из ADMIN_TELEGRAM_IDS; его нельзя отключить из Telegram.\n\n"
+        "Owner из .env — аварийный владелец из ADMIN_TELEGRAM_IDS; его нельзя отключить из Telegram.\n\n"
         "Роли:\n"
         "👑 Owner — полный доступ и управление администраторами\n"
         "🛡 Administrator — все рабочие операции и безопасные настройки\n"
@@ -802,10 +802,10 @@ async def roles_privileges(call: CallbackQuery):
         "owner": "👑",
     }
     lines = [
-        "🔐 Roles & Privileges",
+        "🔐 Роли и права",
         "",
-        "Четыре роли фиксированы. Каждая permission задаёт минимально допустимую роль.",
-        "Более высокая роль наследует permissions нижестоящих ролей.",
+        "Четыре роли фиксированы. Каждое право задаёт минимально допустимую роль.",
+        "Более высокая роль наследует права нижестоящих ролей.",
     ]
     for role in role_order:
         lines += ["", f"{role_icons[role]} {ROLE_LABELS[role]}"]
@@ -861,7 +861,7 @@ async def administrator_detail(call: CallbackQuery):
         f"👮 TG {tg_id}\n\n"
         f"Роль: {role_button(rec.role)}\n"
         f"Статус: {'🟢 включён' if rec.enabled else '⚪ отключён'}\n"
-        f"Added by: TG {rec.added_by or 'system'}\n"
+        f"Добавил: {f'TG {rec.added_by}' if rec.added_by else 'система'}\n"
         f"Создан: {utc_text(rec.created_at)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -894,7 +894,7 @@ async def administrator_add_id(message: Message, state: FSMContext):
         await render_input(message, "Telegram ID должен быть положительным.")
         return
     if tg_id in settings.admin_telegram_ids:
-        await render_input(message, "Этот Telegram ID уже является ENV Owner из ADMIN_TELEGRAM_IDS.")
+        await render_input(message, "Этот Telegram ID уже является Owner из ADMIN_TELEGRAM_IDS (.env).")
         return
     await state.update_data(telegram_id=tg_id)
     await state.set_state(AddAdministratorStates.role)
@@ -982,7 +982,7 @@ async def administrator_toggle(call: CallbackQuery):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
-        await call.answer("ENV Owner нельзя отключить.", show_alert=True)
+        await call.answer("Owner из .env нельзя отключить.", show_alert=True)
         return
     rec = await db.get_administrator(tg_id)
     if not rec:
@@ -1007,7 +1007,7 @@ async def administrator_delete_ask(call: CallbackQuery):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
-        await call.answer("ENV Owner нельзя удалить.", show_alert=True)
+        await call.answer("Owner из .env нельзя удалить.", show_alert=True)
         return
     await render_callback(call, 
         f"Удалить администратора TG {tg_id}?",
@@ -1025,7 +1025,7 @@ async def administrator_delete(call: CallbackQuery):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
-        await call.answer("ENV Owner нельзя удалить.", show_alert=True)
+        await call.answer("Owner из .env нельзя удалить.", show_alert=True)
         return
     await db.delete_administrator(tg_id)
     await audit_from_call(db, call, "administrator.delete", target_type="administrator", target_id=tg_id)
@@ -1061,12 +1061,12 @@ async def settings_view(call: CallbackQuery):
     ]
     await render_callback(call, 
         "🔧 Настройки\n\n"
-        "Безопасные runtime-настройки — применяются без изменения .env:\n"
+        "Безопасные настройки — применяются без изменения .env:\n"
         f"🗓 Дней пробного доступа: {values['trial_days']}\n"
         f"📦 Трафик пробного доступа: {values['trial_traffic_gb']} GB\n"
         f"📱 Лимит IP пробного доступа: {values['trial_ip_limit']}\n"
         f"💱 Валюта по умолчанию: {values['default_currency']}\n\n"
-        "Environment (read-only):\n"
+        "Окружение (только чтение):\n"
         f"💾 Резервные копии: {'включены' if settings.backup_enabled else 'выключены'}, {settings.backup_hour_utc:02d}:00 UTC, хранить {settings.backup_keep}\n"
         f"🔐 Проверка TLS: {'включена' if settings.verify_tls else 'выключена'}\n"
         f"🖥 Master: {settings.master_flag} {settings.master_name}\n\n"
