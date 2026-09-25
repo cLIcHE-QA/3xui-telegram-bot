@@ -1024,7 +1024,7 @@ async def admin_provision_all_run(call: CallbackQuery):
         duration_ms = int((time.monotonic() - started) * 1000)
         await db.finish_job_run(run_id, status="failed", duration_ms=duration_ms, details=f"{type(exc).__name__}: {exc}")
         await audit_from_call(db, call, "users.provision_all", target_type="users", details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Задание согласования завершилось ошибкой: {type(exc).__name__}: {exc}")
+        await render_callback(call, f"🔴 Задание согласования завершилось ошибкой: {type(exc).__name__}: {exc}", reply_markup=users_back())
 
 
 @advanced_users_router.callback_query(F.data == "admin:syncall:ask")
