@@ -1,6 +1,6 @@
 # v4.10.0 — безопасное развёртывание Host Control Agent
 
-Этот документ описывает production-схему для Master и direct node (например Finland).
+Этот документ описывает production-схему для Master и direct node (например Edge-1).
 
 Цель: дать Telegram-боту только узкую capability для `x-ui.service` и не превращать бот в канал доступа к VPS.
 
@@ -31,13 +31,13 @@ Agent:
 sudo scripts/install-host-control-agent.sh master
 ~~~
 
-Для Finland используется собственный host id:
+Для Edge-1 используется собственный host id:
 
 ~~~bash
 sudo scripts/install-host-control-agent.sh fi
 ~~~
 
-Не копируй token Master на Finland и наоборот.
+Не копируй token Master на Edge-1 и наоборот.
 
 ## 2. Master: bot container → host agent
 
@@ -92,7 +92,7 @@ Plain HTTP разрешён конфигом только для alias `MASTER` 
 
 Не открывай `18181` или `18182` на public interface.
 
-## 3. Finland: Master VPS → remote agent
+## 3. Пример direct node: Master VPS → remote agent
 
 Для remote node agent по-прежнему остаётся loopback-only.
 
@@ -103,7 +103,7 @@ Master VPS
    |
    | HTTPS + dedicated Bearer token
    v
-Finland reverse proxy :443
+Edge-1 reverse proxy :443
    |
    | loopback HTTP
    v
@@ -115,7 +115,7 @@ Finland reverse proxy :443
 ~~~nginx
 server {
     listen 443 ssl;
-    server_name host-control-fi.example.com;
+    server_name host-control-node1.example.com;
 
     # TLS certificate/key are configured locally and are not stored in this repo.
 
@@ -143,11 +143,11 @@ server {
 Bot config:
 
 ~~~env
-HOST_CONTROL_FI_NAME=Finland
-HOST_CONTROL_FI_HOST_ID=fi
-HOST_CONTROL_FI_URL=https://host-control-fi.example.com
-HOST_CONTROL_FI_TOKEN=<dedicated Finland host-control token>
-HOST_CONTROL_FI_VERIFY_TLS=true
+HOST_CONTROL_NODE1_NAME=Edge-1
+HOST_CONTROL_NODE1_HOST_ID=edge-1
+HOST_CONTROL_NODE1_URL=https://host-control-node1.example.com
+HOST_CONTROL_NODE1_TOKEN=<dedicated Edge-1 host-control token>
+HOST_CONTROL_NODE1_VERIFY_TLS=true
 ~~~
 
 Remote host-control target по plain HTTP конфиг бота отклоняет.
@@ -179,7 +179,7 @@ Installer генерирует token локально и сохраняет:
 
 Agent port `18181` никогда не открывается через UFW/iptables/nftables.
 
-Для Finland public HTTPS endpoint разрешается только management source Master VPS.
+Для Edge-1 public HTTPS endpoint разрешается только management source Master VPS.
 
 Для Master отдельное public firewall rule не требуется: reverse proxy слушает только Docker bridge address.
 
@@ -198,10 +198,10 @@ Agent port `18181` никогда не открывается через UFW/ipt
 7. Выполнить безопасный `Запустить сервис` при уже running состоянии — agent должен вернуть `changed=false`.
 8. Проверить `♻️ Restart Panel process`.
 9. Проверить `🔄 Restart service`.
-10. Только после успешного Master smoke test устанавливать agent на Finland.
-11. Настроить Finland HTTPS reverse proxy + source allowlist.
-12. Добавить `HOST_CONTROL_FI_*` в bot `.env`.
-13. Проверить Finland Status / Restart Panel / Restart service.
+10. Только после успешного Master smoke test устанавливать agent на Edge-1.
+11. Настроить Edge-1 HTTPS reverse proxy + source allowlist.
+12. Добавить `HOST_CONTROL_NODE1_*` в bot `.env`.
+13. Проверить Edge-1 Status / Restart Panel / Restart service.
 14. `Остановить сервис` тестировать последним и только при готовом recovery path.
 
 ## 7. Перед первым Stop service
@@ -245,9 +245,9 @@ host filesystem mount в bot container
 
 ~~~text
 /admin
-→ Infrastructure
-→ Nodes
-→ Master / Finland
+→ Инфраструктура
+→ Ноды
+→ Master / Edge-1
 → 🧩 Управление 3x-ui
 ~~~
 
@@ -259,7 +259,7 @@ host filesystem mount в bot container
 🟢 Xray Core: running
 ~~~
 
-После mutation проверь `Monitoring → Jobs` и `Audit`: записи должны содержать только operation metadata и не содержать bearer token, Authorization header или shell command.
+После mutation проверь `Мониторинг → Задания` и `Журнал аудита`: записи должны содержать только operation metadata и не содержать bearer token, Authorization header или shell command.
 
 ## 10. Rollback
 
