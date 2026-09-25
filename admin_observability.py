@@ -159,7 +159,7 @@ async def traffic_view(call: CallbackQuery):
 
     lines += [
         "",
-        "ℹ️ Это накопительные счётчики 3x-ui с момента последнего reset, не «трафик за сегодня».",
+        "ℹ️ Это накопительные счётчики 3x-ui с момента последнего сброса, не «трафик за сегодня».",
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:traffic")],
@@ -447,10 +447,10 @@ ACTION_LABELS = {
     "plan.delete": "удаление тарифа",
     "plan.default": "назначение тарифа по умолчанию",
     "server_group.inbound_mode": "изменение режима inbound'ов группы",
-    "server_group.inbound": "изменение provisioning inbound группы",
+    "server_group.inbound": "изменение inbound'ов согласования группы",
     "user.provision.safe": "безопасное согласование пользователя",
     "user.provision.strict": "строгое согласование пользователя",
-    "user.plan.provision": "применение тарифа и provisioning",
+    "user.plan.provision": "применение тарифа и согласование",
     "users.provision_all": "согласование всех пользователей",
     "server_group.create": "создание группы серверов",
     "server_group.member": "изменение участника группы",

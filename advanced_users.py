@@ -43,6 +43,26 @@ def reconcile_text(mode: str) -> str:
     return RECONCILE_LABELS.get(mode, mode)
 
 
+INBOUND_MODE_LABELS = {
+    "all_managed": "все управляемые",
+    "selected": "выбранные",
+}
+
+
+def inbound_mode_text(mode: str) -> str:
+    return INBOUND_MODE_LABELS.get(mode, mode)
+
+
+def provisioning_source_text(source: str) -> str:
+    if source == "user-profile":
+        return "профиль пользователя"
+    if source == "legacy-all-managed":
+        return "режим совместимости «все управляемые»"
+    if source.startswith("plan:"):
+        return f"тариф #{source.split(':', 1)[1]}"
+    return source
+
+
 class BulkUserStates(StatesGroup):
     selecting = State()
 
@@ -435,7 +455,7 @@ async def user_plan_menu(call: CallbackQuery):
         )])
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
     await render_callback(call, 
-        "💎 Тариф\n\nНазначение здесь — метаданные control-plane. Лимиты 3x-ui не меняются автоматически.",
+        "💎 Тариф\n\nНазначение здесь — административные метаданные. Лимиты 3x-ui не меняются автоматически.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -597,18 +617,18 @@ async def user_provisioning_card(call: CallbackQuery):
         lines = [
             f"🚀 Согласование · {rec.email}",
             "",
-            f"Источник: {policy.source}",
+            f"Источник: {provisioning_source_text(policy.source)}",
             f"Тариф: {policy.plan.name if policy.plan else 'не назначен'}",
-            f"Группа серверов: {policy.group.name if policy.group else 'legacy all-managed'}",
-            f"Режим inbound'ов: {policy.inbound_mode}",
+            f"Группа серверов: {policy.group.name if policy.group else 'режим совместимости «все управляемые»'}",
+            f"Режим inbound'ов: {inbound_mode_text(policy.inbound_mode)}",
             "",
             f"Целевые: {len(desired)} · {', '.join(map(str, sorted(desired))) if desired else 'нет'}",
             f"Текущие: {len(current)} · {', '.join(map(str, sorted(current))) if current else 'нет'}",
-            f"Missing: {len(missing)} · actionable now: {len(actionable_missing)}",
-            f"Extra managed: {len(extra)}",
+            f"Не хватает: {len(missing)} · доступно сейчас: {len(actionable_missing)}",
+            f"Лишних управляемых: {len(extra)}",
         ]
         if policy.unavailable_members:
-            lines.append(f"Unavailable nodes: {', '.join(policy.unavailable_members)}")
+            lines.append(f"Недоступные ноды: {', '.join(policy.unavailable_members)}")
         if policy.warnings:
             lines += ["", "Предупреждения:"] + [f"⚠️ {w}" for w in policy.warnings]
         rows = [
@@ -657,10 +677,10 @@ async def user_provisioning_run(call: CallbackQuery):
         )
         lines = [
             f"✅ {reconcile_text(mode)} завершено.",
-            f"Attached: {result.attached_ids or 'нет'}",
-            f"Detached: {result.detached_ids or 'нет'}",
-            f"Still missing: {result.remaining_missing_ids or 'нет'}",
-            f"Extra managed: {result.extra_ids or 'нет'}",
+            f"Подключены: {result.attached_ids or 'нет'}",
+            f"Отключены: {result.detached_ids or 'нет'}",
+            f"Всё ещё отсутствуют: {result.remaining_missing_ids or 'нет'}",
+            f"Лишние управляемые: {result.extra_ids or 'нет'}",
         ]
         if result.policy.unavailable_members:
             lines.append(f"⏸ Недоступные ноды: {', '.join(result.policy.unavailable_members)}")
@@ -926,7 +946,7 @@ async def admin_users(call: CallbackQuery):
     kb = InlineKeyboardMarkup(inline_keyboard=rows)
     await render_callback(
         call,
-        "👥 Пользователи\n\n" f"Пользователи в БД бота: {len(users)}",
+        f"👥 Пользователи\n\nПользователи в БД бота: {len(users)}",
         reply_markup=kb,
     )
     await call.answer()
@@ -942,7 +962,7 @@ async def admin_provision_all_ask(call: CallbackQuery):
         f"Пользователей: {len(users)}\n"
         "Для каждого пользователя будет рассчитан целевой набор по профилю пользователя → Тариф → Группа серверов. "
         "Будут только добавлены отсутствующие inbound'ы на доступных нодах; лишние inbound'ы не удаляются.\n\n"
-        "Legacy-пользователи без тарифа/группы сохраняют текущую all-managed policy.",
+        "Пользователи без тарифа/группы сохраняют режим совместимости «все управляемые inbound'ы».",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Запустить безопасное согласование", callback_data="admin:provision:all:run")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],

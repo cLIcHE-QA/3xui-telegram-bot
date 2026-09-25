@@ -61,7 +61,7 @@ def inbound_member_key(inbound: InboundOption) -> str:
 
 
 def inbound_label(inbound: InboundOption) -> str:
-    server = "Master" if inbound.node_id is None else f"Node #{inbound.node_id}"
+    server = "Master" if inbound.node_id is None else f"Нода #{inbound.node_id}"
     return f"#{inbound.id} · {server} · {inbound.port}/{inbound.protocol} · {inbound.remark}"
 
 
@@ -120,9 +120,9 @@ class ProvisioningEngine:
                         unavailable.append(key)
             warnings = []
             if node_error:
-                warnings.append(f"Nodes API: {node_error[:180]}")
+                warnings.append(f"API нод: {node_error[:180]}")
             if unavailable:
-                warnings.append("Недоступные ноды пропущены при safe provisioning.")
+                warnings.append("Недоступные ноды пропущены при безопасном согласовании.")
             return ProvisioningPolicy(
                 plan=plan,
                 group=None,
@@ -140,7 +140,7 @@ class ProvisioningEngine:
 
         group = await self.db.get_server_group(group_id)
         if not group:
-            raise ProvisioningError(f"Server Group #{group_id} не найдена")
+            raise ProvisioningError(f"Группа серверов #{group_id} не найдена")
         members = await self.db.list_server_group_members(group_id)
         mode = await self.db.get_server_group_inbound_mode(group_id)
         selected = await self.db.list_server_group_inbounds(group_id)
@@ -172,15 +172,15 @@ class ProvisioningEngine:
         ]
         warnings: list[str] = []
         if not members:
-            warnings.append("В Server Group не выбрано ни одного сервера.")
+            warnings.append("В группе серверов не выбрано ни одного сервера.")
         if node_error and any(k.startswith("node_") for k in members):
-            warnings.append(f"Nodes API: {node_error[:180]}")
+            warnings.append(f"API нод: {node_error[:180]}")
         if mode == "selected" and not selected:
-            warnings.append("Selected-mode включён, но inbound'ы не выбраны.")
+            warnings.append("Режим «выбранные» включён, но inbound'ы не выбраны.")
         if members and not desired_opts:
-            warnings.append("Для выбранных серверов нет подходящих provisioning inbound'ов.")
+            warnings.append("Для выбранных серверов нет подходящих inbound'ов согласования.")
         if unavailable:
-            warnings.append("Недоступные ноды будут пропущены до следующего reconcile.")
+            warnings.append("Недоступные ноды будут пропущены до следующего согласования.")
 
         return ProvisioningPolicy(
             plan=plan,
@@ -252,7 +252,7 @@ class ProvisioningEngine:
                 # Never leave a client without any inbound attachment.
                 after = (current | set(missing)) - set(detached)
                 if not after:
-                    raise ProvisioningError("Strict reconcile оставил бы клиента без inbound'ов")
+                    raise ProvisioningError("Строгое согласование оставило бы клиента без inbound'ов")
                 await self.xui.detach_client(rec.email, detached)
 
         limits_applied = False

@@ -23,6 +23,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text="⬅ Система"',
             '"успешно"',
             '"выполняется"',
+            '"ℹ️ Это накопительные счётчики 3x-ui с момента последнего сброса, не «трафик за сегодня»."',
         ):
             self.assertIn(needle, text)
         for old in (
@@ -32,6 +33,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             '"🧾 Audit Log"',
             'text="⬅ Monitoring"',
             'text="⬅ System"',
+            "последнего reset",
         ):
             self.assertNotIn(old, text)
 
@@ -186,8 +188,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text="⛔ Отключить"',
             'text="📡 Синхронизировать inbound\'ы"',
             'f"⚙️ Массовые действия\\n\\nВыбрано: {len(selected)}"',
-            '"👥 Пользователи\\n\\n"',
-            'f"Пользователи в БД бота: {len(users)}"',
+            'f"👥 Пользователи\\n\\nПользователи в БД бота: {len(users)}"',
             '"☑️ Массовые действия с пользователями\\n\\n"',
         ):
             self.assertIn(needle, users)
@@ -270,6 +271,149 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             '"🧩 Inbound Templates\\n\\n"',
         ):
             self.assertNotIn(old, inbounds)
+
+    def test_domain_residual_copy_is_localized_and_machine_values_are_stable(self):
+        users = source("advanced_users.py")
+        catalog = source("catalog_admin.py")
+        business = source("business_admin.py")
+        client = source("client_access.py")
+        provisioning = source("provisioning.py")
+        privileges = source("admin_privileges.py")
+        nodes = source("advanced_nodes.py")
+        observability = source("admin_observability.py")
+
+        for needle in (
+            "административные метаданные. Лимиты 3x-ui не меняются автоматически.",
+            'f"Не хватает: {len(missing)} · доступно сейчас: {len(actionable_missing)}"',
+            'f"Лишних управляемых: {len(extra)}"',
+            'f"Недоступные ноды: {\', \'.join(policy.unavailable_members)}"',
+            'f"Подключены: {result.attached_ids or \'нет\'}"',
+            'f"Отключены: {result.detached_ids or \'нет\'}"',
+            'f"Всё ещё отсутствуют: {result.remaining_missing_ids or \'нет\'}"',
+            '"Пользователи без тарифа/группы сохраняют режим совместимости «все управляемые inbound\'ы»."',
+        ):
+            self.assertIn(needle, users)
+        for old in (
+            "control-plane",
+            "legacy all-managed",
+            "Missing:",
+            "actionable now",
+            "Extra managed:",
+            "Unavailable nodes:",
+            "Attached:",
+            "Detached:",
+            "Still missing:",
+            "Legacy-пользователи",
+            "all-managed policy",
+        ):
+            self.assertNotIn(old, users)
+
+        for needle in (
+            'text=f"🗂 {group.name} · серверов: {len(members)}"',
+            "(не обнаружена)",
+            'f"⚠️ API нод: {nodes_error}"',
+            'f"Политика inbound\'ов: {inbound_mode_text(mode)}"',
+        ):
+            self.assertIn(needle, catalog)
+        for old in (" servers", "(not discovered)", "Nodes API:", "Inbound policy:", "managed inbound'ы"):
+            self.assertNotIn(old, catalog)
+
+        for needle in (
+            'text="🔐 Роли и права"',
+            '"🔐 Роли и права"',
+            '"Owner из .env — аварийный владелец',
+            'f"Добавил: {f\'TG {rec.added_by}\' if rec.added_by else \'система\'}\\n"',
+            '"Окружение (только чтение):\\n"',
+        ):
+            self.assertIn(needle, business)
+        for old in (
+            "Roles & Privileges",
+            "ENV Owner",
+            "Added by:",
+            "Environment (read-only):",
+            "runtime-настройки",
+        ):
+            self.assertNotIn(old, business)
+
+        for needle in (
+            '"Обзор и разделы /admin"',
+            '"Резервные копии: просмотр"',
+            '"Группы серверов: просмотр"',
+            '"Роли и права: просмотр"',
+            '"Оповещения: изменение правил"',
+            '"Аварийное восстановление"',
+            '"Совместимые административные маршруты"',
+        ):
+            self.assertIn(needle, privileges)
+        for role in ("Read-only", "Support", "Administrator", "Owner"):
+            self.assertIn(f'"{role}"', privileges)
+        for old in (
+            '"Dashboard и разделы /admin"',
+            '"Backups: просмотр"',
+            '"Plans: просмотр"',
+            '"Payments: просмотр"',
+            '"Promo Codes: просмотр"',
+            '"Roles & Privileges: просмотр"',
+            '"Runtime Settings: просмотр"',
+            '"Monitoring/Logs/Audit/Jobs: просмотр"',
+            '"Disaster Recovery"',
+            '"Legacy admin compatibility routes"',
+        ):
+            self.assertNotIn(old, privileges)
+
+        for needle in (
+            '"целевых inbound\'ов. Попроси администратора проверить "',
+            'provisioning_note = "Политика совместимости пробного доступа"',
+            'f"📡 Inbound\'ы: {\', \'.join(map(str, inbound_ids))}"',
+            '"выполнить согласование позже."',
+        ):
+            self.assertIn(needle, client)
+        for old in (
+            "target inbound'ов",
+            "Legacy-политика пробного доступа",
+            "📡 Inbounds:",
+            "выполнить reconcile позже",
+        ):
+            self.assertNotIn(old, client)
+
+        for needle in (
+            'warnings.append(f"API нод: {node_error[:180]}")',
+            '"Недоступные ноды пропущены при безопасном согласовании."',
+            'f"Группа серверов #{group_id} не найдена"',
+            '"Режим «выбранные» включён, но inbound\'ы не выбраны."',
+            '"Для выбранных серверов нет подходящих inbound\'ов согласования."',
+            '"Недоступные ноды будут пропущены до следующего согласования."',
+            '"Строгое согласование оставило бы клиента без inbound\'ов"',
+            'f"Нода #{inbound.node_id}"',
+        ):
+            self.assertIn(needle, provisioning)
+        for machine_value in ('"legacy-all-managed"', '"all_managed"', '"selected"'):
+            self.assertIn(machine_value, provisioning)
+        for old in (
+            "Nodes API:",
+            "safe provisioning",
+            "Server Group #",
+            "Selected-mode",
+            "provisioning inbound'ов",
+            "следующего reconcile",
+            "Strict reconcile",
+            'f"Node #{inbound.node_id}"',
+        ):
+            self.assertNotIn(old, provisioning)
+
+        for needle in (
+            '"цель NODE_BACKUP всё ещё привязана к имени;',
+            '"цель HOST_CONTROL всё ещё привязана к имени;',
+            '"Master специально не раскрывает сохранённый токен node-sync."',
+        ):
+            self.assertIn(needle, nodes)
+        for old in ("legacy NODE_BACKUP target", "legacy HOST_CONTROL target", "node-sync token"):
+            self.assertNotIn(old, nodes)
+
+        self.assertIn('"server_group.inbound": "изменение inbound\'ов согласования группы"', observability)
+        self.assertIn('"user.plan.provision": "применение тарифа и согласование"', observability)
+        self.assertNotIn("изменение provisioning inbound группы", observability)
+        self.assertNotIn("применение тарифа и provisioning", observability)
 
     def test_disaster_recovery_ui_is_localized_but_confirmation_contract_is_stable(self):
         text = source("disaster_recovery.py")
