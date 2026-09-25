@@ -34,7 +34,7 @@ sudo scripts/install-host-control-agent.sh master
 Для Edge-1 используется собственный host id:
 
 ~~~bash
-sudo scripts/install-host-control-agent.sh fi
+sudo scripts/install-host-control-agent.sh edge-1
 ~~~
 
 Не копируй token Master на Edge-1 и наоборот.
