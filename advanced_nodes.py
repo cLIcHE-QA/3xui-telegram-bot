@@ -240,11 +240,11 @@ async def node_rename_finish(message: Message, state: FSMContext):
     if old_name.casefold() != name.casefold():
         if backup_target is not None and backup_target.node_id is None:
             warnings.append(
-                "legacy NODE_BACKUP target всё ещё привязан к имени; добавь NODE_BACKUP_*_NODE_ID"
+                "цель NODE_BACKUP всё ещё привязана к имени; добавь NODE_BACKUP_*_NODE_ID"
             )
         if host_target is not None and host_target.node_id is None:
             warnings.append(
-                "legacy HOST_CONTROL target всё ещё привязан к имени; добавь HOST_CONTROL_*_NODE_ID"
+                "цель HOST_CONTROL всё ещё привязана к имени; добавь HOST_CONTROL_*_NODE_ID"
             )
     suffix = "\n\n⚠️ " + "; ".join(warnings) + "." if warnings else ""
     await render_input(message, f"✅ Нода переименована: {name}{suffix}", reply_markup=_back(node_id))
@@ -264,8 +264,8 @@ async def node_backup(call: CallbackQuery):
     if not system_backup.has_target_for(node.name, node.id):
         await call.answer("Цель резервной копии не настроена", show_alert=True)
         await render_callback(call, 
-            "💾 Для резервной копии этой ноды нужен отдельный admin-scope API token в NODE_BACKUP_TARGETS.\n"
-            "Master специально не раскрывает сохранённый node-sync token.",
+            "💾 Для резервной копии этой ноды нужен отдельный API-токен с admin-scope в NODE_BACKUP_TARGETS.\n"
+            "Master специально не раскрывает сохранённый токен node-sync.",
             reply_markup=_back(node_id),
         )
         return
