@@ -1651,7 +1651,7 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
         elif action == "reset":
             result = await xui.bulk_reset_traffic(emails)
             details = str(result.get("obj") or {})[:1000]
-            message = "✅ Traffic reset выполнен."
+            message = "✅ Сброс трафика выполнен."
         elif action == "sync":
             inbounds = choose_inbounds(await xui.inbound_options())
             ids_to_attach = sorted({i.id for i in inbounds})
