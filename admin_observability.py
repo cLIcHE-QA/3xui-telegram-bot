@@ -297,7 +297,7 @@ async def jobs_view(call: CallbackQuery):
         f"Последний ручной: {job_line(manual)}",
         f"Последний внешний (off-site): {job_line(offsite) if settings.offsite_backup_enabled else 'выключен'}",
         "",
-        "Provisioning",
+        "Согласование",
         f"Последнее согласование пользователей: {job_line(provision)}",
         "",
         "Последние запуски:",
