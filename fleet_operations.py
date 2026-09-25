@@ -392,8 +392,8 @@ async def fleet_health(call: CallbackQuery):
     for item in assessments:
         counts[item["state"]] = counts.get(item["state"], 0) + 1
     lines.append(
-        f"Здоровы: {counts['healthy']} · Обслуживание: {counts['maintenance']} · "
-        f"Деградация: {counts['degraded']} · Не в сети: {counts['offline']}"
+        f"🟢 Здоровы: {counts['healthy']} · 🛠 Обслуживание: {counts['maintenance']} · "
+        f"🟡 Деградация: {counts['degraded']} · 🔴 Не в сети: {counts['offline']}"
     )
     lines.append("")
     for item in assessments[:50]:
