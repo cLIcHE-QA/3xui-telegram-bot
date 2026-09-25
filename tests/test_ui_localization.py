@@ -434,5 +434,135 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertIn(phrase, text)
 
 
+    def test_final_repo_wide_localization_residuals(self):
+        shell = source("admin_shell.py")
+        inbounds = source("inbound_admin.py")
+        node_admin = source("node_admin.py")
+        node_ui = source("node_ui.py")
+        host = source("host_control_ui.py")
+        fleet = source("fleet_operations.py")
+        version_service = source("version_service.py")
+        alerts = source("logs_alerts.py")
+        restore = source("disaster_recovery.py")
+        style = source("docs/UI_STYLE.md")
+
+        self.assertIn('f"⚠️ Статус клиентов в сети: {online_error}"', shell)
+        self.assertNotIn('f"⚠️ Статус online: {online_error}"', shell)
+        self.assertNotIn("runtime-настроек", shell)
+
+        for needle in (
+            'f"Сервер: {_node_label(node_id, nodes)}"',
+            'f"Протокол: {ib.get(\'protocol\') or \'-\'}"',
+            'f"Порт: {ib.get(\'port\') or 0}"',
+            'f"Транспорт: {network}"',
+            'f"Безопасность: {security}"',
+        ):
+            self.assertIn(needle, inbounds)
+        for old in (
+            'f"Server: {_node_label(node_id, nodes)}"',
+            'f"Protocol: {ib.get(\'protocol\') or \'-\'}"',
+            'f"Port: {ib.get(\'port\') or 0}"',
+            'f"Transport: {network}"',
+            'f"Security: {security}"',
+        ):
+            self.assertNotIn(old, inbounds)
+
+        self.assertIn("Задержка API:", node_admin)
+        self.assertNotIn("Ping API:", node_admin)
+        for needle in (
+            'f"Адрес: {endpoint}"',
+            "Исходящий маршрут:",
+            "Задержка API:",
+            "Последний сигнал:",
+            '"verify": "проверять"',
+            '"skip": "без проверки"',
+            '"all": "все inbound\'ы"',
+        ):
+            self.assertIn(needle, node_ui)
+        for old in ("Endpoint:", "Outbound bridge:", "Ping API:", "Последний heartbeat:"):
+            self.assertNotIn(old, node_ui)
+
+        self.assertIn("systemd сообщает, что сервис работает", host)
+        self.assertNotIn("systemd сообщает running", host)
+
+        for needle in (
+            "нод с прямым подключением",
+            "контрольной ноде",
+            "Запустить контрольную ноду",
+            "Контрольная нода:",
+            "предварительная проверка обновления",
+        ):
+            self.assertIn(needle, fleet)
+        for old in (
+            "Массовые изменения выполняются только для direct nodes",
+            "Контролируемое обновление использует canary",
+            "Запустить canary",
+            "Canary:",
+            "update preflight",
+        ):
+            self.assertNotIn(old, fleet)
+        self.assertIn('"canary": pending[0] if pending else 0', fleet)
+        self.assertIn('"canary_passed"', fleet)
+        self.assertIn("admin:fleet:run:", fleet)
+
+        for needle in (
+            "Текущая версия неизвестна; обновление заблокировано.",
+            "Есть незавершённая операция. Сначала проверь или отмени её.",
+            "Не удалось проверить свежую резервную копию.",
+            "Результат не подтверждён. Повторный запрос не отправлялся.",
+            "Подключение к цели изменилось; требуется ручная проверка.",
+        ):
+            self.assertIn(needle, version_service)
+        for old in (
+            "Current version is unknown; update blocked.",
+            "There is a pending operation. Check or cancel it first.",
+            "Fresh backup could not be verified.",
+            "Outcome not verified. No retry was sent.",
+            "Target connection changed; manual verification required.",
+        ):
+            self.assertNotIn(old, version_service)
+
+        for needle in (
+            "Состояние Xray:",
+            "Диск:",
+            "Статус ноды:",
+            "Статус: {_job_status_text",
+        ):
+            self.assertIn(needle, alerts)
+        for old in (
+            'value=f"state={xray_state}"',
+            'value=f"state={state}"',
+            'value=f"disk={pct:.1f}%"',
+            'value=f"status={node.status}; enabled={node.enable}"',
+            'value = f"status={run.status};',
+        ):
+            self.assertNotIn(old, alerts)
+
+        for needle in (
+            "Предварительная проверка (без изменений)",
+            "перед любой опасной операцией выполняется предварительная проверка",
+            "Это опасная операция.",
+            "защитный снимок текущей БД бота",
+            "Защитная копия текущего Master",
+            "Защитная копия предыдущей БД",
+        ):
+            self.assertIn(needle, restore)
+        for old in (
+            "Проверка (dry-run / preflight)",
+            "Это destructive-операция.",
+            "rescue snapshot текущей БД бота",
+            "Rescue-копия текущего Master",
+            "Rescue-копия предыдущей БД",
+        ):
+            self.assertNotIn(old, restore)
+        for phrase in ("RESTORE BOT", "RESTORE XUI", "RESTORE NODE"):
+            self.assertIn(phrase, restore)
+
+        for needle in ("💽 Диск", "⏱ Время работы", "💾 Резервная копия"):
+            self.assertIn(needle, style)
+        for old in ("💽 Disk", "⏱ Uptime", "💾 Backup"):
+            self.assertNotIn(old, style)
+
+
 if __name__ == "__main__":
     unittest.main()
