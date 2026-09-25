@@ -216,26 +216,26 @@ class OnboardingImporterTests(unittest.TestCase):
             onboard.require_private_file(path)
 
     def test_node_detail_route_does_not_capture_readiness(self):
-        source = (ROOT / "bot.py").read_text(encoding="utf-8")
+        source = (ROOT / "node_admin.py").read_text(encoding="utf-8")
         self.assertIn(
-            '@router.callback_query(F.data.regexp(r"^admin:node:\\d+$"))',
+            'F.data.regexp(r"^admin:node:\\d+$")',
             source,
         )
         self.assertIn(
-            '@router.callback_query(F.data.regexp(r"^admin:node:\\d+:readiness$"))',
+            'F.data.regexp(r"^admin:node:\\d+:readiness$")',
             source,
         )
         self.assertNotIn(
-            '@router.callback_query(F.data.startswith("admin:node:"))',
+            'F.data.startswith("admin:node:")',
             source,
         )
 
     def test_readiness_button_is_present_on_node_card(self):
-        bot_source = (ROOT / "bot.py").read_text(encoding="utf-8")
+        node_admin_source = (ROOT / "node_admin.py").read_text(encoding="utf-8")
         node_ui_source = (ROOT / "node_ui.py").read_text(encoding="utf-8")
         self.assertIn('text="🧭 Readiness"', node_ui_source)
         self.assertIn('admin:node:{node_id}:readiness', node_ui_source)
-        self.assertIn("Stable identity", bot_source)
+        self.assertIn("Stable identity", node_admin_source)
 
 
 if __name__ == "__main__":

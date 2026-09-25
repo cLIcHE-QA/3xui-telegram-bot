@@ -63,7 +63,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
         root = Path(__file__).resolve().parents[1]
         files = [
-            'bot.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
+            'bot.py', 'node_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
             'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
             'fleet_operations.py',
@@ -177,6 +177,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
     def test_router_registered_and_master_shows_panel_version(self):
         self.assertIn('dp.include_router(versions_router)', inspect.getsource(self.bot.main))
+        self.assertIn('dp.include_router(node_admin_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.bot.main))
         self.assertIn('dp.include_router(fleet_router)', inspect.getsource(self.bot.main))
         self.assertIn('get_panel_update_info', inspect.getsource(self.bot.admin_master_detail))
