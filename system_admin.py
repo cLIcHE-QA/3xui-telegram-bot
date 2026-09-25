@@ -12,6 +12,7 @@ from admin_navigation import monitoring_menu
 from admin_ui import render_callback
 from backup_manager import BackupManager
 from config import load_settings
+from inbound_policy import is_managed_inbound as inbound_is_managed
 from db import Database
 from node_ui import (
     duration_text,
@@ -41,7 +42,7 @@ def public_health_url(template: str) -> str | None:
         return None
     try:
         parts = urlsplit(value.format(sub_id="health-probe"))
-    except (KeyError, ValueError):
+    except ValueError:
         return None
     if not parts.scheme or not parts.netloc:
         return None
@@ -77,27 +78,6 @@ def human_bytes(value: int) -> str:
 def usage_line(label: str, used: int, total: int) -> str:
     pct = (used / total * 100) if total else 0
     return f"{label}: {human_bytes(used)} / {human_bytes(total)} ({pct:.0f}%)"
-
-
-def is_managed_inbound(inbound) -> bool:
-    exact_ids = set(settings.inbound_ids)
-    if inbound.protocol in set(settings.ignored_protocols):
-        return False
-    if (
-        inbound.tag.lower() in set(settings.ignored_tags)
-        or inbound.tag.lower().startswith("api")
-    ):
-        return False
-    if exact_ids and inbound.id not in exact_ids:
-        return False
-    if settings.allowed_ports and inbound.port not in set(settings.allowed_ports):
-        return False
-    if (
-        settings.allowed_protocols
-        and inbound.protocol not in set(settings.allowed_protocols)
-    ):
-        return False
-    return True
 
 
 async def _guard(call: CallbackQuery) -> bool:
@@ -197,7 +177,7 @@ async def admin_master_detail(call: CallbackQuery):
     )
 
     if inbounds is not None:
-        managed = [item for item in inbounds if is_managed_inbound(item)]
+        managed = [item for item in inbounds if inbound_is_managed(settings, item)]
         enabled = sum(1 for item in managed if item.enable)
         lines.append(f"🌐 Inbound'ы: {enabled}/{len(managed)} включено")
 
@@ -332,7 +312,7 @@ async def admin_health(call: CallbackQuery):
 
     if inbounds is not None:
         managed = sorted(
-            (item for item in inbounds if is_managed_inbound(item)),
+            (item for item in inbounds if inbound_is_managed(settings, item)),
             key=lambda item: (item.port, item.protocol, item.id),
         )
         lines += ["", "Inbound'ы master:"]
