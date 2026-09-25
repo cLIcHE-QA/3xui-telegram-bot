@@ -441,13 +441,18 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         node_ui = source("node_ui.py")
         host = source("host_control_ui.py")
         fleet = source("fleet_operations.py")
+        versions = source("versions_updates.py")
         version_service = source("version_service.py")
+        bot_updates = source("bot_updates.py")
         alerts = source("logs_alerts.py")
+        catalog = source("catalog_admin.py")
         restore = source("disaster_recovery.py")
         style = source("docs/UI_STYLE.md")
 
         self.assertIn('f"⚠️ Статус клиентов в сети: {online_error}"', shell)
+        self.assertIn('f"⚠️ API нод: {nodes_error}"', shell)
         self.assertNotIn('f"⚠️ Статус online: {online_error}"', shell)
+        self.assertNotIn('f"⚠️ Nodes API: {nodes_error}"', shell)
         self.assertNotIn("runtime-настроек", shell)
 
         for needle in (
@@ -491,6 +496,11 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "Запустить контрольную ноду",
             "Контрольная нода:",
             "предварительная проверка обновления",
+            "API прямого подключения недоступен",
+            "Привязка Direct Admin=",
+            "Привязка Host Control=",
+            '"legacy_name": "привязка по старому имени"',
+            "Прямое подключение:",
         ):
             self.assertIn(needle, fleet)
         for old in (
@@ -499,11 +509,22 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "Запустить canary",
             "Canary:",
             "update preflight",
+            "Direct API недоступен",
+            "Direct привязка=",
+            "Host привязка=",
+            '"legacy_name": "legacy name"',
+            " · Direct: ",
+            " · Host: ",
         ):
             self.assertNotIn(old, fleet)
         self.assertIn('"canary": pending[0] if pending else 0', fleet)
         self.assertIn('"canary_passed"', fleet)
         self.assertIn("admin:fleet:run:", fleet)
+
+        self.assertIn("Полная резервная копия Master не прошла предварительную проверку", versions)
+        self.assertIn("средство обновления на сервере завершило работу", versions)
+        self.assertNotIn("Полная резервная копия Master не прошла preflight", versions)
+        self.assertNotIn("updater на сервере", versions)
 
         for needle in (
             "Текущая версия неизвестна; обновление заблокировано.",
@@ -527,6 +548,10 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "Диск:",
             "Статус ноды:",
             "Статус: {_job_status_text",
+            '"all": "Все"',
+            '"warning": "Предупреждения"',
+            '"error": "Ошибки"',
+            "Фильтр: {_log_level_text(level)}",
         ):
             self.assertIn(needle, alerts)
         for old in (
@@ -535,8 +560,33 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'value=f"disk={pct:.1f}%"',
             'value=f"status={node.status}; enabled={node.enable}"',
             'value = f"status={run.status};',
+            '+ "ALL", callback_data=',
+            '+ "WARN+", callback_data=',
+            '+ "ERROR", callback_data=',
+            "Фильтр: {level.upper()}",
+            'raise ValueError("unknown log source")',
         ):
             self.assertNotIn(old, alerts)
+
+        self.assertIn("Имя хоста, IP или URL.", catalog)
+        self.assertIn("Некорректное имя хоста/IP/URL.", catalog)
+        self.assertNotIn("Hostname, IP или URL.", catalog)
+        self.assertNotIn("Некорректный hostname/IP/URL.", catalog)
+
+        for needle in (
+            "Релиз отклонён на предварительной проверке",
+            "Предварительная проверка завершилась ошибкой",
+            "Deploy Agent с ограниченными полномочиями",
+            "Автоматического отката или повтора изменения нет.",
+        ):
+            self.assertIn(needle, bot_updates)
+        for old in (
+            "Релиз/preflight отклонён",
+            "Preflight завершился ошибкой",
+            "restricted Deploy Agent",
+            "Автоматического отката/повтора мутации нет.",
+        ):
+            self.assertNotIn(old, bot_updates)
 
         for needle in (
             "Предварительная проверка (без изменений)",
