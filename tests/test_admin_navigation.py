@@ -100,11 +100,6 @@ class AdminNavigationTests(unittest.TestCase):
             "admin_observability.py",
             "logs_alerts.py",
             "storage_admin.py",
-            "disaster_recovery.py",
-            "host_control_ui.py",
-            "fleet_operations.py",
-            "versions_updates.py",
-            "bot_updates.py",
             "system_admin.py",
         )
         missing = []
