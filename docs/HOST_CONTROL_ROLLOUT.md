@@ -249,7 +249,7 @@ Helper:
 
 После успешной проверки enrollment-файл на Master можно удалить.
 
-Для alias `FI` итоговые ключи bot env:
+Для alias `NODE1` итоговые ключи bot env:
 
 ~~~text
 HOST_CONTROL_TARGETS=MASTER,NODE1
