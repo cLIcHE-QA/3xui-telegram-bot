@@ -5,10 +5,9 @@ from urllib.parse import urlsplit, urlunsplit
 
 import aiohttp
 from aiogram import F, Router
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 from admin_auth import authorize_callback
-from admin_navigation import monitoring_menu
 from admin_ui import render_callback
 from backup_manager import BackupManager
 from config import load_settings
@@ -370,5 +369,8 @@ async def admin_health(call: CallbackQuery):
     await render_callback(
         call,
         "\n".join(lines),
-        reply_markup=monitoring_menu(),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:health")],
+            [InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")],
+        ]),
     )

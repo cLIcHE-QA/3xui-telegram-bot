@@ -105,7 +105,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "exact",
         "admin:users", "admin:subscriptions",
     )
-    + _rules("users.view", "prefix", "adminuser:", "adminsub:")
+    + _rules("users.view", "prefix", "adminuser:", "adminsub:", "adminsublist:")
     + _rules(
         "users.support",
         "prefix",

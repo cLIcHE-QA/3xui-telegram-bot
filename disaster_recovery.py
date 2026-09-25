@@ -44,9 +44,9 @@ def human_bytes(value: int | float) -> str:
     return f"{n:.1f} TB"
 
 
-def _backup_back() -> InlineKeyboardMarkup:
+def _restore_list_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Резервные копии", callback_data="admin:backups")],
+        [InlineKeyboardButton(text="⬅ Аварийное восстановление", callback_data="admin:restore")],
     ])
 
 
@@ -132,7 +132,7 @@ def _backup_actions(info: BackupInspection) -> InlineKeyboardMarkup:
         rows.append(export_row)
     rows += [
         [InlineKeyboardButton(text="🕘 История восстановления", callback_data="admin:restore:history")],
-        [InlineKeyboardButton(text="⬅ Резервные копии", callback_data="admin:backups")],
+        [InlineKeyboardButton(text="⬅ Аварийное восстановление", callback_data="admin:restore")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -182,7 +182,7 @@ async def restore_detail(call: CallbackQuery):
         info = await asyncio.to_thread(restore_manager.inspect_backup, path)
     except Exception as exc:
         await call.answer("Резервная копия недоступна", show_alert=True)
-        await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_backup_back())
+        await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_list_back())
         return
     await call.answer()
     await render_callback(call, _inspection_summary(info), reply_markup=_backup_actions(info))
@@ -572,7 +572,7 @@ async def restore_history(call: CallbackQuery):
         if item.get("error"):
             lines.append(f"   {str(item.get('error'))[:180]}")
     await call.answer()
-    await render_callback(call, "\n".join(lines), reply_markup=_backup_back())
+    await render_callback(call, "\n".join(lines), reply_markup=_restore_list_back())
 
 
 async def send_boot_restore_notice(bot) -> None:

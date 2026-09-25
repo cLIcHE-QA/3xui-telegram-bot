@@ -1242,6 +1242,23 @@ async def admin_sub(call: CallbackQuery):
     await call.answer()
 
 
+@advanced_users_router.callback_query(F.data.startswith("adminsublist:"))
+async def admin_sub_from_list(call: CallbackQuery):
+    if not await guard(call):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if rec:
+        await render_callback(
+            call,
+            f"🔗 {rec.email}\n{sub_url(rec.sub_id)}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Подписки", callback_data="admin:subscriptions")
+            ]]),
+        )
+    await call.answer()
+
+
 @advanced_users_router.callback_query(F.data.startswith("adminsync:"))
 async def admin_sync_inbounds(call: CallbackQuery):
     if not await guard(call):

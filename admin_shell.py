@@ -216,7 +216,7 @@ async def admin_subscriptions(call: CallbackQuery):
     for u in users[:40]:
         rows.append([InlineKeyboardButton(
             text=f"🔗 {u.email}",
-            callback_data=f"adminsub:{u.telegram_id}",
+            callback_data=f"adminsublist:{u.telegram_id}",
         )])
     rows.append([InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")])
     text = (
@@ -295,7 +295,7 @@ async def admin_legacy_catalog_callback(call: CallbackQuery):
         "admin:coming:servergroups": ("🗂 Группы серверов", "admin:servergroups"),
     }[call.data]
     await render_callback(call, 
-        "Этот раздел уже доступен в v3.9.",
+        "Этот раздел уже доступен в текущей версии.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text=target[0], callback_data=target[1])
         ]]),

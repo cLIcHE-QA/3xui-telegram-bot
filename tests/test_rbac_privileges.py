@@ -35,6 +35,7 @@ class RBACPrivilegesTests(unittest.TestCase):
         cases = {
             "admin:home": "read_only",
             "adminuser:123": "read_only",
+            "adminsublist:123": "read_only",
             "adminextend:123": "support",
             "admindel:123": "admin",
             "admin:backup:full": "admin",

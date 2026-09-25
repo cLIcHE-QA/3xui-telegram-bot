@@ -1070,7 +1070,7 @@ async def settings_view(call: CallbackQuery):
         "Окружение (только чтение):\n"
         f"💾 Резервные копии: {'включены' if settings.backup_enabled else 'выключены'}, {settings.backup_hour_utc:02d}:00 UTC, хранить {settings.backup_keep}\n"
         f"🔐 Проверка TLS: {'включена' if settings.verify_tls else 'выключена'}\n"
-        f"🖥 Master: {settings.master_flag} {settings.master_name}\n\n"
+        f"🖥 Master-сервер: {settings.master_name}\n\n"
         "BOT_TOKEN, PANEL_API_TOKEN и другие секреты через Telegram не редактируются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )

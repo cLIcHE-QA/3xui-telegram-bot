@@ -26,10 +26,13 @@ def _sha256_path(path: Path) -> str:
 def _integrity_entries(root: Path) -> list[dict[str, object]]:
     entries: list[dict[str, object]] = []
     for path in sorted(root.rglob("*"), key=lambda item: item.as_posix()):
-        if not path.is_file() or path.name == "manifest.json":
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root).as_posix()
+        if relative == "manifest.json":
             continue
         entries.append({
-            "path": path.relative_to(root).as_posix(),
+            "path": relative,
             "bytes": path.stat().st_size,
             "sha256": _sha256_path(path),
         })

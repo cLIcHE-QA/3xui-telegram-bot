@@ -18,6 +18,7 @@ from provisioning import ProvisioningEngine, is_managed_inbound, inbound_member_
 from audit import audit_from_call, audit_from_message
 from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
+from node_ui import node_display_name
 
 
 settings = load_settings()
@@ -206,7 +207,7 @@ async def plans_list(call: CallbackQuery):
     await render_callback(call, 
         "💎 Тарифы\n\n"
         f"Тарифов: {len(plans)} · активных: {active}\n\n"
-        "Тарифы участвуют в согласовании доступа v4.5. ⭐ отмечает тариф по умолчанию для /create. "
+        "Тарифы участвуют в согласовании доступа. ⭐ отмечает тариф по умолчанию для /create. "
         "Тариф задаёт лимиты, а группа серверов — серверы и inbound-политику.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -751,7 +752,7 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
         if key == "master":
             continue
         node = node_by_key.get(key)
-        selected.append(node.name if node else f"{key} (не обнаружена)")
+        selected.append(node_display_name(node.name) if node else f"{key} (не обнаружена)")
 
     lines = [
         f"🗂 {group.name}",
@@ -782,7 +783,7 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
         live_keys.add(key)
         icon = "✅" if key in members else "⬜"
         rows.append([InlineKeyboardButton(
-            text=f"{icon} {node.name}",
+            text=f"{icon} {node_display_name(node.name)}",
             callback_data=f"admin:servergroup:toggle:{group.id}:{key}",
         )])
     for stale_key in sorted(members - {"master"} - live_keys):
@@ -996,7 +997,7 @@ async def hosts_list(call: CallbackQuery):
     await render_callback(call, 
         "🌐 Хосты\n\n"
         f"Записей: {len(hosts)} · активных: {enabled}\n\n"
-        "Это централизованный реестр доменов/IP и их ролей. v3.9 не меняет DNS, nginx "
+        "Это централизованный реестр доменов/IP и их ролей. Изменения здесь не меняют DNS, nginx "
         "или 3x-ui автоматически.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )

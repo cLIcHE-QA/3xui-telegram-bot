@@ -316,7 +316,7 @@ async def _inbound_card(inbound_id: int) -> tuple[str, InlineKeyboardMarkup]:
         ],
         [InlineKeyboardButton(text=toggle_text, callback_data=f"admin:inbound:toggle:{inbound_id}")],
         [
-            InlineKeyboardButton(text="🔄 Синхронизировать пользователей", callback_data=f"admin:inbound:syncask:{inbound_id}"),
+            InlineKeyboardButton(text="🔄 Синхронизировать клиентов", callback_data=f"admin:inbound:syncask:{inbound_id}"),
             InlineKeyboardButton(text="♻️ Сбросить трафик", callback_data=f"admin:inbound:resetask:{inbound_id}"),
         ],
         [
