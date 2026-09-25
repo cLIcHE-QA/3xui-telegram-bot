@@ -433,7 +433,7 @@ Alias: NODE1
 Name: Edge-1
 Host ID: edge-1
 Node panel: https://panel-node1.example.com/basepath
-Host Control URL: https://panel-node1.example.com:18443
+Host Control URL: https://host-control-node1.example.com:18443
 Master public IP: MASTER_PUBLIC_IP
 Node public IP: NODE_PUBLIC_IP
 SSH port: SSH_PORT
@@ -498,9 +498,9 @@ sudo scripts/setup-host-control-endpoint.sh remote \
   --name Edge-1 \
   --listen-ip NODE_PUBLIC_IP \
   --source-ip MASTER_PUBLIC_IP \
-  --public-host panel-node1.example.com \
-  --cert /etc/letsencrypt/live/panel-node1.example.com/fullchain.pem \
-  --key /etc/letsencrypt/live/panel-node1.example.com/privkey.pem \
+  --public-host host-control-node1.example.com \
+  --cert /etc/letsencrypt/live/host-control-node1.example.com/fullchain.pem \
+  --key /etc/letsencrypt/live/host-control-node1.example.com/privkey.pem \
   --proxy-port 18443 \
   --apply-ufw
 ~~~
@@ -788,7 +788,7 @@ HOST_CONTROL_TARGETS=MASTER,NODE1
 HOST_CONTROL_NODE1_NAME=Edge-1
 HOST_CONTROL_NODE1_NODE_ID=2
 HOST_CONTROL_NODE1_HOST_ID=edge-1
-HOST_CONTROL_NODE1_URL=https://panel-node1.example.com:18443
+HOST_CONTROL_NODE1_URL=https://host-control-node1.example.com:18443
 HOST_CONTROL_NODE1_VERIFY_TLS=true
 ~~~
 
