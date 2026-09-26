@@ -556,7 +556,7 @@ async def plan_set_default(call: CallbackQuery):
             await call.answer(f"Ошибка согласования: {str(exc)[:120]}", show_alert=True)
             return
         if plan.server_group_id and not policy.desired_inbound_ids:
-            await call.answer("У группы серверов нет inbound'ов для согласования.", show_alert=True)
+            await call.answer("У группы серверов нет Inbounds для согласования.", show_alert=True)
             return
         await db.set_runtime_setting("default_plan_id", str(plan_id), updated_by=call.from_user.id if call.from_user else 0)
         await audit_from_call(db, call, "plan.default", target_type="plan", target_id=str(plan_id), details="enabled=True")
@@ -580,7 +580,7 @@ async def plan_preview(call: CallbackQuery):
             "",
             f"Группа серверов: {policy.group.name if policy.group else 'режим совместимости «все управляемые»'}",
             f"Режим: {inbound_mode_text(policy.inbound_mode)}",
-            f"Целевых inbound'ов: {len(policy.desired_inbound_ids)}",
+            f"Целевых Inbounds: {len(policy.desired_inbound_ids)}",
             f"Доступно сейчас: {len(policy.actionable_inbound_ids)}",
         ]
         if policy.unavailable_members:
@@ -663,7 +663,7 @@ async def server_groups_list(call: CallbackQuery):
         "🗂 Группы серверов\n\n"
         f"Групп: {len(groups)}\n\n"
         "Группа объединяет Master и/или ноды и задаёт область согласования. "
-        "Для каждой группы можно использовать все управляемые inbound'ы или выбрать конкретные.",
+        "Для каждой группы можно использовать все управляемые Inbounds или выбрать конкретные.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -769,7 +769,7 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
     selected_inbounds = await db.list_server_group_inbounds(group.id)
     lines += [
         "",
-        f"Политика inbound'ов: {inbound_mode_text(mode)}" + (f" ({len(selected_inbounds)})" if mode == "selected" else ""),
+        f"Политика Inbounds: {inbound_mode_text(mode)}" + (f" ({len(selected_inbounds)})" if mode == "selected" else ""),
         "Изменения применяются к пользователям через безопасное/строгое согласование; автоматически существующих клиентов не перестраиваем.",
     ]
 
@@ -792,7 +792,7 @@ async def _server_group_card(group: ServerGroupRecord) -> tuple[str, InlineKeybo
             callback_data=f"admin:servergroup:toggle:{group.id}:{stale_key}",
         )])
     rows += [
-        [InlineKeyboardButton(text="📡 Inbound'ы согласования", callback_data=f"admin:servergroup:inbounds:{group.id}")],
+        [InlineKeyboardButton(text="📡 Inbounds согласования", callback_data=f"admin:servergroup:inbounds:{group.id}")],
         [InlineKeyboardButton(text="🗑 Удалить группу", callback_data=f"admin:servergroup:deleteask:{group.id}")],
         [InlineKeyboardButton(text="⬅ Группы серверов", callback_data="admin:servergroups")],
     ]
@@ -871,11 +871,11 @@ async def server_group_inbounds(call: CallbackQuery):
             )])
     rows.append([InlineKeyboardButton(text="⬅ Группа серверов", callback_data=f"admin:servergroup:{group_id}")])
     text = (
-        f"📡 Inbound'ы согласования · {group.name}\n\n"
+        f"📡 Inbounds согласования · {group.name}\n\n"
         f"Режим: {inbound_mode_text(mode)}\n"
         f"Серверов-участников: {len(members)}\n"
-        f"Доступных управляемых inbound'ов: {len(options)}\n\n"
-        "Режим «все управляемые» автоматически включает все разрешённые управляемые inbound'ы на серверах группы. "
+        f"Доступных управляемых Inbounds: {len(options)}\n\n"
+        "Режим «все управляемые» автоматически включает все разрешённые управляемые Inbounds на серверах группы. "
         "Режим «выбранные» позволяет зафиксировать конкретный набор."
     )
     await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
@@ -902,8 +902,8 @@ async def server_group_inbound_mode(call: CallbackQuery):
         await db.replace_server_group_inbounds(group_id, {i.id for i in options})
     await db.set_server_group_inbound_mode(group_id, mode)
     await audit_from_call(db, call, "server_group.inbound_mode", target_type="server_group", target_id=str(group_id), details=f"mode={mode}")
-    await call.answer("Политика inbound'ов обновлена.")
-    await render_callback(call, "Открой inbound'ы согласования ещё раз для настройки.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Inbound'ы согласования", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
+    await call.answer("Политика Inbounds обновлена.")
+    await render_callback(call, "Открой Inbounds согласования ещё раз для настройки.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Inbounds согласования", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
 
 
 @catalog_router.callback_query(F.data.startswith("admin:servergroup:ibtoggle:"))
@@ -931,7 +931,7 @@ async def server_group_inbound_toggle(call: CallbackQuery):
     enabled = inbound_id not in selected
     await db.set_server_group_inbound(group_id, inbound_id, enabled)
     await audit_from_call(db, call, "server_group.inbound", target_type="server_group", target_id=str(group_id), details=f"inbound_id={inbound_id}; enabled={enabled}")
-    await call.answer("Политика inbound'ов обновлена.")
+    await call.answer("Политика Inbounds обновлена.")
     await render_callback(call, "Изменение сохранено.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📡 Продолжить", callback_data=f"admin:servergroup:inbounds:{group_id}")]]))
 
 
