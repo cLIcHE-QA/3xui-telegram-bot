@@ -315,13 +315,17 @@ async def _inbound_card(inbound_id: int) -> tuple[str, InlineKeyboardMarkup]:
             InlineKeyboardButton(text="👥 Клиенты", callback_data=f"admin:inbound:clients:{inbound_id}"),
             InlineKeyboardButton(text="✏️ Изменить", callback_data=f"admin:inbound:edit:{inbound_id}"),
         ],
-        [InlineKeyboardButton(text="🔄 Синхронизировать клиентов", callback_data=f"admin:inbound:syncask:{inbound_id}")],
-        [InlineKeyboardButton(text="♻️ Сбросить трафик", callback_data=f"admin:inbound:resetask:{inbound_id}")],
-        [InlineKeyboardButton(text="📋 Клонировать", callback_data=f"admin:inbound:clone:{inbound_id}")],
-        [InlineKeyboardButton(text="🧩 Сохранить шаблон", callback_data=f"admin:inbound:template:{inbound_id}")],
+        [
+            InlineKeyboardButton(text="🔄 Синхронизировать клиентов", callback_data=f"admin:inbound:syncask:{inbound_id}"),
+            InlineKeyboardButton(text="♻️ Сбросить трафик", callback_data=f"admin:inbound:resetask:{inbound_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="📋 Клонировать", callback_data=f"admin:inbound:clone:{inbound_id}"),
+            InlineKeyboardButton(text="🧩 Сохранить шаблон", callback_data=f"admin:inbound:template:{inbound_id}"),
+        ],
         [
             InlineKeyboardButton(text=toggle_text, callback_data=f"admin:inbound:toggle:{inbound_id}"),
-            InlineKeyboardButton(text="🗑 Удалить Inbound", callback_data=f"admin:inbound:deleteask:{inbound_id}"),
+            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:inbound:deleteask:{inbound_id}"),
         ],
         [InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")],
     ]
