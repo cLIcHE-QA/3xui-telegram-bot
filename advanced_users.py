@@ -192,7 +192,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             f"📦 Лимит трафика: {human_bytes(total) if total else 'без лимита'}",
             f"📊 Использовано: {human_bytes(up + down)}",
             f"📱 Лимит IP: {limit_ip if limit_ip else 'без лимита'}",
-            f"📡 Inbound'ы: {', '.join(map(str, inbound_ids)) if inbound_ids else 'нет'}",
+            f"📡 Inbounds: {', '.join(map(str, inbound_ids)) if inbound_ids else 'нет'}",
             f"🔀 Flow: {flow}",
         ]
         if note:
@@ -224,7 +224,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
         ],
         [
             InlineKeyboardButton(text="📱 Лимит IP", callback_data=f"admin:u:ip:{tg_id}"),
-            InlineKeyboardButton(text="📡 Inbound'ы", callback_data=f"admin:u:inbounds:{tg_id}"),
+            InlineKeyboardButton(text="📡 Inbounds", callback_data=f"admin:u:inbounds:{tg_id}"),
         ],
         [
             InlineKeyboardButton(text="💎 Тариф", callback_data=f"admin:u:plan:{tg_id}"),
@@ -237,7 +237,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data=f"admin:u:resetask:{tg_id}"),
             InlineKeyboardButton(text="📝 Заметка", callback_data=f"admin:u:note:{tg_id}"),
         ],
-        [InlineKeyboardButton(text="🔄 Синхронизировать inbound'ы", callback_data=f"adminsync:{tg_id}")],
+        [InlineKeyboardButton(text="🔄 Синхронизировать Inbounds", callback_data=f"adminsync:{tg_id}")],
         [
             InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}"),
             state_button,
@@ -637,7 +637,7 @@ async def user_provisioning_card(call: CallbackQuery):
             f"Источник: {provisioning_source_text(policy.source)}",
             f"Тариф: {policy.plan.name if policy.plan else 'не назначен'}",
             f"Группа серверов: {policy.group.name if policy.group else 'режим совместимости «все управляемые»'}",
-            f"Режим inbound'ов: {inbound_mode_text(policy.inbound_mode)}",
+            f"Режим Inbounds: {inbound_mode_text(policy.inbound_mode)}",
             "",
             f"Целевые: {len(desired)} · {', '.join(map(str, sorted(desired))) if desired else 'нет'}",
             f"Текущие: {len(current)} · {', '.join(map(str, sorted(current))) if current else 'нет'}",
@@ -665,7 +665,7 @@ async def user_provisioning_strict_ask(call: CallbackQuery):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
     await render_callback(call, 
-        "⚠️ Строгое согласование не только добавит отсутствующие inbound'ы, но и отключит управляемые inbound'ы, которых нет в целевой политике.\n\nПродолжить?",
+        "⚠️ Строгое согласование не только добавит отсутствующие Inbounds, но и отключит управляемые Inbounds, которых нет в целевой политике.\n\nПродолжить?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, строгое согласование", callback_data=f"admin:u:provrun:{tg_id}:strict")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:prov:{tg_id}")],
@@ -720,7 +720,7 @@ async def user_plan_provision_ask(call: CallbackQuery):
         return
     await render_callback(call, 
         f"Применить тариф «{plan.name}» к лимитам и выполнить безопасное согласование?\n\n"
-        "Это обновит срок/трафик/лимит IP, назначит группу серверов тарифа и добавит отсутствующие inbound'ы. Лишние inbound'ы не удаляются.",
+        "Это обновит срок/трафик/лимит IP, назначит группу серверов тарифа и добавит отсутствующие Inbounds. Лишние Inbounds не удаляются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Тариф + согласование", callback_data=f"admin:u:planprovrun:{tg_id}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
@@ -775,7 +775,7 @@ async def user_inbounds(call: CallbackQuery):
             )])
         rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
         await render_callback(call, 
-            f"📡 Inbound'ы · {rec.email}\n\nНажатие подключает/отключает пользователя от конкретного inbound.",
+            f"📡 Inbounds · {rec.email}\n\nНажатие подключает/отключает пользователя от конкретного inbound.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
         )
     except XUIError as exc:
@@ -826,7 +826,7 @@ async def user_inbound_toggle(call: CallbackQuery):
             callback_data=f"admin:u:ibtoggle:{tg_id}:{i.id}",
         )] for i in all_inbounds[:40]]
         rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
-        await render_callback(call, "📡 Inbound'ы обновлены.", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+        await render_callback(call, "📡 Inbounds обновлены.", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.inbound.toggle", target_type="user", target_id=rec.email,
@@ -978,8 +978,8 @@ async def admin_provision_all_ask(call: CallbackQuery):
         "🚀 Безопасное согласование доступа для всех пользователей\n\n"
         f"Пользователей: {len(users)}\n"
         "Для каждого пользователя будет рассчитан целевой набор по профилю пользователя → Тариф → Группа серверов. "
-        "Будут только добавлены отсутствующие inbound'ы на доступных нодах; лишние inbound'ы не удаляются.\n\n"
-        "Пользователи без тарифа/группы сохраняют режим совместимости «все управляемые inbound'ы».",
+        "Будут только добавлены отсутствующие Inbounds на доступных нодах; лишние Inbounds не удаляются.\n\n"
+        "Пользователи без тарифа/группы сохраняют режим совместимости «все управляемые Inbounds».",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Запустить безопасное согласование", callback_data="admin:provision:all:run")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
@@ -1058,8 +1058,8 @@ async def admin_sync_all_ask(call: CallbackQuery):
         return
     if not target_ids:
         await render_callback(call, 
-            "После применения административной политики нет доступных inbound'ов. "
-            "Проверь разрешённые порты, протоколы и список inbound'ов.",
+            "После применения административной политики нет доступных Inbounds. "
+            "Проверь разрешённые порты, протоколы и список Inbounds.",
             reply_markup=users_back(),
         )
         await call.answer()
@@ -1068,7 +1068,7 @@ async def admin_sync_all_ask(call: CallbackQuery):
     flow_note = settings.vless_flow or "не менять"
     await render_callback(call, 
         "Глобальная синхронизация добавит всем пользователям из локальной БД "
-        "все разрешённые inbound'ы, которых у них ещё нет, и синхронизирует VLESS flow.\n\n"
+        "все разрешённые Inbounds, которых у них ещё нет, и синхронизирует VLESS flow.\n\n"
         f"Пользователей: {len(users)}\n"
         f"Целевые inbound ID: {', '.join(map(str, target_ids))}\n"
         f"VLESS flow: {flow_note}",
@@ -1093,7 +1093,7 @@ async def admin_sync_all_run(call: CallbackQuery):
         target_ids = sorted({i.id for i in available})
         if not target_ids:
             await render_callback(call, 
-                "После применения административной политики нет разрешённых inbound'ов.",
+                "После применения административной политики нет разрешённых Inbounds.",
                 reply_markup=users_back(),
             )
             await call.answer()
@@ -1256,7 +1256,7 @@ async def admin_sync_inbounds(call: CallbackQuery):
             await render_callback(
                 call,
                 "После применения административной политики нет ни одного доступного inbound. "
-                "Проверь разрешённые порты, протоколы и список inbound'ов.",
+                "Проверь разрешённые порты, протоколы и список Inbounds.",
                 reply_markup=back_user(tg_id),
             )
             await call.answer()
@@ -1293,9 +1293,9 @@ async def admin_sync_inbounds(call: CallbackQuery):
 
         lines = [f"✅ Синхронизация завершена для {rec.email}.", ""]
         if details:
-            lines += ["Добавлены inbound'ы:"] + details + [""]
+            lines += ["Добавлены Inbounds:"] + details + [""]
         else:
-            lines += ["Новых inbound'ов не было — все уже привязаны.", ""]
+            lines += ["Новых Inbounds не было — все уже привязаны.", ""]
         lines.append(f"Теперь привязан к ID: {', '.join(map(str, updated_ids))}")
         if flow_synced:
             lines.append(f"VLESS flow: {updated_flow}")
@@ -1321,7 +1321,7 @@ async def admin_sync_inbounds(call: CallbackQuery):
         )
         await render_callback(
             call,
-            "Не удалось синхронизировать inbound'ы/flow.\n\n"
+            "Не удалось синхронизировать Inbounds/flow.\n\n"
             f"Ошибка 3x-ui: {exc}",
             reply_markup=back_user(tg_id),
         )
@@ -1614,7 +1614,7 @@ async def bulk_actions(call: CallbackQuery, state: FSMContext):
             InlineKeyboardButton(text="⛔ Отключить", callback_data="admin:bulk:run:disable"),
         ],
         [InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data="admin:bulk:run:reset")],
-        [InlineKeyboardButton(text="📡 Синхронизировать inbound'ы", callback_data="admin:bulk:run:sync")],
+        [InlineKeyboardButton(text="📡 Синхронизировать Inbounds", callback_data="admin:bulk:run:sync")],
         [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
     ])
     await render_callback(call, f"⚙️ Массовые действия\n\nВыбрано: {len(selected)}", reply_markup=kb)
@@ -1689,7 +1689,7 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
             if settings.vless_flow:
                 await xui.bulk_adjust_clients(emails, flow=settings.vless_flow)
             details = f"inbounds={ids_to_attach}; result={str(result.get('obj') or {})[:700]}"
-            message = "✅ Inbound'ы синхронизированы."
+            message = "✅ Inbounds синхронизированы."
         else:
             await call.answer("Неизвестное действие.", show_alert=True)
             return
