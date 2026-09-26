@@ -400,6 +400,7 @@ Scope предназначен для небольших presentation findings, 
 
 - `Инфраструктура → Inbounds → <Inbound> → Сохранить шаблон`: убрать лишнюю implementation detail `bot.sqlite3` из operator-facing prompt. Канонический текст: `Введи имя шаблона. В шаблон попадёт конфигурация Inbound без клиентов.` Хранилище, SQLite schema, имя DB-файла и persistence semantics не меняются.
 - Карточка `Inbound`: сделать inline keyboard устойчивой к узкому client-side layout Telegram и не размещать длинные подписи попарно. Целевая структура: `👥 Клиенты | ✏️ Изменить`; отдельными строками `🔄 Синхронизировать клиентов`, `♻️ Сбросить трафик`, `📋 Клонировать`, `🧩 Сохранить шаблон`; предпоследняя строка `⛔ Отключить | 🗑 Удалить Inbound` (для выключенного Inbound — `✅ Включить | 🗑 Удалить Inbound`); последняя строка `⬅ Inbounds`. Callback identifiers и action semantics не меняются.
+- Зафиксировать deletion safety guardrail для Admin Control Plane: любые новые operator-facing delete actions только через отдельный confirmation screen (`confirm` + `✖ Отмена`), без one-click mutation. В `v4.20.9` добавить regression/source-audit для текущих delete flows и нормативный contract в `docs/UI_STYLE.md`; существующие delete semantics не меняются.
 
 Дополнительные findings могут быть добавлены в этот же patch до implementation PR, если они остаются narrowly-scoped UI/copy cleanup без behavior changes.
 ##### Редактируемое имя пользователя
