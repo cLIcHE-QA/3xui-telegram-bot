@@ -666,7 +666,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         for needle in (
             "🧮 CPU",
             "🧠 RAM",
-            "📶 {node.latency_ms} ms",
+            "📶 Задержка API: {node.latency_ms} ms",
             "👥 Клиентов",
             "🌐 Inbound",
             "⏱ Время работы",
