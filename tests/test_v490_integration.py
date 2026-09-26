@@ -9,6 +9,7 @@ import sqlite3
 import tarfile
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 
@@ -150,6 +151,43 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
             self.system.usage_line('RAM', 50, 100),
             'RAM: 50 B / 100 B (50%)',
         )
+
+    def test_health_summary_uses_symmetric_master_node_grammar(self):
+        node = SimpleNamespace(
+            id=1,
+            name="Finland",
+            enable=True,
+            status="online",
+            xray_state="running",
+            xray_version="26.9.9",
+            cpu_pct=8.0,
+            mem_pct=27.0,
+            uptime_secs=5 * 86400 + 21 * 3600 + 9 * 60,
+            inbound_count=3,
+            client_count=24,
+            online_count=7,
+            latency_ms=42,
+        )
+        self.assertEqual(
+            self.system._node_health_lines(node),
+            [
+                "🇫🇮 Finland · 🟢 В сети",
+                "🟢 Панель: в сети",
+                "🟢 Xray: работает 26.9.9",
+                "🧮 CPU: 8.0%",
+                "🧠 RAM: 27.0%",
+                "⏱ Время работы: 5д 21ч 9м",
+                "🌐 Inbound'ы: 3",
+                "👥 Клиентов: 24 · 📡 В сети: 7",
+                "📶 Задержка API: 42 ms",
+            ],
+        )
+
+        node.enable = False
+        node.status = "offline"
+        maintenance = self.system._node_health_lines(node)
+        self.assertEqual(maintenance[0], "🇫🇮 Finland · 🛠 Обслуживание")
+        self.assertEqual(maintenance[1], "🛠 Панель: обслуживание")
 
     def test_admin_shell_routes_have_single_owner(self):
         shell_source = inspect.getsource(self.shell)

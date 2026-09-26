@@ -95,6 +95,17 @@
 - при добавлении новых operator-facing экранов прямой вывод `node.name` допустим только для machine/internal context; пользовательская подпись должна идти через общий formatter.
 
 Текущий name-based country mapping является только presentation fallback. Будущее optional `country_code` не меняет принцип: `node_id` остаётся identity, `name` — display name, а флаг вычисляется отдельно.
+
+Для экранов health/status действует дополнительный контракт:
+
+- одинаковые метрики Master и direct nodes используют одинаковые русские labels, status grammar и emoji;
+- одинаковость означает единое представление доступных данных, а не искусственно одинаковое количество строк;
+- direct node всегда получает явный текстовый общий status рядом с identity, а Xray показывает state и version, если version доступна;
+- состояния `online/offline/unknown/maintenance` и `running/stopped/error/unknown` визуально различаются и не должны сводиться к ложному бинарному green/red;
+- Master-only локальные данные (например disk, Subscription Proxy, nginx/TLS, bot DB/backup) не дорисовываются direct nodes без реального источника;
+- node-only aggregate данные (latency, client/online counts и аналогичные поля) можно показывать отдельно;
+- дополнительные network calls только ради визуальной симметрии не добавляются без отдельного contract по timeout/failure semantics.
+
 ## Навигация
 
 Навигация строится от пользовательской задачи, а не от структуры Python-модулей.
