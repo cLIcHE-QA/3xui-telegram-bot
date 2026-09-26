@@ -268,7 +268,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — ✅ выполнено и принято в production в `v4.20.8`.
 13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — ✅ опубликовано в `v4.20.9`; desktop layout follow-up закрыт в `v4.20.10`.
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
-15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; display-name/MSK follow-up опубликован в `v4.21.1`, targeted smoke этих двух пунктов подтверждён; runtime findings DR/log viewer исправляются в 🟡 `v4.21.2`.
+15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
@@ -464,14 +464,16 @@ Production acceptance после deployment должен подтвердить:
 
 ##### v4.21.2 — DR formatter и log viewer follow-up
 
-**Статус: 🟡 Реализовано в `main`; готовится patch release `v4.21.2`.**
+**Статус: ✅ Выполнено и принято в production в `v4.21.2`.**
 
 Production smoke `v4.21.1` подтвердил display name в `Подписки` и operator-facing MSK presentation. При дальнейшей проверке найдены два отдельных runtime/UI finding:
 
 - Disaster Recovery падал с `NameError` из-за отсутствующего импорта MSK formatter helper;
 - выбор `50` / `200` строк в `Журналы` фактически читал разные объёмы, но одинаковый character cap делал Telegram output почти неразличимым.
 
-`v4.21.2` исправляет оба finding без изменения SQLite schema, 3x-ui/OpenAPI, raw log timezone, redaction/security boundaries или mutation semantics. После публикации/deployment acceptance должен проверить DR list/detail, различие log modes и базовый health/status.
+`v4.21.2` исправляет оба finding без изменения SQLite schema, 3x-ui/OpenAPI, raw log timezone, redaction/security boundaries или mutation semantics.
+
+Production acceptance закрыт: оператор подтвердил штатное открытие Disaster Recovery без `NameError`, фактическое различие режимов журнала `50` / `200` и успешный базовый health check `GET /healthz` с HTTP 200. Raw log timestamps продолжают отображаться в machine-level UTC по contract.
 
 ##### User / Audience Groups
 
