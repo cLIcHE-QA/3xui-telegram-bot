@@ -15,6 +15,7 @@ from admin_auth import authorize_callback, authorize_message
 from audit import audit_from_call, audit_from_message
 from config import load_settings
 from db import Database
+from node_ui import node_display_name
 from xui import XUIClient, XUIError
 
 settings = load_settings()
@@ -123,7 +124,7 @@ def _node_label(node_id: int, nodes: list[Any]) -> str:
         return f"{settings.master_flag} {settings.master_name}"
     for n in nodes:
         if int(n.id) == int(node_id):
-            return n.name
+            return node_display_name(n.name)
     return f"Node #{node_id}"
 
 
@@ -288,7 +289,7 @@ async def _inbound_card(inbound_id: int) -> tuple[str, InlineKeyboardMarkup]:
         f"Listen: {ib.get('listen') or '*'}",
         f"Транспорт: {network}",
         f"Безопасность: {security}",
-        f"Согласование: {'✅ управляется' if _managed(ib) else '⚠️ не управляется текущими фильтрами .env'}",
+        f"Согласование: {'✅ управляется' if _managed(ib) else '⚠️ не управляется текущей административной политикой'}",
         f"Клиентов: {len(clients)}",
         f"Трафик: ↑ {_human_bytes(int(ib.get('up') or 0))} · ↓ {_human_bytes(int(ib.get('down') or 0))}",
     ]
@@ -808,7 +809,7 @@ async def _target_keyboard(prefix: str, source_id: int) -> InlineKeyboardMarkup:
     for node in nodes:
         if node.enable and node.status == "online":
             rows.append([InlineKeyboardButton(
-                text=f"🌍 {node.name}", callback_data=f"{prefix}:{source_id}:{node.id}"
+                text=f"🌍 {node_display_name(node.name)}", callback_data=f"{prefix}:{source_id}:{node.id}"
             )])
     rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:infra:inbounds")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
