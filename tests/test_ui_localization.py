@@ -121,7 +121,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         ):
             self.assertNotIn(old, fleet)
 
-        self.assertIn("📡 Inbound'ы ·", nodes)
+        self.assertIn("📡 Inbounds ·", nodes)
         self.assertIn("✏️ Переименование ноды", nodes)
         self.assertIn("💾 Снимок ноды", nodes)
         self.assertNotIn("✏️ Rename node", nodes)
@@ -315,7 +315,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'f"Политика inbound\'ов: {inbound_mode_text(mode)}"',
         ):
             self.assertIn(needle, catalog)
-        for old in (" servers", "(not discovered)", "Nodes API:", "Inbound policy:", "managed inbound'ы"):
+        for old in (" servers", "(not discovered)", "Nodes API:", "Inbound policy:", "managed Inbounds"):
             self.assertNotIn(old, catalog)
 
         for needle in (
@@ -369,7 +369,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         ):
             self.assertIn(needle, client)
         for old in (
-            "target inbound'ов",
+            "target Inbounds",
             "Legacy-политика пробного доступа",
             "📡 Inbounds:",
             "выполнить reconcile позже",
@@ -394,7 +394,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "safe provisioning",
             "Server Group #",
             "Selected-mode",
-            "provisioning inbound'ов",
+            "provisioning Inbounds",
             "следующего reconcile",
             "Strict reconcile",
             'f"Node #{inbound.node_id}"',
@@ -492,9 +492,9 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertNotIn(old, node_ui)
 
         self.assertIn("Старое действие больше не выполняет изменение напрямую.", advanced_nodes)
-        self.assertIn("Сначала перенеси или удали inbound'ы", advanced_nodes)
+        self.assertIn("Сначала перенеси или удали Inbounds", advanced_nodes)
         self.assertNotIn("Старый callback больше не выполняет изменение напрямую.", advanced_nodes)
-        self.assertNotIn("Сначала удали/detach inbound'ы", advanced_nodes)
+        self.assertNotIn("Сначала удали/detach Inbounds", advanced_nodes)
 
         self.assertIn("Затронуто записей: {affected}", users)
         self.assertNotIn("Трафик сброшен. affected=", users)
