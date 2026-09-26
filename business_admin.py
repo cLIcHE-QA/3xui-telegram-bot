@@ -462,7 +462,7 @@ async def promo_list(call: CallbackQuery):
     await render_callback(call, 
         "🎟 Промокоды\n\n"
         f"Промокодов: {len(promos)} · активных: {active}\n\n"
-        "Каталог готов для будущей оплаты. Пока промокоды не применяются к /create автоматически.",
+        "Каталог готов для будущей оплаты. Пока промокоды не применяются автоматически при создании доступа.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -767,7 +767,7 @@ async def administrators_list(call: CallbackQuery):
     rows = []
     for tg_id in all_ids:
         if tg_id in settings.admin_telegram_ids:
-            text = f"👑 TG {tg_id} · Owner · .env"
+            text = f"👑 TG {tg_id} · Owner · локальная конфигурация"
         else:
             rec = db_admins[tg_id]
             text = f"{'🟢' if rec.enabled else '⚪'} TG {tg_id} · {ROLE_LABELS.get(rec.role, rec.role)}"
@@ -779,7 +779,7 @@ async def administrators_list(call: CallbackQuery):
     ]
     await render_callback(call, 
         "👮 Администраторы\n\n"
-        "Owner из .env — аварийный владелец из ADMIN_TELEGRAM_IDS; его нельзя отключить из Telegram.\n\n"
+        "Owner из локальной конфигурации — аварийный владелец; его нельзя отключить из Telegram.\n\n"
         "Роли:\n"
         "👑 Owner — полный доступ и управление администраторами\n"
         "🛡 Administrator — все рабочие операции и безопасные настройки\n"
@@ -806,12 +806,13 @@ async def roles_privileges(call: CallbackQuery):
         "",
         "Четыре роли фиксированы. Каждое право задаёт минимально допустимую роль.",
         "Более высокая роль наследует права нижестоящих ролей.",
+        "Технические идентификаторы прав остаются внутренней частью RBAC.",
     ]
     for role in role_order:
         lines += ["", f"{role_icons[role]} {ROLE_LABELS[role]}"]
         for item in PRIVILEGES:
             if item.minimum_role == role:
-                lines.append(f"• {item.permission_id} — {item.label}")
+                lines.append(f"• {item.label}")
     await render_callback(
         call,
         "\n".join(lines),
@@ -829,7 +830,7 @@ async def administrator_detail(call: CallbackQuery):
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
         await render_callback(call, 
-            f"👑 TG {tg_id}\n\nРоль: Owner\nИсточник: ADMIN_TELEGRAM_IDS (.env)\nСтатус: 🟢 включён\n\n"
+            f"👑 TG {tg_id}\n\nРоль: Owner\nИсточник: локальная конфигурация\nСтатус: 🟢 включён\n\n"
             "Этот владелец защищён от изменения через Telegram.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
@@ -1007,7 +1008,7 @@ async def administrator_delete_ask(call: CallbackQuery):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
-        await call.answer("Owner из .env нельзя удалить.", show_alert=True)
+        await call.answer("Аварийного Owner из локальной конфигурации нельзя удалить.", show_alert=True)
         return
     await render_callback(call, 
         f"Удалить администратора TG {tg_id}?\n\n"
@@ -1026,7 +1027,7 @@ async def administrator_delete(call: CallbackQuery):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
-        await call.answer("Owner из .env нельзя удалить.", show_alert=True)
+        await call.answer("Аварийного Owner из локальной конфигурации нельзя удалить.", show_alert=True)
         return
     await db.delete_administrator(tg_id)
     await audit_from_call(db, call, "administrator.delete", target_type="administrator", target_id=tg_id)
@@ -1062,7 +1063,7 @@ async def settings_view(call: CallbackQuery):
     ]
     await render_callback(call, 
         "🔧 Настройки\n\n"
-        "Безопасные настройки — применяются без изменения .env:\n"
+        "Безопасные настройки — применяются без изменения локальной конфигурации:\n"
         f"🗓 Дней пробного доступа: {values['trial_days']}\n"
         f"📦 Трафик пробного доступа: {values['trial_traffic_gb']} GB\n"
         f"📱 Лимит IP пробного доступа: {values['trial_ip_limit']}\n"
