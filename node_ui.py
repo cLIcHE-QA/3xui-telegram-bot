@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from xui import NodeInfo
