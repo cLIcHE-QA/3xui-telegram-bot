@@ -266,7 +266,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ✅ выполнено и принято в production в `v4.20.6`.
 11. единая operator-facing терминология `Inbound` / `Inbounds` без гибридных форм с апострофом — ✅ выполнено и принято в production в `v4.20.7`.
 12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — ✅ выполнено и принято в production в `v4.20.8`.
-13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — ⬜ запланировано на `v4.20.9`.
+13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — 🟡 реализовано в `main`, release-prep `v4.20.9`.
 14. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
 15. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
 16. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
@@ -392,7 +392,7 @@ Production acceptance `v4.20.8` закрыт: release развернут в prod
 
 #### v4.20.9 — post-acceptance operator-facing UI cleanup
 
-**Статус: 🟡 Реализовано в ветке; готовится PR `v4.20.9`.**
+**Статус: 🟡 Реализовано в `main`; готовится release `v4.20.9`.**
 
 Scope предназначен для небольших presentation findings, найденных уже на production smoke/acceptance и не требующих изменения поведения, storage contract или security boundary.
 
