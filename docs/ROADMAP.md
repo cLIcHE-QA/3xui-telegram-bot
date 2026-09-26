@@ -915,6 +915,33 @@ Roadmap не требует device registration в первой версии. Н
 
 Public launch блокируется до закрытия release-blocking findings этого v5 launch audit.
 
+## Gate контролируемого запуска v5.0
+
+После успешного v5 launch audit публичный Client Portal не открывается сразу всему потоку пользователей. Перед широким запуском выполняется отдельный controlled rollout / production acceptance gate.
+
+Минимальный порядок:
+
+1. **Internal acceptance** — Owner/admin test accounts проходят полный customer lifecycle в production-like/production окружении без специальных обходных путей.
+2. **Small canary cohort** — доступ открывается ограниченной группе реальных test users через явный allowlist/feature flag; размер cohort остаётся небольшим и управляемым.
+3. **Commerce canary** — минимум несколько реальных или provider-approved test payment scenarios проходят цепочку order → provider event → entitlement → provisioning → subscription без ручной правки БД.
+4. **Failure canary** — контролируемо проверяются declined/failed payment, delayed webhook, duplicate webhook, temporary provisioning failure, node unavailable, restart бота во время background/reconcile operation и recovery после него.
+5. **Ownership/isolation check** — отдельные тестовые аккаунты пытаются открыть чужие callbacks/resources/subscription context; backend должен fail-closed независимо от callback payload.
+6. **Abuse/resource check** — проверяются rate limits, repeated callbacks, command spam, oversized/invalid input, monitoring/diagnostics quotas и отсутствие unbounded jobs/queues.
+7. **Observability/support readiness** — оператор видит payment/provisioning failures, correlation IDs, audit/job history и понятный recovery path; support не требует доступа к shell/DB для типовых случаев.
+8. **Rollback/disable path** — Client Portal и payment acceptance можно быстро выключить feature flag/allowlist policy без отключения Admin Control Plane и без потери уже подтверждённых платежей/entitlements.
+9. **Data/reconciliation check** — после canary выполняется сверка orders, payments, entitlements, provisioning state и 3x-ui clients; нет orphaned/duplicate resources или необъяснимых state mismatches.
+10. **Soak period** — canary работает достаточное время для прохождения scheduled jobs, expiry/renewal/monitoring циклов и хотя бы одного restart/deploy cycle без новых release-blocking findings.
+
+Критерий выхода из gate:
+
+- нет unresolved Critical/High findings;
+- нет необъяснимых payment/entitlement/provisioning inconsistencies;
+- error/retry/recovery paths проверены на фактическом deployment;
+- rollback/disable procedure проверена;
+- только после этого allowlist/feature flag может быть расширен до обычного публичного доступа.
+
+Результат controlled rollout фиксируется отдельным acceptance report с exact release tag/SHA, cohort scope, проверенными сценариями, найденными findings и итоговым решением о расширении доступа.
+
 ## Архитектурный принцип
 
 Client Portal не должен напрямую реализовывать infrastructure logic.
