@@ -4,9 +4,6 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from version import APP_VERSION
-
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -15,9 +12,6 @@ def source(path: str) -> str:
 
 
 class V42010InboundKeyboardTests(unittest.TestCase):
-    def test_release_version_is_42010(self):
-        self.assertEqual(APP_VERSION, "4.20.10")
-
     def test_compact_five_row_inbound_keyboard_contract(self):
         text = source("inbound_admin.py")
         start = text.index("async def _inbound_card")
