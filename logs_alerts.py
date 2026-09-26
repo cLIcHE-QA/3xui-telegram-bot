@@ -19,7 +19,7 @@ from db import AlertRuleRecord, Database
 from system_backup import SystemBackupService
 from logging_setup import bot_log_path
 from xui import XUIClient, XUIError
-from node_ui import node_status_text, xray_state_text
+from node_ui import node_display_name, node_status_text, xray_state_text
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -242,8 +242,14 @@ async def master_log_view(call: CallbackQuery):
         )
         return
     shown = lines[-count:]
+    excerpt = _excerpt(shown)
+    if source == "xray" and not shown:
+        excerpt += (
+            "\n\nℹ️ Отдельный журнал Xray пуст. События панели о Xray могут находиться "
+            "в журнале 3x-ui; наличие отдельных Xray-записей зависит от конфигурации логирования."
+        )
     await render_callback(call, 
-        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(shown)}",
+        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{excerpt}",
         reply_markup=_log_controls(source, count, level),
     )
 
@@ -261,7 +267,7 @@ async def node_logs_list(call: CallbackQuery):
     for node in nodes:
         if system_backup.direct_client_for(node.name, getattr(node, "id", None)) is not None:
             icon = "🟢" if node.enable and node.status == "online" else "🔴"
-            rows.append([InlineKeyboardButton(text=f"{icon} {node.name}", callback_data=f"admin:logs:node:{node.id}")])
+            rows.append([InlineKeyboardButton(text=f"{icon} {node_display_name(node.name)}", callback_data=f"admin:logs:node:{node.id}")])
     if not rows:
         rows.append([InlineKeyboardButton(text="⚠️ Direct Admin tokens не настроены", callback_data="admin:logs")])
     rows.append([InlineKeyboardButton(text="⬅ Журналы", callback_data="admin:logs")])
@@ -290,7 +296,7 @@ async def node_logs_sources(call: CallbackQuery):
         [InlineKeyboardButton(text="🛡 AmneziaWG", callback_data=f"admin:logs:nview:{node_id}:awg:50:all")],
         [InlineKeyboardButton(text="⬅ Журналы нод", callback_data="admin:logs:nodes")],
     ])
-    await render_callback(call, f"📜 Журналы · {node.name}\n\nВыбери источник:", reply_markup=kb)
+    await render_callback(call, f"📜 Журналы · {node_display_name(node.name)}\n\nВыбери источник:", reply_markup=kb)
     await call.answer()
 
 
@@ -308,13 +314,13 @@ async def node_log_view(call: CallbackQuery):
         fetch_count = min(500, max(count, 200 if level != "all" else count))
         if source == "panel":
             lines = await client.panel_logs(fetch_count, level="info" if level == "all" else level)
-            title = f"🧩 3x-ui · {node.name}"
+            title = f"🧩 3x-ui · {node_display_name(node.name)}"
         elif source == "xray":
             lines = _filter_lines(await client.xray_logs(fetch_count), level)
-            title = f"⚡ Xray · {node.name}"
+            title = f"⚡ Xray · {node_display_name(node.name)}"
         else:
             lines = _filter_lines(await client.amneziawg_logs(fetch_count), level)
-            title = f"🛡 AmneziaWG · {node.name}"
+            title = f"🛡 AmneziaWG · {node_display_name(node.name)}"
     except Exception as exc:
         await render_callback(call, 
             f"📜 Журналы ноды\n\n🔴 {type(exc).__name__}: {str(exc)[:500]}",
@@ -322,8 +328,15 @@ async def node_log_view(call: CallbackQuery):
         )
         await call.answer()
         return
+    shown = lines[-count:]
+    excerpt = _excerpt(shown)
+    if source == "xray" and not shown:
+        excerpt += (
+            "\n\nℹ️ Отдельный журнал Xray пуст. События панели о Xray могут находиться "
+            "в журнале 3x-ui; наличие отдельных Xray-записей зависит от конфигурации логирования."
+        )
     await render_callback(call, 
-        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{_excerpt(lines[-count:])}",
+        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{excerpt}",
         reply_markup=_log_controls(source, count, level, node_id=node_id),
     )
     await call.answer()
