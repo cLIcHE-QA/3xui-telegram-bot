@@ -18,6 +18,9 @@ def source(path: str) -> str:
 
 
 class V4211DisplayTimeConsistencyTests(unittest.TestCase):
+    def test_release_version_is_4211(self):
+        self.assertEqual(APP_VERSION, "4.21.1")
+
     def test_user_label_prefers_display_name_but_keeps_email(self):
         user = SimpleNamespace(email="machine@example.test")
         profile = SimpleNamespace(display_name="Alice")
