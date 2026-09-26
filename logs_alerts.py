@@ -245,8 +245,8 @@ async def master_log_view(call: CallbackQuery):
     excerpt = _excerpt(shown)
     if source == "xray" and not shown:
         excerpt += (
-            "\n\nℹ️ По текущему фильтру отдельный журнал Xray не вернул записей. События панели о Xray могут находиться "
-            "в журнале 3x-ui; наличие отдельных Xray-записей зависит от конфигурации логирования."
+            "\n\nℹ️ По текущему фильтру отдельный access-журнал Xray не вернул записей. Служебные события Xray могут находиться "
+            "в журнале 3x-ui; наличие access-записей зависит от конфигурации логирования."
         )
     await render_callback(call, 
         f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{excerpt}",
@@ -332,8 +332,8 @@ async def node_log_view(call: CallbackQuery):
     excerpt = _excerpt(shown)
     if source == "xray" and not shown:
         excerpt += (
-            "\n\nℹ️ По текущему фильтру отдельный журнал Xray не вернул записей. События панели о Xray могут находиться "
-            "в журнале 3x-ui; наличие отдельных Xray-записей зависит от конфигурации логирования."
+            "\n\nℹ️ По текущему фильтру отдельный access-журнал Xray не вернул записей. Служебные события Xray могут находиться "
+            "в журнале 3x-ui; наличие access-записей зависит от конфигурации логирования."
         )
     await render_callback(call, 
         f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{excerpt}",
