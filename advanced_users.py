@@ -146,6 +146,10 @@ def cancel_edit(tg_id: int) -> InlineKeyboardMarkup:
     ])
 
 
+async def _display_label(rec: UserRecord) -> str:
+    return user_label(rec, await db.get_user_profile(rec.telegram_id))
+
+
 async def _profile_labels(tg_id: int) -> tuple[str, str, str, str]:
     profile = await db.get_user_profile(tg_id)
     plan_name = "не назначен"
@@ -586,7 +590,7 @@ async def user_plan_apply_ask(call: CallbackQuery):
         await call.answer("Сначала назначь пользователю тариф.", show_alert=True)
         return
     await render_callback(call, 
-        f"Применить тариф «{plan.name}» к {rec.email}?\n\n"
+        f"Применить тариф «{plan.name}» к {await _display_label(rec)}?\n\n"
         f"Срок станет: сейчас + {plan.duration_days} дней\n"
         f"Трафик: {plan.traffic_gb} GB{' (без лимита)' if plan.traffic_gb == 0 else ''}\n"
         f"Лимит IP: {plan.ip_limit if plan.ip_limit else 'без лимита'}\n\n"
@@ -706,7 +710,7 @@ async def user_provisioning_card(call: CallbackQuery):
         actionable_missing = sorted(set(policy.actionable_inbound_ids) - current)
         extra = sorted((current & managed) - desired)
         lines = [
-            f"🚀 Согласование · {rec.email}",
+            f"🚀 Согласование · {await _display_label(rec)}",
             "",
             f"Источник: {provisioning_source_text(policy.source)}",
             f"Тариф: {policy.plan.name if policy.plan else 'не назначен'}",
@@ -849,7 +853,7 @@ async def user_inbounds(call: CallbackQuery):
             )])
         rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
         await render_callback(call, 
-            f"📡 Inbounds · {rec.email}\n\nНажатие подключает/отключает пользователя от конкретного Inbound.",
+            f"📡 Inbounds · {await _display_label(rec)}\n\nНажатие подключает/отключает пользователя от конкретного Inbound.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
         )
     except XUIError as exc:
@@ -919,7 +923,7 @@ async def user_reset_ask(call: CallbackQuery):
         await call.answer("Пользователь не найден.", show_alert=True)
         return
     await render_callback(call, 
-        f"Сбросить накопленный трафик {rec.email} до 0?",
+        f"Сбросить накопленный трафик {await _display_label(rec)} до 0?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сбросить трафик", callback_data=f"admin:u:resetrun:{tg_id}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
@@ -1001,7 +1005,7 @@ async def user_sub_rotate_run(call: CallbackQuery):
             details="subId rotated",
         )
         await render_callback(call, 
-            f"✅ Новый URL подписки для {rec.email}:\n{sub_url(new_sid)}",
+            f"✅ Новый URL подписки для {await _display_label(rec)}:\n{sub_url(new_sid)}",
             reply_markup=back_user(tg_id),
         )
     except XUIError as exc:
@@ -1293,7 +1297,7 @@ async def admin_sub(call: CallbackQuery):
     tg_id = int(call.data.split(":", 1)[1])
     rec = await db.get(tg_id)
     if rec:
-        await render_callback(call, f"🔗 {rec.email}\n{sub_url(rec.sub_id)}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔗 {await _display_label(rec)}\n{sub_url(rec.sub_id)}", reply_markup=back_user(tg_id))
     await call.answer()
 
 
@@ -1368,7 +1372,7 @@ async def admin_sync_inbounds(call: CallbackQuery):
             else:
                 details.append(f"• #{inbound_id}")
 
-        lines = [f"✅ Синхронизация завершена для {rec.email}.", ""]
+        lines = [f"✅ Синхронизация завершена для {await _display_label(rec)}.", ""]
         if details:
             lines += ["Добавлены Inbounds:"] + details + [""]
         else:
@@ -1434,7 +1438,7 @@ async def admin_extend(call: CallbackQuery):
         )
         await render_callback(
             call,
-            f"✅ {rec.email} продлён до {fmt_date(new_expiry)}",
+            f"✅ {await _display_label(rec)} продлён до {fmt_date(new_expiry)}",
             reply_markup=back_user(tg_id),
         )
     except XUIError as exc:
@@ -1466,7 +1470,7 @@ async def admin_disable(call: CallbackQuery):
             target_type="user",
             target_id=rec.email,
         )
-        await render_callback(call, f"⛔ {rec.email} отключён.", reply_markup=back_user(tg_id))
+        await render_callback(call, f"⛔ {await _display_label(rec)} отключён.", reply_markup=back_user(tg_id))
     except (XUIError, AttributeError) as exc:
         await audit_from_call(
             db,
@@ -1496,7 +1500,7 @@ async def admin_enable(call: CallbackQuery):
             target_type="user",
             target_id=rec.email,
         )
-        await render_callback(call, f"✅ {rec.email} включён.", reply_markup=back_user(tg_id))
+        await render_callback(call, f"✅ {await _display_label(rec)} включён.", reply_markup=back_user(tg_id))
     except (XUIError, AttributeError) as exc:
         await audit_from_call(
             db,
@@ -1520,7 +1524,7 @@ async def admin_del_ask(call: CallbackQuery):
     if rec:
         await render_callback(
             call,
-            f"Удалить {rec.email} из 3x-ui и локальной БД?\n\n"
+            f"Удалить {await _display_label(rec)} из 3x-ui и локальной БД?\n\n"
             "Клиент и его профиль будут удалены; платёжная история сохранится.",
             reply_markup=confirm_delete_keyboard(tg_id),
         )
@@ -1546,7 +1550,7 @@ async def admin_del(call: CallbackQuery):
             target_type="user",
             target_id=rec.email,
         )
-        await render_callback(call, f"🗑 {rec.email} удалён.", reply_markup=users_back())
+        await render_callback(call, f"🗑 {user_label(rec, await db.get_user_profile(tg_id))} удалён.", reply_markup=users_back())
     except XUIError as exc:
         await audit_from_call(
             db,
@@ -1582,8 +1586,9 @@ async def _bulk_render(state: FSMContext) -> tuple[str, InlineKeyboardMarkup]:
     visible = users[page * page_size:(page + 1) * page_size]
     rows = []
     for u in visible:
+        profile = await db.get_user_profile(u.telegram_id)
         rows.append([InlineKeyboardButton(
-            text=f"{'✅' if u.telegram_id in selected else '⬜'} {u.email}",
+            text=f"{'✅' if u.telegram_id in selected else '⬜'} {user_label(u, profile)}",
             callback_data=f"admin:bulk:toggle:{u.telegram_id}",
         )])
     nav = []
