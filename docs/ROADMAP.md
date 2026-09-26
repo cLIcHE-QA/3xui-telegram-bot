@@ -268,7 +268,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — ✅ выполнено и принято в production в `v4.20.8`.
 13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — ✅ опубликовано в `v4.20.9`; desktop layout follow-up закрыт в `v4.20.10`.
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
-15. редактируемое display name пользователя без изменения 3x-ui machine identity — 🟡 реализовано в `main`, release-prep `v4.21.0`.
+15. редактируемое display name пользователя без изменения 3x-ui machine identity — 🟠 опубликовано в `v4.21.0`; production deployment/acceptance ещё не выполнены.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
@@ -425,7 +425,7 @@ Production acceptance `v4.20.10` закрыт: release развернут в pro
 
 ##### Редактируемое имя пользователя
 
-**Статус: 🟡 Реализовано в `main`; готовится release `v4.21.0`.**
+**Статус: 🟠 Опубликовано в `v4.21.0`; production deployment/acceptance ещё не выполнены.**
 
 Цель — добавить оператору и будущему Client Portal человекочитаемое имя пользователя, не смешивая presentation identity с технической identity клиента 3x-ui.
 
@@ -440,6 +440,14 @@ Production acceptance `v4.20.10` закрыт: release развернут в pro
 - изменение/очистка имени записывается в audit;
 - provisioning, subscription identity, `telegram_id`, `sub_id` и 3x-ui email не меняются как побочный эффект;
 - regression pack проверяет migration upgrade, fallback, edit/clear flow, RBAC и отсутствие использования display name в machine bindings.
+
+Production acceptance остаётся открытым. Для operational closure после deployment необходимо подтвердить:
+
+- exact tag/version `v4.21.0`, штатный startup и применение `schema_migrations` до v2 без replay/failed state;
+- карточку пользователя с fallback на email, установкой display name и явной очисткой;
+- сохранение исходных `email`, `telegram_id`, `sub_id` и 3x-ui client identity после edit/clear;
+- audit entry для изменения/очистки имени без записи самого display name в details;
+- повторный базовый health/status-check после targeted smoke.
 
 ##### User / Audience Groups
 
