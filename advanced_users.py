@@ -1244,7 +1244,7 @@ async def admin_sync_inbounds(call: CallbackQuery):
         if not target_ids:
             await render_callback(
                 call,
-                "После фильтрации в .env нет ни одного доступного inbound. "
+                "После применения административной политики нет ни одного доступного inbound. "
                 "Проверь разрешённые порты, протоколы и список inbound'ов.",
                 reply_markup=back_user(tg_id),
             )
