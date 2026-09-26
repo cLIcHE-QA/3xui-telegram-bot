@@ -33,7 +33,7 @@ from backup_manager import BackupManager
 from config import HostControlTarget, load_settings
 from db import Database
 from host_control import HostControlClient, HostControlError
-from node_ui import node_status_text
+from node_ui import node_display_name, node_status_text
 from system_backup import SystemBackupService
 from version_api import same_version
 from version_service import UpdateError, safe_error
@@ -151,7 +151,7 @@ def _node_label(node: NodeInfo) -> str:
         icon = "🔴"
     else:
         icon = "🟡"
-    return f"{icon} {node.name} · ID {node.id}"
+    return f"{icon} {node_display_name(node.name)} · ID {node.id}"
 
 
 async def _direct_nodes() -> list[NodeInfo]:
@@ -472,7 +472,7 @@ async def _render_selection(call: CallbackQuery, state: FSMContext) -> None:
     for node in nodes[:50]:
         chosen = node.id in selected
         rows.append([(
-            ("✅ " if chosen else "⬜ ") + f"{node.name} · ID {node.id}",
+            ("✅ " if chosen else "⬜ ") + f"{node_display_name(node.name)} · ID {node.id}",
             f"{prefix}:{mode}:n{node.id}",
         )])
     if selected:
@@ -701,7 +701,7 @@ async def _common_xray_versions(node_ids: list[int]) -> list[str]:
             raise FleetError(f"Нода {node_id} исчезла.")
         assessment = await _assess_node(node)
         if not assessment["ready"]:
-            raise FleetError(f"{node.name} не готова к обновлению: " + "; ".join(assessment["problems"]))
+            raise FleetError(f"{node_display_name(node.name)} не готова к обновлению: " + "; ".join(assessment["problems"]))
         target = await resolve_target(f"n{node_id}")
         lists.append(await target.client.get_xray_versions())
     if not lists:
@@ -792,7 +792,7 @@ async def _create_rollout_review(
             raise FleetError(f"Нода {node_id} исчезла.")
         assessment = await _assess_node(node)
         if not assessment["ready"]:
-            raise FleetError(f"{node.name} не готова к обновлению: " + "; ".join(assessment["problems"]))
+            raise FleetError(f"{node_display_name(node.name)} не готова к обновлению: " + "; ".join(assessment["problems"]))
         target = await resolve_target(f"n{node_id}")
         snapshot = await read_state(target)
         if component == "panel":
@@ -801,7 +801,7 @@ async def _create_rollout_review(
         else:
             available = await target.client.get_xray_versions()
             if desired not in available:
-                raise FleetError(f"{node.name}: выбранная версия Xray недоступна.")
+                raise FleetError(f"{node_display_name(node.name)}: выбранная версия Xray недоступна.")
             node_desired = desired
             current = snapshot.xray
         desired_by_node[str(node_id)] = node_desired

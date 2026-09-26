@@ -21,7 +21,7 @@ from config import load_settings
 from db import Database
 from restore_manager import RestoreManager
 from runtime_jobs import backup_lock
-from node_ui import xray_state_text
+from node_ui import node_display_name, xray_state_text
 from system_backup import SystemBackupService
 from update_backups import validate_database
 from version import APP_VERSION
@@ -73,6 +73,17 @@ def component_text(value: str) -> str:
 
 def operation_state_text(value: str) -> str:
     return OPERATION_STATE_LABELS.get(value, value or "неизвестно")
+
+
+def _server_display_name(key: str, name: str) -> str:
+    return (name or settings.master_name) if key == "m" else node_display_name(name)
+
+
+def _server_label(key: str, name: str) -> str:
+    if key == "m":
+        return f"🖥 {_server_display_name(key, name)}"
+    display = _server_display_name(key, name)
+    return display if display != (name or "").strip() else f"🌍 {display}"
 
 
 def _target(key: str, name: str, client: XUIClient, identity: str = "", *, eligible: bool = True) -> Target:
@@ -246,17 +257,24 @@ async def versions_home(call: CallbackQuery, state: FSMContext):
     master, nodes = await asyncio.gather(
         read_state(_target("m", settings.master_name, xui)), xui.nodes_list(), return_exceptions=True,
     )
-    lines = [f"🧩 Версии и обновления | Бот {APP_VERSION}", "", settings.master_name]
+    lines = [f"🧩 Версии и обновления | Бот {APP_VERSION}", ""]
     if isinstance(master, VersionState):
-        lines += [f"📦 3x-ui: {master.panel or 'недоступно'}", f"⚡ Xray: {master.xray or 'недоступно'} | {xray_state_text(master.xray_state)}"]
+        lines.append(
+            f"{_server_label('m', settings.master_name)}: "
+            f"📦 3x-ui {master.panel or '?'} · ⚡ Xray {master.xray or '?'}"
+        )
     else:
-        lines.append("Не удалось получить версии Master.")
-    rows = [[(f"🖥 {settings.master_name}", "admin:ver:target:m")]]
+        lines.append(f"{_server_label('m', settings.master_name)}: версии недоступны")
+    rows = [[(_server_label("m", settings.master_name), "admin:ver:target:m")]]
     if isinstance(nodes, list):
         for node in nodes[:30]:
-            lines += ["", f"🌍 {node.name}: 📦 3x-ui {node.panel_version or '?'} | ⚡ Xray {node.xray_version or '?'}"]
+            key = f"n{node.id}"
+            lines.append(
+                f"{_server_label(key, node.name)}: "
+                f"📦 3x-ui {node.panel_version or '?'} · ⚡ Xray {node.xray_version or '?'}"
+            )
             if node.id > 0 and not node.transitive:
-                rows.append([(f"🌍 {node.name}", f"admin:ver:target:n{node.id}")])
+                rows.append([(_server_label(key, node.name), f"admin:ver:target:n{node.id}")])
         if len(nodes) > 30:
             lines.append(f"Показано 30 из {len(nodes)} нод; остальные доступны через «Инфраструктура».")
     else:
@@ -282,7 +300,7 @@ async def version_target(call: CallbackQuery, state: FSMContext):
             snapshot = VersionState(node.panel_version, node.xray_version, node.xray_state)
         rows = [[("⬆️ Обновление 3x-ui", f"admin:ver:panel:{key}")],
                 [("⚡ Версии Xray", f"admin:ver:xray:{key}:0")]]
-        text = (f"{name}\n\n📦 3x-ui: {snapshot.panel or 'недоступно'}\n"
+        text = (f"{_server_label(key, name)}\n\n📦 3x-ui: {snapshot.panel or 'недоступно'}\n"
                 f"⚡ Xray: {snapshot.xray or 'недоступно'} | {xray_state_text(snapshot.xray_state)}\n\n"
                 "Только ручные обновления: свежая проверенная копия и подтверждение.")
         op = store.get(key)
@@ -306,7 +324,7 @@ async def show_panel_screen(call: CallbackQuery, key: str) -> None:
         info = await target.client.get_panel_update_info()
         latest = await latest_stable_panel(info)
         current = str(info.get("currentVersion") or "")
-        text = (f"3x-ui | {target.name}\n\n📦 Текущая версия: {current or 'недоступно'}\n"
+        text = (f"3x-ui | {_server_display_name(target.key, target.name)}\n\n📦 Текущая версия: {current or 'недоступно'}\n"
                 f"🆕 Последняя стабильная: {latest}\n\n"
                 "Штатное средство обновления перезапускает панель. VPN-сессии могут прерваться.\n"
                 "Используется стабильный канал; сохранённая настройка канала не меняется.")
@@ -339,7 +357,7 @@ async def xray_versions(call: CallbackQuery):
         page = min(page, (len(values) - 1) // 8)
         rows = []
         can_change = target.eligible and ROLE_RANK.get(role or "", 0) >= ROLE_RANK["admin"]
-        lines = [f"⚡ Ядро Xray | {target.name}", f"📦 Текущая версия: {snapshot.xray or 'недоступно'}", "",
+        lines = [f"⚡ Ядро Xray | {_server_display_name(target.key, target.name)}", f"📦 Текущая версия: {snapshot.xray or 'недоступно'}", "",
                  "Доступные версии из API 3x-ui (обновление/откат):"]
         for value in values[page * 8:(page + 1) * 8]:
             current = same_version(value, snapshot.xray)

@@ -16,6 +16,7 @@ from audit import audit_from_call, audit_from_message
 from backup_manager import BackupManager
 from config import load_settings
 from db import Database
+from node_ui import node_display_name
 from restore_manager import BackupInspection, RestoreError, RestoreManager
 from system_backup import SystemBackupService
 from xui import XUIClient, XUIError
@@ -99,7 +100,7 @@ def _inspection_summary(info: BackupInspection, *, deep: bool = False) -> str:
     if info.nodes:
         lines += ["", "Ноды:"]
         for node in info.nodes[:20]:
-            lines.append(f"• {node.name} · {node.database_filename}")
+            lines.append(f"• {node_display_name(node.name)} · {node.database_filename}")
     if info.warnings:
         lines += ["", "⚠️ Предупреждения:"]
         lines.extend(f"• {x}" for x in info.warnings[:8])
@@ -120,7 +121,7 @@ def _backup_actions(info: BackupInspection) -> InlineKeyboardMarkup:
         rows.append([InlineKeyboardButton(text="🖥 Восстановить Master x-ui.db", callback_data=f"admin:restore:xui:{bid}")])
     for idx, node in enumerate(info.nodes[:20]):
         rows.append([InlineKeyboardButton(
-            text=f"🌍 Восстановить ноду: {node.name}",
+            text=f"🌍 Восстановить ноду: {node_display_name(node.name)}",
             callback_data=f"admin:restore:node:{bid}:{idx}",
         )])
     export_row: list[InlineKeyboardButton] = []
@@ -268,7 +269,7 @@ async def restore_bot_start(call: CallbackQuery, state: FSMContext):
         warning=(
             "🤖 Восстановление bot.sqlite3\n\n"
             "Будет создан защитный снимок текущей БД бота, затем контейнер бота автоматически перезапустится и до старта Python заменит SQLite. "
-            "После запуска версионированные миграции SQLite проверят и при необходимости обновят схему до версии текущего кода; ошибка, незавершённая миграция или более новая схема блокируют запуск. .env, 3x-ui и nginx не изменяются."
+            "После запуска версионированные миграции SQLite проверят и при необходимости обновят схему до версии текущего кода; ошибка, незавершённая миграция или более новая схема блокируют запуск. Локальная конфигурация, 3x-ui и nginx не изменяются."
         ),
     )
 
@@ -327,7 +328,7 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
             raise RestoreError("резервная копия не прошла предварительную проверку")
         if system_backup.direct_client_for(node.name, getattr(node, "id", None)) is None:
             raise RestoreError(
-                f"Для {node.name} не настроен Direct Admin token в NODE_BACKUP_TARGETS; автоматическое восстановление запрещено."
+                f"Для {node_display_name(node.name)} не настроено прямое административное подключение; автоматическое восстановление запрещено."
             )
         data = await asyncio.to_thread(restore_manager.read_member, path, node.member_name)
         if node.database_filename.lower().endswith(".db"):
@@ -342,7 +343,7 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
         call, state,
         action="node", backup_id=bid, node_index=idx, phrase="RESTORE NODE",
         warning=(
-            f"🌍 Восстановление ноды: {node.name}\n\n"
+            f"🌍 Восстановление ноды: {node_display_name(node.name)}\n\n"
             "Перед импортом будет скачана защитная копия текущей БД этой ноды. Затем используется штатный importDB с keepHostSettings=true. "
             "Нода перезапустит свою панель/Xray. Остальные ноды и Master не изменяются."
         ),
@@ -443,7 +444,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             await render_input(
                 message,
                 "✅ БД Master x-ui импортирована. 3x-ui перезапускает панель/Xray.\n\n"
-                "Проверь через 5–10 секунд «Мониторинг → Состояние системы». Если API token из резервной копии отличался, возможно потребуется вернуть соответствующий PANEL_API_TOKEN в .env.",
+                "Проверь через 5–10 секунд «Мониторинг → Состояние системы». Если API token из резервной копии отличался, возможно потребуется вернуть соответствующий локальный PANEL_API_TOKEN.",
                 reply_markup=_restore_back(bid),
             )
             return
@@ -453,7 +454,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             node = info.nodes[idx]
             client = system_backup.direct_client_for(node.name, getattr(node, "id", None))
             if client is None:
-                raise RestoreError(f"Direct admin token для {node.name} не настроен")
+                raise RestoreError(f"Прямое административное подключение для {node_display_name(node.name)} не настроено")
             archived = await asyncio.to_thread(restore_manager.read_member, path, node.member_name)
             if node.database_filename.lower().endswith(".db"):
                 ok_db, detail = restore_manager._sqlite_check_bytes(archived)
@@ -464,7 +465,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 restore_manager.save_rescue_blob, f"node-{node.name}", current_name, current
             )
             await render_input(message, 
-                f"💾 Защитная копия текущей БД {node.name} сохранена: {rescue.name}\nЗапускаю importDB…"
+                f"💾 Защитная копия текущей БД {node_display_name(node.name)} сохранена: {rescue.name}\nЗапускаю importDB…"
             )
             await client.import_database(
                 archived,
@@ -481,9 +482,9 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             )
             await render_input(
                 message,
-                f"✅ БД ноды {node.name} импортирована. Нода перезапускает панель/Xray.\n"
+                f"✅ БД ноды {node_display_name(node.name)} импортирована. Нода перезапускает панель/Xray.\n"
                 "Через несколько секунд открой «Инфраструктура → Ноды» и выполни проверку. "
-                "Если резервная копия содержала другой admin/API token, обнови соответствующий NODE_BACKUP_*_API_TOKEN в .env.",
+                "Если резервная копия содержала другой direct-admin credential, обнови соответствующее значение в локальной конфигурации.",
                 reply_markup=_restore_back(bid),
             )
             return

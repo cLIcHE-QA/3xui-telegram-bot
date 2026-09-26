@@ -6,6 +6,15 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.4 — Admin UI consolidation и единое отображение нод
+- Карточка пользователя сведена к одному каноническому `admin:u:<tg_id>` flow: список `Пользователи` больше не открывает отдельную legacy-карточку, а `adminuser:<tg_id>` сохранён как compatibility route для старых Telegram-сообщений и рендерит ту же карточку.
+- Repo-wide operator-facing node labels переведены на общий `node_display_name()` там, где отображается direct node: Monitoring, Fleet, Logs, Host Control, DR, Versions & Updates, Inbound UI, node backup summaries и связанные nested screens. Master остаётся отдельной сущностью; callback/binding identity по-прежнему строится по `node_id`/существующим machine identifiers, а не по display name.
+- `Версии и обновления` получил симметричный overview Master/direct nodes: на главном экране показываются версии компонентов без лишнего Xray runtime-state, а состояние Xray остаётся на detail-screen конкретного сервера.
+- Direct-node Xray log empty-state больше не выглядит как сломанный источник: проверено соответствие запроса pinned 3x-ui `v3.8.5` (`/panel/api/server/xraylogs/{count}` + `filter/showDirect/showBlocked/showProxy`); endpoint читает отдельный Xray access log, поэтому служебные `XRAY:`-события панели могут быть видны в журнале 3x-ui при пустом access log. UI теперь объясняет это различие.
+- `Журнал аудита` получил читаемые summaries для bot self-update и отдельный read-only detail view с полными `details`, поэтому длинная диагностика больше не теряется из-за жёсткого 140-символьного обрезания.
+- Operator-facing тексты очищены от лишних implementation details: `/create` заменён на понятное описание новых пользователей/создания доступа, `.env` — на локальную/административную конфигурацию, а основной экран `Роли и права` показывает человекочитаемые labels без внутренних permission IDs.
+- `docs/UI_STYLE.md` закрепляет единый direct-node display contract и запрещает runtime-логику, привязанную к конкретной production-географии; `docs/ROADMAP.md` отдельно фиксирует optional `country_code`/ISO metadata как будущую неблокирующую задачу, не входящую в `v4.20.4`.
+- Добавляется regression/source-audit coverage для user-card compatibility, node-display policy, audit detail RBAC и operator-facing text cleanup. SQLite schema, pinned 3x-ui/OpenAPI contract, Host Control/Deploy Agent API и mutation safety semantics не меняются; `v4.20.4` рассчитан на обычный Safe Bot Self-Update без host-side обновления Agent/helper.
 ## v4.20.3 — Production smoke fixes для backup integrity и Admin UI
 - Исправлен Full Backup integrity contract: корневой `manifest.json` по-прежнему не хеширует сам себя, но nested `nodes/*/manifest.json` теперь входит в `integrity.files`; embedded node backup проходит `RestoreManager.inspect_backup()` без ложной ошибки `manifest integrity не покрывает файлы`.
 - В Disaster Recovery detail/preflight и история восстановления возвращаются к непосредственному parent `Аварийное восстановление`; restore остаётся fail-closed и Owner-only, mutation semantics не менялись.

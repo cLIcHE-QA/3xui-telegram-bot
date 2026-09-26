@@ -405,6 +405,8 @@ async def jobs_run_backup(call: CallbackQuery):
 
 
 ACTION_LABELS = {
+    "bot.update.started": "обновление бота: запущено",
+    "bot.update.recovered": "обновление бота: итог восстановлен",
     "panel.update.prepared": "обновление 3x-ui: подготовлено",
     "panel.update.started": "обновление 3x-ui: запущено",
     "panel.update.success": "обновление 3x-ui: успешно",
@@ -481,6 +483,35 @@ def audit_actor(item: AuditRecord) -> str:
     return f"TG {item.actor_id}"
 
 
+def _audit_detail_fields(details: str) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    for part in (details or "").split(";"):
+        key, sep, value = part.strip().partition("=")
+        if sep and key:
+            fields[key.strip()] = value.strip()
+    return fields
+
+
+def _audit_summary(item: AuditRecord) -> str:
+    details = (item.details or "").strip()
+    if not details:
+        return ""
+    if item.action.startswith("bot.update."):
+        fields = _audit_detail_fields(details)
+        parts: list[str] = []
+        if fields.get("release"):
+            parts.append(f"релиз {fields['release']}")
+        if fields.get("state"):
+            parts.append(f"состояние {fields['state']}")
+        if fields.get("observed"):
+            parts.append(f"фактически {fields['observed']}")
+        if fields.get("operation_id"):
+            parts.append(f"операция {fields['operation_id'][:8]}")
+        if parts:
+            return " · ".join(parts)
+    return details if len(details) <= 120 else details[:117] + "…"
+
+
 @observability_router.callback_query(F.data == "admin:audit")
 async def audit_first(call: CallbackQuery):
     await audit_page(call, 0)
@@ -495,11 +526,12 @@ async def audit_paged(call: CallbackQuery):
 async def audit_page(call: CallbackQuery, offset: int):
     if not await guard(call):
         return
-    page_size = 15
+    page_size = 12
     total = await db.count_audit()
     offset = max(0, min(offset, max(0, total - 1))) if total else 0
     items = await db.list_audit(limit=page_size, offset=offset)
     lines = ["🧾 Журнал аудита", "", f"Записей: {total}", ""]
+    detail_rows: list[list[InlineKeyboardButton]] = []
     if not items:
         lines.append("Аудит пока пуст.")
     else:
@@ -513,9 +545,16 @@ async def audit_page(call: CallbackQuery, offset: int):
                 f"{icon} {utc_text(item.created_at)}\n"
                 f"   {audit_actor(item)} · {action}{target}"
             )
-            if item.details:
-                detail = item.details if len(item.details) <= 140 else item.details[:137] + "…"
-                lines.append(f"   {detail}")
+            summary = _audit_summary(item)
+            if summary:
+                lines.append(f"   {summary}")
+                if len(item.details or "") > 120 or item.action.startswith("bot.update."):
+                    detail_rows.append([
+                        InlineKeyboardButton(
+                            text=f"🔎 {utc_text(item.created_at)} · {action}"[:64],
+                            callback_data=f"admin:audit:item:{item.id}:{offset}",
+                        )
+                    ])
 
     rows: list[list[InlineKeyboardButton]] = []
     nav: list[InlineKeyboardButton] = []
@@ -525,7 +564,44 @@ async def audit_page(call: CallbackQuery, offset: int):
         nav.append(InlineKeyboardButton(text="➡ Старее", callback_data=f"admin:audit:{offset + page_size}"))
     if nav:
         rows.append(nav)
+    rows.extend(detail_rows)
     rows.append([InlineKeyboardButton(text="🔄 Обновить", callback_data=f"admin:audit:{offset}")])
     rows.append([InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")])
-    await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(call, "\n".join(lines)[:3900], reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await call.answer()
+
+
+@observability_router.callback_query(F.data.regexp(r"^admin:audit:item:\d+:\d+$"))
+async def audit_detail(call: CallbackQuery):
+    if not await guard(call):
+        return
+    parts = (call.data or "").split(":")
+    audit_id, offset = int(parts[-2]), int(parts[-1])
+    item = await db.get_audit(audit_id)
+    if item is None:
+        await call.answer("Запись аудита не найдена.", show_alert=True)
+        return
+    icon = "✅" if item.success else "🔴"
+    action = ACTION_LABELS.get(item.action, item.action)
+    target = (
+        f"{item.target_type}:{item.target_id}".rstrip(":")
+        if item.target_type or item.target_id else "—"
+    )
+    text = (
+        f"🧾 Запись аудита #{item.id}\n\n"
+        f"{icon} {utc_text(item.created_at)}\n"
+        f"Кто: {audit_actor(item)}\n"
+        f"Действие: {action}\n"
+        f"Код действия: {item.action}\n"
+        f"Цель: {target}\n\n"
+        "Подробности:\n"
+        f"{item.details or '—'}"
+    )
+    await render_callback(
+        call,
+        text[:3900],
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="⬅ Журнал аудита", callback_data=f"admin:audit:{offset}")
+        ]]),
+    )
     await call.answer()

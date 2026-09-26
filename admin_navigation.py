@@ -69,23 +69,6 @@ def system_menu() -> InlineKeyboardMarkup:
     ])
 
 
-def user_admin_keyboard(tg_id: int, enabled: bool = True) -> InlineKeyboardMarkup:
-    state_btn = (
-        InlineKeyboardButton(text="⛔ Отключить", callback_data=f"admindisable:{tg_id}")
-        if enabled else
-        InlineKeyboardButton(text="✅ Включить", callback_data=f"adminenable:{tg_id}")
-    )
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ Расширенное управление", callback_data=f"admin:u:{tg_id}")],
-        [InlineKeyboardButton(text="🔗 Подписка", callback_data=f"adminsub:{tg_id}")],
-        [InlineKeyboardButton(text="🔄 Синхронизировать inbound'ы", callback_data=f"adminsync:{tg_id}")],
-        [InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}")],
-        [state_btn],
-        [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admindelask:{tg_id}")],
-        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
-    ])
-
-
 def confirm_delete_keyboard(tg_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admindel:{tg_id}")],
