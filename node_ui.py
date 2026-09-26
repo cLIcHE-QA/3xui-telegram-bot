@@ -17,13 +17,17 @@ def node_status_icon(node: NodeInfo) -> str:
     return "🟡"
 
 
-def xray_icon(node: NodeInfo) -> str:
-    state = node.xray_state.lower()
-    if state in {"running", "started", "online"}:
+def xray_state_icon(state: str) -> str:
+    value = (state or "").lower()
+    if value in {"running", "started", "online"}:
         return "🟢"
-    if state in {"stopped", "failed", "error"}:
+    if value in {"stopped", "failed", "error"}:
         return "🔴"
     return "🟡"
+
+
+def xray_icon(node: NodeInfo) -> str:
+    return xray_state_icon(node.xray_state)
 
 
 def node_status_text(status: str) -> str:
