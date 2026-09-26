@@ -254,6 +254,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertIn(role, business)
 
         for needle in (
+            '"📡 Inbounds"',
             'text="👥 Клиенты"',
             'text="✏️ Изменить"',
             'text="📋 Клонировать"',
@@ -262,7 +263,6 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         ):
             self.assertIn(needle, inbounds)
         for old in (
-            '"📡 Inbounds"',
             'text="👥 Clients"',
             'text="✏️ Edit"',
             'text="📋 Clone"',
