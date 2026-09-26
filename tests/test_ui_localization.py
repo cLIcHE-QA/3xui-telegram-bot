@@ -321,7 +321,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         for needle in (
             'text="🔐 Роли и права"',
             '"🔐 Роли и права"',
-            '"Owner из .env — аварийный владелец',
+            '"Owner из локальной конфигурации — аварийный владелец',
             'f"Добавил: {f\'TG {rec.added_by}\' if rec.added_by else \'система\'}\\n"',
             '"Окружение (только чтение):\\n"',
         ):
