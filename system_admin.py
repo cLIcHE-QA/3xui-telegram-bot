@@ -16,6 +16,7 @@ from db import Database
 from node_ui import (
     duration_text,
     master_detail_keyboard,
+    node_display_name,
     node_status_icon,
     xray_icon,
     xray_state_text,
@@ -323,7 +324,7 @@ async def admin_health(call: CallbackQuery):
                     f"{icon} {item.port} {item.protocol.upper()} — {item.remark}"
                 )
         else:
-            lines.append("⚪ Нет inbound'ов после фильтров .env")
+            lines.append("⚪ Нет inbound'ов после применённых фильтров")
 
     lines += ["", "Ноды"]
     if nodes_error:
@@ -333,7 +334,7 @@ async def admin_health(call: CallbackQuery):
             icon = node_status_icon(node)
             xicon = xray_icon(node)
             node_line = (
-                f"{icon} {node.name} · {xicon} Xray · "
+                f"{icon} {node_display_name(node.name)} · {xicon} Xray · "
                 f"🧮 CPU {node.cpu_pct:.0f}% · 🧠 RAM {node.mem_pct:.0f}%"
             )
             if node.latency_ms:
