@@ -701,7 +701,7 @@ async def _common_xray_versions(node_ids: list[int]) -> list[str]:
             raise FleetError(f"Нода {node_id} исчезла.")
         assessment = await _assess_node(node)
         if not assessment["ready"]:
-            raise FleetError(f"{node.name} не готова к обновлению: " + "; ".join(assessment["problems"]))
+            raise FleetError(f"{node_display_name(node.name)} не готова к обновлению: " + "; ".join(assessment["problems"]))
         target = await resolve_target(f"n{node_id}")
         lists.append(await target.client.get_xray_versions())
     if not lists:
@@ -792,7 +792,7 @@ async def _create_rollout_review(
             raise FleetError(f"Нода {node_id} исчезла.")
         assessment = await _assess_node(node)
         if not assessment["ready"]:
-            raise FleetError(f"{node.name} не готова к обновлению: " + "; ".join(assessment["problems"]))
+            raise FleetError(f"{node_display_name(node.name)} не готова к обновлению: " + "; ".join(assessment["problems"]))
         target = await resolve_target(f"n{node_id}")
         snapshot = await read_state(target)
         if component == "panel":
@@ -801,7 +801,7 @@ async def _create_rollout_review(
         else:
             available = await target.client.get_xray_versions()
             if desired not in available:
-                raise FleetError(f"{node.name}: выбранная версия Xray недоступна.")
+                raise FleetError(f"{node_display_name(node.name)}: выбранная версия Xray недоступна.")
             node_desired = desired
             current = snapshot.xray
         desired_by_node[str(node_id)] = node_desired
