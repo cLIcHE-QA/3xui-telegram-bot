@@ -131,6 +131,7 @@ class UserProfileRecord:
     server_group_id: int | None
     note: str
     updated_at: int
+    display_name: str
 
 
 @dataclass
@@ -253,25 +254,35 @@ class Database:
         plan_id: int | None = None,
         server_group_id: int | None = None,
         note: str | None = None,
+        display_name: str | None = None,
         preserve_unspecified: bool = True,
     ) -> None:
         current = await self.get_user_profile(int(telegram_id)) if preserve_unspecified else None
         plan_value = current.plan_id if current and plan_id is None else plan_id
         group_value = current.server_group_id if current and server_group_id is None else server_group_id
         note_value = current.note if current and note is None else (note or "")
+        display_name_value = (
+            current.display_name if current and display_name is None else (display_name or "")
+        )
         now = int(time.time())
         async with aiosqlite.connect(self.path) as db:
             await db.execute(
                 """
-                INSERT INTO user_profiles(telegram_id, plan_id, server_group_id, note, updated_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO user_profiles(
+                    telegram_id, plan_id, server_group_id, note, updated_at, display_name
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(telegram_id) DO UPDATE SET
                     plan_id=excluded.plan_id,
                     server_group_id=excluded.server_group_id,
                     note=excluded.note,
-                    updated_at=excluded.updated_at
+                    updated_at=excluded.updated_at,
+                    display_name=excluded.display_name
                 """,
-                (int(telegram_id), plan_value, group_value, note_value[:1000], now),
+                (
+                    int(telegram_id), plan_value, group_value, note_value[:1000], now,
+                    display_name_value[:64],
+                ),
             )
             await db.commit()
 
@@ -282,6 +293,7 @@ class Database:
             plan_id=plan_id,
             server_group_id=current.server_group_id if current else None,
             note=current.note if current else "",
+            display_name=current.display_name if current else "",
             preserve_unspecified=False,
         )
 
@@ -292,6 +304,7 @@ class Database:
             plan_id=current.plan_id if current else None,
             server_group_id=group_id,
             note=current.note if current else "",
+            display_name=current.display_name if current else "",
             preserve_unspecified=False,
         )
 
@@ -302,6 +315,18 @@ class Database:
             plan_id=current.plan_id if current else None,
             server_group_id=current.server_group_id if current else None,
             note=note,
+            display_name=current.display_name if current else "",
+            preserve_unspecified=False,
+        )
+
+    async def set_user_display_name(self, telegram_id: int, display_name: str) -> None:
+        current = await self.get_user_profile(int(telegram_id))
+        await self.upsert_user_profile(
+            int(telegram_id),
+            plan_id=current.plan_id if current else None,
+            server_group_id=current.server_group_id if current else None,
+            note=current.note if current else "",
+            display_name=display_name,
             preserve_unspecified=False,
         )
 
