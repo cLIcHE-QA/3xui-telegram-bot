@@ -443,7 +443,18 @@ Production acceptance `v4.20.10` закрыт: release развернут в pro
 
 Production acceptance `v4.21.0` закрыт: release развернут через Safe Bot Self-Update, bot штатно запустился с новой SQLite schema v2, и оператор завершил targeted smoke display-name flow. Подтверждены установка отображаемого имени, его явная очистка с возвратом fallback на email и отсутствие наблюдаемых regressions в пользовательской карточке/подписке. Machine identity (`email`, `telegram_id`, `sub_id`, 3x-ui client identity) по contract и regression coverage не изменяется; production smoke не выявил побочных изменений.
 
-##### v4.21.1 — display name consistency и MSK\n\n**Статус: 🟡 Реализовано в `main`; готовится patch release `v4.21.1`.**\n\nPatch закрывает два post-acceptance presentation findings `v4.21.0` без изменения product/storage/security boundaries:\n\n- display name используется как основной operator-facing label во всех соседних user surfaces, при этом email остаётся технической identity и fallback;\n- абсолютные Telegram Admin timestamps отображаются в MSK (UTC+3), а machine timestamps и `BACKUP_HOUR_UTC` сохраняют UTC/epoch semantics;\n- date-only operator input `YYYY-MM-DD` для user/promo expiry интерпретируется как `23:59:59 MSK`;\n- SQLite schema, 3x-ui/OpenAPI, provisioning, subscription identity, Host Control/Deploy Agent и mutation semantics не меняются.\n\n##### User / Audience Groups
+##### v4.21.1 — display name consistency и MSK
+
+**Статус: 🟡 Реализовано в `main`; готовится patch release `v4.21.1`.**
+
+Patch закрывает два post-acceptance presentation findings `v4.21.0` без изменения product/storage/security boundaries:
+
+- display name используется как основной operator-facing label во всех соседних user surfaces, при этом email остаётся технической identity и fallback;
+- абсолютные Telegram Admin timestamps отображаются в MSK (UTC+3), а machine timestamps и `BACKUP_HOUR_UTC` сохраняют UTC/epoch semantics;
+- date-only operator input `YYYY-MM-DD` для user/promo expiry интерпретируется как `23:59:59 MSK`;
+- SQLite schema, 3x-ui/OpenAPI, provisioning, subscription identity, Host Control/Deploy Agent и mutation semantics не меняются.
+
+##### User / Audience Groups
 
 **Статус: ⬜ Запланировано на `v4.22.0`.**
 
