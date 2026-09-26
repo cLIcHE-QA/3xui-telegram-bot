@@ -37,7 +37,7 @@ def infrastructure_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🌍 Ноды", callback_data="admin:nodes")],
         [
-            InlineKeyboardButton(text="📡 Inbound'ы", callback_data="admin:infra:inbounds"),
+            InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds"),
             InlineKeyboardButton(text="🌐 Хосты", callback_data="admin:hosts"),
         ],
         [InlineKeyboardButton(text="🌐 Операции с нодами", callback_data="admin:fleet")],
