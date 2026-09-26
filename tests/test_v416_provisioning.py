@@ -184,7 +184,7 @@ class ProvisioningRegressionTests(unittest.IsolatedAsyncioTestCase):
         )
         engine = ProvisioningEngine(db, xui, settings())
 
-        with self.assertRaisesRegex(ProvisioningError, "без inbound"):
+        with self.assertRaisesRegex(ProvisioningError, "без Inbounds"):
             await engine.sync_user(1, strict=True)
         self.assertEqual(xui.detach_calls, [])
         self.assertEqual(xui.client_ids["one@example.test"], {10})
