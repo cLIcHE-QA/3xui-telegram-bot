@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.21.1 — Консистентность display name и московское время
+- Display name пользователя теперь используется последовательно на operator-facing поверхностях: `Подписки`, связанные user actions, список клиентов Inbound, monitoring, bulk selection и платежи; технический email остаётся machine identity, audit target и fallback.
+- Добавлены общие presentation helpers для user labels, чтобы новые экраны не дублировали собственную логику `display_name · email` и не меняли callback/provisioning identity.
+- Абсолютные дата/время в Telegram Admin Control Plane переведены на `MSK (UTC+3)`: сроки пользователей, audit/jobs, backup/system/DR timestamps, node heartbeat, payments/promos. Machine timestamps, Unix epoch, API semantics, backup filenames и agent journals не меняются.
+- Date-only ввод `YYYY-MM-DD` для срока пользователя и промокода теперь означает конец выбранного дня `23:59:59 MSK`. Технический `BACKUP_HOUR_UTC` и фактическое расписание backup остаются UTC; UI показывает соответствующее MSK-время и исходное UTC значение.
+- Добавлен regression pack для display-name consistency, MSK formatting и сохранения UTC scheduler boundary. SQLite schema, 3x-ui/OpenAPI contract, provisioning, Host Control/Deploy Agent API и mutation semantics не меняются; host-side Agent/helper update не требуется.
+
 ## v4.21.0 — Редактируемое имя пользователя
 - Добавлено optional `display_name` в профиль пользователя через forward-only SQLite migration `v2 user_display_name_v4_21_0`; существующие профили получают пустое значение и продолжают отображаться по текущему email без ручной миграции данных.
 - В карточке пользователя появилось действие `✏️ Имя`: оператор с ролью Support или выше может задать либо очистить отображаемое имя; ввод нормализуется, ограничен 64 символами и отклоняет управляющие символы.
