@@ -110,7 +110,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "users.support",
         "prefix",
         "adminsync:", "adminextend:", "admindisable:", "adminenable:",
-        "admin:u:expiry:", "admin:u:traffic:", "admin:u:ip:", "admin:u:note:",
+        "admin:u:expiry:", "admin:u:traffic:", "admin:u:ip:", "admin:u:note:", "admin:u:name:",
         "admin:u:plan:", "admin:u:planset:", "admin:u:planapplyask:", "admin:u:planapplyrun:",
         "admin:u:group:", "admin:u:groupset:", "admin:u:planprovask:", "admin:u:planprovrun:",
         "admin:u:ibtoggle:", "admin:u:resetask:", "admin:u:resetrun:",

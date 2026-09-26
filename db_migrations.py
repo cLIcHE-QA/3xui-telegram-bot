@@ -290,7 +290,7 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     ),
     "runtime_settings": ("key", "value", "updated_by", "updated_at"),
     "user_profiles": (
-        "telegram_id", "plan_id", "server_group_id", "note", "updated_at",
+        "telegram_id", "plan_id", "server_group_id", "note", "updated_at", "display_name",
     ),
     "inbound_templates": (
         "id", "name", "source_inbound_id", "protocol", "payload_json", "created_at",
@@ -333,6 +333,32 @@ async def _validate_current_schema(db: aiosqlite.Connection) -> None:
         )
 
 
+async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
+    for table, expected_current in _EXPECTED_COLUMNS.items():
+        expected = (
+            ("telegram_id", "plan_id", "server_group_id", "note", "updated_at")
+            if table == "user_profiles"
+            else expected_current
+        )
+        cursor = await db.execute(f'PRAGMA table_info("{table}")')
+        rows = await cursor.fetchall()
+        actual = tuple(str(row[1]) for row in rows)
+        if actual != expected:
+            raise DatabaseMigrationError(
+                f"Schema mismatch for {table}: expected columns {expected!r}, got {actual!r}."
+            )
+
+    cursor = await db.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'"
+    )
+    actual_indexes = {str(row[0]) for row in await cursor.fetchall()}
+    missing_indexes = sorted(_EXPECTED_INDEXES - actual_indexes)
+    if missing_indexes:
+        raise DatabaseMigrationError(
+            f"Schema is missing required indexes: {', '.join(missing_indexes)}"
+        )
+
+
 async def _migration_0001_baseline_v4_14_2(db: aiosqlite.Connection) -> None:
     for statement in _BASELINE_DDL:
         await db.execute(statement)
@@ -351,6 +377,16 @@ async def _migration_0001_baseline_v4_14_2(db: aiosqlite.Connection) -> None:
         "(code, enabled, threshold, cooldown_sec, updated_at) VALUES (?, ?, ?, ?, ?)",
         [(code, enabled, threshold, cooldown, now) for code, enabled, threshold, cooldown in defaults],
     )
+    await _validate_baseline_v1_schema(db)
+
+
+async def _migration_0002_user_display_name(db: aiosqlite.Connection) -> None:
+    cursor = await db.execute('PRAGMA table_info("user_profiles")')
+    columns = {str(row[1]) for row in await cursor.fetchall()}
+    if "display_name" not in columns:
+        await db.execute(
+            "ALTER TABLE user_profiles ADD COLUMN display_name TEXT NOT NULL DEFAULT ''"
+        )
     await _validate_current_schema(db)
 
 
@@ -359,6 +395,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=1,
         name="baseline_v4_14_2",
         apply=_migration_0001_baseline_v4_14_2,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=2,
+        name="user_display_name_v4_21_0",
+        apply=_migration_0002_user_display_name,
         requires_backup=False,
     ),
 )

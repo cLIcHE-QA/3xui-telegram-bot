@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import secrets
 import time
+import unicodedata
 from datetime import datetime, timezone
 
 from aiogram import F, Router
@@ -31,6 +32,7 @@ class EditUserStates(StatesGroup):
     traffic = State()
     ip_limit = State()
     note = State()
+    display_name = State()
 
 
 RECONCILE_LABELS = {
@@ -115,6 +117,20 @@ def choose_inbounds(inbounds):
     return [i for i in inbounds if i.enable and is_managed_inbound(i)]
 
 
+def normalize_display_name(value: str) -> str:
+    raw = (value or "").strip()
+    if raw == "-":
+        return ""
+    if not raw:
+        raise ValueError("empty")
+    if any(unicodedata.category(ch).startswith("C") for ch in raw):
+        raise ValueError("control")
+    normalized = " ".join(raw.split())
+    if not normalized or len(normalized) > 64:
+        raise ValueError("length")
+    return normalized
+
+
 def back_user(tg_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
@@ -133,11 +149,12 @@ def cancel_edit(tg_id: int) -> InlineKeyboardMarkup:
     ])
 
 
-async def _profile_labels(tg_id: int) -> tuple[str, str, str]:
+async def _profile_labels(tg_id: int) -> tuple[str, str, str, str]:
     profile = await db.get_user_profile(tg_id)
     plan_name = "не назначен"
     group_name = "не назначена"
     note = ""
+    display_name = ""
     if profile:
         if profile.plan_id:
             plan = await db.get_plan(profile.plan_id)
@@ -146,7 +163,8 @@ async def _profile_labels(tg_id: int) -> tuple[str, str, str]:
             group = await db.get_server_group(profile.server_group_id)
             group_name = group.name if group else f"#{profile.server_group_id} (удалена)"
         note = profile.note or ""
-    return plan_name, group_name, note
+        display_name = getattr(profile, "display_name", "") or ""
+    return plan_name, group_name, note, display_name
 
 
 async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
@@ -156,7 +174,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")]
         ])
 
-    plan_name, group_name, note = await _profile_labels(tg_id)
+    plan_name, group_name, note, display_name = await _profile_labels(tg_id)
     provisioning_line = "🚀 Согласование: недоступно"
     try:
         policy = await provisioner.policy_for_user(tg_id)
@@ -181,7 +199,8 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
         enabled = bool(client.get("enable", True))
         flow = str(client.get("flow") or "none")
         lines = [
-            f"👤 {rec.email}",
+            f"👤 {display_name or rec.email}",
+            *([f"Email: {rec.email}"] if display_name else []),
             f"Telegram ID: {rec.telegram_id}",
             f"Статус: {'🟢 включён' if enabled else '⛔ отключён'}",
             "",
@@ -200,7 +219,8 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
     except XUIError as exc:
         enabled = True
         lines = [
-            f"👤 {rec.email}",
+            f"👤 {display_name or rec.email}",
+            *([f"Email: {rec.email}"] if display_name else []),
             f"Telegram ID: {rec.telegram_id}",
             "",
             f"💎 Тариф: {plan_name}",
@@ -237,6 +257,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data=f"admin:u:resetask:{tg_id}"),
             InlineKeyboardButton(text="📝 Заметка", callback_data=f"admin:u:note:{tg_id}"),
         ],
+        [InlineKeyboardButton(text="✏️ Имя", callback_data=f"admin:u:name:{tg_id}")],
         [InlineKeyboardButton(text="🔄 Синхронизировать Inbounds", callback_data=f"adminsync:{tg_id}")],
         [
             InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}"),
@@ -414,6 +435,65 @@ async def user_ip_save(message: Message, state: FSMContext):
         await render_input(message, "Введи целое число от 0 до 1000.", reply_markup=cancel_edit(tg_id))
     except XUIError as exc:
         await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:name:"))
+async def user_display_name_start(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    if not await db.get(tg_id):
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    await state.clear()
+    await state.update_data(tg_id=tg_id)
+    await state.set_state(EditUserStates.display_name)
+    await render_callback(
+        call,
+        "✏️ Имя пользователя\n\n"
+        "Введи отображаемое имя (до 64 символов).\n"
+        "«-» очищает имя и возвращает отображение email.",
+        reply_markup=cancel_edit(tg_id),
+    )
+    await call.answer()
+
+
+@advanced_users_router.message(EditUserStates.display_name)
+async def user_display_name_save(message: Message, state: FSMContext):
+    if not await guard_message(message, state):
+        return
+    data = await state.get_data()
+    tg_id = int(data["tg_id"])
+    rec = await db.get(tg_id)
+    if not rec:
+        await state.clear()
+        await render_input(message, "Пользователь не найден.", reply_markup=users_back())
+        return
+    try:
+        display_name = normalize_display_name(message.text or "")
+    except ValueError:
+        await render_input(
+            message,
+            "Имя должно содержать 1–64 символа без управляющих символов. "
+            "Используй «-», чтобы очистить имя.",
+            reply_markup=cancel_edit(tg_id),
+        )
+        return
+    old_profile = await db.get_user_profile(tg_id)
+    old_name = (getattr(old_profile, "display_name", "") or "") if old_profile else ""
+    await db.set_user_display_name(tg_id, display_name)
+    action = "cleared" if not display_name else ("created" if not old_name else "changed")
+    await audit_from_message(
+        db,
+        message,
+        "user.display_name.set",
+        target_type="user",
+        target_id=rec.email,
+        details=f"action={action}; old_length={len(old_name)}; new_length={len(display_name)}",
+    )
+    await state.clear()
+    result = "✅ Имя очищено. Используется email." if not display_name else f"✅ Имя: {display_name}"
+    await render_input(message, result, reply_markup=back_user(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:note:"))
@@ -951,8 +1031,11 @@ async def admin_users(call: CallbackQuery):
     users = await db.list_users()
     rows = []
     for u in users[:40]:
+        profile = await db.get_user_profile(u.telegram_id)
+        display_name = (getattr(profile, "display_name", "") or "") if profile else ""
+        label = f"{display_name} · {u.email}" if display_name else u.email
         rows.append([InlineKeyboardButton(
-            text=f"👤 {u.email} | TG {u.telegram_id}",
+            text=f"👤 {label} | TG {u.telegram_id}",
             callback_data=f"admin:u:{u.telegram_id}"
         )])
     rows.append([InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk")])

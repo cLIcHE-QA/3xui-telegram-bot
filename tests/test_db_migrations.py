@@ -11,6 +11,7 @@ from db_migrations import (
     DatabaseMigrationError,
     DatabaseSchemaTooNewError,
     MigrationStep,
+    MIGRATIONS,
     current_schema_version,
     run_migrations,
 )
@@ -29,7 +30,11 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (1, "baseline_v4_14_2", "success"))
+                self.assertEqual(row, (2, "user_display_name_v4_21_0", "success"))
+                columns = [
+                    item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
+                ]
+                self.assertIn("display_name", columns)
                 self.assertEqual(conn.execute("PRAGMA quick_check").fetchone()[0], "ok")
 
     async def test_legacy_database_without_journal_is_upgraded_in_place(self):
@@ -76,6 +81,36 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         "SELECT status FROM schema_migrations WHERE version = 1"
                     ).fetchone()[0],
                     "success",
+                )
+
+    async def test_schema_v1_profile_upgrades_to_display_name_without_data_loss(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bot.sqlite3"
+            await run_migrations(str(path), migrations=MIGRATIONS[:1])
+            with sqlite3.connect(path) as conn:
+                conn.execute(
+                    "INSERT INTO user_profiles(telegram_id, plan_id, server_group_id, note, updated_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (101, 7, 9, "keep me", 123),
+                )
+                conn.commit()
+
+            await Database(str(path)).init()
+
+            with sqlite3.connect(path) as conn:
+                row = conn.execute(
+                    "SELECT telegram_id, plan_id, server_group_id, note, updated_at, display_name "
+                    "FROM user_profiles WHERE telegram_id = 101"
+                ).fetchone()
+                self.assertEqual(row, (101, 7, 9, "keep me", 123, ""))
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT version, name, status FROM schema_migrations ORDER BY version"
+                    ).fetchall(),
+                    [
+                        (1, "baseline_v4_14_2", "success"),
+                        (2, "user_display_name_v4_21_0", "success"),
+                    ],
                 )
 
     async def test_newer_schema_version_blocks_startup(self):
