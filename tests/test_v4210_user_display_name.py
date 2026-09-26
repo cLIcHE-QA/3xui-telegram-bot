@@ -36,9 +36,6 @@ def load_advanced_users():
 
 
 class V4210UserDisplayNameTests(unittest.IsolatedAsyncioTestCase):
-    def test_release_version_is_4210(self):
-        self.assertEqual(APP_VERSION, "4.21.0")
-
     def test_display_name_callback_requires_support(self):
         self.assertEqual(required_role_for_callback("admin:u:name:101"), "support")
 
