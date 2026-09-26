@@ -13,6 +13,7 @@ from audit import audit_from_call, audit_from_message
 from backup_manager import BackupManager
 from config import load_settings
 from db import Database
+from node_ui import node_display_name
 from system_backup import SystemBackupService
 from xui import XUIClient, XUIError
 from versions_updates import show_panel_screen
@@ -109,7 +110,7 @@ async def node_inbounds(call: CallbackQuery):
 
     selected = [ib for ib in inbounds if _node_key(ib.get("nodeId")) == node_id]
     rows: list[list[InlineKeyboardButton]] = []
-    lines = [f"📡 Inbound'ы · {node.name}", "", f"Всего: {len(selected)}"]
+    lines = [f"📡 Inbound'ы · {node_display_name(node.name)}", "", f"Всего: {len(selected)}"]
     for ib in sorted(selected, key=lambda x: (int(x.get("port") or 0), int(x.get("id") or 0)))[:50]:
         iid = int(ib.get("id") or 0)
         icon = "🟢" if bool(ib.get("enable", True)) else "⚪"
