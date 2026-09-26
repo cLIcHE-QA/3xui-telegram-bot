@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from xui import NodeInfo
+from ui_time import format_timestamp
 
 
 def node_status_icon(node: NodeInfo) -> str:
@@ -82,12 +83,7 @@ def duration_text(seconds: int) -> str:
 
 
 def epoch_text(seconds: int) -> str:
-    if not seconds:
-        return "никогда"
-    try:
-        return datetime.fromtimestamp(seconds, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    except (OSError, OverflowError, ValueError):
-        return str(seconds)
+    return format_timestamp(seconds, empty="никогда")
 
 
 def node_display_name(name: str) -> str:
