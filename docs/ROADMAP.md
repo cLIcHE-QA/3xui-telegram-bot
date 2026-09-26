@@ -263,7 +263,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 7. off-site backup и проверяемый restore path — 🟠 опубликовано в `v4.18.0`, production drill отложен до финального v4 freeze;
 8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
 9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ✅ выполнено и принято в production в `v4.20.5`.
-10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ⬜ запланировано на `v4.20.6`.
+10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — 🟡 реализовано в `main`, release-prep `v4.20.6`.
 11. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
 12. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
 13. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
@@ -317,7 +317,7 @@ Production acceptance `v4.20.5` закрыт: release развернут в prod
 
 ##### UI-04 — симметрия Master/direct-node health summary
 
-**Статус: ⬜ Запланировано на `v4.20.6`.**
+**Статус: 🟡 Реализовано в `main`; готовится `v4.20.6`.**
 
 Экран `Мониторинг → Состояние системы` сейчас показывает для Master и direct nodes разные наборы и разную грамматику одинаковых health-метрик. Часть различий архитектурно оправдана, потому что Master имеет локальные показатели и сервисы, которых нет в агрегированном `NodeInfo`; UI-04 не должен скрывать это различие или добавлять лишние network calls только ради визуальной симметрии.
 

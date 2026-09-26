@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.6 — Симметричный health summary Master и нод
+- `Мониторинг → Состояние системы` приведён к общему presentation contract для Master и direct nodes: одинаковые доступные health-метрики используют одинаковые labels, status grammar и emoji.
+- Direct node теперь явно показывает общий статус рядом с identity, отдельный статус панели и Xray state + version; `unknown` для Xray отображается отдельным жёлтым состоянием, а не ложным binary failure.
+- CPU, RAM, uptime и Inbound'ы имеют симметричные подписи; Master-only disk/Subscription Proxy/nginx-TLS/DB/backup показатели остаются только у Master, а node-only latency/client/online counters сохраняются у direct nodes.
+- Дополнительные API-вызовы к direct nodes ради визуального выравнивания не добавлялись; `docs/UI_STYLE.md` закрепляет правило «одинаково представлять одинаковые доступные данные».
+- Добавлены regression tests на online/offline/maintenance и tri-state Xray presentation. SQLite schema, pinned 3x-ui/OpenAPI contract, callback identity и mutation safety semantics не меняются; `v4.20.6` устанавливается обычным Safe Bot Self-Update без host-side обновления Agent/helper.
+
 ## v4.20.5 — Финальная консистентность Admin UI
 - `Инфраструктура → Операции с нодами → Состояние нод` теперь использует общий `node_display_name()` для direct nodes, поэтому operator-facing имя и country presentation fallback совпадают с остальными экранами.
 - Список `Ноды` приведён к общей грамматике `identity · status icon status text`: Master и direct nodes явно показывают текстовый online/offline/unknown/maintenance status, сохраняя `node_id` как machine identity.
