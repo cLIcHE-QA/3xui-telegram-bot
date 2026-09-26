@@ -262,7 +262,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 6. расширенный regression coverage критических admin/business/recovery путей — ✅ выполнено в `v4.16.0`;
 7. off-site backup и проверяемый restore path — 🟠 опубликовано в `v4.18.0`, production drill отложен до финального v4 freeze;
 8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
-9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — 🟡 реализовано в `main`, release-prep `v4.20.5`.
+9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ✅ выполнено в `v4.20.5`; production acceptance ещё не закрыт.
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ⬜ запланировано на `v4.20.6`.
 11. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
 12. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
@@ -296,7 +296,7 @@ Off-site acceptance остаётся обязательным pre-v5 gate, но 
 
 ##### Финальный Admin UI consistency patch
 
-**Статус: 🟡 Реализовано в `main`; готовится `v4.20.5`.**
+**Статус: ✅ Выполнено в `v4.20.5`; production acceptance ещё не закрыт.**
 
 Production smoke `v4.20.4` подтвердил основной Admin UI consolidation, но выявил три остаточные несогласованности presentation/navigation contract. Они должны быть закрыты отдельным небольшим regression-safe patch без изменения SQLite schema, 3x-ui/OpenAPI contract, Host Control/Deploy Agent API или mutation-safety semantics.
 
