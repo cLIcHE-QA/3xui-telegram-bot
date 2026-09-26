@@ -8,7 +8,7 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_auth import authorize_callback, get_admin_role
-from admin_navigation import admin_menu, infrastructure_menu, monitoring_menu, system_menu
+from admin_navigation import admin_menu, dashboard_menu, infrastructure_menu, monitoring_menu, system_menu
 from admin_ui import register_panel_message, render_callback
 from backup_manager import BackupManager
 from config import load_settings
@@ -203,7 +203,7 @@ async def admin_dashboard(call: CallbackQuery):
         f"💾 Последняя резервная копия: {backup_text}",
     ]
 
-    await render_callback(call, "\n".join(lines), reply_markup=admin_menu())
+    await render_callback(call, "\n".join(lines), reply_markup=dashboard_menu())
     await call.answer()
 
 
