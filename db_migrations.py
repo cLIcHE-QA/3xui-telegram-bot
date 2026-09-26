@@ -290,7 +290,7 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     ),
     "runtime_settings": ("key", "value", "updated_by", "updated_at"),
     "user_profiles": (
-        "telegram_id", "plan_id", "server_group_id", "note", "updated_at",
+        "telegram_id", "plan_id", "server_group_id", "note", "updated_at", "display_name",
     ),
     "inbound_templates": (
         "id", "name", "source_inbound_id", "protocol", "payload_json", "created_at",
@@ -351,7 +351,22 @@ async def _migration_0001_baseline_v4_14_2(db: aiosqlite.Connection) -> None:
         "(code, enabled, threshold, cooldown_sec, updated_at) VALUES (?, ?, ?, ?, ?)",
         [(code, enabled, threshold, cooldown, now) for code, enabled, threshold, cooldown in defaults],
     )
-    await _validate_current_schema(db)
+    cursor = await db.execute('PRAGMA table_info("user_profiles")')
+    columns = tuple(str(row[1]) for row in await cursor.fetchall())
+    expected = ("telegram_id", "plan_id", "server_group_id", "note", "updated_at")
+    if columns != expected:
+        raise DatabaseMigrationError(
+            f"Schema mismatch for user_profiles baseline: expected {expected!r}, got {columns!r}."
+        )
+
+
+async def _migration_0002_user_display_name(db: aiosqlite.Connection) -> None:
+    cursor = await db.execute('PRAGMA table_info("user_profiles")')
+    columns = {str(row[1]) for row in await cursor.fetchall()}
+    if "display_name" not in columns:
+        await db.execute(
+            "ALTER TABLE user_profiles ADD COLUMN display_name TEXT NOT NULL DEFAULT ''"
+        )
 
 
 MIGRATIONS: tuple[MigrationStep, ...] = (
@@ -359,6 +374,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=1,
         name="baseline_v4_14_2",
         apply=_migration_0001_baseline_v4_14_2,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=2,
+        name="user_display_name_v4_21_0",
+        apply=_migration_0002_user_display_name,
         requires_backup=False,
     ),
 )
