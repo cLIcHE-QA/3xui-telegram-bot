@@ -19,6 +19,7 @@ from offsite_backup import replicate_with_job, service_from_settings
 from restore_manager import RestoreManager
 from runtime_jobs import backup_lock
 from system_backup import SystemBackupService
+from ui_time import backup_schedule_text, format_datetime
 
 
 settings = load_settings()
@@ -58,7 +59,7 @@ def backup_status_text() -> str:
     latest = items[0] if items else None
     lines = ["💾 Резервные копии", ""]
     if latest:
-        ts = latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
+        ts = format_datetime(latest.created_at)
         lines.append(f"🕘 Последняя: {ts}")
         lines.append(f"📦 Размер: {human_bytes(latest.size)}")
     else:
@@ -66,7 +67,7 @@ def backup_status_text() -> str:
     lines.append(f"🗄 Хранится полных копий: {len(items)} / {settings.backup_keep}")
     lines.append(f"{'🟢' if settings.backup_enabled else '⚪'} Автоматически: {'включено' if settings.backup_enabled else 'выключено'}")
     if settings.backup_enabled:
-        lines.append(f"🗓 Ежедневно: {settings.backup_hour_utc:02d}:00 UTC")
+        lines.append(f"🗓 Ежедневно: {backup_schedule_text(settings.backup_hour_utc)}")
         if settings.backup_send_to_admins:
             lines.append("📤 Отправка администраторам: включена")
     if settings.offsite_backup_enabled:
@@ -248,7 +249,7 @@ async def admin_backup_full(call: CallbackQuery):
             FSInputFile(info.path),
             caption=(
                 "Полная резервная копия. Храните файл в защищённом месте.\n"
-                f"Создан: {info.created_at.strftime('%Y-%m-%d %H:%M UTC')}"
+                f"Создан: {format_datetime(info.created_at)}"
             ),
         )
         await audit_from_call(
