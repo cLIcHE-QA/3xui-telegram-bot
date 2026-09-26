@@ -245,7 +245,7 @@ async def master_log_view(call: CallbackQuery):
     excerpt = _excerpt(shown)
     if source == "xray" and not shown:
         excerpt += (
-            "\n\nℹ️ Отдельный журнал Xray пуст. События панели о Xray могут находиться "
+            "\n\nℹ️ По текущему фильтру отдельный журнал Xray не вернул записей. События панели о Xray могут находиться "
             "в журнале 3x-ui; наличие отдельных Xray-записей зависит от конфигурации логирования."
         )
     await render_callback(call, 
@@ -332,7 +332,7 @@ async def node_log_view(call: CallbackQuery):
     excerpt = _excerpt(shown)
     if source == "xray" and not shown:
         excerpt += (
-            "\n\nℹ️ Отдельный журнал Xray пуст. События панели о Xray могут находиться "
+            "\n\nℹ️ По текущему фильтру отдельный журнал Xray не вернул записей. События панели о Xray могут находиться "
             "в журнале 3x-ui; наличие отдельных Xray-записей зависит от конфигурации логирования."
         )
     await render_callback(call, 
