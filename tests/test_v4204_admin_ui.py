@@ -68,8 +68,11 @@ class V4204AdminUiTests(unittest.TestCase):
         for text in (shell, catalog, business):
             self.assertNotIn("/create", text)
 
-        for text in (catalog, business, users, system, inbounds, restore):
+        for text in (catalog, business, users, system, inbounds):
             self.assertNotIn(".env", text)
+        self.assertNotIn(" in .env", restore)
+        self.assertNotIn("NODE_BACKUP_*_API_TOKEN", restore)
+        self.assertIn("bot.env", restore)
 
         self.assertIn("По умолчанию для новых пользователей", shell)
         self.assertIn("тариф по умолчанию для новых пользователей", catalog)
@@ -101,6 +104,7 @@ class V4204AdminUiTests(unittest.TestCase):
 
     def test_direct_node_operator_ui_uses_shared_formatter(self):
         modules = (
+            "node_admin.py",
             "advanced_nodes.py",
             "logs_alerts.py",
             "disaster_recovery.py",
@@ -118,17 +122,21 @@ class V4204AdminUiTests(unittest.TestCase):
                 msg=f"{path} must use the shared direct-node display formatter",
             )
 
-        residuals = {
-            "advanced_nodes.py": 'f"📡 Inbound\'ы · {node.name}"',
-            "logs_alerts.py": 'text=f"{icon} {node.name}"',
-            "disaster_recovery.py": 'text=f"🌍 Восстановить ноду: {node.name}"',
-            "fleet_operations.py": 'return f"{icon} {node.name} · ID {node.id}"',
-            "system_admin.py": 'f"{icon} {node.name} · {xicon} Xray · "',
-            "inbound_admin.py": 'text=f"🌍 {node.name}"',
-            "versions_updates.py": 'f"🌍 {node.name}: 📦 3x-ui',
-            "host_control_ui.py": 'f"🧩 Управление 3x-ui · {target.name}"',
-        }
-        for path, stale in residuals.items():
+        residuals = (
+            ("advanced_nodes.py", 'f"📡 Inbound\'ы · {node.name}"'),
+            ("advanced_nodes.py", 'f"💾 Снимок ноды · {node.name}'),
+            ("logs_alerts.py", 'text=f"{icon} {node.name}"'),
+            ("disaster_recovery.py", 'text=f"🌍 Восстановить ноду: {node.name}"'),
+            ("disaster_recovery.py", 'f"✅ БД ноды {node.name}'),
+            ("fleet_operations.py", 'return f"{icon} {node.name} · ID {node.id}"'),
+            ("fleet_operations.py", 'raise FleetError(f"{node.name}'),
+            ("system_admin.py", 'f"{icon} {node.name} · {xicon} Xray · "'),
+            ("inbound_admin.py", 'text=f"🌍 {node.name}"'),
+            ("versions_updates.py", 'f"🌍 {node.name}: 📦 3x-ui'),
+            ("host_control_ui.py", 'f"🧩 Управление 3x-ui · {target.name}"'),
+            ("host_control_ui.py", 'f"⛔ ОСТАНОВКА сервиса 3x-ui · {target.name}'),
+        )
+        for path, stale in residuals:
             self.assertNotIn(stale, source(path), msg=f"stale node label in {path}")
 
     def test_versions_overview_is_symmetric_and_state_lives_on_detail(self):
