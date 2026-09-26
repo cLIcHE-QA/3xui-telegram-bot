@@ -33,7 +33,7 @@ from backup_manager import BackupManager
 from config import HostControlTarget, load_settings
 from db import Database
 from host_control import HostControlClient, HostControlError
-from node_ui import node_status_text
+from node_ui import node_display_name, node_status_text
 from system_backup import SystemBackupService
 from version_api import same_version
 from version_service import UpdateError, safe_error
@@ -151,7 +151,7 @@ def _node_label(node: NodeInfo) -> str:
         icon = "🔴"
     else:
         icon = "🟡"
-    return f"{icon} {node.name} · ID {node.id}"
+    return f"{icon} {node_display_name(node.name)} · ID {node.id}"
 
 
 async def _direct_nodes() -> list[NodeInfo]:
@@ -472,7 +472,7 @@ async def _render_selection(call: CallbackQuery, state: FSMContext) -> None:
     for node in nodes[:50]:
         chosen = node.id in selected
         rows.append([(
-            ("✅ " if chosen else "⬜ ") + f"{node.name} · ID {node.id}",
+            ("✅ " if chosen else "⬜ ") + f"{node_display_name(node.name)} · ID {node.id}",
             f"{prefix}:{mode}:n{node.id}",
         )])
     if selected:
