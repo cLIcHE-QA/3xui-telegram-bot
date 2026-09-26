@@ -78,6 +78,21 @@
 
 Не требуется переводить внутренние enum/status values в коде. Для пользователя при необходимости используется отдельный display label.
 
+## Отображение Master и direct nodes
+
+Идентичность ноды и её отображение в Telegram UI разделяются.
+
+- стабильная техническая идентичность direct node — `node_id`;
+- `name` является изменяемым display name и не используется как основной binding, если доступен `node_id`;
+- operator-facing подпись direct node формируется через единый `node_display_name()` или эквивалентный общий formatter;
+- formatter может добавлять presentation metadata, например флаг страны, но эти данные не участвуют в callback/API identity, privilege binding, backup identity или Host Control binding;
+- уже размеченное имя не получает повторный флаг;
+- произвольное имя, для которого нет presentation metadata, отображается без искусственного угадывания;
+- Master не пропускается через formatter direct nodes и отображается отдельно как `🖥 Master` или через фактическое `MASTER_NAME` с Master-маркером;
+- runtime-код не должен содержать специальных веток вида `if node.name == "Finland"` или иной логики, завязанной на конкретную production-географию;
+- при добавлении новых operator-facing экранов прямой вывод `node.name` допустим только для machine/internal context; пользовательская подпись должна идти через общий formatter.
+
+Текущий name-based country mapping является только presentation fallback. Будущее optional `country_code` не меняет принцип: `node_id` остаётся identity, `name` — display name, а флаг вычисляется отдельно.
 ## Навигация
 
 Навигация строится от пользовательской задачи, а не от структуры Python-модулей.
