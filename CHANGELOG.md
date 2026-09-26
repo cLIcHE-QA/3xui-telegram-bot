@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.21.2 — Исправления Disaster Recovery и журнала бота
+- Исправлен runtime `NameError` в Disaster Recovery после MSK-перехода: `disaster_recovery.py` теперь явно импортирует `format_datetime` и `format_short_datetime`, поэтому список/карточки резервных копий снова открываются штатно и продолжают показывать operator-facing время в MSK.
+- В `Мониторинг → Журналы` режимы `50` и `200` больше не выглядят одинаковыми из-за общего character limit: UI показывает `запрошено N · показано M`, а режим `200` использует расширенный Telegram-safe budget для большего excerpt.
+- Raw log timestamps намеренно остаются в исходной machine-level timezone (как правило UTC); MSK применяется к operator-facing structured timestamps, а не переписывает содержимое журналов.
+- Regression coverage фиксирует imports DR formatter'ов, различие 50/200 log modes и текущую release version. SQLite schema, 3x-ui/OpenAPI, log redaction, Host Control/Deploy Agent и mutation semantics не меняются; host-side Agent/helper update не требуется.
+
 ## v4.21.1 — Консистентность display name и московское время
 - Display name пользователя теперь используется последовательно на operator-facing поверхностях: `Подписки`, связанные user actions, список клиентов Inbound, monitoring, bulk selection и платежи; технический email остаётся machine identity, audit target и fallback.
 - Добавлены общие presentation helpers для user labels, чтобы новые экраны не дублировали собственную логику `display_name · email` и не меняли callback/provisioning identity.
