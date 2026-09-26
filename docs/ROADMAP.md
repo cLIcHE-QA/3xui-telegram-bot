@@ -262,6 +262,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 6. расширенный regression coverage критических admin/business/recovery путей — ✅ выполнено в `v4.16.0`;
 7. off-site backup и проверяемый restore path — 🟠 опубликовано в `v4.18.0`, production drill отложен до финального v4 freeze;
 8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
+9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ⬜ запланировано на `v4.20.5`: единый direct-node display на Fleet Health, симметричный статус Master/direct nodes в списке `Ноды` и единый top-level navigation contract для `Обзора`.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -277,7 +278,28 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Таким образом off-site acceptance остаётся обязательным pre-v5 gate, но выполняется после архитектурной и UX-подготовки Admin Control Plane, непосредственно перед финальным freeze.
 
-Cleanup/freeze-подготовка этого раздела прошла production acceptance в `v4.20.1`. Следующий обязательный gate — отложенный production drill для off-site backup.
+Cleanup/freeze-подготовка этого раздела прошла production acceptance в `v4.20.1`. После production acceptance `v4.20.4` выявлен ещё один небольшой UI consistency follow-up, который фиксируется отдельным patch-релизом `v4.20.5` до финального off-site drill. После его production acceptance следующий обязательный gate — отложенный production drill для off-site backup.
+
+##### Финальный Admin UI consistency patch
+
+**Статус: ⬜ Запланировано на `v4.20.5`.**
+
+Production smoke `v4.20.4` подтвердил основной Admin UI consolidation, но выявил три остаточные несогласованности presentation/navigation contract. Они должны быть закрыты отдельным небольшим regression-safe patch без изменения SQLite schema, 3x-ui/OpenAPI contract, Host Control/Deploy Agent API или mutation-safety semantics.
+
+Scope `v4.20.5`:
+
+1. **Fleet Health использует общий direct-node formatter.** Экран `Инфраструктура → Операции с нодами → Состояние нод` не должен печатать raw `item['name']`; operator-facing имя проходит через `node_display_name()`, поэтому `Finland` отображается как `🇫🇮 Finland` при текущем presentation fallback.
+2. **Список `Ноды` использует один status template для Master и direct nodes.** Master и direct nodes показывают идентичность сущности, status icon и текстовый status label в одном формате; direct-node identity формируется через `node_display_name()`. Пример: `🖥 Master · 🟢 В сети` и `🇫🇮 Finland · 🟢 В сети`.
+3. **`Обзор` следует общему top-level navigation contract.** `admin:home` остаётся единственным корневым экраном с `admin_menu()`. `admin:dashboard` становится обычным дочерним экраном с собственной локальной клавиатурой (`🔄 Обновить`, `⬅ Панель администратора`) и не сохраняет корневое меню под содержимым overview.
+
+Regression requirements:
+
+- отдельный тест проверяет конкретную Fleet Health строку и запрещает raw direct-node name на этом экране;
+- тест списка `Ноды` проверяет одинаковую грамматику статуса Master/direct nodes, включая online/offline/maintenance/unknown варианты;
+- navigation regression проверяет, что `admin_menu()` используется только корневым экраном, а `Обзор` имеет локальную навигацию и явный возврат к `Панели администратора`;
+- `docs/UI_STYLE.md` остаётся нормативным источником этих правил для следующих UI PR.
+
+После merge/release обязателен короткий production smoke именно по этим трём пунктам. Только после acceptance `v4.20.5` возвращаемся к отложенному off-site backup/restore drill и затем к финальному v4 freeze.
 
 ##### Декомпозиция bot.py
 
