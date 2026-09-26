@@ -328,7 +328,7 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
             raise RestoreError("резервная копия не прошла предварительную проверку")
         if system_backup.direct_client_for(node.name, getattr(node, "id", None)) is None:
             raise RestoreError(
-                f"Для {node.name} не настроен Direct Admin token в NODE_BACKUP_TARGETS; автоматическое восстановление запрещено."
+                f"Для {node_display_name(node.name)} не настроено прямое административное подключение; автоматическое восстановление запрещено."
             )
         data = await asyncio.to_thread(restore_manager.read_member, path, node.member_name)
         if node.database_filename.lower().endswith(".db"):
@@ -343,7 +343,7 @@ async def restore_node_start(call: CallbackQuery, state: FSMContext):
         call, state,
         action="node", backup_id=bid, node_index=idx, phrase="RESTORE NODE",
         warning=(
-            f"🌍 Восстановление ноды: {node.name}\n\n"
+            f"🌍 Восстановление ноды: {node_display_name(node.name)}\n\n"
             "Перед импортом будет скачана защитная копия текущей БД этой ноды. Затем используется штатный importDB с keepHostSettings=true. "
             "Нода перезапустит свою панель/Xray. Остальные ноды и Master не изменяются."
         ),
@@ -454,7 +454,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             node = info.nodes[idx]
             client = system_backup.direct_client_for(node.name, getattr(node, "id", None))
             if client is None:
-                raise RestoreError(f"Direct admin token для {node.name} не настроен")
+                raise RestoreError(f"Прямое административное подключение для {node_display_name(node.name)} не настроено")
             archived = await asyncio.to_thread(restore_manager.read_member, path, node.member_name)
             if node.database_filename.lower().endswith(".db"):
                 ok_db, detail = restore_manager._sqlite_check_bytes(archived)
@@ -465,7 +465,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
                 restore_manager.save_rescue_blob, f"node-{node.name}", current_name, current
             )
             await render_input(message, 
-                f"💾 Защитная копия текущей БД {node.name} сохранена: {rescue.name}\nЗапускаю importDB…"
+                f"💾 Защитная копия текущей БД {node_display_name(node.name)} сохранена: {rescue.name}\nЗапускаю importDB…"
             )
             await client.import_database(
                 archived,
@@ -482,9 +482,9 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             )
             await render_input(
                 message,
-                f"✅ БД ноды {node.name} импортирована. Нода перезапускает панель/Xray.\n"
+                f"✅ БД ноды {node_display_name(node.name)} импортирована. Нода перезапускает панель/Xray.\n"
                 "Через несколько секунд открой «Инфраструктура → Ноды» и выполни проверку. "
-                "Если резервная копия содержала другой admin/API token, обнови соответствующий NODE_BACKUP_*_API_TOKEN в .env.",
+                "Если резервная копия содержала другой direct-admin credential, обнови соответствующее значение в локальной конфигурации.",
                 reply_markup=_restore_back(bid),
             )
             return
