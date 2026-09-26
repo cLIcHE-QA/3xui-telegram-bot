@@ -38,6 +38,15 @@ class V4204AdminUiTests(unittest.TestCase):
         )[0]
         self.assertIn("text, kb = await render_user(tg_id)", legacy)
         self.assertIn("await render_callback(call, text, reply_markup=kb)", legacy)
+        for callback in (
+            'callback_data=f"adminsync:{tg_id}"',
+            'callback_data=f"adminextend:{tg_id}"',
+            'callback_data=f"admindisable:{tg_id}"',
+            'callback_data=f"adminenable:{tg_id}"',
+            'callback_data=f"admindelask:{tg_id}"',
+            'callback_data=f"adminsub:{tg_id}"',
+        ):
+            self.assertIn(callback, users)
         self.assertNotIn("user_admin_keyboard", users)
 
     def test_audit_detail_is_read_only_and_preserves_full_details(self):
