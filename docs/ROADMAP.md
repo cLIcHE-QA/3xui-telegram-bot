@@ -268,7 +268,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — ✅ выполнено и принято в production в `v4.20.8`.
 13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — ✅ опубликовано в `v4.20.9`; desktop layout follow-up закрыт в `v4.20.10`.
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
-15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; consistency follow-up 🟡 готовится в `v4.21.1`.
+15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; consistency follow-up 🟠 опубликован в `v4.21.1`, production acceptance открыт.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
@@ -445,7 +445,7 @@ Production acceptance `v4.21.0` закрыт: release развернут чер�
 
 ##### v4.21.1 — display name consistency и MSK
 
-**Статус: 🟡 Реализовано в `main`; готовится patch release `v4.21.1`.**
+**Статус: 🟠 Опубликовано в `v4.21.1`; production acceptance ещё не выполнен.**
 
 Patch закрывает два post-acceptance presentation findings `v4.21.0` без изменения product/storage/security boundaries:
 
@@ -453,6 +453,14 @@ Patch закрывает два post-acceptance presentation findings `v4.21.0` 
 - абсолютные Telegram Admin timestamps отображаются в MSK (UTC+3), а machine timestamps и `BACKUP_HOUR_UTC` сохраняют UTC/epoch semantics;
 - date-only operator input `YYYY-MM-DD` для user/promo expiry интерпретируется как `23:59:59 MSK`;
 - SQLite schema, 3x-ui/OpenAPI, provisioning, subscription identity, Host Control/Deploy Agent и mutation semantics не меняются.
+
+Production acceptance после deployment должен подтвердить:
+
+- display name в `Пользователи` и `Подписки`, а также на нескольких соседних user surfaces;
+- fallback на email после очистки display name;
+- MSK timestamps на operator-facing экранах;
+- отсутствие изменений email / Telegram ID / `sub_id` / VPN access;
+- базовый health/status после обновления.
 
 ##### User / Audience Groups
 
