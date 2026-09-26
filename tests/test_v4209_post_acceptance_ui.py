@@ -41,45 +41,27 @@ class V4209PostAcceptanceUiTests(unittest.TestCase):
         )
         self.assertNotIn("он будет храниться в bot.sqlite3", text)
 
-    def test_inbound_card_uses_narrow_layout_safe_keyboard(self):
+    def test_inbound_card_uses_compact_five_row_keyboard(self):
         text = source("inbound_admin.py")
         start = text.index("async def _inbound_card")
         end = text.index("@inbound_admin_router.callback_query", start)
         card = text[start:end]
 
-        expected_order = (
-            'text="👥 Клиенты"',
-            'text="✏️ Изменить"',
-            'text="🔄 Синхронизировать клиентов"',
-            'text="♻️ Сбросить трафик"',
-            'text="📋 Клонировать"',
-            'text="🧩 Сохранить шаблон"',
-            "text=toggle_text",
-            'text="🗑 Удалить Inbound"',
-            'text="⬅ Inbounds"',
-        )
-        positions = [card.index(item) for item in expected_order]
-        self.assertEqual(positions, sorted(positions))
+        for left, right in (
+            ('text="👥 Клиенты"', 'text="✏️ Изменить"'),
+            ('text="🔄 Синхронизировать клиентов"', 'text="♻️ Сбросить трафик"'),
+            ('text="📋 Клонировать"', 'text="🧩 Сохранить шаблон"'),
+            ("text=toggle_text", 'text="🗑 Удалить"'),
+        ):
+            left_pos = card.index(left)
+            right_pos = card.index(right)
+            self.assertLess(left_pos, right_pos)
 
-        self.assertIn(
-            '[InlineKeyboardButton(text="🔄 Синхронизировать клиентов", callback_data=f"admin:inbound:syncask:{inbound_id}")],',
-            card,
-        )
-        self.assertIn(
-            '[InlineKeyboardButton(text="♻️ Сбросить трафик", callback_data=f"admin:inbound:resetask:{inbound_id}")],',
-            card,
-        )
-        self.assertIn(
-            '[InlineKeyboardButton(text="📋 Клонировать", callback_data=f"admin:inbound:clone:{inbound_id}")],',
-            card,
-        )
-        self.assertIn(
-            '[InlineKeyboardButton(text="🧩 Сохранить шаблон", callback_data=f"admin:inbound:template:{inbound_id}")],',
-            card,
-        )
+        self.assertIn('text="⬅ Inbounds"', card)
+        self.assertNotIn('text="🗑 Удалить Inbound"', card)
         self.assertIn(
             'InlineKeyboardButton(text=toggle_text, callback_data=f"admin:inbound:toggle:{inbound_id}"),\n'
-            '            InlineKeyboardButton(text="🗑 Удалить Inbound", callback_data=f"admin:inbound:deleteask:{inbound_id}"),',
+            '            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:inbound:deleteask:{inbound_id}"),',
             card,
         )
 

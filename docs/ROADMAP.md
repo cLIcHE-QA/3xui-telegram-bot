@@ -266,12 +266,13 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ✅ выполнено и принято в production в `v4.20.6`.
 11. единая operator-facing терминология `Inbound` / `Inbounds` без гибридных форм с апострофом — ✅ выполнено и принято в production в `v4.20.7`.
 12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — ✅ выполнено и принято в production в `v4.20.8`.
-13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — 🟡 реализовано в `main`, release-prep `v4.20.9`.
-14. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
-15. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
-16. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
-17. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
-18. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
+13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — 🟠 `v4.20.9` опубликован; desktop layout finding остаётся открытым.
+14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — 🟡 реализуется в `v4.20.10`.
+15. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
+16. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
+17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
+18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
+19. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -286,15 +287,16 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 3. отдельным patch-релизом `v4.20.7` привести operator-facing терминологию к `Inbound` / `Inbounds` без изменения technical identifiers;
 4. отдельным patch-релизом `v4.20.8` завершить capitalization `Inbound` в operator-facing edit/clone/delete/error/help flows;
 5. отдельным patch-релизом `v4.20.9` закрыть post-acceptance operator-facing UI findings без изменения behavior/storage semantics;
-6. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
-7. отдельным релизом `v4.22.0` добавить User/Audience Groups;
-8. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
-9. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
-10. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-11. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-12. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-13. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-14. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+6. отдельным patch-релизом `v4.20.10` скорректировать плотность клавиатуры карточки Inbound по результатам production smoke `v4.20.9`;
+7. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
+8. отдельным релизом `v4.22.0` добавить User/Audience Groups;
+9. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
+10. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
+11. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+12. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+13. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+14. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+15. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
@@ -403,6 +405,22 @@ Scope предназначен для небольших presentation findings, 
 - Зафиксировать deletion safety guardrail для Admin Control Plane: любые новые operator-facing delete actions только через отдельный confirmation screen (`confirm` + `✖ Отмена`), без one-click mutation. В `v4.20.9` добавить regression/source-audit для текущих delete flows и нормативный contract в `docs/UI_STYLE.md`; существующие delete semantics не меняются.
 
 Дополнительные findings могут быть добавлены в этот же patch до implementation PR, если они остаются narrowly-scoped UI/copy cleanup без behavior changes.
+#### v4.20.10 — compact Inbound keyboard follow-up
+
+**Статус: 🟡 Реализуется после production smoke `v4.20.9`.**
+
+Production smoke `v4.20.9` подтвердил корректное отображение на мобильном клиенте, но Telegram Desktop сохраняет различия ширины bubble/inline keyboard для одинакового markup после message edit. Бот не управляет шириной InlineKeyboardMarkup, поэтому follow-up не пытается искусственно растягивать bubble и вместо этого фиксирует более компактную двухколоночную структуру.
+
+Целевая структура карточки Inbound:
+
+1. `👥 Клиенты | ✏️ Изменить`
+2. `🔄 Синхронизировать клиентов | ♻️ Сбросить трафик`
+3. `📋 Клонировать | 🧩 Сохранить шаблон`
+4. `⛔ Отключить | 🗑 Удалить` (для выключенного Inbound — `✅ Включить | 🗑 Удалить`)
+5. `⬅ Inbounds`
+
+Confirmation screen удаления сохраняет полное `Удалить Inbound` и отдельное явное подтверждение; callback identifiers, deletion safety contract, SQLite schema, storage/persistence semantics и provisioning behavior не меняются.
+
 ##### Редактируемое имя пользователя
 
 **Статус: ⬜ Запланировано на `v4.21.0`.**
