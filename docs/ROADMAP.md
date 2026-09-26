@@ -392,7 +392,7 @@ Production acceptance `v4.20.8` закрыт: release развернут в prod
 
 #### v4.20.9 — post-acceptance operator-facing UI cleanup
 
-**Статус: ⬜ Запланировано после production acceptance `v4.20.8`.**
+**Статус: 🟡 Реализовано в ветке; готовится PR `v4.20.9`.**
 
 Scope предназначен для небольших presentation findings, найденных уже на production smoke/acceptance и не требующих изменения поведения, storage contract или security boundary.
 
