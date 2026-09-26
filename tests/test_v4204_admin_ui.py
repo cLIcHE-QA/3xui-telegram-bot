@@ -119,7 +119,7 @@ class V4204AdminUiTests(unittest.TestCase):
             )
 
         residuals = {
-            "advanced_nodes.py": 'f"📡 Inbound\\'ы · {node.name}"',
+            "advanced_nodes.py": 'f"📡 Inbound\'ы · {node.name}"',
             "logs_alerts.py": 'text=f"{icon} {node.name}"',
             "disaster_recovery.py": 'text=f"🌍 Восстановить ноду: {node.name}"',
             "fleet_operations.py": 'return f"{icon} {node.name} · ID {node.id}"',
