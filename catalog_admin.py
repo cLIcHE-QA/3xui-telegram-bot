@@ -246,7 +246,7 @@ async def plan_detail(call: CallbackQuery):
     text = (
         f"💎 {plan.name}\n\n"
         f"Статус: {status}\n"
-        f"По умолчанию для /create: {'⭐ да' if is_default else 'нет'}\n"
+        f"По умолчанию для новых пользователей: {'⭐ да' if is_default else 'нет'}\n"
         f"Срок: {plan.duration_days} дней\n"
         f"Трафик: {traffic}\n"
         f"Лимит IP: {ip_limit}\n"
@@ -256,7 +256,7 @@ async def plan_detail(call: CallbackQuery):
         f"{policy_warn}"
     )
     toggle_text = "⛔ Отключить" if plan.active else "✅ Включить"
-    default_text = "⭐ Убрать из /create по умолчанию" if is_default else "⭐ Сделать тарифом /create по умолчанию"
+    default_text = "⭐ Убрать тариф по умолчанию" if is_default else "⭐ Сделать тарифом по умолчанию для новых пользователей"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🗂 Выбрать группу серверов", callback_data=f"admin:plan:groups:{plan.id}")],
         [InlineKeyboardButton(text="🚀 Предпросмотр согласования", callback_data=f"admin:plan:preview:{plan.id}")],
@@ -545,7 +545,7 @@ async def plan_set_default(call: CallbackQuery):
     if current == plan_id:
         await db.delete_runtime_setting("default_plan_id")
         await audit_from_call(db, call, "plan.default", target_type="plan", target_id=str(plan_id), details="enabled=False")
-        await call.answer("Тариф по умолчанию для /create снят.")
+        await call.answer("Тариф по умолчанию для новых пользователей снят.")
     else:
         if not plan.active:
             await call.answer("Сначала включи тариф.", show_alert=True)
