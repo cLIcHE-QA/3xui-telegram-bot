@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 import sqlite3
 import time
-from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from aiogram import F, Router
