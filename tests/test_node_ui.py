@@ -23,6 +23,9 @@ class NodeUiTests(unittest.TestCase):
         self.assertEqual(node_ui.node_status_icon(SimpleNamespace(enable=True, status="unknown")), "🟡")
 
     def test_xray_icons(self):
+        self.assertEqual(node_ui.xray_state_icon("running"), "🟢")
+        self.assertEqual(node_ui.xray_state_icon("failed"), "🔴")
+        self.assertEqual(node_ui.xray_state_icon("unknown"), "🟡")
         self.assertEqual(node_ui.xray_icon(SimpleNamespace(xray_state="running")), "🟢")
         self.assertEqual(node_ui.xray_icon(SimpleNamespace(xray_state="failed")), "🔴")
         self.assertEqual(node_ui.xray_icon(SimpleNamespace(xray_state="unknown")), "🟡")
