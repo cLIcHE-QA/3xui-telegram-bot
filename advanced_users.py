@@ -163,7 +163,7 @@ async def _profile_labels(tg_id: int) -> tuple[str, str, str, str]:
             group = await db.get_server_group(profile.server_group_id)
             group_name = group.name if group else f"#{profile.server_group_id} (удалена)"
         note = profile.note or ""
-        display_name = profile.display_name or ""
+        display_name = getattr(profile, "display_name", "") or ""
     return plan_name, group_name, note, display_name
 
 
@@ -480,7 +480,7 @@ async def user_display_name_save(message: Message, state: FSMContext):
         )
         return
     old_profile = await db.get_user_profile(tg_id)
-    old_name = (old_profile.display_name or "") if old_profile else ""
+    old_name = (getattr(old_profile, "display_name", "") or "") if old_profile else ""
     await db.set_user_display_name(tg_id, display_name)
     action = "cleared" if not display_name else ("created" if not old_name else "changed")
     await audit_from_message(
@@ -1032,7 +1032,7 @@ async def admin_users(call: CallbackQuery):
     rows = []
     for u in users[:40]:
         profile = await db.get_user_profile(u.telegram_id)
-        display_name = (profile.display_name or "") if profile else ""
+        display_name = (getattr(profile, "display_name", "") or "") if profile else ""
         label = f"{display_name} · {u.email}" if display_name else u.email
         rows.append([InlineKeyboardButton(
             text=f"👤 {label} | TG {u.telegram_id}",
