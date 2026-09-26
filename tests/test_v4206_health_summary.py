@@ -31,7 +31,7 @@ class V4206HealthSummaryTests(unittest.TestCase):
             "🧮 CPU:",
             "🧠 RAM:",
             "⏱ Время работы:",
-            "🌐 Inbound'ы:",
+            "🌐 Inbounds:",
             "👥 Клиентов:",
             "📶 Задержка API:",
         ):
