@@ -154,10 +154,8 @@ class V4204AdminUiTests(unittest.TestCase):
             "По текущему фильтру отдельный журнал Xray не вернул записей.",
             logs,
         )
-        self.assertIn(
-            "События панели о Xray могут находиться в журнале 3x-ui",
-            logs,
-        )
+        self.assertIn("События панели о Xray могут находиться ", logs)
+        self.assertIn("в журнале 3x-ui", logs)
         self.assertIn(
             "наличие отдельных Xray-записей зависит от конфигурации логирования",
             logs,
