@@ -396,9 +396,10 @@ Production acceptance `v4.20.8` закрыт: release развернут в prod
 
 Scope предназначен для небольших presentation findings, найденных уже на production smoke/acceptance и не требующих изменения поведения, storage contract или security boundary.
 
-Подтверждённый finding:
+Подтверждённые findings:
 
 - `Инфраструктура → Inbounds → <Inbound> → Сохранить шаблон`: убрать лишнюю implementation detail `bot.sqlite3` из operator-facing prompt. Канонический текст: `Введи имя шаблона. В шаблон попадёт конфигурация Inbound без клиентов.` Хранилище, SQLite schema, имя DB-файла и persistence semantics не меняются.
+- Карточка `Inbound`: сделать inline keyboard устойчивой к узкому client-side layout Telegram и не размещать длинные подписи попарно. Целевая структура: `👥 Клиенты | ✏️ Изменить`; отдельными строками `🔄 Синхронизировать клиентов`, `♻️ Сбросить трафик`, `📋 Клонировать`, `🧩 Сохранить шаблон`; предпоследняя строка `⛔ Отключить | 🗑 Удалить Inbound` (для выключенного Inbound — `✅ Включить | 🗑 Удалить Inbound`); последняя строка `⬅ Inbounds`. Callback identifiers и action semantics не меняются.
 
 Дополнительные findings могут быть добавлены в этот же patch до implementation PR, если они остаются narrowly-scoped UI/copy cleanup без behavior changes.
 ##### Редактируемое имя пользователя
