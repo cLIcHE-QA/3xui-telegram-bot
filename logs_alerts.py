@@ -220,7 +220,7 @@ async def logs_home(call: CallbackQuery):
         "📜 Журналы\n\n"
         "Просмотр последних строк без shell-доступа. Фильтры применяются только к выдаче; "
         "логи не удаляются и настройки сервисов не меняются.\n\n"
-        "Журналы нод доступны для нод, у которых настроен Direct Admin token (NODE_BACKUP_TARGETS)."
+        "Журналы нод доступны для нод, у которых настроено прямое административное подключение."
     )
     await render_callback(call, text, reply_markup=_logs_menu(direct))
     await call.answer()
@@ -269,7 +269,7 @@ async def node_logs_list(call: CallbackQuery):
             icon = "🟢" if node.enable and node.status == "online" else "🔴"
             rows.append([InlineKeyboardButton(text=f"{icon} {node_display_name(node.name)}", callback_data=f"admin:logs:node:{node.id}")])
     if not rows:
-        rows.append([InlineKeyboardButton(text="⚠️ Direct Admin tokens не настроены", callback_data="admin:logs")])
+        rows.append([InlineKeyboardButton(text="⚠️ Прямое административное подключение не настроено", callback_data="admin:logs")])
     rows.append([InlineKeyboardButton(text="⬅ Журналы", callback_data="admin:logs")])
     await render_callback(call, "🌍 Журналы нод\n\nВыбери ноду:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
@@ -286,7 +286,7 @@ async def node_logs_sources(call: CallbackQuery):
         await call.answer(str(exc)[:180], show_alert=True)
         return
     if system_backup.direct_client_for(node.name, getattr(node, "id", None)) is None:
-        await call.answer("Direct admin token не настроен", show_alert=True)
+        await call.answer("Прямое административное подключение не настроено", show_alert=True)
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -310,7 +310,7 @@ async def node_log_view(call: CallbackQuery):
         node = await xui.node_get(node_id)
         client = system_backup.direct_client_for(node.name, getattr(node, "id", None))
         if client is None:
-            raise RuntimeError("Direct Admin token не настроен")
+            raise RuntimeError("Прямое административное подключение не настроено")
         fetch_count = min(500, max(count, 200 if level != "all" else count))
         if source == "panel":
             lines = await client.panel_logs(fetch_count, level="info" if level == "all" else level)
