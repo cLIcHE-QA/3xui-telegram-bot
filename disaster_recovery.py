@@ -74,7 +74,7 @@ def _inspection_summary(info: BackupInspection, *, deep: bool = False) -> str:
         "🧯 Аварийное восстановление",
         "",
         f"Резервная копия: {info.path.name}",
-        f"Создан: {info.created_at.strftime('%Y-%m-%d %H:%M UTC')}",
+        f"Создан: {format_datetime(info.created_at)}",
         f"Размер: {human_bytes(info.size)}",
         f"Версия манифеста: {manifest_version}",
         f"Архив: {'✅ корректен' if info.valid else '🔴 некорректен'}",
@@ -161,7 +161,7 @@ async def restore_list(call: CallbackQuery):
         stat = path.stat()
         dt = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
         rows.append([InlineKeyboardButton(
-            text=f"{dt.strftime('%m-%d %H:%M')} · {human_bytes(stat.st_size)}",
+            text=f"{format_short_datetime(dt)} · {human_bytes(stat.st_size)}",
             callback_data=f"admin:restore:b:{bid}",
         )])
     rows += [

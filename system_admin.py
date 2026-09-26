@@ -25,6 +25,7 @@ from node_ui import (
 )
 from version_api import VersionAPIError
 from xui import NodeInfo, XUIClient, XUIError
+from ui_time import format_datetime
 
 
 settings = load_settings()
@@ -213,7 +214,7 @@ async def admin_master_detail(call: CallbackQuery):
     if latest:
         lines.append(
             "💾 Резервная копия: "
-            + latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
+            + format_datetime(latest.created_at)
             + f" ({human_bytes(latest.size)})"
         )
     else:
@@ -370,7 +371,7 @@ async def admin_health(call: CallbackQuery):
     if latest_backup:
         lines.append(
             "💾 Последняя резервная копия: "
-            + latest_backup.created_at.strftime("%Y-%m-%d %H:%M UTC")
+            + format_datetime(latest_backup.created_at)
             + f" ({human_bytes(latest_backup.size)})"
         )
     else:

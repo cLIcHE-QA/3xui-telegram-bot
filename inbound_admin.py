@@ -15,6 +15,7 @@ from admin_auth import authorize_callback, authorize_message
 from audit import audit_from_call, audit_from_message
 from config import load_settings
 from db import Database
+from user_ui import user_label
 from node_ui import node_display_name
 from xui import XUIClient, XUIError
 
@@ -366,11 +367,13 @@ async def inbound_clients(call: CallbackQuery):
             continue
         email = str(client.get("email") or "-")
         enabled = bool(client.get("enable", True))
-        lines.append(f"{'🟢' if enabled else '⛔'} {email}")
         rec = await db.get_by_email(email) if email != "-" else None
+        profile = await db.get_user_profile(rec.telegram_id) if rec else None
+        label = user_label(rec, profile) if rec else email
+        lines.append(f"{'🟢' if enabled else '⛔'} {label}")
         if rec:
             rows.append([InlineKeyboardButton(
-                text=f"👤 {email}", callback_data=f"adminuser:{rec.telegram_id}"
+                text=f"👤 {label}", callback_data=f"adminuser:{rec.telegram_id}"
             )])
     if len(clients) > 50:
         lines += ["", f"… ещё {len(clients) - 50}"]

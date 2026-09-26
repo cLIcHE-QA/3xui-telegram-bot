@@ -13,6 +13,8 @@ from admin_ui import register_panel_message, render_callback
 from backup_manager import BackupManager
 from config import load_settings
 from db import Database
+from ui_time import format_datetime
+from user_ui import user_label
 from inbound_admin import inbound_list_view
 from inbound_policy import is_managed_inbound as inbound_is_managed
 from provisioning import ProvisioningEngine
@@ -148,7 +150,7 @@ async def admin_dashboard(call: CallbackQuery):
 
     latest = backup_manager.latest_backup()
     if latest:
-        backup_text = latest.created_at.strftime("%Y-%m-%d %H:%M UTC")
+        backup_text = format_datetime(latest.created_at)
     else:
         backup_text = "ещё не создан"
 
@@ -214,8 +216,9 @@ async def admin_subscriptions(call: CallbackQuery):
     users = await db.list_users()
     rows: list[list[InlineKeyboardButton]] = []
     for u in users[:40]:
+        profile = await db.get_user_profile(u.telegram_id)
         rows.append([InlineKeyboardButton(
-            text=f"🔗 {u.email}",
+            text=f"🔗 {user_label(u, profile)}",
             callback_data=f"adminsublist:{u.telegram_id}",
         )])
     rows.append([InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")])

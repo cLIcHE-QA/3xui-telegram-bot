@@ -119,6 +119,16 @@
 - node-only aggregate данные (latency, client/online counts и аналогичные поля) можно показывать отдельно;
 - дополнительные network calls только ради визуальной симметрии не добавляются без отдельного contract по timeout/failure semantics.
 
+## Часовой пояс operator-facing UI
+
+Абсолютные дата/время в Telegram Admin Control Plane отображаются в **MSK (UTC+3)**.
+
+- Unix timestamps, SQLite values, agent journals, API timestamps, backup filenames и другие machine-level значения не переводятся и сохраняют существующую UTC/epoch semantics;
+- `BACKUP_HOUR_UTC` остаётся технической настройкой расписания в UTC; operator UI показывает соответствующее время MSK и при необходимости исходное UTC значение;
+- date-only ввод оператора вида `YYYY-MM-DD` для срока пользователя/промокода означает конец выбранного дня (`23:59:59 MSK`);
+- relative labels вида `5 мин назад` не зависят от timezone и остаются относительными;
+- timezone presentation не должна зависеть от локальной timezone host/container.
+
 ## Навигация
 
 Навигация строится от пользовательской задачи, а не от структуры Python-модулей.
