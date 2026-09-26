@@ -266,8 +266,8 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ✅ выполнено и принято в production в `v4.20.6`.
 11. единая operator-facing терминология `Inbound` / `Inbounds` без гибридных форм с апострофом — ✅ выполнено и принято в production в `v4.20.7`.
 12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — ✅ выполнено и принято в production в `v4.20.8`.
-13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — ✅ опубликовано в `v4.20.9`; desktop layout follow-up вынесен в `v4.20.10`.
-14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — 🟡 реализовано в `main`, release-prep `v4.20.10`.
+13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — ✅ опубликовано в `v4.20.9`; desktop layout follow-up закрыт в `v4.20.10`.
+14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
@@ -394,7 +394,7 @@ Production acceptance `v4.20.8` закрыт: release развернут в prod
 
 #### v4.20.9 — post-acceptance operator-facing UI cleanup
 
-**Статус: 🟡 Реализовано в `main`; готовится release `v4.20.9`.**
+**Статус: ✅ Опубликовано в `v4.20.9`; layout follow-up завершён в `v4.20.10`.**
 
 Scope предназначен для небольших presentation findings, найденных уже на production smoke/acceptance и не требующих изменения поведения, storage contract или security boundary.
 
@@ -407,7 +407,7 @@ Scope предназначен для небольших presentation findings, 
 Дополнительные findings могут быть добавлены в этот же patch до implementation PR, если они остаются narrowly-scoped UI/copy cleanup без behavior changes.
 #### v4.20.10 — compact Inbound keyboard follow-up
 
-**Статус: 🟡 Реализовано в `main`; готовится release `v4.20.10`.**
+**Статус: ✅ Выполнено и принято в production в `v4.20.10`.**
 
 Production smoke `v4.20.9` подтвердил корректное отображение на мобильном клиенте, но Telegram Desktop сохраняет различия ширины bubble/inline keyboard для одинакового markup после message edit. Бот не управляет шириной InlineKeyboardMarkup, поэтому follow-up не пытается искусственно растягивать bubble и вместо этого фиксирует более компактную двухколоночную структуру.
 
@@ -420,6 +420,8 @@ Production smoke `v4.20.9` подтвердил корректное отобр�
 5. `⬅ Inbounds`
 
 Confirmation screen удаления сохраняет полное `Удалить Inbound` и отдельное явное подтверждение; callback identifiers, deletion safety contract, SQLite schema, storage/persistence semantics и provisioning behavior не меняются.
+
+Production acceptance `v4.20.10` закрыт: release развернут в production, и оператор завершил targeted smoke после обновления бота. Компактная пятистрочная клавиатура карточки Inbound принята; проверены desktop/mobile presentation, короткая кнопка `🗑 Удалить` в карточке и сохранение полного `Удалить Inbound` на confirmation screen. Delete confirmation guardrail, callback identifiers, SQLite schema, storage/persistence semantics, provisioning и mutation behavior не менялись.
 
 ##### Редактируемое имя пользователя
 
