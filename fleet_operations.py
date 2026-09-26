@@ -398,7 +398,7 @@ async def fleet_health(call: CallbackQuery):
     lines.append("")
     for item in assessments[:50]:
         lines.append(
-            f"{_health_icon(item['state'])} {item['name']} · {_health_state_text(str(item['state']))} · ID {item['node_id']}\n"
+            f"{_health_icon(item['state'])} {node_display_name(str(item['name']))} · {_health_state_text(str(item['state']))} · ID {item['node_id']}\n"
             f"   Master: {node_status_text(str(item['master_status']))} · Прямое подключение: "
             f"{'в сети' if item['direct_online'] else 'не в сети'} ({_binding_text(str(item['direct_binding']))}) · "
             f"Host Control: {_host_state_text(str(item['host_state']))} ({_binding_text(str(item['host_binding']))})"

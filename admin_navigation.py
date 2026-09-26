@@ -26,6 +26,13 @@ def admin_menu() -> InlineKeyboardMarkup:
     ])
 
 
+def dashboard_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:dashboard")],
+        [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
+    ])
+
+
 def infrastructure_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🌍 Ноды", callback_data="admin:nodes")],

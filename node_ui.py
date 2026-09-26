@@ -34,6 +34,14 @@ def node_status_text(status: str) -> str:
     }.get((status or "").lower(), status or "неизвестно")
 
 
+def node_list_status(node: NodeInfo) -> str:
+    if not node.enable:
+        return "🛠 Обслуживание"
+    status = node_status_text(node.status)
+    display = status[:1].upper() + status[1:] if status else "Неизвестно"
+    return f"{node_status_icon(node)} {display}"
+
+
 def xray_state_text(state: str) -> str:
     return {
         "running": "работает",
@@ -178,7 +186,7 @@ def nodes_menu(
     ]
     for node in nodes[:40]:
         suffix = " ↳" if node.transitive else ""
-        text = f"{node_status_icon(node)} {node_display_name(node.name)}{suffix}"
+        text = f"{node_display_name(node.name)}{suffix} · {node_list_status(node)}"
         if node.id > 0 and not node.transitive:
             rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:node:{node.id}")])
         else:

@@ -64,8 +64,10 @@ class AdminNavigationTests(unittest.TestCase):
         self.assertEqual(system["admin:settings"], "🔧 Настройки")
 
     def test_section_navigation_callbacks_are_stable(self):
+        dashboard = callback_values(admin_navigation.dashboard_menu())
         infrastructure = callback_values(admin_navigation.infrastructure_menu())
         system = callback_values(admin_navigation.system_menu())
+        self.assertEqual(dashboard, {"admin:dashboard", "admin:home"})
         self.assertNotIn("admin:versions", infrastructure)
         self.assertIn("admin:nodes", infrastructure)
         self.assertIn("admin:health", callback_values(admin_navigation.monitoring_menu()))
@@ -75,12 +77,16 @@ class AdminNavigationTests(unittest.TestCase):
 
     def test_root_back_labels_match_admin_home(self):
         for menu in (
+            admin_navigation.dashboard_menu(),
             admin_navigation.infrastructure_menu(),
             admin_navigation.monitoring_menu(),
             admin_navigation.system_menu(),
         ):
             labels = labels_by_callback(menu)
             self.assertEqual(labels["admin:home"], "⬅ Панель администратора")
+
+        dashboard = labels_by_callback(admin_navigation.dashboard_menu())
+        self.assertEqual(dashboard["admin:dashboard"], "🔄 Обновить")
 
     def test_global_sync_cancel_returns_to_users(self):
         labels = labels_by_callback(admin_navigation.confirm_sync_all_keyboard())
