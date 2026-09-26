@@ -264,12 +264,13 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
 9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ✅ выполнено и принято в production в `v4.20.5`.
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ✅ выполнено и принято в production в `v4.20.6`.
-11. единая operator-facing терминология `Inbound` / `Inbounds` без гибридных форм `Inbounds` / `Inbounds` — ⬜ запланировано на `v4.20.7`.
-12. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
-13. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
-14. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
-15. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
-16. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
+11. единая operator-facing терминология `Inbound` / `Inbounds` без гибридных форм с апострофом — ✅ выполнено и принято в production в `v4.20.7`.
+12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — 🟡 реализовано в `main`, release-prep `v4.20.8`.
+13. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
+14. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
+15. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
+16. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
+17. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -282,15 +283,16 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 1. закрыть и принять в production `v4.20.5` с финальными UI consistency fixes;
 2. отдельным patch-релизом `v4.20.6` закрыть UI-04 и выровнять health summary Master/direct nodes без искусственного добавления недоступных метрик;
 3. отдельным patch-релизом `v4.20.7` привести operator-facing терминологию к `Inbound` / `Inbounds` без изменения technical identifiers;
-4. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
-5. отдельным релизом `v4.22.0` добавить User/Audience Groups;
-6. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
-7. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
-8. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-9. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-10. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-11. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-12. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+4. отдельным patch-релизом `v4.20.8` завершить capitalization `Inbound` в operator-facing edit/clone/delete/error/help flows;
+5. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
+6. отдельным релизом `v4.22.0` добавить User/Audience Groups;
+7. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
+8. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
+9. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+10. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+11. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+12. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+13. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
@@ -380,7 +382,7 @@ Production acceptance `v4.20.7` закрыт: release развернут в prod
 
 #### v4.20.8 — финальная капитализация Inbound
 
-**Статус: 🟡 Реализуется отдельным patch после production acceptance `v4.20.7`.**
+**Статус: 🟡 Реализовано в `main`; готовится `v4.20.8`.**
 
 Scope ограничен operator-facing строками: оставшийся lowercase `inbound` в edit/clone/delete/error/help flows заменяется на канонические `Inbound` / `Inbounds`. Callback data, audit action ids, API/DB fields, Python identifiers, SQLite schema, provisioning semantics и mutation behavior не меняются. Regression gate отдельно фиксирует это различие между пользовательским термином и technical identifiers.
 
