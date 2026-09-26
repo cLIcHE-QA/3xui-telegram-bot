@@ -378,6 +378,12 @@ Production acceptance `v4.20.6` закрыт: release развернут в prod
 
 Production acceptance `v4.20.7` закрыт: release развернут в production, и оператор завершил targeted smoke основных operator-facing поверхностей с новым terminology contract — `Обзор`, `Инфраструктура → Inbounds`, карточки Inbound, direct-node Inbounds, карточка пользователя/связи Inbounds, Server Groups, `Мониторинг → Состояние системы`, `Роли и права` и client `/start`. Гибридные формы с апострофом на проверенных поверхностях не обнаружены; runtime/API/DB identifiers и mutation semantics не менялись.
 
+#### v4.20.8 — финальная капитализация Inbound
+
+**Статус: 🟡 Реализуется отдельным patch после production acceptance `v4.20.7`.**
+
+Scope ограничен operator-facing строками: оставшийся lowercase `inbound` в edit/clone/delete/error/help flows заменяется на канонические `Inbound` / `Inbounds`. Callback data, audit action ids, API/DB fields, Python identifiers, SQLite schema, provisioning semantics и mutation behavior не меняются. Regression gate отдельно фиксирует это различие между пользовательским термином и technical identifiers.
+
 ##### Редактируемое имя пользователя
 
 **Статус: ⬜ Запланировано на `v4.21.0`.**

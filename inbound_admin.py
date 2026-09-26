@@ -324,7 +324,7 @@ async def _inbound_card(inbound_id: int) -> tuple[str, InlineKeyboardMarkup]:
             InlineKeyboardButton(text="📋 Клонировать", callback_data=f"admin:inbound:clone:{inbound_id}"),
             InlineKeyboardButton(text="🧩 Сохранить шаблон", callback_data=f"admin:inbound:template:{inbound_id}"),
         ],
-        [InlineKeyboardButton(text="🗑 Удалить inbound", callback_data=f"admin:inbound:deleteask:{inbound_id}")],
+        [InlineKeyboardButton(text="🗑 Удалить Inbound", callback_data=f"admin:inbound:deleteask:{inbound_id}")],
         [InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
@@ -422,7 +422,7 @@ async def inbound_edit_menu(call: CallbackQuery):
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
         return
     await render_callback(call, 
-        "✏️ Изменение inbound\n\n"
+        "✏️ Изменение Inbound\n\n"
         "Из Telegram доступны только поля, которые можно обновить без показа приватных ключей. "
         "Полный settings/streamSettings сохраняется при каждом изменении.",
         reply_markup=_edit_menu(ib),
@@ -431,7 +431,7 @@ async def inbound_edit_menu(call: CallbackQuery):
 
 
 _FIELD_PROMPTS = {
-    "remark": "Новое название inbound:",
+    "remark": "Новое название Inbound:",
     "port": "Новый port (1-65535):",
     "listen": "Listen address. Отправь - для пустого значения (все интерфейсы):",
     "path": "Новый XHTTP path, например / или /api:",
@@ -513,7 +513,7 @@ async def inbound_edit_fingerprint(call: CallbackQuery):
         ib = await xui.inbound_get(iid)
         stream = _stream(ib)
         if str(stream.get("security") or "") != "reality":
-            await call.answer("Этот inbound не использует Reality.", show_alert=True)
+            await call.answer("Этот Inbound не использует Reality.", show_alert=True)
             return
         current = _reality_fingerprint(ib)
         await render_callback(
@@ -543,7 +543,7 @@ async def inbound_set_fingerprint(call: CallbackQuery):
         try:
             old = _set_reality_fingerprint(ib, fingerprint)
         except ValueError:
-            await call.answer("Этот inbound не использует Reality.", show_alert=True)
+            await call.answer("Этот Inbound не использует Reality.", show_alert=True)
             return
         await xui.inbound_update(iid, _update_payload(ib))
         await audit_from_call(
@@ -646,7 +646,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         elif field in {"path", "host", "padding"}:
             stream = _stream(ib)
             if str(stream.get("network") or "") != "xhttp":
-                await render_input(message, "Этот inbound не использует XHTTP.", reply_markup=inbound_back_keyboard(iid))
+                await render_input(message, "Этот Inbound не использует XHTTP.", reply_markup=inbound_back_keyboard(iid))
                 await state.clear()
                 return
             xhttp = _json_obj(stream.get("xhttpSettings"))
@@ -663,7 +663,7 @@ async def inbound_edit_save(message: Message, state: FSMContext):
         elif field == "sni":
             stream = _stream(ib)
             if str(stream.get("security") or "") != "reality":
-                await render_input(message, "Этот inbound не использует Reality.", reply_markup=inbound_back_keyboard(iid))
+                await render_input(message, "Этот Inbound не использует Reality.", reply_markup=inbound_back_keyboard(iid))
                 await state.clear()
                 return
             values = [x.strip() for x in raw.split(",") if x.strip()]
@@ -727,8 +727,8 @@ async def inbound_sync_ask(call: CallbackQuery):
     iid = int(call.data.rsplit(":", 1)[-1])
     users = await db.list_users()
     await render_callback(call, 
-        f"🔄 Синхронизация пользователей → inbound #{iid}\n\n"
-        f"Все {len(users)} пользователей из локальной БД будут привязаны к этому inbound, "
+        f"🔄 Синхронизация пользователей → Inbound #{iid}\n\n"
+        f"Все {len(users)} пользователей из локальной БД будут привязаны к этому Inbound, "
         "если они ещё не привязаны. Лимиты и credentials не меняются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Выполнить", callback_data=f"admin:inbound:syncrun:{iid}")],
@@ -753,7 +753,7 @@ async def inbound_sync_run(call: CallbackQuery):
             details=f"users={len(emails)}; result={str(obj)[:800]}",
         )
         await render_callback(call, 
-            f"✅ Синхронизация завершена для inbound #{iid}.\nПользователей обработано: {len(emails)}",
+            f"✅ Синхронизация завершена для Inbound #{iid}.\nПользователей обработано: {len(emails)}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")
             ]]),
@@ -773,7 +773,7 @@ async def inbound_reset_ask(call: CallbackQuery):
         return
     iid = int(call.data.rsplit(":", 1)[-1])
     await render_callback(call, 
-        f"♻️ Обнулить общий трафик inbound #{iid}?\n\nСчётчики отдельных клиентов не изменяются.",
+        f"♻️ Обнулить общий трафик Inbound #{iid}?\n\nСчётчики отдельных клиентов не изменяются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Сбросить", callback_data=f"admin:inbound:resetrun:{iid}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inbound:{iid}")],
@@ -821,7 +821,7 @@ async def inbound_clone_start(call: CallbackQuery):
         return
     iid = int(call.data.rsplit(":", 1)[-1])
     await render_callback(call, 
-        "📋 Клонирование inbound\n\nВыбери сервер. Клон создаётся отключённым и без клиентов.",
+        "📋 Клонирование Inbound\n\nВыбери сервер. Клон создаётся отключённым и без клиентов.",
         reply_markup=await _target_keyboard("admin:inbound:clonetarget", iid),
     )
     await call.answer()
@@ -919,7 +919,7 @@ async def inbound_template_start(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         f"🧩 Сохранение шаблона из #{iid}\n\n"
         f"Источник: {ib.get('remark') or '-'}\n"
-        "Введи имя шаблона. В шаблон попадёт конфигурация inbound без клиентов; он будет храниться в bot.sqlite3.",
+        "Введи имя шаблона. В шаблон попадёт конфигурация Inbound без клиентов; он будет храниться в bot.sqlite3.",
         reply_markup=inbound_cancel_keyboard(iid),
     )
     await call.answer()
@@ -999,8 +999,8 @@ async def inbound_template_card(call: CallbackQuery, state: FSMContext):
         f"Порт: {payload.get('port') or 0}\n"
         f"Транспорт: {stream.get('network') or '-'}\n"
         f"Безопасность: {stream.get('security') or 'none'}\n"
-        f"Исходный inbound: #{t.source_inbound_id}\n\n"
-        "Развёртывание создаёт отключённый inbound без клиентов."
+        f"Исходный Inbound: #{t.source_inbound_id}\n\n"
+        "Развёртывание создаёт отключённый Inbound без клиентов."
     )
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🚀 Развернуть", callback_data=f"admin:inboundtemplate:deploy:{tid}")],
@@ -1020,7 +1020,7 @@ async def template_deploy_start(call: CallbackQuery):
         await call.answer("Шаблон не найден.", show_alert=True)
         return
     await render_callback(call, 
-        "🚀 Развёртывание шаблона\n\nВыбери сервер. Новый inbound будет отключён и без клиентов.",
+        "🚀 Развёртывание шаблона\n\nВыбери сервер. Новый Inbound будет отключён и без клиентов.",
         reply_markup=await _target_keyboard("admin:inboundtemplate:target", tid),
     )
     await call.answer()
@@ -1102,7 +1102,7 @@ async def template_deploy_port(message: Message, state: FSMContext):
         )
         await state.clear()
         await render_input(message, 
-            "✅ Развёртывание завершено. Новый inbound отключён.",
+            "✅ Развёртывание завершено. Новый Inbound отключён.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
             ]]),
@@ -1165,12 +1165,12 @@ async def inbound_delete_ask(call: CallbackQuery):
         return
     clients = _settings(ib).get("clients") or []
     await render_callback(call, 
-        f"🗑 Удалить inbound #{iid} «{ib.get('remark') or '-'}»?\n\n"
+        f"🗑 Удалить Inbound #{iid} «{ib.get('remark') or '-'}»?\n\n"
         f"Клиентов внутри: {len(clients) if isinstance(clients, list) else 0}.\n"
-        "Удаление inbound необратимо. 3x-ui также удалит связанные строки трафика/статистики; "
+        "Удаление Inbound необратимо. 3x-ui также удалит связанные строки трафика/статистики; "
         "перед удалением проверь клиентские привязки.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚠️ Да, удалить inbound", callback_data=f"admin:inbound:delete:{iid}")],
+            [InlineKeyboardButton(text="⚠️ Да, удалить Inbound", callback_data=f"admin:inbound:delete:{iid}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inbound:{iid}")],
         ]),
     )
