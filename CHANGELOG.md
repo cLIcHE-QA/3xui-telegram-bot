@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.8 — Финальная капитализация Inbound
+- Завершён terminology cleanup после production acceptance `v4.20.7`: оставшийся lowercase `inbound` в operator-facing edit/clone/delete/error/help flows заменён на канонические `Inbound` / `Inbounds`.
+- Исправлены тексты Inbound admin UI, карточки пользователя и Server Group policy; `docs/UI_STYLE.md` теперь явно запрещает lowercase `inbound` как пользовательский термин.
+- Technical identifiers намеренно не переименовываются: callback data, audit action ids, API/DB fields, Python identifiers и module names сохраняют существующий lowercase contract.
+- Добавлен release-specific regression gate для operator-facing capitalization и стабильности technical identifiers. SQLite schema, provisioning semantics, pinned 3x-ui/OpenAPI contract и mutation behavior не меняются; `v4.20.8` устанавливается обычным Safe Bot Self-Update без host-side обновления Agent/helper.
+
 ## v4.20.7 — Единая терминология Inbound / Inbounds
 - Во всём актуальном operator-facing UI гибридные формы с апострофом заменены на канонические `Inbound` / `Inbounds`: кнопки, заголовки, status/summary строки, ошибки, подсказки, RBAC labels, audit summaries и client-facing тексты используют единый terminology contract.
 - README, Admin Setup, Roadmap и UI Style синхронизированы с тем же контрактом; `docs/UI_STYLE.md` явно запрещает русифицированные склонения `Inbound` через апостроф.
