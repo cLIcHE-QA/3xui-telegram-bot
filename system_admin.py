@@ -98,7 +98,7 @@ def _node_health_lines(node: NodeInfo) -> list[str]:
         f"🧮 CPU: {node.cpu_pct:.1f}%",
         f"🧠 RAM: {node.mem_pct:.1f}%",
         f"⏱ Время работы: {duration_text(node.uptime_secs)}",
-        f"🌐 Inbound'ы: {node.inbound_count}",
+        f"🌐 Inbounds: {node.inbound_count}",
         f"👥 Клиентов: {node.client_count} · 📡 В сети: {node.online_count}",
     ]
     if node.latency_ms:
@@ -205,7 +205,7 @@ async def admin_master_detail(call: CallbackQuery):
     if inbounds is not None:
         managed = [item for item in inbounds if inbound_is_managed(settings, item)]
         enabled = sum(1 for item in managed if item.enable)
-        lines.append(f"🌐 Inbound'ы: {enabled}/{len(managed)} включено")
+        lines.append(f"🌐 Inbounds: {enabled}/{len(managed)} включено")
 
     users = await db.list_users()
     lines.append(f"👥 Пользователей в БД бота: {len(users)}")
@@ -341,8 +341,8 @@ async def admin_health(call: CallbackQuery):
             key=lambda item: (item.port, item.protocol, item.id),
         )
         enabled = sum(1 for item in managed if item.enable)
-        lines.append(f"🌐 Inbound'ы: {enabled}/{len(managed)} включено")
-        lines += ["", "Inbound'ы Master:"]
+        lines.append(f"🌐 Inbounds: {enabled}/{len(managed)} включено")
+        lines += ["", "Inbounds Master:"]
         if managed:
             for item in managed:
                 icon = "🟢" if item.enable else "🔴"
@@ -350,7 +350,7 @@ async def admin_health(call: CallbackQuery):
                     f"{icon} {item.port} {item.protocol.upper()} — {item.remark}"
                 )
         else:
-            lines.append("⚪ Нет inbound'ов после применённых фильтров")
+            lines.append("⚪ Нет Inbounds после применённых фильтров")
 
     lines += ["", "Ноды"]
     if nodes_error:
