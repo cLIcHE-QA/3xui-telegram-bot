@@ -269,10 +269,10 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — 🟠 `v4.20.9` опубликован; desktop layout finding остаётся открытым.
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — 🟡 реализуется в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
-15. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
-16. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
-17. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
-18. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
+16. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
+17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
+18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
+19. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -289,14 +289,14 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 5. отдельным patch-релизом `v4.20.9` закрыть post-acceptance operator-facing UI findings без изменения behavior/storage semantics;
 6. отдельным patch-релизом `v4.20.10` скорректировать плотность клавиатуры карточки Inbound по результатам production smoke `v4.20.9`;
 7. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
-7. отдельным релизом `v4.22.0` добавить User/Audience Groups;
-8. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
-9. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
-10. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-11. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-12. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-13. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-14. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+8. отдельным релизом `v4.22.0` добавить User/Audience Groups;
+9. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
+10. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
+11. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+12. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+13. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+14. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+15. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
