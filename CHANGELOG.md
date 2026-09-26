@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.9 — Post-acceptance UI cleanup
+- Убран лишний implementation detail `bot.sqlite3` из operator-facing prompt сохранения Inbound template; текст теперь описывает только пользовательский результат без раскрытия внутреннего имени DB-файла.
+- Перестроена клавиатура карточки Inbound для устойчивого отображения в узком client-side layout Telegram: длинные действия вынесены в отдельные строки, а `Отключить/Включить` и `Удалить Inbound` сгруппированы в предпоследней строке перед `⬅ Inbounds`.
+- Закреплён обязательный двухшаговый deletion contract для Admin Control Plane: operator-facing delete entry открывает отдельный confirmation screen, а фактическое удаление выполняется только после явного confirm; one-click delete запрещён.
+- Добавлен release-specific regression/source-audit для layout карточки Inbound и delete safety guardrail. Callback identifiers, SQLite schema, storage/persistence semantics, provisioning, pinned 3x-ui/OpenAPI contract и mutation behavior существующих delete flows не меняются; `v4.20.9` устанавливается обычным Safe Bot Self-Update без host-side обновления Agent/helper.
 ## v4.20.8 — Финальная капитализация Inbound
 - Завершён terminology cleanup после production acceptance `v4.20.7`: оставшийся lowercase `inbound` в operator-facing edit/clone/delete/error/help flows заменён на канонические `Inbound` / `Inbounds`.
 - Исправлены тексты Inbound admin UI, карточки пользователя и Server Group policy; `docs/UI_STYLE.md` теперь явно запрещает lowercase `inbound` как пользовательский термин.
