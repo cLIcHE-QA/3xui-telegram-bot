@@ -5,6 +5,8 @@ import ast
 import unittest
 from pathlib import Path
 
+from version import APP_VERSION
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,6 +30,9 @@ def _literal_text(node: ast.AST | None) -> str:
 
 
 class V4209PostAcceptanceUiTests(unittest.TestCase):
+    def test_release_version_is_4209(self):
+        self.assertEqual(APP_VERSION, "4.20.9")
+
     def test_template_prompt_hides_internal_database_filename(self):
         text = source("inbound_admin.py")
         self.assertIn(
