@@ -95,7 +95,7 @@ systemctl is-active x-ui.service
 - уникальный panel hostname/base path;
 - API credentials/tokens;
 - subscription URL;
-- нужные inbound'ы.
+- нужные Inbounds.
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
