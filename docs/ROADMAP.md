@@ -265,7 +265,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ✅ выполнено и принято в production в `v4.20.5`.
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ✅ выполнено и принято в production в `v4.20.6`.
 11. единая operator-facing терминология `Inbound` / `Inbounds` без гибридных форм с апострофом — ✅ выполнено и принято в production в `v4.20.7`.
-12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — 🟡 реализовано в `main`, release-prep `v4.20.8`.
+12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — ✅ выполнено и принято в production в `v4.20.8`.
 13. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
 14. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
 15. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
@@ -382,9 +382,11 @@ Production acceptance `v4.20.7` закрыт: release развернут в prod
 
 #### v4.20.8 — финальная капитализация Inbound
 
-**Статус: 🟡 Реализовано в `main`; готовится `v4.20.8`.**
+**Статус: ✅ Выполнено и принято в production в `v4.20.8`.**
 
 Scope ограничен operator-facing строками: оставшийся lowercase `inbound` в edit/clone/delete/error/help flows заменяется на канонические `Inbound` / `Inbounds`. Callback data, audit action ids, API/DB fields, Python identifiers, SQLite schema, provisioning semantics и mutation behavior не меняются. Regression gate отдельно фиксирует это различие между пользовательским термином и technical identifiers.
+
+Production acceptance `v4.20.8` закрыт: release развернут в production, и оператор успешно завершил targeted smoke по Inbound edit/help prompts, sync/reset confirmations, clone flow, template copy, delete confirmation, user Inbounds copy и Server Group policy text. Проверенные operator-facing поверхности используют канонические `Inbound` / `Inbounds`; destructive actions во время smoke не выполнялись. Callback/API/DB/Python identifiers, SQLite schema, provisioning semantics и mutation behavior не менялись.
 
 ##### Редактируемое имя пользователя
 
