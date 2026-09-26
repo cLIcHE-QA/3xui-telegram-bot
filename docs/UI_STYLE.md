@@ -61,6 +61,8 @@
 
 Технические названия `3x-ui`, `Xray`, `Host Control`, `Inbound`, `API`, `TLS`, `URL`, protocol names и machine status values в коде не переименовываются. В пользовательской фразе вокруг них используется русский контекст.
 
+Для сущности 3x-ui используется каноническая терминология `Inbound` / `Inbounds`. В operator-facing тексте не используются гибридные русифицированные склонения с апострофом; технические identifiers (`inbound_id`, `inbounds`, callback/API/DB keys и Python names) остаются без переименования.
+
 Фиксированные RBAC role names `Read-only`, `Support`, `Administrator`, `Owner` считаются security-boundary identifiers и сохраняются как канонические имена ролей; поясняющий текст вокруг них остаётся русским.
 
 ## Терминологическая консистентность
