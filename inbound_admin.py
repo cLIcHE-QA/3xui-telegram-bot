@@ -367,12 +367,13 @@ async def inbound_clients(call: CallbackQuery):
             continue
         email = str(client.get("email") or "-")
         enabled = bool(client.get("enable", True))
-        lines.append(f"{'🟢' if enabled else '⛔'} {email}")
         rec = await db.get_by_email(email) if email != "-" else None
+        profile = await db.get_user_profile(rec.telegram_id) if rec else None
+        label = user_label(rec, profile) if rec else email
+        lines.append(f"{'🟢' if enabled else '⛔'} {label}")
         if rec:
-            profile = await db.get_user_profile(rec.telegram_id)
             rows.append([InlineKeyboardButton(
-                text=f"👤 {user_label(rec, profile)}", callback_data=f"adminuser:{rec.telegram_id}"
+                text=f"👤 {label}", callback_data=f"adminuser:{rec.telegram_id}"
             )])
     if len(clients) > 50:
         lines += ["", f"… ещё {len(clients) - 50}"]
