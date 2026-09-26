@@ -176,9 +176,9 @@ class ProvisioningEngine:
         if node_error and any(k.startswith("node_") for k in members):
             warnings.append(f"API нод: {node_error[:180]}")
         if mode == "selected" and not selected:
-            warnings.append("Режим «выбранные» включён, но inbound'ы не выбраны.")
+            warnings.append("Режим «выбранные» включён, но Inbounds не выбраны.")
         if members and not desired_opts:
-            warnings.append("Для выбранных серверов нет подходящих inbound'ов согласования.")
+            warnings.append("Для выбранных серверов нет подходящих Inbounds согласования.")
         if unavailable:
             warnings.append("Недоступные ноды будут пропущены до следующего согласования.")
 
@@ -252,7 +252,7 @@ class ProvisioningEngine:
                 # Never leave a client without any inbound attachment.
                 after = (current | set(missing)) - set(detached)
                 if not after:
-                    raise ProvisioningError("Строгое согласование оставило бы клиента без inbound'ов")
+                    raise ProvisioningError("Строгое согласование оставило бы клиента без Inbounds")
                 await self.xui.detach_client(rec.email, detached)
 
         limits_applied = False
