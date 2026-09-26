@@ -105,12 +105,12 @@ async def node_inbounds(call: CallbackQuery):
         inbounds = await xui.inbounds_list(slim=True)
     except XUIError as exc:
         await call.answer("Ошибка 3x-ui", show_alert=True)
-        await render_callback(call, f"🔴 Не удалось получить inbound'ы: {exc}", reply_markup=_back(node_id))
+        await render_callback(call, f"🔴 Не удалось получить Inbounds: {exc}", reply_markup=_back(node_id))
         return
 
     selected = [ib for ib in inbounds if _node_key(ib.get("nodeId")) == node_id]
     rows: list[list[InlineKeyboardButton]] = []
-    lines = [f"📡 Inbound'ы · {node_display_name(node.name)}", "", f"Всего: {len(selected)}"]
+    lines = [f"📡 Inbounds · {node_display_name(node.name)}", "", f"Всего: {len(selected)}"]
     for ib in sorted(selected, key=lambda x: (int(x.get("port") or 0), int(x.get("id") or 0)))[:50]:
         iid = int(ib.get("id") or 0)
         icon = "🟢" if bool(ib.get("enable", True)) else "⚪"
@@ -124,7 +124,7 @@ async def node_inbounds(call: CallbackQuery):
     if len(selected) > 50:
         lines.append(f"Показаны первые 50 из {len(selected)}.")
     if not selected:
-        lines.append("На ноде пока нет inbound'ов, известных master-панели.")
+        lines.append("На ноде пока нет Inbounds, известных master-панели.")
     rows.append([InlineKeyboardButton(text="⬅ Нода", callback_data=f"admin:node:{node_id}")])
     await call.answer()
     await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
@@ -353,10 +353,10 @@ async def node_delete_ask(call: CallbackQuery):
         await call.answer(str(exc)[:180], show_alert=True)
         return
     if attached:
-        await call.answer("Сначала перенеси или удали inbound'ы", show_alert=True)
+        await call.answer("Сначала перенеси или удали Inbounds", show_alert=True)
         await render_callback(call, 
-            f"🛡 Ноду {node_display_name(node.name)} нельзя удалить: к ней привязано inbound'ов: {len(attached)}.\n"
-            "Сначала перенеси или удали их. 3x-ui также блокирует удаление ноды с привязанными inbound'ами.",
+            f"🛡 Ноду {node_display_name(node.name)} нельзя удалить: к ней привязано Inbounds: {len(attached)}.\n"
+            "Сначала перенеси или удали их. 3x-ui также блокирует удаление ноды с привязанными Inbounds.",
             reply_markup=_back(node_id),
         )
         return

@@ -245,7 +245,7 @@ async def inbound_list_view() -> tuple[str, InlineKeyboardMarkup]:
     except XUIError:
         nodes = []
     rows: list[list[InlineKeyboardButton]] = []
-    lines = ["📡 Inbound'ы", "", f"Видимых: {len(inbounds)}", "✅ = участвует в согласовании · ⚙️ = только администрирование"]
+    lines = ["📡 Inbounds", "", f"Видимых: {len(inbounds)}", "✅ = участвует в согласовании · ⚙️ = только администрирование"]
     for ib in sorted(inbounds, key=lambda x: (_node_key(x.get("nodeId")), int(x.get("port") or 0), int(x.get("id") or 0))):
         iid = int(ib.get("id") or 0)
         icon = "🟢" if bool(ib.get("enable", True)) else "🔴"
@@ -325,7 +325,7 @@ async def _inbound_card(inbound_id: int) -> tuple[str, InlineKeyboardMarkup]:
             InlineKeyboardButton(text="🧩 Сохранить шаблон", callback_data=f"admin:inbound:template:{inbound_id}"),
         ],
         [InlineKeyboardButton(text="🗑 Удалить inbound", callback_data=f"admin:inbound:deleteask:{inbound_id}")],
-        [InlineKeyboardButton(text="⬅ Inbound'ы", callback_data="admin:infra:inbounds")],
+        [InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -895,7 +895,7 @@ async def inbound_clone_port(message: Message, state: FSMContext):
         await render_input(message, 
             "✅ Клон создан отключённым.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="📡 Inbound'ы", callback_data="admin:infra:inbounds")
+                InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
             ]]),
         )
     except XUIError as exc:
@@ -971,8 +971,8 @@ async def inbound_templates(call: CallbackQuery, state: FSMContext):
     rows = [[InlineKeyboardButton(
         text=f"🧩 {t.name} · {t.protocol}", callback_data=f"admin:inboundtemplate:{t.id}"
     )] for t in templates[:50]]
-    rows.append([InlineKeyboardButton(text="⬅ Inbound'ы", callback_data="admin:infra:inbounds")])
-    text = "🧩 Шаблоны inbound'ов\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет.")
+    rows.append([InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")])
+    text = "🧩 Шаблоны Inbounds\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет.")
     await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
@@ -1104,7 +1104,7 @@ async def template_deploy_port(message: Message, state: FSMContext):
         await render_input(message, 
             "✅ Развёртывание завершено. Новый inbound отключён.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="📡 Inbound'ы", callback_data="admin:infra:inbounds")
+                InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
             ]]),
         )
     except (XUIError, ValueError) as exc:
@@ -1122,7 +1122,7 @@ async def template_delete_ask(call: CallbackQuery):
         await call.answer("Шаблон не найден.", show_alert=True)
         return
     await render_callback(call, 
-        f"Удалить шаблон «{t.name}»?\n\nРазвёрнутые inbound'ы не изменятся.",
+        f"Удалить шаблон «{t.name}»?\n\nРазвёрнутые Inbounds не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Удалить", callback_data=f"admin:inboundtemplate:delete:{tid}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inboundtemplate:{tid}")],
@@ -1146,9 +1146,9 @@ async def template_delete(call: CallbackQuery):
     templates = await db.list_inbound_templates()
     rows = [[InlineKeyboardButton(text=f"🧩 {x.name}", callback_data=f"admin:inboundtemplate:{x.id}")]
             for x in templates[:50]]
-    rows.append([InlineKeyboardButton(text="⬅ Inbound'ы", callback_data="admin:infra:inbounds")])
+    rows.append([InlineKeyboardButton(text="⬅ Inbounds", callback_data="admin:infra:inbounds")])
     await render_callback(call, 
-        "🧩 Шаблоны inbound'ов\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет."),
+        "🧩 Шаблоны Inbounds\n\n" + (f"Шаблонов: {len(templates)}" if templates else "Шаблонов пока нет."),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
 

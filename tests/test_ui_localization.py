@@ -121,7 +121,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         ):
             self.assertNotIn(old, fleet)
 
-        self.assertIn("📡 Inbound'ы ·", nodes)
+        self.assertIn("📡 Inbounds ·", nodes)
         self.assertIn("✏️ Переименование ноды", nodes)
         self.assertIn("💾 Снимок ноды", nodes)
         self.assertNotIn("✏️ Rename node", nodes)
@@ -186,7 +186,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text="🔄 Сбросить трафик"',
             'text="✅ Включить"',
             'text="⛔ Отключить"',
-            'text="📡 Синхронизировать inbound\'ы"',
+            'text="📡 Синхронизировать Inbounds"',
             'f"⚙️ Массовые действия\\n\\nВыбрано: {len(selected)}"',
             'f"👥 Пользователи\\n\\nПользователи в БД бота: {len(users)}"',
             '"☑️ Массовые действия с пользователями\\n\\n"',
@@ -254,16 +254,15 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertIn(role, business)
 
         for needle in (
-            '"📡 Inbound\'ы"',
+            '"📡 Inbounds"',
             'text="👥 Клиенты"',
             'text="✏️ Изменить"',
             'text="📋 Клонировать"',
             'text="🧩 Сохранить шаблон"',
-            '"🧩 Шаблоны inbound\'ов\\n\\n"',
+            '"🧩 Шаблоны Inbounds\\n\\n"',
         ):
             self.assertIn(needle, inbounds)
         for old in (
-            '"📡 Inbounds"',
             'text="👥 Clients"',
             'text="✏️ Edit"',
             'text="📋 Clone"',
@@ -290,7 +289,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'f"Подключены: {result.attached_ids or \'нет\'}"',
             'f"Отключены: {result.detached_ids or \'нет\'}"',
             'f"Всё ещё отсутствуют: {result.remaining_missing_ids or \'нет\'}"',
-            '"Пользователи без тарифа/группы сохраняют режим совместимости «все управляемые inbound\'ы»."',
+            '"Пользователи без тарифа/группы сохраняют режим совместимости «все управляемые Inbounds»."',
         ):
             self.assertIn(needle, users)
         for old in (
@@ -312,10 +311,10 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text=f"🗂 {group.name} · серверов: {len(members)}"',
             "(не обнаружена)",
             'f"⚠️ API нод: {nodes_error}"',
-            'f"Политика inbound\'ов: {inbound_mode_text(mode)}"',
+            'f"Политика Inbounds: {inbound_mode_text(mode)}"',
         ):
             self.assertIn(needle, catalog)
-        for old in (" servers", "(not discovered)", "Nodes API:", "Inbound policy:", "managed inbound'ы"):
+        for old in (" servers", "(not discovered)", "Nodes API:", "Inbound policy:", "managed Inbounds"):
             self.assertNotIn(old, catalog)
 
         for needle in (
@@ -362,16 +361,15 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertNotIn(old, privileges)
 
         for needle in (
-            '"целевых inbound\'ов. Попроси администратора проверить "',
+            '"целевых Inbounds. Попроси администратора проверить "',
             'provisioning_note = "Политика совместимости пробного доступа"',
-            'f"📡 Inbound\'ы: {\', \'.join(map(str, inbound_ids))}"',
+            'f"📡 Inbounds: {\', \'.join(map(str, inbound_ids))}"',
             '"выполнить согласование позже."',
         ):
             self.assertIn(needle, client)
         for old in (
-            "target inbound'ов",
+            "target Inbounds",
             "Legacy-политика пробного доступа",
-            "📡 Inbounds:",
             "выполнить reconcile позже",
         ):
             self.assertNotIn(old, client)
@@ -380,10 +378,10 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'warnings.append(f"API нод: {node_error[:180]}")',
             '"Недоступные ноды пропущены при безопасном согласовании."',
             'f"Группа серверов #{group_id} не найдена"',
-            '"Режим «выбранные» включён, но inbound\'ы не выбраны."',
-            '"Для выбранных серверов нет подходящих inbound\'ов согласования."',
+            '"Режим «выбранные» включён, но Inbounds не выбраны."',
+            '"Для выбранных серверов нет подходящих Inbounds согласования."',
             '"Недоступные ноды будут пропущены до следующего согласования."',
-            '"Строгое согласование оставило бы клиента без inbound\'ов"',
+            '"Строгое согласование оставило бы клиента без Inbounds"',
             'f"Нода #{inbound.node_id}"',
         ):
             self.assertIn(needle, provisioning)
@@ -394,7 +392,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "safe provisioning",
             "Server Group #",
             "Selected-mode",
-            "provisioning inbound'ов",
+            "provisioning Inbounds",
             "следующего reconcile",
             "Strict reconcile",
             'f"Node #{inbound.node_id}"',
@@ -410,7 +408,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         for old in ("legacy NODE_BACKUP target", "legacy HOST_CONTROL target", "node-sync token"):
             self.assertNotIn(old, nodes)
 
-        self.assertIn('"server_group.inbound": "изменение inbound\'ов согласования группы"', observability)
+        self.assertIn('"server_group.inbound": "изменение Inbounds согласования группы"', observability)
         self.assertIn('"user.plan.provision": "применение тарифа и согласование"', observability)
         self.assertNotIn("изменение provisioning inbound группы", observability)
         self.assertNotIn("применение тарифа и provisioning", observability)
@@ -485,16 +483,16 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "🕒 Последний сигнал:",
             '"verify": "проверять"',
             '"skip": "без проверки"',
-            '"all": "все inbound\'ы"',
+            '"all": "все Inbounds"',
         ):
             self.assertIn(needle, node_ui)
         for old in ("Endpoint:", "Outbound bridge:", "Ping API:", "Последний heartbeat:"):
             self.assertNotIn(old, node_ui)
 
         self.assertIn("Старое действие больше не выполняет изменение напрямую.", advanced_nodes)
-        self.assertIn("Сначала перенеси или удали inbound'ы", advanced_nodes)
+        self.assertIn("Сначала перенеси или удали Inbounds", advanced_nodes)
         self.assertNotIn("Старый callback больше не выполняет изменение напрямую.", advanced_nodes)
-        self.assertNotIn("Сначала удали/detach inbound'ы", advanced_nodes)
+        self.assertNotIn("Сначала удали/detach Inbounds", advanced_nodes)
 
         self.assertIn("Затронуто записей: {affected}", users)
         self.assertNotIn("Трафик сброшен. affected=", users)

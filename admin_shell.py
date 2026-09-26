@@ -165,9 +165,9 @@ async def admin_dashboard(call: CallbackQuery):
         f"🌍 Серверы: {servers_online}/{servers_total} в сети",
     ]
     if inbounds_error:
-        lines.append(f"⚠️ Inbound'ы: {inbounds_error}")
+        lines.append(f"⚠️ Inbounds: {inbounds_error}")
     else:
-        lines.append(f"📡 Inbound'ы: {managed_enabled}/{len(managed)} включено")
+        lines.append(f"📡 Inbounds: {managed_enabled}/{len(managed)} включено")
     if nodes_error:
         lines.append(f"⚠️ API нод: {nodes_error}")
     lines += [
@@ -235,7 +235,7 @@ async def admin_infrastructure(call: CallbackQuery):
     await render_callback(call, 
         _section_header(
             "🌐 Инфраструктура",
-            "Управление нодами, inbound'ами, хостами и группами серверов.",
+            "Управление нодами, Inbounds, хостами и группами серверов.",
         ),
         reply_markup=infrastructure_menu(),
     )
@@ -277,7 +277,7 @@ async def admin_infrastructure_inbounds(call: CallbackQuery):
         await render_callback(call, text, reply_markup=kb)
     except XUIError as exc:
         await render_callback(call, 
-            f"📡 Inbound'ы\n\nОшибка 3x-ui: {exc}",
+            f"📡 Inbounds\n\nОшибка 3x-ui: {exc}",
             reply_markup=infrastructure_menu(),
         )
     await call.answer()

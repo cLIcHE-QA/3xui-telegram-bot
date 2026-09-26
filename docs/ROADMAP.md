@@ -264,7 +264,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
 9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ✅ выполнено и принято в production в `v4.20.5`.
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ✅ выполнено и принято в production в `v4.20.6`.
-11. единая operator-facing терминология `Inbound` / `Inbounds` без гибридных форм `Inbound'ы` / `Inbound'ов` — ⬜ запланировано на `v4.20.7`.
+11. единая operator-facing терминология `Inbound` / `Inbounds` без гибридных форм `Inbounds` / `Inbounds` — ⬜ запланировано на `v4.20.7`.
 12. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
 13. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
 14. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
@@ -325,7 +325,7 @@ Production acceptance `v4.20.5` закрыт: release развернут в prod
 
 Целевой контракт:
 
-- для метрик, которые доступны и Master, и direct node, используются одинаковые названия, status grammar и emoji: состояние панели/3x-ui, Xray state + version, CPU, RAM, uptime и Inbound'ы;
+- для метрик, которые доступны и Master, и direct node, используются одинаковые названия, status grammar и emoji: состояние панели/3x-ui, Xray state + version, CPU, RAM, uptime и Inbounds;
 - direct node получает явный текстовый статус (`🟢 В сети`, `🔴 Не в сети`, `🟡 Неизвестно`, `🛠 Обслуживание`), а не только status icon;
 - Xray direct node показывается с фактическим state и version, например `🟢 Xray: работает 26.9.9`, если version доступна; unknown/error не маскируются зелёным статусом;
 - Master-only данные остаются отдельными и не копируются на ноды без источника: disk usage, локальный Subscription Proxy, публичный nginx/TLS path, bot DB и локальный backup state;
@@ -347,7 +347,7 @@ Production acceptance `v4.20.5` закрыт: release развернут в prod
 🧠 RAM: 1.3 GB / 4.0 GB (33%)
 💽 Диск: 18.2 GB / 40.0 GB (46%)
 ⏱ Время работы: 6д 3ч 14м
-🌐 Inbound'ы: 3/3 включено
+🌐 Inbounds: 3/3 включено
 🟢 Прокси подписок (локально)
 🟢 Подписка через nginx/TLS
 
@@ -356,16 +356,16 @@ Production acceptance `v4.20.5` закрыт: release развернут в prod
 🟢 Панель: в сети
 🟢 Xray: работает 26.9.9
 🧮 CPU: 8% · 🧠 RAM: 27% · ⏱ Время работы: 5д 21ч 09м
-🌐 Inbound'ы: 3 · 👥 Клиентов: 24 · 📡 В сети: 7 · 📶 42 ms
+🌐 Inbounds: 3 · 👥 Клиентов: 24 · 📡 В сети: 7 · 📶 42 ms
 ~~~
 
 Production acceptance `v4.20.6` закрыт: release развернут в production, и оператор подтвердил targeted smoke экрана `Мониторинг → Состояние системы`. Общие Master/direct-node labels и statuses отображаются по новому contract, Xray state/version видны у direct node, а Master-only/node-only показатели остаются разделены. Разница RAM представления считается ожидаемой: Master получает used/total из `server_status()`, а агрегированный `NodeInfo` direct node сейчас содержит только `memPct`; дополнительные direct-node API calls ради абсолютных значений не добавляются.
 
 ##### Единая терминология Inbound / Inbounds
 
-**Статус: ⬜ Запланировано на `v4.20.7`.**
+**Статус: 🟡 Реализовано в ветке; готовится PR `v4.20.7`.**
 
-Цель — убрать из operator-facing UI и актуальной документации смешанные формы `Inbound'ы`, `inbound'ы`, `Inbound'ов`, `inbound'ов` и использовать единые технические термины `Inbound` / `Inbounds`.
+Цель — убрать из operator-facing UI и актуальной документации гибридные русифицированные формы с апострофом и использовать единые технические термины `Inbound` / `Inbounds`.
 
 Контракт:
 
@@ -599,7 +599,7 @@ Repo-wide source audit после domain-прохода не выявил обы
 Минимальный контракт:
 
 - одинаковые поля на Master и direct-node экранах используют одинаковые emoji и, где это возможно, одинаковые display labels;
-- для общих resource/status полей базовым ориентиром является уже используемый Master-формат: `🧮 CPU`, `🧠 RAM`, `💽 Диск`, `⏱ Время работы`, `🌐 Inbound'ы`, `👥 Пользователи/клиенты`, `💾 Резервная копия`;
+- для общих resource/status полей базовым ориентиром является уже используемый Master-формат: `🧮 CPU`, `🧠 RAM`, `💽 Диск`, `⏱ Время работы`, `🌐 Inbounds`, `👥 Пользователи/клиенты`, `💾 Резервная копия`;
 - health/state строки сохраняют семантические status icons: `🟢` healthy/online/enabled/running, `🟡` warning/degraded/pending и `🔴` failed/offline/stopped, если соответствующее состояние действительно известно;
 - для node-specific operational полей закреплены `🔗 Адрес`, `🔐 Проверка TLS`, `🧭 Исходящий маршрут`, `📶 Задержка API`, `📊 Сеть`, `🕒 Последний сигнал`;
 - чисто техническая строка без отдельного status/type смысла может оставаться без emoji, например `3x-ui: 3.8.5`; цель — визуальная консистентность, а не декоративное заполнение каждой строки;
@@ -633,7 +633,7 @@ Repo-wide проход `/admin` выполнен как пользователь
 Зафиксированный результат прохода:
 
 - `Версии и обновления` имеют один top-level parent — `Система`; дублирующий вход из `Инфраструктуры` удалён;
-- глобальная синхронизация пользователей остаётся в `Пользователях`, а не дублируется в списке inbound'ов;
+- глобальная синхронизация пользователей остаётся в `Пользователях`, а не дублируется в списке Inbounds;
 - `admin:home` отображается как возврат в `Панель администратора`, а не как ложный `Обзор`;
 - cancel/result/error paths форм и state-changing действий возвращают к соответствующей сущности или списку;
 - regression gate проверяет, что operator-facing `render_callback` и `render_input` не создают экран без явной навигации.
