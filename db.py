@@ -262,7 +262,7 @@ class Database:
         group_value = current.server_group_id if current and server_group_id is None else server_group_id
         note_value = current.note if current and note is None else (note or "")
         display_name_value = (
-            current.display_name if current and display_name is None else (display_name or "")
+            getattr(current, "display_name", "") if current and display_name is None else (display_name or "")
         )
         now = int(time.time())
         async with aiosqlite.connect(self.path) as db:
@@ -293,7 +293,7 @@ class Database:
             plan_id=plan_id,
             server_group_id=current.server_group_id if current else None,
             note=current.note if current else "",
-            display_name=current.display_name if current else "",
+            display_name=getattr(current, "display_name", "") if current else "",
             preserve_unspecified=False,
         )
 
@@ -304,7 +304,7 @@ class Database:
             plan_id=current.plan_id if current else None,
             server_group_id=group_id,
             note=current.note if current else "",
-            display_name=current.display_name if current else "",
+            display_name=getattr(current, "display_name", "") if current else "",
             preserve_unspecified=False,
         )
 
@@ -315,7 +315,7 @@ class Database:
             plan_id=current.plan_id if current else None,
             server_group_id=current.server_group_id if current else None,
             note=note,
-            display_name=current.display_name if current else "",
+            display_name=getattr(current, "display_name", "") if current else "",
             preserve_unspecified=False,
         )
 
