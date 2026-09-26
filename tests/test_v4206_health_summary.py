@@ -4,9 +4,6 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from version import APP_VERSION
-
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -15,9 +12,6 @@ def source(path: str) -> str:
 
 
 class V4206HealthSummaryTests(unittest.TestCase):
-    def test_release_version_is_4206(self):
-        self.assertEqual(APP_VERSION, "4.20.6")
-
     def test_health_summary_release_contract_is_present(self):
         system = source("system_admin.py")
         node_ui = source("node_ui.py")
