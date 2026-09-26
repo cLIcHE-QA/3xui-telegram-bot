@@ -171,8 +171,11 @@ async def payments_list(call: CallbackQuery):
     rows: list[list[InlineKeyboardButton]] = []
     for item in payments:
         icon = PAYMENT_STATUSES.get(item.status, item.status).split()[0]
+        user = await db.get(item.telegram_id)
+        profile = await db.get_user_profile(item.telegram_id) if user else None
+        label = user_label(user, profile) if user else f"TG {item.telegram_id}"
         rows.append([InlineKeyboardButton(
-            text=f"{icon} #{item.id} · TG {item.telegram_id} · {money(item.amount_minor, item.currency)}",
+            text=f"{icon} #{item.id} · {label} · {money(item.amount_minor, item.currency)}",
             callback_data=f"admin:payment:{item.id}",
         )])
     rows += [
