@@ -13,6 +13,8 @@ from admin_auth import authorize_callback
 from backup_manager import BackupManager
 from config import load_settings
 from db import AuditRecord, Database, JobRunRecord
+from ui_time import MSK, backup_schedule_text, format_timestamp
+from user_ui import user_label
 from runtime_jobs import backup_lock
 from system_backup import SystemBackupService
 from restore_manager import RestoreManager
@@ -54,14 +56,9 @@ def safe_int(value: object) -> int:
 
 
 def utc_text(ts: int) -> str:
-    if not ts:
-        return "—"
-    if ts > 10_000_000_000:  # tolerate millisecond timestamps
-        ts //= 1000
-    try:
-        return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    except (OSError, OverflowError, ValueError):
-        return "—"
+    if ts > 10_000_000_000:
+        return format_timestamp(ts, milliseconds=True)
+    return format_timestamp(ts)
 
 
 def ago_text(ts: int) -> str:
@@ -148,12 +145,15 @@ async def traffic_view(call: CallbackQuery):
     else:
         for used, email, up, down, quota, known in rows[:12]:
             marker = "👤" if known else "•"
+            rec = bot_users.get(email)
+            profile = await db.get_user_profile(rec.telegram_id) if rec else None
+            label = user_label(rec, profile) if rec else email
             if quota > 0:
                 pct = min(999.9, used * 100 / quota)
                 suffix = f" · {pct:.1f}% квоты"
             else:
                 suffix = " · без лимита"
-            lines.append(f"{marker} {email} — {human_bytes(used)}{suffix}")
+            lines.append(f"{marker} {label} — {human_bytes(used)}{suffix}")
         if len(rows) > 12:
             lines.append(f"… ещё {len(rows) - 12}")
 
@@ -198,8 +198,10 @@ async def online_view(call: CallbackQuery):
         lines.append("Сейчас в сети:")
         for email in online_unique[:25]:
             rec = bot_users.get(email)
+            profile = await db.get_user_profile(rec.telegram_id) if rec else None
+            label = user_label(rec, profile) if rec else email
             suffix = f" · TG {rec.telegram_id}" if rec else ""
-            lines.append(f"🟢 {email}{suffix}")
+            lines.append(f"🟢 {label}{suffix}")
         if len(online_unique) > 25:
             lines.append(f"… ещё {len(online_unique) - 25}")
     else:
@@ -214,7 +216,10 @@ async def online_view(call: CallbackQuery):
     if offline_recent:
         lines += ["", "Недавняя активность:"]
         for ts, email in offline_recent[:8]:
-            lines.append(f"⚪ {email} — {ago_text(ts)}")
+            rec = bot_users.get(email)
+            profile = await db.get_user_profile(rec.telegram_id) if rec else None
+            label = user_label(rec, profile) if rec else email
+            lines.append(f"⚪ {label} — {ago_text(ts)}")
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:online")],
@@ -230,7 +235,7 @@ def next_backup_text() -> str:
     target = now.replace(hour=settings.backup_hour_utc, minute=0, second=0, microsecond=0)
     if target <= now:
         target += timedelta(days=1)
-    return target.strftime("%Y-%m-%d %H:%M UTC")
+    return target.astimezone(MSK).strftime("%Y-%m-%d %H:%M MSK")
 
 
 def job_status_icon(status: str) -> str:
