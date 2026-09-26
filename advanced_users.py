@@ -146,7 +146,9 @@ def cancel_edit(tg_id: int) -> InlineKeyboardMarkup:
 
 
 async def _display_label(rec: UserRecord) -> str:
-    return user_label(rec, await db.get_user_profile(rec.telegram_id))
+    getter = getattr(db, "get_user_profile", None)
+    profile = await getter(rec.telegram_id) if getter else None
+    return user_label(rec, profile)
 
 
 async def _profile_labels(tg_id: int) -> tuple[str, str, str, str]:
