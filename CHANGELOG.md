@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.5 — Финальная консистентность Admin UI
+- `Инфраструктура → Операции с нодами → Состояние нод` теперь использует общий `node_display_name()` для direct nodes, поэтому operator-facing имя и country presentation fallback совпадают с остальными экранами.
+- Список `Ноды` приведён к общей грамматике `identity · status icon status text`: Master и direct nodes явно показывают текстовый online/offline/unknown/maintenance status, сохраняя `node_id` как machine identity.
+- `Обзор` стал обычным дочерним экраном `Панели администратора`: корневой `admin_menu()` больше не остаётся под dashboard-content, вместо него используются локальные `🔄 Обновить` и `⬅ Панель администратора`.
+- Добавлены targeted regression tests для Fleet Health, списка нод и dashboard navigation; соответствующие display/navigation rules остаются закреплены в `docs/UI_STYLE.md`.
+- SQLite schema, pinned 3x-ui/OpenAPI contract, Host Control/Deploy Agent API и mutation safety semantics не меняются; `v4.20.5` устанавливается обычным Safe Bot Self-Update без host-side обновления Agent/helper.
+
 ## v4.20.4 — Admin UI consolidation и единое отображение нод
 - Карточка пользователя сведена к одному каноническому `admin:u:<tg_id>` flow: список `Пользователи` больше не открывает отдельную legacy-карточку, а `adminuser:<tg_id>` сохранён как compatibility route для старых Telegram-сообщений и рендерит ту же карточку.
 - Repo-wide operator-facing node labels переведены на общий `node_display_name()` там, где отображается direct node: Monitoring, Fleet, Logs, Host Control, DR, Versions & Updates, Inbound UI, node backup summaries и связанные nested screens. Master остаётся отдельной сущностью; callback/binding identity по-прежнему строится по `node_id`/существующим machine identifiers, а не по display name.
