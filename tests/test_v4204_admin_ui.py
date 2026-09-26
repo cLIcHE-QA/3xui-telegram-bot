@@ -150,16 +150,20 @@ class V4204AdminUiTests(unittest.TestCase):
 
     def test_xray_log_empty_state_explains_upstream_semantics(self):
         logs = source("logs_alerts.py")
+        xui = source("xui.py")
         self.assertIn(
-            "По текущему фильтру отдельный журнал Xray не вернул записей.",
+            "По текущему фильтру отдельный access-журнал Xray не вернул записей.",
             logs,
         )
-        self.assertIn("События панели о Xray могут находиться ", logs)
+        self.assertIn("Служебные события Xray могут находиться ", logs)
         self.assertIn("в журнале 3x-ui", logs)
         self.assertIn(
-            "наличие отдельных Xray-записей зависит от конфигурации логирования",
+            "наличие access-записей зависит от конфигурации логирования",
             logs,
         )
+        self.assertIn('"/panel/api/server/xraylogs/{count}"', xui)
+        for field in ('"filter"', '"showDirect"', '"showBlocked"', '"showProxy"'):
+            self.assertIn(field, xui)
 
     def test_versions_overview_is_symmetric_and_state_lives_on_detail(self):
         versions = source("versions_updates.py")
