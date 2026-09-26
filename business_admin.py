@@ -17,6 +17,8 @@ from admin_privileges import PRIVILEGES
 from audit import audit_from_call, audit_from_message
 from config import load_settings
 from db import AdministratorRecord, Database, PaymentRecord, PromoCodeRecord
+from ui_time import backup_schedule_text, end_of_day_timestamp, format_timestamp
+from user_ui import user_label
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -151,9 +153,7 @@ def parse_money(raw: str, fallback_currency: str) -> tuple[int, str]:
 
 
 def utc_text(ts: int) -> str:
-    if not ts:
-        return "—"
-    return datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return format_timestamp(ts)
 
 
 # ---------------------------------------------------------------------
@@ -204,10 +204,11 @@ async def payment_detail(call: CallbackQuery):
         await call.answer("Платёж не найден.", show_alert=True)
         return
     user = await db.get(item.telegram_id)
+    profile = await db.get_user_profile(item.telegram_id) if user else None
     plan = await db.get_plan(item.plan_id) if item.plan_id else None
     lines = [
         f"💳 Платёж #{item.id}", "",
-        f"Пользователь: {user.email if user else 'не найден'} · TG {item.telegram_id}",
+        f"Пользователь: {user_label(user, profile) if user else 'не найден'} · TG {item.telegram_id}",
         f"Тариф: {plan.name if plan else 'не привязан'}",
         f"Сумма: {money(item.amount_minor, item.currency)}",
         f"Статус: {PAYMENT_STATUSES.get(item.status, item.status)}",
@@ -288,7 +289,12 @@ async def payment_add_user(message: Message, state: FSMContext):
     if not user:
         await render_input(message, "Пользователь с таким Telegram ID не найден в БД бота.", reply_markup=cancel("admin:paymentadd:cancel"))
         return
-    await state.update_data(telegram_id=tg_id, email=user.email)
+    profile = await db.get_user_profile(tg_id)
+    await state.update_data(
+        telegram_id=tg_id,
+        email=user.email,
+        user_label=user_label(user, profile),
+    )
     plans = await db.list_plans()
     rows = [[InlineKeyboardButton(text="🚫 Без тарифа", callback_data="admin:paymentadd:plan:0")]]
     for plan in plans[:30]:
@@ -373,7 +379,7 @@ async def payment_add_reference(message: Message, state: FSMContext):
     await state.set_state(AddPaymentStates.review)
     await render_input(message, 
         "Проверь платёж:\n\n"
-        f"Пользователь: {data['email']} · TG {data['telegram_id']}\n"
+        f"Пользователь: {data.get('user_label') or data['email']} · TG {data['telegram_id']}\n"
         f"Тариф: {plan.name if plan else 'не привязан'}\n"
         f"Сумма: {money(data['amount_minor'], data['currency'])}\n"
         f"Статус: {PAYMENT_STATUSES[data['status']]}\n"
@@ -612,7 +618,7 @@ async def promo_add_max_uses(message: Message, state: FSMContext):
     await state.update_data(max_uses=max_uses)
     await state.set_state(AddPromoStates.expires)
     await render_input(message, 
-        "Шаг 6/6. Срок действия: `0` = без срока или дата `YYYY-MM-DD` (UTC).",
+        "Шаг 6/6. Срок действия: `0` = без срока или дата `YYYY-MM-DD` (MSK).",
         reply_markup=cancel("admin:promoadd:cancel"),
     )
 
@@ -626,8 +632,7 @@ async def promo_add_expires(message: Message, state: FSMContext):
         expires_at = 0
     else:
         try:
-            dt = datetime.strptime(raw, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=timezone.utc)
-            expires_at = int(dt.timestamp())
+            expires_at = end_of_day_timestamp(raw)
         except ValueError:
             await render_input(message, "Формат даты: YYYY-MM-DD или 0.", reply_markup=cancel("admin:promoadd:cancel"))
             return
@@ -1069,7 +1074,7 @@ async def settings_view(call: CallbackQuery):
         f"📱 Лимит IP пробного доступа: {values['trial_ip_limit']}\n"
         f"💱 Валюта по умолчанию: {values['default_currency']}\n\n"
         "Окружение (только чтение):\n"
-        f"💾 Резервные копии: {'включены' if settings.backup_enabled else 'выключены'}, {settings.backup_hour_utc:02d}:00 UTC, хранить {settings.backup_keep}\n"
+        f"💾 Резервные копии: {'включены' if settings.backup_enabled else 'выключены'}, {backup_schedule_text(settings.backup_hour_utc)}, хранить {settings.backup_keep}\n"
         f"🔐 Проверка TLS: {'включена' if settings.verify_tls else 'выключена'}\n"
         f"🖥 Master-сервер: {settings.master_name}\n\n"
         "BOT_TOKEN, PANEL_API_TOKEN и другие секреты через Telegram не редактируются.",
