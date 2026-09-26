@@ -152,7 +152,7 @@ class PublicReadinessTests(unittest.TestCase):
             readme,
         )
         self.assertIn(
-            "Инфраструктура: Ноды / Inbound'ы / Хосты / Операции с нодами / Группы серверов",
+            "Инфраструктура: Ноды / Inbounds / Хосты / Операции с нодами / Группы серверов",
             readme,
         )
         self.assertIn(
