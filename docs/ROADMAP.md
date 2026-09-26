@@ -266,11 +266,12 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ✅ выполнено и принято в production в `v4.20.6`.
 11. единая operator-facing терминология `Inbound` / `Inbounds` без гибридных форм с апострофом — ✅ выполнено и принято в production в `v4.20.7`.
 12. финальная капитализация `Inbound` в operator-facing edit/clone/delete/error/help flows — ✅ выполнено и принято в production в `v4.20.8`.
-13. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
-14. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
-15. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
-16. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
-17. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
+13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — ⬜ запланировано на `v4.20.9`.
+14. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
+15. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
+16. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
+17. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
+18. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -284,15 +285,16 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 2. отдельным patch-релизом `v4.20.6` закрыть UI-04 и выровнять health summary Master/direct nodes без искусственного добавления недоступных метрик;
 3. отдельным patch-релизом `v4.20.7` привести operator-facing терминологию к `Inbound` / `Inbounds` без изменения technical identifiers;
 4. отдельным patch-релизом `v4.20.8` завершить capitalization `Inbound` в operator-facing edit/clone/delete/error/help flows;
-5. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
-6. отдельным релизом `v4.22.0` добавить User/Audience Groups;
-7. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
-8. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
-9. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-10. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-11. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-12. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-13. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+5. отдельным patch-релизом `v4.20.9` закрыть post-acceptance operator-facing UI findings без изменения behavior/storage semantics;
+6. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
+7. отдельным релизом `v4.22.0` добавить User/Audience Groups;
+8. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
+9. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
+10. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+11. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+12. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+13. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+14. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
@@ -388,6 +390,17 @@ Scope ограничен operator-facing строками: оставшийся 
 
 Production acceptance `v4.20.8` закрыт: release развернут в production, и оператор успешно завершил targeted smoke по Inbound edit/help prompts, sync/reset confirmations, clone flow, template copy, delete confirmation, user Inbounds copy и Server Group policy text. Проверенные operator-facing поверхности используют канонические `Inbound` / `Inbounds`; destructive actions во время smoke не выполнялись. Callback/API/DB/Python identifiers, SQLite schema, provisioning semantics и mutation behavior не менялись.
 
+#### v4.20.9 — post-acceptance operator-facing UI cleanup
+
+**Статус: ⬜ Запланировано после production acceptance `v4.20.8`.**
+
+Scope предназначен для небольших presentation findings, найденных уже на production smoke/acceptance и не требующих изменения поведения, storage contract или security boundary.
+
+Подтверждённый finding:
+
+- `Инфраструктура → Inbounds → <Inbound> → Сохранить шаблон`: убрать лишнюю implementation detail `bot.sqlite3` из operator-facing prompt. Канонический текст: `Введи имя шаблона. В шаблон попадёт конфигурация Inbound без клиентов.` Хранилище, SQLite schema, имя DB-файла и persistence semantics не меняются.
+
+Дополнительные findings могут быть добавлены в этот же patch до implementation PR, если они остаются narrowly-scoped UI/copy cleanup без behavior changes.
 ##### Редактируемое имя пользователя
 
 **Статус: ⬜ Запланировано на `v4.21.0`.**
