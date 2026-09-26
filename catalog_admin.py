@@ -207,7 +207,7 @@ async def plans_list(call: CallbackQuery):
     await render_callback(call, 
         "💎 Тарифы\n\n"
         f"Тарифов: {len(plans)} · активных: {active}\n\n"
-        "Тарифы участвуют в согласовании доступа. ⭐ отмечает тариф по умолчанию для /create. "
+        "Тарифы участвуют в согласовании доступа. ⭐ отмечает тариф по умолчанию для новых пользователей. "
         "Тариф задаёт лимиты, а группа серверов — серверы и inbound-политику.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -560,7 +560,7 @@ async def plan_set_default(call: CallbackQuery):
             return
         await db.set_runtime_setting("default_plan_id", str(plan_id), updated_by=call.from_user.id if call.from_user else 0)
         await audit_from_call(db, call, "plan.default", target_type="plan", target_id=str(plan_id), details="enabled=True")
-        await call.answer("⭐ Тариф по умолчанию для /create установлен.")
+        await call.answer("⭐ Тариф по умолчанию для новых пользователей установлен.")
     await render_callback(call, "Статус тарифа по умолчанию обновлён.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")]]))
 
 
@@ -875,7 +875,7 @@ async def server_group_inbounds(call: CallbackQuery):
         f"Режим: {inbound_mode_text(mode)}\n"
         f"Серверов-участников: {len(members)}\n"
         f"Доступных управляемых inbound'ов: {len(options)}\n\n"
-        "Режим «все управляемые» автоматически включает все разрешённые .env inbound'ы на серверах группы. "
+        "Режим «все управляемые» автоматически включает все разрешённые управляемые inbound'ы на серверах группы. "
         "Режим «выбранные» позволяет зафиксировать конкретный набор."
     )
     await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
