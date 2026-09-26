@@ -80,8 +80,10 @@ def _server_display_name(key: str, name: str) -> str:
 
 
 def _server_label(key: str, name: str) -> str:
-    icon = "🖥" if key == "m" else "🌍"
-    return f"{icon} {_server_display_name(key, name)}"
+    if key == "m":
+        return f"🖥 {_server_display_name(key, name)}"
+    display = _server_display_name(key, name)
+    return display if display != (name or "").strip() else f"🌍 {display}"
 
 
 def _target(key: str, name: str, client: XUIClient, identity: str = "", *, eligible: bool = True) -> Target:
