@@ -36,6 +36,17 @@ Journal является source of truth о применённых преобр�
 
 Legacy DB без `schema_migrations` не считается ошибкой: migration `v1 baseline_v4_14_2` идемпотентно доводит её до канонической схемы v4.14.2, проверяет ожидаемые таблицы/колонки/indexes и сохраняет существующие данные.
 
+## Текущий каталог schema
+
+Для `v4.21.0` текущая bot schema version — **2**:
+
+1. `v1 baseline_v4_14_2` — исходная каноническая схема v4.14.2;
+2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`.
+
+Migration v2 имеет `requires_backup=False`, потому что только добавляет колонку с безопасным default и не переписывает существующие данные. Postcondition полного текущего schema contract проверяется внутри migration transaction до записи `success`.
+
+После успешного применения v2 старый application release, знающий только schema v1, обязан остановиться как `DatabaseSchemaTooNewError`. Поэтому downgrade приложения через обычную смену tag без восстановления совместимой pre-v4.21 DB не поддерживается.
+
 ## Startup semantics
 
 `Database.init()` сначала запускает migration engine и только после успешного завершения обычный runtime продолжает startup.
