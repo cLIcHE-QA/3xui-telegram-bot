@@ -33,7 +33,7 @@ def is_allowed(tg_id: int) -> bool:
 
 def user_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔍 Проверить inbound'ы", callback_data="inbounds")],
+        [InlineKeyboardButton(text="🔍 Проверить Inbounds", callback_data="inbounds")],
         [InlineKeyboardButton(text="🧪 Создать тестовый доступ", callback_data="create")],
         [InlineKeyboardButton(text="🔗 Моя подписка", callback_data="subscription")],
     ])
@@ -153,8 +153,8 @@ async def create_user(tg_id: int, message: Message):
             if not inbound_ids:
                 await message.answer(
                     "Тариф по умолчанию для согласования настроен, но сейчас нет доступных "
-                    "целевых inbound'ов. Попроси администратора проверить "
-                    "Тариф → Группа серверов → Ноды/Inbound'ы."
+                    "целевых Inbounds. Попроси администратора проверить "
+                    "Тариф → Группа серверов → Ноды/Inbounds."
                 )
                 return
             duration_days = max(0, default_plan.duration_days)
@@ -169,7 +169,7 @@ async def create_user(tg_id: int, message: Message):
         else:
             chosen = choose_inbounds(await xui.inbound_options())
             if not chosen:
-                await message.answer("Нет подходящих inbound'ов.")
+                await message.answer("Нет подходящих Inbounds.")
                 return
             inbound_ids = [i.id for i in chosen]
             try:
@@ -246,7 +246,7 @@ async def create_user(tg_id: int, message: Message):
             lines += [
                 "",
                 f"💎 Тариф: {default_plan.name}",
-                f"📡 Inbound'ы: {', '.join(map(str, inbound_ids))}",
+                f"📡 Inbounds: {', '.join(map(str, inbound_ids))}",
             ]
             if policy.unavailable_members:
                 lines.append(
