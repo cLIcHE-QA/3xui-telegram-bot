@@ -294,7 +294,7 @@ async def node_backup(call: CallbackQuery):
         await call.message.answer_document(
             FSInputFile(snapshot.path),
             caption=(
-                f"💾 Снимок ноды · {node.name}\n"
+                f"💾 Снимок ноды · {node_display_name(node.name)}\n"
                 f"Статус: {state}{missing}\n"
                 "Архив содержит секретные данные. Храни его безопасно."
             ),
@@ -355,14 +355,14 @@ async def node_delete_ask(call: CallbackQuery):
     if attached:
         await call.answer("Сначала перенеси или удали inbound'ы", show_alert=True)
         await render_callback(call, 
-            f"🛡 Ноду {node.name} нельзя удалить: к ней привязано inbound'ов: {len(attached)}.\n"
+            f"🛡 Ноду {node_display_name(node.name)} нельзя удалить: к ней привязано inbound'ов: {len(attached)}.\n"
             "Сначала перенеси или удали их. 3x-ui также блокирует удаление ноды с привязанными inbound'ами.",
             reply_markup=_back(node_id),
         )
         return
     await call.answer()
     await render_callback(call, 
-        f"🗑 Удалить ноду {node.name} из Master 3x-ui?\n\n"
+        f"🗑 Удалить ноду {node_display_name(node.name)} из Master 3x-ui?\n\n"
         "Это удалит регистрацию ноды на Master, но не удалит сам VPS/3x-ui на удалённом сервере.",
         reply_markup=_confirm(node_id, "delete", "⚠️ Да, удалить ноду"),
     )
