@@ -363,7 +363,7 @@ Production acceptance `v4.20.6` закрыт: release развернут в prod
 
 ##### Единая терминология Inbound / Inbounds
 
-**Статус: 🟡 Реализовано в `main`; готовится `v4.20.7`.**
+**Статус: ✅ Выполнено и принято в production в `v4.20.7`.**
 
 Цель — убрать из operator-facing UI и актуальной документации гибридные русифицированные формы с апострофом и использовать единые технические термины `Inbound` / `Inbounds`.
 
@@ -375,6 +375,8 @@ Production acceptance `v4.20.6` закрыт: release развернут в prod
 - исторические release notes в `CHANGELOG.md` не переписываются задним числом; новый release section описывает только изменение текущего terminology contract;
 - regression/source-audit запрещает возврат гибридных operator-facing форм и отдельно допускает технические lower-case identifiers там, где они не являются пользовательским текстом;
 - SQLite schema, provisioning semantics, 3x-ui/OpenAPI contract, Host Control/Deploy Agent API, callback identity и mutation safety не меняются.
+
+Production acceptance `v4.20.7` закрыт: release развернут в production, и оператор завершил targeted smoke основных operator-facing поверхностей с новым terminology contract — `Обзор`, `Инфраструктура → Inbounds`, карточки Inbound, direct-node Inbounds, карточка пользователя/связи Inbounds, Server Groups, `Мониторинг → Состояние системы`, `Роли и права` и client `/start`. Гибридные формы с апострофом на проверенных поверхностях не обнаружены; runtime/API/DB identifiers и mutation semantics не менялись.
 
 ##### Редактируемое имя пользователя
 
