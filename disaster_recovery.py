@@ -16,6 +16,7 @@ from audit import audit_from_call, audit_from_message
 from backup_manager import BackupManager
 from config import load_settings
 from db import Database
+from node_ui import node_display_name
 from restore_manager import BackupInspection, RestoreError, RestoreManager
 from system_backup import SystemBackupService
 from xui import XUIClient, XUIError
@@ -99,7 +100,7 @@ def _inspection_summary(info: BackupInspection, *, deep: bool = False) -> str:
     if info.nodes:
         lines += ["", "Ноды:"]
         for node in info.nodes[:20]:
-            lines.append(f"• {node.name} · {node.database_filename}")
+            lines.append(f"• {node_display_name(node.name)} · {node.database_filename}")
     if info.warnings:
         lines += ["", "⚠️ Предупреждения:"]
         lines.extend(f"• {x}" for x in info.warnings[:8])
@@ -120,7 +121,7 @@ def _backup_actions(info: BackupInspection) -> InlineKeyboardMarkup:
         rows.append([InlineKeyboardButton(text="🖥 Восстановить Master x-ui.db", callback_data=f"admin:restore:xui:{bid}")])
     for idx, node in enumerate(info.nodes[:20]):
         rows.append([InlineKeyboardButton(
-            text=f"🌍 Восстановить ноду: {node.name}",
+            text=f"🌍 Восстановить ноду: {node_display_name(node.name)}",
             callback_data=f"admin:restore:node:{bid}:{idx}",
         )])
     export_row: list[InlineKeyboardButton] = []
@@ -268,7 +269,7 @@ async def restore_bot_start(call: CallbackQuery, state: FSMContext):
         warning=(
             "🤖 Восстановление bot.sqlite3\n\n"
             "Будет создан защитный снимок текущей БД бота, затем контейнер бота автоматически перезапустится и до старта Python заменит SQLite. "
-            "После запуска версионированные миграции SQLite проверят и при необходимости обновят схему до версии текущего кода; ошибка, незавершённая миграция или более новая схема блокируют запуск. .env, 3x-ui и nginx не изменяются."
+            "После запуска версионированные миграции SQLite проверят и при необходимости обновят схему до версии текущего кода; ошибка, незавершённая миграция или более новая схема блокируют запуск. Локальная конфигурация, 3x-ui и nginx не изменяются."
         ),
     )
 
@@ -443,7 +444,7 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             await render_input(
                 message,
                 "✅ БД Master x-ui импортирована. 3x-ui перезапускает панель/Xray.\n\n"
-                "Проверь через 5–10 секунд «Мониторинг → Состояние системы». Если API token из резервной копии отличался, возможно потребуется вернуть соответствующий PANEL_API_TOKEN в .env.",
+                "Проверь через 5–10 секунд «Мониторинг → Состояние системы». Если API token из резервной копии отличался, возможно потребуется вернуть соответствующий локальный PANEL_API_TOKEN.",
                 reply_markup=_restore_back(bid),
             )
             return
