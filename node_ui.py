@@ -67,7 +67,7 @@ def tls_verify_mode_text(value: str) -> str:
 
 def inbound_sync_mode_text(value: str) -> str:
     return {
-        "all": "все inbound'ы",
+        "all": "все Inbounds",
     }.get((value or "").lower(), value or "неизвестно")
 
 
@@ -158,7 +158,7 @@ def node_detail_keyboard(node_id: int, enabled: bool | None = None) -> InlineKey
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔍 Проверить", callback_data=f"admin:node:{node_id}")],
         [
-            InlineKeyboardButton(text="📡 Inbound'ы", callback_data=f"admin:nodectl:{node_id}:inbounds"),
+            InlineKeyboardButton(text="📡 Inbounds", callback_data=f"admin:nodectl:{node_id}:inbounds"),
             InlineKeyboardButton(text="💾 Резервная копия", callback_data=f"admin:nodectl:{node_id}:backup"),
         ],
         [InlineKeyboardButton(text=maintenance_text, callback_data=f"admin:nodectl:{node_id}:maintenance")],
@@ -225,7 +225,7 @@ def node_detail_text(node: NodeInfo, *, backup_configured: bool) -> str:
     ]
     if node.panel_version:
         lines.append(f"3x-ui: {node.panel_version}")
-    lines.append(f"🔐 Проверка TLS: {tls_verify_mode_text(node.tls_verify_mode)} · синхронизация inbound'ов: {inbound_sync_mode_text(node.inbound_sync_mode)}")
+    lines.append(f"🔐 Проверка TLS: {tls_verify_mode_text(node.tls_verify_mode)} · синхронизация Inbounds: {inbound_sync_mode_text(node.inbound_sync_mode)}")
     if node.outbound_tag:
         lines.append(f"🧭 Исходящий маршрут: {node.outbound_tag}")
     if node.latency_ms:
@@ -236,7 +236,7 @@ def node_detail_text(node: NodeInfo, *, backup_configured: bool) -> str:
         f"🧮 CPU: {node.cpu_pct:.1f}%",
         f"🧠 RAM: {node.mem_pct:.1f}%",
         f"⏱ Время работы: {duration_text(node.uptime_secs)}",
-        f"🌐 Inbound'ов: {node.inbound_count}",
+        f"🌐 Inbounds: {node.inbound_count}",
         f"👥 Клиентов: {node.client_count} · активных {node.active_count} · в сети {node.online_count}",
         f"🕒 Последний сигнал: {epoch_text(node.last_heartbeat)}",
     ]
