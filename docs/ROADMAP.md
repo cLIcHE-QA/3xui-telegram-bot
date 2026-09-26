@@ -262,7 +262,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 6. расширенный regression coverage критических admin/business/recovery путей — ✅ выполнено в `v4.16.0`;
 7. off-site backup и проверяемый restore path — 🟠 опубликовано в `v4.18.0`, production drill отложен до финального v4 freeze;
 8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
-9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ✅ выполнено в `v4.20.5`; production acceptance ещё не закрыт.
+9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ✅ выполнено и принято в production в `v4.20.5`.
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ⬜ запланировано на `v4.20.6`.
 11. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
 12. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
@@ -296,7 +296,7 @@ Off-site acceptance остаётся обязательным pre-v5 gate, но 
 
 ##### Финальный Admin UI consistency patch
 
-**Статус: ✅ Выполнено в `v4.20.5`; production acceptance ещё не закрыт.**
+**Статус: ✅ Выполнено и принято в production в `v4.20.5`.**
 
 Production smoke `v4.20.4` подтвердил основной Admin UI consolidation, но выявил три остаточные несогласованности presentation/navigation contract. Они должны быть закрыты отдельным небольшим regression-safe patch без изменения SQLite schema, 3x-ui/OpenAPI contract, Host Control/Deploy Agent API или mutation-safety semantics.
 
@@ -313,7 +313,7 @@ Regression requirements:
 - navigation regression проверяет, что `admin_menu()` используется только корневым экраном, а `Обзор` имеет локальную навигацию и явный возврат к `Панели администратора`;
 - `docs/UI_STYLE.md` остаётся нормативным источником этих правил для следующих UI PR.
 
-После публикации обязателен короткий production smoke именно по этим трём пунктам. После acceptance `v4.20.5` следующим patch-релизом идёт `v4.20.6` с UI-04, затем последовательность feature-релизов `v4.21.0`–`v4.24.0`; off-site drill и freeze выполняются уже после них.
+Production acceptance `v4.20.5` закрыт: release развернут в production, и оператор подтвердил успешный targeted smoke по всем трём пунктам — Fleet Health display, симметричный status template списка `Ноды` и локальная навигация `Обзора`. Следующим patch-релизом идёт `v4.20.6` с UI-04, затем последовательность feature-релизов `v4.21.0`–`v4.24.0`; off-site drill и freeze выполняются уже после них.
 
 ##### UI-04 — симметрия Master/direct-node health summary
 
