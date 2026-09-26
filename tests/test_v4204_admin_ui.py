@@ -148,6 +148,21 @@ class V4204AdminUiTests(unittest.TestCase):
         for path, stale in residuals:
             self.assertNotIn(stale, source(path), msg=f"stale node label in {path}")
 
+    def test_xray_log_empty_state_explains_upstream_semantics(self):
+        logs = source("logs_alerts.py")
+        self.assertIn(
+            "По текущему фильтру отдельный журнал Xray не вернул записей.",
+            logs,
+        )
+        self.assertIn(
+            "События панели о Xray могут находиться в журнале 3x-ui",
+            logs,
+        )
+        self.assertIn(
+            "наличие отдельных Xray-записей зависит от конфигурации логирования",
+            logs,
+        )
+
     def test_versions_overview_is_symmetric_and_state_lives_on_detail(self):
         versions = source("versions_updates.py")
         home = versions.split(
