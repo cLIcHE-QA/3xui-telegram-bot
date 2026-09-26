@@ -20,7 +20,7 @@ from backup_manager import BackupManager
 from config import HostControlTarget, load_settings
 from db import Database
 from host_control import HostControlClient, HostControlError, HostControlOperation
-from node_ui import xray_state_text
+from node_ui import node_display_name, xray_state_text
 from system_backup import SystemBackupService
 from xui import XUIClient, XUIError, XUIMutationError
 
@@ -72,6 +72,10 @@ class ControlTarget:
     panel_client: XUIClient | None
     host_target: HostControlTarget | None
     node_id: int = 0
+
+
+def _target_display_name(target: ControlTarget) -> str:
+    return target.name if target.key == "m" else node_display_name(target.name)
 
 
 def _host_target_for(
@@ -630,7 +634,7 @@ async def _show_screen(call: CallbackQuery, key: str) -> None:
     await render_callback(
         call,
         "\n".join([
-            f"🧩 Управление 3x-ui · {target.name}",
+            f"🧩 Управление 3x-ui · {_target_display_name(target)}",
             "",
             service_line,
             panel_line,
@@ -666,24 +670,24 @@ async def host_control_action_ask(call: CallbackQuery):
 
     prompts = {
         "ss": (
-            f"▶ Запустить сервис 3x-ui на {target.name}?",
+            f"▶ Запустить сервис 3x-ui на {_target_display_name(target)}?",
             "▶ Да, запустить сервис",
         ),
         "sr": (
-            f"⚠️ Перезапустить сервис 3x-ui на {target.name}?\n\nAPI панели кратковременно станет недоступен.",
+            f"⚠️ Перезапустить сервис 3x-ui на {_target_display_name(target)}?\n\nAPI панели кратковременно станет недоступен.",
             "🔄 Да, перезапустить сервис",
         ),
         "pr": (
-            f"⚠️ Выполнить штатный перезапуск процесса панели на {target.name}?\n\n"
+            f"⚠️ Выполнить штатный перезапуск процесса панели на {_target_display_name(target)}?\n\n"
             "Будет отправлен ровно один POST /panel/api/setting/restartPanel.",
             "♻️ Да, перезапустить панель",
         ),
         "xs": (
-            f"⚠️ Остановить ядро Xray на {target.name}?\n\nVPN через этот сервер перестанет работать.",
+            f"⚠️ Остановить ядро Xray на {_target_display_name(target)}?\n\nVPN через этот сервер перестанет работать.",
             "⏹ Да, остановить Xray",
         ),
         "xr": (
-            f"🔄 Перезапустить / запустить ядро Xray на {target.name}?\n\nАктивные подключения могут кратковременно оборваться.",
+            f"🔄 Перезапустить / запустить ядро Xray на {_target_display_name(target)}?\n\nАктивные подключения могут кратковременно оборваться.",
             "🔄 Да, перезапустить/запустить Xray",
         ),
     }
