@@ -999,7 +999,7 @@ async def inbound_template_card(call: CallbackQuery, state: FSMContext):
         f"Порт: {payload.get('port') or 0}\n"
         f"Транспорт: {stream.get('network') or '-'}\n"
         f"Безопасность: {stream.get('security') or 'none'}\n"
-        f"Исходный inbound: #{t.source_inbound_id}\n\n"
+        f"Исходный Inbound: #{t.source_inbound_id}\n\n"
         "Развёртывание создаёт отключённый Inbound без клиентов."
     )
     kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -1170,7 +1170,7 @@ async def inbound_delete_ask(call: CallbackQuery):
         "Удаление Inbound необратимо. 3x-ui также удалит связанные строки трафика/статистики; "
         "перед удалением проверь клиентские привязки.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚠️ Да, удалить inbound", callback_data=f"admin:inbound:delete:{iid}")],
+            [InlineKeyboardButton(text="⚠️ Да, удалить Inbound", callback_data=f"admin:inbound:delete:{iid}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:inbound:{iid}")],
         ]),
     )
