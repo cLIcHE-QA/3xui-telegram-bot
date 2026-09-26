@@ -209,13 +209,19 @@ class AdminNavigationTests(unittest.TestCase):
         )
         self.assertNotIn("reply_markup=monitoring_menu()", health)
 
-    def test_user_action_callbacks_are_stable(self):
-        enabled = callback_values(admin_navigation.user_admin_keyboard(123, enabled=True))
-        disabled = callback_values(admin_navigation.user_admin_keyboard(123, enabled=False))
-        self.assertIn("admindisable:123", enabled)
-        self.assertIn("adminenable:123", disabled)
-        self.assertIn("adminsync:123", enabled)
-        self.assertIn("admindelask:123", enabled)
+    def test_legacy_user_action_handlers_remain_compatible(self):
+        root = Path(__file__).resolve().parents[1]
+        users = (root / "advanced_users.py").read_text(encoding="utf-8")
+        for prefix in (
+            "adminuser:",
+            "adminsync:",
+            "adminextend:",
+            "admindisable:",
+            "adminenable:",
+            "admindelask:",
+        ):
+            self.assertIn(f'F.data.startswith("{prefix}")', users)
+        self.assertNotIn("def user_admin_keyboard(", (root / "admin_navigation.py").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
