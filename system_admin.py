@@ -17,8 +17,10 @@ from node_ui import (
     duration_text,
     master_detail_keyboard,
     node_display_name,
+    node_list_status,
     node_status_icon,
-    xray_icon,
+    node_status_text,
+    xray_state_icon,
     xray_state_text,
 )
 from version_api import VersionAPIError
@@ -79,6 +81,29 @@ def human_bytes(value: int) -> str:
 def usage_line(label: str, used: int, total: int) -> str:
     pct = (used / total * 100) if total else 0
     return f"{label}: {human_bytes(used)} / {human_bytes(total)} ({pct:.0f}%)"
+
+
+def _panel_status_line(node: NodeInfo) -> str:
+    if not node.enable:
+        return "🛠 Панель: обслуживание"
+    return f"{node_status_icon(node)} Панель: {node_status_text(node.status)}"
+
+
+def _node_health_lines(node: NodeInfo) -> list[str]:
+    lines = [
+        f"{node_display_name(node.name)} · {node_list_status(node)}",
+        _panel_status_line(node),
+        f"{xray_state_icon(node.xray_state)} Xray: {xray_state_text(node.xray_state)}"
+        + (f" {node.xray_version}" if node.xray_version else ""),
+        f"🧮 CPU: {node.cpu_pct:.1f}%",
+        f"🧠 RAM: {node.mem_pct:.1f}%",
+        f"⏱ Время работы: {duration_text(node.uptime_secs)}",
+        f"🌐 Inbound'ы: {node.inbound_count}",
+        f"👥 Клиентов: {node.client_count} · 📡 В сети: {node.online_count}",
+    ]
+    if node.latency_ms:
+        lines.append(f"📶 Задержка API: {node.latency_ms} ms")
+    return lines
 
 
 async def _guard(call: CallbackQuery) -> bool:
@@ -255,18 +280,17 @@ async def admin_health(call: CallbackQuery):
     ]
 
     if inbounds is not None or server_status is not None:
-        lines.append("🟢 3x-ui API / маршрут панели")
+        lines.append("🟢 Панель: в сети")
     else:
         detail = (xui_error or "неизвестная ошибка")[:160]
-        lines.append(f"🔴 3x-ui API / маршрут панели — {detail}")
+        lines.append(f"🔴 Панель: не в сети — {detail}")
 
     if server_status:
         xray_status = server_status.get("xray") or {}
         xray_state = str(xray_status.get("state") or "unknown").lower()
-        xray_ok = xray_state in {"running", "started", "online"}
         xray_version = str(xray_status.get("version") or "")
         lines.append(
-            f"{'🟢' if xray_ok else '🔴'} Xray: {xray_state_text(xray_state)}"
+            f"{xray_state_icon(xray_state)} Xray: {xray_state_text(xray_state)}"
             + (f" {xray_version}" if xray_version else "")
         )
 
@@ -316,6 +340,8 @@ async def admin_health(call: CallbackQuery):
             (item for item in inbounds if inbound_is_managed(settings, item)),
             key=lambda item: (item.port, item.protocol, item.id),
         )
+        enabled = sum(1 for item in managed if item.enable)
+        lines.append(f"🌐 Inbound'ы: {enabled}/{len(managed)} включено")
         lines += ["", "Inbound'ы Master:"]
         if managed:
             for item in managed:
@@ -330,20 +356,10 @@ async def admin_health(call: CallbackQuery):
     if nodes_error:
         lines.append(f"🔴 API нод — {nodes_error[:180]}")
     elif nodes:
-        for node in nodes[:20]:
-            icon = node_status_icon(node)
-            xicon = xray_icon(node)
-            node_line = (
-                f"{icon} {node_display_name(node.name)} · {xicon} Xray · "
-                f"🧮 CPU {node.cpu_pct:.0f}% · 🧠 RAM {node.mem_pct:.0f}%"
-            )
-            if node.latency_ms:
-                node_line += f" · 📶 {node.latency_ms} ms"
-            lines.append(node_line)
-            lines.append(
-                f"   👥 Клиентов {node.client_count} · 📡 В сети {node.online_count} · "
-                f"🌐 Inbound'ов {node.inbound_count} · ⏱ Время работы {duration_text(node.uptime_secs)}"
-            )
+        for index, node in enumerate(nodes[:20]):
+            if index:
+                lines.append("")
+            lines.extend(_node_health_lines(node))
         if len(nodes) > 20:
             lines.append(f"… ещё {len(nodes) - 20}")
     else:
