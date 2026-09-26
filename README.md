@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.20.4
+# Telegram-бот для 3x-ui v4.20.5
 
 Административный Telegram Control Plane для 3x-ui. Текущая production-линия проекта — **v4.x Admin Control Plane**; полноценный client-facing Client Portal запланирован отдельно для v5.x.
 

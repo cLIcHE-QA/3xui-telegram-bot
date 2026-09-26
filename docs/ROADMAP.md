@@ -262,12 +262,13 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 6. расширенный regression coverage критических admin/business/recovery путей — ✅ выполнено в `v4.16.0`;
 7. off-site backup и проверяемый restore path — 🟠 опубликовано в `v4.18.0`, production drill отложен до финального v4 freeze;
 8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
-9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ⬜ запланировано на `v4.20.5`: единый direct-node display на Fleet Health, симметричный статус Master/direct nodes в списке `Ноды` и единый top-level navigation contract для `Обзора`.
-10. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
-11. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
-12. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
-13. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
-14. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
+9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — 🟡 реализовано в `main`, release-prep `v4.20.5`.
+10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ⬜ запланировано на `v4.20.6`.
+11. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
+12. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
+13. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
+14. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
+15. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -278,23 +279,24 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 Зафиксированный порядок финального закрытия v4.x:
 
 1. закрыть и принять в production `v4.20.5` с финальными UI consistency fixes;
-2. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
-3. отдельным релизом `v4.22.0` добавить User/Audience Groups;
-4. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
-5. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
-6. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-7. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-8. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-9. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-10. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+2. отдельным patch-релизом `v4.20.6` закрыть UI-04 и выровнять health summary Master/direct nodes без искусственного добавления недоступных метрик;
+3. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
+4. отдельным релизом `v4.22.0` добавить User/Audience Groups;
+5. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
+6. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
+7. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+8. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+9. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+10. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+11. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
-Off-site acceptance остаётся обязательным pre-v5 gate, но теперь выполняется после завершения запланированных `v4.20.5`–`v4.24.0` feature releases и непосредственно перед feature freeze. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
+Off-site acceptance остаётся обязательным pre-v5 gate, но теперь выполняется после завершения запланированных `v4.20.5`–`v4.24.0` релизов и непосредственно перед feature freeze. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
 
 ##### Финальный Admin UI consistency patch
 
-**Статус: ⬜ Запланировано на `v4.20.5`.**
+**Статус: 🟡 Реализовано в `main`; готовится `v4.20.5`.**
 
 Production smoke `v4.20.4` подтвердил основной Admin UI consolidation, но выявил три остаточные несогласованности presentation/navigation contract. Они должны быть закрыты отдельным небольшим regression-safe patch без изменения SQLite schema, 3x-ui/OpenAPI contract, Host Control/Deploy Agent API или mutation-safety semantics.
 
@@ -311,7 +313,49 @@ Regression requirements:
 - navigation regression проверяет, что `admin_menu()` используется только корневым экраном, а `Обзор` имеет локальную навигацию и явный возврат к `Панели администратора`;
 - `docs/UI_STYLE.md` остаётся нормативным источником этих правил для следующих UI PR.
 
-После merge/release обязателен короткий production smoke именно по этим трём пунктам. После acceptance `v4.20.5` начинается последовательность отдельных feature-релизов `v4.21.0`–`v4.24.0`; off-site drill и freeze выполняются уже после них.
+После публикации обязателен короткий production smoke именно по этим трём пунктам. После acceptance `v4.20.5` следующим patch-релизом идёт `v4.20.6` с UI-04, затем последовательность feature-релизов `v4.21.0`–`v4.24.0`; off-site drill и freeze выполняются уже после них.
+
+##### UI-04 — симметрия Master/direct-node health summary
+
+**Статус: ⬜ Запланировано на `v4.20.6`.**
+
+Экран `Мониторинг → Состояние системы` сейчас показывает для Master и direct nodes разные наборы и разную грамматику одинаковых health-метрик. Часть различий архитектурно оправдана, потому что Master имеет локальные показатели и сервисы, которых нет в агрегированном `NodeInfo`; UI-04 не должен скрывать это различие или добавлять лишние network calls только ради визуальной симметрии.
+
+Целевой контракт:
+
+- для метрик, которые доступны и Master, и direct node, используются одинаковые названия, status grammar и emoji: состояние панели/3x-ui, Xray state + version, CPU, RAM, uptime и Inbound'ы;
+- direct node получает явный текстовый статус (`🟢 В сети`, `🔴 Не в сети`, `🟡 Неизвестно`, `🛠 Обслуживание`), а не только status icon;
+- Xray direct node показывается с фактическим state и version, например `🟢 Xray: работает 26.9.9`, если version доступна; unknown/error не маскируются зелёным статусом;
+- Master-only данные остаются отдельными и не копируются на ноды без источника: disk usage, локальный Subscription Proxy, публичный nginx/TLS path, bot DB и локальный backup state;
+- node-only/aggregate данные сохраняются там, где они полезны: latency, client/online counts, heartbeat/network stats и другие реально доступные поля;
+- не добавляются дополнительные direct-node API calls только для заполнения отсутствующих строк; расширение data source требует отдельного решения с timeout/failure semantics;
+- display contract формулируется как «одинаково представлять одинаковые данные», а не «показывать одинаковое количество строк»;
+- regression tests фиксируют online/offline/unknown/maintenance status, Xray running/stopped/unknown, наличие version при доступности и отсутствие ложных Master-only метрик у direct nodes;
+- SQLite schema, callback identity, 3x-ui/OpenAPI contract и mutation semantics не меняются.
+
+Пример целевого вида:
+
+~~~text
+🩺 Состояние системы
+
+🖥 Master
+🟢 Панель: в сети
+🟢 Xray: работает 26.9.9
+🧮 CPU: 12.4%
+🧠 RAM: 1.3 GB / 4.0 GB (33%)
+💽 Диск: 18.2 GB / 40.0 GB (46%)
+⏱ Время работы: 6д 3ч 14м
+🌐 Inbound'ы: 3/3 включено
+🟢 Прокси подписок (локально)
+🟢 Подписка через nginx/TLS
+
+Ноды
+🇫🇮 Finland · 🟢 В сети
+🟢 Панель: в сети
+🟢 Xray: работает 26.9.9
+🧮 CPU: 8% · 🧠 RAM: 27% · ⏱ Время работы: 5д 21ч 09м
+🌐 Inbound'ы: 3 · 👥 Клиентов: 24 · 📡 В сети: 7 · 📶 42 ms
+~~~
 
 ##### Редактируемое имя пользователя
 

@@ -5,9 +5,6 @@ import re
 import unittest
 from pathlib import Path
 
-from version import APP_VERSION
-
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -16,9 +13,6 @@ def source(path: str) -> str:
 
 
 class V4204AdminUiTests(unittest.TestCase):
-    def test_release_version_is_4204(self):
-        self.assertEqual(APP_VERSION, "4.20.4")
-
     def test_users_list_uses_canonical_card_and_legacy_route_is_compatible(self):
         users = source("advanced_users.py")
         self.assertIn(

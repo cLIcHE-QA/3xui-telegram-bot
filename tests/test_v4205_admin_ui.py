@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from node_ui import nodes_menu
+from version import APP_VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +26,9 @@ def labels_by_callback(markup) -> dict[str, str]:
 
 
 class V4205AdminUiTests(unittest.TestCase):
+    def test_release_version_is_4205(self):
+        self.assertEqual(APP_VERSION, "4.20.5")
+
     def test_fleet_health_uses_shared_node_display_name(self):
         fleet = source("fleet_operations.py")
         health = fleet.split(
