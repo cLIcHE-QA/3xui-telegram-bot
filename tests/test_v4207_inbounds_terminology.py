@@ -5,12 +5,17 @@ import re
 import unittest
 from pathlib import Path
 
+from version import APP_VERSION
+
 
 ROOT = Path(__file__).resolve().parents[1]
 HYBRID = re.compile(r"(?i)inbound\'[А-Яа-яЁё]+")
 
 
 class V4207InboundsTerminologyTests(unittest.TestCase):
+    def test_release_version_is_4207(self):
+        self.assertEqual(APP_VERSION, "4.20.7")
+
     def test_current_operator_facing_sources_do_not_use_hybrid_inbound_forms(self):
         paths = sorted(ROOT.glob("*.py"))
         paths += [ROOT / "README.md"]

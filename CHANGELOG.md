@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.7 — Единая терминология Inbound / Inbounds
+- Во всём актуальном operator-facing UI гибридные формы с апострофом заменены на канонические `Inbound` / `Inbounds`: кнопки, заголовки, status/summary строки, ошибки, подсказки, RBAC labels, audit summaries и client-facing тексты используют единый terminology contract.
+- README, Admin Setup, Roadmap и UI Style синхронизированы с тем же контрактом; `docs/UI_STYLE.md` явно запрещает русифицированные склонения `Inbound` через апостроф.
+- Technical identifiers остаются стабильными: callback data, API/DB fields, Python identifiers, module names и enum не переименовываются; historical release notes не переписываются задним числом.
+- Добавлен repo-wide regression/source-audit, запрещающий возврат гибридных operator-facing форм. SQLite schema, provisioning semantics, pinned 3x-ui/OpenAPI contract, Host Control/Deploy Agent API, callback identity и mutation safety не меняются; `v4.20.7` устанавливается обычным Safe Bot Self-Update без host-side обновления Agent/helper.
+
 ## v4.20.6 — Симметричный health summary Master и нод
 - `Мониторинг → Состояние системы` приведён к общему presentation contract для Master и direct nodes: одинаковые доступные health-метрики используют одинаковые labels, status grammar и emoji.
 - Direct node теперь явно показывает общий статус рядом с identity, отдельный статус панели и Xray state + version; `unknown` для Xray отображается отдельным жёлтым состоянием, а не ложным binary failure.
