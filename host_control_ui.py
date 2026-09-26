@@ -776,7 +776,7 @@ async def host_control_stop_ask(call: CallbackQuery, state: FSMContext):
     await call.answer()
     await render_callback(
         call,
-        f"⛔ ОСТАНОВКА сервиса 3x-ui · {target.name}\n\n"
+        f"⛔ ОСТАНОВКА сервиса 3x-ui · {_target_display_name(target)}\n\n"
         "Это Owner-only операция. После остановки API панели будет недоступен, "
         "но Host Control Agent останется доступен для запуска.\n\n"
         f"Для подтверждения отправь точную фразу:\nSTOP {target.name}\n\n"
