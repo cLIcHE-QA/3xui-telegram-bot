@@ -8,6 +8,7 @@ import unittest
 
 from ui_time import MSK, backup_schedule_text, end_of_day_timestamp, format_timestamp
 from user_ui import user_label
+from version import APP_VERSION
 
 
 ROOT = Path(__file__).resolve().parents[1]
