@@ -17,6 +17,8 @@ from inbound_policy import is_managed_inbound as inbound_is_managed
 from audit import audit_from_call, audit_from_message
 from config import load_settings
 from db import Database, UserRecord
+from ui_time import MSK, end_of_day_timestamp, format_timestamp
+from user_ui import display_name_from_profile, user_label
 from xui import XUIClient, XUIError
 from provisioning import ProvisioningEngine
 
@@ -96,12 +98,7 @@ def human_bytes(value: int) -> str:
 
 
 def fmt_date(ms: int) -> str:
-    if not ms:
-        return "без срока"
-    try:
-        return datetime.fromtimestamp(int(ms) / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    except (OSError, ValueError, OverflowError):
-        return str(ms)
+    return format_timestamp(ms, milliseconds=True, empty="без срока")
 
 
 def sub_url(sub_id: str) -> str:
@@ -297,7 +294,7 @@ async def user_expiry_start(call: CallbackQuery, state: FSMContext):
         "⏳ Изменение срока\n\n"
         "Введи:\n"
         "• +30 — добавить 30 дней к текущему сроку\n"
-        "• 2026-12-31 — установить дату 23:59 UTC\n"
+        "• 2026-12-31 — установить дату 23:59 MSK\n"
         "• 0 — без срока",
         reply_markup=cancel_edit(tg_id),
     )
@@ -330,10 +327,7 @@ async def user_expiry_save(message: Message, state: FSMContext):
             base = max(current, now_ms)
             new_expiry = base + days * 86400 * 1000
         else:
-            dt = datetime.strptime(raw, "%Y-%m-%d").replace(
-                hour=23, minute=59, second=59, tzinfo=timezone.utc
-            )
-            new_expiry = int(dt.timestamp() * 1000)
+            new_expiry = end_of_day_timestamp(raw) * 1000
         await xui.update_client(rec.email, expiryTime=new_expiry)
         await db.update_expiry(tg_id, new_expiry)
         await audit_from_message(
@@ -1032,8 +1026,8 @@ async def admin_users(call: CallbackQuery):
     rows = []
     for u in users[:40]:
         profile = await db.get_user_profile(u.telegram_id)
-        display_name = (getattr(profile, "display_name", "") or "") if profile else ""
-        label = f"{display_name} · {u.email}" if display_name else u.email
+        display_name = display_name_from_profile(profile)
+        label = user_label(u, profile)
         rows.append([InlineKeyboardButton(
             text=f"👤 {label} | TG {u.telegram_id}",
             callback_data=f"admin:u:{u.telegram_id}"
@@ -1312,7 +1306,7 @@ async def admin_sub_from_list(call: CallbackQuery):
     if rec:
         await render_callback(
             call,
-            f"🔗 {rec.email}\n{sub_url(rec.sub_id)}",
+            f"🔗 {user_label(rec, await db.get_user_profile(rec.telegram_id))}\n{sub_url(rec.sub_id)}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="⬅ Подписки", callback_data="admin:subscriptions")
             ]]),
