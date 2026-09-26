@@ -1541,6 +1541,7 @@ async def admin_del(call: CallbackQuery):
         await call.answer("Не найден.", show_alert=True)
         return
     try:
+        display_label = await _display_label(rec)
         await xui.delete_client(rec.email)
         await db.delete(tg_id)
         await audit_from_call(
@@ -1550,7 +1551,7 @@ async def admin_del(call: CallbackQuery):
             target_type="user",
             target_id=rec.email,
         )
-        await render_callback(call, f"🗑 {user_label(rec, await db.get_user_profile(tg_id))} удалён.", reply_markup=users_back())
+        await render_callback(call, f"🗑 {display_label} удалён.", reply_markup=users_back())
     except XUIError as exc:
         await audit_from_call(
             db,
