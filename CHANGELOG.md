@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.20.10 — Compact Inbound keyboard follow-up
+- По результатам production smoke `v4.20.9` карточка Inbound переведена на компактную пятистрочную двухколоночную клавиатуру, которая лучше переносит различия ширины Telegram Desktop после message edit.
+- Зафиксирована целевая структура: `Клиенты | Изменить`, `Синхронизировать клиентов | Сбросить трафик`, `Клонировать | Сохранить шаблон`, `Отключить/Включить | Удалить`, затем `⬅ Inbounds`.
+- Короткая кнопка `🗑 Удалить` используется только в карточке; отдельный confirmation screen по-прежнему явно показывает `Удалить Inbound` и требует подтверждения, поэтому deletion safety contract не меняется.
+- Добавлен release-specific regression gate для layout и полного wording confirmation. Callback identifiers, SQLite schema, storage/persistence semantics, provisioning, pinned 3x-ui/OpenAPI contract и mutation behavior не меняются; `v4.20.10` устанавливается обычным Safe Bot Self-Update без host-side обновления Agent/helper.
 ## v4.20.9 — Post-acceptance UI cleanup
 - Убран лишний implementation detail `bot.sqlite3` из operator-facing prompt сохранения Inbound template; текст теперь описывает только пользовательский результат без раскрытия внутреннего имени DB-файла.
 - Перестроена клавиатура карточки Inbound для устойчивого отображения в узком client-side layout Telegram: длинные действия вынесены в отдельные строки, а `Отключить/Включить` и `Удалить Inbound` сгруппированы в предпоследней строке перед `⬅ Inbounds`.
