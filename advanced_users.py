@@ -1047,8 +1047,8 @@ async def admin_sync_all_ask(call: CallbackQuery):
         return
     if not target_ids:
         await render_callback(call, 
-            "После фильтрации в .env нет доступных inbound'ов. "
-            "Проверь ALLOWED_PORTS, ALLOWED_PROTOCOLS и INBOUND_IDS.",
+            "После применения административной политики нет доступных inbound'ов. "
+            "Проверь разрешённые порты, протоколы и список inbound'ов.",
             reply_markup=users_back(),
         )
         await call.answer()
@@ -1082,7 +1082,7 @@ async def admin_sync_all_run(call: CallbackQuery):
         target_ids = sorted({i.id for i in available})
         if not target_ids:
             await render_callback(call, 
-                "Нет разрешённых inbound'ов после фильтрации .env.",
+                "После применения административной политики нет разрешённых inbound'ов.",
                 reply_markup=users_back(),
             )
             await call.answer()
@@ -1245,7 +1245,7 @@ async def admin_sync_inbounds(call: CallbackQuery):
             await render_callback(
                 call,
                 "После фильтрации в .env нет ни одного доступного inbound. "
-                "Проверь ALLOWED_PORTS, ALLOWED_PROTOCOLS и INBOUND_IDS.",
+                "Проверь разрешённые порты, протоколы и список inbound'ов.",
                 reply_markup=back_user(tg_id),
             )
             await call.answer()
