@@ -14,6 +14,7 @@ from audit import audit_from_call
 from backup_manager import BackupManager
 from config import load_settings
 from db import Database
+from node_ui import node_display_name
 from offsite_backup import replicate_with_job, service_from_settings
 from restore_manager import RestoreManager
 from runtime_jobs import backup_lock
@@ -74,7 +75,7 @@ def backup_status_text() -> str:
         lines.append("☁️ Внешняя копия: выключена")
     names = system_backup.configured_node_names()
     if names:
-        lines.append(f"🌍 Резервные копии нод: {len(names)} — {', '.join(names)}")
+        lines.append(f"🌍 Резервные копии нод: {len(names)} — {', '.join(node_display_name(name) for name in names)}")
     else:
         lines.append("🌍 Резервные копии нод: не настроены")
     lines += ["", "⚠️ Полный архив содержит чувствительные данные."]
