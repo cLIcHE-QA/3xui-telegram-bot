@@ -263,6 +263,11 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 7. off-site backup и проверяемый restore path — 🟠 опубликовано в `v4.18.0`, production drill отложен до финального v4 freeze;
 8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
 9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ⬜ запланировано на `v4.20.5`: единый direct-node display на Fleet Health, симметричный статус Master/direct nodes в списке `Ноды` и единый top-level navigation contract для `Обзора`.
+10. редактируемое display name пользователя без изменения 3x-ui machine identity — ⬜ запланировано на `v4.21.0`.
+11. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
+12. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
+13. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
+14. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -272,13 +277,20 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Зафиксированный порядок финального закрытия v4.x:
 
-1. сначала выполнить cleanup/freeze-подготовку из этого раздела небольшими regression-safe PR;
-2. после завершения cleanup вернуться к отложенному production drill для off-site backup;
-3. только после успешного off-site drill выполнить финальную заморозку v4.x и открыть работу над `v5.0.0`.
+1. закрыть и принять в production `v4.20.5` с финальными UI consistency fixes;
+2. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
+3. отдельным релизом `v4.22.0` добавить User/Audience Groups;
+4. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
+5. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
+6. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+7. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+8. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+9. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+10. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
-Таким образом off-site acceptance остаётся обязательным pre-v5 gate, но выполняется после архитектурной и UX-подготовки Admin Control Plane, непосредственно перед финальным freeze.
+Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
-Cleanup/freeze-подготовка этого раздела прошла production acceptance в `v4.20.1`. После production acceptance `v4.20.4` выявлен ещё один небольшой UI consistency follow-up, который фиксируется отдельным patch-релизом `v4.20.5` до финального off-site drill. После его production acceptance следующий обязательный gate — отложенный production drill для off-site backup.
+Off-site acceptance остаётся обязательным pre-v5 gate, но теперь выполняется после завершения запланированных `v4.20.5`–`v4.24.0` feature releases и непосредственно перед feature freeze. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
 
 ##### Финальный Admin UI consistency patch
 
@@ -299,7 +311,168 @@ Regression requirements:
 - navigation regression проверяет, что `admin_menu()` используется только корневым экраном, а `Обзор` имеет локальную навигацию и явный возврат к `Панели администратора`;
 - `docs/UI_STYLE.md` остаётся нормативным источником этих правил для следующих UI PR.
 
-После merge/release обязателен короткий production smoke именно по этим трём пунктам. Только после acceptance `v4.20.5` возвращаемся к отложенному off-site backup/restore drill и затем к финальному v4 freeze.
+После merge/release обязателен короткий production smoke именно по этим трём пунктам. После acceptance `v4.20.5` начинается последовательность отдельных feature-релизов `v4.21.0`–`v4.24.0`; off-site drill и freeze выполняются уже после них.
+
+##### Редактируемое имя пользователя
+
+**Статус: ⬜ Запланировано на `v4.21.0`.**
+
+Цель — добавить оператору и будущему Client Portal человекочитаемое имя пользователя, не смешивая presentation identity с технической identity клиента 3x-ui.
+
+Контракт:
+
+- `email` текущей записи пользователя остаётся machine identity, используемой 3x-ui/provisioning/traffic/update paths, и не переименовывается ради UI;
+- отдельное optional `display_name` хранится в профиле пользователя через новую versioned SQLite migration;
+- пустое `display_name` означает fallback на текущий `email`, поэтому существующие пользователи не требуют ручной миграции данных;
+- расширенная карточка получает действие `✏️ Имя` с обычным FSM/Cancel/Back contract;
+- имя валидируется по длине и управляющим символам, нормализуется перед сохранением и не используется как callback/database identity;
+- карточки/списки, где это улучшает UX, показывают display name с техническим email как вторичную информацию или fallback;
+- изменение/очистка имени записывается в audit;
+- provisioning, subscription identity, `telegram_id`, `sub_id` и 3x-ui email не меняются как побочный эффект;
+- regression pack проверяет migration upgrade, fallback, edit/clear flow, RBAC и отсутствие использования display name в machine bindings.
+
+##### User / Audience Groups
+
+**Статус: ⬜ Запланировано на `v4.22.0`.**
+
+User Groups являются отдельной продуктовой сущностью и не заменяют существующие Server Groups.
+
+Разделение ответственности:
+
+- **Server Group** отвечает за инфраструктуру/provisioning: Nodes/Inbounds/Plan placement;
+- **User/Audience Group** отвечает за аудиторию: кому в будущем разрешено или запрещено показывать конкретный контент/feature в Client Portal.
+
+Целевой контракт:
+
+- отдельные `user_groups` и `user_group_members` вводятся versioned migration;
+- membership many-to-many: один пользователь может состоять одновременно в нескольких audience groups;
+- group имеет stable internal ID, изменяемое display name, optional description и timestamps;
+- membership привязывается к stable user identity (`telegram_id`), а не к display name/email;
+- удаление группы не удаляет пользователей и транзакционно очищает только membership/rules, относящиеся к этой группе;
+- в `Пользователях` и карточке пользователя доступны просмотр/изменение membership; отдельный admin screen управляет группами и участниками;
+- добавляются явные RBAC privileges для просмотра и изменения User Groups;
+- все membership/group mutations audit-friendly;
+- backend получает единый reusable audience matcher с понятной семантикой include/exclude; deny/exclude должен иметь приоритет над allow/include, а отсутствие ограничений означает доступ всем подходящим пользователям;
+- v4.22 не должен сам связывать audience groups с provisioning/Server Groups или менять VPN-доступ пользователя;
+- Client Portal v5 использует этот же matcher для content/feature visibility, вместо ad-hoc проверок конкретных group names;
+- regression tests покрывают migration, many-to-many membership, rename/delete, RBAC, audit и matcher edge cases.
+
+##### Cheburcheck integration
+
+**Статус: ⬜ Запланировано на `v4.23.0`.**
+
+Цель — встроить в бот функциональность проверки доменов/IP/ASN на блокировки, сохраняя upstream Cheburcheck checker как source of behavior и не переписывая его алгоритм без необходимости.
+
+Upstream: `LowderPlay/cheburcheck`, BSD 3-Clause. При реализации фиксируется reviewed upstream commit/release и сохраняются обязательные copyright/license notices в third-party documentation.
+
+Архитектурный принцип:
+
+~~~text
+Telegram UI
+    ↓
+CheburcheckClient / typed response model
+    ↓
+internal/self-hosted Cheburcheck service
+    ↓
+upstream checker/database logic
+~~~
+
+Требования:
+
+- предпочтительный production path — pinned self-hosted Cheburcheck service во внутренней сети deployment; публичный `cheburcheck.ru` не становится обязательной single point of failure;
+- bot integration использует documented check API semantics (в текущем upstream это `/api/v1/check?target=...`) и не проксирует произвольные HTTP URL;
+- service optional и выключаем/настраиваем локально; его недоступность не должна ломать core bot startup или VPN control plane;
+- v4.x UI размещает проверку как контролируемый read-only diagnostics tool внутри существующей authorization boundary; открытие её публичным клиентам решается отдельно в v5;
+- input ограничивается поддерживаемыми target types и length/rate limits; ошибки/rate limit/upstream unavailable получают отдельные понятные состояния;
+- обязательны connect/read/total timeouts, bounded concurrency и response-size limits;
+- health/readiness Cheburcheck видимы оператору, но internal endpoint/credentials не раскрываются пользователю;
+- CI фиксирует response contract на reviewed upstream revision через fixtures/contract tests;
+- third-party notices и лицензия сохраняются при source/binary redistribution;
+- production acceptance проверяет корректный verdict на test fixtures/known targets и graceful degradation при недоступном Cheburcheck service.
+
+##### PackBot-compatible monitoring и diagnostics
+
+**Статус: ⬜ Запланировано на `v4.24.0`.**
+
+Цель — перенести пользовательскую функциональность `vladpak1/packbot` в текущий проект с сохранением продуктовой/алгоритмической логики там, где она совместима с security model, но **без** встраивания отдельного PHP Telegram bot, MySQL runtime или второго webhook stack.
+
+Upstream PackBot распространяется под MIT. Существенно адаптированный/перенесённый код и алгоритмы должны сопровождаться required copyright/license notice и source attribution.
+
+Implementation strategy:
+
+- PackBot используется как behavior/reference implementation;
+- новая реализация нативна для текущего Python/aiogram/SQLite/service architecture;
+- Telegram navigation, persistence, jobs, audit, alerts и configuration используют существующие project primitives;
+- feature parity фиксируется отдельной matrix во время реализации, чтобы функции не терялись молча.
+
+Минимальный parity scope по текущему upstream:
+
+- website monitoring: add/list/remove sites, ownership, per-user limits, periodic checks, разные интервалы для up/down, повторная проверка подозрительного failure, incident state/history, first/repeated/recovery notifications;
+- domain diagnostics: WHOIS/domain age и DNS;
+- web diagnostics: HTTP/server response, redirect trace, CMS detection;
+- SEO diagnostics: indexability/robots/noindex и optional Google PageSpeed integration;
+- utilities: sitemap parsing, URL list formatting/trimming и QR generation;
+- multilingual behavior upstream не требует появления i18n framework в v4.x: текущий canonical Russian UI сохраняется, а мультиязычность остаётся отдельной задачей.
+
+Обязательная security adaptation при сохранении пользовательского смысла функций:
+
+- один общий outbound-request safety layer для любых user-supplied domain/URL checks;
+- только разрешённые schemes/ports; credentials/userinfo в URL запрещены;
+- loopback, RFC1918/private, link-local, multicast, documentation/reserved ranges и cloud metadata endpoints блокируются для IPv4/IPv6;
+- DNS resolution проверяется до соединения, каждый redirect валидируется заново, а защита не должна позволять DNS rebinding между validation и connect;
+- bounded redirect count, connect/read/total timeout, response body limit, sitemap/file size limit, concurrency limit и per-user/global rate limits обязательны;
+- background monitoring не должен создавать unbounded queue или позволять одному пользователю исчерпать worker/network resources;
+- external API keys (например PageSpeed) хранятся только в локальной secret configuration и не попадают в UI/audit/logs;
+- network failures различаются от confirmed site-down там, где это существенно для alerts;
+- public-site diagnostics не получают доступ к внутренней VPN/control-plane сети.
+
+Persistence/reliability:
+
+- сайты, ownership, monitoring state, incidents и notification metadata хранятся через versioned SQLite migrations;
+- scheduled checks используют существующие background/job primitives и переживают restart без duplicate alert/mutation replay;
+- incident transitions и recovery покрываются deterministic tests с fake HTTP/DNS, а не зависят от случайных внешних сайтов;
+- production acceptance включает controlled up/down/recovery scenario и resource/rate-limit smoke.
+
+##### Финальный v4 Repository / Public-Release Audit
+
+**Статус: ⬜ Обязательный gate после final v4 feature freeze и до последнего v4.x release.**
+
+Цель — не очередной поверхностный source review, а воспроизводимый release-readiness audit всего репозитория и deployment surface. После начала этого gate новый feature scope в v4.x запрещён; findings закрываются отдельными fix PR/patch releases, после чего затронутые части аудита повторяются.
+
+Audit должен охватывать как минимум:
+
+1. **Архитектура и runtime:** composition/startup/shutdown, router ownership, background loops, startup recovery order, dead code, duplicate responsibilities, circular coupling, large-module risk, blocking calls в async paths и graceful degradation optional services.
+2. **Telegram UI/front surface:** весь `/admin` и существующий client flow как реальные пользовательские сценарии; navigation/Back/Refresh/Cancel/Confirm, FSM cleanup, stale Telegram messages, localization, emoji/status grammar, long text/keyboard limits, escaping/formatting и отсутствие misleading state.
+3. **Domain/business logic:** Users, Plans, Server Groups, User Groups, Payments/Promo, provisioning/reconcile, subscription identity, monitoring/diagnostics; invariants, state transitions, partial failures, retries, idempotency и edge cases.
+4. **SQLite/data integrity:** schema/version journal, upgrade со всех реально поддерживаемых старых состояний, constraints/indexes, transactions, concurrent access, backup-before-dangerous-migration contract, corruption/failure behavior и rollback/recovery assumptions.
+5. **Authorization и object ownership:** полный callback/command inventory, RBAC minimum role, IDOR/callback tampering, typed confirmations, cross-user access, stale callback payloads и fail-closed behavior для неизвестных routes/permissions.
+6. **Secrets и sensitive data:** bot token, panel/deploy/host tokens, subscription URLs/`sub_id`, payment/provider data, off-site keys, backup contents и Telegram identifiers; redaction в logs/audit/errors/UI, file permissions, env/secret scopes и rotation procedures.
+7. **Outbound/network security:** SSRF, DNS rebinding, redirect validation, TLS verification, timeout/retry policy, proxy behavior, user-controlled URLs/hosts, internal address reachability и egress boundaries для Cheburcheck/PackBot integrations.
+8. **Injection/path/archive safety:** SQL parameterization, shell/argv construction, command injection, filesystem traversal, symlink handling, tar/zip extraction, filename handling, HTML/Markdown/Telegram escaping и untrusted external payload rendering.
+9. **Mutation safety/concurrency:** no-replay semantics, unknown outcomes, idempotency keys/operation IDs, locks, race conditions, double-click callbacks, concurrent jobs, cancellation/restart windows и post-condition verification.
+10. **HTTP/control-plane exposure:** inventory каждого listening port/endpoint (subscription proxy, Host Control, Deploy Agent и optional services), bind address, auth, TLS, rate limits, request/body limits, error disclosure и network reachability.
+11. **Backups/DR:** SQLite/full/node/off-site creation, manifests/checksums/encryption, retention, malformed/tampered archives, clean-host restore, missing key/credential scenarios, node loss, Master loss и actual production restore drill evidence.
+12. **Deployment/container hardening:** Dockerfile/Compose/systemd/sudoers, running user, writable mounts, capabilities, Docker socket absence, filesystem permissions, health checks, restart behavior, network segmentation и least privilege host helpers.
+13. **Supply chain:** Python/system/Rust optional dependencies, lock/pin policy, known-vulnerability scan, container/base-image scan, vendored 3x-ui OpenAPI integrity, GitHub Actions third-party actions/pinning, dependency provenance и upgrade process.
+14. **Repository/release security:** branch protection/rulesets, required CI checks, merge/release permissions, immutable tag/release expectations, Actions permissions, secret access, release workflow trust boundary и reproducibility of tag/SHA/version/release notes.
+15. **Public-repository readiness:** current tree **и Git history** scan for secrets/private hostnames/IPs/Telegram IDs/credentials, sensitive deleted files, production examples, debug dumps and generated artifacts. Любой реально скомпрометированный secret, найденный в history, сначала ротируется; при необходимости history очищается до открытия repository.
+16. **Third-party/legal hygiene:** LICENSE, notices/attribution для Cheburcheck/PackBot и других vendored/adapted компонентов, dependency license review, README attribution и отсутствие неразрешённого копирования assets/code.
+17. **Reliability/resource abuse:** rate limits, quotas, max list/file/body sizes, bounded queues/concurrency, memory/disk growth, log rotation, backup growth, pagination and worst-case operator/customer input.
+18. **Observability:** health endpoints, logs, audit trail, job history, alert semantics, timestamps/timezones, correlation/operation IDs, operator diagnostics and absence of secret leakage in diagnostics.
+19. **Documentation:** README, install/update/recovery runbooks, config examples, UI paths, threat-model/security boundaries, public/private deployment differences and tested disaster recovery steps exactly match released code.
+20. **Clean-room acceptance:** installation from documented instructions on a fresh host/environment, migration from representative older DB, restore from verified backup, controlled service/node failures, restart during long-running operation and final production smoke.
+
+Audit output contract:
+
+- отдельный versioned report в `docs/audits/` с exact audited commit SHA;
+- findings имеют ID, severity, component, evidence/reproduction, impact, fix/decision и regression test reference;
+- automated scanners дополняют, но не заменяют manual code/flow review;
+- для security-sensitive code требуется evidence-based review, а не утверждение «безопасно» только потому, что тесты зелёные;
+- до финального v4 release не остаётся известных unresolved Critical/High findings; security/data-integrity Medium findings должны быть исправлены, а любой иной Medium имеет явный документированный disposition;
+- после каждого fix проверяется затронутая область и regression suite;
+- финальный release acceptance фиксирует exact tag/SHA, CI, migration state, backup/restore readiness и production smoke.
+
+Результат этого gate должен дать максимально чистую и проверенную v4 baseline для публикации репозитория. Он не считается автоматической гарантией безопасности будущего Client Portal: новый public/customer/payment attack surface v5 проходит отдельный launch audit перед снятием allowlist/допуском реальных клиентов.
 
 ##### Декомпозиция bot.py
 
@@ -722,6 +895,25 @@ Roadmap не требует device registration в первой версии. Н
 - ownership проверяется backend-ом, а не только callback payload.
 
 Открытие публичного `/start` выполняется только после готовности customer authorization, entitlement/payment lifecycle и abuse/rate-limit policy.
+
+## Gate перед публичным запуском Client Portal
+
+Финальный v4 audit создаёт проверенную backend/control-plane baseline, но не заменяет review нового public attack surface.
+
+После реализации `v5.0.0`, но **до** снятия allowlist/допуска реальных клиентов, выполняется отдельный launch audit как минимум по следующим направлениям:
+
+- ownership/isolation каждого customer endpoint/callback и защита от IDOR;
+- signup/onboarding abuse, rate limits, spam/bot automation и resource quotas;
+- Order/Payment/Entitlement state machine, webhook authentication/idempotency/replay и reconciliation;
+- subscription URL/credential exposure, rotation и cross-user leakage;
+- input/file/deep-link/QR handling и внешние URL;
+- privacy/data-minimization/retention для Telegram/customer/payment data;
+- customer-visible error states и support/recovery flows;
+- load/concurrency/failure testing для ожидаемого публичного трафика;
+- повторный dependency/container/secret scan для v5 delta;
+- clean production-like end-to-end сценарий: registration → purchase/activation → provisioning → subscription use → renewal/expiry/recovery.
+
+Public launch блокируется до закрытия release-blocking findings этого v5 launch audit.
 
 ## Архитектурный принцип
 
