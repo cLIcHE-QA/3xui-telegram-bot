@@ -895,7 +895,7 @@ async def administrator_add_id(message: Message, state: FSMContext):
         await render_input(message, "Telegram ID должен быть положительным.", reply_markup=cancel("admin:administratoradd:cancel"))
         return
     if tg_id in settings.admin_telegram_ids:
-        await render_input(message, "Этот Telegram ID уже является Owner из ADMIN_TELEGRAM_IDS (.env).", reply_markup=cancel("admin:administratoradd:cancel"))
+        await render_input(message, "Этот Telegram ID уже является аварийным Owner из локальной конфигурации.", reply_markup=cancel("admin:administratoradd:cancel"))
         return
     await state.update_data(telegram_id=tg_id)
     await state.set_state(AddAdministratorStates.role)
@@ -983,7 +983,7 @@ async def administrator_toggle(call: CallbackQuery):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
-        await call.answer("Owner из .env нельзя отключить.", show_alert=True)
+        await call.answer("Аварийного Owner из локальной конфигурации нельзя отключить.", show_alert=True)
         return
     rec = await db.get_administrator(tg_id)
     if not rec:
@@ -1095,7 +1095,7 @@ async def settings_edit(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         f"{spec[0]}\n\nТекущее значение: {current}\nОтправь новое значение ({hint}).",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="↩ Сбросить к значению .env по умолчанию", callback_data=f"admin:settings:reset:{key}")],
+            [InlineKeyboardButton(text="↩ Сбросить к значению локальной конфигурации", callback_data=f"admin:settings:reset:{key}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:settings:cancel")],
         ]),
     )
