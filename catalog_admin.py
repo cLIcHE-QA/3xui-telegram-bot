@@ -208,7 +208,7 @@ async def plans_list(call: CallbackQuery):
         "💎 Тарифы\n\n"
         f"Тарифов: {len(plans)} · активных: {active}\n\n"
         "Тарифы участвуют в согласовании доступа. ⭐ отмечает тариф по умолчанию для новых пользователей. "
-        "Тариф задаёт лимиты, а группа серверов — серверы и inbound-политику.",
+        "Тариф задаёт лимиты, а группа серверов — серверы и политику Inbounds.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
