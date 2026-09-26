@@ -775,7 +775,7 @@ async def user_inbounds(call: CallbackQuery):
             )])
         rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
         await render_callback(call, 
-            f"📡 Inbounds · {rec.email}\n\nНажатие подключает/отключает пользователя от конкретного inbound.",
+            f"📡 Inbounds · {rec.email}\n\nНажатие подключает/отключает пользователя от конкретного Inbound.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
         )
     except XUIError as exc:
@@ -800,7 +800,7 @@ async def user_inbound_toggle(call: CallbackQuery):
         if inbound_id in current:
             managed_current = current & allowed
             if inbound_id in managed_current and len(managed_current) <= 1:
-                await call.answer("Нельзя отключить последний управляемый inbound.", show_alert=True)
+                await call.answer("Нельзя отключить последний управляемый Inbound.", show_alert=True)
                 return
             await xui.detach_client(rec.email, [inbound_id])
             action = "detach"
@@ -1022,7 +1022,7 @@ async def admin_provision_all_run(call: CallbackQuery):
             "",
             f"Пользователей: {len(users)}",
             f"Успешно: {summary.get('ok')}",
-            f"Добавлено связей inbound: {summary.get('attached')}",
+            f"Добавлено связей Inbounds: {summary.get('attached')}",
             f"Ошибок: {len(failed)}",
             f"Время: {duration_ms / 1000:.1f}s",
         ]
@@ -1070,7 +1070,7 @@ async def admin_sync_all_ask(call: CallbackQuery):
         "Глобальная синхронизация добавит всем пользователям из локальной БД "
         "все разрешённые Inbounds, которых у них ещё нет, и синхронизирует VLESS flow.\n\n"
         f"Пользователей: {len(users)}\n"
-        f"Целевые inbound ID: {', '.join(map(str, target_ids))}\n"
+        f"Целевые Inbound ID: {', '.join(map(str, target_ids))}\n"
         f"VLESS flow: {flow_note}",
         reply_markup=confirm_sync_all_keyboard(),
     )
@@ -1133,7 +1133,7 @@ async def admin_sync_all_run(call: CallbackQuery):
             "✅ Глобальная синхронизация завершена.",
             "",
             f"Пользователей в БД: {len(users)}",
-            f"Целевые inbound ID: {', '.join(map(str, target_ids))}",
+            f"Целевые Inbound ID: {', '.join(map(str, target_ids))}",
             f"Обновлено/обработано: {attached_count}",
             f"Уже было привязано: {skipped_count}",
             f"Ошибок: {error_count}",
@@ -1255,7 +1255,7 @@ async def admin_sync_inbounds(call: CallbackQuery):
         if not target_ids:
             await render_callback(
                 call,
-                "После применения административной политики нет ни одного доступного inbound. "
+                "После применения административной политики нет ни одного доступного Inbound. "
                 "Проверь разрешённые порты, протоколы и список Inbounds.",
                 reply_markup=back_user(tg_id),
             )
