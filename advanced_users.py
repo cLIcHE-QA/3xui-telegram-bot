@@ -3,7 +3,6 @@ from __future__ import annotations
 import secrets
 import time
 import unicodedata
-from datetime import datetime, timezone
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -17,7 +16,7 @@ from inbound_policy import is_managed_inbound as inbound_is_managed
 from audit import audit_from_call, audit_from_message
 from config import load_settings
 from db import Database, UserRecord
-from ui_time import MSK, end_of_day_timestamp, format_timestamp
+from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
 from xui import XUIClient, XUIError
 from provisioning import ProvisioningEngine
