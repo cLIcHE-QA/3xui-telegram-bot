@@ -115,9 +115,9 @@ def _filter_lines(lines: Iterable[str], level: str) -> list[str]:
     return [line for line in values if any(n in line.lower() for n in needles)]
 
 
-def _excerpt(lines: list[str], *, max_chars: int = 3350) -> str:
+def _excerpt(lines: list[str], *, max_chars: int = 3350) -> tuple[str, int]:
     if not lines:
-        return "— записей нет"
+        return "— записей нет", 0
     selected: list[str] = []
     used = 0
     for line in reversed(lines):
@@ -132,7 +132,7 @@ def _excerpt(lines: list[str], *, max_chars: int = 3350) -> str:
         used += extra
     selected.reverse()
     prefix = "…\n" if len(selected) < len(lines) else ""
-    return prefix + "\n".join(selected)
+    return prefix + "\n".join(selected), len(selected)
 
 
 def _log_controls(source: str, count: int, level: str, *, node_id: int | None = None) -> InlineKeyboardMarkup:
@@ -242,14 +242,14 @@ async def master_log_view(call: CallbackQuery):
         )
         return
     shown = lines[-count:]
-    excerpt = _excerpt(shown)
+    excerpt, visible_count = _excerpt(shown, max_chars=3350 if count == 50 else 3650)
     if source == "xray" and not shown:
         excerpt += (
             "\n\nℹ️ По текущему фильтру отдельный access-журнал Xray не вернул записей. Служебные события Xray могут находиться "
             "в журнале 3x-ui; наличие access-записей зависит от конфигурации логирования."
         )
     await render_callback(call, 
-        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{excerpt}",
+        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · запрошено {count} · показано {visible_count}\n\n{excerpt}",
         reply_markup=_log_controls(source, count, level),
     )
 
@@ -329,14 +329,14 @@ async def node_log_view(call: CallbackQuery):
         await call.answer()
         return
     shown = lines[-count:]
-    excerpt = _excerpt(shown)
+    excerpt, visible_count = _excerpt(shown, max_chars=3350 if count == 50 else 3650)
     if source == "xray" and not shown:
         excerpt += (
             "\n\nℹ️ По текущему фильтру отдельный access-журнал Xray не вернул записей. Служебные события Xray могут находиться "
             "в журнале 3x-ui; наличие access-записей зависит от конфигурации логирования."
         )
     await render_callback(call, 
-        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · последние {count}\n\n{excerpt}",
+        f"{title}\n🔎 Фильтр: {_log_level_text(level)} · запрошено {count} · показано {visible_count}\n\n{excerpt}",
         reply_markup=_log_controls(source, count, level, node_id=node_id),
     )
     await call.answer()
