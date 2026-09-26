@@ -13,7 +13,7 @@ from admin_auth import authorize_callback
 from backup_manager import BackupManager
 from config import load_settings
 from db import AuditRecord, Database, JobRunRecord
-from ui_time import MSK, backup_schedule_text, format_timestamp
+from ui_time import MSK, format_timestamp
 from user_ui import user_label
 from runtime_jobs import backup_lock
 from system_backup import SystemBackupService
