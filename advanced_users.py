@@ -212,6 +212,11 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
         if note:
             lines += ["", f"📝 Заметка: {note}"]
 
+    state_button = (
+        InlineKeyboardButton(text="⛔ Отключить", callback_data=f"admindisable:{tg_id}")
+        if enabled else
+        InlineKeyboardButton(text="✅ Включить", callback_data=f"adminenable:{tg_id}")
+    )
     rows = [
         [
             InlineKeyboardButton(text="⏳ Срок", callback_data=f"admin:u:expiry:{tg_id}"),
@@ -232,6 +237,12 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data=f"admin:u:resetask:{tg_id}"),
             InlineKeyboardButton(text="📝 Заметка", callback_data=f"admin:u:note:{tg_id}"),
         ],
+        [InlineKeyboardButton(text="🔄 Синхронизировать inbound'ы", callback_data=f"adminsync:{tg_id}")],
+        [
+            InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}"),
+            state_button,
+        ],
+        [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admindelask:{tg_id}")],
         [InlineKeyboardButton(text="🔐 Сменить ID подписки", callback_data=f"admin:u:subrotateask:{tg_id}")],
         [InlineKeyboardButton(text="🔗 Открыть подписку", callback_data=f"adminsub:{tg_id}")],
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
