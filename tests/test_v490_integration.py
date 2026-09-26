@@ -177,7 +177,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
                 "🧮 CPU: 8.0%",
                 "🧠 RAM: 27.0%",
                 "⏱ Время работы: 5д 21ч 9м",
-                "🌐 Inbound'ы: 3",
+                "🌐 Inbounds: 3",
                 "👥 Клиентов: 24 · 📡 В сети: 7",
                 "📶 Задержка API: 42 ms",
             ],
