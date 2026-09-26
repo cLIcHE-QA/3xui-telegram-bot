@@ -156,15 +156,15 @@ class V4204AdminUiTests(unittest.TestCase):
         roadmap = source("docs/ROADMAP.md")
 
         self.assertIn("## Отображение Master и direct nodes", ui_style)
-        self.assertIn("\`node_display_name()\`", ui_style)
-        self.assertIn("стабильная техническая идентичность direct node — \`node_id\`", ui_style)
-        self.assertIn('\`if node.name == "Finland"\`', ui_style)
+        self.assertIn("`node_display_name()`", ui_style)
+        self.assertIn("стабильная техническая идентичность direct node — `node_id`", ui_style)
+        self.assertIn('`if node.name == "Finland"`', ui_style)
 
         self.assertIn("#### Географические metadata direct nodes", roadmap)
-        self.assertIn("\`country_code\`", roadmap)
+        self.assertIn("`country_code`", roadmap)
         self.assertIn("ISO 3166-1 alpha-2", roadmap)
         self.assertIn(
-            "Не является блокером \`v4.20.4\` или обязательным условием перехода к \`v5.0.0\`",
+            "Не является блокером `v4.20.4` или обязательным условием перехода к `v5.0.0`",
             roadmap,
         )
 
