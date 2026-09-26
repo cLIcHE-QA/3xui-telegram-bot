@@ -904,6 +904,16 @@ class Database:
             rows = await cur.fetchall()
             return [AuditRecord(**dict(r)) for r in rows]
 
+    async def get_audit(self, audit_id: int) -> AuditRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM audit_log WHERE id = ?",
+                (int(audit_id),),
+            )
+            row = await cur.fetchone()
+            return AuditRecord(**dict(row)) if row else None
+
     async def count_audit(self) -> int:
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute("SELECT COUNT(*) FROM audit_log")
