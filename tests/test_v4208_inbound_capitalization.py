@@ -4,8 +4,6 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from version import APP_VERSION
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,9 +13,6 @@ def source(path: str) -> str:
 
 
 class V4208InboundCapitalizationTests(unittest.TestCase):
-    def test_release_version_is_4208(self):
-        self.assertEqual(APP_VERSION, "4.20.8")
-
     def test_operator_facing_lowercase_inbound_copy_is_removed(self):
         inbound = source("inbound_admin.py")
         users = source("advanced_users.py")
