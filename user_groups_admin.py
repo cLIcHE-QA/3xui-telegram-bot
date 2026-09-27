@@ -582,10 +582,11 @@ async def user_group_members(call: CallbackQuery):
 
 
 @user_groups_router.callback_query(F.data.regexp(r"^admin:usergroup:member:\d+:\d+$"))
-async def user_group_member_detail(call: CallbackQuery):
+async def user_group_member_detail(call: CallbackQuery, state: FSMContext):
     role = await _guard_call(call)
     if role is None:
         return
+    await state.clear()
     parts = call.data.split(":")
     group_id = int(parts[-2])
     telegram_id = int(parts[-1])
