@@ -38,7 +38,7 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 ## Текущий каталог schema
 
-Для `v4.22.0` текущая bot schema version — **3**:
+Для `v4.23.0` текущая bot schema version — **3**:
 
 1. `v1 baseline_v4_14_2` — исходная каноническая схема v4.14.2;
 2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`;
