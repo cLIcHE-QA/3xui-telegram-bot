@@ -53,6 +53,7 @@ def monitoring_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🟢 В сети", callback_data="admin:online"),
         ],
         [InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:health")],
+        [InlineKeyboardButton(text="🔎 Проверка блокировок", callback_data="admin:cheburcheck")],
         [
             InlineKeyboardButton(text="📜 Журналы", callback_data="admin:logs"),
             InlineKeyboardButton(text="🚨 Оповещения", callback_data="admin:alerts"),

@@ -248,7 +248,7 @@ Admin Control Plane:
 - `/admin` открывает корневую панель: Обзор / Пользователи / Подписки / Платежи / Тарифы / Промокоды / Инфраструктура / Мониторинг / Система;
 - Пользователи: карточки пользователей / Группы пользователей / массовые действия / согласование доступа; Группы пользователей являются audience-сущностью и не заменяют Группы серверов;
 - Инфраструктура: Ноды / Inbounds / Хосты / Операции с нодами / Группы серверов; Host Control открывается из карточки конкретного Master/direct node;
-- Мониторинг: Трафик / В сети / Состояние системы / Журналы / Оповещения;
+- Мониторинг: Трафик / В сети / Состояние системы / Проверка блокировок / Журналы / Оповещения;
 - Система: Обновления бота / Версии и обновления / Задания / Резервные копии / Журнал аудита / Администраторы / Настройки.
 
 Наличие v4 client-access команд не означает, что v5 Client Portal уже реализован. Новый client-facing product flow должен сохранять отдельную authorization/navigation boundary от `/admin`.
@@ -293,7 +293,13 @@ git diff --check
 | Off-site Backup | [docs/OFFSITE_BACKUP.md](docs/OFFSITE_BACKUP.md) |
 | VPS recovery | [docs/VPS_RECOVERY.md](docs/VPS_RECOVERY.md) |
 | SQLite migrations | [docs/SQLITE_MIGRATIONS.md](docs/SQLITE_MIGRATIONS.md) |
+| Cheburcheck integration | [docs/CHEBURCHECK.md](docs/CHEBURCHECK.md) |
 | 3x-ui OpenAPI contract | [docs/3XUI_OPENAPI_CONTRACT.md](docs/3XUI_OPENAPI_CONTRACT.md) |
+| Third-party notices | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
+
+## Сторонние компоненты
+
+Read-only проверка блокировок использует API open-source проекта [Cheburcheck](https://github.com/LowderPlay/cheburcheck). Интеграция проверена относительно pinned upstream commit `0bbd2be8ca4b8f9ded1407597654314fc2a900c6`. Авторские уведомления и условия BSD-3-Clause сохранены в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## История проекта
 

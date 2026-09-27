@@ -252,7 +252,7 @@ async def admin_monitoring(call: CallbackQuery):
     await render_callback(call, 
         _section_header(
             "📈 Мониторинг",
-            "Трафик, состояние клиентов в сети, здоровье системы и журналы.",
+            "Трафик, состояние клиентов, здоровье системы, проверка блокировок и журналы.",
         ),
         reply_markup=monitoring_menu(),
     )

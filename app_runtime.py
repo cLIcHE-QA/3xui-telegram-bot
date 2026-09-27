@@ -24,6 +24,7 @@ from fleet_operations import fleet_router, recover_fleet_operations
 from audit import audit_system
 from runtime_jobs import backup_lock
 from logs_alerts import logs_alerts_router, alert_monitor_loop
+from cheburcheck_admin import cheburcheck_router
 from logging_setup import configure_logging
 from disaster_recovery import disaster_recovery_router, send_boot_restore_notice
 from restore_manager import RestoreManager
@@ -195,6 +196,7 @@ async def main():
     dp.include_router(catalog_router)
     dp.include_router(observability_router)
     dp.include_router(logs_alerts_router)
+    dp.include_router(cheburcheck_router)
     dp.include_router(disaster_recovery_router)
     dp.include_router(business_router)
     backup_task = (
