@@ -10,7 +10,19 @@ from admin_privileges import required_role_for_callback
 from cheburcheck import CheburcheckError, normalize_target, parse_response
 from admin_navigation import monitoring_menu
 from config import load_settings
-import cheburcheck_admin
+
+_CHEBURCHECK_TEST_ENV = {
+    "BOT_TOKEN": "123456789:offline-test-token",
+    "PANEL_URL": "https://master.example.invalid/base",
+    "PANEL_API_TOKEN": "offline-panel-token",
+    "SUBSCRIPTION_URL_TEMPLATE": "https://sub.example.invalid/sub/{sub_id}",
+    "ALLOWED_TELEGRAM_IDS": "1",
+    "ADMIN_TELEGRAM_IDS": "1",
+    "HOST_CONTROL_TARGETS": "",
+    "NODE_BACKUP_TARGETS": "",
+}
+with patch.dict(os.environ, _CHEBURCHECK_TEST_ENV, clear=False):
+    import cheburcheck_admin
 
 
 ROOT = Path(__file__).resolve().parents[1]
