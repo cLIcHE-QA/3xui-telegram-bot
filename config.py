@@ -322,6 +322,14 @@ def load_settings() -> Settings:
             )
         if parsed_cheburcheck.scheme == "https" and not cheburcheck_verify_tls:
             raise RuntimeError("CHEBURCHECK_VERIFY_TLS=false is forbidden for HTTPS.")
+        if (
+            parsed_cheburcheck.scheme == "http"
+            and "." in parsed_cheburcheck.hostname
+            and not _private_http_host(parsed_cheburcheck.hostname)
+        ):
+            raise RuntimeError(
+                "CHEBURCHECK_URL plain HTTP is allowed only for a private/local address or internal service name."
+            )
 
     deploy_agent_url = os.getenv("DEPLOY_AGENT_URL", "").strip().rstrip("/")
     deploy_agent_token = os.getenv("DEPLOY_AGENT_TOKEN", "").strip()
