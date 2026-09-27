@@ -47,7 +47,7 @@ async def _guard_call(call: CallbackQuery) -> str | None:
     return role if ok else None
 
 
-async def _guard_message(
+async def guard_message(
     message: Message,
     state: FSMContext,
     *,
@@ -256,7 +256,7 @@ async def user_group_add_start(call: CallbackQuery, state: FSMContext):
 
 @user_groups_router.message(CreateUserGroupStates.name)
 async def user_group_add_name(message: Message, state: FSMContext):
-    if not await _guard_message(message, state, minimum="admin"):
+    if not await guard_message(message, state, minimum="admin"):
         return
     try:
         name = _normalize_group_name(message.text or "")
@@ -283,7 +283,7 @@ async def user_group_add_name(message: Message, state: FSMContext):
 
 @user_groups_router.message(CreateUserGroupStates.description)
 async def user_group_add_description(message: Message, state: FSMContext):
-    if not await _guard_message(message, state, minimum="admin"):
+    if not await guard_message(message, state, minimum="admin"):
         return
     data = await state.get_data()
     try:
@@ -361,7 +361,7 @@ async def user_group_rename_start(call: CallbackQuery, state: FSMContext):
 
 @user_groups_router.message(EditUserGroupStates.name)
 async def user_group_rename_save(message: Message, state: FSMContext):
-    if not await _guard_message(message, state, minimum="admin"):
+    if not await guard_message(message, state, minimum="admin"):
         return
     data = await state.get_data()
     group_id = int(data.get("group_id") or 0)
@@ -426,7 +426,7 @@ async def user_group_description_start(call: CallbackQuery, state: FSMContext):
 
 @user_groups_router.message(EditUserGroupStates.description)
 async def user_group_description_save(message: Message, state: FSMContext):
-    if not await _guard_message(message, state, minimum="admin"):
+    if not await guard_message(message, state, minimum="admin"):
         return
     data = await state.get_data()
     group_id = int(data.get("group_id") or 0)
@@ -649,7 +649,7 @@ async def user_group_add_member_start(call: CallbackQuery, state: FSMContext):
 
 @user_groups_router.message(FindUserGroupMemberStates.query)
 async def user_group_add_member_search(message: Message, state: FSMContext):
-    if not await _guard_message(message, state, minimum="support"):
+    if not await guard_message(message, state, minimum="support"):
         return
     data = await state.get_data()
     group_id = int(data.get("group_id") or 0)
