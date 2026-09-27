@@ -11,7 +11,7 @@ import aiohttp
 
 
 MAX_TARGET_LENGTH = 255
-MAX_RESPONSE_BYTES = 256 * 1024
+MAX_RESPONSE_BYTES = 1024 * 1024
 MAX_CONCURRENCY = 4
 _DOMAIN_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$", re.IGNORECASE)
 

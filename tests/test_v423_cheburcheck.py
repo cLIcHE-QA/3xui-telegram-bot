@@ -183,7 +183,7 @@ class V423CheburcheckTests(unittest.IsolatedAsyncioTestCase):
         source = (ROOT / "cheburcheck.py").read_text(encoding="utf-8")
         self.assertIn('f"{self.base_url}/api/v1/check"', source)
         self.assertIn('allow_redirects=False', source)
-        self.assertIn('MAX_RESPONSE_BYTES = 256 * 1024', source)
+        self.assertIn('MAX_RESPONSE_BYTES = 1024 * 1024', source)
         self.assertIn('MAX_CONCURRENCY = 4', source)
         self.assertIn('ClientTimeout(total=10, connect=3, sock_read=7)', source)
         self.assertNotIn('http://{target}', source)

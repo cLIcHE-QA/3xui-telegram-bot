@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.23.0
+# Telegram-бот для 3x-ui v4.23.1
 
 Административный Telegram Control Plane для 3x-ui. Текущая production-линия проекта — **v4.x Admin Control Plane**; полноценный client-facing Client Portal запланирован отдельно для v5.x.
 
@@ -294,6 +294,7 @@ git diff --check
 | VPS recovery | [docs/VPS_RECOVERY.md](docs/VPS_RECOVERY.md) |
 | SQLite migrations | [docs/SQLITE_MIGRATIONS.md](docs/SQLITE_MIGRATIONS.md) |
 | Cheburcheck integration | [docs/CHEBURCHECK.md](docs/CHEBURCHECK.md) |
+| Cheburcheck deployment | [docs/CHEBURCHECK_DEPLOY.md](docs/CHEBURCHECK_DEPLOY.md) |
 | 3x-ui OpenAPI contract | [docs/3XUI_OPENAPI_CONTRACT.md](docs/3XUI_OPENAPI_CONTRACT.md) |
 | Third-party notices | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 

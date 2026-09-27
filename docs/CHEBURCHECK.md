@@ -54,6 +54,8 @@ CHEBURCHECK_VERIFY_TLS=true
 
 Предпочтительный production path — отдельный pinned self-hosted Cheburcheck deployment во внутренней сети. Бот не запускает и не обновляет upstream service автоматически: third-party runtime остаётся отдельной operational boundary.
 
+Воспроизводимая host-side установка, включая pinned checkout, PostgreSQL 18, internal-only Docker networks, secrets, health checks, bot `.env`, rollback и production acceptance: [Cheburcheck deployment](CHEBURCHECK_DEPLOY.md).
+
 В reviewed upstream revision официальный compose stack содержит отдельные `website`, frontend/nginx и MQTT components; backend `website` слушает port 8000 и требует собственный `DATABASE_URL` и связанные upstream settings. Развёртывание этого stack выполняется по документации конкретной pinned revision Cheburcheck, а не копируется в scripts этого repository.
 
 Пример внутреннего fixed endpoint:
@@ -77,7 +79,7 @@ Bot client:
 - не принимает и не проксирует произвольные HTTP URL;
 - не следует redirects;
 - использует connect timeout 3 s, read timeout 7 s, total timeout 10 s;
-- ограничивает response body 256 KiB;
+- ограничивает response body 1 MiB;
 - ограничивает concurrent requests;
 - имеет per-admin cooldown;
 - различает rate limit, rejected/not-found target, unavailable service и malformed response.
@@ -99,6 +101,10 @@ Reviewed upstream response содержит как минимум:
 - `complaints`.
 
 Bot показывает bounded operational summary и не копирует полный raw payload в UI, audit или logs.
+
+## v4.23.1 production note
+
+Production smoke `v4.23.0` выявил штатный ASN response размером около 382 KiB, который превышал исходный hard limit 256 KiB. `v4.23.1` поднимает только bounded response-body limit до 1 MiB; concurrency, redirects policy и timeouts не ослабляются. Bot по-прежнему строит bounded operational summary и не выводит raw JSON.
 
 ## Production acceptance
 

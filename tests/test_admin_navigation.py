@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import ast
+import re
 import unittest
 from pathlib import Path
 
 import admin_navigation
+from admin_privileges import required_role_for_callback
 
 
 def callback_values(markup) -> set[str]:
@@ -217,6 +219,204 @@ class AdminNavigationTests(unittest.TestCase):
             health,
         )
         self.assertNotIn("reply_markup=monitoring_menu()", health)
+
+    def test_repo_wide_static_admin_navigation_contract(self):
+        root = Path(__file__).resolve().parents[1]
+        canonical_back_labels = {
+            "admin:home": "⬅ Панель администратора",
+            "admin:section:infrastructure": "⬅ Инфраструктура",
+            "admin:section:monitoring": "⬅ Мониторинг",
+            "admin:section:system": "⬅ Система",
+            "admin:users": "⬅ Пользователи",
+            "admin:subscriptions": "⬅ Подписки",
+            "admin:usergroups": "⬅ Группы пользователей",
+            "admin:nodes": "⬅ Ноды",
+            "admin:infra:inbounds": "⬅ Inbounds",
+            "admin:inboundtemplates": "⬅ Шаблоны",
+            "admin:plans": "⬅ Тарифы",
+            "admin:servergroups": "⬅ Группы серверов",
+            "admin:hosts": "⬅ Хосты",
+            "admin:fleet": "⬅ Операции с нодами",
+            "admin:versions": "⬅ Версии и обновления",
+            "admin:botupd": "⬅ Обновления бота",
+            "admin:jobs": "⬅ Задания",
+            "admin:backups": "⬅ Резервные копии",
+            "admin:restore": "⬅ Аварийное восстановление",
+            "admin:logs": "⬅ Журналы",
+            "admin:logs:nodes": "⬅ Журналы нод",
+            "admin:alerts": "⬅ Оповещения",
+            "admin:payments": "⬅ Платежи",
+            "admin:promo": "⬅ Промокоды",
+            "admin:administrators": "⬅ Администраторы",
+        }
+
+        static_buttons: list[tuple[str, str, str]] = []
+        for path in sorted(root.glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=path.name)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                func_name = (
+                    func.id if isinstance(func, ast.Name)
+                    else func.attr if isinstance(func, ast.Attribute)
+                    else ""
+                )
+                if func_name != "InlineKeyboardButton":
+                    continue
+                values = {}
+                for keyword in node.keywords:
+                    if (
+                        keyword.arg in {"text", "callback_data"}
+                        and isinstance(keyword.value, ast.Constant)
+                        and isinstance(keyword.value.value, str)
+                    ):
+                        values[keyword.arg] = keyword.value.value
+                text = values.get("text")
+                callback = values.get("callback_data")
+                if text and callback and callback.startswith("admin:"):
+                    static_buttons.append((path.name, text, callback))
+
+        missing_privilege = [
+            f"{path}:{callback}"
+            for path, _text, callback in static_buttons
+            if required_role_for_callback(callback) is None
+        ]
+        self.assertEqual(missing_privilege, [])
+
+        exact_routes: set[str] = set()
+        prefix_routes: set[str] = set()
+        regex_routes: list[re.Pattern[str]] = []
+        membership_routes: set[str] = set()
+        route_errors: list[str] = []
+
+        def static_string(node: ast.AST, constants: dict[str, str]) -> str | None:
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                return node.value
+            if not isinstance(node, ast.JoinedStr):
+                return None
+            parts: list[str] = []
+            for value in node.values:
+                if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                    parts.append(value.value)
+                    continue
+                if (
+                    isinstance(value, ast.FormattedValue)
+                    and isinstance(value.value, ast.Name)
+                    and value.value.id in constants
+                ):
+                    parts.append(constants[value.value.id])
+                    continue
+                return None
+            return "".join(parts)
+
+        for path in sorted(root.glob("*.py")):
+            source = path.read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=path.name)
+            constants: dict[str, str] = {}
+            for statement in tree.body:
+                if (
+                    isinstance(statement, (ast.Assign, ast.AnnAssign))
+                    and isinstance(statement.value, ast.Constant)
+                    and isinstance(statement.value.value, str)
+                ):
+                    targets = (
+                        statement.targets
+                        if isinstance(statement, ast.Assign)
+                        else [statement.target]
+                    )
+                    for target in targets:
+                        if isinstance(target, ast.Name):
+                            constants[target.id] = statement.value.value
+
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+
+                if (
+                    isinstance(func, ast.Attribute)
+                    and func.attr == "startswith"
+                    and isinstance(func.value, ast.Attribute)
+                    and func.value.attr == "data"
+                    and node.args
+                    and isinstance(node.args[0], ast.Constant)
+                    and isinstance(node.args[0].value, str)
+                ):
+                    prefix_routes.add(node.args[0].value)
+                    continue
+
+                if (
+                    isinstance(func, ast.Attribute)
+                    and func.attr == "regexp"
+                    and isinstance(func.value, ast.Attribute)
+                    and func.value.attr == "data"
+                    and node.args
+                ):
+                    pattern = static_string(node.args[0], constants)
+                    if pattern is not None:
+                        try:
+                            regex_routes.append(re.compile(pattern))
+                        except re.error as exc:
+                            route_errors.append(f"{path.name}:{node.lineno}:{exc}")
+                    continue
+
+                if (
+                    isinstance(func, ast.Attribute)
+                    and func.attr == "in_"
+                    and isinstance(func.value, ast.Attribute)
+                    and func.value.attr == "data"
+                    and node.args
+                    and isinstance(node.args[0], (ast.Set, ast.Tuple, ast.List))
+                ):
+                    for item in node.args[0].elts:
+                        if isinstance(item, ast.Constant) and isinstance(item.value, str):
+                            membership_routes.add(item.value)
+
+                if (
+                    isinstance(func, ast.Attribute)
+                    and func.attr == "callback_query"
+                ):
+                    for arg in node.args:
+                        if not isinstance(arg, ast.Compare) or len(arg.ops) != 1:
+                            continue
+                        if not isinstance(arg.ops[0], ast.Eq) or len(arg.comparators) != 1:
+                            continue
+                        left = arg.left
+                        right = arg.comparators[0]
+                        if (
+                            isinstance(left, ast.Attribute)
+                            and left.attr == "data"
+                            and isinstance(right, ast.Constant)
+                            and isinstance(right.value, str)
+                        ):
+                            exact_routes.add(right.value)
+
+        self.assertEqual(route_errors, [])
+
+        def has_route(callback: str) -> bool:
+            return (
+                callback in exact_routes
+                or callback in membership_routes
+                or any(callback.startswith(prefix) for prefix in prefix_routes)
+                or any(pattern.fullmatch(callback) for pattern in regex_routes)
+            )
+
+        dead_static_buttons = [
+            f"{path}:{text}->{callback}"
+            for path, text, callback in static_buttons
+            if not has_route(callback)
+        ]
+        self.assertEqual(dead_static_buttons, [])
+
+        wrong_back_labels = [
+            f"{path}:{text}->{callback}"
+            for path, text, callback in static_buttons
+            if text.startswith("⬅ ")
+            and callback in canonical_back_labels
+            and text != canonical_back_labels[callback]
+        ]
+        self.assertEqual(wrong_back_labels, [])
 
     def test_legacy_user_action_handlers_remain_compatible(self):
         root = Path(__file__).resolve().parents[1]

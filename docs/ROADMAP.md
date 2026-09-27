@@ -270,7 +270,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
-17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ реализовано в `main`; release `v4.23.0` готовится, production acceptance ещё не выполнен.
+17. Cheburcheck integration как отдельный read-only diagnostics service/tool — 🟠 `v4.23.0` опубликован и развернут; domain/IP/Master/direct-node smoke пройден, ASN выявил response-limit defect; hotfix `v4.23.1` обязателен до полного production acceptance.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
@@ -511,7 +511,7 @@ Targeted smoke подтвердил production flow: создание време
 
 ##### Cheburcheck integration
 
-**Статус: ✅ Реализовано в `main`; release `v4.23.0` готовится, production acceptance ещё не выполнен.**
+**Статус: 🟠 `v4.23.0` опубликован и развернут; production acceptance частично выполнен. ASN smoke выявил hard-limit defect (штатный response > 256 KiB), поэтому закрытие пункта перенесено на hotfix `v4.23.1`.**
 
 Цель — встроить в бот функциональность проверки доменов/IP/ASN на блокировки, сохраняя upstream Cheburcheck checker как source of behavior и не переписывая его алгоритм без необходимости.
 
