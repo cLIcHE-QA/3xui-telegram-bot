@@ -1,1 +1,23 @@
-"""Historical release contract for v4.22.0."""\nfrom __future__ import annotations\n\nfrom pathlib import Path\nimport unittest\n\n\nROOT = Path(__file__).resolve().parents[1]\n\n\nclass V4220ReleaseTests(unittest.TestCase):\n    def test_changelog_preserves_v4220_release_section(self):\n        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")\n        self.assertEqual(\n            changelog.count("## v4.22.0 — Группы пользователей"),\n            1,\n        )\n        self.assertIn("user_audience_groups_v4_22_0", changelog)\n        self.assertIn("downgrade", changelog)\n\n\nif __name__ == "__main__":\n    unittest.main()\n
+"""Historical release contract for v4.22.0."""
+from __future__ import annotations
+
+from pathlib import Path
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class V4220ReleaseTests(unittest.TestCase):
+    def test_changelog_preserves_v4220_release_section(self):
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertEqual(
+            changelog.count("## v4.22.0 — Группы пользователей"),
+            1,
+        )
+        self.assertIn("user_audience_groups_v4_22_0", changelog)
+        self.assertIn("downgrade", changelog)
+
+
+if __name__ == "__main__":
+    unittest.main()
