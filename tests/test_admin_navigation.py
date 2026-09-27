@@ -290,9 +290,45 @@ class AdminNavigationTests(unittest.TestCase):
         membership_routes: set[str] = set()
         route_errors: list[str] = []
 
+        def static_string(node: ast.AST, constants: dict[str, str]) -> str | None:
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                return node.value
+            if not isinstance(node, ast.JoinedStr):
+                return None
+            parts: list[str] = []
+            for value in node.values:
+                if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                    parts.append(value.value)
+                    continue
+                if (
+                    isinstance(value, ast.FormattedValue)
+                    and isinstance(value.value, ast.Name)
+                    and value.value.id in constants
+                ):
+                    parts.append(constants[value.value.id])
+                    continue
+                return None
+            return "".join(parts)
+
         for path in sorted(root.glob("*.py")):
             source = path.read_text(encoding="utf-8")
             tree = ast.parse(source, filename=path.name)
+            constants: dict[str, str] = {}
+            for statement in tree.body:
+                if (
+                    isinstance(statement, (ast.Assign, ast.AnnAssign))
+                    and isinstance(statement.value, ast.Constant)
+                    and isinstance(statement.value.value, str)
+                ):
+                    targets = (
+                        statement.targets
+                        if isinstance(statement, ast.Assign)
+                        else [statement.target]
+                    )
+                    for target in targets:
+                        if isinstance(target, ast.Name):
+                            constants[target.id] = statement.value.value
+
             for node in ast.walk(tree):
                 if not isinstance(node, ast.Call):
                     continue
@@ -316,13 +352,13 @@ class AdminNavigationTests(unittest.TestCase):
                     and isinstance(func.value, ast.Attribute)
                     and func.value.attr == "data"
                     and node.args
-                    and isinstance(node.args[0], ast.Constant)
-                    and isinstance(node.args[0].value, str)
                 ):
-                    try:
-                        regex_routes.append(re.compile(node.args[0].value))
-                    except re.error as exc:
-                        route_errors.append(f"{path.name}:{node.lineno}:{exc}")
+                    pattern = static_string(node.args[0], constants)
+                    if pattern is not None:
+                        try:
+                            regex_routes.append(re.compile(pattern))
+                        except re.error as exc:
+                            route_errors.append(f"{path.name}:{node.lineno}:{exc}")
                     continue
 
                 if (
