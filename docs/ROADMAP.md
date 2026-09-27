@@ -273,7 +273,8 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
-20. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
+20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
+21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -294,15 +295,16 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 9. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
 10. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
 11. отдельным релизом `v4.25.0` завершить User Management и рефакторинг карточки пользователя;
-12. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-13. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-14. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-15. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-16. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+12. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
+13. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+14. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+15. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+16. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+17. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
-Off-site acceptance остаётся обязательным pre-v5 gate, но теперь выполняется после завершения запланированных `v4.20.5`–`v4.25.0` релизов и непосредственно перед feature freeze. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
+Off-site acceptance остаётся обязательным pre-v5 gate, но теперь выполняется после завершения запланированных `v4.20.5`–`v4.26.0` релизов и непосредственно перед feature freeze. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
 
 ##### Финальный Admin UI consistency patch
 
@@ -323,7 +325,7 @@ Regression requirements:
 - navigation regression проверяет, что `admin_menu()` используется только корневым экраном, а `Обзор` имеет локальную навигацию и явный возврат к `Панели администратора`;
 - `docs/UI_STYLE.md` остаётся нормативным источником этих правил для следующих UI PR.
 
-Production acceptance `v4.20.5` закрыт: release развернут в production, и оператор подтвердил успешный targeted smoke по всем трём пунктам — Fleet Health display, симметричный status template списка `Ноды` и локальная навигация `Обзора`. Следующим patch-релизом идёт `v4.20.6` с UI-04, затем последовательность feature-релизов `v4.21.0`–`v4.25.0`; off-site drill и freeze выполняются уже после них.
+Production acceptance `v4.20.5` закрыт: release развернут в production, и оператор подтвердил успешный targeted smoke по всем трём пунктам — Fleet Health display, симметричный status template списка `Ноды` и локальная навигация `Обзора`. Следующим patch-релизом идёт `v4.20.6` с UI-04, затем последовательность feature-релизов `v4.21.0`–`v4.26.0`; off-site drill и freeze выполняются уже после них.
 
 ##### UI-04 — симметрия Master/direct-node health summary
 
@@ -1687,6 +1689,87 @@ Production acceptance после публикации `v4.25.0` должен п�
 - проверить базовый bot/DB/3x-ui health после smoke.
 
 Acceptance считается закрытым только если navigation contract принят на Telegram Desktop и mobile, privilege boundaries подтверждены, legacy sync paths не выдают лишний доступ, а новые HWID/IP calls соответствуют pinned 3x-ui contract.
+
+
+##### v4.26.0 — Node Drain / graceful traffic evacuation
+
+**Статус: ⬜ Запланировано на `v4.26.0`.**
+
+Цель — добавить управляемый вывод direct-ноды из пользовательского VPN-трафика перед обслуживанием, миграцией или decommission, не смешивая три разные операции: control-plane maintenance, graceful drain и destructive stop.
+
+Текущий `🛠 Обслуживание` сохраняет существующую семантику: Master ставит node `enable=false` и перестаёт использовать её для новых provisioning/sync операций, но Xray и Inbounds продолжают работать, поэтому уже назначенные пользователи могут продолжать подключаться. `Drain` должен быть отдельным явным workflow и не менять эту семантику задним числом.
+
+Целевая модель:
+
+~~~text
+🟢 В работе
+    │
+    ├─ 🛠 Обслуживание
+    │     control plane pause
+    │     пользовательский traffic не выключается
+    │
+    └─ 🚧 Вывести из трафика
+          ↓
+       draining
+          ↓
+       drained
+          ↓
+       optional Owner-only Stop Xray / Stop service
+~~~
+
+Обязательный safety contract:
+
+- Drain применяется только к direct node с stable `node_id`; transitive/неоднозначные targets не мутируются.
+- Старт Drain сначала блокирует новые назначения на target node через существующую maintenance/control-plane primitive или эквивалентную fail-closed блокировку.
+- Перед пользовательскими mutations строится read-only review: затронутые пользователи, Inbounds target-ноды, доступные policy alternatives, blockers и оценка remaining work.
+- Для каждого затронутого пользователя действует attach-before-detach: сначала безопасно обеспечиваются альтернативные Inbounds согласно текущим Plan / Server Group / ProvisioningPolicy, и только после доказанного post-condition допускается detach Inbounds выводимой ноды.
+- Нельзя оставлять клиента без единого рабочего Inbound. Пользователь без подтверждённой альтернативы становится blocker и не переводится автоматически.
+- Drain не должен выполнять legacy attach-all и не должен обходить `ProvisioningEngine`; policy остаётся источником ожидаемого доступа.
+- Активные Xray-сессии не обрываются специально. После detach/обновления конфигурации пользователь может оставаться на уже установленной сессии до reconnect/timeout; это отображается как нормальная graceful семантика, а не как ошибка.
+- `drained` означает, что бот доказал отсутствие управляемых пользовательских назначений на Inbounds target-ноды либо явно показывает оставшиеся blockers. Нельзя объявлять success только по `node.enable=false`.
+- Drain **никогда автоматически не вызывает** `Stop Xray` или `Stop service`. Эти destructive Owner-only операции сохраняют отдельный privilege/confirmation boundary.
+- Отмена/возврат ноды в работу не выполняет слепой reverse replay старых attachments. Нода снова становится eligible, а нужные назначения восстанавливаются обычным policy-based reconcile.
+- Batch mutations выполняются bounded и последовательно либо через существующий безопасный bulk primitive; `failed` и `unknown` различаются, state-changing запрос после неопределённого исхода автоматически не повторяется.
+- Состояние drain/job переживает restart: незавершённый workflow после рестарта не продолжается автоматически и требует read-only verification/operator decision.
+- Все этапы audit-friendly; в audit/jobs не попадают credentials, subscription URL, `sub_id` или другие secret-like данные.
+
+Operator UX:
+
+~~~text
+/admin
+└─ Инфраструктура
+   └─ Операции с нодами
+      └─ 🚧 Вывести из трафика
+          ├─ выбрать direct node
+          ├─ preflight / affected users / blockers
+          ├─ confirmation
+          ├─ progress
+          └─ result: drained | partial | failed | unknown
+~~~
+
+Карточка ноды и Fleet Health должны визуально различать как минимум `maintenance`, `draining` и `drained`; нельзя показывать `drained`, пока Xray просто продолжает обслуживать пользователей с прежними assignments.
+
+RBAC / destructive boundary:
+
+- read-only status/progress Drain — `fleet.view` / Read-only+;
+- start/cancel/continue controlled Drain — `fleet.manage` / Administrator+;
+- `Stop Xray` и `Stop service` остаются Owner-only и не становятся частью Admin-level Drain confirmation.
+
+Regression / acceptance minimum:
+
+1. maintenance по-прежнему не трактуется как traffic cutoff;
+2. node в draining немедленно исключается из новых provisioning targets;
+3. attach-before-detach и last-working-Inbound safety;
+4. blocker при отсутствии policy alternative;
+5. no legacy attach-all;
+6. no automatic Stop Xray/service;
+7. restart/interrupted job не replay'ит mutation;
+8. failed/unknown outcomes и read-back verification;
+9. RBAC/callback catalog fail-closed;
+10. audit без secrets;
+11. production smoke на контролируемой test node/user cohort: новые назначения прекращаются, тестовый пользователь получает альтернативу до detach, после refresh/reconnect target node исчезает из рабочего пути, базовый health остаётся green.
+
+Конкретный способ определения remaining active sessions должен использовать только реально доступные 3x-ui/Xray данные и документировать их ограничения. Online/IP наблюдение не должно выдаваться за точный учёт физических устройств или гарантированный session drain, если upstream этого не доказывает.
 
 ##### Финальный v4 Repository / Public-Release Audit
 
