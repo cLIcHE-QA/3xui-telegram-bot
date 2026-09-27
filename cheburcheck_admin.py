@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -19,6 +21,8 @@ client = CheburcheckClient(
     verify_tls=settings.cheburcheck_verify_tls,
 )
 cheburcheck_router = Router(name="cheburcheck_admin")
+_MIN_REQUEST_INTERVAL_SECONDS = 2.0
+_last_request_at: dict[int, float] = {}
 
 
 class CheburcheckStates(StatesGroup):
@@ -189,6 +193,18 @@ async def cheburcheck_target(message: Message, state: FSMContext):
             reply_markup=_home_keyboard(),
         )
         return
+
+    actor_id = int(message.from_user.id)
+    now = time.monotonic()
+    previous = _last_request_at.get(actor_id, 0.0)
+    if now - previous < _MIN_REQUEST_INTERVAL_SECONDS:
+        await render_input(
+            message,
+            "🔎 Проверка блокировок\n\n⚠️ Слишком частые запросы. Повтори через пару секунд.",
+            reply_markup=_cancel_keyboard(),
+        )
+        return
+    _last_request_at[actor_id] = now
 
     raw = (message.text or "").strip()
     try:
