@@ -218,6 +218,10 @@ OFFSITE_BACKUP_ENCRYPTION_KEY_B64=
 DEPLOY_AGENT_URL=
 DEPLOY_AGENT_TOKEN=
 
+# Optional read-only blocking diagnostics. Leave empty until Cheburcheck is deployed.
+CHEBURCHECK_URL=
+CHEBURCHECK_VERIFY_TLS=true
+
 MASTER_NAME=Master
 MASTER_FLAG=🖥
 
@@ -228,6 +232,21 @@ NODE_BACKUP_TARGETS=
 ~~~
 
 ADMIN_TELEGRAM_IDS — break-glass Owners. Не добавляй туда случайных пользователей.
+
+### Optional Cheburcheck diagnostics
+
+`v4.23.0` добавляет read-only экран `/admin → Мониторинг → Проверка блокировок`. Он не нужен для core startup, provisioning или 3x-ui control plane.
+
+Предпочтительный production path — pinned self-hosted Cheburcheck service во внутренней сети. После его отдельного deployment укажи fixed endpoint:
+
+~~~env
+CHEBURCHECK_URL=http://cheburcheck:8000
+CHEBURCHECK_VERIFY_TLS=true
+~~~
+
+Для remote endpoint используй verified HTTPS. HTTPS с `CHEBURCHECK_VERIFY_TLS=false` запрещён; plain HTTP допустим только для private/local address или внутреннего service name.
+
+Если `CHEBURCHECK_URL` пуст, функция остаётся выключенной, а бот работает без деградации остальных возможностей. Канонический integration/security/acceptance contract: [Cheburcheck integration](CHEBURCHECK.md).
 
 ### Master backup paths
 
