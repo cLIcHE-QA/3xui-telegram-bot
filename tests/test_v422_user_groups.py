@@ -141,6 +141,8 @@ class UserAudienceGroupsTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"user_group.member.add"', source)
         self.assertIn('"user_group.member.remove"', source)
         self.assertIn('"user_group.delete"', source)
+        self.assertNotIn('"Membership:"', source)
+        self.assertNotIn("переключает membership", source)
 
 
 if __name__ == "__main__":
