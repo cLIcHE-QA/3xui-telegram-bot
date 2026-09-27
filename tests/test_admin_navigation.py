@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 import admin_navigation
+from admin_privileges import required_role_for_callback
 
 
 def callback_values(markup) -> set[str]:
@@ -217,6 +218,79 @@ class AdminNavigationTests(unittest.TestCase):
             health,
         )
         self.assertNotIn("reply_markup=monitoring_menu()", health)
+
+    def test_repo_wide_static_admin_navigation_contract(self):
+        root = Path(__file__).resolve().parents[1]
+        canonical_back_labels = {
+            "admin:home": "⬅ Панель администратора",
+            "admin:section:infrastructure": "⬅ Инфраструктура",
+            "admin:section:monitoring": "⬅ Мониторинг",
+            "admin:section:system": "⬅ Система",
+            "admin:users": "⬅ Пользователи",
+            "admin:subscriptions": "⬅ Подписки",
+            "admin:usergroups": "⬅ Группы пользователей",
+            "admin:nodes": "⬅ Ноды",
+            "admin:infra:inbounds": "⬅ Inbounds",
+            "admin:inboundtemplates": "⬅ Шаблоны",
+            "admin:plans": "⬅ Тарифы",
+            "admin:servergroups": "⬅ Группы серверов",
+            "admin:hosts": "⬅ Хосты",
+            "admin:fleet": "⬅ Операции с нодами",
+            "admin:versions": "⬅ Версии и обновления",
+            "admin:botupd": "⬅ Обновления бота",
+            "admin:jobs": "⬅ Задания",
+            "admin:backups": "⬅ Резервные копии",
+            "admin:restore": "⬅ Аварийное восстановление",
+            "admin:logs": "⬅ Журналы",
+            "admin:logs:nodes": "⬅ Журналы нод",
+            "admin:alerts": "⬅ Оповещения",
+            "admin:payments": "⬅ Платежи",
+            "admin:promo": "⬅ Промокоды",
+            "admin:administrators": "⬅ Администраторы",
+        }
+
+        static_buttons: list[tuple[str, str, str]] = []
+        for path in sorted(root.glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=path.name)
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                func_name = (
+                    func.id if isinstance(func, ast.Name)
+                    else func.attr if isinstance(func, ast.Attribute)
+                    else ""
+                )
+                if func_name != "InlineKeyboardButton":
+                    continue
+                values = {}
+                for keyword in node.keywords:
+                    if (
+                        keyword.arg in {"text", "callback_data"}
+                        and isinstance(keyword.value, ast.Constant)
+                        and isinstance(keyword.value.value, str)
+                    ):
+                        values[keyword.arg] = keyword.value.value
+                text = values.get("text")
+                callback = values.get("callback_data")
+                if text and callback and callback.startswith("admin:"):
+                    static_buttons.append((path.name, text, callback))
+
+        missing_privilege = [
+            f"{path}:{callback}"
+            for path, _text, callback in static_buttons
+            if required_role_for_callback(callback) is None
+        ]
+        self.assertEqual(missing_privilege, [])
+
+        wrong_back_labels = [
+            f"{path}:{text}->{callback}"
+            for path, text, callback in static_buttons
+            if text.startswith("⬅ ")
+            and callback in canonical_back_labels
+            and text != canonical_back_labels[callback]
+        ]
+        self.assertEqual(wrong_back_labels, [])
 
     def test_legacy_user_action_handlers_remain_compatible(self):
         root = Path(__file__).resolve().parents[1]
