@@ -21,6 +21,17 @@
    └─ 🔎 Проверка блокировок
 ~~~
 
+Стартовый экран автоматически предлагает безопасные public targets, которые уже известны control plane:
+
+- Master: hostname/IP, извлечённый из `PANEL_URL`;
+- direct Nodes: `NodeInfo.address`;
+- enabled Hosts: `HostRecord.hostname`.
+
+Дубликаты удаляются, private/loopback/link-local и локальные service names не предлагаются. Для сохранённых URL в Cheburcheck передаётся только hostname/IP: scheme, port, path, query, credentials и token-like части не используются.
+
+Дополнительно карточки Master и direct node содержат read-only shortcut `🔎 Проверить блокировку`. Callback хранит только stable identity (`master` или `node_id`), а актуальный адрес перечитывается в момент проверки; адрес не кодируется в callback data.
+
+
 Инструмент доступен роли Read-only и выше. Он не меняет VPN state, не выполняет provisioning и не вызывает 3x-ui mutations.
 
 Поддерживаемые цели:
@@ -93,11 +104,12 @@ Bot показывает bounded operational summary и не копирует п
 
 После публикации release:
 
-1. открыть `Мониторинг → Проверка блокировок`;
-2. проверить domain, public IP и ASN с предсказуемым fixture/known result;
-3. убедиться, что validation отклоняет URL/private IP;
-4. проверить rate-limit presentation;
-5. временно сделать Cheburcheck endpoint недоступным и подтвердить graceful error только внутри этого screen;
-6. после восстановления повторить запрос;
-7. проверить base bot health/DB/3x-ui status;
-8. убедиться, что internal URL/credentials не появились в UI/audit/logs.
+1. открыть `Мониторинг → Проверка блокировок` и убедиться, что доступные Master/direct Nodes/enabled Hosts появляются как обнаруженные цели без URL path/credentials;
+2. проверить shortcut `🔎 Проверить блокировку` из карточки Master и одной direct node;
+3. проверить domain, public IP и ASN с предсказуемым fixture/known result;
+4. убедиться, что validation отклоняет URL/private IP;
+5. проверить rate-limit presentation;
+6. временно сделать Cheburcheck endpoint недоступным и подтвердить graceful error только внутри этого screen;
+7. после восстановления повторить запрос;
+8. проверить base bot health/DB/3x-ui status;
+9. убедиться, что internal URL/credentials не появились в UI/audit/logs.
