@@ -477,7 +477,7 @@ async def user_group_delete_ask(call: CallbackQuery):
         "⚠️ Удалить группу пользователей?\n\n"
         f"Группа: {group.name}\n"
         f"Участников: {count}\n\n"
-        "Пользователи не удаляются. Будет удалена только эта группа и её membership. "
+        "Пользователи не удаляются. Будет удалена только эта группа и участие пользователей в ней. "
         "VPN-доступ, тарифы и Группы серверов не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(
