@@ -30,7 +30,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (2, "user_display_name_v4_21_0", "success"))
+                self.assertEqual(row, (3, "user_audience_groups_v4_22_0", "success"))
                 columns = [
                     item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
                 ]
@@ -110,6 +110,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     [
                         (1, "baseline_v4_14_2", "success"),
                         (2, "user_display_name_v4_21_0", "success"),
+                        (3, "user_audience_groups_v4_22_0", "success"),
                     ],
                 )
 
