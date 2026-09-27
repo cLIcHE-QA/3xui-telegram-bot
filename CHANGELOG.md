@@ -6,6 +6,16 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.23.1 — Cheburcheck hotfix и navigation regression
+- Production smoke `v4.23.0` подтвердил self-hosted Cheburcheck для domain/public IP и shortcuts Master/direct Node, но штатный ASN response размером около 382 KiB превысил исходный hard limit 256 KiB.
+- `CheburcheckClient` увеличивает bounded response-body limit до 1 MiB. Concurrency остаётся 4, connect/read/total timeouts — 3/7/10 s, redirects по-прежнему запрещены; произвольные URL/private targets не разрешаются.
+- Добавлен reproducible VPS runbook `docs/CHEBURCHECK_DEPLOY.md`: pinned upstream revision, PostgreSQL 18.6, причина требования `uuidv7()`, internal-only Docker networks без host ports, local secrets, health/reachability checks, bot `.env`, rollback и update policy.
+- Документация явно фиксирует, что PostgreSQL/cache Cheburcheck являются отдельной operational boundary и не входят в Full Backup Telegram-бота.
+- Проведён navigation audit Admin Control Plane; канонические parent/back transitions сохранены, а regression coverage расширяется для repo-wide проверки стабильных Back labels и privilege-backed static admin callbacks.
+- Roadmap обновлён по факту: `v4.23.0` опубликован/развернут, acceptance частично пройден, полное закрытие Cheburcheck переносится на `v4.23.1`.
+- SQLite schema остаётся v3; 3x-ui/OpenAPI contract, provisioning, VPN mutation semantics, Host Control Agent, Deploy Agent и Cheburcheck upstream revision не меняются.
+- Для уже работающего pinned self-hosted Cheburcheck runtime rebuild не требуется: `v4.23.1` обновляет только bot release, после чего повторяется ASN/validation/unavailable/base-health smoke.
+
 ## v4.23.0 — Проверка блокировок Cheburcheck
 - Добавлен read-only diagnostics flow `Мониторинг → Проверка блокировок` для доменов, публичных IPv4/IPv6, подсетей и ASN через optional Cheburcheck service.
 - Стартовый экран автоматически предлагает публичные цели из уже известных Master/direct Nodes/enabled Hosts; карточки Master и direct node получили shortcut `🔎 Проверить блокировку`. Из сохранённых URL передаётся только hostname/IP, без scheme/port/path/query/credentials, а дубликаты и local/private targets отбрасываются.
