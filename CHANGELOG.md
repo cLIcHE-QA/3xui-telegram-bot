@@ -6,6 +6,15 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.22.0 — Группы пользователей
+- Добавлена отдельная сущность User/Audience Groups для будущей сегментации Client Portal: `user_groups` и many-to-many `user_group_members` хранят membership по стабильному `telegram_id`, не по display name или email.
+- Добавлен административный flow `Пользователи → Группы пользователей`: список и карточка групп, создание, переименование, описание, участники, поиск пользователя по Telegram ID/email/display name, добавление/удаление membership и просмотр групп из карточки пользователя.
+- RBAC расширен permissions `user_groups.view` / `user_groups.manage` / `user_groups.admin` внутри существующих ролей Read-only / Support / Administrator; новых ролей не добавлено, неизвестные callbacks остаются fail-closed.
+- Добавлен reusable backend matcher include/exclude с приоритетом exclude и семантикой «нет ограничений — доступ разрешён». User Groups не связаны с provisioning: membership не меняет Plan, Server Group, Nodes, Inbounds, subscription identity или VPN-доступ.
+- SQLite schema повышена до v3 migration `user_audience_groups_v4_22_0`; migration additive и не требует recovery copy. Удаление группы очищает только membership, удаление пользователя очищает его memberships.
+- Group и membership mutations записываются в существующий audit; удаление группы и удаление участника используют отдельные confirmation flows.
+- Добавлен regression coverage для migration/schema, many-to-many membership, поиска, удаления, matcher edge cases, RBAC и разделения Audience Groups / provisioning. Новых env-переменных и host-side компонентов нет.
+
 ## v4.21.2 — Исправления Disaster Recovery и журнала бота
 - Исправлен runtime `NameError` в Disaster Recovery после MSK-перехода: `disaster_recovery.py` теперь явно импортирует `format_datetime` и `format_short_datetime`, поэтому список/карточки резервных копий снова открываются штатно и продолжают показывать operator-facing время в MSK.
 - В `Мониторинг → Журналы` режимы `50` и `200` больше не выглядят одинаковыми из-за общего character limit: UI показывает `запрошено N · показано M`, а режим `200` использует расширенный Telegram-safe budget для большего excerpt.
