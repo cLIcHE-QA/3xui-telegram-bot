@@ -23,6 +23,9 @@ PUBLIC_SURFACES = (
     "catalog_admin.py",
     "business_admin.py",
     "disaster_recovery.py",
+    "cheburcheck.py",
+    "cheburcheck_admin.py",
+    "THIRD_PARTY_NOTICES.md",
     "scripts/setup-host-control-endpoint.sh",
     *OPERATOR_DOCS,
 )
@@ -157,10 +160,15 @@ class PublicReadinessTests(unittest.TestCase):
             readme,
         )
         self.assertIn(
+            "Мониторинг: Трафик / В сети / Состояние системы / Проверка блокировок / Журналы / Оповещения",
+            readme,
+        )
+        self.assertIn(
             "Система: Обновления бота / Версии и обновления / Задания / Резервные копии / "
             "Журнал аудита / Администраторы / Настройки",
             readme,
         )
+        self.assertIn("THIRD_PARTY_NOTICES.md", readme)
 
 
 if __name__ == "__main__":
