@@ -177,7 +177,7 @@ async def user_groups_list(call: CallbackQuery):
     if role is None:
         return
     page = 0
-    if call.data and call.data.startswith("admin:usergroups:page:"):
+    if call.data != "admin:usergroups":
         page = max(0, int(call.data.rsplit(":", 1)[-1]))
 
     groups = await db.list_user_groups()
@@ -505,7 +505,7 @@ async def user_group_delete_ask(call: CallbackQuery):
         "VPN-доступ, тарифы и Группы серверов не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(
-                text="🗑 Удалить группу",
+                text="⚠️ Удалить группу",
                 callback_data=f"admin:usergroup:delete:{group_id}",
             )],
             [InlineKeyboardButton(
