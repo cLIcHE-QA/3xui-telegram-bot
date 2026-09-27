@@ -14,6 +14,7 @@
 - SQLite schema повышена до v3 migration `user_audience_groups_v4_22_0`; migration additive и не требует recovery copy. Удаление группы очищает только membership, удаление пользователя очищает его memberships.
 - Group и membership mutations записываются в существующий audit; удаление группы и удаление участника используют отдельные confirmation flows.
 - Добавлен regression coverage для migration/schema, many-to-many membership, поиска, удаления, matcher edge cases, RBAC и разделения Audience Groups / provisioning. Новых env-переменных и host-side компонентов нет.
+- `v4.22.0` разворачивается обычным Safe Bot Self-Update без обновления Host Control/Deploy Agent. После применения SQLite schema v3 downgrade на runtime, знающий только schema v2, несовместим без восстановления pre-v3 backup и должен остановиться fail-closed.
 
 ## v4.21.2 — Исправления Disaster Recovery и журнала бота
 - Исправлен runtime `NameError` в Disaster Recovery после MSK-перехода: `disaster_recovery.py` теперь явно импортирует `format_datetime` и `format_short_datetime`, поэтому список/карточки резервных копий снова открываются штатно и продолжают показывать operator-facing время в MSK.
