@@ -142,6 +142,7 @@ def master_detail_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="⬆️ Обновления 3x-ui", callback_data="admin:ver:panel:m"),
             InlineKeyboardButton(text="⚡ Ядро Xray", callback_data="admin:ver:xray:m:0"),
         ],
+        [InlineKeyboardButton(text="🔎 Проверить блокировку", callback_data="admin:cheburcheck:master")],
         [InlineKeyboardButton(text="🔄 Проверить", callback_data="admin:master")],
         [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
     ])
@@ -160,6 +161,7 @@ def node_detail_keyboard(node_id: int, enabled: bool | None = None) -> InlineKey
             InlineKeyboardButton(text="✏️ Переименовать", callback_data=f"admin:nodectl:{node_id}:rename"),
             InlineKeyboardButton(text="🧩 Управление 3x-ui", callback_data=f"admin:hostctl:n{node_id}"),
         ],
+        [InlineKeyboardButton(text="🔎 Проверить блокировку", callback_data=f"admin:cheburcheck:node:{node_id}")],
         [InlineKeyboardButton(text="🧭 Готовность", callback_data=f"admin:node:{node_id}:readiness")],
         [InlineKeyboardButton(text="⬆️ Обновить 3x-ui", callback_data=f"admin:ver:panel:n{node_id}")],
         [InlineKeyboardButton(text="⚡ Ядро Xray", callback_data=f"admin:ver:xray:n{node_id}:0")],
