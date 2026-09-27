@@ -48,7 +48,7 @@ PRIVILEGES: tuple[Privilege, ...] = (
     Privilege("users.support", "Пользователи: обычные операции жизненного цикла", "support"),
     Privilege("users.admin", "Пользователи: расширенные и разрушительные операции", "admin"),
     Privilege("user_groups.view", "Группы пользователей: просмотр", "read_only"),
-    Privilege("user_groups.manage", "Группы пользователей: membership", "support"),
+    Privilege("user_groups.manage", "Группы пользователей: состав участников", "support"),
     Privilege("user_groups.admin", "Группы пользователей: создание, изменение и удаление", "admin"),
     Privilege("backups.view", "Резервные копии: просмотр", "read_only"),
     Privilege("backups.manage", "Резервные копии: создание и запуск заданий", "admin"),
