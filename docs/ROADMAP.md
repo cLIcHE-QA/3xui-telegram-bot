@@ -269,7 +269,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — ✅ опубликовано в `v4.20.9`; desktop layout follow-up закрыт в `v4.20.10`.
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
-16. независимые User/Audience Groups для будущей сегментации Client Portal — ⬜ запланировано на `v4.22.0`.
+16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и опубликовано в `v4.22.0`; production acceptance ещё не выполнен.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
@@ -479,7 +479,7 @@ Production acceptance закрыт: оператор подтвердил шта
 
 ##### User / Audience Groups
 
-**Статус: 🟡 Реализовано в `main`; release `v4.22.0` ещё не опубликован.**
+**Статус: ✅ Выполнено и опубликовано в `v4.22.0`; production acceptance ещё не выполнен.**
 
 User Groups являются отдельной продуктовой сущностью и не заменяют существующие Server Groups.
 
