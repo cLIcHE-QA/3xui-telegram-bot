@@ -293,6 +293,7 @@ git diff --check
 | Off-site Backup | [docs/OFFSITE_BACKUP.md](docs/OFFSITE_BACKUP.md) |
 | VPS recovery | [docs/VPS_RECOVERY.md](docs/VPS_RECOVERY.md) |
 | SQLite migrations | [docs/SQLITE_MIGRATIONS.md](docs/SQLITE_MIGRATIONS.md) |
+| Cheburcheck integration | [docs/CHEBURCHECK.md](docs/CHEBURCHECK.md) |
 | 3x-ui OpenAPI contract | [docs/3XUI_OPENAPI_CONTRACT.md](docs/3XUI_OPENAPI_CONTRACT.md) |
 | Third-party notices | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 
