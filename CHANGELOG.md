@@ -8,6 +8,7 @@
 
 ## v4.23.0 — Проверка блокировок Cheburcheck
 - Добавлен read-only diagnostics flow `Мониторинг → Проверка блокировок` для доменов, публичных IPv4/IPv6, подсетей и ASN через optional Cheburcheck service.
+- Стартовый экран автоматически предлагает публичные цели из уже известных Master/direct Nodes/enabled Hosts; карточки Master и direct node получили shortcut `🔎 Проверить блокировку`. Из сохранённых URL передаётся только hostname/IP, без scheme/port/path/query/credentials, а дубликаты и local/private targets отбрасываются.
 - Интеграция использует фиксированный `/api/v1/check?target=...` contract и не проксирует произвольные HTTP URL; input нормализуется и ограничивается поддерживаемыми target types.
 - `CheburcheckClient` использует bounded concurrency, connect/read/total timeouts, запрет redirect-following и лимит response body 256 KiB; rate limit, validation/rejection, not-found, unavailable и invalid response отображаются отдельно.
 - Cheburcheck optional: пустой `CHEBURCHECK_URL` не влияет на startup, 3x-ui или provisioning; internal endpoint не показывается в Telegram UI.
