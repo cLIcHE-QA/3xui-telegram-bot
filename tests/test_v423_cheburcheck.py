@@ -16,7 +16,7 @@ import cheburcheck_admin
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class V423CheburcheckTests(unittest.TestCase):
+class V423CheburcheckTests(unittest.IsolatedAsyncioTestCase):
     def test_supported_targets_are_normalized(self):
         self.assertEqual(normalize_target("Example.ORG."), "example.org")
         self.assertEqual(normalize_target("1.1.1.1"), "1.1.1.1")
@@ -128,7 +128,14 @@ class V423CheburcheckTests(unittest.TestCase):
         with patch.object(cheburcheck_admin.client, "base_url", "http://cheburcheck:8000"), \
              patch.object(cheburcheck_admin.xui, "nodes_list", new=AsyncMock(return_value=[node])), \
              patch.object(cheburcheck_admin.db, "list_hosts", new=AsyncMock(return_value=hosts)), \
-             patch.object(cheburcheck_admin.settings, "panel_url", "https://master.example.org/base"):
+             patch.object(
+                 cheburcheck_admin,
+                 "settings",
+                 SimpleNamespace(
+                     master_name="Master",
+                     panel_url="https://master.example.org/base",
+                 ),
+             ):
             targets, warnings = await cheburcheck_admin.discover_targets()
         self.assertEqual(warnings, ())
         self.assertEqual(
