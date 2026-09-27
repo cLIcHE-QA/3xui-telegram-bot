@@ -269,7 +269,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 13. post-acceptance operator-facing UI cleanup без изменения behavior/storage semantics — ✅ опубликовано в `v4.20.9`; desktop layout follow-up закрыт в `v4.20.10`.
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
-16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и опубликовано в `v4.22.0`; production acceptance ещё не выполнен.
+16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
@@ -479,7 +479,7 @@ Production acceptance закрыт: оператор подтвердил шта
 
 ##### User / Audience Groups
 
-**Статус: ✅ Выполнено и опубликовано в `v4.22.0`; production acceptance ещё не выполнен.**
+**Статус: ✅ Выполнено и принято в production в `v4.22.0`.**
 
 User Groups являются отдельной продуктовой сущностью и не заменяют существующие Server Groups.
 
@@ -502,6 +502,10 @@ User Groups являются отдельной продуктовой сущн�
 - v4.22 не должен сам связывать audience groups с provisioning/Server Groups или менять VPN-доступ пользователя;
 - Client Portal v5 использует этот же matcher для content/feature visibility, вместо ad-hoc проверок конкретных group names;
 - regression tests покрывают migration, many-to-many membership, rename/delete, RBAC, audit и matcher edge cases.
+
+Production acceptance `v4.22.0` закрыт на развёрнутом release commit `37e16cf8e2f5a38f7796118c0ac93ba9c78a3c12`. Базовый status до и после targeted smoke подтвердил `Container: running`, `RestartCount=0`, `Bot version: 4.22.0`, `Health: ok`, `DB: ok`, ожидаемый Docker subnet `172.19.0.0/16` и `3x-ui connectivity: ok`. Migration journal подтвердил успешные v1/v2 и `v3 user_audience_groups_v4_22_0`.
+
+Targeted smoke подтвердил production flow: создание временной User Group, поиск существующего пользователя, добавление membership, отображение группы из карточки пользователя, удаление membership через confirmation flow, наличие audit-событий для create/add/remove и двухшаговое удаление пустой группы. Тестовые данные после проверки удалены. Разделение User Groups и VPN provisioning отдельно защищено code/regression contract; production smoke не выполнял искусственных VPN mutations ради проверки.
 
 ##### Cheburcheck integration
 
