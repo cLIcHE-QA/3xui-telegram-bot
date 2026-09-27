@@ -260,6 +260,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             InlineKeyboardButton(text="📝 Заметка", callback_data=f"admin:u:note:{tg_id}"),
         ],
         [InlineKeyboardButton(text="✏️ Имя", callback_data=f"admin:u:name:{tg_id}")],
+        [InlineKeyboardButton(text="👥 Группы пользователей", callback_data=f"admin:u:audgroups:{tg_id}")],
         [InlineKeyboardButton(text="🔄 Синхронизировать Inbounds", callback_data=f"adminsync:{tg_id}")],
         [
             InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}"),
@@ -1037,6 +1038,7 @@ async def admin_users(call: CallbackQuery):
             text=f"👤 {label} | TG {u.telegram_id}",
             callback_data=f"admin:u:{u.telegram_id}"
         )])
+    rows.append([InlineKeyboardButton(text="👥 Группы пользователей", callback_data="admin:usergroups")])
     rows.append([InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk")])
     rows.append([InlineKeyboardButton(text="🚀 Согласовать доступ", callback_data="admin:provision:all:ask")])
     rows.append([InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")])
