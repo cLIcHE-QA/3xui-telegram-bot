@@ -291,7 +291,13 @@ async def user_group_add_description(message: Message, state: FSMContext):
         description = _normalize_description(message.text or "")
         group_id = await db.create_user_group(name=name, description=description)
     except ValueError:
-        await render_input(message, "Описание должно быть до 500 символов.")
+        await render_input(
+            message,
+            "Описание должно быть до 500 символов.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:usergroupadd:cancel"),
+            ]]),
+        )
         return
     except sqlite3.IntegrityError:
         await render_input(
@@ -378,10 +384,22 @@ async def user_group_rename_save(message: Message, state: FSMContext):
             description=group.description,
         )
     except ValueError:
-        await render_input(message, "Название должно содержать 1–64 символа.")
+        await render_input(
+            message,
+            "Название должно содержать 1–64 символа.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:usergroup:{group_id}"),
+            ]]),
+        )
         return
     except sqlite3.IntegrityError:
-        await render_input(message, "Группа с таким названием уже существует.")
+        await render_input(
+            message,
+            "Группа с таким названием уже существует.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:usergroup:{group_id}"),
+            ]]),
+        )
         return
     await audit_from_message(
         db,
@@ -438,7 +456,13 @@ async def user_group_description_save(message: Message, state: FSMContext):
     try:
         description = _normalize_description(message.text or "")
     except ValueError:
-        await render_input(message, "Описание должно быть до 500 символов.")
+        await render_input(
+            message,
+            "Описание должно быть до 500 символов.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:usergroup:{group_id}"),
+            ]]),
+        )
         return
     await db.update_user_group(
         group_id,
