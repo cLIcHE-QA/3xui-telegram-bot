@@ -888,23 +888,20 @@ async def user_audience_groups(call: CallbackQuery):
         await call.answer()
 
 
-@user_groups_router.callback_query(F.data.regexp(r"^admin:u:audgroupedit:\d+:\d+$"))
-async def user_audience_groups_edit(call: CallbackQuery):
-    role = await _guard_call(call)
-    if role is None:
-        return
-    parts = call.data.split(":")
-    telegram_id = int(parts[-2])
-    page = max(0, int(parts[-1]))
+async def _render_user_groups_edit(
+    call: CallbackQuery,
+    telegram_id: int,
+    page: int,
+) -> bool:
     user = await db.get(telegram_id)
     if not user:
         await call.answer("Пользователь не найден.", show_alert=True)
-        return
+        return False
     groups = await db.list_user_groups()
     member_ids = await db.list_user_group_ids_for_user(telegram_id)
     total = len(groups)
     max_page = max(0, (total - 1) // GROUP_PAGE_SIZE)
-    page = min(page, max_page)
+    page = min(max(0, page), max_page)
     chunk = groups[page * GROUP_PAGE_SIZE:(page + 1) * GROUP_PAGE_SIZE]
     rows: list[list[InlineKeyboardButton]] = []
     for group in chunk:
@@ -938,7 +935,19 @@ async def user_audience_groups_edit(call: CallbackQuery):
         "Нажатие переключает membership. VPN-доступ не изменяется.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
-    await call.answer()
+    return True
+
+
+@user_groups_router.callback_query(F.data.regexp(r"^admin:u:audgroupedit:\d+:\d+$"))
+async def user_audience_groups_edit(call: CallbackQuery):
+    role = await _guard_call(call)
+    if role is None:
+        return
+    parts = call.data.split(":")
+    telegram_id = int(parts[-2])
+    page = max(0, int(parts[-1]))
+    if await _render_user_groups_edit(call, telegram_id, page):
+        await call.answer()
 
 
 @user_groups_router.callback_query(
@@ -972,6 +981,5 @@ async def user_audience_groups_toggle(call: CallbackQuery):
         target_id=telegram_id,
         details=f"group_id={group_id}; changed={int(changed)}; source=user_card",
     )
-    await call.answer("Добавлено в группу." if enabled else "Убрано из группы.")
-    call.data = f"admin:u:audgroupedit:{telegram_id}:{page}"
-    await user_audience_groups_edit(call)
+    if await _render_user_groups_edit(call, telegram_id, page):
+        await call.answer("Добавлено в группу." if enabled else "Убрано из группы.")
