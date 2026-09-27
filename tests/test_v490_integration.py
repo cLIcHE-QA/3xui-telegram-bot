@@ -88,7 +88,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
         root = Path(__file__).resolve().parents[1]
         files = [
-            'bot.py', 'admin_shell.py', 'client_access.py', 'node_admin.py', 'system_admin.py', 'storage_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'inbound_admin.py',
+            'bot.py', 'admin_shell.py', 'client_access.py', 'node_admin.py', 'system_admin.py', 'storage_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'user_groups_admin.py', 'inbound_admin.py',
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
             'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
             'fleet_operations.py',

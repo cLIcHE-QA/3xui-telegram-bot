@@ -301,6 +301,12 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
         "code", "target", "active", "last_value", "first_seen", "last_seen",
         "last_notified",
     ),
+    "user_groups": (
+        "id", "name", "description", "created_at", "updated_at",
+    ),
+    "user_group_members": (
+        "group_id", "telegram_id", "created_at",
+    ),
 }
 
 _EXPECTED_INDEXES = {
@@ -309,11 +315,19 @@ _EXPECTED_INDEXES = {
     "idx_payments_user_created",
     "idx_payments_status_created",
     "idx_promo_active_code",
+    "idx_user_group_members_user",
 }
 
 
-async def _validate_current_schema(db: aiosqlite.Connection) -> None:
+async def _validate_current_schema(
+    db: aiosqlite.Connection,
+    *,
+    include_user_groups: bool = True,
+) -> None:
+    skipped_tables = set() if include_user_groups else {"user_groups", "user_group_members"}
     for table, expected in _EXPECTED_COLUMNS.items():
+        if table in skipped_tables:
+            continue
         cursor = await db.execute(f'PRAGMA table_info("{table}")')
         rows = await cursor.fetchall()
         actual = tuple(str(row[1]) for row in rows)
@@ -326,7 +340,12 @@ async def _validate_current_schema(db: aiosqlite.Connection) -> None:
         "SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'"
     )
     actual_indexes = {str(row[0]) for row in await cursor.fetchall()}
-    missing_indexes = sorted(_EXPECTED_INDEXES - actual_indexes)
+    expected_indexes = (
+        _EXPECTED_INDEXES
+        if include_user_groups
+        else _EXPECTED_INDEXES - {"idx_user_group_members_user"}
+    )
+    missing_indexes = sorted(expected_indexes - actual_indexes)
     if missing_indexes:
         raise DatabaseMigrationError(
             f"Schema is missing required indexes: {', '.join(missing_indexes)}"
@@ -335,6 +354,8 @@ async def _validate_current_schema(db: aiosqlite.Connection) -> None:
 
 async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
     for table, expected_current in _EXPECTED_COLUMNS.items():
+        if table in {"user_groups", "user_group_members"}:
+            continue
         expected = (
             ("telegram_id", "plan_id", "server_group_id", "note", "updated_at")
             if table == "user_profiles"
@@ -352,7 +373,9 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
         "SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'"
     )
     actual_indexes = {str(row[0]) for row in await cursor.fetchall()}
-    missing_indexes = sorted(_EXPECTED_INDEXES - actual_indexes)
+    missing_indexes = sorted(
+        (_EXPECTED_INDEXES - {"idx_user_group_members_user"}) - actual_indexes
+    )
     if missing_indexes:
         raise DatabaseMigrationError(
             f"Schema is missing required indexes: {', '.join(missing_indexes)}"
@@ -387,6 +410,37 @@ async def _migration_0002_user_display_name(db: aiosqlite.Connection) -> None:
         await db.execute(
             "ALTER TABLE user_profiles ADD COLUMN display_name TEXT NOT NULL DEFAULT ''"
         )
+    await _validate_current_schema(db, include_user_groups=False)
+
+
+async def _migration_0003_user_audience_groups(db: aiosqlite.Connection) -> None:
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT COLLATE NOCASE NOT NULL UNIQUE,
+            description TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_group_members (
+            group_id INTEGER NOT NULL,
+            telegram_id INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY(group_id, telegram_id)
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_user_group_members_user
+        ON user_group_members(telegram_id, group_id)
+        """
+    )
     await _validate_current_schema(db)
 
 
@@ -401,6 +455,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=2,
         name="user_display_name_v4_21_0",
         apply=_migration_0002_user_display_name,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=3,
+        name="user_audience_groups_v4_22_0",
+        apply=_migration_0003_user_audience_groups,
         requires_backup=False,
     ),
 )

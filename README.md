@@ -117,6 +117,7 @@ admin_shell.py
 
 domain routers
 ├─ advanced_users.py
+├─ user_groups_admin.py
 ├─ advanced_nodes.py
 ├─ inbound_admin.py
 ├─ catalog_admin.py
@@ -146,6 +147,17 @@ Native 3x-ui API используется через `xui.py` / `version_api.py`
 CI проверяет route/method, Bearer auth, request/response contract и source parity fail-closed.
 
 Подробнее: **[3x-ui OpenAPI compatibility contract](docs/3XUI_OPENAPI_CONTRACT.md)**.
+
+### User / Audience Groups
+
+V4.22 добавляет отдельные `Группы пользователей` для сегментации будущего Client Portal:
+
+- membership many-to-many хранится по стабильному `telegram_id`;
+- группы и membership управляются из `/admin → Пользователи`;
+- backend matcher поддерживает include/exclude, при этом exclude имеет приоритет;
+- User Groups не связаны с Server Groups и не меняют Nodes, Inbounds, тариф или VPN-доступ.
+
+`user_groups_admin.py` владеет административным UI, а `audience.py` — reusable matcher без Telegram-specific logic.
 
 ### SQLite
 
@@ -234,6 +246,7 @@ Client-access compatibility flow:
 Admin Control Plane:
 
 - `/admin` открывает корневую панель: Обзор / Пользователи / Подписки / Платежи / Тарифы / Промокоды / Инфраструктура / Мониторинг / Система;
+- Пользователи: карточки пользователей / Группы пользователей / массовые действия / согласование доступа; Группы пользователей являются audience-сущностью и не заменяют Группы серверов;
 - Инфраструктура: Ноды / Inbounds / Хосты / Операции с нодами / Группы серверов; Host Control открывается из карточки конкретного Master/direct node;
 - Мониторинг: Трафик / В сети / Состояние системы / Журналы / Оповещения;
 - Система: Обновления бота / Версии и обновления / Задания / Резервные копии / Журнал аудита / Администраторы / Настройки.

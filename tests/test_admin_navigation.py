@@ -98,6 +98,7 @@ class AdminNavigationTests(unittest.TestCase):
         files = (
             "admin_shell.py",
             "advanced_users.py",
+            "user_groups_admin.py",
             "catalog_admin.py",
             "business_admin.py",
             "node_admin.py",

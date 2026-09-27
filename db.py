@@ -39,6 +39,15 @@ class ServerGroupRecord:
 
 
 @dataclass
+class UserGroupRecord:
+    id: int
+    name: str
+    description: str
+    created_at: int
+    updated_at: int
+
+
+@dataclass
 class HostRecord:
     id: int
     label: str
@@ -208,6 +217,34 @@ class Database:
             rows = await cur.fetchall()
             return [UserRecord(**dict(r)) for r in rows]
 
+    async def search_users(self, query: str, *, limit: int = 20) -> list[UserRecord]:
+        text = str(query or "").strip()
+        if not text:
+            return []
+        limit = max(1, min(50, int(limit)))
+        escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT u.*
+                FROM users AS u
+                LEFT JOIN user_profiles AS p ON p.telegram_id = u.telegram_id
+                WHERE CAST(u.telegram_id AS TEXT) = ?
+                   OR u.email LIKE ? ESCAPE '\\' COLLATE NOCASE
+                   OR COALESCE(p.display_name, '') LIKE ? ESCAPE '\\' COLLATE NOCASE
+                ORDER BY
+                    CASE WHEN CAST(u.telegram_id AS TEXT) = ? THEN 0 ELSE 1 END,
+                    COALESCE(NULLIF(p.display_name, ''), u.email) COLLATE NOCASE,
+                    u.telegram_id
+                LIMIT ?
+                """,
+                (text, pattern, pattern, text, limit),
+            )
+            rows = await cur.fetchall()
+            return [UserRecord(**dict(r)) for r in rows]
+
     async def put(self, rec: UserRecord):
         async with aiosqlite.connect(self.path) as db:
             await db.execute("""
@@ -332,6 +369,10 @@ class Database:
 
     async def delete(self, telegram_id: int):
         async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "DELETE FROM user_group_members WHERE telegram_id = ?",
+                (int(telegram_id),),
+            )
             await db.execute("DELETE FROM user_profiles WHERE telegram_id = ?", (telegram_id,))
             await db.execute("DELETE FROM users WHERE telegram_id = ?", (telegram_id,))
             await db.commit()
@@ -540,6 +581,178 @@ class Database:
                     [(int(group_id), inbound_id) for inbound_id in ids],
                 )
             await db.commit()
+
+    # --- User / audience groups ----------------------------------------
+
+    async def list_user_groups(self) -> list[UserGroupRecord]:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM user_groups ORDER BY name COLLATE NOCASE, id"
+            )
+            rows = await cur.fetchall()
+            return [UserGroupRecord(**dict(r)) for r in rows]
+
+    async def get_user_group(self, group_id: int) -> UserGroupRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM user_groups WHERE id = ?",
+                (int(group_id),),
+            )
+            row = await cur.fetchone()
+            return UserGroupRecord(**dict(row)) if row else None
+
+    async def create_user_group(self, *, name: str, description: str = "") -> int:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                INSERT INTO user_groups(name, description, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (name.strip(), description.strip(), now, now),
+            )
+            await db.commit()
+            return int(cur.lastrowid)
+
+    async def update_user_group(
+        self,
+        group_id: int,
+        *,
+        name: str,
+        description: str,
+    ) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                UPDATE user_groups
+                SET name = ?, description = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (name.strip(), description.strip(), int(time.time()), int(group_id)),
+            )
+            await db.commit()
+
+    async def delete_user_group(self, group_id: int) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "DELETE FROM user_group_members WHERE group_id = ?",
+                (int(group_id),),
+            )
+            await db.execute(
+                "DELETE FROM user_groups WHERE id = ?",
+                (int(group_id),),
+            )
+            await db.commit()
+
+    async def count_user_group_members(self, group_id: int) -> int:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                "SELECT COUNT(*) FROM user_group_members WHERE group_id = ?",
+                (int(group_id),),
+            )
+            row = await cur.fetchone()
+            return int(row[0] if row else 0)
+
+    async def list_user_group_member_ids(self, group_id: int) -> set[int]:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                "SELECT telegram_id FROM user_group_members WHERE group_id = ?",
+                (int(group_id),),
+            )
+            rows = await cur.fetchall()
+            return {int(row[0]) for row in rows}
+
+    async def list_user_group_members(
+        self,
+        group_id: int,
+        *,
+        limit: int = 30,
+        offset: int = 0,
+    ) -> list[UserRecord]:
+        limit = max(1, min(100, int(limit)))
+        offset = max(0, int(offset))
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT u.*
+                FROM user_group_members AS m
+                JOIN users AS u ON u.telegram_id = m.telegram_id
+                LEFT JOIN user_profiles AS p ON p.telegram_id = u.telegram_id
+                WHERE m.group_id = ?
+                ORDER BY COALESCE(NULLIF(p.display_name, ''), u.email) COLLATE NOCASE,
+                         u.telegram_id
+                LIMIT ? OFFSET ?
+                """,
+                (int(group_id), limit, offset),
+            )
+            rows = await cur.fetchall()
+            return [UserRecord(**dict(r)) for r in rows]
+
+    async def list_user_groups_for_user(self, telegram_id: int) -> list[UserGroupRecord]:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT g.*
+                FROM user_group_members AS m
+                JOIN user_groups AS g ON g.id = m.group_id
+                WHERE m.telegram_id = ?
+                ORDER BY g.name COLLATE NOCASE, g.id
+                """,
+                (int(telegram_id),),
+            )
+            rows = await cur.fetchall()
+            return [UserGroupRecord(**dict(r)) for r in rows]
+
+    async def list_user_group_ids_for_user(self, telegram_id: int) -> set[int]:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                "SELECT group_id FROM user_group_members WHERE telegram_id = ?",
+                (int(telegram_id),),
+            )
+            rows = await cur.fetchall()
+            return {int(row[0]) for row in rows}
+
+    async def set_user_group_member(
+        self,
+        group_id: int,
+        telegram_id: int,
+        enabled: bool,
+    ) -> bool:
+        group_id = int(group_id)
+        telegram_id = int(telegram_id)
+        async with aiosqlite.connect(self.path) as db:
+            group = await (
+                await db.execute("SELECT 1 FROM user_groups WHERE id = ?", (group_id,))
+            ).fetchone()
+            user = await (
+                await db.execute("SELECT 1 FROM users WHERE telegram_id = ?", (telegram_id,))
+            ).fetchone()
+            if not group:
+                raise ValueError("user group not found")
+            if not user:
+                raise ValueError("user not found")
+            if enabled:
+                cur = await db.execute(
+                    """
+                    INSERT OR IGNORE INTO user_group_members(group_id, telegram_id, created_at)
+                    VALUES (?, ?, ?)
+                    """,
+                    (group_id, telegram_id, int(time.time())),
+                )
+            else:
+                cur = await db.execute(
+                    """
+                    DELETE FROM user_group_members
+                    WHERE group_id = ? AND telegram_id = ?
+                    """,
+                    (group_id, telegram_id),
+                )
+            await db.commit()
+            return bool(cur.rowcount)
 
     # --- Hosts ---------------------------------------------------------
 
