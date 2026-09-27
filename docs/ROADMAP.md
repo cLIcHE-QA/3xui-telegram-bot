@@ -323,7 +323,7 @@ Regression requirements:
 - navigation regression проверяет, что `admin_menu()` используется только корневым экраном, а `Обзор` имеет локальную навигацию и явный возврат к `Панели администратора`;
 - `docs/UI_STYLE.md` остаётся нормативным источником этих правил для следующих UI PR.
 
-Production acceptance `v4.20.5` закрыт: release развернут в production, и оператор подтвердил успешный targeted smoke по всем трём пунктам — Fleet Health display, симметричный status template списка `Ноды` и локальная навигация `Обзора`. Следующим patch-релизом идёт `v4.20.6` с UI-04, затем последовательность feature-релизов `v4.21.0`–`v4.24.0`; off-site drill и freeze выполняются уже после них.
+Production acceptance `v4.20.5` закрыт: release развернут в production, и оператор подтвердил успешный targeted smoke по всем трём пунктам — Fleet Health display, симметричный status template списка `Ноды` и локальная навигация `Обзора`. Следующим patch-релизом идёт `v4.20.6` с UI-04, затем последовательность feature-релизов `v4.21.0`–`v4.25.0`; off-site drill и freeze выполняются уже после них.
 
 ##### UI-04 — симметрия Master/direct-node health summary
 
@@ -582,21 +582,21 @@ Persistence/reliability:
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
 
-**Статус: ⬜ Запланировано на \`v4.25.0\`.**
+**Статус: ⬜ Запланировано на `v4.25.0`.**
 
 Цель — завершить v4.x User Management как цельный операторский workflow: карточка пользователя становится единой точкой входа для профиля, тарифа, срока, трафика, provisioning-доступа, подключений, подписки, платежей и персональной audit timeline. Релиз сохраняет существующие backend primitives и security boundaries, убирает конкурирующие legacy-пути синхронизации Inbounds и добавляет недостающие admin-facing функции без открытия Client Portal.
 
 Release boundary:
 
-- scope относится только к \`/admin → Пользователи\`; публичный \`/start\` и Client Portal остаются задачей v5.x;
-- machine identity не меняется: \`telegram_id\`, 3x-ui \`email\` и \`sub_id\` сохраняют текущую семантику; \`display_name\` остаётся только presentation metadata;
+- scope относится только к `/admin → Пользователи`; публичный `/start` и Client Portal остаются задачей v5.x;
+- machine identity не меняется: `telegram_id`, 3x-ui `email` и `sub_id` сохраняют текущую семантику; `display_name` остаётся только presentation metadata;
 - текущие полезные возможности User Management не удаляются: срок, лимит трафика, reset traffic, IP limit, тариф, Server Group, ручные Inbounds, safe/strict reconcile, enable/disable, delete, subscription rotation, display name, note, statistics и bulk actions сохраняются;
 - отдельный legacy-механизм «подключить все глобально разрешённые Inbounds» больше не считается канонической синхронизацией пользователя и не должен оставаться видимым action в новой карточке;
-- автоматическое управление доступом выполняется только через policy-based \`ProvisioningEngine\` / согласование; ручное исключение выполняется только через экран конкретных Inbounds;
+- автоматическое управление доступом выполняется только через policy-based `ProvisioningEngine` / согласование; ручное исключение выполняется только через экран конкретных Inbounds;
 - абсолютные timestamps используют действующий MSK display contract; machine timestamps остаются epoch/UTC;
 - Telegram Admin Control Plane остаётся односообщенческой панелью там, где экран является обычным text/keyboard view; FSM и confirmation flows обязаны иметь явный Cancel/Back;
 - все новые callback routes включаются в централизованный privilege catalog; неизвестный callback по-прежнему fail-closed;
-- реализация UI-контракта этого релиза должна синхронно обновить \`docs/UI_STYLE.md\`, regression tests и \`CHANGELOG.md\`; этот roadmap фиксирует planned scope, но не помечает его реализованным до merge/release/acceptance.
+- реализация UI-контракта этого релиза должна синхронно обновить `docs/UI_STYLE.md`, regression tests и `CHANGELOG.md`; этот roadmap фиксирует planned scope, но не помечает его реализованным до merge/release/acceptance.
 
 ###### Каноническая информационная архитектура
 
@@ -670,18 +670,18 @@ Release boundary:
 
 Новые экраны не вводят пятую роль и используют существующий каталог privileges.
 
-- \`users.view\` / минимум \`Read-only\`: список, поиск, карточка, тариф/срок/трафик как read-only state, доступ/reconcile preview, Inbounds view, подключения, устройства/IP как read-only data, подписка без rotation;
-- \`users.support\` / минимум \`Support\`: создание пользователя, display name/note, назначение Plan/Server Group, применение параметров тарифа, safe reconcile, manual attach/detach Inbound, изменение expiry/traffic/IP limit, reset traffic, enable/disable, VLESS Flow sync, bulk lifecycle operations и удаление одного HWID device после confirmation;
-- \`users.admin\` / минимум \`Administrator\`: strict reconcile, rotation subscription identity, удаление пользователя и другие уже существующие расширенные/destructive user operations;
-- \`payments.view\`: вложенный экран платежей пользователя и карточка платежа; write-actions платежей остаются только в каноническом разделе \`Платежи\` и под \`payments.manage\`;
-- \`monitoring.view\`: персональная audit timeline пользователя; она является filtered view общего audit log, а не отдельным журналом;
-- \`Owner\` не получает отдельный новый User Management capability только из-за этого релиза; owner-only boundary возникает только там, где он уже задан отдельным privilege contract.
+- `users.view` / минимум `Read-only`: список, поиск, карточка, тариф/срок/трафик как read-only state, доступ/reconcile preview, Inbounds view, подключения, устройства/IP как read-only data, подписка без rotation;
+- `users.support` / минимум `Support`: создание пользователя, display name/note, назначение Plan/Server Group, применение параметров тарифа, safe reconcile, manual attach/detach Inbound, изменение expiry/traffic/IP limit, reset traffic, enable/disable, VLESS Flow sync, bulk lifecycle operations и удаление одного HWID device после confirmation;
+- `users.admin` / минимум `Administrator`: strict reconcile, rotation subscription identity, удаление пользователя и другие уже существующие расширенные/destructive user operations;
+- `payments.view`: вложенный экран платежей пользователя и карточка платежа; write-actions платежей остаются только в каноническом разделе `Платежи` и под `payments.manage`;
+- `monitoring.view`: персональная audit timeline пользователя; она является filtered view общего audit log, а не отдельным журналом;
+- `Owner` не получает отдельный новый User Management capability только из-за этого релиза; owner-only boundary возникает только там, где он уже задан отдельным privilege contract.
 
 Keyboard должен быть privilege-aware: mutation-кнопка, на которую текущая роль не имеет права, не показывается как ложнодоступная. Authorization handler остаётся обязательным независимо от видимости кнопки.
 
-###### Экран \`Пользователи\`
+###### Экран `Пользователи`
 
-Канонический вход: \`/admin → Пользователи\`, callback \`admin:users\`.
+Канонический вход: `/admin → Пользователи`, callback `admin:users`.
 
 Текст:
 
@@ -693,7 +693,7 @@ Keyboard должен быть privilege-aware: mutation-кнопка, на ко
 ⛔ Отключено: {disabled_count}
 ~~~
 
-Если aggregate enabled/disabled state временно нельзя получить одним bounded read без N+1 запросов, список пользователей не блокируется: строка счётчиков опускается или явно показывает \`⚠️ недоступно\`, а \`Пользователей: {total}\` берётся из локальной БД.
+Если aggregate enabled/disabled state временно нельзя получить одним bounded read без N+1 запросов, список пользователей не блокируется: строка счётчиков опускается или явно показывает `⚠️ недоступно`, а `Пользователей: {total}` берётся из локальной БД.
 
 Каждый пользователь отображается отдельной кнопкой:
 
@@ -701,7 +701,7 @@ Keyboard должен быть privilege-aware: mutation-кнопка, на ко
 👤 {display_name_or_email} · TG {telegram_id}
 ~~~
 
-Если задан \`display_name\`, технический email остаётся доступен в карточке пользователя; callback identity всегда использует \`telegram_id\`.
+Если задан `display_name`, технический email остаётся доступен в карточке пользователя; callback identity всегда использует `telegram_id`.
 
 Клавиатура после списка:
 
@@ -720,11 +720,11 @@ Keyboard должен быть privilege-aware: mutation-кнопка, на ко
 
 Page callback не меняет identity пользователя. Центральная кнопка номера страницы не выполняет mutation.
 
-\`📊 Статистика\` сохраняет существующий \`admin:stats\`. \`🚀 Согласовать всех\` сохраняет существующий safe policy-based flow \`admin:provision:all:ask → admin:provision:all:run\`.
+`📊 Статистика` сохраняет существующий `admin:stats`. `🚀 Согласовать всех` сохраняет существующий safe policy-based flow `admin:provision:all:ask → admin:provision:all:run`.
 
 ###### Поиск пользователя
 
-\`🔎 Поиск\` открывает FSM prompt:
+`🔎 Поиск` открывает FSM prompt:
 
 ~~~text
 🔎 Поиск пользователя
@@ -736,18 +736,18 @@ Page callback не меняет identity пользователя. Центра�
 
 Поиск:
 
-- exact match по \`telegram_id\`;
+- exact match по `telegram_id`;
 - case-insensitive match по техническому email;
-- case-insensitive substring по \`display_name\`;
-- не использует \`display_name\` как identity;
+- case-insensitive substring по `display_name`;
+- не использует `display_name` как identity;
 - при одном exact result может сразу открыть карточку;
 - при нескольких result показывает тот же формат строк, что основной список;
-- \`✖ Отмена\` и Back возвращают в \`Пользователи\`;
+- `✖ Отмена` и Back возвращают в `Пользователи`;
 - validation error не очищает путь возврата и не создаёт новое сообщение без необходимости.
 
 ###### Создание пользователя
 
-\`➕ Создать\` — новый admin flow под \`users.support\`. Он должен переиспользовать существующие user/provisioning primitives и не иметь отдельной ad-hoc логики выдачи всех Inbounds.
+`➕ Создать` — новый admin flow под `users.support`. Он должен переиспользовать существующие user/provisioning primitives и не иметь отдельной ad-hoc логики выдачи всех Inbounds.
 
 Порядок:
 
@@ -763,9 +763,9 @@ Page callback не меняет identity пользователя. Центра�
    [✖ Отмена]
    ~~~
 
-   ID обязателен, положительный и уникальный в локальной БД. Если локальный пользователь уже существует, mutation не выполняется и предлагается \`👤 Открыть пользователя\`.
+   ID обязателен, положительный и уникальный в локальной БД. Если локальный пользователь уже существует, mutation не выполняется и предлагается `👤 Открыть пользователя`.
 
-   Если локальной записи нет, но 3x-ui уже возвращает клиента по этому \`tgId\`, новый remote client не создаётся. Экран предлагает безопасное восстановление локальной записи из существующей 3x-ui identity:
+   Если локальной записи нет, но 3x-ui уже возвращает клиента по этому `tgId`, новый remote client не создаётся. Экран предлагает безопасное восстановление локальной записи из существующей 3x-ui identity:
 
    ~~~text
    ⚠️ Клиент уже существует в 3x-ui.
@@ -779,7 +779,7 @@ Page callback не меняет identity пользователя. Центра�
 
 2. **Технический email**
 
-   По умолчанию предлагается \`tg_{telegram_id}\`.
+   По умолчанию предлагается `tg_{telegram_id}`.
 
    ~~~text
    Технический email 3x-ui
@@ -806,13 +806,13 @@ Page callback не меняет identity пользователя. Центра�
    [✖ Отмена]
    ~~~
 
-   Используется существующий \`display_name\` contract: до 64 символов, без управляющих символов, пустое значение означает fallback на email.
+   Используется существующий `display_name` contract: до 64 символов, без управляющих символов, пустое значение означает fallback на email.
 
 4. **Тариф**
 
    Показывается список активных Plans. Default plan, если он настроен, отмечается как рекомендуемый текущей конфигурацией. Назначение тарифа определяет policy через существующие Plan / Server Group primitives.
 
-   Если тариф не выбран, compatibility/trial path допускается только там, где он уже поддерживается текущим \`ProvisioningEngine\`; UI обязан явно назвать его \`режим совместимости\`, а не скрывать отсутствие Plan.
+   Если тариф не выбран, compatibility/trial path допускается только там, где он уже поддерживается текущим `ProvisioningEngine`; UI обязан явно назвать его `режим совместимости`, а не скрывать отсутствие Plan.
 
 5. **Предпросмотр**
 
@@ -834,15 +834,15 @@ Page callback не меняет identity пользователя. Центра�
    [✖ Отмена]
    ~~~
 
-   Create выполняет remote client creation и локальную запись только через проверяемый workflow. При неопределённом исходе remote mutation нельзя автоматически повторять создание; сначала выполняется read-only verification по \`tgId\`/email и только доказанный state определяет дальнейший шаг.
+   Create выполняет remote client creation и локальную запись только через проверяемый workflow. При неопределённом исходе remote mutation нельзя автоматически повторять создание; сначала выполняется read-only verification по `tgId`/email и только доказанный state определяет дальнейший шаг.
 
-Ранее обсуждавшаяся кнопка \`💾 Только создать\` **не входит в финальный v4.25 contract**: она создаёт неоднозначное partial state между локальной записью, remote client и provisioning. Для пользователя без активного доступа используются существующие Enable/Disable и policy primitives, а не отдельный «полусозданный» режим.
+Ранее обсуждавшаяся кнопка `💾 Только создать` **не входит в финальный v4.25 contract**: она создаёт неоднозначное partial state между локальной записью, remote client и provisioning. Для пользователя без активного доступа используются существующие Enable/Disable и policy primitives, а не отдельный «полусозданный» режим.
 
-После success открывается новая карточка пользователя. Audit не содержит \`sub_id\`, subscription URL или другие secrets.
+После success открывается новая карточка пользователя. Audit не содержит `sub_id`, subscription URL или другие secrets.
 
 ###### Главная карточка пользователя
 
-Канонический callback сохраняется: \`admin:u:{telegram_id}\`.
+Канонический callback сохраняется: `admin:u:{telegram_id}`.
 
 Текст:
 
@@ -863,7 +863,7 @@ Telegram ID: {telegram_id}
 не хватает {missing} · лишних {extra}
 ~~~
 
-Если policy/read 3x-ui временно недоступен, локальные данные карточки продолжают отображаться, а соответствующая строка становится \`🚀 Доступ: ⚠️ не удалось получить состояние\`. Ошибка чтения не маскируется зелёным status.
+Если policy/read 3x-ui временно недоступен, локальные данные карточки продолжают отображаться, а соответствующая строка становится `🚀 Доступ: ⚠️ не удалось получить состояние`. Ошибка чтения не маскируется зелёным status.
 
 Клавиатура:
 
@@ -877,11 +877,11 @@ Telegram ID: {telegram_id}
 [⬅ Пользователи]
 ~~~
 
-\`⏳ Продлить\` является shortcut существующего \`+30 дней\`; canonical detail screen срока остаётся \`📅 Срок\`.
+`⏳ Продлить` является shortcut существующего `+30 дней`; canonical detail screen срока остаётся `📅 Срок`.
 
-###### \`💎 Тариф\`
+###### `💎 Тариф`
 
-Parent: карточка пользователя. Канонический callback сохраняется: \`admin:u:plan:{telegram_id}\`.
+Parent: карточка пользователя. Канонический callback сохраняется: `admin:u:plan:{telegram_id}`.
 
 Текст:
 
@@ -914,16 +914,16 @@ Parent: карточка пользователя. Канонический call
 
 Semantics сохраняют текущее разделение:
 
-- \`Сменить тариф\` назначает Plan в профиле и не выдаёт скрыто новый remote access;
-- \`Применить параметры тарифа\` использует существующий confirmation flow и применяет текущие plan-limit semantics;
-- \`Тариф + согласование\` применяет параметры тарифа, связанную Server Group и выполняет **безопасное** согласование; лишние управляемые Inbounds не удаляются;
+- `Сменить тариф` назначает Plan в профиле и не выдаёт скрыто новый remote access;
+- `Применить параметры тарифа` использует существующий confirmation flow и применяет текущие plan-limit semantics;
+- `Тариф + согласование` применяет параметры тарифа, связанную Server Group и выполняет **безопасное** согласование; лишние управляемые Inbounds не удаляются;
 - отсутствие тарифа отображается явно; действия, которым нужен Plan, не делают implicit guess.
 
-Существующие callbacks \`admin:u:planset:*\`, \`admin:u:planapplyask:*\`, \`admin:u:planapplyrun:*\`, \`admin:u:planprovask:*\`, \`admin:u:planprovrun:*\` сохраняются, если implementation не требует migration identifier-а.
+Существующие callbacks `admin:u:planset:*`, `admin:u:planapplyask:*`, `admin:u:planapplyrun:*`, `admin:u:planprovask:*`, `admin:u:planprovrun:*` сохраняются, если implementation не требует migration identifier-а.
 
-###### \`📅 Срок\`
+###### `📅 Срок`
 
-Parent: карточка пользователя. \`admin:u:expiry:{telegram_id}\` становится detail screen, а не непосредственным FSM prompt.
+Parent: карточка пользователя. `admin:u:expiry:{telegram_id}` становится detail screen, а не непосредственным FSM prompt.
 
 Текст:
 
@@ -945,15 +945,15 @@ Parent: карточка пользователя. \`admin:u:expiry:{telegram_id
 [⬅ Пользователь]
 ~~~
 
-- \`➕ +30 дней\` сохраняет существующую семантику \`adminextend:{telegram_id}\`: база — \`max(current_expiry, now)\`;
-- \`📅 Установить дату\` открывает отдельный FSM callback, например \`admin:u:expiryedit:{telegram_id}\`;
-- date-only \`YYYY-MM-DD\` означает \`23:59:59 MSK\` по действующему UI contract;
-- validation error оставляет \`✖ Отмена\`;
-- success возвращает в экран \`📅 Срок\`, а не в случайный parent.
+- `➕ +30 дней` сохраняет существующую семантику `adminextend:{telegram_id}`: база — `max(current_expiry, now)`;
+- `📅 Установить дату` открывает отдельный FSM callback, например `admin:u:expiryedit:{telegram_id}`;
+- date-only `YYYY-MM-DD` означает `23:59:59 MSK` по действующему UI contract;
+- validation error оставляет `✖ Отмена`;
+- success возвращает в экран `📅 Срок`, а не в случайный parent.
 
-###### \`📊 Трафик\`
+###### `📊 Трафик`
 
-Parent: карточка пользователя. \`admin:u:traffic:{telegram_id}\` становится detail screen.
+Parent: карточка пользователя. `admin:u:traffic:{telegram_id}` становится detail screen.
 
 Текст:
 
@@ -981,14 +981,14 @@ Parent: карточка пользователя. \`admin:u:traffic:{telegram_i
 [⬅ Пользователь]
 ~~~
 
-- \`Изменить лимит\` открывает FSM \`admin:u:trafficedit:{telegram_id}\`; \`0\`/каноническое значение unlimited отображается как \`без лимита\`;
-- \`Сбросить трафик\` сохраняет текущий ask/run contract \`admin:u:resetask:* → admin:u:resetrun:*\`;
+- `Изменить лимит` открывает FSM `admin:u:trafficedit:{telegram_id}`; `0`/каноническое значение unlimited отображается как `без лимита`;
+- `Сбросить трафик` сохраняет текущий ask/run contract `admin:u:resetask:* → admin:u:resetrun:*`;
 - reset screen явно называет пользователя и требует confirmation;
-- success возвращает в \`📊 Трафик\`.
+- success возвращает в `📊 Трафик`.
 
-###### \`🌐 Доступ\`
+###### `🌐 Доступ`
 
-Новый parent callback: \`admin:u:access:{telegram_id}\`.
+Новый parent callback: `admin:u:access:{telegram_id}`.
 
 Текст:
 
@@ -1024,9 +1024,9 @@ Parent: карточка пользователя. \`admin:u:traffic:{telegram_i
 
 Этот экран является единственным parent для автоматического/ручного управления network access пользователя.
 
-###### \`🌐 Доступ → 🗂 Группа серверов\`
+###### `🌐 Доступ → 🗂 Группа серверов`
 
-Сохраняется \`admin:u:group:{telegram_id}\` и существующие \`admin:u:groupset:*\`.
+Сохраняется `admin:u:group:{telegram_id}` и существующие `admin:u:groupset:*`.
 
 Текст перед выбором:
 
@@ -1040,7 +1040,7 @@ Parent: карточка пользователя. \`admin:u:traffic:{telegram_i
 Само назначение не меняет 3x-ui мгновенно.
 ~~~
 
-Кнопки используют \`✅\` для текущей группы и \`⬜\` для остальных. Последняя кнопка:
+Кнопки используют `✅` для текущей группы и `⬜` для остальных. Последняя кнопка:
 
 ~~~text
 [⬅ Доступ]
@@ -1059,9 +1059,9 @@ Parent: карточка пользователя. \`admin:u:traffic:{telegram_i
 
 Назначение Server Group не должно скрытно attach/detach Inbounds.
 
-###### \`🌐 Доступ → 🚀 Согласование\`
+###### `🌐 Доступ → 🚀 Согласование`
 
-Сохраняется \`admin:u:prov:{telegram_id}\`.
+Сохраняется `admin:u:prov:{telegram_id}`.
 
 Текст:
 
@@ -1091,16 +1091,16 @@ Parent: карточка пользователя. \`admin:u:traffic:{telegram_i
 
 **Безопасное согласование**:
 
-- callback \`admin:u:provrun:{telegram_id}:safe\`;
+- callback `admin:u:provrun:{telegram_id}:safe`;
 - добавляет только отсутствующие actionable target Inbounds;
 - лишние текущие Inbounds не удаляет;
 - unavailable members остаются целевыми, но не вызывают ложный success;
-- результат показывает \`Подключены\`, \`Отключены\`, \`Всё ещё отсутствуют\`, \`Лишние управляемые\`.
+- результат показывает `Подключены`, `Отключены`, `Всё ещё отсутствуют`, `Лишние управляемые`.
 
 **Строгое согласование**:
 
-- \`admin:u:provstrictask:{telegram_id}\` всегда открывает отдельный warning screen;
-- \`admin:u:provrun:{telegram_id}:strict\` доступен только \`users.admin\`;
+- `admin:u:provstrictask:{telegram_id}` всегда открывает отдельный warning screen;
+- `admin:u:provrun:{telegram_id}:strict` доступен только `users.admin`;
 - добавляет отсутствующие и удаляет только управляемые extras, которых нет в target policy;
 - last-access/managed safety guards существующего provisioning engine сохраняются.
 
@@ -1122,9 +1122,9 @@ Confirmation:
 
 Cancel возвращает в preview согласования.
 
-###### \`🌐 Доступ → 📡 Inbounds\`
+###### `🌐 Доступ → 📡 Inbounds`
 
-Сохраняется \`admin:u:inbounds:{telegram_id}\` и \`admin:u:ibtoggle:{telegram_id}:{inbound_id}\`.
+Сохраняется `admin:u:inbounds:{telegram_id}` и `admin:u:ibtoggle:{telegram_id}:{inbound_id}`.
 
 Текст:
 
@@ -1154,9 +1154,9 @@ Cancel возвращает в preview согласования.
 
 Manual toggle остаётся support-operation. Существующая защита от отключения последнего допустимого managed Inbound сохраняется.
 
-###### \`🌐 Доступ → ⚙️ Параметры доступа\`
+###### `🌐 Доступ → ⚙️ Параметры доступа`
 
-Новый callback: \`admin:u:accesscfg:{telegram_id}\`.
+Новый callback: `admin:u:accesscfg:{telegram_id}`.
 
 Текст:
 
@@ -1175,20 +1175,20 @@ Manual toggle остаётся support-operation. Существующая за�
 [⬅ Доступ]
 ~~~
 
-- изменение IP limit переиспользует текущий validation/FSM contract \`admin:u:ip:*\`, но success возвращает в \`Параметры доступа\`;
-- \`Синхронизировать Flow\` является отдельной mutation и не attach'ит Inbounds;
-- flow mutation использует отдельный ask/run pair, например \`admin:u:flowask:* → admin:u:flowrun:*\`, и применяет только configured \`settings.vless_flow\`;
-- если \`settings.vless_flow\` пуст, UI показывает \`VLESS Flow: не настроен\` и не предлагает ложную mutation.
+- изменение IP limit переиспользует текущий validation/FSM contract `admin:u:ip:*`, но success возвращает в `Параметры доступа`;
+- `Синхронизировать Flow` является отдельной mutation и не attach'ит Inbounds;
+- flow mutation использует отдельный ask/run pair, например `admin:u:flowask:* → admin:u:flowrun:*`, и применяет только configured `settings.vless_flow`;
+- если `settings.vless_flow` пуст, UI показывает `VLESS Flow: не настроен` и не предлагает ложную mutation.
 
-###### Депрекация legacy \`Синхронизировать Inbounds\`
+###### Депрекация legacy `Синхронизировать Inbounds`
 
 В v4.25 из visible keyboards удаляются:
 
-- \`🔄 Синхронизировать Inbounds\` / \`adminsync:{telegram_id}\`;
-- \`🔄 Синхронизировать всех\` / \`admin:syncall:ask\` / \`admin:syncall:run\`;
-- bulk \`sync\`, который attach'ит выбранным пользователям все globally allowed Inbounds.
+- `🔄 Синхронизировать Inbounds` / `adminsync:{telegram_id}`;
+- `🔄 Синхронизировать всех` / `admin:syncall:ask` / `admin:syncall:run`;
+- bulk `sync`, который attach'ит выбранным пользователям все globally allowed Inbounds.
 
-Причина: эти paths используют глобальный \`choose_inbounds(...)\` и могут выдать доступ шире индивидуального \`Plan → Server Group → target policy\`.
+Причина: эти paths используют глобальный `choose_inbounds(...)` и могут выдать доступ шире индивидуального `Plan → Server Group → target policy`.
 
 Stale Telegram callback не должен молча выполнять старую mutation. На один transition release старые callback identifiers могут оставаться compatibility handlers, но только как **non-mutating redirect**:
 
@@ -1215,9 +1215,9 @@ Stale Telegram callback не должен молча выполнять стар
 
 После достаточного transition window compatibility handlers могут быть удалены отдельным cleanup; unknown callbacks после этого fail-closed по общему contract.
 
-###### \`📱 Подключения\`
+###### `📱 Подключения`
 
-Новый callback: \`admin:u:connections:{telegram_id}\`.
+Новый callback: `admin:u:connections:{telegram_id}`.
 
 Текст:
 
@@ -1240,18 +1240,18 @@ IP-адресов: {ip_count_or_недоступно}
 [⬅ Пользователь]
 ~~~
 
-IP limit здесь только показывается. Каноническое изменение лимита находится в \`🌐 Доступ → ⚙️ Параметры доступа\`, чтобы не создавать два равноправных edit path.
+IP limit здесь только показывается. Каноническое изменение лимита находится в `🌐 Доступ → ⚙️ Параметры доступа`, чтобы не создавать два равноправных edit path.
 
 Online/last-online используют существующие read-only 3x-ui primitives. Экран не выдаёт IP/session за физическое устройство без HWID identity.
 
-###### \`📱 Подключения → 📱 Устройства\`
+###### `📱 Подключения → 📱 Устройства`
 
 Для v4.25 используемый 3x-ui contract расширяется reviewed endpoints pinned schema:
 
-- \`POST /panel/api/clients/hwids/{email}\` — список зарегистрированных HWID devices;
-- \`DELETE /panel/api/clients/hwids/{email}/{id}\` — удаление одного зарегистрированного устройства.
+- `POST /panel/api/clients/hwids/{email}` — список зарегистрированных HWID devices;
+- `DELETE /panel/api/clients/hwids/{email}/{id}` — удаление одного зарегистрированного устройства.
 
-Они добавляются в \`contracts/3xui/contract.json\`, \`XUIClient\` и OpenAPI regression coverage до использования в Telegram UI.
+Они добавляются в `contracts/3xui/contract.json`, `XUIClient` и OpenAPI regression coverage до использования в Telegram UI.
 
 Список:
 
@@ -1265,7 +1265,7 @@ Online/last-online используют существующие read-only 3x-ui
 2. ...
 ~~~
 
-Кнопка каждой записи открывает detail callback \`admin:u:device:{telegram_id}:{device_id}\`.
+Кнопка каждой записи открывает detail callback `admin:u:device:{telegram_id}:{device_id}`.
 
 Карточка устройства:
 
@@ -1298,11 +1298,11 @@ User-Agent: {safe_user_agent_or_—}
 [✖ Отмена]
 ~~~
 
-Первый callback \`admin:u:devdelask:{telegram_id}:{device_id}\` не выполняет DELETE; mutation находится только за \`admin:u:devdel:{telegram_id}:{device_id}\`. Success возвращает в список устройств. В v4.25 не добавляется «Удалить все устройства».
+Первый callback `admin:u:devdelask:{telegram_id}:{device_id}` не выполняет DELETE; mutation находится только за `admin:u:devdel:{telegram_id}:{device_id}`. Success возвращает в список устройств. В v4.25 не добавляется «Удалить все устройства».
 
-###### \`📱 Подключения → 🌐 IP-адреса\`
+###### `📱 Подключения → 🌐 IP-адреса`
 
-Используется reviewed read-only endpoint pinned schema \`/panel/api/clients/ips/{email}\` (и только те соседние IP APIs, которые действительно нужны implementation). Contract JSON и tests обновляются до использования.
+Используется reviewed read-only endpoint pinned schema `/panel/api/clients/ips/{email}` (и только те соседние IP APIs, которые действительно нужны implementation). Contract JSON и tests обновляются до использования.
 
 Текст:
 
@@ -1322,12 +1322,12 @@ User-Agent: {safe_user_agent_or_—}
 - если upstream даёт только set/list без timestamp, UI не подписывает его как хронологическую историю;
 - v4.25 не добавляет локальное бессрочное хранение IP history и не создаёт новый surveillance-like ledger;
 - IP не пишутся целиком в обычный audit/details только ради открытия экрана;
-- отдельный \`Clear IP history\` в этот release не входит;
-- Back возвращает в \`📱 Подключения\`.
+- отдельный `Clear IP history` в этот release не входит;
+- Back возвращает в `📱 Подключения`.
 
-###### \`🔗 Подписка\`
+###### `🔗 Подписка`
 
-Новый parent callback: \`admin:u:subscription:{telegram_id}\`.
+Новый parent callback: `admin:u:subscription:{telegram_id}`.
 
 Текст:
 
@@ -1348,12 +1348,12 @@ ID: {masked_sub_id}
 [⬅ Пользователь]
 ~~~
 
-- \`Открыть ссылку\` использует Telegram URL button только для авторизованного admin view;
-- \`Показать URL\` переиспользует существующий \`adminsub:{telegram_id}\` либо эквивалентный read-only screen;
-- URL и \`sub_id\` считаются secret-like customer credentials: они не попадают в audit/details/logs;
+- `Открыть ссылку` использует Telegram URL button только для авторизованного admin view;
+- `Показать URL` переиспользует существующий `adminsub:{telegram_id}` либо эквивалентный read-only screen;
+- URL и `sub_id` считаются secret-like customer credentials: они не попадают в audit/details/logs;
 - QR генерируется **локально** из subscription URL; внешние QR services запрещены, чтобы не раскрывать credential третьей стороне;
 - если QR требует отдельного media message, основной admin panel state и кнопка возврата не теряются; generated QR не сохраняется как постоянный файл;
-- \`🔐 Перевыпустить ссылку\` использует существующий admin-only ask/run contract \`admin:u:subrotateask:* → admin:u:subrotaterun:*\`.
+- `🔐 Перевыпустить ссылку` использует существующий admin-only ask/run contract `admin:u:subrotateask:* → admin:u:subrotaterun:*`.
 
 Confirmation rotation:
 
@@ -1367,11 +1367,11 @@ Confirmation rotation:
 [✖ Отмена]
 ~~~
 
-Success показывает новый URL только авторизованному оператору и возвращает в \`🔗 Подписка\`.
+Success показывает новый URL только авторизованному оператору и возвращает в `🔗 Подписка`.
 
-###### \`💳 Платежи\`
+###### `💳 Платежи`
 
-Новый callback: \`admin:u:payments:{telegram_id}\`, privilege \`payments.view\`.
+Новый callback: `admin:u:payments:{telegram_id}`, privilege `payments.view`.
 
 Это read-only filtered view существующей payment ledger; финансовые write-actions не дублируются в User Management.
 
@@ -1400,13 +1400,13 @@ Success показывает новый URL только авторизован�
 [⬅ Пользователь]
 ~~~
 
-При необходимости pagination открывает user-scoped список. Карточка конкретного платежа использует context-aware callback, например \`admin:u:payment:{telegram_id}:{payment_id}\`, чтобы \`⬅ Платежи\` возвращал именно в историю текущего пользователя. Data source — существующая таблица \`payments.telegram_id\`; новая финансовая ledger не создаётся.
+При необходимости pagination открывает user-scoped список. Карточка конкретного платежа использует context-aware callback, например `admin:u:payment:{telegram_id}:{payment_id}`, чтобы `⬅ Платежи` возвращал именно в историю текущего пользователя. Data source — существующая таблица `payments.telegram_id`; новая финансовая ledger не создаётся.
 
-###### \`🧾 Активность\`
+###### `🧾 Активность`
 
-Новый callback: \`admin:u:activity:{telegram_id}\`, privilege \`monitoring.view\`.
+Новый callback: `admin:u:activity:{telegram_id}`, privilege `monitoring.view`.
 
-Это filtered view существующего \`audit_log\`. Для current user actions primary filter использует \`target_type='user'\` и техническую user identity; implementation должен учесть существующие исторические action records, не привязываясь к \`display_name\`.
+Это filtered view существующего `audit_log`. Для current user actions primary filter использует `target_type='user'` и техническую user identity; implementation должен учесть существующие исторические action records, не привязываясь к `display_name`.
 
 Текст:
 
@@ -1431,14 +1431,14 @@ Timeline включает релевантные user mutations: Plan, Server Gr
 Правила:
 
 - это presentation/filter existing audit, не второй журнал;
-- secret values, subscription URL/\`sub_id\`, full HWID и другие credentials не реконструируются из details;
+- secret values, subscription URL/`sub_id`, full HWID и другие credentials не реконструируются из details;
 - timestamps отображаются в MSK;
 - pagination/«Показать ещё» сохраняет user context;
 - Back возвращает в карточку пользователя.
 
-###### \`✏️ Профиль\`
+###### `✏️ Профиль`
 
-Новый parent callback: \`admin:u:profile:{telegram_id}\`.
+Новый parent callback: `admin:u:profile:{telegram_id}`.
 
 Текст:
 
@@ -1466,11 +1466,11 @@ Telegram ID:
 [⬅ Пользователь]
 ~~~
 
-Существующие \`admin:u:name:*\` и \`admin:u:note:*\` сохраняют validation/audit semantics. Email и Telegram ID read-only: этот release не вводит rename machine identity.
+Существующие `admin:u:name:*` и `admin:u:note:*` сохраняют validation/audit semantics. Email и Telegram ID read-only: этот release не вводит rename machine identity.
 
-###### \`⚙️ Ещё действия\`
+###### `⚙️ Ещё действия`
 
-Новый callback: \`admin:u:more:{telegram_id}\`.
+Новый callback: `admin:u:more:{telegram_id}`.
 
 Экран консолидирует mutation shortcuts / danger zone, но не создаёт новые backend semantics:
 
@@ -1486,7 +1486,7 @@ Telegram ID:
 [⬅ Пользователь]
 ~~~
 
-Кнопки показываются по текущему status и privilege. \`Reset\`, rotation и strict reconcile ведут в те же canonical confirmation screens, что тематические разделы; duplicate backend handler не создаётся.
+Кнопки показываются по текущему status и privilege. `Reset`, rotation и strict reconcile ведут в те же canonical confirmation screens, что тематические разделы; duplicate backend handler не создаётся.
 
 ###### Enable / Disable
 
@@ -1505,7 +1505,7 @@ Email: {email}
 [✖ Отмена]
 ~~~
 
-Для stale compatibility существующий \`admindisable:{telegram_id}\` может стать ask-screen, а mutation переносится на новый \`admindisablerun:{telegram_id}\`.
+Для stale compatibility существующий `admindisable:{telegram_id}` может стать ask-screen, а mutation переносится на новый `admindisablerun:{telegram_id}`.
 
 Enable аналогично:
 
@@ -1518,11 +1518,11 @@ Enable аналогично:
 [✖ Отмена]
 ~~~
 
-Existing \`adminenable:{telegram_id}\` может стать ask-screen, mutation — \`adminenablerun:{telegram_id}\`. Success возвращает в карточку пользователя.
+Existing `adminenable:{telegram_id}` может стать ask-screen, mutation — `adminenablerun:{telegram_id}`. Success возвращает в карточку пользователя.
 
 ###### Удаление пользователя
 
-Сохраняется существующий двухшаговый \`admindelask:* → admindel:*\`.
+Сохраняется существующий двухшаговый `admindelask:* → admindel:*`.
 
 Confirmation:
 
@@ -1542,11 +1542,11 @@ Telegram ID: {telegram_id}
 [✖ Отмена]
 ~~~
 
-Existing remote-before-local safety semantics не ослабляются. После подтверждённого удаления result screen ведёт в \`Пользователи\`; Cancel возвращает в карточку пользователя.
+Existing remote-before-local safety semantics не ослабляются. После подтверждённого удаления result screen ведёт в `Пользователи`; Cancel возвращает в карточку пользователя.
 
 ###### Массовые действия
 
-Bulk selection остаётся отдельным flow от карточки пользователя. Selection screen сохраняет pagination и выбранные IDs в FSM, callback identity — \`telegram_id\`.
+Bulk selection остаётся отдельным flow от карточки пользователя. Selection screen сохраняет pagination и выбранные IDs в FSM, callback identity — `telegram_id`.
 
 Target actions:
 
@@ -1566,7 +1566,7 @@ Semantics:
 
 - Plan assignment и Server Group assignment изменяют только соответствующий profile state и не скрывают remote provisioning;
 - custom expiry/traffic limit используют bounded FSM input и explicit preview/confirmation перед mass mutation;
-- \`🚀 Согласовать\` использует \`ProvisioningEngine.provision_many(..., strict=False)\`, а не legacy bulk attach-all;
+- `🚀 Согласовать` использует `ProvisioningEngine.provision_many(..., strict=False)`, а не legacy bulk attach-all;
 - bulk strict reconcile в v4.25 **не добавляется**: destructive detach нескольких пользователей требует отдельного product/security decision;
 - enable/disable/reset сохраняют existing bulk primitives, но confirmation показывает число выбранных пользователей;
 - partial failure не останавливает обработку остальных пользователей, а result summary явно разделяет success/failed/unknown там, где backend может доказать разные outcomes;
@@ -1578,37 +1578,37 @@ Implementation может сохранить существующие identifier
 
 | Экран | Callback | Parent / Back |
 | --- | --- | --- |
-| Пользователи | \`admin:users\` | \`admin:home\` |
-| Пользователь | \`admin:u:{tg_id}\` | \`admin:users\` |
-| Тариф | \`admin:u:plan:{tg_id}\` | пользователь |
-| Срок | \`admin:u:expiry:{tg_id}\` | пользователь |
-| Трафик | \`admin:u:traffic:{tg_id}\` | пользователь |
-| Доступ | \`admin:u:access:{tg_id}\` | пользователь |
-| Группа серверов | \`admin:u:group:{tg_id}\` | Доступ |
-| Согласование | \`admin:u:prov:{tg_id}\` | Доступ |
-| Inbounds | \`admin:u:inbounds:{tg_id}\` | Доступ |
-| Параметры доступа | \`admin:u:accesscfg:{tg_id}\` | Доступ |
-| Подключения | \`admin:u:connections:{tg_id}\` | пользователь |
-| Устройства | \`admin:u:devices:{tg_id}\` | Подключения |
-| Устройство | \`admin:u:device:{tg_id}:{device_id}\` | Устройства |
-| IP-адреса | \`admin:u:ips:{tg_id}\` | Подключения |
-| Подписка | \`admin:u:subscription:{tg_id}\` | пользователь |
-| Платежи | \`admin:u:payments:{tg_id}\` | пользователь |
-| Активность | \`admin:u:activity:{tg_id}\` | пользователь |
-| Профиль | \`admin:u:profile:{tg_id}\` | пользователь |
-| Ещё действия | \`admin:u:more:{tg_id}\` | пользователь |
+| Пользователи | `admin:users` | `admin:home` |
+| Пользователь | `admin:u:{tg_id}` | `admin:users` |
+| Тариф | `admin:u:plan:{tg_id}` | пользователь |
+| Срок | `admin:u:expiry:{tg_id}` | пользователь |
+| Трафик | `admin:u:traffic:{tg_id}` | пользователь |
+| Доступ | `admin:u:access:{tg_id}` | пользователь |
+| Группа серверов | `admin:u:group:{tg_id}` | Доступ |
+| Согласование | `admin:u:prov:{tg_id}` | Доступ |
+| Inbounds | `admin:u:inbounds:{tg_id}` | Доступ |
+| Параметры доступа | `admin:u:accesscfg:{tg_id}` | Доступ |
+| Подключения | `admin:u:connections:{tg_id}` | пользователь |
+| Устройства | `admin:u:devices:{tg_id}` | Подключения |
+| Устройство | `admin:u:device:{tg_id}:{device_id}` | Устройства |
+| IP-адреса | `admin:u:ips:{tg_id}` | Подключения |
+| Подписка | `admin:u:subscription:{tg_id}` | пользователь |
+| Платежи | `admin:u:payments:{tg_id}` | пользователь |
+| Активность | `admin:u:activity:{tg_id}` | пользователь |
+| Профиль | `admin:u:profile:{tg_id}` | пользователь |
+| Ещё действия | `admin:u:more:{tg_id}` | пользователь |
 
 Все callback payloads обязаны укладываться в Telegram 64-byte limit. IDs берутся только из backend-resolved context; callback payload не является authorization/ownership proof.
 
 Общие navigation rules:
 
-- detail screen всегда возвращает в зафиксированный parent, а не в \`admin:home\` напрямую;
-- FSM \`✖ Отмена\` возвращает в экран, из которого был начат input;
-- confirmation \`✖ Отмена\` возвращает в карточку/подраздел без mutation;
+- detail screen всегда возвращает в зафиксированный parent, а не в `admin:home` напрямую;
+- FSM `✖ Отмена` возвращает в экран, из которого был начат input;
+- confirmation `✖ Отмена` возвращает в карточку/подраздел без mutation;
 - после delete result возвращает в список удалённой сущности;
-- после device revoke result возвращает в \`Устройства\`;
+- после device revoke result возвращает в `Устройства`;
 - после Plan/expiry/traffic/IP update result возвращает в соответствующий detail screen;
-- после safe/strict reconcile result предлагает \`⬅ Согласование\` или \`⬅ Доступ\`, но не создаёт dead end;
+- после safe/strict reconcile result предлагает `⬅ Согласование` или `⬅ Доступ`, но не создаёт dead end;
 - read failure не должен уничтожать доступ к Back;
 - progress screen state-changing operation может временно скрыть action buttons, если повторный click создаёт риск duplicate mutation.
 
@@ -1616,9 +1616,9 @@ Implementation может сохранить существующие identifier
 
 Минимальные backend additions v4.25:
 
-- user-scoped payment query/pagination поверх существующей \`payments.telegram_id\`, без новой payment schema;
-- user-scoped audit query/pagination поверх существующего \`audit_log\`, без второго audit storage;
-- reviewed \`XUIClient\` methods + pinned OpenAPI contract entries для HWID list/delete-one и client IP read endpoints;
+- user-scoped payment query/pagination поверх существующей `payments.telegram_id`, без новой payment schema;
+- user-scoped audit query/pagination поверх существующего `audit_log`, без второго audit storage;
+- reviewed `XUIClient` methods + pinned OpenAPI contract entries для HWID list/delete-one и client IP read endpoints;
 - локальный QR renderer/library допустим только без передачи subscription URL внешнему сервису;
 - search/pagination helpers для users;
 - при необходимости небольшие shared presenter/formatter helpers, чтобы card/list labels не расходились.
@@ -1647,17 +1647,17 @@ Implementation PR должен добавить/обновить tests как м
 4. search по Telegram ID/email/display name и pagination списка >40 пользователей;
 5. create-user duplicate detection, 3x-ui recovery path и отсутствие duplicate creation при uncertain mutation outcome;
 6. сохранения machine identity при изменении display name/Plan/Group;
-7. expiry \`+30\`, date-only MSK semantics и возврата в экран срока;
+7. expiry `+30`, date-only MSK semantics и возврата в экран срока;
 8. traffic limit/unlimited/reset confirmation и возврата в экран трафика;
-9. safe/strict reconcile semantics и точного parent \`Доступ\`;
+9. safe/strict reconcile semantics и точного parent `Доступ`;
 10. manual Inbound toggle и last-managed-Inbound safety;
-11. отсутствия visible \`Синхронизировать Inbounds\`, \`Синхронизировать всех\` и legacy bulk attach-all action;
+11. отсутствия visible `Синхронизировать Inbounds`, `Синхронизировать всех` и legacy bulk attach-all action;
 12. stale legacy sync callbacks как non-mutating redirect;
 13. VLESS Flow sync без attach/detach Inbounds;
 14. pinned 3x-ui OpenAPI contract для HWID/IP endpoints;
 15. device list/detail и delete-two-step: первый callback не выполняет mutation;
 16. IP screen не называет IP физическим устройством и не создаёт local history;
-17. subscription URL/\`sub_id\` redaction из audit/logs и local-only QR generation;
+17. subscription URL/`sub_id` redaction из audit/logs и local-only QR generation;
 18. user-scoped payments, multi-currency summary и отсутствие payment write-actions в user card;
 19. user-scoped audit timeline и отсутствие secret reconstruction;
 20. enable/disable confirmation, user delete confirmation и correct post-action parent;
@@ -1666,11 +1666,11 @@ Implementation PR должен добавить/обновить tests как м
 23. one-message admin navigation/FSM cleanup без dead ends;
 24. MSK timestamps на новых operator-facing absolute dates.
 
-Production acceptance после публикации \`v4.25.0\` должен пройти минимум под \`Read-only\`, \`Support\` и \`Administrator\` test accounts:
+Production acceptance после публикации `v4.25.0` должен пройти минимум под `Read-only`, `Support` и `Administrator` test accounts:
 
 - открыть список, поиск, pagination и карточку пользователя;
-- пройти каждый read-only подраздел и Back-chain до \`Пользователи\`;
-- изменить display name/note и проверить неизменность email/\`telegram_id\`/\`sub_id\`;
+- пройти каждый read-only подраздел и Back-chain до `Пользователи`;
+- изменить display name/note и проверить неизменность email/`telegram_id`/`sub_id`;
 - назначить Plan и Server Group, применить параметры тарифа и выполнить safe reconcile;
 - вручную attach/detach test Inbound и проверить предупреждение о policy drift;
 - выполнить strict reconcile на контролируемом test user с известным extra Inbound;
