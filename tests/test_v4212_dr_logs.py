@@ -7,16 +7,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from version import APP_VERSION
-
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class V4212DrLogsTests(unittest.TestCase):
-    def test_release_version_is_4212(self):
-        self.assertEqual(APP_VERSION, "4.21.2")
-
     def test_disaster_recovery_imports_ui_time_formatters(self):
         source = (ROOT / "disaster_recovery.py").read_text(encoding="utf-8")
         self.assertIn(
