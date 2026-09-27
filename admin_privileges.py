@@ -250,8 +250,10 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "exact",
         "admin:traffic", "admin:online", "admin:jobs", "admin:audit", "admin:logs", "admin:logs:nodes",
         "admin:cheburcheck", "admin:cheburcheck:start", "admin:cheburcheck:cancel",
+        "admin:cheburcheck:master",
     )
     + _rules("monitoring.view", "regex", r"^admin:audit:\d+$", r"^admin:audit:item:\d+:\d+$", r"^admin:logs:node:\d+$", r"^admin:logs:view:[a-z]+:(50|200):(all|warning|error)$", r"^admin:logs:nview:\d+:(panel|xray|awg):(50|200):(all|warning|error)$")
+    + _rules("monitoring.view", "regex", r"^admin:cheburcheck:(node|host):\d+$")
     + _rules("jobs.manage", "exact", "admin:jobs:backup")
     + _rules("alerts.view", "exact", "admin:alerts", "admin:alerts:check")
     + _rules("alerts.manage", "regex", r"^admin:alerts:toggle:[a-z_]+$", r"^admin:alerts:disk:(80|85|90|95)$", r"^admin:alerts:backup:(24|36|48|72)$")
