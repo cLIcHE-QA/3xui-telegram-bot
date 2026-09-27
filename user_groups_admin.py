@@ -123,7 +123,7 @@ async def _group_detail_screen(
         f"Участников: {count}\n"
         f"Описание: {description}\n\n"
         "Группа пользователей управляет только аудиторией. "
-        "Она не меняет тариф, Server Group, Nodes, Inbounds или VPN-доступ."
+        "Она не меняет тариф, Группу серверов, Nodes, Inbounds или VPN-доступ."
     )
     rows: list[list[InlineKeyboardButton]] = [
         [InlineKeyboardButton(
@@ -220,7 +220,7 @@ async def user_groups_list(call: CallbackQuery):
         f"Групп: {total}\n"
         f"Страница: {page + 1}/{max_page + 1}\n\n"
         "Эти группы предназначены для сегментации аудитории будущего Client Portal. "
-        "Они не связаны с Server Groups и не меняют VPN-доступ."
+        "Они не связаны с Группами серверов и не меняют VPN-доступ."
     )
     await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
@@ -478,7 +478,7 @@ async def user_group_delete_ask(call: CallbackQuery):
         f"Группа: {group.name}\n"
         f"Участников: {count}\n\n"
         "Пользователи не удаляются. Будет удалена только эта группа и её membership. "
-        "VPN-доступ, тарифы и Server Groups не изменятся.",
+        "VPN-доступ, тарифы и Группы серверов не изменятся.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(
                 text="🗑 Удалить группу",
@@ -849,7 +849,7 @@ async def _render_user_groups(
     lines = [
         f"👥 Группы пользователей · {label}",
         "",
-        "Membership:",
+        "Участие в группах:",
     ]
     if groups:
         lines.extend(f"• {group.name}" for group in groups)
@@ -857,13 +857,13 @@ async def _render_user_groups(
         lines.append("— не состоит ни в одной группе")
     lines += [
         "",
-        "Эти группы влияют только на audience/feature visibility. "
-        "Они не меняют Server Group или VPN-доступ.",
+        "Эти группы используются только для сегментации аудитории и видимости функций. "
+        "Они не меняют Группу серверов или VPN-доступ.",
     ]
     rows: list[list[InlineKeyboardButton]] = []
     if _role_at_least(role, "support"):
         rows.append([InlineKeyboardButton(
-            text="✏️ Изменить membership",
+            text="✏️ Изменить группы",
             callback_data=f"admin:u:audgroupedit:{telegram_id}:0",
         )])
     rows.append([InlineKeyboardButton(
@@ -932,7 +932,7 @@ async def _render_user_groups_edit(
         call,
         f"✏️ Группы пользователей · {label}\n\n"
         f"Страница: {page + 1}/{max_page + 1}\n"
-        "Нажатие переключает membership. VPN-доступ не изменяется.",
+        "Нажатие добавляет или убирает пользователя из группы. VPN-доступ не изменяется.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     return True
