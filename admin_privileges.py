@@ -47,6 +47,9 @@ PRIVILEGES: tuple[Privilege, ...] = (
     Privilege("users.view", "Пользователи и подписки: просмотр", "read_only"),
     Privilege("users.support", "Пользователи: обычные операции жизненного цикла", "support"),
     Privilege("users.admin", "Пользователи: расширенные и разрушительные операции", "admin"),
+    Privilege("user_groups.view", "Группы пользователей: просмотр", "read_only"),
+    Privilege("user_groups.manage", "Группы пользователей: membership", "support"),
+    Privilege("user_groups.admin", "Группы пользователей: создание, изменение и удаление", "admin"),
     Privilege("backups.view", "Резервные копии: просмотр", "read_only"),
     Privilege("backups.manage", "Резервные копии: создание и запуск заданий", "admin"),
     Privilege("nodes.view", "Ноды/Master: просмотр", "read_only"),
@@ -135,6 +138,38 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("users.support", "regex", r"^admin:u:provrun:\d+:safe$")
     + _rules("users.admin", "exact", "admin:syncall:ask", "admin:syncall:run")
     + _rules("users.admin", "regex", r"^admin:u:provrun:\d+:strict$")
+    + _rules(
+        "user_groups.view",
+        "exact",
+        "admin:usergroups", "admin:usergroupadd:cancel",
+    )
+    + _rules(
+        "user_groups.view",
+        "regex",
+        r"^admin:usergroups:page:\d+$",
+        r"^admin:usergroup:\d+$",
+        r"^admin:usergroup:members:\d+:\d+$",
+        r"^admin:usergroup:member:\d+:\d+$",
+        r"^admin:u:audgroups:\d+$",
+    )
+    + _rules("user_groups.view", "prefix", "admin:usergroup:addcancel:")
+    + _rules("user_groups.manage", "prefix", "admin:usergroup:add:")
+    + _rules(
+        "user_groups.manage",
+        "regex",
+        r"^admin:usergroup:addpick:\d+:\d+$",
+        r"^admin:usergroup:removeask:\d+:\d+$",
+        r"^admin:usergroup:remove:\d+:\d+$",
+        r"^admin:u:audgroupedit:\d+:\d+$",
+        r"^admin:u:audgrouptoggle:\d+:\d+:\d+$",
+    )
+    + _rules("user_groups.admin", "exact", "admin:usergroupadd:start")
+    + _rules(
+        "user_groups.admin",
+        "prefix",
+        "admin:usergroup:rename:", "admin:usergroup:description:",
+        "admin:usergroup:deleteask:", "admin:usergroup:delete:",
+    )
     + _rules("backups.view", "exact", "admin:backups")
     + _rules(
         "backups.manage",
