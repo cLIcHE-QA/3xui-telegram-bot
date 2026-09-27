@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.23.0 — Проверка блокировок Cheburcheck
+- Добавлен read-only diagnostics flow `Мониторинг → Проверка блокировок` для доменов, публичных IPv4/IPv6, подсетей и ASN через optional Cheburcheck service.
+- Интеграция использует фиксированный `/api/v1/check?target=...` contract и не проксирует произвольные HTTP URL; input нормализуется и ограничивается поддерживаемыми target types.
+- `CheburcheckClient` использует bounded concurrency, connect/read/total timeouts, запрет redirect-following и лимит response body 256 KiB; rate limit, validation/rejection, not-found, unavailable и invalid response отображаются отдельно.
+- Cheburcheck optional: пустой `CHEBURCHECK_URL` не влияет на startup, 3x-ui или provisioning; internal endpoint не показывается в Telegram UI.
+- Reviewed upstream закреплён на `LowderPlay/cheburcheck@0bbd2be8ca4b8f9ded1407597654314fc2a900c6`; README и `THIRD_PARTY_NOTICES.md` сохраняют attribution и BSD-3-Clause notice.
+- SQLite schema, 3x-ui/OpenAPI contract и VPN mutation semantics не меняются.
+
 ## v4.22.0 — Группы пользователей
 - Добавлена отдельная сущность User/Audience Groups для будущей сегментации Client Portal: `user_groups` и many-to-many `user_group_members` хранят membership по стабильному `telegram_id`, не по display name или email.
 - Добавлен административный flow `Пользователи → Группы пользователей`: список и карточка групп, создание, переименование, описание, участники, поиск пользователя по Telegram ID/email/display name, добавление/удаление membership и просмотр групп из карточки пользователя.
