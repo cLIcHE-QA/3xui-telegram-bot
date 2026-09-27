@@ -114,6 +114,46 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     ],
                 )
 
+    async def test_schema_v2_upgrades_to_user_groups_without_user_data_loss(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bot.sqlite3"
+            await run_migrations(str(path), migrations=MIGRATIONS[:2])
+            with sqlite3.connect(path) as conn:
+                conn.execute(
+                    "INSERT INTO users(telegram_id, email, sub_id, expiry_time, created_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (303, "preserve@example.com", "preserve-sub", 0, 123),
+                )
+                conn.commit()
+
+            await Database(str(path)).init()
+
+            with sqlite3.connect(path) as conn:
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT telegram_id, email FROM users WHERE telegram_id = 303"
+                    ).fetchone(),
+                    (303, "preserve@example.com"),
+                )
+                tables = {
+                    row[0]
+                    for row in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    ).fetchall()
+                }
+                self.assertIn("user_groups", tables)
+                self.assertIn("user_group_members", tables)
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT version, name, status FROM schema_migrations ORDER BY version"
+                    ).fetchall(),
+                    [
+                        (1, "baseline_v4_14_2", "success"),
+                        (2, "user_display_name_v4_21_0", "success"),
+                        (3, "user_audience_groups_v4_22_0", "success"),
+                    ],
+                )
+
     async def test_newer_schema_version_blocks_startup(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "bot.sqlite3"
