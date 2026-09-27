@@ -270,7 +270,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
-17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ⬜ запланировано на `v4.23.0`.
+17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ реализовано в `main`; release `v4.23.0` готовится, production acceptance ещё не выполнен.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
@@ -511,7 +511,7 @@ Targeted smoke подтвердил production flow: создание време
 
 ##### Cheburcheck integration
 
-**Статус: ⬜ Запланировано на `v4.23.0`.**
+**Статус: ✅ Реализовано в `main`; release `v4.23.0` готовится, production acceptance ещё не выполнен.**
 
 Цель — встроить в бот функциональность проверки доменов/IP/ASN на блокировки, сохраняя upstream Cheburcheck checker как source of behavior и не переписывая его алгоритм без необходимости.
 
@@ -541,6 +541,8 @@ upstream checker/database logic
 - CI фиксирует response contract на reviewed upstream revision через fixtures/contract tests;
 - third-party notices и лицензия сохраняются при source/binary redistribution;
 - production acceptance проверяет корректный verdict на test fixtures/known targets и graceful degradation при недоступном Cheburcheck service.
+
+Реализация в `main` использует reviewed upstream `LowderPlay/cheburcheck@0bbd2be8ca4b8f9ded1407597654314fc2a900c6`, отдельный `CheburcheckClient`, optional `CHEBURCHECK_URL`, read-only RBAC и экран `Мониторинг → Проверка блокировок`. Auto-discovery предлагает безопасные hostname/IP из Master/direct Nodes/enabled Hosts, а карточки Master/direct node имеют shortcut проверки; URL path/query/credentials и private/local targets не передаются.
 
 ##### PackBot-compatible monitoring и diagnostics
 
