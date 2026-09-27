@@ -14,6 +14,8 @@
 - Cheburcheck optional: пустой `CHEBURCHECK_URL` не влияет на startup, 3x-ui или provisioning; internal endpoint не показывается в Telegram UI.
 - Reviewed upstream закреплён на `LowderPlay/cheburcheck@0bbd2be8ca4b8f9ded1407597654314fc2a900c6`; README и `THIRD_PARTY_NOTICES.md` сохраняют attribution и BSD-3-Clause notice.
 - SQLite schema, 3x-ui/OpenAPI contract и VPN mutation semantics не меняются.
+- `v4.23.0` разворачивается обычным Safe Bot Self-Update; обновление Host Control Agent, Deploy Agent, 3x-ui/Xray и SQLite migration не требуется. Bot schema остаётся v3.
+- Cheburcheck остаётся optional external service: без `CHEBURCHECK_URL` экран показывает «не настроен», а остальные функции бота работают штатно. Production acceptance Cheburcheck выполняется только после настройки pinned self-hosted service или другого явно доверенного endpoint; rollback самого бота не требует отката БД.
 
 ## v4.22.0 — Группы пользователей
 - Добавлена отдельная сущность User/Audience Groups для будущей сегментации Client Portal: `user_groups` и many-to-many `user_group_members` хранят membership по стабильному `telegram_id`, не по display name или email.
