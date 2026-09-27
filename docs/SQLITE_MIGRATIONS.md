@@ -38,14 +38,15 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 ## Текущий каталог schema
 
-Для `v4.21.0` текущая bot schema version — **2**:
+Для `v4.22.0` текущая bot schema version — **3**:
 
 1. `v1 baseline_v4_14_2` — исходная каноническая схема v4.14.2;
-2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`.
+2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`;
+3. `v3 user_audience_groups_v4_22_0` — additive таблицы `user_groups` / `user_group_members` и индекс `idx_user_group_members_user`.
 
-Migration v2 имеет `requires_backup=False`, потому что только добавляет колонку с безопасным default и не переписывает существующие данные. Postcondition полного текущего schema contract проверяется внутри migration transaction до записи `success`.
+Migration v2 и v3 имеют `requires_backup=False`: обе additive, не переписывают существующие пользовательские записи и проверяют postcondition соответствующей версии schema внутри migration transaction до записи `success`. Для v3 membership хранится по стабильному `telegram_id`; сама migration не назначает пользователей в группы.
 
-После успешного применения v2 старый application release, знающий только schema v1, обязан остановиться как `DatabaseSchemaTooNewError`. Поэтому downgrade приложения через обычную смену tag без восстановления совместимой pre-v4.21 DB не поддерживается.
+После успешного применения более новой schema старый application release, который её не знает, обязан остановиться как `DatabaseSchemaTooNewError`. Поэтому downgrade приложения через обычную смену tag без восстановления совместимой pre-migration DB не поддерживается.
 
 ## Startup semantics
 
