@@ -235,6 +235,8 @@ class Settings:
     deploy_agent_enabled: bool
     deploy_agent_url: str
     deploy_agent_token: str
+    cheburcheck_url: str
+    cheburcheck_verify_tls: bool
     node_backup_targets: tuple[NodeBackupTarget, ...]
     host_control_targets: tuple[HostControlTarget, ...]
     master_name: str
@@ -303,6 +305,24 @@ def load_settings() -> Settings:
                     "OFFSITE_BACKUP_ENDPOINT_URL must be an absolute verified HTTPS URL without credentials/query/fragment."
                 )
 
+    cheburcheck_url = os.getenv("CHEBURCHECK_URL", "").strip().rstrip("/")
+    cheburcheck_verify_tls = env_bool(os.getenv("CHEBURCHECK_VERIFY_TLS"), True)
+    if cheburcheck_url:
+        parsed_cheburcheck = urlsplit(cheburcheck_url)
+        if (
+            parsed_cheburcheck.scheme not in {"http", "https"}
+            or not parsed_cheburcheck.hostname
+            or parsed_cheburcheck.username
+            or parsed_cheburcheck.password
+            or parsed_cheburcheck.query
+            or parsed_cheburcheck.fragment
+        ):
+            raise RuntimeError(
+                "CHEBURCHECK_URL must be an absolute http(s) URL without credentials/query/fragment."
+            )
+        if parsed_cheburcheck.scheme == "https" and not cheburcheck_verify_tls:
+            raise RuntimeError("CHEBURCHECK_VERIFY_TLS=false is forbidden for HTTPS.")
+
     deploy_agent_url = os.getenv("DEPLOY_AGENT_URL", "").strip().rstrip("/")
     deploy_agent_token = os.getenv("DEPLOY_AGENT_TOKEN", "").strip()
     deploy_agent_enabled = bool(deploy_agent_url or deploy_agent_token)
@@ -366,6 +386,8 @@ def load_settings() -> Settings:
         deploy_agent_enabled=deploy_agent_enabled,
         deploy_agent_url=deploy_agent_url,
         deploy_agent_token=deploy_agent_token,
+        cheburcheck_url=cheburcheck_url,
+        cheburcheck_verify_tls=cheburcheck_verify_tls,
         node_backup_targets=_load_node_backup_targets(),
         host_control_targets=_load_host_control_targets(),
         master_name=os.getenv("MASTER_NAME", "Master").strip() or "Master",
