@@ -16,6 +16,7 @@ from catalog_admin import catalog_router
 from admin_observability import observability_router
 from business_admin import business_router
 from advanced_users import advanced_users_router
+from user_groups_admin import user_groups_router
 from inbound_admin import inbound_admin_router
 from advanced_nodes import advanced_nodes_router
 from host_control_ui import host_control_router, recover_control_jobs
@@ -185,6 +186,7 @@ async def main():
     dp.include_router(storage_admin_router)
     dp.include_router(versions_router)
     dp.include_router(bot_updates_router)
+    dp.include_router(user_groups_router)
     dp.include_router(advanced_users_router)
     dp.include_router(advanced_nodes_router)
     dp.include_router(host_control_router)
