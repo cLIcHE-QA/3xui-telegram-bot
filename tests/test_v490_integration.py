@@ -91,7 +91,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
             'bot.py', 'admin_shell.py', 'client_access.py', 'node_admin.py', 'system_admin.py', 'storage_admin.py', 'advanced_nodes.py', 'advanced_users.py', 'user_groups_admin.py', 'inbound_admin.py',
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
             'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
-            'fleet_operations.py',
+            'fleet_operations.py', 'cheburcheck_admin.py',
         ]
 
         def marked(label: str) -> bool:
@@ -342,6 +342,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('dp.include_router(storage_admin_router)', inspect.getsource(self.runtime.main))
         self.assertIn('dp.include_router(host_control_router)', inspect.getsource(self.runtime.main))
         self.assertIn('dp.include_router(fleet_router)', inspect.getsource(self.runtime.main))
+        self.assertIn('dp.include_router(cheburcheck_router)', inspect.getsource(self.runtime.main))
         self.assertIn('get_panel_update_info', inspect.getsource(self.system.admin_master_detail))
         self.assertIn('3x-ui:', inspect.getsource(self.system.admin_master_detail))
 
