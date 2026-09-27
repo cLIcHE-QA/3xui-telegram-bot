@@ -235,7 +235,7 @@ ADMIN_TELEGRAM_IDS — break-glass Owners. Не добавляй туда слу
 
 ### Optional Cheburcheck diagnostics
 
-`v4.23.1` добавляет read-only экран `/admin → Мониторинг → Проверка блокировок`. Он не нужен для core startup, provisioning или 3x-ui control plane.
+В линии `v4.23.x` доступен read-only экран `/admin → Мониторинг → Проверка блокировок`; `v4.23.1` исправляет acceptance-дефект ASN response limit. Экран не нужен для core startup, provisioning или 3x-ui control plane.
 
 Предпочтительный production path — pinned self-hosted Cheburcheck service во внутренней сети. После его отдельного deployment укажи fixed endpoint:
 
