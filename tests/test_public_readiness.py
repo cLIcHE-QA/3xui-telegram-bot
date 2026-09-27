@@ -19,6 +19,7 @@ PUBLIC_SURFACES = (
     "config.py",
     "node_admin.py",
     "advanced_users.py",
+    "user_groups_admin.py",
     "catalog_admin.py",
     "business_admin.py",
     "disaster_recovery.py",
