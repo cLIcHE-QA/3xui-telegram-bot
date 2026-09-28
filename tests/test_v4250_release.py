@@ -35,9 +35,10 @@ class V4250ReleaseTests(unittest.TestCase):
 
         for needle in (
             "bounded pagination",
-            "Connections/HWID",
-            "Payments/Activity",
-            "create-user",
+            "📱 Подключения",
+            "💳 Платежи",
+            "🧾 Активность",
+            "➕ Создать пользователя",
             "no-retry mutation boundary",
             "local",
             "VLESS Flow",
