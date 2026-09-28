@@ -23,6 +23,7 @@ class V4240ReleaseContractTests(unittest.TestCase):
             "website_monitoring.admin",
             "website_monitors",
             "website_monitor_watchers",
+            "monitoring_enabled",
             "website_incidents",
             "unknown | up | suspect | down",
             "10 минут",
@@ -35,6 +36,8 @@ class V4240ReleaseContractTests(unittest.TestCase):
             "sitemap documents за одну операцию: не более **10**",
             "URLs из sitemap: не более **5000**",
             "PackBot parity matrix",
+            "⏸ Приостановить / ▶️ Возобновить",
+            "🛡 Все targets",
             "screenshots/headless browser",
         ):
             self.assertIn(needle, section)
