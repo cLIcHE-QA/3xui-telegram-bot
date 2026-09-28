@@ -11,7 +11,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
-from admin_navigation import confirm_delete_keyboard, confirm_sync_all_keyboard
+from admin_navigation import confirm_delete_keyboard
 from inbound_policy import is_managed_inbound as inbound_is_managed
 from audit import audit_from_call, audit_from_message
 from config import load_settings
@@ -268,7 +268,6 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
         ],
         [InlineKeyboardButton(text="✏️ Имя", callback_data=f"admin:u:name:{tg_id}")],
         [InlineKeyboardButton(text="👥 Группы пользователей", callback_data=f"admin:u:audgroups:{tg_id}")],
-        [InlineKeyboardButton(text="🔄 Синхронизировать Inbounds", callback_data=f"adminsync:{tg_id}")],
         [
             InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}"),
             state_button,
