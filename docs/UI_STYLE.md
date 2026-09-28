@@ -202,6 +202,8 @@ Operator-facing термин `membership` в обычных экранах не 
 - экран `🔗 Подписка` предлагает открыть URL, показать URL и сгенерировать QR локально; subscription URL не передаётся внешним QR/shortener сервисам, rotation остаётся отдельной Administrator mutation;
 - VLESS Flow sync находится в `🌐 Доступ → ⚙️ Параметры доступа`, доступен Support+ и не является reconcile/attach/detach операцией;
 - enable/disable пользователя всегда двухшаговые: карточка/`Ещё действия` ведут на confirmation screen, state-changing call выполняется только отдельным run callback, Cancel возвращает в пользователя;
+- bulk selection сохраняет выбранные `telegram_id` в FSM и не использует display name как identity; Plan/Server Group assignment меняют только profile state, а provisioning выполняется отдельно через `🚀 Согласовать`;
+- bulk custom expiry/traffic сначала валидируют bounded input и показывают preview с количеством targets; `+30`, enable/disable/reset/reconcile также имеют отдельный confirmation, а audit summary не содержит список email;
 
 Изменение структуры меню требует проверки соседних переходов, Back/Refresh/Cancel flows и callback routing, а не только нового экрана.
 
