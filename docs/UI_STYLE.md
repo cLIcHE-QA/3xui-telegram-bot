@@ -286,3 +286,11 @@ PR, изменяющий Telegram UI, должен проверять как м�
 - сохранённые старые callbacks этих действий являются только non-mutating redirect в policy-based `Согласование`;
 - массовое автоматическое управление доступом использует `ProvisioningEngine` в safe mode и не заменяется прямым attach всех глобально разрешённых Inbounds;
 - audit массовых операций не должен перечислять email пользователей или subscription credentials без необходимости.
+
+Карточка пользователя использует разделы как устойчивые parent screens:
+
+- `💎 Тариф`, `📅 Срок`, `📊 Трафик`, `🌐 Доступ`, `🔗 Подписка`, `✏️ Профиль` и `⚙️ Ещё действия` открываются отдельными read-only callbacks;
+- read-only role видит состояние, но не получает ложнодоступные mutation-кнопки;
+- `Support` получает обычные lifecycle/configuration actions, `Administrator` — strict reconcile, subscription rotation и delete;
+- `🌐 Доступ` является parent для provisioning, manual Inbounds и параметров доступа;
+- legacy `adminuser:*` открывает ту же role-aware карточку и не создаёт второй navigation contract.
