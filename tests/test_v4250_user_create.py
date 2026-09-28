@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import AsyncMock
 
 from admin_privileges import required_role_for_callback
-from xui import XUIClient
+from xui import DEFAULT_HWID_LIMIT, XUIClient
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +33,21 @@ class V4250UserCreateTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["client"]["email"], "tg_101")
         self.assertEqual(payload["client"]["tgId"], 101)
         self.assertEqual(payload["client"]["subId"], "sub-id")
+        self.assertEqual(payload["client"]["limitHwid"], DEFAULT_HWID_LIMIT)
         self.assertEqual(payload["inboundIds"], [1, 2])
+
+    def test_create_email_not_found_normalizes_production_response(self):
+        source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
+        helper = source.split("async def _email_available", 1)[1].split(
+            "async def _trial_create_values", 1
+        )[0]
+        self.assertIn('message.lower() == "obtain (record not found)"', helper)
+        self.assertIn('message.startswith("Client not found:")', helper)
+
+    def test_create_preview_and_run_use_default_hwid_limit(self):
+        source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
+        self.assertIn('f"HWID limit: {DEFAULT_HWID_LIMIT}"', source)
+        self.assertIn("limit_hwid=DEFAULT_HWID_LIMIT", source)
 
     def test_create_callbacks_require_support(self):
         callbacks = (
