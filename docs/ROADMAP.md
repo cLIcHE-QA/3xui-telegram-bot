@@ -271,7 +271,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ закрыто в `v4.23.3`: базовая интеграция принята в production в `v4.23.1`, findings `v4.23.2` закрыты hotfix-релизом `v4.23.3`; дальнейший Cheburcheck Probe fleet вынесен в «Отложенные инфраструктурные улучшения» и не блокирует следующий feature release.
-18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — 🟡 реализовано для `v4.24.0`; production acceptance ещё не закрыт.
+18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — 🟠 опубликовано в линии `v4.24.x`; targeted hotfix `v4.24.1` опубликован, production acceptance остаётся отдельным незакрытым этапом.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
@@ -622,9 +622,9 @@ Hotfix scope:
 
 ##### v4.24.0 — Мониторинг сайтов и web diagnostics
 
-**Статус: 🟡 Реализовано для `v4.24.0`; production acceptance ещё не закрыт.**
+**Статус: 🟠 Опубликовано в `v4.24.0`; production smoke выявил findings, закрытые кодом в `v4.24.1`, поэтому финальный acceptance линии выполняется на `v4.24.1`.**
 
-Runtime scope завершён: schema v4/v5 website monitoring, native repository/state machine, SSRF-safe outbound boundary, bounded scheduler/incident notifications, watcher-scoped pause/resume, core admin UI, admin-only global target removal и one-off/contextual diagnostics (WHOIS/DNS/HTTP/redirect/CMS/SEO/optional PageSpeed/Sitemap/URL-list/QR) реализованы. Release-prep синхронизирует version/changelog/current docs; критерий окончательного закрытия остаётся production acceptance опубликованного `v4.24.0`.
+Runtime scope завершён и опубликован: schema v4/v5 website monitoring, native repository/state machine, SSRF-safe outbound boundary, bounded scheduler/incident notifications, watcher-scoped pause/resume, core admin UI, admin-only global target removal и one-off/contextual diagnostics (WHOIS/DNS/HTTP/redirect/CMS/SEO/optional PageSpeed/Sitemap/URL-list/QR) реализованы. Production smoke `v4.24.0` выявил три narrowly-scoped finding; они исправлены в опубликованном `v4.24.1`. Окончательное operational closure линии требует targeted production acceptance именно `v4.24.1`.
 
 Цель — нативно перенести полезное поведение `vladpak1/packbot` в текущий Admin Control Plane без встраивания отдельного PHP Telegram bot, MySQL runtime, webhook stack или второй application database.
 
@@ -959,7 +959,7 @@ Production acceptance после deployment:
 
 ##### v4.24.1 — Hotfix diagnostics и IPv6
 
-**Статус: 🟡 Реализовано в `main`; release-prep/publish и production acceptance ещё не закрыты.**
+**Статус: 🟠 Опубликовано в `v4.24.1`; GitHub release/CI закрыты, production acceptance ещё не подтверждён в репозитории.**
 
 Production smoke `v4.24.0` подтвердил корректную работу contextual web diagnostics и навигации, но выявил три narrowly-scoped presentation/diagnostics/validation finding, которые не требуют изменения control-plane architecture:
 
@@ -1034,7 +1034,7 @@ Acceptance hotfix:
 10. contextual `Другой инструмент` / `⬅ Сайт` navigation остаётся без изменений;
 11. финальный `deploy-release.sh --status` подтверждает exact `v4.24.1`, `RestartCount=0`, Health/DB/3x-ui `ok`.
 
-До публикации и production smoke `v4.24.1` три finding считаются реализованными в коде, но operationally открытыми. Targeted hotfix не должен разрастаться в feature scope.
+`v4.24.1` опубликован как exact release commit после успешных `Python checks` и `Publish release`. Три finding закрыты в release-коде; operational closure остаётся открытым до подтверждённого production smoke по acceptance-пунктам выше. Targeted hotfix не должен разрастаться в feature scope.
 
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
