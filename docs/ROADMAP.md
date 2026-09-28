@@ -270,7 +270,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
-17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ выполнено и принято в production в `v4.23.1`; follow-up `v4.23.2` с compact result parity и context-preserving navigation — 🟡 реализован в `main`, release ещё не опубликован.
+17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ базовая интеграция принята в production в `v4.23.1`; `v4.23.2` опубликован и развернут, но production smoke выявил incomplete compact enrichment (`CDN`, domain/IP ASN coverage и regional probe state), поэтому обязательный hotfix `v4.23.3` должен закрыть acceptance до перехода к `v4.24.0`.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
@@ -295,14 +295,15 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 9. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
 10. patch-релизом `v4.23.1` закрыть ASN response-limit acceptance defect;
 11. patch-релизом `v4.23.2` завершить compact result parity и context-preserving navigation Cheburcheck;
-12. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
-13. отдельным релизом `v4.25.0` завершить User Management и рефакторинг карточки пользователя;
-14. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
-15. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-16. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-17. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-18. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-19. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+12. hotfix-релизом `v4.23.3` закрыть production findings `v4.23.2`: explicit CDN negative state, domain/IP ASN enrichment и truthful regional probe availability;
+13. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
+14. отдельным релизом `v4.25.0` завершить User Management и рефакторинг карточки пользователя;
+15. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
+16. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+17. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+18. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+19. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+20. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
@@ -550,7 +551,7 @@ upstream checker/database logic
 
 ##### v4.23.2 — Cheburcheck: расширенный результат и контекстная навигация
 
-**Статус: 🟡 Реализовано в `main`; release `v4.23.2` ещё не опубликован.**
+**Статус: 🟠 `v4.23.2` опубликован и развернут; production smoke выявил incomplete result enrichment, acceptance закрывается обязательным hotfix `v4.23.3`.**
 
 Scope:
 
@@ -596,6 +597,28 @@ Scope:
    - regression tests покрывают все entry points и Back/Repeat/Search transitions.
 
 Цель релиза — улучшить информативность и UX Cheburcheck без изменения его read-only security boundary, provisioning/VPN state или 3x-ui mutations.
+
+##### v4.23.3 — Cheburcheck: hotfix compact result enrichment
+
+**Статус: ⬜ Hotfix в работе; в `main` ещё не слит.**
+
+Production smoke `v4.23.2` подтвердил сам compact layout и navigation, но выявил три presentation/data gaps:
+
+1. пустой `cdn_providers` выводился как неизвестное `—`, хотя reviewed upstream однозначно означает «CDN не найден»;
+2. для domain/public-IP upstream возвращает ASN в `geo.asn`, но `asn_info` заполняет только при target вида `AS12345`, поэтому ожидаемая строка `blocked / total` оставалась пустой;
+3. minimal self-hosted runtime без active Probe reporters возвращает нулевую regional availability, а UI маскировал её нейтральным `—`.
+
+Hotfix scope:
+
+- empty CDN result показывается как `🟢 не найден`;
+- domain/public-IP с валидным `geo.asn` выполняет один дополнительный bounded read-only check по этому ASN и использует только counts `blocked_prefixes / prefixes`; failure enrichment не меняет основной verdict;
+- regional SSE сохраняет `started.online_probes` и различает агрегированные ответы, отсутствие active scanners, отсутствие ответов при online scanners и upstream/transport unavailable;
+- subnet/ASN regional probe остаётся неприменимым и не запускается;
+- никакие regional results не эмулируются и не подменяются static API данными;
+- SQLite schema, 3x-ui/OpenAPI contract, provisioning/VPN mutations, Host Control, Deploy Agent и pinned Cheburcheck revision не меняются;
+- изменение bot-only и не требует rebuild существующего Cheburcheck runtime; отдельное развёртывание probe fleet остаётся отдельной infrastructure задачей.
+
+Acceptance `v4.23.3` должен подтвердить на production domain target: explicit CDN negative/positive state, заполненный ASN coverage при доступном `geo.asn` и честную regional status строку; после smoke повторяется базовый `deploy-release.sh --status`.
 
 ##### PackBot-compatible monitoring и diagnostics
 
