@@ -130,13 +130,16 @@ class XUIClient(VersionAPIMixin):
         timeout = aiohttp.ClientTimeout(total=20)
         try:
             async with aiohttp.ClientSession(timeout=timeout) as session:
+                request_kwargs: dict[str, Any] = {}
+                if json_payload is not None:
+                    request_kwargs["json"] = json_payload
                 async with session.request(
                     method,
                     f"{self.base_url}{path}",
                     headers=headers,
                     ssl=None if self.verify_tls else False,
                     allow_redirects=False,
-                    json=json_payload,
+                    **request_kwargs,
                 ) as resp:
                     text = await resp.text()
                     try:
