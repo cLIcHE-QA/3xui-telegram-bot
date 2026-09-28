@@ -118,7 +118,7 @@ Reviewed upstream response содержит как минимум:
 
 📋 Списки
 РКН: 🟢 не найден
-CDN: Cloudflare · 3 сетей
+CDN: Cloudflare · 3 сети
 Исключение CDN: —
 ASN: 2 / 184 подсетей в списках
 
