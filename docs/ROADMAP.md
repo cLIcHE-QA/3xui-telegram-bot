@@ -957,6 +957,86 @@ Production acceptance после deployment:
 Критерий закрытия `v4.24.0`: website monitoring и обязательные diagnostics работают через единый safe outbound boundary, incidents/alerts переживают restart без replay, а PackBot attribution и parity matrix соответствуют reviewed revision.
 
 
+##### v4.24.1 — Hotfix WHOIS MSK и Cheburcheck diagnostic detail
+
+**Статус: ⬜ Запланировано как targeted hotfix после production findings `v4.24.0`.**
+
+Production smoke `v4.24.0` подтвердил корректную работу contextual web diagnostics и навигации, но выявил три narrowly-scoped presentation/diagnostics/validation finding, которые не требуют изменения control-plane architecture:
+
+1. WHOIS/RDAP absolute timestamps выводятся в raw RFC3339/UTC (`...Z`) вместо канонического operator-facing MSK.
+2. Compact Cheburcheck card, введённая в `v4.23.2`, оказалась слишком агрессивно сокращена: backend продолжает получать/нормализовать IP, reverse DNS и дополнительные static check fields, но часть полезной operational detail намеренно перестала отображаться в Telegram card.
+3. Website monitoring URL validation безопасно отклоняет `http://[::1]/`, но делает это через domain-name syntax branch до `ipaddress.ip_address()`. В результате блокируется не только loopback/non-global IPv6, но и любой public IPv6 literal, хотя downstream canonical URL logic уже поддерживает bracketed IPv6.
+
+Scope `v4.24.1`:
+
+**WHOIS/RDAP presentation**
+
+- нормализовать `created_at` / `expires_at` RDAP timestamps в единый presentation helper;
+- показывать absolute date/time в формате `DD.MM.YYYY HH:MM MSK` согласно `docs/UI_STYLE.md`;
+- machine/RDAP timestamps не изменять и не сохранять в локальном времени;
+- `Возраст: N дн` продолжает вычисляться от UTC instant и не зависит от presentation timezone;
+- invalid/missing upstream timestamp остаётся `—`, без guess/parsing fallback;
+- покрыть regression tests для `Z`, explicit offset и date rollover при переводе в MSK.
+
+**Cheburcheck compact card detail**
+
+Вернуть в основную карточку только нормализованные bounded static-check значения, которые реально присутствуют в upstream result:
+
+- `IP` — resolved IP addresses для domain target; для direct IP target не дублировать очевидное значение без UX-пользы;
+- `Reverse DNS` — только фактически полученные PTR/reverse lookup values;
+- `Заблокированные подсети` — bounded summary фактически возвращённых subnet entries;
+- `Домен из реестра` / `rkn_domain` — только когда upstream поле присутствует;
+- `Размер подсети` / `subnet_size` — только когда применимо и поле присутствует;
+- существующие `Сеть`, `РКН`, `CDN`, `Исключение CDN`, `ASN` и агрегированная строка `🌍 Регионы` сохраняются.
+
+Output bounds:
+
+- IP и Reverse DNS: показывать не более **5** значений каждого типа, затем `… ещё N`;
+- blocked subnets: показывать не более **5** значений, затем `… ещё N`;
+- строки/labels экранируются и ограничиваются по длине; raw upstream JSON/SSE payload в Telegram не выводится;
+- отсутствие optional значения отображается только там, где поле является частью канонической карточки; не создавать длинные секции из сплошных `—`.
+
+Regional probe boundary остаётся прежним:
+
+- **не возвращать raw probe payload** в основную карточку;
+- `🌍 Регионы` остаётся compact aggregate (`N ответов · 🟢 / 🔴 / 🟡`) либо честным состоянием `нет активных региональных сканеров / нет ответов / unavailable / not applicable`;
+- если позже понадобится per-region drill-down, это отдельный bounded `🌍 Детали регионов` workflow, а не dump JSON/SSE в основной result.
+
+
+**Website monitoring IPv6 literal validation**
+
+- распознавать literal IPv4/IPv6 через `ipaddress.ip_address()` **до** domain/IDNA hostname validation;
+- public IPv6 literal разрешать при тех же `http/https` и standard-port правилах, что public IPv4;
+- canonical URL сохраняет обязательные brackets для IPv6 host (`https://[2001:4860:4860::8888]/`);
+- loopback (`::1`), link-local, private/non-global, multicast, reserved и unspecified IPv6 отклонять тем же `unsafe_target` policy, что IPv4;
+- пользовательский текст для `::1` и других non-public literals должен быть `Локальные, служебные и непубличные адреса запрещены.`, а не domain-syntax error;
+- DNS hostname path и DNS-rebinding protection не ослабляются: A/AAAA answers по-прежнему проверяются на global address до connect;
+- добавить regression: positive public IPv6 literal + negative `::1`, link-local и non-global IPv6.
+
+Scope guard:
+
+- не менять Cheburcheck static/probe transport limits, timeouts, redirect policy или pinned upstream revision;
+- не менять DNS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/QR semantics;
+- кроме исправления ordering IPv6-literal validation не менять safe outbound transport semantics, redirect/DNS-rebinding policy, website monitoring state machine, SQLite schema, navigation/RBAC contract, Host Control, Deploy Agent или 3x-ui/OpenAPI;
+- `v4.24.1` остаётся presentation/read-only diagnostics hotfix.
+
+Acceptance hotfix:
+
+1. WHOIS на controlled domain показывает creation/expiration в `DD.MM.YYYY HH:MM MSK`;
+2. UTC → MSK conversion проверяется на значении, которое переходит на следующий календарный день;
+3. возраст домена остаётся тем же, что до hotfix;
+4. Cheburcheck domain result снова показывает bounded `IP` и доступный `Reverse DNS`;
+5. при наличии upstream blocked subnets / `rkn_domain` / `subnet_size` эти значения отображаются без raw payload и без unbounded output;
+6. domain с >5 IP/PTR/subnet entries показывает первые 5 и `… ещё N`;
+7. regional result остаётся агрегированным; raw probe JSON/SSE в карточке отсутствует;
+8. public IPv6 literal canonicalize/add проходит при global address, а `::1`/link-local/non-global IPv6 отклоняются как unsafe target до outbound connect;
+9. bracketed IPv6 сохраняется в canonical URL и не ломает standard-port enforcement;
+10. contextual `Другой инструмент` / `⬅ Сайт` navigation остаётся без изменений;
+11. финальный `deploy-release.sh --status` подтверждает exact `v4.24.1`, `RestartCount=0`, Health/DB/3x-ui `ok`.
+
+До публикации `v4.24.1` production acceptance `v4.24.0` продолжается по остальным пунктам. Все три finding считаются открытыми до targeted hotfix и не должны разрастаться в feature scope.
+
+
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
 
 **Статус: ⬜ Запланировано на `v4.25.0`.**
