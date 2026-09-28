@@ -3497,6 +3497,158 @@ async def bulk_close(call: CallbackQuery, state: FSMContext):
     await call.answer()
 
 
+async def _bulk_result(
+    call: CallbackQuery,
+    state: FSMContext,
+    *,
+    action: str,
+    ok: int,
+    failed: dict[int, str],
+    summary: str,
+) -> None:
+    details = f"ok={ok}; failed={len(failed)}"
+    await audit_from_call(
+        db,
+        call,
+        f"users.bulk.{action}",
+        target_type="users",
+        target_id=str(ok + len(failed)),
+        details=details,
+        success=not failed,
+    )
+    status = "✅" if not failed else "⚠️"
+    await render_callback(
+        call,
+        f"{status} {summary}\n\nУспешно: {ok}\nОшибок: {len(failed)}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+            [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+        ]),
+    )
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data.regexp(r"^admin:bulk:runplan:\d+$"))
+async def bulk_run_plan(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
+    records = await _bulk_records(state)
+    if not plan or not plan.active or not records:
+        await call.answer("Тариф или выбранные пользователи недоступны.", show_alert=True)
+        return
+    ok = 0
+    failed: dict[int, str] = {}
+    for rec in records:
+        try:
+            await db.set_user_plan(rec.telegram_id, plan.id)
+            ok += 1
+        except Exception as exc:
+            failed[rec.telegram_id] = type(exc).__name__
+    await _bulk_result(
+        call,
+        state,
+        action="plan",
+        ok=ok,
+        failed=failed,
+        summary=f"Тариф «{plan.name}» назначен. Remote access не изменялся.",
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data.regexp(r"^admin:bulk:rungroup:\d+$"))
+async def bulk_run_group(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    group_id = int(call.data.rsplit(":", 1)[-1])
+    group = await db.get_server_group(group_id)
+    records = await _bulk_records(state)
+    if not group or not records:
+        await call.answer("Группа или выбранные пользователи недоступны.", show_alert=True)
+        return
+    ok = 0
+    failed: dict[int, str] = {}
+    for rec in records:
+        try:
+            await db.set_user_server_group(rec.telegram_id, group.id)
+            ok += 1
+        except Exception as exc:
+            failed[rec.telegram_id] = type(exc).__name__
+    await _bulk_result(
+        call,
+        state,
+        action="group",
+        ok=ok,
+        failed=failed,
+        summary=f"Группа «{group.name}» назначена. Remote access не изменялся.",
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:runexpiry")
+async def bulk_run_expiry(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    value = data.get("bulk_expiry")
+    records = await _bulk_records(state)
+    if value is None or not records:
+        await call.answer("Нет подготовленного срока или выбранных пользователей.", show_alert=True)
+        return
+    expiry = int(value)
+    ok = 0
+    failed: dict[int, str] = {}
+    for rec in records:
+        try:
+            await xui.update_client(rec.email, expiryTime=expiry)
+            await db.update_expiry(rec.telegram_id, expiry)
+            ok += 1
+        except Exception as exc:
+            failed[rec.telegram_id] = type(exc).__name__
+    await state.update_data(bulk_expiry=None)
+    await _bulk_result(
+        call,
+        state,
+        action="expiry",
+        ok=ok,
+        failed=failed,
+        summary=f"Срок установлен: {fmt_date(expiry)}.",
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:runtraffic")
+async def bulk_run_traffic(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    value = data.get("bulk_traffic_bytes")
+    records = await _bulk_records(state)
+    if value is None or not records:
+        await call.answer("Нет подготовленного лимита или выбранных пользователей.", show_alert=True)
+        return
+    total_bytes = int(value)
+    ok = 0
+    failed: dict[int, str] = {}
+    for rec in records:
+        try:
+            await xui.update_client(rec.email, totalGB=total_bytes)
+            ok += 1
+        except Exception as exc:
+            failed[rec.telegram_id] = type(exc).__name__
+    await state.update_data(bulk_traffic_bytes=None)
+    label = human_bytes(total_bytes) if total_bytes else "без лимита"
+    await _bulk_result(
+        call,
+        state,
+        action="traffic",
+        ok=ok,
+        failed=failed,
+        summary=f"Лимит трафика установлен: {label}.",
+    )
+    await call.answer()
+
+
 @advanced_users_router.callback_query(BulkUserStates.selecting, F.data.startswith("admin:bulk:run:"))
 async def bulk_run(call: CallbackQuery, state: FSMContext):
     if not await guard(call, minimum="support"):
