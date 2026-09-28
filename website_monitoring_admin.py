@@ -67,6 +67,7 @@ def _relative_time(timestamp: int) -> str:
 def _home_keyboard(role: str | None) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = [
         [InlineKeyboardButton(text="📋 Сайты", callback_data="admin:webmon:list")],
+        [InlineKeyboardButton(text="🔎 Разовая диагностика", callback_data="admin:webdiag")],
     ]
     if _role_at_least(role, "support"):
         rows.append([
