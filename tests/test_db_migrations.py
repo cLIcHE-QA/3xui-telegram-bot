@@ -30,7 +30,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (3, "user_audience_groups_v4_22_0", "success"))
+                self.assertEqual(row, (4, "website_monitoring_v4_24_0", "success"))
                 columns = [
                     item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
                 ]
@@ -111,6 +111,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (1, "baseline_v4_14_2", "success"),
                         (2, "user_display_name_v4_21_0", "success"),
                         (3, "user_audience_groups_v4_22_0", "success"),
+                        (4, "website_monitoring_v4_24_0", "success"),
                     ],
                 )
 
@@ -151,7 +152,49 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (1, "baseline_v4_14_2", "success"),
                         (2, "user_display_name_v4_21_0", "success"),
                         (3, "user_audience_groups_v4_22_0", "success"),
+                        (4, "website_monitoring_v4_24_0", "success"),
                     ],
+                )
+
+    async def test_schema_v3_upgrades_to_website_monitoring_without_data_loss(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bot.sqlite3"
+            await run_migrations(str(path), migrations=MIGRATIONS[:3])
+            with sqlite3.connect(path) as conn:
+                conn.execute(
+                    "INSERT INTO users(telegram_id, email, sub_id, expiry_time, created_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (404, "keep@example.com", "keep-sub", 0, 123),
+                )
+                conn.commit()
+
+            await Database(str(path)).init()
+
+            with sqlite3.connect(path) as conn:
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT telegram_id, email FROM users WHERE telegram_id = 404"
+                    ).fetchone(),
+                    (404, "keep@example.com"),
+                )
+                tables = {
+                    row[0]
+                    for row in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    ).fetchall()
+                }
+                for table in (
+                    "website_monitors",
+                    "website_monitor_watchers",
+                    "website_incidents",
+                    "website_incident_notifications",
+                ):
+                    self.assertIn(table, tables)
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
+                    ).fetchone(),
+                    (4, "website_monitoring_v4_24_0", "success"),
                 )
 
     async def test_newer_schema_version_blocks_startup(self):
