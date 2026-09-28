@@ -37,6 +37,7 @@ class CdnProviderSummary:
 
 @dataclass(frozen=True)
 class ProbeSummary:
+    online_probes: int
     response_count: int
     green: int
     red: int
@@ -304,14 +305,36 @@ class CheburcheckClient:
             raise CheburcheckError("Cheburcheck вернул некорректный JSON.", code="invalid_response") from exc
         return parse_response(data)
 
+    async def asn_summary(
+        self,
+        result: CheburcheckResult,
+    ) -> tuple[int, int] | None:
+        if result.asn_prefix_count > 0:
+            return result.asn_blocked_prefix_count, result.asn_prefix_count
+
+        asn_target = result.asn.strip().upper()
+        if not re.fullmatch(r"AS[1-9][0-9]{0,9}", asn_target):
+            return None
+        if result.target.strip().upper() == asn_target:
+            return None
+
+        asn_result = await self.check(asn_target)
+        if asn_result.asn_prefix_count <= 0:
+            return None
+        return (
+            asn_result.asn_blocked_prefix_count,
+            asn_result.asn_prefix_count,
+        )
+
     async def probe_summary(self, result: CheburcheckResult) -> ProbeSummary | None:
         if not result.check_id:
             return None
         target = result.target.strip()
-        if not target or "/" in target or target.upper().startswith("AS"):
+        if not target or "/" in target or re.fullmatch(r"AS[1-9][0-9]{0,9}", target.upper()):
             return None
 
         timeout = aiohttp.ClientTimeout(total=12, connect=3, sock_read=10)
+        online_probes: int | None = None
         response_count = 0
         green = 0
         red = 0
@@ -363,7 +386,7 @@ class CheburcheckClient:
                                 ) from exc
 
                             if not line:
-                                if event_name == "result" and data_lines:
+                                if event_name and data_lines:
                                     try:
                                         payload = json.loads("\n".join(data_lines))
                                     except json.JSONDecodeError as exc:
@@ -372,17 +395,38 @@ class CheburcheckClient:
                                             code="invalid_response",
                                         ) from exc
                                     if isinstance(payload, dict):
-                                        response_count += 1
-                                        bucket = _probe_bucket(
-                                            payload,
-                                            is_static_cdn=bool(result.cdn_providers),
-                                        )
-                                        if bucket == "green":
-                                            green += 1
-                                        elif bucket == "red":
-                                            red += 1
-                                        else:
-                                            yellow += 1
+                                        if event_name == "started":
+                                            try:
+                                                online_probes = max(
+                                                    0,
+                                                    int(payload.get("online_probes") or 0),
+                                                )
+                                            except (TypeError, ValueError):
+                                                online_probes = 0
+                                        elif event_name == "result":
+                                            response_count += 1
+                                            bucket = _probe_bucket(
+                                                payload,
+                                                is_static_cdn=bool(result.cdn_providers),
+                                            )
+                                            if bucket == "green":
+                                                green += 1
+                                            elif bucket == "red":
+                                                red += 1
+                                            else:
+                                                yellow += 1
+                                        elif event_name == "done":
+                                            try:
+                                                online_probes = max(
+                                                    0,
+                                                    int(
+                                                        payload.get("online_probes")
+                                                        if payload.get("online_probes") is not None
+                                                        else online_probes or 0
+                                                    ),
+                                                )
+                                            except (TypeError, ValueError):
+                                                pass
                                 event_name = ""
                                 data_lines = []
                                 continue
@@ -399,9 +443,10 @@ class CheburcheckClient:
                     code="unavailable",
                 ) from exc
 
-        if response_count == 0:
+        if online_probes is None and response_count == 0:
             return None
         return ProbeSummary(
+            online_probes=max(0, int(online_probes or 0)),
             response_count=response_count,
             green=green,
             red=red,

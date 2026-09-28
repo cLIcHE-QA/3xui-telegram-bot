@@ -83,7 +83,9 @@ Bot client:
 - ограничивает `/api/v1/check` response body 1 MiB;
 - regional SSE `/api/v1/probe/{id}` использует только `id`, полученный из успешного check response, total/connect/read timeouts 12/3/10 s и отдельный hard limit 256 KiB;
 - subnet/ASN не запускают regional probe, потому что reviewed upstream endpoint их не принимает;
-- ошибка/недоступность regional probe не превращает уже успешный static check в ошибку: Telegram показывает `🌍 Регионы: —`;
+- для domain/public-IP static result с валидным `geo.asn` bot может выполнить один дополнительный bounded read-only `GET /api/v1/check?target=AS...` и использовать только counts `asn_info.prefixes` / `blocked_prefixes`; основной verdict не зависит от успеха этого enrichment;
+- ошибка/недоступность ASN enrichment или regional probe не превращает уже успешный static check в ошибку;
+- regional SSE `started.online_probes` сохраняется в summary: `0` отображается как `⚪ нет активных региональных сканеров`, online probes без ответов — как отдельное `🟡 нет ответов`, transport/upstream failure — как `🟡 региональная проверка недоступна`, а subnet/ASN сохраняют `—` как неприменимый probe;
 - ограничивает concurrent requests;
 - имеет per-admin cooldown;
 - различает rate limit, rejected/not-found target, unavailable service и malformed response.
@@ -105,7 +107,9 @@ Reviewed upstream response содержит как минимум:
 - optional `rkn_domain`, `asn_info`, `whitelist`, `subnet_size`;
 - `complaints`.
 
-Для domain/public-IP check response `id` может использоваться только для последующего `GET /api/v1/probe/{id}`. Regional SSE results агрегируются в три operator buckets: `🟢` доступно, `🔴` блокирующий verdict/CDN block, `🟡` whitelist/uncertain. В основной карточке не выводятся individual probe/region payloads.
+Для domain/public-IP check response `id` может использоваться только для последующего `GET /api/v1/probe/{id}`. Regional SSE results агрегируются в три operator buckets: `🟢` доступно, `🔴` блокирующий verdict/CDN block, `🟡` whitelist/uncertain. `started.online_probes` используется только для честного operator status и не превращается в выдуманные региональные результаты. В основной карточке не выводятся individual probe/region payloads.
+
+Reviewed upstream заполняет `asn_info` только когда target сам является ASN. Поэтому для domain/public-IP строка `ASN: blocked / total` получается отдельным read-only check по уже возвращённому `geo.asn`; если этот follow-up не удался, основной static result всё равно показывается. Пустой `cdn_providers` является фактическим результатом «CDN не найден» и отображается как `🟢 не найден`, а не как неизвестное значение.
 
 Канонический compact result:
 
@@ -128,6 +132,8 @@ ASN: 2 / 184 подсетей в списках
 ~~~
 
 Bot показывает только bounded operational summary и не копирует полный raw payload в UI, audit или logs.
+
+Если self-hosted runtime не имеет зарегистрированных/online Cheburcheck Probe reporters, static list/ASN checks продолжают работать, но Telegram явно показывает `🌍 Регионы: ⚪ нет активных региональных сканеров`. Bot hotfix не создаёт собственные regional probes и не эмулирует их данными static API.
 
 ## v4.23.1 production note
 
