@@ -836,6 +836,44 @@ class Database:
             row = await cur.fetchone()
             return int(row[0] if row else 0)
 
+    async def list_user_payments(
+        self, telegram_id: int, *, limit: int = 20, offset: int = 0
+    ) -> list[PaymentRecord]:
+        limit = max(1, min(100, int(limit)))
+        offset = max(0, int(offset))
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM payments
+                WHERE telegram_id = ?
+                ORDER BY id DESC
+                LIMIT ? OFFSET ?
+                """,
+                (int(telegram_id), limit, offset),
+            )
+            rows = await cur.fetchall()
+            return [PaymentRecord(**dict(r)) for r in rows]
+
+    async def count_user_payments(self, telegram_id: int) -> int:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                "SELECT COUNT(*) FROM payments WHERE telegram_id = ?",
+                (int(telegram_id),),
+            )
+            row = await cur.fetchone()
+            return int(row[0] if row else 0)
+
+    async def get_user_payment(self, telegram_id: int, payment_id: int) -> PaymentRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM payments WHERE id = ? AND telegram_id = ?",
+                (int(payment_id), int(telegram_id)),
+            )
+            row = await cur.fetchone()
+            return PaymentRecord(**dict(row)) if row else None
+
     async def get_payment(self, payment_id: int) -> PaymentRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
@@ -1151,6 +1189,30 @@ class Database:
             )
             row = await cur.fetchone()
             return AuditRecord(**dict(row)) if row else None
+
+    async def list_user_audit(
+        self,
+        telegram_id: int,
+        email: str,
+        *,
+        limit: int = 30,
+        offset: int = 0,
+    ) -> list[AuditRecord]:
+        limit = max(1, min(100, int(limit)))
+        offset = max(0, int(offset))
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM audit_log
+                WHERE target_type = 'user' AND target_id IN (?, ?)
+                ORDER BY id DESC
+                LIMIT ? OFFSET ?
+                """,
+                (str(email), str(int(telegram_id)), limit, offset),
+            )
+            rows = await cur.fetchall()
+            return [AuditRecord(**dict(r)) for r in rows]
 
     async def count_audit(self) -> int:
         async with aiosqlite.connect(self.path) as db:
