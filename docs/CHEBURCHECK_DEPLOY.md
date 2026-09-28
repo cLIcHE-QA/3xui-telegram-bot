@@ -272,7 +272,7 @@ docker compose ps bot
 11. восстанови endpoint и повтори запрос;
 12. повтори base `deploy-release.sh --status`.
 
-Для v4.23.1 bot response body hard limit — 1 MiB. Он остаётся bounded вместе с concurrency/timeouts, но пропускает нормальные ASN responses, которые могут превышать 256 KiB.
+Для линии v4.23.x bot static response body hard limit — 1 MiB. Он остаётся bounded вместе с concurrency/timeouts, но пропускает нормальные ASN responses, которые могут превышать 256 KiB.
 
 ### Принятый production результат v4.23.1
 
@@ -310,7 +310,7 @@ sudo docker compose stop cheburcheck postgres
 
 Bot release и Cheburcheck upstream обновляются независимо.
 
-- v4.23.1 не требует rebuild Cheburcheck runtime, если pinned service уже healthy;
+- v4.23.2 не требует rebuild Cheburcheck runtime, если pinned service уже healthy;
 - bot update выполняется обычным release deployment;
 - upstream commit не меняется автоматически;
 - смена PostgreSQL major/version или upstream revision требует отдельного review migrations и recovery plan;
