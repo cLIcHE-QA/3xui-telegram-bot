@@ -1,4 +1,4 @@
-"""Release-prep contract for v4.25.0."""
+"""Published release contract for v4.25.0."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -47,10 +47,14 @@ class V4250ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_roadmap_marks_release_prep_without_claiming_acceptance(self):
+    def test_roadmap_marks_published_release_without_claiming_acceptance(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "release-prep `v4.25.0` подготовлен, publish и production acceptance ещё не выполнены",
+            "🟠 Опубликовано в `v4.25.0`; production acceptance ещё не выполнен.",
+            roadmap,
+        )
+        self.assertIn(
+            "GitHub release/CI завершены; следующий этап — deployment и production smoke/acceptance",
             roadmap,
         )
         self.assertNotIn(
