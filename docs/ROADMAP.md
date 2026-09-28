@@ -2169,6 +2169,56 @@ Findings блокируют закрытие production acceptance `v4.25.0` д�
 - acceptance считается пройденным только после проверки хотя бы одного реального HWID-capable клиента через публичный compat URL, а не только synthetic direct-upstream `curl`.
 
 
+##### v4.25.1 — User Management stabilization / HWID completion
+
+**Статус: ⬜ Запланировано как hotfix/stabilization release перед закрытием production acceptance линии `v4.25`.**
+
+`v4.25.0` остаётся опубликованным baseline. Все production-acceptance blockers и незавершённые HWID operational flows исправляются в одном patch-релизе `v4.25.1`, после чего выполняется повторный acceptance только затронутых сценариев. `v4.26.0` по-прежнему остаётся Node Drain и не поглощает эти исправления.
+
+Объём `v4.25.1`:
+
+- удалить shortcut `⏳ Продлить` из главной карточки пользователя для всех ролей; канонический путь остаётся `📅 Срок → ➕ +30 дней`, stale `adminextend:{telegram_id}` остаётся backend-compatible;
+- исправить `Пользователь → 🔗 Подписка → Показать URL`: Back обязан возвращать в `🔗 Подписка`;
+- исправить `Пользователь → 💳 Платежи → 📋 Все платежи`: user-scoped context не должен теряться и Back не должен уводить в admin home;
+- исправить create-user email availability: production response `Obtain (record not found)` нормализуется как штатный not-found / «email свободен», остальные XUI errors остаются fail-closed;
+- исправить compat subscription proxy: для normal VPN-client request проксировать reviewed `X-HWID` и device metadata headers к upstream 3x-ui, не логировать их значения и не ослаблять фильтрацию остальных headers;
+- добавить явный HWID limit при создании клиента: новые пользователи создаются с `limitHwid=5` по умолчанию;
+- существующих пользователей автоматически массово на `5` не переводить;
+- добавить per-user HWID limit в `🌐 Доступ → ⚙️ Параметры доступа` и summary в `📱 Подключения`;
+- Read-only видит текущее значение HWID limit, но не получает mutation control;
+- Support+ получает `📱 Изменить HWID limit` с bounded FSM input и явной семантикой `0 = HWID limit отключён`;
+- изменение HWID limit выполняется через существующий `XUIClient.update_client(..., limitHwid=value)` и после success возвращает в `⚙️ Параметры доступа`;
+- Plan apply, safe reconcile и strict reconcile не меняют индивидуальный `limitHwid`; HWID limit в этом patch-релизе остаётся per-user override и не добавляется в Plan schema;
+- create-user preview показывает итоговый `HWID limit: 5` до подтверждения;
+- обычные update-client операции обязаны сохранять существующий `limitHwid`, если операция явно его не меняет.
+
+Минимальные regression tests `v4.25.1`:
+
+1. новый клиент получает `limitHwid=5`;
+2. manual change `5 → 2` и `2 → 0`;
+3. Read-only видит значение без edit button, Support+ видит mutation control;
+4. Plan apply / safe reconcile / strict reconcile не меняют индивидуальный HWID limit;
+5. другие `update_client()` mutations не обнуляют `limitHwid`;
+6. create-user availability принимает фактический `Obtain (record not found)` как not-found и покрывает default/custom email paths;
+7. compat proxy передаёт reviewed HWID/device headers upstream и не пишет их значения в logs;
+8. subscription `Показать URL` возвращает в `🔗 Подписка`;
+9. user-scoped payments сохраняют user context и корректный Back;
+10. главная карточка больше не показывает `⏳ Продлить`.
+
+Повторный production acceptance `v4.25.1`:
+
+- повторить затронутые navigation/RBAC/back-chain cases;
+- повторить create-user test 17 целиком до успешного создания контролируемого test user;
+- выполнить отдельный real-device HWID acceptance, описанный выше, через публичный `/compat/{sub_id}`;
+- проверить default `HWID limit = 5` на новом пользователе и ручное изменение через Telegram UI;
+- подтвердить, что Plan apply/reconcile не перезаписывают индивидуальный HWID limit;
+- повторить HWID delete two-step с реальным или контролируемым test-device;
+- выполнить final bot/DB/3x-ui health smoke.
+
+Линия `v4.25` считается production-accepted только после публикации `v4.25.1` и прохождения этого re-acceptance; после этого roadmap переходит к `v4.26.0`.
+
+
+
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
 
 **Статус: ⬜ Запланировано на `v4.26.0`.**
