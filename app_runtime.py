@@ -26,6 +26,7 @@ from runtime_jobs import backup_lock
 from logs_alerts import logs_alerts_router, alert_monitor_loop
 from cheburcheck_admin import cheburcheck_router
 from website_monitoring_admin import website_monitoring_router
+from website_diagnostics_admin import website_diagnostics_router
 from website_monitoring_runtime import website_monitoring_loop
 from logging_setup import configure_logging
 from disaster_recovery import disaster_recovery_router, send_boot_restore_notice
@@ -200,6 +201,7 @@ async def main():
     dp.include_router(logs_alerts_router)
     dp.include_router(cheburcheck_router)
     dp.include_router(website_monitoring_router)
+    dp.include_router(website_diagnostics_router)
     dp.include_router(disaster_recovery_router)
     dp.include_router(business_router)
     backup_task = (
