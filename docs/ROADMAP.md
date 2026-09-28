@@ -622,7 +622,9 @@ Hotfix scope:
 
 ##### v4.24.0 — Мониторинг сайтов и web diagnostics
 
-**Статус: ⬜ Запланировано на `v4.24.0`.**
+**Статус: ⬜ Запланировано на `v4.24.0`; foundation implementation начата, полный release scope ещё не завершён.**
+
+Текущий partial progress в feature cycle: schema v4 `website_monitoring_v4_24_0`, native repository/state-machine foundation и единый SSRF-safe outbound HTTP client. Telegram UI, background scheduler/alerts delivery и diagnostics surface остаются незавершёнными, поэтому статус не повышается до `🟡`.
 
 Цель — нативно перенести полезное поведение `vladpak1/packbot` в текущий Admin Control Plane без встраивания отдельного PHP Telegram bot, MySQL runtime, webhook stack или второй application database.
 
