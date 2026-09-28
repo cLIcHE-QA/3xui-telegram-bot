@@ -294,3 +294,7 @@ PR, изменяющий Telegram UI, должен проверять как м�
 - `Support` получает обычные lifecycle/configuration actions, `Administrator` — strict reconcile, subscription rotation и delete;
 - `🌐 Доступ` является parent для provisioning, manual Inbounds и параметров доступа;
 - legacy `adminuser:*` открывает ту же role-aware карточку и не создаёт второй navigation contract.
+- `📱 Подключения` различает online/session/IP data и зарегистрированные HWID devices; IP никогда не называется физическим устройством без HWID identity;
+- список HWID показывает только bounded upstream metadata/short fingerprint; удаление одного device — двухшаговое и доступно Support+;
+- read-only карточка устройства не показывает mutation-кнопку; uncertain DELETE outcome не повторяется автоматически, а оператору предлагается обновить список;
+- IP view не создаёт локальный бессрочный history ledger и не пишет IP values в audit только ради просмотра.
