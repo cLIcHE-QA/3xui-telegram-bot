@@ -121,6 +121,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:u:plan:", "admin:u:planset:", "admin:u:planapplyask:", "admin:u:planapplyrun:",
         "admin:u:group:", "admin:u:groupset:", "admin:u:planprovask:", "admin:u:planprovrun:",
         "admin:u:ibtoggle:", "admin:u:resetask:", "admin:u:resetrun:",
+        "admin:u:devdelask:", "admin:u:devdel:",
         "admin:bulk:toggle:", "admin:bulk:run:",
     )
     + _rules(
@@ -132,12 +133,15 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     )
     + _rules("users.view", "exact", "admin:bulk:noop")
     + _rules("users.view", "regex", r"^admin:u:\d+$")
+    + _rules("users.view", "regex", r"^admin:u:device:\d+:\d+$")
+    + _rules("users.support", "regex", r"^admin:u:devdelask:\d+:\d+$", r"^admin:u:devdel:\d+:\d+$")
     + _rules(
         "users.view",
         "prefix",
         "admin:u:prov:", "admin:u:inbounds:", "admin:u:planview:", "admin:u:expiryview:",
         "admin:u:trafficview:", "admin:u:access:", "admin:u:accesscfg:", "admin:u:subview:",
-        "admin:u:profile:", "admin:u:more:",
+        "admin:u:profile:", "admin:u:more:", "admin:u:connections:", "admin:u:devices:",
+        "admin:u:device:", "admin:u:ips:",
     )
     + _rules(
         "users.admin",

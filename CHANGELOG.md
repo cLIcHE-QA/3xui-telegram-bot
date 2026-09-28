@@ -14,6 +14,9 @@
 - Audit bulk operations больше не перечисляет email выбранных пользователей; SQLite schema, 3x-ui/OpenAPI contract и subscription identity на этом foundation-срезе не меняются.
 - Карточка пользователя переведена на устойчивые parent sections `Тариф / Срок / Трафик / Доступ / Подписка / Профиль / Ещё действия`; summary routes доступны Read-only, а mutation controls отображаются только для соответствующей роли.
 - `🌐 Доступ` объединяет Server Group, policy-based reconcile, manual Inbounds и access parameters; legacy `adminuser:*` продолжает открывать ту же каноническую role-aware карточку.
+- Добавлен `📱 Подключения`: online/last-online/IP limit summary, отдельные `📱 Устройства` по HWID и `🌐 IP-адреса` без подмены session/IP данными device identity.
+- Pinned 3x-ui API surface расширен тремя reviewed endpoints текущей schema `v3.8.5`: `POST /clients/ips/{email}`, `POST /clients/hwids/{email}`, `DELETE /clients/hwids/{email}/{id}`; manifest теперь покрывает 54 используемых endpoint.
+- Удаление одного HWID device выполняется только после отдельного confirmation; DELETE использует no-retry mutation semantics, а uncertain outcome отображается как неизвестный и проверяется read-only обновлением списка.
 
 ## v4.24.1 — Hotfix web diagnostics и IPv6
 - WHOIS/RDAP absolute timestamps в Telegram теперь нормализуются в `DD.MM.YYYY HH:MM MSK`; machine/RDAP instants остаются UTC, а возраст домена рассчитывается как раньше.

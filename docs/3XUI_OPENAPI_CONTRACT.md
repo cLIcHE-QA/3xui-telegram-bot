@@ -15,6 +15,8 @@
 
 Schema берётся из immutable release tag, а не из upstream `main`. CI не скачивает OpenAPI из сети и поэтому не меняет compatibility contract самопроизвольно.
 
+Начиная с `v4.25.0` bot API surface на той же pinned schema `v3.8.5` расширен reviewed client-connections routes: `POST /panel/api/clients/ips/{email}`, `POST /panel/api/clients/hwids/{email}` и `DELETE /panel/api/clients/hwids/{email}/{id}`. Текущий manifest содержит **54** endpoint; изменение не означает смену поддерживаемой версии 3x-ui или schema blob.
+
 ## Что проверяет CI
 
 `python3 scripts/check-3xui-openapi-contract.py` сопоставляет три источника истины:
