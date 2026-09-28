@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, replace
+import re
 import time
 from urllib.parse import urlsplit
 
@@ -331,7 +332,7 @@ def result_text(result: CheburcheckResult) -> str:
 
     regions = "—"
     target = result.target.strip().upper()
-    regional_supported = "/" not in target and not target.startswith("AS")
+    regional_supported = "/" not in target and re.fullmatch(r"AS[1-9][0-9]{0,9}", target) is None
     if result.probe_summary is not None:
         summary = result.probe_summary
         if summary.online_probes == 0:
