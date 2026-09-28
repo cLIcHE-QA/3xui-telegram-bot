@@ -620,48 +620,335 @@ Hotfix scope:
 
 Итог acceptance: hotfix `v4.23.3` закрывает production findings compact result (`CDN`, domain/IP ASN enrichment и truthful regional probe status). Полноценный multi-region Probe fleet не входит в acceptance этого релиза и зафиксирован отдельно в разделе «Отложенные инфраструктурные улучшения».
 
-##### PackBot-compatible monitoring и diagnostics
+##### v4.24.0 — Мониторинг сайтов и web diagnostics
 
 **Статус: ⬜ Запланировано на `v4.24.0`.**
 
-Цель — перенести пользовательскую функциональность `vladpak1/packbot` в текущий проект с сохранением продуктовой/алгоритмической логики там, где она совместима с security model, но **без** встраивания отдельного PHP Telegram bot, MySQL runtime или второго webhook stack.
+Цель — нативно перенести полезное поведение `vladpak1/packbot` в текущий Admin Control Plane без встраивания отдельного PHP Telegram bot, MySQL runtime, webhook stack или второй application database.
 
-Upstream PackBot распространяется под MIT. Существенно адаптированный/перенесённый код и алгоритмы должны сопровождаться required copyright/license notice и source attribution.
+Reviewed upstream contract:
 
-Implementation strategy:
+- project: `vladpak1/packbot`;
+- reviewed revision: `3c4a5bb29626f8b3e28056bd52cd94fdce9f3c1a`;
+- license: MIT;
+- copyright: `Copyright (c) 2023 vladpak1`;
+- PackBot используется как behavior/reference implementation; новая реализация остаётся Python/aiogram/SQLite-native и использует существующие jobs/audit/alerts/configuration primitives проекта.
 
-- PackBot используется как behavior/reference implementation;
-- новая реализация нативна для текущего Python/aiogram/SQLite/service architecture;
-- Telegram navigation, persistence, jobs, audit, alerts и configuration используют существующие project primitives;
-- feature parity фиксируется отдельной matrix во время реализации, чтобы функции не терялись молча.
+Существенно адаптированный/перенесённый код и алгоритмы сопровождаются required MIT notice/source attribution в `THIRD_PARTY_NOTICES.md`, а release notes явно указывают upstream reference. В Telegram result cards постоянная строка `Источник: PackBot` не нужна: данные получаются нашей реализацией, а не внешним PackBot backend.
 
-Минимальный parity scope по текущему upstream:
+###### Release boundary
 
-- website monitoring: add/list/remove sites, ownership, per-user limits, periodic checks, разные интервалы для up/down, повторная проверка подозрительного failure, incident state/history, first/repeated/recovery notifications;
-- domain diagnostics: WHOIS/domain age и DNS;
-- web diagnostics: HTTP/server response, redirect trace, CMS detection;
-- SEO diagnostics: indexability/robots/noindex и optional Google PageSpeed integration;
-- utilities: sitemap parsing, URL list formatting/trimming и QR generation;
-- multilingual behavior upstream не требует появления i18n framework в v4.x: текущий canonical Russian UI сохраняется, а мультиязычность остаётся отдельной задачей.
+- scope относится только к `/admin → Мониторинг`; публичный `/start` и Client Portal не расширяются;
+- каноническое display name раздела — `🌐 Мониторинг сайтов`;
+- PackBot не запускается как sidecar/service и не получает bot token;
+- PHP/Composer/MySQL не становятся production dependencies;
+- все persistent изменения выполняются только через versioned SQLite migrations;
+- новые callbacks регистрируются в централизованном privilege catalog и неизвестные routes остаются fail-closed;
+- реализация синхронно обновляет `docs/UI_STYLE.md`, `README.md`, `THIRD_PARTY_NOTICES.md`, migration docs/tests и `CHANGELOG.md`.
 
-Обязательная security adaptation при сохранении пользовательского смысла функций:
+###### Каноническая навигация
 
-- один общий outbound-request safety layer для любых user-supplied domain/URL checks;
-- только разрешённые schemes/ports; credentials/userinfo в URL запрещены;
-- loopback, RFC1918/private, link-local, multicast, documentation/reserved ranges и cloud metadata endpoints блокируются для IPv4/IPv6;
-- DNS resolution проверяется до соединения, каждый redirect валидируется заново, а защита не должна позволять DNS rebinding между validation и connect;
-- bounded redirect count, connect/read/total timeout, response body limit, sitemap/file size limit, concurrency limit и per-user/global rate limits обязательны;
-- background monitoring не должен создавать unbounded queue или позволять одному пользователю исчерпать worker/network resources;
-- external API keys (например PageSpeed) хранятся только в локальной secret configuration и не попадают в UI/audit/logs;
-- network failures различаются от confirmed site-down там, где это существенно для alerts;
-- public-site diagnostics не получают доступ к внутренней VPN/control-plane сети.
+~~~text
+/admin
+└─ 📈 Мониторинг
+   ├─ 📊 Трафик
+   ├─ 🟢 В сети
+   ├─ 🩺 Состояние системы
+   ├─ 🔎 Проверка блокировок
+   ├─ 🌐 Мониторинг сайтов
+   │  ├─ 📋 Сайты
+   │  │  ├─ ➕ Добавить сайт
+   │  │  └─ 🌐 Карточка сайта
+   │  │     ├─ 🔄 Проверить сейчас
+   │  │     ├─ 🩺 Диагностика
+   │  │     ├─ 📜 История инцидентов
+   │  │     ├─ 🔔 Оповещения
+   │  │     └─ 🗑 Удалить / отписаться
+   │  └─ 🔎 Разовая диагностика
+   │     ├─ 🌐 Домен
+   │     │  ├─ WHOIS / возраст
+   │     │  └─ DNS
+   │     ├─ 🩺 Веб
+   │     │  ├─ HTTP
+   │     │  ├─ Redirect trace
+   │     │  └─ CMS
+   │     ├─ 🔍 SEO
+   │     │  ├─ Индексация / robots / noindex
+   │     │  └─ PageSpeed
+   │     └─ 🧰 Утилиты
+   │        ├─ Sitemap
+   │        ├─ Список URL
+   │        └─ QR
+   ├─ 📜 Журналы
+   └─ 🚨 Оповещения
+~~~
 
-Persistence/reliability:
+`Мониторинг сайтов` имеет единственного parent — `Мониторинг`. Back/Cancel из add-site, diagnostics, incident history и utility FSM возвращает только в локальный website-monitoring context. Raw URL не кодируется в callback data; callbacks используют только stable numeric IDs / fixed action tokens.
 
-- сайты, ownership, monitoring state, incidents и notification metadata хранятся через versioned SQLite migrations;
-- scheduled checks используют существующие background/job primitives и переживают restart без duplicate alert/mutation replay;
-- incident transitions и recovery покрываются deterministic tests с fake HTTP/DNS, а не зависят от случайных внешних сайтов;
-- production acceptance включает controlled up/down/recovery scenario и resource/rate-limit smoke.
+Предварительный home screen:
+
+~~~text
+🌐 Мониторинг сайтов
+
+Сайтов: {total}
+🟢 Доступны: {up}
+🔴 Недоступны: {down}
+⚪ Не проверены: {unknown}
+
+[📋 Сайты]            [➕ Добавить]
+[🔎 Разовая диагностика]
+[⬅ Мониторинг]
+~~~
+
+Карточка сайта:
+
+~~~text
+🌐 example.org
+
+Статус: 🟢 доступен
+HTTP: 200
+Ответ: 184 мс
+Последняя проверка: 2 мин назад
+Инцидент: —
+
+[🔄 Проверить сейчас] [🩺 Диагностика]
+[📜 История]          [🔔 Оповещения]
+[🗑 Удалить / отписаться]
+[⬅ Сайты]
+~~~
+
+Status grammar обязана различать `up`, `suspect`, `down`, `unknown/checker_error` и disabled/paused state; локальная ошибка checker/network safety layer не выдаётся за подтверждённое падение сайта.
+
+###### RBAC contract
+
+Новых ролей не появляется.
+
+- `website_monitoring.view` / минимум `Read-only`: home/list/card, incident history, one-off WHOIS/DNS/HTTP/redirect/CMS/SEO/Sitemap/URL-list/QR diagnostics и просмотр текущих notification settings;
+- `website_monitoring.manage` / минимум `Support`: добавить сайт в persistent monitoring, подписаться/отписаться от site alerts, ручной `Проверить сейчас`, pause/resume собственной monitoring subscription;
+- `website_monitoring.admin` / минимум `Administrator`: глобально удалить monitor target, когда на него ещё подписаны другие администраторы, и выполнять будущие global monitoring mutations;
+- `Owner` не получает отдельный capability только из-за `v4.24.0`.
+
+Keyboard privilege-aware: недоступная mutation-кнопка не показывается, но handler authorization остаётся обязательной независимо от UI visibility.
+
+###### Ownership и deduplication
+
+PackBot upstream хранит список owners внутри site record. В текущем проекте это адаптируется в нормализованную many-to-many модель:
+
+- один canonical public URL существует как один monitor target;
+- один target может иметь несколько admin-watchers по стабильному Telegram ID;
+- повторное добавление того же canonical URL не создаёт второй background checker, а подписывает текущего администратора на существующий target;
+- лимит применяется к числу targets/watch subscriptions текущего администратора; начальный parity default — не более **10**;
+- удаление собственной подписки не удаляет target, пока существуют другие watchers;
+- global removal target при наличии других watchers требует `website_monitoring.admin` и явного confirmation;
+- alert delivery идёт только текущим watchers, имеющим право получать Telegram notifications; target ownership не используется как security identity для callback lookup.
+
+###### Persistence model
+
+Новые сущности создаются forward-only migration через существующий `schema_migrations` framework.
+
+Минимальная логическая модель:
+
+~~~text
+website_monitors
+- id
+- canonical_url UNIQUE
+- hostname
+- enabled
+- state: unknown | up | suspect | down
+- last_check_at
+- next_check_at
+- last_http_status
+- last_latency_ms
+- last_error_kind
+- consecutive_failures
+- created_at
+- updated_at
+
+website_monitor_watchers
+- monitor_id
+- telegram_id
+- notifications_enabled
+- created_at
+UNIQUE(monitor_id, telegram_id)
+
+website_incidents
+- id
+- monitor_id
+- opened_at
+- resolved_at
+- reason_kind
+- first_http_status
+- last_http_status
+- alert_count
+- last_alert_at
+
+website_incident_notifications
+- incident_id
+- telegram_id
+- kind: opened | repeat | recovered
+- sequence
+- sent_at
+UNIQUE(incident_id, telegram_id, kind, sequence)
+~~~
+
+Raw response bodies, WHOIS payloads, sitemap XML и PageSpeed JSON не сохраняются как persistent monitoring state. Для основной карточки хранится только bounded normalized metadata. Incident history — источник истории availability; `v4.24.0` не обязан вводить неограниченный time-series storage каждого успешного check.
+
+###### Monitoring state machine
+
+PackBot behavior сохраняется по смыслу, но оформляется явной deterministic state machine:
+
+~~~text
+unknown
+  ├─ success ───────────────→ up
+  └─ candidate failure ─────→ suspect
+
+up
+  ├─ success ───────────────→ up
+  └─ candidate failure ─────→ suspect
+
+suspect
+  ├─ recheck success ───────→ up
+  ├─ confirmed failure ─────→ down + open incident + first alert
+  └─ checker/internal error → previous stable state preserved
+
+down
+  ├─ confirmed failure ─────→ down + optional repeated alert
+  ├─ success ───────────────→ up + close incident + recovery alert
+  └─ checker/internal error → down preserved, no false recovery
+~~~
+
+Disabled/paused — отдельный lifecycle flag, а не health verdict.
+
+Начальные parity defaults по reviewed upstream:
+
+- normal check interval: **10 минут**;
+- down-site check interval: **3 минуты**;
+- confirmation recheck после candidate failure: **2 секунды**;
+- response-time threshold: **5 секунд**;
+- first repeated-alert interval: **30 минут**;
+- после нескольких alerts следующий interval: **320 минут**;
+- max monitored targets per admin: **10**.
+
+Эти значения являются application defaults, а не Telegram-controlled arbitrary scheduler input. Изменение global defaults отдельной UI mutation в `v4.24.0` не требуется.
+
+Candidate failure включает target-attributable timeout/DNS/TLS/connect failure или unhealthy HTTP result. Internal checker error, safety-policy rejection, local resource exhaustion и programming error не открывают site-down incident. Exact HTTP health rule фиксируется implementation tests; базовый parity ориентир — successful canonical/effective request с HTTP 200, как в reviewed upstream, при этом все redirects до canonical target проходят наш safety validation.
+
+Scheduled loop использует persistent `next_check_at` + bounded worker concurrency. Restart не создаёт duplicate incident/alert: current state читается из SQLite, а notification journal делает first/repeat/recovery delivery идемпотентной на уровне recipient/kind/sequence. На каждый future poll не создаётся бесконечная durable job queue.
+
+###### Outbound request safety layer
+
+Все HTTP(S)-функции `v4.24.0` — monitor check, canonical/effective URL discovery, redirects, CMS, SEO, PageSpeed target validation, robots и Sitemap — обязаны использовать **один общий** safe outbound client.
+
+Fail-closed требования:
+
+- только `http://` и `https://`;
+- arbitrary/custom ports запрещены; разрешены только стандартные 80/443;
+- URL userinfo/credentials запрещены;
+- hostname проходит IDNA normalization и length/syntax validation;
+- до connect проверяются все A/AAAA answers; loopback, private/RFC1918, CGNAT, link-local, multicast, documentation/reserved/non-global ranges блокируются;
+- известные cloud metadata destinations/hostnames блокируются отдельно;
+- фактический connect привязывается к уже validated public address, чтобы validation/connect не расходились из-за DNS rebinding;
+- каждый redirect заново проходит полный parse/DNS/address validation;
+- environment proxy variables не могут неявно обойти destination policy;
+- public diagnostics не получают route к private VPN/control-plane endpoints через supplied URL;
+- response body читается streaming/bounded и не буферизуется без лимита;
+- transport errors не логируют credentials/query secrets и не сохраняют raw body.
+
+Начальные hard bounds:
+
+- redirects: не более **5**;
+- connect timeout: **3 s**;
+- read timeout: **7 s**;
+- total HTTP timeout: **10 s**;
+- обычный response body: не более **1 MiB**;
+- sitemap document: не более **2 MiB**;
+- sitemap documents за одну операцию: не более **10**;
+- URLs из sitemap: не более **5000**;
+- background/manual outbound operations используют общий bounded concurrency limiter; один target не должен одновременно получать несколько scheduled checks.
+
+WHOIS принимает только нормализованный domain и не позволяет пользователю задавать произвольный WHOIS server/port. DNS diagnostics принимает только domain/record-family inputs и не превращается в arbitrary DNS resolver client к указанному пользователем nameserver.
+
+###### Diagnostics contract
+
+`🔎 Разовая диагностика` не создаёт persistent monitor target без отдельного `Добавить в мониторинг`.
+
+Domain:
+
+- WHOIS: creation/expiration при доступности, вычисляемый возраст, bounded operator summary; полный raw WHOIS dump в Telegram не обязателен;
+- DNS: bounded A/AAAA/CNAME/MX/NS/TXT summary с pagination/truncation, если records много.
+
+Web:
+
+- HTTP: final safe URL, status, latency, server/content-type и bounded headers subset;
+- Redirect trace: максимум 5 hops, каждый hop safe-validated;
+- CMS: best-effort detection; `не определена` отличается от transport failure.
+
+SEO:
+
+- indexability/robots/noindex — read-only summary;
+- PageSpeed включается только при локально настроенном API key; отсутствие key отображается как disabled/unconfigured, а не ошибка сайта.
+
+Utilities:
+
+- Sitemap — bounded recursive parse по лимитам выше;
+- URL list formatting/trimming — локальная операция без outbound requests;
+- QR — локальная генерация для предоставленного текста/URL; remote logo fetching в scope `v4.24.0` не входит.
+
+Screenshot/headless-browser diagnostics из README PackBot не входят в обязательный `v4.24.0`: это отдельный browser/runtime attack surface и требует отдельного решения, если когда-либо понадобится.
+
+###### PackBot parity matrix
+
+| PackBot capability | Решение `v4.24.0` |
+| --- | --- |
+| add/list/remove monitored sites | ✅ нативный parity через SQLite |
+| owners нескольких пользователей | ✅ адаптация в many-to-many admin watchers |
+| max sites per user | ✅ parity default 10 |
+| periodic up/down intervals | ✅ parity 10 min / 3 min |
+| second confirmation check | ✅ parity, 2 s |
+| first/repeated/recovery alerts | ✅ с persistent incident/notification journal |
+| incident history/statistics | ✅ incident history; без unbounded success time-series |
+| WHOIS + domain age | ✅ |
+| DNS records | ✅ bounded |
+| HTTP/server response | ✅ через safe outbound client |
+| redirect trace | ✅ max 5 hops |
+| CMS detection | ✅ best effort |
+| robots/noindex/indexability | ✅ |
+| Google PageSpeed | ✅ optional при configured secret key |
+| sitemap parsing | ✅ bounded: 10 docs / 5000 URLs |
+| URL list formatting/trimming | ✅ local-only |
+| QR generation | ✅ local-only |
+| screenshots/headless browser | ⏭ вне обязательного scope `v4.24.0` |
+| multilingual PackBot UI | ⏭ не переносится; canonical UI остаётся русским |
+| PHP/MySQL/webhook runtime | ❌ не переносится |
+
+###### Tests и acceptance
+
+До release обязательны:
+
+- migration tests с upgrade существующей schema и сохранением текущих данных;
+- deterministic state-machine tests: first failure/recheck, false alarm, confirmed down, repeated down, recovery, restart during incident;
+- notification idempotency per watcher;
+- negative RBAC coverage для всех callbacks;
+- SSRF suite для IPv4/IPv6/private/link-local/CGNAT/reserved/metadata, redirect-to-private и simulated DNS rebinding;
+- hard-limit tests для redirects/body/sitemap/count/concurrency;
+- fake HTTP/DNS/WHOIS/PageSpeed fixtures; CI не зависит от случайных публичных сайтов;
+- navigation tests для Back/Cancel и отсутствие raw URL в callbacks;
+- license/attribution regression: reviewed PackBot revision и MIT notice остаются в `THIRD_PARTY_NOTICES.md`.
+
+Production acceptance после deployment:
+
+1. `deploy-release.sh --status` подтверждает exact tag/version, `RestartCount=0`, Health/DB/3x-ui `ok`;
+2. controlled public test target проходит add → initial up → manual check → diagnostics;
+3. controlled failure проходит `up → suspect → down`, создаёт ровно один incident и first alert;
+4. повторная проверка down target соблюдает repeat-alert cadence без alert storm;
+5. recovery закрывает incident и отправляет ровно один recovery alert;
+6. restart бота во время открытого incident не создаёт duplicate first/recovery alert;
+7. private/local/metadata URLs и redirect-to-private блокируются;
+8. concurrency/rate-limit smoke не создаёт unbounded queue;
+9. optional PageSpeed без key остаётся корректно disabled;
+10. после smoke повторяется базовый status/health check.
+
+Критерий закрытия `v4.24.0`: website monitoring и обязательные diagnostics работают через единый safe outbound boundary, incidents/alerts переживают restart без replay, а PackBot attribution и parity matrix соответствуют reviewed revision.
 
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
