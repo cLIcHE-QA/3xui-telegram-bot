@@ -85,8 +85,8 @@ class V4210UserDisplayNameTests(unittest.IsolatedAsyncioTestCase):
         users = source("advanced_users.py")
         self.assertIn('f"👤 {display_name or rec.email}"', users)
         self.assertIn('*([f"Email: {rec.email}"] if display_name else [])', users)
-        self.assertIn('label = user_label(u, profile)', users)
-        self.assertIn('callback_data=f"admin:u:{u.telegram_id}"', users)
+        self.assertIn('text=f"👤 {user_label(user, profile)} · TG {user.telegram_id}"', users)
+        self.assertIn('callback_data=f"admin:u:{user.telegram_id}"', users)
         self.assertIn('target_id=rec.email', users)
         self.assertIn('"user.display_name.set"', users)
 

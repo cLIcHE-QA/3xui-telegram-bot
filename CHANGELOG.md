@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.25.0 — User Management
+- Начат рефакторинг `/admin → Пользователи`: список получил bounded pagination и поиск по Telegram ID, техническому email и display name при сохранении `telegram_id` как callback identity.
+- Mutation shortcuts списка теперь role-aware: Read-only не получает массовые действия/глобальное согласование, while handler authorization остаётся обязательной.
+- Legacy attach-all действия `Синхронизировать Inbounds`, `Синхронизировать всех` и bulk sync удалены из новых клавиатур; сохранённые старые callbacks выполняют только non-mutating redirect в policy-based `Согласование`.
+- Bulk access action переведён на `ProvisioningEngine.provision_many(..., strict=False)`; direct attach всех globally allowed Inbounds больше не является каноническим mass workflow.
+- Audit bulk operations больше не перечисляет email выбранных пользователей; SQLite schema, 3x-ui/OpenAPI contract и subscription identity на этом foundation-срезе не меняются.
+
 ## v4.24.1 — Hotfix web diagnostics и IPv6
 - WHOIS/RDAP absolute timestamps в Telegram теперь нормализуются в `DD.MM.YYYY HH:MM MSK`; machine/RDAP instants остаются UTC, а возраст домена рассчитывается как раньше.
 - Compact Cheburcheck card снова показывает полезную bounded static detail: resolved IP для domain target, Reverse DNS, blocked subnets и optional `rkn_domain` / `subnet_size`; IP/PTR/subnet lists ограничены 5 значениями + `… ещё N`, raw JSON/SSE/probe payload не выводится.

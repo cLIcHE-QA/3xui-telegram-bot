@@ -16,7 +16,7 @@ class V4204AdminUiTests(unittest.TestCase):
     def test_users_list_uses_canonical_card_and_legacy_route_is_compatible(self):
         users = source("advanced_users.py")
         self.assertIn(
-            'callback_data=f"admin:u:{u.telegram_id}"',
+            'callback_data=f"admin:u:{user.telegram_id}"',
             users,
         )
         self.assertIn(
@@ -33,7 +33,6 @@ class V4204AdminUiTests(unittest.TestCase):
         self.assertIn("text, kb = await render_user(tg_id)", legacy)
         self.assertIn("await render_callback(call, text, reply_markup=kb)", legacy)
         for callback in (
-            'callback_data=f"adminsync:{tg_id}"',
             'callback_data=f"adminextend:{tg_id}"',
             'callback_data=f"admindisable:{tg_id}"',
             'callback_data=f"adminenable:{tg_id}"',
@@ -41,6 +40,8 @@ class V4204AdminUiTests(unittest.TestCase):
             'callback_data=f"adminsub:{tg_id}"',
         ):
             self.assertIn(callback, users)
+        self.assertIn('F.data.startswith("adminsync:")', users)
+        self.assertIn("policy-based «Согласование»", users)
         self.assertNotIn("user_admin_keyboard", users)
 
     def test_audit_detail_is_read_only_and_preserves_full_details(self):
@@ -85,7 +86,7 @@ class V4204AdminUiTests(unittest.TestCase):
         )
         self.assertIn("локальной конфигурации", business)
         self.assertIn("текущей административной политикой", inbounds)
-        self.assertIn("административной политики", users)
+        self.assertIn("policy-based", users)
 
     def test_roles_screen_uses_human_labels_not_permission_ids(self):
         business = source("business_admin.py")

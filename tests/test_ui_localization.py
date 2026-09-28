@@ -186,9 +186,9 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             'text="🔄 Сбросить трафик"',
             'text="✅ Включить"',
             'text="⛔ Отключить"',
-            'text="📡 Синхронизировать Inbounds"',
+            'text="🔎 Поиск"',
             'f"⚙️ Массовые действия\\n\\nВыбрано: {len(selected)}"',
-            'f"👥 Пользователи\\n\\nПользователи в БД бота: {len(users)}"',
+            'f"Пользователей: {len(users)}"',
             '"☑️ Массовые действия с пользователями\\n\\n"',
         ):
             self.assertIn(needle, users)
