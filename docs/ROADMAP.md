@@ -270,7 +270,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
-17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ базовая интеграция принята в production в `v4.23.1`; `v4.23.2` опубликован и развернут, но production smoke выявил incomplete compact enrichment (`CDN`, domain/IP ASN coverage и regional probe state), поэтому обязательный hotfix `v4.23.3` должен закрыть acceptance до перехода к `v4.24.0`.
+17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ базовая интеграция принята в production в `v4.23.1`; `v4.23.2` опубликован и развернут, production smoke выявил incomplete compact enrichment; hotfix `v4.23.3` уже реализован в `main`, release ещё не опубликован.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
@@ -600,7 +600,7 @@ Scope:
 
 ##### v4.23.3 — Cheburcheck: hotfix compact result enrichment
 
-**Статус: ⬜ Hotfix в работе; в `main` ещё не слит.**
+**Статус: 🟡 Реализовано в `main`; release `v4.23.3` ещё не опубликован.**
 
 Production smoke `v4.23.2` подтвердил сам compact layout и navigation, но выявил три presentation/data gaps:
 

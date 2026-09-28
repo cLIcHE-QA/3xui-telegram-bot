@@ -6,6 +6,16 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.23.3 — Hotfix compact result Cheburcheck
+- Production smoke `v4.23.2` подтвердил compact layout и context-preserving navigation, но выявил неполный result enrichment: пустой CDN выглядел неизвестным, domain/IP не показывал ASN coverage, а отсутствие regional Probe reporters маскировалось нейтральным `—`.
+- Пустой upstream `cdn_providers` теперь отображается как фактический отрицательный результат `🟢 не найден`; optional значения, которых upstream действительно не предоставил, по-прежнему не выдумываются.
+- Для domain/public-IP с валидным `geo.asn` bot выполняет один дополнительный bounded read-only `GET /api/v1/check?target=AS...` и использует только counts `blocked_prefixes / prefixes`; ASN enrichment и regional probe выполняются как независимые follow-up checks, а их failure не меняет уже полученный static verdict.
+- Regional SSE сохраняет `started.online_probes`: UI различает реальные агрегированные ответы, `⚪ нет активных региональных сканеров`, online scanners без ответов и `🟡 региональная проверка недоступна`; subnet/ASN regional probe остаётся неприменимым.
+- Исправлен edge case классификации target: обычные домены, начинающиеся с букв `as...`, больше не ошибочно считаются ASN.
+- Existing network safety сохраняется: static response hard limit 1 MiB, regional SSE 256 KiB, connect/read/total timeouts и запрет redirects не ослаблены; raw upstream/probe payload не выводится.
+- Minimal self-hosted Cheburcheck topology `website + PostgreSQL` остаётся поддерживаемой для static diagnostics. Hotfix не создаёт MQTT/Probe fleet и не эмулирует региональные результаты; реальные региональные ответы требуют отдельной инфраструктуры с зарегистрированными Probe reporters.
+- SQLite schema остаётся v3; 3x-ui/OpenAPI, provisioning, VPN mutation semantics, Host Control Agent, Deploy Agent и pinned Cheburcheck revision не меняются. `v4.23.3` устанавливается обычным Safe Bot Self-Update и не требует rebuild Cheburcheck runtime или host-side Agent/helper.
+
 ## v4.23.2 — Компактный результат Cheburcheck
 - Экран `Мониторинг → Проверка блокировок` переведён на компактную operator-facing карточку: цель, итоговый verdict, сеть, единый блок `📋 Списки`, агрегированная строка `🌍 Регионы` и явный `Источник: Cheburcheck.`.
 - Static check теперь использует уже доступные в pinned upstream поля `cdn_providers`, `asn_info` и `whitelist`; raw IP/reverse-DNS/probe payload в основной Telegram-карточке не выводится.

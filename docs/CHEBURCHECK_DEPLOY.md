@@ -314,7 +314,7 @@ sudo docker compose stop cheburcheck postgres
 
 Bot release и Cheburcheck upstream обновляются независимо.
 
-- v4.23.2 не требует rebuild Cheburcheck runtime, если pinned service уже healthy;
+- v4.23.3 не требует rebuild Cheburcheck runtime, если pinned service уже healthy;
 - bot update выполняется обычным release deployment;
 - upstream commit не меняется автоматически;
 - смена PostgreSQL major/version или upstream revision требует отдельного review migrations и recovery plan;
