@@ -6,6 +6,15 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.23.2 — Компактный результат Cheburcheck
+- Экран `Мониторинг → Проверка блокировок` переведён на компактную operator-facing карточку: цель, итоговый verdict, сеть, единый блок `📋 Списки`, агрегированная строка `🌍 Регионы` и явный `Источник: Cheburcheck.`.
+- Static check теперь использует уже доступные в pinned upstream поля `cdn_providers`, `asn_info` и `whitelist`; raw IP/reverse-DNS/probe payload в основной Telegram-карточке не выводится.
+- Для domain/public-IP добавлен read-only regional summary через reviewed upstream `GET /api/v1/probe/{id}`: ответы сворачиваются в `🟢 / 🔴 / 🟡`, а subnet/ASN не запускают probe, потому что upstream endpoint их не принимает.
+- Regional SSE bounded отдельно: hard limit 256 KiB, connect/read/total timeouts 3/10/12 s, redirects запрещены; при недоступности probe успешный static check сохраняется, а строка регионов показывает `—`.
+- Cheburcheck navigation сохраняет исходный parent context: Monitoring/discovered/manual flow не прыгает в карточки серверов, shortcut из Master возвращается в Master, shortcut из direct Node — в ту же Node; result/error/retry/`Проверить ещё`/Cancel сохраняют тот же context.
+- Regression coverage закрепляет extended API contract, probe verdict buckets, compact result wording, новые read-only callbacks и отсутствие cross-context navigation.
+- SQLite schema остаётся v3; 3x-ui/OpenAPI, provisioning, VPN mutation semantics, Host Control Agent, Deploy Agent и pinned Cheburcheck revision не меняются. `v4.23.2` устанавливается обычным Safe Bot Self-Update и не требует rebuild Cheburcheck runtime или host-side Agent/helper.
+
 ## v4.23.1 — Cheburcheck hotfix и navigation regression
 - Production smoke `v4.23.0` подтвердил self-hosted Cheburcheck для domain/public IP и shortcuts Master/direct Node, но штатный ASN response размером около 382 KiB превысил исходный hard limit 256 KiB.
 - `CheburcheckClient` увеличивает bounded response-body limit до 1 MiB. Concurrency остаётся 4, connect/read/total timeouts — 3/7/10 s, redirects по-прежнему запрещены; произвольные URL/private targets не разрешаются.
