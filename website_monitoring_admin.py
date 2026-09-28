@@ -583,7 +583,7 @@ async def website_monitoring_delete(call: CallbackQuery):
     if item is None:
         await call.answer("Сайт уже удалён из твоих подписок.", show_alert=True)
         return
-    removed = await repository.remove_watcher(item.id, call.from_user.id)
+    removed = await service.remove_watcher(item.id, call.from_user.id)
     if removed:
         await audit_from_call(
             db,
@@ -706,7 +706,7 @@ async def website_monitoring_global_delete(call: CallbackQuery):
         await call.answer("Target уже удалён.", show_alert=True)
         return
     watchers = await repository.watcher_count(item.id)
-    deleted = await repository.delete_monitor_global(item.id)
+    deleted = await service.delete_monitor_global(item.id)
     if deleted:
         await audit_from_call(
             db,
