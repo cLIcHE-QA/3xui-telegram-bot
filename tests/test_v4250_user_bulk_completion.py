@@ -88,13 +88,13 @@ class V4250UserBulkCompletionTests(unittest.TestCase):
         expiry_input = source.split("async def bulk_expiry_input", 1)[1].split(
             "async def bulk_traffic_start", 1
         )[0]
-        self.assertIn('callback_data="admin:bulk:runexpiry"', expiry_input)
+        self.assertIn('_bulk_confirmation_keyboard("admin:bulk:runexpiry")', expiry_input)
         self.assertIn("end_of_day_timestamp", expiry_input)
 
         traffic_input = source.split("async def bulk_traffic_input", 1)[1].split(
             "async def bulk_input_cancel", 1
         )[0]
-        self.assertIn('callback_data="admin:bulk:runtraffic"', traffic_input)
+        self.assertIn('_bulk_confirmation_keyboard("admin:bulk:runtraffic")', traffic_input)
         self.assertIn("100000", traffic_input)
 
     def test_bulk_result_audit_does_not_store_email_list(self):
