@@ -132,6 +132,8 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:bulk:back", "admin:bulk:close", "admin:bulk:prev", "admin:bulk:next",
     )
     + _rules("users.view", "exact", "admin:bulk:noop")
+    + _rules("payments.view", "regex", r"^admin:u:payments:\d+(?::\d+)?$", r"^admin:u:payment:\d+:\d+$")
+    + _rules("monitoring.view", "regex", r"^admin:u:activity:\d+(?::\d+)?$")
     + _rules("users.view", "regex", r"^admin:u:\d+$")
     + _rules("users.view", "regex", r"^admin:u:device:\d+:\d+$")
     + _rules("users.support", "regex", r"^admin:u:devdelask:\d+:\d+$", r"^admin:u:devdel:\d+:\d+$")
