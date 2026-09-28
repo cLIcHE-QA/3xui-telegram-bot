@@ -49,14 +49,14 @@ class V4241ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_release_is_ready_for_v4241_production_acceptance_not_closed(self):
+    def test_release_is_published_but_v4241_production_acceptance_is_separate(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "🟡 Реализовано в `main`; release-prep/publish и production acceptance ещё не закрыты.",
+            "🟠 Опубликовано в `v4.24.1`; GitHub release/CI закрыты, production acceptance ещё не подтверждён в репозитории.",
             roadmap,
         )
         self.assertIn(
-            "operationally открытыми",
+            "operational closure остаётся открытым до подтверждённого production smoke",
             roadmap,
         )
 
