@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import secrets
 import time
 import unicodedata
@@ -18,7 +19,7 @@ from config import load_settings
 from db import Database, UserRecord
 from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
-from xui import XUIClient, XUIError
+from xui import XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine
 
 settings = load_settings()
@@ -257,13 +258,14 @@ async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, 
             InlineKeyboardButton(text="🌐 Доступ", callback_data=f"admin:u:access:{tg_id}"),
         ],
         [
+            InlineKeyboardButton(text="📱 Подключения", callback_data=f"admin:u:connections:{tg_id}"),
             InlineKeyboardButton(text="🔗 Подписка", callback_data=f"admin:u:subview:{tg_id}"),
-            InlineKeyboardButton(text="✏️ Профиль", callback_data=f"admin:u:profile:{tg_id}"),
         ],
         [
+            InlineKeyboardButton(text="✏️ Профиль", callback_data=f"admin:u:profile:{tg_id}"),
             InlineKeyboardButton(text="👥 Группы", callback_data=f"admin:u:audgroups:{tg_id}"),
-            InlineKeyboardButton(text="⚙️ Ещё действия", callback_data=f"admin:u:more:{tg_id}"),
         ],
+        [InlineKeyboardButton(text="⚙️ Ещё действия", callback_data=f"admin:u:more:{tg_id}")],
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
@@ -451,6 +453,304 @@ async def _user_more_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
         "Здесь собраны lifecycle и destructive операции, доступные текущей роли.",
         InlineKeyboardMarkup(inline_keyboard=rows),
     )
+
+
+def _fmt_optional_ms(value: object) -> str:
+    try:
+        timestamp = int(value or 0)
+    except (TypeError, ValueError):
+        return "—"
+    if timestamp <= 0:
+        return "—"
+    return format_timestamp(timestamp, milliseconds=True, empty="—")
+
+
+def _device_title(item: dict[str, object]) -> str:
+    model = str(item.get("deviceModel") or "").strip()
+    os_name = str(item.get("deviceOs") or "").strip()
+    fingerprint = str(item.get("fingerprint") or "").strip()
+    label = model or os_name or fingerprint or f"Устройство #{item.get('id') or '—'}"
+    return label[:48]
+
+
+async def _user_connections_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+
+    results = await asyncio.gather(
+        xui.get_client(rec.email),
+        xui.online_clients(),
+        xui.last_online(),
+        xui.client_hwids(rec.email),
+        xui.client_ips(rec.email),
+        return_exceptions=True,
+    )
+    client_result, online_result, last_result, hwid_result, ips_result = results
+
+    limit_ip = "недоступно"
+    if isinstance(client_result, dict):
+        client = client_result.get("client", client_result)
+        value = int(client.get("limitIp") or 0)
+        limit_ip = str(value) if value else "без лимита"
+
+    online_text = "⚪ неизвестно"
+    if isinstance(online_result, list):
+        online_text = "🟢 в сети" if rec.email in online_result else "⚪ не в сети"
+
+    last_text = "—"
+    if isinstance(last_result, dict):
+        last_text = _fmt_optional_ms(last_result.get(rec.email))
+
+    hwid_count = str(len(hwid_result)) if isinstance(hwid_result, list) else "недоступно"
+    ip_count = str(len(ips_result)) if isinstance(ips_result, list) else "недоступно"
+
+    lines = [
+        f"📱 Подключения · {await _display_label(rec)}",
+        "",
+        f"Статус: {online_text}",
+        f"Последняя активность: {last_text}",
+        f"IP limit: {limit_ip}",
+        "",
+        f"Устройств: {hwid_count}",
+        f"IP-адресов: {ip_count}",
+    ]
+    rows = [
+        [
+            InlineKeyboardButton(text="📱 Устройства", callback_data=f"admin:u:devices:{tg_id}"),
+            InlineKeyboardButton(text="🌐 IP-адреса", callback_data=f"admin:u:ips:{tg_id}"),
+        ],
+        [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
+    ]
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _user_devices_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    try:
+        devices = await xui.client_hwids(rec.email)
+    except XUIError as exc:
+        return (
+            f"📱 Устройства · {await _display_label(rec)}\n\n⚠️ 3x-ui: {exc}",
+            InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Подключения", callback_data=f"admin:u:connections:{tg_id}")
+            ]]),
+        )
+
+    lines = [f"📱 Устройства · {await _display_label(rec)}", ""]
+    rows: list[list[InlineKeyboardButton]] = []
+    if not devices:
+        lines.append("— зарегистрированных HWID устройств нет")
+    else:
+        for index, item in enumerate(devices[:30], start=1):
+            device_id = int(item.get("id") or 0)
+            title = _device_title(item)
+            fingerprint = str(item.get("fingerprint") or "—")[:24]
+            last_seen = _fmt_optional_ms(item.get("lastSeen"))
+            lines += [
+                f"{index}. {title}",
+                f"   Fingerprint: {fingerprint}",
+                f"   Последняя активность: {last_seen}",
+            ]
+            if device_id > 0:
+                rows.append([InlineKeyboardButton(
+                    text=f"📱 {index}. {title}"[:60],
+                    callback_data=f"admin:u:device:{tg_id}:{device_id}",
+                )])
+        if len(devices) > 30:
+            lines.append(f"… ещё {len(devices) - 30}")
+    rows.append([InlineKeyboardButton(text="⬅ Подключения", callback_data=f"admin:u:connections:{tg_id}")])
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _find_user_device(tg_id: int, device_id: int) -> tuple[UserRecord | None, dict[str, object] | None]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return None, None
+    devices = await xui.client_hwids(rec.email)
+    for item in devices:
+        try:
+            current_id = int(item.get("id") or 0)
+        except (TypeError, ValueError):
+            continue
+        if current_id == device_id:
+            return rec, item
+    return rec, None
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:connections:"))
+async def user_connections(call: CallbackQuery):
+    await _render_user_section(call, _user_connections_view)
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:devices:"))
+async def user_devices(call: CallbackQuery):
+    await _render_user_section(call, _user_devices_view)
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:device:\d+:\d+$"))
+async def user_device_detail(call: CallbackQuery):
+    if not await guard(call, minimum="read_only"):
+        return
+    parts = call.data.split(":")
+    tg_id, device_id = int(parts[-2]), int(parts[-1])
+    try:
+        rec, item = await _find_user_device(tg_id, device_id)
+    except XUIError as exc:
+        await render_callback(
+            call,
+            f"⚠️ 3x-ui: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Устройства", callback_data=f"admin:u:devices:{tg_id}")
+            ]]),
+        )
+        await call.answer()
+        return
+    if not rec or not item:
+        await call.answer("Устройство не найдено.", show_alert=True)
+        return
+    model = str(item.get("deviceModel") or "—")[:80]
+    os_name = str(item.get("deviceOs") or "—")[:40]
+    os_version = str(item.get("osVersion") or "")[:40]
+    fingerprint = str(item.get("fingerprint") or "—")[:32]
+    user_agent = str(item.get("userAgent") or "—").replace("\n", " ").replace("\r", " ")[:160]
+    text = (
+        f"📱 Устройство · {await _display_label(rec)}\n\n"
+        f"Модель: {model}\n"
+        f"ОС: {os_name}{(' ' + os_version) if os_version else ''}\n"
+        f"Fingerprint: {fingerprint}\n"
+        f"User-Agent: {user_agent}\n"
+        f"Первое появление: {_fmt_optional_ms(item.get('firstSeen'))}\n"
+        f"Последняя активность: {_fmt_optional_ms(item.get('lastSeen'))}"
+    )
+    rows = [
+        [InlineKeyboardButton(text="🗑 Удалить устройство", callback_data=f"admin:u:devdelask:{tg_id}:{device_id}")],
+        [InlineKeyboardButton(text="⬅ Устройства", callback_data=f"admin:u:devices:{tg_id}")],
+    ]
+    await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:devdelask:\d+:\d+$"))
+async def user_device_delete_ask(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    parts = call.data.split(":")
+    tg_id, device_id = int(parts[-2]), int(parts[-1])
+    try:
+        rec, item = await _find_user_device(tg_id, device_id)
+    except XUIError as exc:
+        await call.answer(str(exc)[:180], show_alert=True)
+        return
+    if not rec or not item:
+        await call.answer("Устройство не найдено.", show_alert=True)
+        return
+    await render_callback(
+        call,
+        "⚠️ Удалить устройство?\n\n"
+        f"{_device_title(item)}\n"
+        "Пользователь сможет зарегистрировать устройство заново, "
+        "если это разрешает текущий HWID limit.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🗑 Удалить устройство", callback_data=f"admin:u:devdel:{tg_id}:{device_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:device:{tg_id}:{device_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:devdel:\d+:\d+$"))
+async def user_device_delete(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    parts = call.data.split(":")
+    tg_id, device_id = int(parts[-2]), int(parts[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    try:
+        await xui.delete_client_hwid(rec.email, device_id)
+        await audit_from_call(
+            db, call, "user.device.delete",
+            target_type="user", target_id=rec.email,
+            details=f"device_id={device_id}",
+        )
+        await render_callback(
+            call,
+            "✅ Устройство удалено.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Устройства", callback_data=f"admin:u:devices:{tg_id}")
+            ]]),
+        )
+    except XUIMutationError as exc:
+        await audit_from_call(
+            db, call, "user.device.delete",
+            target_type="user", target_id=rec.email,
+            details=f"device_id={device_id}; code={exc.code}; uncertain={exc.uncertain}",
+            success=False,
+        )
+        message = (
+            "⚠️ Итог удаления устройства неизвестен. Запрос не повторялся; обнови список устройств."
+            if exc.uncertain else
+            f"🔴 Удаление отклонено: {exc}"
+        )
+        await render_callback(
+            call,
+            message,
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Устройства", callback_data=f"admin:u:devices:{tg_id}")
+            ]]),
+        )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:ips:"))
+async def user_ips(call: CallbackQuery):
+    if not await guard(call, minimum="read_only"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    try:
+        entries = await xui.client_ips(rec.email)
+        online = await xui.online_clients()
+    except XUIError as exc:
+        await render_callback(
+            call,
+            f"🌐 IP-адреса · {await _display_label(rec)}\n\n⚠️ 3x-ui: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Подключения", callback_data=f"admin:u:connections:{tg_id}")
+            ]]),
+        )
+        await call.answer()
+        return
+    lines = [
+        f"🌐 IP-адреса · {await _display_label(rec)}",
+        "",
+        f"Сейчас online: {'да' if rec.email in online else 'нет'}",
+        "",
+        "Данные 3x-ui:",
+    ]
+    if entries:
+        lines.extend(f"• {entry[:160]}" for entry in entries[:40])
+        if len(entries) > 40:
+            lines.append(f"… ещё {len(entries) - 40}")
+    else:
+        lines.append("— IP-адресов нет")
+    lines += ["", "ℹ️ IP/session не считается физическим устройством без HWID identity."]
+    await render_callback(
+        call,
+        "\n".join(lines),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="⬅ Подключения", callback_data=f"admin:u:connections:{tg_id}")
+        ]]),
+    )
+    await call.answer()
 
 
 @advanced_users_router.callback_query(F.data.regexp(r"^admin:u:\d+$"))
