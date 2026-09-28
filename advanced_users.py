@@ -176,6 +176,13 @@ def sub_url(sub_id: str) -> str:
     return template.format(sub_id=sub_id)
 
 
+def masked_sub_id(sub_id: str) -> str:
+    value = str(sub_id or "")
+    if len(value) <= 8:
+        return "••••"
+    return f"{value[:4]}…{value[-4:]}"
+
+
 def is_managed_inbound(i) -> bool:
     return inbound_is_managed(settings, i)
 
@@ -618,6 +625,21 @@ async def _user_subscription_view(tg_id: int, role: str | None) -> tuple[str, In
     if not rec:
         return "Пользователь не найден.", users_back()
     url = sub_url(rec.sub_id)
+    status = "⚠️ недоступно"
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        enabled = bool(client.get("enable", True))
+        expiry = int(client.get("expiryTime") or rec.expiry_time or 0)
+        now_ms = int(time.time() * 1000)
+        if not enabled:
+            status = "⛔ отключена"
+        elif expiry and expiry <= now_ms:
+            status = "⌛ истекла"
+        else:
+            status = "🟢 активна"
+    except XUIError:
+        pass
     rows = [
         [InlineKeyboardButton(text="🌐 Открыть ссылку", url=url)],
         [
@@ -630,6 +652,8 @@ async def _user_subscription_view(tg_id: int, role: str | None) -> tuple[str, In
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
     return (
         f"🔗 Подписка · {await _display_label(rec)}\n\n"
+        f"ID: {masked_sub_id(rec.sub_id)}\n"
+        f"Статус: {status}\n\n"
         "Subscription identity сохраняется при обычном согласовании и изменяется только отдельной явной операцией.",
         InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -1237,13 +1261,14 @@ async def user_access_config(call: CallbackQuery):
         await call.answer("Пользователь не найден.", show_alert=True)
         return
     limit_ip = "недоступно"
-    flow = "недоступно"
+    flow = "не настроен" if not settings.vless_flow else "недоступно"
     try:
         obj = await xui.get_client(rec.email)
         client = obj.get("client", obj)
         value = int(client.get("limitIp") or 0)
         limit_ip = str(value) if value else "без лимита"
-        flow = str(client.get("flow") or "none")
+        if settings.vless_flow:
+            flow = str(client.get("flow") or "none")
     except XUIError:
         pass
     rows: list[list[InlineKeyboardButton]] = []
