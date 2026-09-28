@@ -62,7 +62,7 @@ class RBACPrivilegesTests(unittest.TestCase):
             "admin:webmon:site:7": "read_only",
             "admin:webmon:add": "support",
             "admin:webmon:check:7": "support",
-            "admin:webmon:remove:7": "support",
+            "admin:webmon:delete:7": "support",
             "admin:restore": "owner",
             "admin:hostctl:n2": "read_only",
             "admin:hostctl:n2:sr:run": "admin",
