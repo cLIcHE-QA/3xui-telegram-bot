@@ -254,6 +254,16 @@ class SafePublicResolver(AbstractResolver):
         return None
 
 
+async def validate_public_url_resolution(raw_url: str) -> str:
+    canonical = canonicalize_public_url(raw_url)
+    parsed = urlsplit(canonical)
+    host = parsed.hostname or ""
+    port = parsed.port or (80 if parsed.scheme == "http" else 443)
+    resolver = SafePublicResolver()
+    await resolver.resolve(host, port)
+    return canonical
+
+
 class SafeOutboundHttpClient:
     def __init__(self, *, max_concurrency: int = MAX_CONCURRENCY):
         self._semaphore = asyncio.Semaphore(max(1, int(max_concurrency)))
