@@ -9,7 +9,7 @@ import unicodedata
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
@@ -20,6 +20,7 @@ from config import load_settings
 from db import Database, UserRecord
 from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
+from website_diagnostics import qr_png
 from xui import XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine
 
@@ -139,6 +140,7 @@ USER_AUDIT_LABELS = {
     "user.display_name.set": "✏️ Изменено имя",
     "user.note.set": "📝 Изменена заметка",
     "user.device.delete": "🗑 Удалено устройство",
+    "user.flow.sync": "🔄 Синхронизирован VLESS Flow",
     "user.create": "➕ Создан пользователь",
     "user.recover": "♻️ Восстановлена запись пользователя",
     "user.delete": "🗑 Удалён пользователь",
@@ -449,24 +451,25 @@ async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, 
     rows: list[list[InlineKeyboardButton]] = [
         [
             InlineKeyboardButton(text="💎 Тариф", callback_data=f"admin:u:planview:{tg_id}"),
+            InlineKeyboardButton(text="⏳ Продлить", callback_data=f"adminextend:{tg_id}"),
+        ],
+        [
             InlineKeyboardButton(text="📅 Срок", callback_data=f"admin:u:expiryview:{tg_id}"),
-        ],
-        [
             InlineKeyboardButton(text="📊 Трафик", callback_data=f"admin:u:trafficview:{tg_id}"),
+        ],
+        [
             InlineKeyboardButton(text="🌐 Доступ", callback_data=f"admin:u:access:{tg_id}"),
-        ],
-        [
             InlineKeyboardButton(text="📱 Подключения", callback_data=f"admin:u:connections:{tg_id}"),
+        ],
+        [
             InlineKeyboardButton(text="🔗 Подписка", callback_data=f"admin:u:subview:{tg_id}"),
-        ],
-        [
             InlineKeyboardButton(text="💳 Платежи", callback_data=f"admin:u:payments:{tg_id}"),
-            InlineKeyboardButton(text="🧾 Активность", callback_data=f"admin:u:activity:{tg_id}"),
         ],
         [
+            InlineKeyboardButton(text="🧾 Активность", callback_data=f"admin:u:activity:{tg_id}"),
             InlineKeyboardButton(text="✏️ Профиль", callback_data=f"admin:u:profile:{tg_id}"),
-            InlineKeyboardButton(text="👥 Группы", callback_data=f"admin:u:audgroups:{tg_id}"),
         ],
+        [InlineKeyboardButton(text="👥 Группы", callback_data=f"admin:u:audgroups:{tg_id}")],
         [InlineKeyboardButton(text="⚙️ Ещё действия", callback_data=f"admin:u:more:{tg_id}")],
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
     ]
@@ -590,8 +593,13 @@ async def _user_subscription_view(tg_id: int, role: str | None) -> tuple[str, In
     rec = await db.get(tg_id)
     if not rec:
         return "Пользователь не найден.", users_back()
+    url = sub_url(rec.sub_id)
     rows = [
-        [InlineKeyboardButton(text="🔗 Показать URL", callback_data=f"adminsub:{tg_id}")],
+        [InlineKeyboardButton(text="🌐 Открыть ссылку", url=url)],
+        [
+            InlineKeyboardButton(text="🔗 Показать URL", callback_data=f"adminsub:{tg_id}"),
+            InlineKeyboardButton(text="🔳 QR-код", callback_data=f"admin:u:subqr:{tg_id}"),
+        ],
     ]
     if _role_can_admin(role):
         rows.append([InlineKeyboardButton(text="🔐 Перевыпустить ссылку", callback_data=f"admin:u:subrotateask:{tg_id}")])
@@ -1158,6 +1166,32 @@ async def user_subscription_view(call: CallbackQuery):
     await _render_user_section(call, _user_subscription_view)
 
 
+@advanced_users_router.callback_query(F.data.startswith("admin:u:subqr:"))
+async def user_subscription_qr(call: CallbackQuery):
+    if not await guard(call, minimum="read_only"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    image = qr_png(sub_url(rec.sub_id))
+    if call.message is not None:
+        try:
+            await call.bot.send_photo(
+                call.message.chat.id,
+                BufferedInputFile(image, filename="subscription-qr.png"),
+                caption=f"🔳 QR подписки · {await _display_label(rec)}",
+            )
+            text = "🔳 QR-код подписки\n\nИзображение отправлено отдельным сообщением."
+        except Exception:
+            text = "🔳 QR-код подписки\n\n🔴 Не удалось отправить изображение."
+    else:
+        text = "🔳 QR-код подписки\n\n🔴 Сообщение недоступно."
+    await render_callback(call, text, reply_markup=back_user(tg_id))
+    await call.answer()
+
+
 @advanced_users_router.callback_query(F.data.startswith("admin:u:profile:"))
 async def user_profile_view(call: CallbackQuery):
     await _render_user_section(call, _user_profile_view)
@@ -1191,6 +1225,11 @@ async def user_access_config(call: CallbackQuery):
     rows: list[list[InlineKeyboardButton]] = []
     if _role_can_support(role):
         rows.append([InlineKeyboardButton(text="📱 Изменить лимит IP", callback_data=f"admin:u:ip:{tg_id}")])
+        if settings.vless_flow:
+            rows.append([InlineKeyboardButton(
+                text="🔄 Синхронизировать VLESS Flow",
+                callback_data=f"admin:u:flowask:{tg_id}",
+            )])
     rows.append([InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")])
     await render_callback(
         call,
@@ -1199,6 +1238,79 @@ async def user_access_config(call: CallbackQuery):
         f"VLESS Flow: {flow}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:flowask:"))
+async def user_flow_sync_ask(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    if not settings.vless_flow:
+        await call.answer("VLESS Flow не настроен.", show_alert=True)
+        return
+    await render_callback(
+        call,
+        f"🔄 Синхронизировать VLESS Flow?\n\n{await _display_label(rec)}\n\n"
+        "Будет обновлён только Flow. Inbounds не подключаются и не отключаются.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Синхронизировать Flow", callback_data=f"admin:u:flowrun:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:accesscfg:{tg_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:flowrun:"))
+async def user_flow_sync_run(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    if not settings.vless_flow:
+        await call.answer("VLESS Flow не настроен.", show_alert=True)
+        return
+    try:
+        await xui.bulk_adjust_clients([rec.email], flow=settings.vless_flow)
+        await audit_from_call(
+            db,
+            call,
+            "user.flow.sync",
+            target_type="user",
+            target_id=rec.email,
+            details="flow_configured=true; inbound_mutation=false",
+        )
+        await render_callback(
+            call,
+            "✅ VLESS Flow синхронизирован. Inbounds не изменялись.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+            ]]),
+        )
+    except XUIError as exc:
+        await audit_from_call(
+            db,
+            call,
+            "user.flow.sync",
+            target_type="user",
+            target_id=rec.email,
+            details=f"error={type(exc).__name__}",
+            success=False,
+        )
+        await render_callback(
+            call,
+            f"🔴 Не удалось синхронизировать Flow: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+            ]]),
+        )
     await call.answer()
 
 
@@ -2813,11 +2925,35 @@ async def admin_extend(call: CallbackQuery):
 
 
 @advanced_users_router.callback_query(F.data.startswith("admindisable:"))
-async def admin_disable(call: CallbackQuery):
-    if not await guard(call):
+async def admin_disable_ask(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
         return
     tg_id = int(call.data.split(":", 1)[1])
     rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    await render_callback(
+        call,
+        f"⛔ Отключить пользователя?\n\n{await _display_label(rec)}\nEmail: {rec.email}\n\n"
+        "Доступ пользователя будет отключён, но запись и настройки сохранятся.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⛔ Отключить", callback_data=f"admindisablerun:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admindisablerun:"))
+async def admin_disable_run(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
     try:
         await xui.update_client(rec.email, enable=False)
         await audit_from_call(
@@ -2827,15 +2963,19 @@ async def admin_disable(call: CallbackQuery):
             target_type="user",
             target_id=rec.email,
         )
-        await render_callback(call, f"⛔ {await _display_label(rec)} отключён.", reply_markup=back_user(tg_id))
-    except (XUIError, AttributeError) as exc:
+        await render_callback(
+            call,
+            f"⛔ {await _display_label(rec)} отключён.",
+            reply_markup=back_user(tg_id),
+        )
+    except XUIError as exc:
         await audit_from_call(
             db,
             call,
             "user.disable",
             target_type="user",
-            target_id=rec.email if rec else str(tg_id),
-            details=str(exc),
+            target_id=rec.email,
+            details=f"error={type(exc).__name__}",
             success=False,
         )
         await render_callback(call, f"Ошибка: {exc}", reply_markup=back_user(tg_id))
@@ -2843,11 +2983,34 @@ async def admin_disable(call: CallbackQuery):
 
 
 @advanced_users_router.callback_query(F.data.startswith("adminenable:"))
-async def admin_enable(call: CallbackQuery):
-    if not await guard(call):
+async def admin_enable_ask(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
         return
     tg_id = int(call.data.split(":", 1)[1])
     rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    await render_callback(
+        call,
+        f"✅ Включить пользователя?\n\n{await _display_label(rec)}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Включить", callback_data=f"adminenablerun:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("adminenablerun:"))
+async def admin_enable_run(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
     try:
         await xui.update_client(rec.email, enable=True)
         await audit_from_call(
@@ -2857,15 +3020,19 @@ async def admin_enable(call: CallbackQuery):
             target_type="user",
             target_id=rec.email,
         )
-        await render_callback(call, f"✅ {await _display_label(rec)} включён.", reply_markup=back_user(tg_id))
-    except (XUIError, AttributeError) as exc:
+        await render_callback(
+            call,
+            f"✅ {await _display_label(rec)} включён.",
+            reply_markup=back_user(tg_id),
+        )
+    except XUIError as exc:
         await audit_from_call(
             db,
             call,
             "user.enable",
             target_type="user",
-            target_id=rec.email if rec else str(tg_id),
-            details=str(exc),
+            target_id=rec.email,
+            details=f"error={type(exc).__name__}",
             success=False,
         )
         await render_callback(call, f"Ошибка: {exc}", reply_markup=back_user(tg_id))

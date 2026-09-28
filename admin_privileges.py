@@ -117,6 +117,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "users.support",
         "prefix",
         "adminsync:", "adminextend:", "admindisable:", "adminenable:",
+        "admindisablerun:", "adminenablerun:", "admin:u:flowask:", "admin:u:flowrun:",
         "admin:u:expiry:", "admin:u:traffic:", "admin:u:ip:", "admin:u:note:", "admin:u:name:",
         "admin:u:plan:", "admin:u:planset:", "admin:u:planapplyask:", "admin:u:planapplyrun:",
         "admin:u:group:", "admin:u:groupset:", "admin:u:planprovask:", "admin:u:planprovrun:",
@@ -152,7 +153,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:u:prov:", "admin:u:inbounds:", "admin:u:planview:", "admin:u:expiryview:",
         "admin:u:trafficview:", "admin:u:access:", "admin:u:accesscfg:", "admin:u:subview:",
         "admin:u:profile:", "admin:u:more:", "admin:u:connections:", "admin:u:devices:",
-        "admin:u:device:", "admin:u:ips:",
+        "admin:u:device:", "admin:u:ips:", "admin:u:subqr:",
     )
     + _rules(
         "users.admin",

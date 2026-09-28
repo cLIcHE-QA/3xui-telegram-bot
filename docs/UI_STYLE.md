@@ -199,6 +199,9 @@ Operator-facing термин `membership` в обычных экранах не 
 - `🧾 Активность` пользователя является filtered view существующего audit log, а не новым журналом: фильтр использует machine identity, timestamps отображаются в MSK, Back возвращает в карточку пользователя, secret-like subscription/device details скрываются;
 - `➕ Создать` в `Пользователи` доступен Support+ и ведёт через явный FSM с `✖ Отмена`: Telegram ID → machine email → optional display name → Plan/compatibility → preview → confirm; callback identity не использует display name;
 - create-user remote mutation никогда не replay'ится после uncertain outcome: сначала read-only verification, локальная запись появляется только после доказанного remote state; уже существующий 3x-ui client восстанавливается отдельным non-mutating recovery flow;
+- экран `🔗 Подписка` предлагает открыть URL, показать URL и сгенерировать QR локально; subscription URL не передаётся внешним QR/shortener сервисам, rotation остаётся отдельной Administrator mutation;
+- VLESS Flow sync находится в `🌐 Доступ → ⚙️ Параметры доступа`, доступен Support+ и не является reconcile/attach/detach операцией;
+- enable/disable пользователя всегда двухшаговые: карточка/`Ещё действия` ведут на confirmation screen, state-changing call выполняется только отдельным run callback, Cancel возвращает в пользователя;
 
 Изменение структуры меню требует проверки соседних переходов, Back/Refresh/Cancel flows и callback routing, а не только нового экрана.
 
