@@ -21,6 +21,9 @@
 - Добавлен `🧾 Активность`: user-scoped presentation существующего `audit_log` по технической identity (`email`/`telegram_id`) с MSK timestamps, pagination и bounded summaries; subscription/device secret-like details не реконструируются в timeline.
 - Добавлен Support-level flow `➕ Создать пользователя`: Telegram ID → технический email → display name → тариф/compatibility → preview → подтверждение. Existing 3x-ui identity по `tgId` не дублируется и восстанавливается только отдельным explicit recovery action.
 - `XUIClient.create_client()` переведён на no-retry mutation boundary: timeout/network/5xx дают uncertain outcome, POST не повторяется, а локальная запись создаётся только после success или read-only доказательства exact `email + subId`; audit не хранит subscription credential.
+- `🔗 Подписка` дополнена `🌐 Открыть ссылку`, `🔗 Показать URL` и локальным `🔳 QR-код`; QR строится внутри bot process и не отправляет subscription URL внешнему сервису.
+- `⚙️ Параметры доступа` получил Support-level `🔄 Синхронизировать VLESS Flow`: операция меняет только Flow через существующий bulk-adjust primitive и не выполняет attach/detach Inbounds.
+- Enable/Disable переведены с one-click mutations на отдельные confirmation callbacks; stale `admindisable:*` / `adminenable:*` теперь только открывают ask-screen, а mutation выполняется новым run callback.
 
 ## v4.24.1 — Hotfix web diagnostics и IPv6
 - WHOIS/RDAP absolute timestamps в Telegram теперь нормализуются в `DD.MM.YYYY HH:MM MSK`; machine/RDAP instants остаются UTC, а возраст домена рассчитывается как раньше.
