@@ -104,6 +104,54 @@ def human_bytes(value: int) -> str:
     return f"{n:.1f} TB"
 
 
+PAYMENT_STATUS_LABELS = {
+    "pending": "🟡 Ожидает",
+    "paid": "🟢 Оплачен",
+    "refunded": "↩️ Возвращён",
+    "cancelled": "⚪ Отменён",
+}
+
+USER_AUDIT_LABELS = {
+    "user.extend": "⏳ Продлён срок",
+    "user.expiry.set": "📅 Изменён срок",
+    "user.traffic_limit.set": "📊 Изменён лимит трафика",
+    "user.traffic.reset": "♻️ Сброшен трафик",
+    "user.ip_limit.set": "📱 Изменён IP limit",
+    "user.enable": "✅ Пользователь включён",
+    "user.disable": "⛔ Пользователь отключён",
+    "user.inbound.toggle": "📡 Изменён Inbound",
+    "user.plan.set": "💎 Изменён тариф",
+    "user.plan.apply": "💎 Применены параметры тарифа",
+    "user.plan.provision": "🚀 Тариф и согласование",
+    "user.provision.safe": "🚀 Безопасное согласование",
+    "user.provision.strict": "⚠️ Строгое согласование",
+    "user.server_group.set": "🗂 Изменена группа серверов",
+    "user.subscription.rotate": "🔐 Перевыпущена подписка",
+    "user.display_name.set": "✏️ Изменено имя",
+    "user.note.set": "📝 Изменена заметка",
+    "user.device.delete": "🗑 Удалено устройство",
+    "user.delete": "🗑 Удалён пользователь",
+}
+
+SENSITIVE_AUDIT_ACTIONS = {"user.subscription.rotate", "user.device.delete"}
+
+
+def money_text(amount_minor: int, currency: str) -> str:
+    amount = int(amount_minor)
+    sign = "-" if amount < 0 else ""
+    amount = abs(amount)
+    whole, minor = divmod(amount, 100)
+    value = f"{whole}" if minor == 0 else f"{whole}.{minor:02d}"
+    return f"{sign}{value} {(currency or '').upper()}".strip()
+
+
+def audit_summary_text(action: str, details: str) -> str:
+    if action in SENSITIVE_AUDIT_ACTIONS:
+        return "Подробности скрыты для защиты credentials/device identity."
+    value = " ".join((details or "").split())
+    return value if len(value) <= 180 else value[:177] + "…"
+
+
 def fmt_date(ms: int) -> str:
     return format_timestamp(ms, milliseconds=True, empty="без срока")
 
@@ -260,6 +308,10 @@ async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, 
         [
             InlineKeyboardButton(text="📱 Подключения", callback_data=f"admin:u:connections:{tg_id}"),
             InlineKeyboardButton(text="🔗 Подписка", callback_data=f"admin:u:subview:{tg_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="💳 Платежи", callback_data=f"admin:u:payments:{tg_id}"),
+            InlineKeyboardButton(text="🧾 Активность", callback_data=f"admin:u:activity:{tg_id}"),
         ],
         [
             InlineKeyboardButton(text="✏️ Профиль", callback_data=f"admin:u:profile:{tg_id}"),
@@ -754,6 +806,158 @@ async def user_ips(call: CallbackQuery):
             InlineKeyboardButton(text="⬅ Подключения", callback_data=f"admin:u:connections:{tg_id}")
         ]]),
     )
+    await call.answer()
+
+
+
+async def _user_payments_view(tg_id: int, offset: int = 0) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    page_size = 8
+    total = await db.count_user_payments(tg_id)
+    offset = max(0, min(int(offset), max(0, total - 1))) if total else 0
+    items = await db.list_user_payments(tg_id, limit=page_size, offset=offset)
+    totals = await db.paid_user_totals_by_currency(tg_id)
+    paid_count = sum(1 for item in await db.list_user_payments(tg_id, limit=100, offset=0) if item.status == "paid")
+    paid_text = ", ".join(money_text(value, currency) for currency, value in sorted(totals.items())) or "—"
+    lines = [
+        f"💳 Платежи · {await _display_label(rec)}",
+        "",
+        f"Всего: {total}",
+        f"Оплачено: {paid_count}",
+        f"Суммы оплаченных: {paid_text}",
+        "",
+        "Последние операции:",
+    ]
+    rows: list[list[InlineKeyboardButton]] = []
+    if items:
+        for item in items:
+            plan = await db.get_plan(item.plan_id) if item.plan_id else None
+            lines.append(
+                f"{PAYMENT_STATUS_LABELS.get(item.status, item.status)} · "
+                f"{format_timestamp(item.created_at)} · {money_text(item.amount_minor, item.currency)} · "
+                f"{plan.name if plan else 'без тарифа'}"
+            )
+            rows.append([InlineKeyboardButton(
+                text=f"💳 #{item.id} · {money_text(item.amount_minor, item.currency)}",
+                callback_data=f"admin:u:payment:{tg_id}:{item.id}",
+            )])
+    else:
+        lines.append("— платежей пока нет")
+
+    nav: list[InlineKeyboardButton] = []
+    if offset > 0:
+        nav.append(InlineKeyboardButton(
+            text="⬅ Новее",
+            callback_data=f"admin:u:payments:{tg_id}:{max(0, offset - page_size)}",
+        ))
+    if offset + page_size < total:
+        nav.append(InlineKeyboardButton(
+            text="➡ Старее",
+            callback_data=f"admin:u:payments:{tg_id}:{offset + page_size}",
+        ))
+    if nav:
+        rows.append(nav)
+    rows.append([InlineKeyboardButton(text="📋 Все платежи", callback_data="admin:payments")])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    return "\n".join(lines)[:3900], InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:payments:\d+(?::\d+)?$"))
+async def user_payments_view(call: CallbackQuery):
+    if not await guard(call):
+        return
+    parts = (call.data or "").split(":")
+    tg_id = int(parts[3])
+    offset = int(parts[4]) if len(parts) > 4 else 0
+    text, kb = await _user_payments_view(tg_id, offset)
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:payment:\d+:\d+$"))
+async def user_payment_detail(call: CallbackQuery):
+    if not await guard(call):
+        return
+    parts = (call.data or "").split(":")
+    tg_id, payment_id = int(parts[-2]), int(parts[-1])
+    rec = await db.get(tg_id)
+    item = await db.get_user_payment(tg_id, payment_id)
+    if not rec or not item:
+        await call.answer("Платёж не найден для этого пользователя.", show_alert=True)
+        return
+    plan = await db.get_plan(item.plan_id) if item.plan_id else None
+    text = (
+        f"💳 Платёж #{item.id} · {await _display_label(rec)}\n\n"
+        f"Тариф: {plan.name if plan else 'не привязан'}\n"
+        f"Сумма: {money_text(item.amount_minor, item.currency)}\n"
+        f"Статус: {PAYMENT_STATUS_LABELS.get(item.status, item.status)}\n"
+        f"Провайдер: {item.provider or '—'}\n"
+        f"Дата: {format_timestamp(item.created_at)}"
+    )
+    await render_callback(
+        call,
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="⬅ Платежи", callback_data=f"admin:u:payments:{tg_id}")
+        ]]),
+    )
+    await call.answer()
+
+
+async def _user_activity_view(tg_id: int, offset: int = 0) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    page_size = 10
+    total = await db.count_user_audit(tg_id, rec.email)
+    offset = max(0, min(int(offset), max(0, total - 1))) if total else 0
+    items = await db.list_user_audit(tg_id, rec.email, limit=page_size, offset=offset)
+    lines = [f"🧾 Активность · {await _display_label(rec)}", "", f"Записей: {total}", ""]
+    if not items:
+        lines.append("Активность пока не зафиксирована.")
+    else:
+        for item in items:
+            actor = f"@{item.actor_username}" if item.actor_username else (
+                "система" if item.actor_id == 0 else f"TG {item.actor_id}"
+            )
+            label = USER_AUDIT_LABELS.get(item.action, item.action)
+            icon = "✅" if item.success else "🔴"
+            lines.append(f"{icon} {format_timestamp(item.created_at)} · {actor}")
+            lines.append(label)
+            summary = audit_summary_text(item.action, item.details)
+            if summary:
+                lines.append(summary)
+            lines.append("")
+
+    rows: list[list[InlineKeyboardButton]] = []
+    nav: list[InlineKeyboardButton] = []
+    if offset > 0:
+        nav.append(InlineKeyboardButton(
+            text="⬅ Новее",
+            callback_data=f"admin:u:activity:{tg_id}:{max(0, offset - page_size)}",
+        ))
+    if offset + page_size < total:
+        nav.append(InlineKeyboardButton(
+            text="➡ Старее",
+            callback_data=f"admin:u:activity:{tg_id}:{offset + page_size}",
+        ))
+    if nav:
+        rows.append(nav)
+    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    return "\n".join(lines)[:3900], InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:activity:\d+(?::\d+)?$"))
+async def user_activity_view(call: CallbackQuery):
+    if not await guard(call):
+        return
+    parts = (call.data or "").split(":")
+    tg_id = int(parts[3])
+    offset = int(parts[4]) if len(parts) > 4 else 0
+    text, kb = await _user_activity_view(tg_id, offset)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
