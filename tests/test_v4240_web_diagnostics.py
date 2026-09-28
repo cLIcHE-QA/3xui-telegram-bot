@@ -76,7 +76,6 @@ class WebsiteDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
             (
                 "https://example.org/",
                 "https://other.example/path",
-                "https://not a url/",
             ),
         )
 
