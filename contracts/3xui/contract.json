@@ -361,6 +361,18 @@
     {
       "method": "GET",
       "path": "/panel/api/server/getUpdateStatus"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/ips/{email}"
+    },
+    {
+      "method": "POST",
+      "path": "/panel/api/clients/hwids/{email}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/panel/api/clients/hwids/{email}/{id}"
     }
   ]
 }
