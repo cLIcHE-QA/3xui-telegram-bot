@@ -271,7 +271,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ закрыто в `v4.23.3`: базовая интеграция принята в production в `v4.23.1`, findings `v4.23.2` закрыты hotfix-релизом `v4.23.3`; дальнейший Cheburcheck Probe fleet вынесен в «Отложенные инфраструктурные улучшения» и не блокирует следующий feature release.
-18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
+18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — 🟡 реализовано для `v4.24.0`; production acceptance ещё не закрыт.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
@@ -622,9 +622,9 @@ Hotfix scope:
 
 ##### v4.24.0 — Мониторинг сайтов и web diagnostics
 
-**Статус: 🟡 Runtime scope реализован; release-prep и production acceptance `v4.24.0` ещё не закрыты.**
+**Статус: 🟡 Реализовано для `v4.24.0`; production acceptance ещё не закрыт.**
 
-Runtime scope feature cycle завершён: schema v4/v5 website monitoring, native repository/state machine, SSRF-safe outbound boundary, bounded scheduler/incident notifications, watcher-scoped pause/resume, core admin UI, admin-only global target removal и one-off/contextual diagnostics (WHOIS/DNS/HTTP/redirect/CMS/SEO/optional PageSpeed/Sitemap/URL-list/QR) реализованы. До закрытия `v4.24.0` остаются release-prep, финальная parity/documentation regression синхронизация и production acceptance.
+Runtime scope завершён: schema v4/v5 website monitoring, native repository/state machine, SSRF-safe outbound boundary, bounded scheduler/incident notifications, watcher-scoped pause/resume, core admin UI, admin-only global target removal и one-off/contextual diagnostics (WHOIS/DNS/HTTP/redirect/CMS/SEO/optional PageSpeed/Sitemap/URL-list/QR) реализованы. Release-prep синхронизирует version/changelog/current docs; критерий окончательного закрытия остаётся production acceptance опубликованного `v4.24.0`.
 
 Цель — нативно перенести полезное поведение `vladpak1/packbot` в текущий Admin Control Plane без встраивания отдельного PHP Telegram bot, MySQL runtime, webhook stack или второй application database.
 

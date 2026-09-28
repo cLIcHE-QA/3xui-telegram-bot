@@ -50,7 +50,7 @@ The Cheburcheck license notice follows.
 - Reviewed revision: `3c4a5bb29626f8b3e28056bd52cd94fdce9f3c1a`
 - License: MIT
 - Copyright: Copyright (c) 2023 vladpak1
-- Use in this repository: behavior/reference implementation for website monitoring, domain/SEO diagnostics and utility workflows planned for `v4.24.0`. The production implementation is native to this repository's Python/aiogram/SQLite architecture; the PackBot PHP/MySQL/webhook runtime is not embedded or deployed.
+- Use in this repository: behavior/reference implementation for website monitoring, domain/SEO diagnostics and utility workflows implemented in `v4.24.0`. The production implementation is native to this repository's Python/aiogram/SQLite architecture; the PackBot PHP/MySQL/webhook runtime is not embedded or deployed.
 
 The PackBot license notice follows.
 
