@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import time
 from urllib.parse import urlsplit
 
@@ -125,7 +125,7 @@ async def discover_targets() -> tuple[list[DiscoveredTarget], tuple[str, ...]]:
     add(
         f"🖥 {settings.master_name}",
         settings.panel_url,
-        "admin:cheburcheck:master",
+        "admin:cheburcheck:target:master",
     )
 
     try:
@@ -141,7 +141,7 @@ async def discover_targets() -> tuple[list[DiscoveredTarget], tuple[str, ...]]:
         add(
             f"🌍 {node.name}",
             node.address,
-            f"admin:cheburcheck:node:{node.id}",
+            f"admin:cheburcheck:target:node:{node.id}",
         )
 
     try:
@@ -157,7 +157,7 @@ async def discover_targets() -> tuple[list[DiscoveredTarget], tuple[str, ...]]:
         add(
             f"🌐 {host.label or host.hostname}",
             host.hostname,
-            f"admin:cheburcheck:host:{host.id}",
+            f"admin:cheburcheck:target:host:{host.id}",
         )
 
     return targets[:_MAX_DISCOVERED_TARGETS], tuple(warnings)
@@ -177,7 +177,7 @@ def _home_keyboard(targets: list[DiscoveredTarget]) -> InlineKeyboardMarkup:
         rows.append([
             InlineKeyboardButton(
                 text="✏️ Ввести вручную",
-                callback_data="admin:cheburcheck:start",
+                callback_data="admin:cheburcheck:start:monitoring",
             )
         ])
     rows.append([
@@ -189,58 +189,58 @@ def _home_keyboard(targets: list[DiscoveredTarget]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def _cancel_keyboard() -> InlineKeyboardMarkup:
+def _context_token(value: str | None) -> str:
+    token = (value or "").strip().lower()
+    if token == "master":
+        return "master"
+    if token.startswith("node-") and token[5:].isdigit():
+        return token
+    return "monitoring"
+
+
+def _context_back(context: str) -> tuple[str, str]:
+    token = _context_token(context)
+    if token == "master":
+        return "admin:master", "⬅ Master"
+    if token.startswith("node-"):
+        return f"admin:node:{int(token[5:])}", "⬅ Нода"
+    return "admin:cheburcheck", "⬅ Проверка блокировок"
+
+
+def _cancel_keyboard(context: str) -> InlineKeyboardMarkup:
+    token = _context_token(context)
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(
             text="✖ Отмена",
-            callback_data="admin:cheburcheck:cancel",
+            callback_data=f"admin:cheburcheck:cancel:{token}",
         )
     ]])
 
 
-def _result_keyboard(
-    *,
-    back_callback: str = "admin:cheburcheck",
-    back_text: str = "⬅ Проверка блокировок",
-) -> InlineKeyboardMarkup:
-    rows = [
+def _result_keyboard(context: str = "monitoring") -> InlineKeyboardMarkup:
+    token = _context_token(context)
+    back_callback, back_text = _context_back(token)
+    return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(
                 text="🔎 Проверить ещё",
-                callback_data="admin:cheburcheck:start",
+                callback_data=f"admin:cheburcheck:start:{token}",
             )
         ],
         [InlineKeyboardButton(text=back_text, callback_data=back_callback)],
-    ]
-    if back_callback != "admin:section:monitoring":
-        rows.append([
-            InlineKeyboardButton(
-                text="📈 Мониторинг",
-                callback_data="admin:section:monitoring",
-            )
-        ])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    ])
 
 
 def _error_keyboard(
     retry_callback: str,
     *,
-    back_callback: str,
-    back_text: str,
+    context: str,
 ) -> InlineKeyboardMarkup:
-    rows = [
+    back_callback, back_text = _context_back(context)
+    return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔄 Повторить", callback_data=retry_callback)],
         [InlineKeyboardButton(text=back_text, callback_data=back_callback)],
-    ]
-    if back_callback != "admin:section:monitoring":
-        rows.append([
-            InlineKeyboardButton(
-                text="📈 Мониторинг",
-                callback_data="admin:section:monitoring",
-            )
-        ])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
-
+    ])
 
 def _home_text(
     targets: list[DiscoveredTarget],
@@ -283,47 +283,76 @@ async def _home_view() -> tuple[str, InlineKeyboardMarkup]:
     return _home_text(targets, warnings), _home_keyboard(targets)
 
 
-def _bounded(values: tuple[str, ...], *, limit: int = 5) -> str:
-    if not values:
+def _cdn_text(result: CheburcheckResult) -> str:
+    if not result.cdn_providers:
         return "—"
-    shown = list(values[:limit])
-    if len(values) > limit:
-        shown.append(f"… ещё {len(values) - limit}")
-    return ", ".join(shown)
+    names = ", ".join(item.name for item in result.cdn_providers[:3])
+    if len(result.cdn_providers) > 3:
+        names += f", … ещё {len(result.cdn_providers) - 3}"
+    networks = sum(item.network_count for item in result.cdn_providers)
+    return f"{names} · {networks} сетей"
 
 
 def result_text(result: CheburcheckResult) -> str:
     verdict = "🔴 обнаружена блокировка" if result.blocked else "🟢 блокировка не обнаружена"
-    lines = [
+    network = " · ".join(
+        part for part in (result.organisation, result.asn, result.location) if part
+    ) or "—"
+
+    if result.rkn_domain:
+        rkn = "🔴 найден"
+    elif result.blocked_subnets:
+        rkn = f"🔴 {len(result.blocked_subnets)} подсетей"
+    else:
+        rkn = "🟢 не найден"
+
+    whitelist = "—"
+    if result.whitelist:
+        whitelist = "🟡 найдено"
+        if result.whitelist_last_ok:
+            whitelist += f" · last ok {result.whitelist_last_ok}"
+
+    asn_lists = "—"
+    if result.asn_prefix_count:
+        asn_lists = (
+            f"{result.asn_blocked_prefix_count} / "
+            f"{result.asn_prefix_count} подсетей в списках"
+        )
+
+    regions = "—"
+    if result.probe_summary is not None:
+        summary = result.probe_summary
+        regions = (
+            f"{summary.response_count} ответов · "
+            f"🟢 {summary.green} · 🔴 {summary.red} · 🟡 {summary.yellow}"
+        )
+
+    return "\n".join([
         "🔎 Проверка блокировок",
         "",
         f"Цель: {result.target}",
-        f"Тип: {result.target_type or '—'}",
         f"Результат: {verdict}",
-    ]
-    if result.rkn_domain:
-        lines.append(f"Домен из реестра: {result.rkn_domain}")
-    if result.subnet_size:
-        lines.append(f"Размер подсети: {result.subnet_size}")
-    lines.extend([
+        f"Сеть: {network}",
         "",
-        f"IP: {_bounded(result.ips)}",
-        f"Reverse DNS: {_bounded(result.reverse_lookup)}",
-        f"Заблокированные подсети: {_bounded(result.blocked_subnets)}",
-    ])
-    geo_parts = [part for part in (result.organisation, result.asn, result.location) if part]
-    if geo_parts:
-        lines.append(f"Сеть: {' · '.join(geo_parts)}")
-    complaints = sum(item.count for item in result.complaints)
-    if complaints:
-        lines.append(f"Жалобы за 14 дней: {complaints}")
-    lines.extend([
+        "📋 Списки",
+        f"РКН: {rkn}",
+        f"CDN: {_cdn_text(result)}",
+        f"Исключение CDN: {whitelist}",
+        f"ASN: {asn_lists}",
+        "",
+        f"🌍 Регионы: {regions}",
         "",
         "Источник: Cheburcheck.",
-        "Результат отражает данные сервиса на момент запроса и не является гарантией фактической доступности у каждого провайдера.",
     ])
-    return "\n".join(lines)
 
+
+async def _check_result(target: str) -> CheburcheckResult:
+    result = await client.check(target)
+    try:
+        probe_summary = await client.probe_summary(result)
+    except CheburcheckError:
+        probe_summary = None
+    return replace(result, probe_summary=probe_summary)
 
 def _consume_cooldown(actor_id: int) -> bool:
     now = time.monotonic()
@@ -338,8 +367,7 @@ async def _check_callback_target(
     call: CallbackQuery,
     target: str,
     *,
-    back_callback: str,
-    back_text: str,
+    context: str,
 ) -> None:
     if not client.enabled:
         text, keyboard = await _home_view()
@@ -350,15 +378,14 @@ async def _check_callback_target(
         await call.answer("Слишком частые запросы. Повтори через пару секунд.", show_alert=True)
         return
     try:
-        result = await client.check(target)
+        result = await _check_result(target)
     except CheburcheckError as exc:
         await render_callback(
             call,
             f"🔎 Проверка блокировок\n\n⚠️ {exc}",
             reply_markup=_error_keyboard(
                 call.data or "admin:cheburcheck",
-                back_callback=back_callback,
-                back_text=back_text,
+                context=context,
             ),
         )
         await call.answer()
@@ -367,10 +394,7 @@ async def _check_callback_target(
     await render_callback(
         call,
         result_text(result),
-        reply_markup=_result_keyboard(
-            back_callback=back_callback,
-            back_text=back_text,
-        ),
+        reply_markup=_result_keyboard(context),
     )
     await call.answer()
 
@@ -386,11 +410,16 @@ async def cheburcheck_home(call: CallbackQuery, state: FSMContext):
     await call.answer()
 
 
-@cheburcheck_router.callback_query(F.data == "admin:cheburcheck:start")
+@cheburcheck_router.callback_query(
+    F.data.regexp(r"^admin:cheburcheck:start(?::(monitoring|master|node-\\d+))?$")
+)
 async def cheburcheck_start(call: CallbackQuery, state: FSMContext):
     ok, _ = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
         return
+    context = _context_token((call.data or "").split(":")[-1] if ":" in (call.data or "") else None)
+    if call.data == "admin:cheburcheck:start":
+        context = "monitoring"
     if not client.enabled:
         text, keyboard = await _home_view()
         await call.answer("Cheburcheck не настроен", show_alert=True)
@@ -398,6 +427,7 @@ async def cheburcheck_start(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await state.set_state(CheburcheckStates.target)
+    await state.update_data(cheburcheck_context=context)
     await render_callback(
         call,
         "🔎 Проверка блокировок\n\n"
@@ -407,20 +437,90 @@ async def cheburcheck_start(call: CallbackQuery, state: FSMContext):
         "1.1.1.1\n"
         "1.1.1.0/24\n"
         "AS13335",
-        reply_markup=_cancel_keyboard(),
+        reply_markup=_cancel_keyboard(context),
     )
     await call.answer()
 
 
-@cheburcheck_router.callback_query(F.data == "admin:cheburcheck:cancel")
+@cheburcheck_router.callback_query(
+    F.data.regexp(r"^admin:cheburcheck:cancel(?::(monitoring|master|node-\\d+))?$")
+)
 async def cheburcheck_cancel(call: CallbackQuery, state: FSMContext):
     ok, _ = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
         return
+    context = _context_token((call.data or "").split(":")[-1] if ":" in (call.data or "") else None)
+    if call.data == "admin:cheburcheck:cancel":
+        context = "monitoring"
     await state.clear()
-    text, keyboard = await _home_view()
-    await render_callback(call, text, reply_markup=keyboard)
+    if context == "monitoring":
+        text, keyboard = await _home_view()
+        await render_callback(call, text, reply_markup=keyboard)
+    else:
+        back_callback, back_text = _context_back(context)
+        await render_callback(
+            call,
+            "🔎 Проверка блокировок\n\nПроверка отменена.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text=back_text, callback_data=back_callback)
+            ]]),
+        )
     await call.answer("Отменено")
+
+
+@cheburcheck_router.callback_query(F.data == "admin:cheburcheck:target:master")
+async def cheburcheck_target_master(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    target = _stored_target(settings.panel_url)
+    if not target:
+        await call.answer("У Master нет подходящего публичного hostname/IP.", show_alert=True)
+        return
+    await _check_callback_target(call, target, context="monitoring")
+
+
+@cheburcheck_router.callback_query(
+    F.data.regexp(r"^admin:cheburcheck:target:node:\d+$")
+)
+async def cheburcheck_target_node(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    try:
+        node_id = int((call.data or "").rsplit(":", 1)[-1])
+        node = await xui.node_get_enriched(node_id)
+    except (ValueError, XUIError):
+        await call.answer("Не удалось прочитать ноду.", show_alert=True)
+        return
+    target = _stored_target(node.address)
+    if not target:
+        await call.answer("У ноды нет подходящего публичного hostname/IP.", show_alert=True)
+        return
+    await _check_callback_target(call, target, context="monitoring")
+
+
+@cheburcheck_router.callback_query(
+    F.data.regexp(r"^admin:cheburcheck:target:host:\d+$")
+)
+async def cheburcheck_target_host(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    try:
+        host_id = int((call.data or "").rsplit(":", 1)[-1])
+    except ValueError:
+        await call.answer("Некорректный ID хоста.", show_alert=True)
+        return
+    host = await db.get_host(host_id)
+    if host is None or not host.enabled:
+        await call.answer("Хост не найден или отключён.", show_alert=True)
+        return
+    target = _stored_target(host.hostname)
+    if not target:
+        await call.answer("У хоста нет подходящего публичного hostname/IP.", show_alert=True)
+        return
+    await _check_callback_target(call, target, context="monitoring")
 
 
 @cheburcheck_router.callback_query(F.data == "admin:cheburcheck:master")
@@ -435,8 +535,7 @@ async def cheburcheck_master(call: CallbackQuery):
     await _check_callback_target(
         call,
         target,
-        back_callback="admin:master",
-        back_text="⬅ Master",
+        context="master",
     )
 
 
@@ -458,8 +557,7 @@ async def cheburcheck_node(call: CallbackQuery):
     await _check_callback_target(
         call,
         target,
-        back_callback=f"admin:node:{node_id}",
-        back_text="⬅ Нода",
+        context=f"node-{node_id}",
     )
 
 
@@ -484,8 +582,7 @@ async def cheburcheck_host(call: CallbackQuery):
     await _check_callback_target(
         call,
         target,
-        back_callback="admin:cheburcheck",
-        back_text="⬅ Проверка блокировок",
+        context="monitoring",
     )
 
 
@@ -509,17 +606,20 @@ async def cheburcheck_target(message: Message, state: FSMContext):
         )
         return
 
+    state_data = await state.get_data()
+    context = _context_token(state_data.get("cheburcheck_context"))
+
     if not _consume_cooldown(message.from_user.id):
         await render_input(
             message,
             "🔎 Проверка блокировок\n\n⚠️ Слишком частые запросы. Повтори через пару секунд.",
-            reply_markup=_cancel_keyboard(),
+            reply_markup=_cancel_keyboard(context),
         )
         return
 
     raw = (message.text or "").strip()
     try:
-        result = await client.check(raw)
+        result = await _check_result(raw)
     except CheburcheckError as exc:
         await render_input(
             message,
@@ -532,5 +632,5 @@ async def cheburcheck_target(message: Message, state: FSMContext):
     await render_input(
         message,
         result_text(result),
-        reply_markup=_result_keyboard(),
+        reply_markup=_result_keyboard(context),
     )
