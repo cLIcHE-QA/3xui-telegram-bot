@@ -114,6 +114,7 @@ class AdminNavigationTests(unittest.TestCase):
             "system_admin.py",
             "cheburcheck_admin.py",
             "website_monitoring_admin.py",
+            "website_diagnostics_admin.py",
         )
         missing = []
         for name in files:

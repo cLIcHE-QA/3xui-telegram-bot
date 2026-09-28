@@ -4,3 +4,5 @@ aiosqlite>=0.20,<1
 python-dotenv>=1.0,<2
 boto3>=1.35,<2
 cryptography>=43,<47
+dnspython>=2.7,<3
+qrcode[pil]>=8.0,<9

@@ -624,7 +624,7 @@ Hotfix scope:
 
 **Статус: ⬜ Запланировано на `v4.24.0`; foundation implementation начата, полный release scope ещё не завершён.**
 
-Текущий partial progress в feature cycle: schema v4 `website_monitoring_v4_24_0`, native repository/state-machine foundation, единый SSRF-safe outbound HTTP client, bounded background scheduler/incident notifications и core `/admin → Мониторинг → Мониторинг сайтов` UI (list/card/add/manual-check/history/notification toggle/unsubscribe). One-off diagnostics, subscription pause/resume, global admin target removal и полная PackBot parity matrix остаются незавершёнными, поэтому статус не повышается до `🟡`.
+Текущий partial progress в feature cycle: schema v4 `website_monitoring_v4_24_0`, native repository/state-machine foundation, единый SSRF-safe outbound HTTP client, bounded background scheduler/incident notifications и core `/admin → Мониторинг → Мониторинг сайтов` UI (list/card/add/manual-check/history/notification toggle/unsubscribe). One-off diagnostics (WHOIS/DNS/HTTP/redirect/CMS/SEO/optional PageSpeed/Sitemap/URL-list/QR) реализованы отдельным bounded read-only flow; subscription pause/resume, global admin target removal, contextual diagnostics shortcut из карточки сайта и финальная parity/acceptance синхронизация остаются незавершёнными, поэтому статус не повышается до `🟡`.
 
 Цель — нативно перенести полезное поведение `vladpak1/packbot` в текущий Admin Control Plane без встраивания отдельного PHP Telegram bot, MySQL runtime, webhook stack или второй application database.
 

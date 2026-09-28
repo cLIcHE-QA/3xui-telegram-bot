@@ -63,6 +63,10 @@ class RBACPrivilegesTests(unittest.TestCase):
             "admin:webmon:add": "support",
             "admin:webmon:check:7": "support",
             "admin:webmon:delete:7": "support",
+            "admin:webdiag": "read_only",
+            "admin:webdiag:whois": "read_only",
+            "admin:webdiag:pagespeed": "read_only",
+            "admin:webdiag:cancel": "read_only",
             "admin:restore": "owner",
             "admin:hostctl:n2": "read_only",
             "admin:hostctl:n2:sr:run": "admin",
@@ -110,6 +114,7 @@ class RBACPrivilegesTests(unittest.TestCase):
             "versions_updates.py",
             "bot_updates.py",
             "website_monitoring_admin.py",
+            "website_diagnostics_admin.py",
         )
         declared = declared_route_specs()
         missing: list[str] = []

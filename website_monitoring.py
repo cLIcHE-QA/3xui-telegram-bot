@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import ipaddress
+import re
 import socket
 import ssl
 import time
@@ -113,8 +114,16 @@ def _normalized_host(hostname: str) -> str:
         ascii_value = value.encode("idna").decode("ascii").lower()
     except UnicodeError as exc:
         raise UnsafeTargetError("Некорректное имя хоста.", code="invalid_target") from exc
-    if len(ascii_value) > 253 or any(
-        not label or len(label) > 63 for label in ascii_value.split(".")
+    labels = ascii_value.split(".")
+    label_re = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+    if (
+        len(ascii_value) > 253
+        or any(
+            not label
+            or len(label) > 63
+            or label_re.fullmatch(label) is None
+            for label in labels
+        )
     ):
         raise UnsafeTargetError("Некорректное имя хоста.", code="invalid_target")
     return ascii_value

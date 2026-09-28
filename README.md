@@ -132,12 +132,14 @@ domain routers
 ├─ website_monitoring.py
 ├─ website_monitoring_runtime.py
 ├─ website_monitoring_admin.py
+├─ website_diagnostics.py
+├─ website_diagnostics_admin.py
 └─ disaster_recovery.py
 ~~~
 
 `bot.py` сохраняется как стабильный executable path, в том числе для `restore_bootstrap.py`, но не владеет domain handlers или lifecycle implementation.
 
-Линия `v4.24.0` реализуется нативно: `website_monitoring.py` содержит SQLite repository/state machine и SSRF-safe outbound boundary, `website_monitoring_runtime.py` — bounded scheduler/incident notifications, а `website_monitoring_admin.py` — `/admin → Мониторинг → Мониторинг сайтов`. Release scope остаётся незавершённым до diagnostics/parity/acceptance.
+Линия `v4.24.0` реализуется нативно: `website_monitoring.py` содержит SQLite repository/state machine и SSRF-safe outbound boundary, `website_monitoring_runtime.py` — bounded scheduler/incident notifications, `website_monitoring_admin.py` — persistent monitoring UI, а `website_diagnostics.py` / `website_diagnostics_admin.py` — one-off DNS/WHOIS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/URL-list/QR diagnostics. Release scope остаётся незавершённым до оставшегося lifecycle/parity/acceptance.
 
 ### 3x-ui API contract
 
@@ -253,7 +255,7 @@ Admin Control Plane:
 - `/admin` открывает корневую панель: Обзор / Пользователи / Подписки / Платежи / Тарифы / Промокоды / Инфраструктура / Мониторинг / Система;
 - Пользователи: карточки пользователей / Группы пользователей / массовые действия / согласование доступа; Группы пользователей являются audience-сущностью и не заменяют Группы серверов;
 - Инфраструктура: Ноды / Inbounds / Хосты / Операции с нодами / Группы серверов; Host Control открывается из карточки конкретного Master/direct node;
-- Мониторинг: Трафик / В сети / Состояние системы / Проверка блокировок / Журналы / Оповещения;
+- Мониторинг: Трафик / В сети / Состояние системы / Проверка блокировок / Мониторинг сайтов / Журналы / Оповещения;
 - Система: Обновления бота / Версии и обновления / Задания / Резервные копии / Журнал аудита / Администраторы / Настройки.
 
 Наличие v4 client-access команд не означает, что v5 Client Portal уже реализован. Новый client-facing product flow должен сохранять отдельную authorization/navigation boundary от `/admin`.

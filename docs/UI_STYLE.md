@@ -184,6 +184,9 @@ Operator-facing термин `membership` в обычных экранах не 
 - mutation-кнопки website monitoring privilege-aware: Read-only видит список/карточку/history, Support получает add/manual-check/notifications/unsubscribe; delete/unsubscribe остаётся двухшаговым;
 - unsubscribe удаляет только watcher текущего администратора; target очищается как orphan только после удаления последнего watcher;
 - website incident alerts являются отдельными Telegram notifications, а не заменяют односообщенческую admin panel; repeated/recovery delivery использует persistent idempotency journal;
+- `🔎 Разовая диагностика` является дочерним экраном `Мониторинг сайтов` и не создаёт persistent target; WHOIS/DNS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/URL-list/QR используют fixed tool callbacks и FSM input с `✖ Отмена`;
+- PageSpeed без локального API key показывает `⚪ Не настроен`, а не ошибку target; QR как media utility может отправить отдельное изображение, после чего text-panel остаётся в локальном diagnostics context;
+- длинные DNS/Sitemap/URL-list results сворачиваются/truncate до Telegram-safe summary; raw WHOIS/RDAP/PageSpeed payload в UI не выводится;
 - shortcut на тот же экран из другого top-level раздела добавляется только при явной UX-причине, а не как дублирующий вход;
 - callback-screen после результата или обычной ошибки сохраняет явный путь назад/дальше; в односообщенческой admin-панели вызов `render_callback(...)` без `reply_markup` не должен создавать dead end;
 - временный progress screen во время уже запущенной state-changing/fail-closed операции может намеренно скрывать навигацию, если повторный клик или параллельное действие создают риск replay/неопределённого outcome;

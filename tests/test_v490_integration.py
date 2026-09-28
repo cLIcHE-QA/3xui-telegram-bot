@@ -65,6 +65,14 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('automatic_backup_loop', source)
         self.assertIn('asyncio.run(main())', source)
 
+    def test_v424_diagnostics_router_is_registered(self):
+        source = inspect.getsource(self.runtime)
+        self.assertIn(
+            'from website_diagnostics_admin import website_diagnostics_router',
+            source,
+        )
+        self.assertIn('dp.include_router(website_diagnostics_router)', source)
+
     def test_navigation_shortcuts(self):
         self.assertIn('admin:versions', self.callback_values(self.nav.system_menu()))
         self.assertIn('admin:botupd', self.callback_values(self.nav.system_menu()))
@@ -95,7 +103,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
             'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
             'fleet_operations.py', 'cheburcheck_admin.py',
-            'website_monitoring_admin.py',
+            'website_monitoring_admin.py', 'website_diagnostics_admin.py',
         ]
 
         def marked(label: str) -> bool:

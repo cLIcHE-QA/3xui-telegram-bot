@@ -267,6 +267,16 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         r"^admin:webmon:incidents:\d+$",
     )
     + _rules(
+        "website_monitoring.view",
+        "exact",
+        "admin:webdiag", "admin:webdiag:cancel",
+    )
+    + _rules(
+        "website_monitoring.view",
+        "regex",
+        r"^admin:webdiag:(whois|dns|http|redirects|cms|seo|pagespeed|sitemap|urllist|qr)$",
+    )
+    + _rules(
         "website_monitoring.manage",
         "exact",
         "admin:webmon:add", "admin:webmon:add:cancel",
