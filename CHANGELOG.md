@@ -19,6 +19,8 @@
 - Удаление одного HWID device выполняется только после отдельного confirmation; DELETE использует no-retry mutation semantics, а uncertain outcome отображается как неизвестный и проверяется read-only обновлением списка.
 - Карточка пользователя получила read-only раздел `💳 Платежи`: scoped ledger по `payments.telegram_id`, суммы оплаченных группируются по валюте, detail callback проверяет принадлежность платежа текущему пользователю, write-actions остаются только в каноническом разделе `Платежи`.
 - Добавлен `🧾 Активность`: user-scoped presentation существующего `audit_log` по технической identity (`email`/`telegram_id`) с MSK timestamps, pagination и bounded summaries; subscription/device secret-like details не реконструируются в timeline.
+- Добавлен Support-level flow `➕ Создать пользователя`: Telegram ID → технический email → display name → тариф/compatibility → preview → подтверждение. Existing 3x-ui identity по `tgId` не дублируется и восстанавливается только отдельным explicit recovery action.
+- `XUIClient.create_client()` переведён на no-retry mutation boundary: timeout/network/5xx дают uncertain outcome, POST не повторяется, а локальная запись создаётся только после success или read-only доказательства exact `email + subId`; audit не хранит subscription credential.
 
 ## v4.24.1 — Hotfix web diagnostics и IPv6
 - WHOIS/RDAP absolute timestamps в Telegram теперь нормализуются в `DD.MM.YYYY HH:MM MSK`; machine/RDAP instants остаются UTC, а возраст домена рассчитывается как раньше.
