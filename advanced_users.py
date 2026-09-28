@@ -71,6 +71,8 @@ def provisioning_source_text(source: str) -> str:
 
 class BulkUserStates(StatesGroup):
     selecting = State()
+    expiry = State()
+    traffic = State()
 
 
 class UserListStates(StatesGroup):
