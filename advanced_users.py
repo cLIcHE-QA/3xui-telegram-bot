@@ -819,7 +819,7 @@ async def _user_payments_view(tg_id: int, offset: int = 0) -> tuple[str, InlineK
     offset = max(0, min(int(offset), max(0, total - 1))) if total else 0
     items = await db.list_user_payments(tg_id, limit=page_size, offset=offset)
     totals = await db.paid_user_totals_by_currency(tg_id)
-    paid_count = sum(1 for item in await db.list_user_payments(tg_id, limit=100, offset=0) if item.status == "paid")
+    paid_count = await db.count_user_payments_by_status(tg_id, "paid")
     paid_text = ", ".join(money_text(value, currency) for currency, value in sorted(totals.items())) or "—"
     lines = [
         f"💳 Платежи · {await _display_label(rec)}",
