@@ -664,8 +664,11 @@ Reviewed upstream contract:
    │  │     ├─ 🔄 Проверить сейчас
    │  │     ├─ 🩺 Диагностика
    │  │     ├─ 📜 История инцидентов
+   │  │     ├─ ⏸ Приостановить / ▶️ Возобновить
    │  │     ├─ 🔔 Оповещения
    │  │     └─ 🗑 Удалить / отписаться
+   │  ├─ 🛡 Все targets              ← Administrator+
+   │  │  └─ 🗑 Глобальное удаление  ← двухшаговое
    │  └─ 🔎 Разовая диагностика
    │     ├─ 🌐 Домен
    │     │  ├─ WHOIS / возраст
@@ -770,6 +773,7 @@ website_monitor_watchers
 - monitor_id
 - telegram_id
 - notifications_enabled
+- monitoring_enabled
 - created_at
 UNIQUE(monitor_id, telegram_id)
 
