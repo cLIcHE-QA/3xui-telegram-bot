@@ -129,7 +129,8 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "exact",
         "admin:provision:all:ask", "admin:provision:all:run", "admin:users:bulk",
         "admin:users:create", "admin:users:create:email-default", "admin:users:create:email-custom",
-        "admin:users:create:display-skip", "admin:users:create:plan-compat", "admin:users:create:run",
+        "admin:users:create:display-skip", "admin:users:create:plans", "admin:users:create:plan-compat",
+        "admin:users:create:run",
         "admin:bulk:all", "admin:bulk:clear", "admin:bulk:actions",
         "admin:bulk:back", "admin:bulk:close", "admin:bulk:prev", "admin:bulk:next",
     )
