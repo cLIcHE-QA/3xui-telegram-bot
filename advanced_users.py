@@ -176,6 +176,13 @@ def sub_url(sub_id: str) -> str:
     return template.format(sub_id=sub_id)
 
 
+def masked_sub_id(sub_id: str) -> str:
+    value = str(sub_id or "")
+    if len(value) <= 8:
+        return "••••"
+    return f"{value[:4]}…{value[-4:]}"
+
+
 def is_managed_inbound(i) -> bool:
     return inbound_is_managed(settings, i)
 
@@ -343,6 +350,42 @@ def back_user(tg_id: int) -> InlineKeyboardMarkup:
     ])
 
 
+def back_plan(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:u:planview:{tg_id}")
+    ]])
+
+
+def back_expiry(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Срок", callback_data=f"admin:u:expiryview:{tg_id}")
+    ]])
+
+
+def back_traffic(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Трафик", callback_data=f"admin:u:trafficview:{tg_id}")
+    ]])
+
+
+def back_access_config(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+    ]])
+
+
+def back_subscription(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Подписка", callback_data=f"admin:u:subview:{tg_id}")
+    ]])
+
+
+def back_profile(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Профиль", callback_data=f"admin:u:profile:{tg_id}")
+    ]])
+
+
 def users_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
@@ -484,6 +527,19 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
         return "Пользователь не найден.", users_back()
     profile = await db.get_user_profile(tg_id)
     plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
+    current_group = await db.get_server_group(profile.server_group_id) if profile and profile.server_group_id else None
+    plan_group = await db.get_server_group(plan.server_group_id) if plan and plan.server_group_id else None
+    current_traffic = "недоступно"
+    current_ip = "недоступно"
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        total = int(client.get("totalGB") or 0)
+        limit_ip = int(client.get("limitIp") or 0)
+        current_traffic = human_bytes(total) if total else "без лимита"
+        current_ip = str(limit_ip) if limit_ip else "без лимита"
+    except XUIError:
+        pass
     lines = [
         f"💎 Тариф · {await _display_label(rec)}",
         "",
@@ -491,9 +547,18 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
     ]
     if plan:
         lines += [
-            f"Срок тарифа: {plan.duration_days} дн.",
-            f"Трафик: {plan.traffic_gb} GB" if plan.traffic_gb else "Трафик: без лимита",
-            f"Лимит IP: {plan.ip_limit}" if plan.ip_limit else "Лимит IP: без лимита",
+            f"Стоимость: {money_text(plan.price_minor, plan.currency)}",
+            f"Период: {plan.duration_days} дн.",
+            "",
+            "Параметры тарифа:",
+            f"📦 Трафик: {plan.traffic_gb} GB" if plan.traffic_gb else "📦 Трафик: без лимита",
+            f"📱 IP limit: {plan.ip_limit}" if plan.ip_limit else "📱 IP limit: без лимита",
+            f"🗂 Группа серверов: {plan_group.name if plan_group else 'не назначена'}",
+            "",
+            "Текущие параметры пользователя:",
+            f"📦 Трафик: {current_traffic}",
+            f"📱 IP limit: {current_ip}",
+            f"🗂 Группа серверов: {current_group.name if current_group else 'не назначена'}",
         ]
     rows: list[list[InlineKeyboardButton]] = []
     if _role_can_support(role):
@@ -596,6 +661,21 @@ async def _user_subscription_view(tg_id: int, role: str | None) -> tuple[str, In
     if not rec:
         return "Пользователь не найден.", users_back()
     url = sub_url(rec.sub_id)
+    status = "⚠️ недоступно"
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        enabled = bool(client.get("enable", True))
+        expiry = int(client.get("expiryTime") or rec.expiry_time or 0)
+        now_ms = int(time.time() * 1000)
+        if not enabled:
+            status = "⛔ отключена"
+        elif expiry and expiry <= now_ms:
+            status = "⌛ истекла"
+        else:
+            status = "🟢 активна"
+    except XUIError:
+        pass
     rows = [
         [InlineKeyboardButton(text="🌐 Открыть ссылку", url=url)],
         [
@@ -608,6 +688,8 @@ async def _user_subscription_view(tg_id: int, role: str | None) -> tuple[str, In
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
     return (
         f"🔗 Подписка · {await _display_label(rec)}\n\n"
+        f"ID: {masked_sub_id(rec.sub_id)}\n"
+        f"Статус: {status}\n\n"
         "Subscription identity сохраняется при обычном согласовании и изменяется только отдельной явной операцией.",
         InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -1133,10 +1215,12 @@ async def user_advanced_card(call: CallbackQuery, state: FSMContext):
     await call.answer()
 
 
-async def _render_user_section(call: CallbackQuery, renderer) -> None:
+async def _render_user_section(call: CallbackQuery, renderer, state: FSMContext | None = None) -> None:
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
         return
+    if state is not None:
+        await state.clear()
     tg_id = int(call.data.rsplit(":", 1)[-1])
     text, kb = await renderer(tg_id, role)
     await render_callback(call, text, reply_markup=kb)
@@ -1144,28 +1228,28 @@ async def _render_user_section(call: CallbackQuery, renderer) -> None:
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:planview:"))
-async def user_plan_view(call: CallbackQuery):
-    await _render_user_section(call, _user_plan_view)
+async def user_plan_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_plan_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:expiryview:"))
-async def user_expiry_view(call: CallbackQuery):
-    await _render_user_section(call, _user_expiry_view)
+async def user_expiry_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_expiry_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:trafficview:"))
-async def user_traffic_view(call: CallbackQuery):
-    await _render_user_section(call, _user_traffic_view)
+async def user_traffic_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_traffic_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:access:"))
-async def user_access_view(call: CallbackQuery):
-    await _render_user_section(call, _user_access_view)
+async def user_access_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_access_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:subview:"))
-async def user_subscription_view(call: CallbackQuery):
-    await _render_user_section(call, _user_subscription_view)
+async def user_subscription_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_subscription_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:subqr:"))
@@ -1190,38 +1274,40 @@ async def user_subscription_qr(call: CallbackQuery):
             text = "🔳 QR-код подписки\n\n🔴 Не удалось отправить изображение."
     else:
         text = "🔳 QR-код подписки\n\n🔴 Сообщение недоступно."
-    await render_callback(call, text, reply_markup=back_user(tg_id))
+    await render_callback(call, text, reply_markup=back_subscription(tg_id))
     await call.answer()
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:profile:"))
-async def user_profile_view(call: CallbackQuery):
-    await _render_user_section(call, _user_profile_view)
+async def user_profile_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_profile_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:more:"))
-async def user_more_view(call: CallbackQuery):
-    await _render_user_section(call, _user_more_view)
+async def user_more_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_more_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:accesscfg:"))
-async def user_access_config(call: CallbackQuery):
+async def user_access_config(call: CallbackQuery, state: FSMContext):
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
         return
+    await state.clear()
     tg_id = int(call.data.rsplit(":", 1)[-1])
     rec = await db.get(tg_id)
     if not rec:
         await call.answer("Пользователь не найден.", show_alert=True)
         return
     limit_ip = "недоступно"
-    flow = "недоступно"
+    flow = "не настроен" if not settings.vless_flow else "недоступно"
     try:
         obj = await xui.get_client(rec.email)
         client = obj.get("client", obj)
         value = int(client.get("limitIp") or 0)
         limit_ip = str(value) if value else "без лимита"
-        flow = str(client.get("flow") or "none")
+        if settings.vless_flow:
+            flow = str(client.get("flow") or "none")
     except XUIError:
         pass
     rows: list[list[InlineKeyboardButton]] = []
@@ -1333,7 +1419,7 @@ async def user_expiry_start(call: CallbackQuery, state: FSMContext):
         "• +30 — добавить 30 дней к текущему сроку\n"
         "• 2026-12-31 — установить дату 23:59 MSK\n"
         "• 0 — без срока",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_expiry(tg_id),
     )
     await call.answer()
 
@@ -1372,12 +1458,12 @@ async def user_expiry_save(message: Message, state: FSMContext):
             details=f"old={current}; new={new_expiry}",
         )
         await state.clear()
-        await render_input(message, f"✅ Срок: {fmt_date(new_expiry)}", reply_markup=back_user(tg_id))
+        await render_input(message, f"✅ Срок: {fmt_date(new_expiry)}", reply_markup=back_expiry(tg_id))
     except (ValueError, XUIError) as exc:
         if isinstance(exc, XUIError):
-            await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+            await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_expiry(tg_id))
         else:
-            await render_input(message, "Формат: +30, YYYY-MM-DD или 0.", reply_markup=cancel_edit(tg_id))
+            await render_input(message, "Формат: +30, YYYY-MM-DD или 0.", reply_markup=back_expiry(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:traffic:"))
@@ -1390,7 +1476,7 @@ async def user_traffic_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(EditUserStates.traffic)
     await render_callback(call, 
         "📦 Новый лимит трафика в GB.\n0 = без лимита.\nНапример: 100",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_traffic(tg_id),
     )
     await call.answer()
 
@@ -1416,12 +1502,12 @@ async def user_traffic_save(message: Message, state: FSMContext):
         await state.clear()
         await render_input(message, 
             f"✅ Лимит трафика: {gb} GB" if gb else "✅ Лимит трафика: без лимита",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_traffic(tg_id),
         )
     except ValueError:
-        await render_input(message, "Введи целое число GB от 0 до 1000000.", reply_markup=cancel_edit(tg_id))
+        await render_input(message, "Введи целое число GB от 0 до 1000000.", reply_markup=back_traffic(tg_id))
     except XUIError as exc:
-        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_traffic(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:ip:"))
@@ -1434,7 +1520,7 @@ async def user_ip_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(EditUserStates.ip_limit)
     await render_callback(call, 
         "📱 Новый лимит IP.\n0 = без лимита.\nНапример: 2",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_access_config(tg_id),
     )
     await call.answer()
 
@@ -1460,12 +1546,12 @@ async def user_ip_save(message: Message, state: FSMContext):
         await state.clear()
         await render_input(message, 
             f"✅ Лимит IP: {limit}" if limit else "✅ Лимит IP: без лимита",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_access_config(tg_id),
         )
     except ValueError:
-        await render_input(message, "Введи целое число от 0 до 1000.", reply_markup=cancel_edit(tg_id))
+        await render_input(message, "Введи целое число от 0 до 1000.", reply_markup=back_access_config(tg_id))
     except XUIError as exc:
-        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_access_config(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:name:"))
@@ -1484,7 +1570,7 @@ async def user_display_name_start(call: CallbackQuery, state: FSMContext):
         "✏️ Имя пользователя\n\n"
         "Введи отображаемое имя (до 64 символов).\n"
         "«-» очищает имя и возвращает отображение email.",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_profile(tg_id),
     )
     await call.answer()
 
@@ -1507,7 +1593,7 @@ async def user_display_name_save(message: Message, state: FSMContext):
             message,
             "Имя должно содержать 1–64 символа без управляющих символов. "
             "Используй «-», чтобы очистить имя.",
-            reply_markup=cancel_edit(tg_id),
+            reply_markup=back_profile(tg_id),
         )
         return
     old_profile = await db.get_user_profile(tg_id)
@@ -1524,7 +1610,7 @@ async def user_display_name_save(message: Message, state: FSMContext):
     )
     await state.clear()
     result = "✅ Имя очищено. Используется email." if not display_name else f"✅ Имя: {display_name}"
-    await render_input(message, result, reply_markup=back_user(tg_id))
+    await render_input(message, result, reply_markup=back_profile(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:note:"))
@@ -1537,7 +1623,7 @@ async def user_note_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(EditUserStates.note)
     await render_callback(call, 
         "📝 Введи внутреннюю заметку (до 500 символов).\n«-» очищает заметку.",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_profile(tg_id),
     )
     await call.answer()
 
@@ -1553,7 +1639,7 @@ async def user_note_save(message: Message, state: FSMContext):
     if note == "-":
         note = ""
     if len(note) > 500:
-        await render_input(message, "Максимум 500 символов.", reply_markup=cancel_edit(tg_id))
+        await render_input(message, "Максимум 500 символов.", reply_markup=back_profile(tg_id))
         return
     await db.set_user_note(tg_id, note)
     await audit_from_message(
@@ -1561,7 +1647,7 @@ async def user_note_save(message: Message, state: FSMContext):
         details=f"length={len(note)}",
     )
     await state.clear()
-    await render_input(message, "✅ Заметка сохранена.", reply_markup=back_user(tg_id))
+    await render_input(message, "✅ Заметка сохранена.", reply_markup=back_profile(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:plan:"))
@@ -1581,7 +1667,7 @@ async def user_plan_menu(call: CallbackQuery):
         rows.append([InlineKeyboardButton(
             text=f"{icon} {plan.name}", callback_data=f"admin:u:planset:{tg_id}:{plan.id}"
         )])
-    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:u:planview:{tg_id}")])
     await render_callback(call, 
         "💎 Тариф\n\nНазначение здесь — административные метаданные. Лимиты 3x-ui не меняются автоматически.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -1606,7 +1692,7 @@ async def user_plan_set(call: CallbackQuery):
         details=f"plan_id={plan_id or None}; name={plan.name if plan else ''}",
     )
     await render_callback(call, 
-        f"✅ Тариф: {plan.name if plan else 'не назначен'}", reply_markup=back_user(tg_id)
+        f"✅ Тариф: {plan.name if plan else 'не назначен'}", reply_markup=back_plan(tg_id)
     )
     await call.answer()
 
@@ -1630,7 +1716,7 @@ async def user_plan_apply_ask(call: CallbackQuery):
         "Накопленный трафик не сбрасывается. Группа серверов сохраняется отдельно.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Применить", callback_data=f"admin:u:planapplyrun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:planview:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -1666,14 +1752,14 @@ async def user_plan_apply_run(call: CallbackQuery):
             ),
         )
         await render_callback(call, 
-            f"✅ Тариф «{plan.name}» применён к лимитам 3x-ui.", reply_markup=back_user(tg_id)
+            f"✅ Тариф «{plan.name}» применён к лимитам 3x-ui.", reply_markup=back_plan(tg_id)
         )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.plan.apply", target_type="user", target_id=rec.email,
             details=f"error={exc}", success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_plan(tg_id))
     await call.answer()
 
 
@@ -1858,7 +1944,7 @@ async def user_plan_provision_ask(call: CallbackQuery):
         "Это обновит срок/трафик/лимит IP, назначит группу серверов тарифа и добавит отсутствующие Inbounds. Лишние Inbounds не удаляются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Тариф + согласование", callback_data=f"admin:u:planprovrun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:planview:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -1881,11 +1967,11 @@ async def user_plan_provision_run(call: CallbackQuery):
         )
         await render_callback(call, 
             f"✅ Тариф + согласование завершены.\nДобавлены: {result.attached_ids or 'нет'}\nОстались отсутствующими: {result.remaining_missing_ids or 'нет'}",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_plan(tg_id),
         )
     except Exception as exc:
         await audit_from_call(db, call, "user.plan.provision", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Тариф + согласование: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔴 Тариф + согласование: {type(exc).__name__}: {exc}", reply_markup=back_plan(tg_id))
     await call.answer()
 
 
@@ -2004,7 +2090,7 @@ async def user_reset_ask(call: CallbackQuery):
         f"Сбросить накопленный трафик {await _display_label(rec)} до 0?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сбросить трафик", callback_data=f"admin:u:resetrun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:trafficview:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -2026,13 +2112,13 @@ async def user_reset_run(call: CallbackQuery):
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
             details=f"affected={affected}",
         )
-        await render_callback(call, f"✅ Трафик сброшен. Затронуто записей: {affected}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"✅ Трафик сброшен. Затронуто записей: {affected}", reply_markup=back_traffic(tg_id))
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
             details=f"error={exc}", success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_traffic(tg_id))
     await call.answer()
 
 
@@ -2051,7 +2137,7 @@ async def user_sub_rotate_ask(call: CallbackQuery):
         "но обновлять их по старому URL будет нельзя.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Сгенерировать новый subId", callback_data=f"admin:u:subrotaterun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:subview:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -2084,14 +2170,14 @@ async def user_sub_rotate_run(call: CallbackQuery):
         )
         await render_callback(call, 
             f"✅ Новый URL подписки для {await _display_label(rec)}:\n{sub_url(new_sid)}",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_subscription(tg_id),
         )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.subscription.rotate", target_type="user", target_id=rec.email,
             details=f"error={exc}", success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_subscription(tg_id))
     await call.answer()
 
 
@@ -2955,7 +3041,7 @@ async def admin_extend(call: CallbackQuery):
         await render_callback(
             call,
             f"✅ {await _display_label(rec)} продлён до {fmt_date(new_expiry)}",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_expiry(tg_id),
         )
     except XUIError as exc:
         await audit_from_call(
@@ -2967,7 +3053,7 @@ async def admin_extend(call: CallbackQuery):
             details=f"3x-ui error: {exc}",
             success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_expiry(tg_id))
     await call.answer()
 
 
@@ -3095,8 +3181,13 @@ async def admin_del_ask(call: CallbackQuery):
     if rec:
         await render_callback(
             call,
-            f"Удалить {await _display_label(rec)} из 3x-ui и локальной БД?\n\n"
-            "Клиент и его профиль будут удалены; платёжная история сохранится.",
+            "🗑 Удалить пользователя\n\n"
+            f"{await _display_label(rec)}\n"
+            f"Email: {rec.email}\n"
+            f"Telegram ID: {rec.telegram_id}\n\n"
+            "Будут удалены пользователь и его доступ из 3x-ui и локальной БД. "
+            "Платёжная история сохранится.\n\n"
+            "Это действие необратимо.",
             reply_markup=confirm_delete_keyboard(tg_id),
         )
     await call.answer()

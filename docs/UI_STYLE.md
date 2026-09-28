@@ -204,6 +204,8 @@ Operator-facing термин `membership` в обычных экранах не 
 - enable/disable пользователя всегда двухшаговые: карточка/`Ещё действия` ведут на confirmation screen, state-changing call выполняется только отдельным run callback, Cancel возвращает в пользователя;
 - bulk selection сохраняет выбранные `telegram_id` в FSM и не использует display name как identity; Plan/Server Group assignment меняют только profile state, а provisioning выполняется отдельно через `🚀 Согласовать`;
 - bulk custom expiry/traffic сначала валидируют bounded input и показывают preview с количеством targets; `+30`, enable/disable/reset/reconcile также имеют отдельный confirmation, а audit summary не содержит список email;
+- user detail mutations возвращаются в свой canonical parent: Plan → `💎 Тариф`, expiry/+30 → `📅 Срок`, traffic/reset → `📊 Трафик`, IP limit → `⚙️ Параметры доступа`, subscription rotation/QR → `🔗 Подписка`, name/note → `✏️ Профиль`; переход из FSM назад в detail screen очищает state;
+- subscription summary показывает только masked `sub_id`; полный URL доступен только отдельным read-only действием/URL button, а audit/log contract по-прежнему не допускает credential reconstruction;
 
 Изменение структуры меню требует проверки соседних переходов, Back/Refresh/Cancel flows и callback routing, а не только нового экрана.
 
