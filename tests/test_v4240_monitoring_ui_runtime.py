@@ -13,7 +13,19 @@ from website_monitoring import (
     WebsiteCheckOutcome,
     WebsiteMonitoringRepository,
 )
-from website_monitoring_runtime import dispatch_monitor_notification
+_TEST_ENV = {
+    "BOT_TOKEN": "123456789:offline-test-token",
+    "PANEL_URL": "https://panel.example.invalid/base",
+    "PANEL_API_TOKEN": "offline-panel-token",
+    "SUBSCRIPTION_URL_TEMPLATE": "https://sub.example.invalid/sub/{sub_id}",
+    "ALLOWED_TELEGRAM_IDS": "1",
+    "ADMIN_TELEGRAM_IDS": "1",
+    "NODE_BACKUP_TARGETS": "",
+    "HOST_CONTROL_TARGETS": "",
+    "DB_PATH": "/tmp/v4240-monitoring-test.sqlite3",
+}
+with patch.dict(os.environ, _TEST_ENV, clear=False):
+    from website_monitoring_runtime import dispatch_monitor_notification
 
 
 class FakeBot:
@@ -44,8 +56,8 @@ class V4240MonitoringUIRuntimeTests(unittest.IsolatedAsyncioTestCase):
             "admin:webmon:add:cancel": "support",
             "admin:webmon:check:7": "support",
             "admin:webmon:alerts:7": "support",
-            "admin:webmon:removeask:7": "support",
-            "admin:webmon:remove:7": "support",
+            "admin:webmon:deleteask:7": "support",
+            "admin:webmon:delete:7": "support",
         }
         for callback, role in cases.items():
             with self.subTest(callback=callback):
