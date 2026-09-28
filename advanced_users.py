@@ -9,7 +9,7 @@ import unicodedata
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
@@ -20,6 +20,7 @@ from config import load_settings
 from db import Database, UserRecord
 from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
+from website_diagnostics import qr_png
 from xui import XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine
 
@@ -449,24 +450,25 @@ async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, 
     rows: list[list[InlineKeyboardButton]] = [
         [
             InlineKeyboardButton(text="💎 Тариф", callback_data=f"admin:u:planview:{tg_id}"),
+            InlineKeyboardButton(text="⏳ Продлить", callback_data=f"adminextend:{tg_id}"),
+        ],
+        [
             InlineKeyboardButton(text="📅 Срок", callback_data=f"admin:u:expiryview:{tg_id}"),
-        ],
-        [
             InlineKeyboardButton(text="📊 Трафик", callback_data=f"admin:u:trafficview:{tg_id}"),
+        ],
+        [
             InlineKeyboardButton(text="🌐 Доступ", callback_data=f"admin:u:access:{tg_id}"),
-        ],
-        [
             InlineKeyboardButton(text="📱 Подключения", callback_data=f"admin:u:connections:{tg_id}"),
+        ],
+        [
             InlineKeyboardButton(text="🔗 Подписка", callback_data=f"admin:u:subview:{tg_id}"),
-        ],
-        [
             InlineKeyboardButton(text="💳 Платежи", callback_data=f"admin:u:payments:{tg_id}"),
-            InlineKeyboardButton(text="🧾 Активность", callback_data=f"admin:u:activity:{tg_id}"),
         ],
         [
+            InlineKeyboardButton(text="🧾 Активность", callback_data=f"admin:u:activity:{tg_id}"),
             InlineKeyboardButton(text="✏️ Профиль", callback_data=f"admin:u:profile:{tg_id}"),
-            InlineKeyboardButton(text="👥 Группы", callback_data=f"admin:u:audgroups:{tg_id}"),
         ],
+        [InlineKeyboardButton(text="👥 Группы", callback_data=f"admin:u:audgroups:{tg_id}")],
         [InlineKeyboardButton(text="⚙️ Ещё действия", callback_data=f"admin:u:more:{tg_id}")],
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
     ]
@@ -590,8 +592,13 @@ async def _user_subscription_view(tg_id: int, role: str | None) -> tuple[str, In
     rec = await db.get(tg_id)
     if not rec:
         return "Пользователь не найден.", users_back()
+    url = sub_url(rec.sub_id)
     rows = [
-        [InlineKeyboardButton(text="🔗 Показать URL", callback_data=f"adminsub:{tg_id}")],
+        [InlineKeyboardButton(text="🌐 Открыть ссылку", url=url)],
+        [
+            InlineKeyboardButton(text="🔗 Показать URL", callback_data=f"adminsub:{tg_id}"),
+            InlineKeyboardButton(text="🔳 QR-код", callback_data=f"admin:u:subqr:{tg_id}"),
+        ],
     ]
     if _role_can_admin(role):
         rows.append([InlineKeyboardButton(text="🔐 Перевыпустить ссылку", callback_data=f"admin:u:subrotateask:{tg_id}")])
@@ -1191,6 +1198,11 @@ async def user_access_config(call: CallbackQuery):
     rows: list[list[InlineKeyboardButton]] = []
     if _role_can_support(role):
         rows.append([InlineKeyboardButton(text="📱 Изменить лимит IP", callback_data=f"admin:u:ip:{tg_id}")])
+        if settings.vless_flow:
+            rows.append([InlineKeyboardButton(
+                text="🔄 Синхронизировать VLESS Flow",
+                callback_data=f"admin:u:flowask:{tg_id}",
+            )])
     rows.append([InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")])
     await render_callback(
         call,
