@@ -140,6 +140,7 @@ USER_AUDIT_LABELS = {
     "user.display_name.set": "✏️ Изменено имя",
     "user.note.set": "📝 Изменена заметка",
     "user.device.delete": "🗑 Удалено устройство",
+    "user.flow.sync": "🔄 Синхронизирован VLESS Flow",
     "user.create": "➕ Создан пользователь",
     "user.recover": "♻️ Восстановлена запись пользователя",
     "user.delete": "🗑 Удалён пользователь",
@@ -2924,11 +2925,35 @@ async def admin_extend(call: CallbackQuery):
 
 
 @advanced_users_router.callback_query(F.data.startswith("admindisable:"))
-async def admin_disable(call: CallbackQuery):
-    if not await guard(call):
+async def admin_disable_ask(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
         return
     tg_id = int(call.data.split(":", 1)[1])
     rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    await render_callback(
+        call,
+        f"⛔ Отключить пользователя?\n\n{await _display_label(rec)}\nEmail: {rec.email}\n\n"
+        "Доступ пользователя будет отключён, но запись и настройки сохранятся.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⛔ Отключить", callback_data=f"admindisablerun:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admindisablerun:"))
+async def admin_disable_run(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
     try:
         await xui.update_client(rec.email, enable=False)
         await audit_from_call(
@@ -2938,15 +2963,19 @@ async def admin_disable(call: CallbackQuery):
             target_type="user",
             target_id=rec.email,
         )
-        await render_callback(call, f"⛔ {await _display_label(rec)} отключён.", reply_markup=back_user(tg_id))
-    except (XUIError, AttributeError) as exc:
+        await render_callback(
+            call,
+            f"⛔ {await _display_label(rec)} отключён.",
+            reply_markup=back_user(tg_id),
+        )
+    except XUIError as exc:
         await audit_from_call(
             db,
             call,
             "user.disable",
             target_type="user",
-            target_id=rec.email if rec else str(tg_id),
-            details=str(exc),
+            target_id=rec.email,
+            details=f"error={type(exc).__name__}",
             success=False,
         )
         await render_callback(call, f"Ошибка: {exc}", reply_markup=back_user(tg_id))
@@ -2954,11 +2983,34 @@ async def admin_disable(call: CallbackQuery):
 
 
 @advanced_users_router.callback_query(F.data.startswith("adminenable:"))
-async def admin_enable(call: CallbackQuery):
-    if not await guard(call):
+async def admin_enable_ask(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
         return
     tg_id = int(call.data.split(":", 1)[1])
     rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    await render_callback(
+        call,
+        f"✅ Включить пользователя?\n\n{await _display_label(rec)}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Включить", callback_data=f"adminenablerun:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("adminenablerun:"))
+async def admin_enable_run(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.split(":", 1)[1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
     try:
         await xui.update_client(rec.email, enable=True)
         await audit_from_call(
@@ -2968,15 +3020,19 @@ async def admin_enable(call: CallbackQuery):
             target_type="user",
             target_id=rec.email,
         )
-        await render_callback(call, f"✅ {await _display_label(rec)} включён.", reply_markup=back_user(tg_id))
-    except (XUIError, AttributeError) as exc:
+        await render_callback(
+            call,
+            f"✅ {await _display_label(rec)} включён.",
+            reply_markup=back_user(tg_id),
+        )
+    except XUIError as exc:
         await audit_from_call(
             db,
             call,
             "user.enable",
             target_type="user",
-            target_id=rec.email if rec else str(tg_id),
-            details=str(exc),
+            target_id=rec.email,
+            details=f"error={type(exc).__name__}",
             success=False,
         )
         await render_callback(call, f"Ошибка: {exc}", reply_markup=back_user(tg_id))
