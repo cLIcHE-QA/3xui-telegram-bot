@@ -961,10 +961,11 @@ Production acceptance после deployment:
 
 **Статус: ⬜ Запланировано как targeted hotfix после production findings `v4.24.0`.**
 
-Production smoke `v4.24.0` подтвердил корректную работу contextual web diagnostics и навигации, но выявил два presentation/diagnostics finding, которые не требуют изменения control-plane architecture:
+Production smoke `v4.24.0` подтвердил корректную работу contextual web diagnostics и навигации, но выявил три narrowly-scoped presentation/diagnostics/validation finding, которые не требуют изменения control-plane architecture:
 
 1. WHOIS/RDAP absolute timestamps выводятся в raw RFC3339/UTC (`...Z`) вместо канонического operator-facing MSK.
 2. Compact Cheburcheck card, введённая в `v4.23.2`, оказалась слишком агрессивно сокращена: backend продолжает получать/нормализовать IP, reverse DNS и дополнительные static check fields, но часть полезной operational detail намеренно перестала отображаться в Telegram card.
+3. Website monitoring URL validation безопасно отклоняет `http://[::1]/`, но делает это через domain-name syntax branch до `ipaddress.ip_address()`. В результате блокируется не только loopback/non-global IPv6, но и любой public IPv6 literal, хотя downstream canonical URL logic уже поддерживает bracketed IPv6.
 
 Scope `v4.24.1`:
 
@@ -1001,11 +1002,22 @@ Regional probe boundary остаётся прежним:
 - `🌍 Регионы` остаётся compact aggregate (`N ответов · 🟢 / 🔴 / 🟡`) либо честным состоянием `нет активных региональных сканеров / нет ответов / unavailable / not applicable`;
 - если позже понадобится per-region drill-down, это отдельный bounded `🌍 Детали регионов` workflow, а не dump JSON/SSE в основной result.
 
+
+**Website monitoring IPv6 literal validation**
+
+- распознавать literal IPv4/IPv6 через `ipaddress.ip_address()` **до** domain/IDNA hostname validation;
+- public IPv6 literal разрешать при тех же `http/https` и standard-port правилах, что public IPv4;
+- canonical URL сохраняет обязательные brackets для IPv6 host (`https://[2001:4860:4860::8888]/`);
+- loopback (`::1`), link-local, private/non-global, multicast, reserved и unspecified IPv6 отклонять тем же `unsafe_target` policy, что IPv4;
+- пользовательский текст для `::1` и других non-public literals должен быть `Локальные, служебные и непубличные адреса запрещены.`, а не domain-syntax error;
+- DNS hostname path и DNS-rebinding protection не ослабляются: A/AAAA answers по-прежнему проверяются на global address до connect;
+- добавить regression: positive public IPv6 literal + negative `::1`, link-local и non-global IPv6.
+
 Scope guard:
 
 - не менять Cheburcheck static/probe transport limits, timeouts, redirect policy или pinned upstream revision;
 - не менять DNS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/QR semantics;
-- не менять website monitoring state machine, SQLite schema, navigation/RBAC contract, Host Control, Deploy Agent или 3x-ui/OpenAPI;
+- кроме исправления ordering IPv6-literal validation не менять safe outbound transport semantics, redirect/DNS-rebinding policy, website monitoring state machine, SQLite schema, navigation/RBAC contract, Host Control, Deploy Agent или 3x-ui/OpenAPI;
 - `v4.24.1` остаётся presentation/read-only diagnostics hotfix.
 
 Acceptance hotfix:
@@ -1017,10 +1029,12 @@ Acceptance hotfix:
 5. при наличии upstream blocked subnets / `rkn_domain` / `subnet_size` эти значения отображаются без raw payload и без unbounded output;
 6. domain с >5 IP/PTR/subnet entries показывает первые 5 и `… ещё N`;
 7. regional result остаётся агрегированным; raw probe JSON/SSE в карточке отсутствует;
-8. contextual `Другой инструмент` / `⬅ Сайт` navigation остаётся без изменений;
-9. финальный `deploy-release.sh --status` подтверждает exact `v4.24.1`, `RestartCount=0`, Health/DB/3x-ui `ok`.
+8. public IPv6 literal canonicalize/add проходит при global address, а `::1`/link-local/non-global IPv6 отклоняются как unsafe target до outbound connect;
+9. bracketed IPv6 сохраняется в canonical URL и не ломает standard-port enforcement;
+10. contextual `Другой инструмент` / `⬅ Сайт` navigation остаётся без изменений;
+11. финальный `deploy-release.sh --status` подтверждает exact `v4.24.1`, `RestartCount=0`, Health/DB/3x-ui `ok`.
 
-До публикации `v4.24.1` production acceptance `v4.24.0` продолжается по остальным пунктам. Оба finding считаются открытыми до targeted hotfix и не должны разрастаться в feature scope.
+До публикации `v4.24.1` production acceptance `v4.24.0` продолжается по остальным пунктам. Все три finding считаются открытыми до targeted hotfix и не должны разрастаться в feature scope.
 
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
