@@ -2146,10 +2146,11 @@ Acceptance считается закрытым только если navigation 
 Production acceptance finding от 2026-09-28:
 
 - под `Read-only` главная карточка пользователя ошибочно показывает shortcut `⏳ Продлить` с callback `adminextend:{telegram_id}`, хотя callback защищён privilege `users.support`; backend RBAC корректно не допускает mutation, но keyboard нарушает role-aware UI contract;
-- fix до закрытия acceptance: показывать `⏳ Продлить` только для `Support`, `Administrator` и `Owner`, сохранив обязательную handler authorization `users.support`;
+- acceptance review подтвердил более чистый fix: полностью убрать shortcut `⏳ Продлить` с главной карточки пользователя для всех ролей; продление срока остаётся только в каноническом parent-screen `📅 Срок → ➕ +30 дней`;
+- callback `adminextend:{telegram_id}` не удаляется: он остаётся backend action под `users.support` для кнопки `➕ +30 дней` и для совместимости со старыми сохранёнными Telegram callbacks;
 - `⚙️ Ещё действия` под `Read-only` подтверждён как корректный negative case: mutation-кнопки не отображаются, остаётся только возврат к карточке пользователя.
 
-Finding блокирует закрытие production acceptance `v4.25.0` до исправления и повторной проверки Read-only user card.
+Finding блокирует закрытие production acceptance `v4.25.0` до удаления shortcut с главной карточки и повторной проверки navigation/RBAC.
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
