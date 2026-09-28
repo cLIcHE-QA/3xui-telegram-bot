@@ -283,6 +283,15 @@ async def _home_view() -> tuple[str, InlineKeyboardMarkup]:
     return _home_text(targets, warnings), _home_keyboard(targets)
 
 
+def _network_word(count: int) -> str:
+    value = abs(int(count))
+    if value % 10 == 1 and value % 100 != 11:
+        return "сеть"
+    if value % 10 in {2, 3, 4} and value % 100 not in {12, 13, 14}:
+        return "сети"
+    return "сетей"
+
+
 def _cdn_text(result: CheburcheckResult) -> str:
     if not result.cdn_providers:
         return "—"
@@ -290,7 +299,7 @@ def _cdn_text(result: CheburcheckResult) -> str:
     if len(result.cdn_providers) > 3:
         names += f", … ещё {len(result.cdn_providers) - 3}"
     networks = sum(item.network_count for item in result.cdn_providers)
-    return f"{names} · {networks} сетей"
+    return f"{names} · {networks} {_network_word(networks)}"
 
 
 def result_text(result: CheburcheckResult) -> str:
@@ -370,8 +379,18 @@ async def _check_callback_target(
     context: str,
 ) -> None:
     if not client.enabled:
-        text, keyboard = await _home_view()
-        await render_callback(call, text, reply_markup=keyboard)
+        if _context_token(context) == "monitoring":
+            text, keyboard = await _home_view()
+            await render_callback(call, text, reply_markup=keyboard)
+        else:
+            back_callback, back_text = _context_back(context)
+            await render_callback(
+                call,
+                "🔎 Проверка блокировок\n\n⚪ Cheburcheck не настроен.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text=back_text, callback_data=back_callback)
+                ]]),
+            )
         await call.answer("Cheburcheck не настроен", show_alert=True)
         return
     if not _consume_cooldown(call.from_user.id):
@@ -411,7 +430,7 @@ async def cheburcheck_home(call: CallbackQuery, state: FSMContext):
 
 
 @cheburcheck_router.callback_query(
-    F.data.regexp(r"^admin:cheburcheck:start(?::(monitoring|master|node-\\d+))?$")
+    F.data.regexp(r"^admin:cheburcheck:start(?::(monitoring|master|node-\d+))?$")
 )
 async def cheburcheck_start(call: CallbackQuery, state: FSMContext):
     ok, _ = await authorize_callback(db, settings, call, minimum="read_only")
@@ -421,9 +440,19 @@ async def cheburcheck_start(call: CallbackQuery, state: FSMContext):
     if call.data == "admin:cheburcheck:start":
         context = "monitoring"
     if not client.enabled:
-        text, keyboard = await _home_view()
+        if context == "monitoring":
+            text, keyboard = await _home_view()
+            await render_callback(call, text, reply_markup=keyboard)
+        else:
+            back_callback, back_text = _context_back(context)
+            await render_callback(
+                call,
+                "🔎 Проверка блокировок\n\n⚪ Cheburcheck не настроен.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text=back_text, callback_data=back_callback)
+                ]]),
+            )
         await call.answer("Cheburcheck не настроен", show_alert=True)
-        await render_callback(call, text, reply_markup=keyboard)
         return
     await state.clear()
     await state.set_state(CheburcheckStates.target)
@@ -443,7 +472,7 @@ async def cheburcheck_start(call: CallbackQuery, state: FSMContext):
 
 
 @cheburcheck_router.callback_query(
-    F.data.regexp(r"^admin:cheburcheck:cancel(?::(monitoring|master|node-\\d+))?$")
+    F.data.regexp(r"^admin:cheburcheck:cancel(?::(monitoring|master|node-\d+))?$")
 )
 async def cheburcheck_cancel(call: CallbackQuery, state: FSMContext):
     ok, _ = await authorize_callback(db, settings, call, minimum="read_only")
