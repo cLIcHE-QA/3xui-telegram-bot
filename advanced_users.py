@@ -3181,8 +3181,13 @@ async def admin_del_ask(call: CallbackQuery):
     if rec:
         await render_callback(
             call,
-            f"Удалить {await _display_label(rec)} из 3x-ui и локальной БД?\n\n"
-            "Клиент и его профиль будут удалены; платёжная история сохранится.",
+            "🗑 Удалить пользователя\n\n"
+            f"{await _display_label(rec)}\n"
+            f"Email: {rec.email}\n"
+            f"Telegram ID: {rec.telegram_id}\n\n"
+            "Будут удалены пользователь и его доступ из 3x-ui и локальной БД. "
+            "Платёжная история сохранится.\n\n"
+            "Это действие необратимо.",
             reply_markup=confirm_delete_keyboard(tg_id),
         )
     await call.answer()
