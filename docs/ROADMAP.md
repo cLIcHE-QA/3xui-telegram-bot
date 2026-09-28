@@ -957,6 +957,33 @@ Production acceptance после deployment:
 Критерий закрытия `v4.24.0`: website monitoring и обязательные diagnostics работают через единый safe outbound boundary, incidents/alerts переживают restart без replay, а PackBot attribution и parity matrix соответствуют reviewed revision.
 
 
+##### v4.24.1 — Hotfix WHOIS/RDAP timezone presentation
+
+**Статус: ⬜ Запланировано как targeted hotfix после production finding `v4.24.0`.**
+
+Production smoke `v4.24.0` подтвердил корректную работу contextual web diagnostics (WHOIS/RDAP, DNS, HTTP, redirect trace, CMS, SEO/robots, optional PageSpeed-off state и Sitemap error handling), но выявил одно UI-contract несоответствие: WHOIS/RDAP absolute timestamps сейчас выводятся в raw RFC3339/UTC (`...Z`) вместо канонического operator-facing формата MSK.
+
+Scope `v4.24.1`:
+
+- нормализовать `created_at` / `expires_at` RDAP timestamps в единый presentation helper;
+- показывать absolute date/time в формате `DD.MM.YYYY HH:MM MSK` согласно `docs/UI_STYLE.md`;
+- machine/RDAP timestamps не изменять и не сохранять в локальном времени;
+- `Возраст: N дн` продолжает вычисляться от UTC instant и не зависит от presentation timezone;
+- invalid/missing upstream timestamp остаётся `—`, без guess/parsing fallback;
+- покрыть regression tests для `Z`, explicit offset и date rollover при переводе в MSK;
+- не менять DNS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/QR semantics, monitoring state machine, SQLite schema или navigation contract.
+
+Acceptance hotfix:
+
+1. WHOIS на controlled domain показывает creation/expiration в `DD.MM.YYYY HH:MM MSK`;
+2. UTC → MSK conversion проверяется на значении, которое переходит на следующий календарный день;
+3. возраст домена остаётся тем же, что до hotfix;
+4. contextual `Другой инструмент` / `⬅ Сайт` navigation остаётся без изменений;
+5. финальный `deploy-release.sh --status` подтверждает exact `v4.24.1`, `RestartCount=0`, Health/DB/3x-ui `ok`.
+
+До публикации `v4.24.1` production acceptance `v4.24.0` продолжается по остальным пунктам; данный presentation finding не маскируется как закрытый и не расширяет hotfix scope.
+
+
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
 
 **Статус: ⬜ Запланировано на `v4.25.0`.**
