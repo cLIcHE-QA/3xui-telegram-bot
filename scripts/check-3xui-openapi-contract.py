@@ -22,6 +22,7 @@ HTTP_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 PLACEHOLDER_ALIASES = {
     "node_id": "id",
     "inbound_id": "id",
+    "device_id": "id",
     "telegram_id": "tgId",
     "sub_id": "subId",
 }
