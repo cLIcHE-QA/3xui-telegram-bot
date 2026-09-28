@@ -8,7 +8,7 @@ from pathlib import Path
 
 from audience import audience_matches, audience_matches_group_ids
 from db import Database, UserRecord
-from db_migrations import CURRENT_SCHEMA_VERSION
+from db_migrations import MIGRATIONS
 
 
 class UserAudienceGroupsTests(unittest.IsolatedAsyncioTestCase):
@@ -27,7 +27,7 @@ class UserAudienceGroupsTests(unittest.IsolatedAsyncioTestCase):
         self.tmp.cleanup()
 
     async def test_schema_v3_contains_group_tables_and_index(self):
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 3)
+        self.assertEqual(MIGRATIONS[2].name, "user_audience_groups_v4_22_0")
         with sqlite3.connect(self.path) as conn:
             tables = {
                 row[0]
