@@ -16,7 +16,7 @@ class V4204AdminUiTests(unittest.TestCase):
     def test_users_list_uses_canonical_card_and_legacy_route_is_compatible(self):
         users = source("advanced_users.py")
         self.assertIn(
-            'callback_data=f"admin:u:{u.telegram_id}"',
+            'callback_data=f"admin:u:{user.telegram_id}"',
             users,
         )
         self.assertIn(
