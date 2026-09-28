@@ -624,7 +624,7 @@ async def cheburcheck_target(message: Message, state: FSMContext):
         await render_input(
             message,
             f"🔎 Проверка блокировок\n\n⚠️ {exc}\n\nПопробуй другую цель.",
-            reply_markup=_cancel_keyboard(),
+            reply_markup=_cancel_keyboard(context),
         )
         return
 
