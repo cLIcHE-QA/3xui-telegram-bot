@@ -70,6 +70,13 @@ class BulkUserStates(StatesGroup):
     selecting = State()
 
 
+class UserListStates(StatesGroup):
+    search = State()
+
+
+USER_LIST_PAGE_SIZE = 12
+
+
 async def guard(call: CallbackQuery, *, minimum: str | None = None) -> bool:
     ok, _ = await authorize_callback(db, settings, call, minimum=minimum)
     return ok
@@ -1024,33 +1031,142 @@ async def user_sub_rotate_run(call: CallbackQuery):
 # ---------------------------------------------------------------------
 
 
-@advanced_users_router.callback_query(F.data == "admin:users")
-async def admin_users(call: CallbackQuery):
-    if not await guard(call):
-        return
+async def _users_page_view(page: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
     users = await db.list_users()
-    rows = []
-    for u in users[:40]:
-        profile = await db.get_user_profile(u.telegram_id)
-        display_name = display_name_from_profile(profile)
-        label = user_label(u, profile)
+    pages = max(1, (len(users) + USER_LIST_PAGE_SIZE - 1) // USER_LIST_PAGE_SIZE)
+    page = min(max(0, int(page)), pages - 1)
+    visible = users[page * USER_LIST_PAGE_SIZE:(page + 1) * USER_LIST_PAGE_SIZE]
+
+    rows: list[list[InlineKeyboardButton]] = []
+    for user in visible:
+        profile = await db.get_user_profile(user.telegram_id)
         rows.append([InlineKeyboardButton(
-            text=f"👤 {label} | TG {u.telegram_id}",
-            callback_data=f"admin:u:{u.telegram_id}"
+            text=f"👤 {user_label(user, profile)} · TG {user.telegram_id}",
+            callback_data=f"admin:u:{user.telegram_id}",
         )])
-    rows.append([InlineKeyboardButton(text="👥 Группы пользователей", callback_data="admin:usergroups")])
-    rows.append([InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk")])
-    rows.append([InlineKeyboardButton(text="🚀 Согласовать доступ", callback_data="admin:provision:all:ask")])
-    rows.append([InlineKeyboardButton(text="🔄 Синхронизировать всех", callback_data="admin:syncall:ask")])
-    rows.append([InlineKeyboardButton(text="📊 Статистика пользователей", callback_data="admin:stats")])
+
+    if pages > 1:
+        nav: list[InlineKeyboardButton] = []
+        if page > 0:
+            nav.append(InlineKeyboardButton(text="◀️", callback_data=f"admin:users:page:{page - 1}"))
+        nav.append(InlineKeyboardButton(
+            text=f"{page + 1}/{pages}",
+            callback_data="admin:users:noop",
+        ))
+        if page + 1 < pages:
+            nav.append(InlineKeyboardButton(text="▶️", callback_data=f"admin:users:page:{page + 1}"))
+        rows.append(nav)
+
+    rows.append([InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search")])
+    if role in {"support", "admin", "owner"}:
+        rows.append([
+            InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk"),
+            InlineKeyboardButton(text="🚀 Согласовать всех", callback_data="admin:provision:all:ask"),
+        ])
+    rows.append([
+        InlineKeyboardButton(text="👥 Группы пользователей", callback_data="admin:usergroups"),
+        InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats"),
+    ])
     rows.append([InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")])
-    kb = InlineKeyboardMarkup(inline_keyboard=rows)
+
+    text = (
+        "👥 Пользователи\n\n"
+        f"Пользователей: {len(users)}\n"
+        f"Страница: {page + 1}/{pages}"
+    )
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+@advanced_users_router.callback_query(F.data == "admin:users")
+async def admin_users(call: CallbackQuery, state: FSMContext):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    await state.clear()
+    text, kb = await _users_page_view(0, role)
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:users:page:\d+$"))
+async def admin_users_page(call: CallbackQuery):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    page = int(call.data.rsplit(":", 1)[-1])
+    text, kb = await _users_page_view(page, role)
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:noop")
+async def admin_users_noop(call: CallbackQuery):
+    if not await guard(call, minimum="read_only"):
+        return
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:search")
+async def admin_users_search(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="read_only"):
+        return
+    await state.clear()
+    await state.set_state(UserListStates.search)
     await render_callback(
         call,
-        f"👥 Пользователи\n\nПользователи в БД бота: {len(users)}",
-        reply_markup=kb,
+        "🔎 Поиск пользователя\n\n"
+        "Введи Telegram ID, email или отображаемое имя.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users"),
+        ]]),
     )
     await call.answer()
+
+
+@advanced_users_router.message(UserListStates.search)
+async def admin_users_search_message(message: Message, state: FSMContext):
+    if not await guard_message(message, state, minimum="read_only"):
+        return
+    query = (message.text or "").strip()
+    if not query:
+        await render_input(
+            message,
+            "Введи Telegram ID, email или отображаемое имя.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users"),
+            ]]),
+        )
+        return
+
+    users = await db.search_users(query, limit=40)
+    if not users:
+        await render_input(
+            message,
+            f"🔎 Поиск пользователя\n\nПо запросу «{query[:80]}» ничего не найдено.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔎 Новый поиск", callback_data="admin:users:search")],
+                [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
+            ]),
+        )
+        await state.clear()
+        return
+
+    rows: list[list[InlineKeyboardButton]] = []
+    for user in users:
+        profile = await db.get_user_profile(user.telegram_id)
+        rows.append([InlineKeyboardButton(
+            text=f"👤 {user_label(user, profile)} · TG {user.telegram_id}",
+            callback_data=f"admin:u:{user.telegram_id}",
+        )])
+    rows.append([InlineKeyboardButton(text="🔎 Новый поиск", callback_data="admin:users:search")])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")])
+    await state.clear()
+    await render_input(
+        message,
+        f"🔎 Поиск пользователя\n\nНайдено: {len(users)}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+
 
 @advanced_users_router.callback_query(F.data == "admin:provision:all:ask")
 async def admin_provision_all_ask(call: CallbackQuery):
@@ -1123,140 +1239,20 @@ async def admin_provision_all_run(call: CallbackQuery):
 
 
 @advanced_users_router.callback_query(F.data == "admin:syncall:ask")
-async def admin_sync_all_ask(call: CallbackQuery):
-    if not await guard(call):
-        return
-
-    users = await db.list_users()
-    try:
-        available = choose_inbounds(await xui.inbound_options())
-        target_ids = sorted({i.id for i in available})
-    except XUIError as e:
-        await render_callback(call, f"Ошибка 3x-ui: {e}", reply_markup=users_back())
-        await call.answer()
-        return
-
-    if not users:
-        await render_callback(call, "В локальной БД нет пользователей.", reply_markup=users_back())
-        await call.answer()
-        return
-    if not target_ids:
-        await render_callback(call, 
-            "После применения административной политики нет доступных Inbounds. "
-            "Проверь разрешённые порты, протоколы и список Inbounds.",
-            reply_markup=users_back(),
-        )
-        await call.answer()
-        return
-
-    flow_note = settings.vless_flow or "не менять"
-    await render_callback(call, 
-        "Глобальная синхронизация добавит всем пользователям из локальной БД "
-        "все разрешённые Inbounds, которых у них ещё нет, и синхронизирует VLESS flow.\n\n"
-        f"Пользователей: {len(users)}\n"
-        f"Целевые Inbound ID: {', '.join(map(str, target_ids))}\n"
-        f"VLESS flow: {flow_note}",
-        reply_markup=confirm_sync_all_keyboard(),
-    )
-    await call.answer()
-
-
 @advanced_users_router.callback_query(F.data == "admin:syncall:run")
-async def admin_sync_all_run(call: CallbackQuery):
+async def admin_sync_all_legacy_redirect(call: CallbackQuery):
     if not await guard(call):
         return
-
-    users = await db.list_users()
-    if not users:
-        await render_callback(call, "В локальной БД нет пользователей.", reply_markup=users_back())
-        await call.answer()
-        return
-
-    try:
-        available = choose_inbounds(await xui.inbound_options())
-        target_ids = sorted({i.id for i in available})
-        if not target_ids:
-            await render_callback(call, 
-                "После применения административной политики нет разрешённых Inbounds.",
-                reply_markup=users_back(),
-            )
-            await call.answer()
-            return
-
-        emails = [u.email for u in users]
-        result = await xui.bulk_attach_clients(emails, target_ids)
-        obj = result.get("obj") or {}
-
-        flow_result = None
-        if settings.vless_flow:
-            flow_result = await xui.bulk_adjust_clients(
-                emails,
-                flow=settings.vless_flow,
-            )
-
-        attached = obj.get("attached") or {}
-        skipped = obj.get("skipped") or {}
-        errors = obj.get("errors") or {}
-
-        def count_entries(value):
-            if isinstance(value, dict):
-                return len(value)
-            if isinstance(value, list):
-                return len(value)
-            return 0
-
-        attached_count = count_entries(attached)
-        skipped_count = count_entries(skipped)
-        error_count = count_entries(errors)
-
-        # Fallback summary for older response shapes.
-        if attached_count == skipped_count == error_count == 0:
-            attached_count = len(users)
-
-        lines = [
-            "✅ Глобальная синхронизация завершена.",
-            "",
-            f"Пользователей в БД: {len(users)}",
-            f"Целевые Inbound ID: {', '.join(map(str, target_ids))}",
-            f"Обновлено/обработано: {attached_count}",
-            f"Уже было привязано: {skipped_count}",
-            f"Ошибок: {error_count}",
-        ]
-        if settings.vless_flow:
-            lines.append(f"VLESS flow: {settings.vless_flow}")
-            if flow_result is not None:
-                flow_obj = flow_result.get("obj") or {}
-                adjusted = flow_obj.get("adjusted")
-                if adjusted is not None:
-                    lines.append(f"Flow обработано: {adjusted}")
-
-        if errors:
-            preview = []
-            if isinstance(errors, dict):
-                for email, value in list(errors.items())[:10]:
-                    preview.append(f"• {email}: {value}")
-            elif isinstance(errors, list):
-                preview = [f"• {x}" for x in errors[:10]]
-            if preview:
-                lines += ["", "Первые ошибки:"] + preview
-
-        await render_callback(call, "\n".join(lines), reply_markup=users_back())
-        await audit_from_call(
-            db, call, "users.sync_all", target_type="users", target_id=str(len(users)),
-            details=f"inbounds={target_ids}; errors={error_count}; flow={settings.vless_flow or 'unchanged'}",
-            success=(error_count == 0),
-        )
-    except XUIError as e:
-        await audit_from_call(
-            db, call, "users.sync_all", target_type="users", target_id=str(len(users)),
-            details=f"3x-ui error: {e}", success=False,
-        )
-        await render_callback(call, 
-            "Не удалось выполнить глобальную синхронизацию.\n\n"
-            f"Ошибка 3x-ui: {e}",
-            reply_markup=users_back(),
-        )
-
+    await render_callback(
+        call,
+        "ℹ️ «Синхронизировать всех» больше не используется.\n\n"
+        "Автоматическое управление доступом выполняется через policy-based "
+        "безопасное согласование.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🚀 Согласовать всех", callback_data="admin:provision:all:ask")],
+            [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
+        ]),
+    )
     await call.answer()
 
 
@@ -1325,91 +1321,21 @@ async def admin_sub_from_list(call: CallbackQuery):
 async def admin_sync_inbounds(call: CallbackQuery):
     if not await guard(call):
         return
-
     tg_id = int(call.data.split(":", 1)[1])
     rec = await db.get(tg_id)
     if not rec:
         await call.answer("Пользователь не найден.", show_alert=True)
         return
-
-    try:
-        available = choose_inbounds(await xui.inbound_options())
-        target_ids = sorted({i.id for i in available})
-
-        if not target_ids:
-            await render_callback(
-                call,
-                "После применения административной политики нет ни одного доступного Inbound. "
-                "Проверь разрешённые порты, протоколы и список Inbounds.",
-                reply_markup=back_user(tg_id),
-            )
-            await call.answer()
-            return
-
-        obj = await xui.get_client(rec.email)
-        current_ids = sorted({int(x) for x in (obj.get("inboundIds") or [])})
-        current_set = set(current_ids)
-        missing_ids = [x for x in target_ids if x not in current_set]
-
-        if missing_ids:
-            await xui.attach_client(rec.email, missing_ids)
-
-        flow_synced = False
-        if settings.vless_flow:
-            await xui.bulk_adjust_clients([rec.email], flow=settings.vless_flow)
-            flow_synced = True
-
-        updated = await xui.get_client(rec.email)
-        updated_ids = sorted({int(x) for x in (updated.get("inboundIds") or [])})
-        updated_client = updated.get("client", updated)
-        updated_flow = str(updated_client.get("flow") or "none")
-
-        by_id = {i.id: i for i in available}
-        details = []
-        for inbound_id in missing_ids:
-            inbound = by_id.get(inbound_id)
-            if inbound:
-                details.append(
-                    f"• #{inbound.id} — {inbound.port}/{inbound.protocol} — {inbound.remark}"
-                )
-            else:
-                details.append(f"• #{inbound_id}")
-
-        lines = [f"✅ Синхронизация завершена для {await _display_label(rec)}.", ""]
-        if details:
-            lines += ["Добавлены Inbounds:"] + details + [""]
-        else:
-            lines += ["Новых Inbounds не было — все уже привязаны.", ""]
-        lines.append(f"Теперь привязан к ID: {', '.join(map(str, updated_ids))}")
-        if flow_synced:
-            lines.append(f"VLESS flow: {updated_flow}")
-
-        await render_callback(call, "\n".join(lines), reply_markup=back_user(tg_id))
-        await audit_from_call(
-            db,
-            call,
-            "user.sync",
-            target_type="user",
-            target_id=rec.email,
-            details=f"added={missing_ids}; inbounds={updated_ids}; flow={updated_flow}",
-        )
-    except XUIError as exc:
-        await audit_from_call(
-            db,
-            call,
-            "user.sync",
-            target_type="user",
-            target_id=rec.email,
-            details=f"3x-ui error: {exc}",
-            success=False,
-        )
-        await render_callback(
-            call,
-            "Не удалось синхронизировать Inbounds/flow.\n\n"
-            f"Ошибка 3x-ui: {exc}",
-            reply_markup=back_user(tg_id),
-        )
-
+    await render_callback(
+        call,
+        "ℹ️ Это действие устарело.\n\n"
+        "Автоматическая синхронизация доступа теперь выполняется "
+        "через policy-based «Согласование».",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🚀 Открыть согласование", callback_data=f"admin:u:prov:{tg_id}")],
+            [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
+        ]),
+    )
     await call.answer()
 
 
@@ -1700,7 +1626,7 @@ async def bulk_actions(call: CallbackQuery, state: FSMContext):
             InlineKeyboardButton(text="⛔ Отключить", callback_data="admin:bulk:run:disable"),
         ],
         [InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data="admin:bulk:run:reset")],
-        [InlineKeyboardButton(text="📡 Синхронизировать Inbounds", callback_data="admin:bulk:run:sync")],
+        [InlineKeyboardButton(text="🚀 Согласовать", callback_data="admin:bulk:run:reconcile")],
         [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
     ])
     await render_callback(call, f"⚙️ Массовые действия\n\nВыбрано: {len(selected)}", reply_markup=kb)
@@ -1768,20 +1694,39 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
             result = await xui.bulk_reset_traffic(emails)
             details = str(result.get("obj") or {})[:1000]
             message = "✅ Сброс трафика выполнен."
+        elif action == "reconcile":
+            summary = await provisioner.provision_many(
+                [rec.telegram_id for rec in records],
+                strict=False,
+            )
+            failed = summary.get("failed") or {}
+            details = (
+                f"ok={summary.get('ok')}; failed={len(failed)}; "
+                f"attached={summary.get('attached')}"
+            )
+            message = (
+                "✅ Безопасное согласование выполнено."
+                if not failed else
+                "⚠️ Безопасное согласование выполнено частично."
+            )
         elif action == "sync":
-            inbounds = choose_inbounds(await xui.inbound_options())
-            ids_to_attach = sorted({i.id for i in inbounds})
-            result = await xui.bulk_attach_clients(emails, ids_to_attach)
-            if settings.vless_flow:
-                await xui.bulk_adjust_clients(emails, flow=settings.vless_flow)
-            details = f"inbounds={ids_to_attach}; result={str(result.get('obj') or {})[:700]}"
-            message = "✅ Inbounds синхронизированы."
+            await render_callback(
+                call,
+                "ℹ️ Массовая «Синхронизация Inbounds» устарела.\n\n"
+                "Используй policy-based «Согласование».",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="⬅ К действиям", callback_data="admin:bulk:actions")],
+                    [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+                ]),
+            )
+            await call.answer()
+            return
         else:
             await call.answer("Неизвестное действие.", show_alert=True)
             return
         await audit_from_call(
             db, call, f"users.bulk.{action}", target_type="users", target_id=str(len(emails)),
-            details=f"emails={','.join(emails[:20])}; {details}",
+            details=f"users={len(records)}; {details}",
         )
         await render_callback(call, f"{message}\nПользователей: {len(emails)}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
