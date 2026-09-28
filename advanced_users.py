@@ -1732,7 +1732,7 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
             [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
             [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
         ]))
-    except XUIError as exc:
+    except Exception as exc:
         await audit_from_call(
             db, call, f"users.bulk.{action}", target_type="users", target_id=str(len(emails)),
             details=f"error={exc}", success=False,
