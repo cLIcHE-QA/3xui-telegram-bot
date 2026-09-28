@@ -40,7 +40,7 @@ class V4250ReleaseTests(unittest.TestCase):
             "🧾 Активность",
             "➕ Создать пользователя",
             "no-retry mutation boundary",
-            "local",
+            "локальным `🔳 QR-код`",
             "VLESS Flow",
             "Bulk User Management",
             "callback-size",
