@@ -43,7 +43,8 @@ class V4232ReleaseTests(unittest.TestCase):
             "SQLite schema остаётся v3",
         ):
             self.assertIn(needle, section)
-        self.assertIn("🟡 Реализовано в `main`; release `v4.23.2` ещё не опубликован.", roadmap)
+        self.assertIn("`v4.23.2` опубликован и развернут", roadmap)
+        self.assertIn("hotfix `v4.23.3`", roadmap)
         self.assertIn("🌍 Регионы: 11 ответов · 🟢 8 · 🔴 2 · 🟡 1", integration)
 
 
