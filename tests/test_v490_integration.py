@@ -77,6 +77,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('admin:ver:panel:n2', self.callback_values(self.node_ui.node_detail_keyboard(2)))
         self.assertIn('admin:ver:xray:n2:0', self.callback_values(self.node_ui.node_detail_keyboard(2)))
         self.assertIn('admin:cheburcheck:node:2', self.callback_values(self.node_ui.node_detail_keyboard(2)))
+        self.assertIn('admin:webmon', self.callback_values(self.nav.monitoring_menu()))
 
     def test_versions_navigation_labels_are_consistent(self):
         home = self.updates.keyboard([[('⬅ Система', 'admin:section:system')]])
@@ -94,6 +95,7 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
             'catalog_admin.py', 'business_admin.py', 'admin_observability.py',
             'disaster_recovery.py', 'logs_alerts.py', 'host_control_ui.py',
             'fleet_operations.py', 'cheburcheck_admin.py',
+            'website_monitoring_admin.py',
         ]
 
         def marked(label: str) -> bool:

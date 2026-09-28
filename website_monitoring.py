@@ -92,6 +92,19 @@ class WebsiteMonitorRecord:
     updated_at: int
 
 
+@dataclass(frozen=True)
+class WebsiteIncidentRecord:
+    id: int
+    monitor_id: int
+    opened_at: int
+    resolved_at: int
+    reason_kind: str
+    first_http_status: int
+    last_http_status: int
+    alert_count: int
+    last_alert_at: int
+
+
 def _normalized_host(hostname: str) -> str:
     value = (hostname or "").strip().rstrip(".")
     if not value:
@@ -239,6 +252,16 @@ class SafePublicResolver(AbstractResolver):
 
     async def close(self) -> None:
         return None
+
+
+async def validate_public_url_resolution(raw_url: str) -> str:
+    canonical = canonicalize_public_url(raw_url)
+    parsed = urlsplit(canonical)
+    host = parsed.hostname or ""
+    port = parsed.port or (80 if parsed.scheme == "http" else 443)
+    resolver = SafePublicResolver()
+    await resolver.resolve(host, port)
+    return canonical
 
 
 class SafeOutboundHttpClient:
@@ -541,7 +564,10 @@ class WebsiteMonitoringRepository:
                 (int(monitor_id), int(telegram_id)),
             )
             await db.commit()
-            return bool(cur.rowcount)
+            removed = bool(cur.rowcount)
+        if removed:
+            await self.cleanup_orphan_monitor(monitor_id)
+        return removed
 
     async def store_check(
         self,
@@ -673,6 +699,144 @@ class WebsiteMonitoringRepository:
             )
             await db.commit()
             return bool(cur.rowcount)
+
+
+    async def list_for_watcher(self, telegram_id: int) -> list[WebsiteMonitorRecord]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT m.*
+                FROM website_monitors AS m
+                JOIN website_monitor_watchers AS w ON w.monitor_id = m.id
+                WHERE w.telegram_id = ?
+                ORDER BY m.hostname COLLATE NOCASE, m.id
+                """,
+                (int(telegram_id),),
+            )
+            rows = await cur.fetchall()
+            return [WebsiteMonitorRecord(**dict(row)) for row in rows]
+
+    async def is_watcher(self, monitor_id: int, telegram_id: int) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            cur = await db.execute(
+                """
+                SELECT 1 FROM website_monitor_watchers
+                WHERE monitor_id = ? AND telegram_id = ?
+                """,
+                (int(monitor_id), int(telegram_id)),
+            )
+            return await cur.fetchone() is not None
+
+    async def notifications_enabled(self, monitor_id: int, telegram_id: int) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            cur = await db.execute(
+                """
+                SELECT notifications_enabled
+                FROM website_monitor_watchers
+                WHERE monitor_id = ? AND telegram_id = ?
+                """,
+                (int(monitor_id), int(telegram_id)),
+            )
+            row = await cur.fetchone()
+            return bool(row and int(row[0]))
+
+    async def set_notifications_enabled(
+        self,
+        monitor_id: int,
+        telegram_id: int,
+        enabled: bool,
+    ) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            cur = await db.execute(
+                """
+                UPDATE website_monitor_watchers
+                SET notifications_enabled = ?
+                WHERE monitor_id = ? AND telegram_id = ?
+                """,
+                (1 if enabled else 0, int(monitor_id), int(telegram_id)),
+            )
+            await db.commit()
+            return bool(cur.rowcount)
+
+    async def list_incidents(
+        self,
+        monitor_id: int,
+        *,
+        limit: int = 10,
+    ) -> list[WebsiteIncidentRecord]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM website_incidents
+                WHERE monitor_id = ?
+                ORDER BY opened_at DESC, id DESC
+                LIMIT ?
+                """,
+                (int(monitor_id), max(1, min(50, int(limit)))),
+            )
+            rows = await cur.fetchall()
+            return [WebsiteIncidentRecord(**dict(row)) for row in rows]
+
+    async def get_incident(self, incident_id: int) -> WebsiteIncidentRecord | None:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM website_incidents WHERE id = ?",
+                (int(incident_id),),
+            )
+            row = await cur.fetchone()
+            return WebsiteIncidentRecord(**dict(row)) if row else None
+
+    async def mark_incident_alert(
+        self,
+        incident_id: int,
+        *,
+        sent_at: int | None = None,
+    ) -> WebsiteIncidentRecord | None:
+        now = int(time.time()) if sent_at is None else int(sent_at)
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                """
+                UPDATE website_incidents
+                SET alert_count = alert_count + 1, last_alert_at = ?
+                WHERE id = ?
+                """,
+                (now, int(incident_id)),
+            )
+            await db.commit()
+        return await self.get_incident(incident_id)
+
+    async def cleanup_orphan_monitor(self, monitor_id: int) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            cur = await db.execute(
+                "SELECT COUNT(*) FROM website_monitor_watchers WHERE monitor_id = ?",
+                (int(monitor_id),),
+            )
+            if int((await cur.fetchone())[0]) > 0:
+                return False
+            incident_cur = await db.execute(
+                "SELECT id FROM website_incidents WHERE monitor_id = ?",
+                (int(monitor_id),),
+            )
+            incident_ids = [int(row[0]) for row in await incident_cur.fetchall()]
+            if incident_ids:
+                placeholders = ",".join("?" for _ in incident_ids)
+                await db.execute(
+                    f"DELETE FROM website_incident_notifications WHERE incident_id IN ({placeholders})",
+                    tuple(incident_ids),
+                )
+            await db.execute(
+                "DELETE FROM website_incidents WHERE monitor_id = ?",
+                (int(monitor_id),),
+            )
+            deleted = await db.execute(
+                "DELETE FROM website_monitors WHERE id = ?",
+                (int(monitor_id),),
+            )
+            await db.commit()
+            return bool(deleted.rowcount)
 
 
 async def check_once(client: SafeOutboundHttpClient, url: str) -> WebsiteCheckOutcome:
