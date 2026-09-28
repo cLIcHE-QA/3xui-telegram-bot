@@ -197,6 +197,8 @@ Operator-facing термин `membership` в обычных экранах не 
 - после destructive action результат ведёт в список удалённой сущности, а confirmation Cancel — обратно в её карточку.
 - в карточке пользователя `💳 Платежи` является read-only filtered view существующего payment ledger: кнопки изменения статуса/создания платежа не дублируются, суммы оплаченных не объединяют разные валюты, detail callback сохраняет user context;
 - `🧾 Активность` пользователя является filtered view существующего audit log, а не новым журналом: фильтр использует machine identity, timestamps отображаются в MSK, Back возвращает в карточку пользователя, secret-like subscription/device details скрываются;
+- `➕ Создать` в `Пользователи` доступен Support+ и ведёт через явный FSM с `✖ Отмена`: Telegram ID → machine email → optional display name → Plan/compatibility → preview → confirm; callback identity не использует display name;
+- create-user remote mutation никогда не replay'ится после uncertain outcome: сначала read-only verification, локальная запись появляется только после доказанного remote state; уже существующий 3x-ui client восстанавливается отдельным non-mutating recovery flow;
 
 Изменение структуры меню требует проверки соседних переходов, Back/Refresh/Cancel flows и callback routing, а не только нового экрана.
 
