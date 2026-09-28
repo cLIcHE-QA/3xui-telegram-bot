@@ -2150,6 +2150,8 @@ Production acceptance findings от 2026-09-28:
 - callback `adminextend:{telegram_id}` не удаляется: он остаётся backend action под `users.support` для кнопки `➕ +30 дней` и для совместимости со старыми сохранёнными Telegram callbacks;
 - `Пользователь → 🔗 Подписка → Показать URL` теряет parent context: текущий `adminsub:{telegram_id}` рендерит Back в карточку пользователя; fix — возвращать в канонический parent-screen `🔗 Подписка`;
 - `Пользователь → 💳 Платежи → 📋 Все платежи` теряет user-scoped context: кнопка уводит в глобальный `admin:payments`, после чего Back ведёт в admin home; fix — не покидать user-scoped payment flow и сохранять возврат в `💳 Платежи` текущего пользователя;
+- create-user flow ломается на проверке нового technical email: `_email_available()` считает email свободным только для ошибки `Client not found:`, тогда как pinned production 3x-ui при отсутствии записи возвращает `Obtain (record not found)`; в результате `✅ Использовать предложенный` (и общий путь проверки нового email) показывает `Не удалось проверить email` вместо продолжения wizard;
+- fix: нормализовать штатный upstream not-found response в семантику «email свободен», не ослабляя fail-closed обработку остальных XUI ошибок; добавить regression coverage для фактического `Obtain (record not found)` и обоих create-email paths;
 - `⚙️ Ещё действия` под `Read-only` подтверждён как корректный negative case: mutation-кнопки не отображаются, остаётся только возврат к карточке пользователя.
 
 Findings блокируют закрытие production acceptance `v4.25.0` до исправления shortcut/navigation и повторной проверки navigation/RBAC/back-chain.
