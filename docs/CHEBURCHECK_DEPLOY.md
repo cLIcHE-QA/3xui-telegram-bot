@@ -16,6 +16,8 @@
 - bot и Cheburcheck соединяются только через internal Docker network;
 - Cheburcheck и PostgreSQL не публикуют host ports.
 
+Этот minimal production topology предназначен для static list/ASN diagnostics и **не разворачивает Cheburcheck Probe fleet**. Без зарегистрированных online Probe reporters regional SSE корректно сообщает `online_probes=0`; начиная с hotfix `v4.23.3` Telegram показывает это как `⚪ нет активных региональных сканеров`, а не как неизвестное `—`. Реальные региональные ответы требуют отдельного reviewed deployment MQTT broker + зарегистрированных Probe reporters и не добавляются bot hotfix-ом автоматически.
+
 Pinned upstream migration `website/migrations/20260528125659_optimizations.sql` использует `uuidv7()`. Поэтому accepted production topology использует PostgreSQL 18; PostgreSQL 16 для этой revision недостаточен.
 
 PostgreSQL 18 official image хранит cluster data под `/var/lib/postgresql/<major>/docker`, поэтому persistent volume монтируется в `/var/lib/postgresql`, а не в legacy `/var/lib/postgresql/data`.
@@ -273,6 +275,8 @@ docker compose ps bot
 12. повтори base `deploy-release.sh --status`.
 
 Для линии v4.23.x bot static response body hard limit — 1 MiB. Он остаётся bounded вместе с concurrency/timeouts, но пропускает нормальные ASN responses, которые могут превышать 256 KiB.
+
+Для `v4.23.3` targeted smoke compact result дополнительно проверяет: пустой CDN отображается как `🟢 не найден`; domain/public-IP с `geo.asn` получает bounded ASN coverage отдельным read-only check; при этом текущий minimal runtime без Probe reporters явно показывает `🌍 Регионы: ⚪ нет активных региональных сканеров`. Это штатное состояние данного minimal topology, а не ошибка static checker.
 
 ### Принятый production результат v4.23.1
 
