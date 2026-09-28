@@ -552,7 +552,37 @@ upstream checker/database logic
 
 Scope:
 
-1. **Компактный parity результата с Cheburcheck site.** Расширить текущий bounded summary данными, которые уже доступны/могут быть надёжно получены из pinned Cheburcheck backend: нахождение цели в используемых блок-листах/реестрах и доступность по регионам. Telegram UI должен показывать это максимально компактно, без raw payload и без ослабления существующих response-size/timeouts/concurrency/rate-limit границ. Перед реализацией зафиксировать exact upstream fields/semantics для reviewed revision и покрыть их fixtures/contract tests; если часть site-only данных не выдаётся backend API, это явно фиксируется и не эмулируется догадками.
+1. **Компактный parity результата с Cheburcheck site.** Расширить текущий bounded summary данными, которые уже доступны/могут быть надёжно получены из pinned Cheburcheck backend: нахождение цели в используемых блок-листах/реестрах и доступность по регионам. Telegram UI должен показывать это максимально компактно, без raw payload и без ослабления существующих response-size/timeouts/concurrency/rate-limit границ.
+
+   Целевой operator-facing формат:
+
+   ~~~text
+   🔎 Проверка блокировок
+
+   Цель: example.org
+   Результат: 🟢 блокировка не обнаружена
+   Сеть: Example ISP · AS12345 · Москва
+
+   📋 Списки
+   РКН: 🟢 не найден
+   CDN: Cloudflare · 3 сети
+   Исключение CDN: —
+   ASN: 2 / 184 подсетей в списках
+
+   🌍 Регионы: 11 ответов · 🟢 8 · 🔴 2 · 🟡 1
+
+   Источник: Cheburcheck.
+   ~~~
+
+   Presentation contract:
+   - верхняя часть содержит только цель, итоговый verdict и доступную network identity: организация / ASN / location;
+   - блок `📋 Списки` агрегирует РКН, CDN, CDN exception и ASN/subnet coverage в одну короткую секцию;
+   - региональные ответы сворачиваются в одну строку с общим числом и количеством `🟢 / 🔴 / 🟡`, без длинного перечня регионов в основном result card;
+   - отсутствующие optional значения отображаются как `—`, а не раздувают карточку дополнительными пояснениями;
+   - raw upstream payload и внутренние service details в Telegram UI не выводятся;
+   - строка `Источник: Cheburcheck.` сохраняет явную attribution внешнего источника данных.
+
+   Перед реализацией зафиксировать exact upstream fields/semantics для reviewed revision и покрыть их fixtures/contract tests; если часть site-only данных не выдаётся backend API, это явно фиксируется и не эмулируется догадками.
 
 2. **Контекстная навигация Cheburcheck.** Источник входа становится частью UI context:
    - вход из `/admin → Мониторинг → Проверка блокировок` всегда возвращает только в Monitoring/Cheburcheck flow;
