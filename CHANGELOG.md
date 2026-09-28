@@ -12,6 +12,8 @@
 - Legacy attach-all действия `Синхронизировать Inbounds`, `Синхронизировать всех` и bulk sync удалены из новых клавиатур; сохранённые старые callbacks выполняют только non-mutating redirect в policy-based `Согласование`.
 - Bulk access action переведён на `ProvisioningEngine.provision_many(..., strict=False)`; direct attach всех globally allowed Inbounds больше не является каноническим mass workflow.
 - Audit bulk operations больше не перечисляет email выбранных пользователей; SQLite schema, 3x-ui/OpenAPI contract и subscription identity на этом foundation-срезе не меняются.
+- Карточка пользователя переведена на устойчивые parent sections `Тариф / Срок / Трафик / Доступ / Подписка / Профиль / Ещё действия`; summary routes доступны Read-only, а mutation controls отображаются только для соответствующей роли.
+- `🌐 Доступ` объединяет Server Group, policy-based reconcile, manual Inbounds и access parameters; legacy `adminuser:*` продолжает открывать ту же каноническую role-aware карточку.
 
 ## v4.24.1 — Hotfix web diagnostics и IPv6
 - WHOIS/RDAP absolute timestamps в Telegram теперь нормализуются в `DD.MM.YYYY HH:MM MSK`; machine/RDAP instants остаются UTC, а возраст домена рассчитывается как раньше.
