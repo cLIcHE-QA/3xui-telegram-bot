@@ -1967,12 +1967,17 @@ async def _users_page_view(page: int, role: str | None) -> tuple[str, InlineKeyb
             nav.append(InlineKeyboardButton(text="▶️", callback_data=f"admin:users:page:{page + 1}"))
         rows.append(nav)
 
-    rows.append([InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search")])
     if role in {"support", "admin", "owner"}:
+        rows.append([
+            InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search"),
+            InlineKeyboardButton(text="➕ Создать", callback_data="admin:users:create"),
+        ])
         rows.append([
             InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk"),
             InlineKeyboardButton(text="🚀 Согласовать всех", callback_data="admin:provision:all:ask"),
         ])
+    else:
+        rows.append([InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search")])
     rows.append([
         InlineKeyboardButton(text="👥 Группы пользователей", callback_data="admin:usergroups"),
         InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats"),
@@ -2014,6 +2019,290 @@ async def admin_users_noop(call: CallbackQuery):
     if not await guard(call, minimum="read_only"):
         return
     await call.answer()
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create")
+async def admin_users_create_start(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    await state.clear()
+    await state.set_state(CreateUserStates.telegram_id)
+    await render_callback(
+        call,
+        "➕ Новый пользователь\n\nОтправь Telegram ID пользователя.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+        ]]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.message(CreateUserStates.telegram_id)
+async def admin_users_create_telegram_id(message: Message, state: FSMContext):
+    if not await guard_message(message, state, minimum="support"):
+        return
+    raw = (message.text or "").strip()
+    if not raw.isdigit() or int(raw) <= 0:
+        await render_input(
+            message,
+            "Telegram ID должен быть положительным числом.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+            ]]),
+        )
+        return
+    tg_id = int(raw)
+    existing = await db.get(tg_id)
+    if existing:
+        await state.clear()
+        await render_input(
+            message,
+            "Пользователь уже существует в БД бота.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="👤 Открыть пользователя", callback_data=f"admin:u:{tg_id}")],
+                [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
+            ]),
+        )
+        return
+    try:
+        panel_matches = await xui.get_client_by_tg_id(tg_id)
+    except XUIError as exc:
+        await render_input(
+            message,
+            f"⚠️ Не удалось проверить 3x-ui: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+            ]]),
+        )
+        return
+    if panel_matches:
+        valid = [
+            _panel_client(item) for item in panel_matches
+            if _panel_client(item).get("email") and _panel_client(item).get("subId")
+        ]
+        await state.clear()
+        if len(valid) != 1:
+            await render_input(
+                message,
+                "⚠️ В 3x-ui найдено несколько или неполных записей с этим Telegram ID. "
+                "Автоматическое восстановление заблокировано.",
+                reply_markup=users_back(),
+            )
+            return
+        client = valid[0]
+        await render_input(
+            message,
+            "⚠️ Клиент уже существует в 3x-ui.\n\n"
+            f"Email: {client['email']}\n"
+            f"Telegram ID: {tg_id}\n\n"
+            "Новый remote client создан не будет.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="♻️ Восстановить запись бота",
+                    callback_data=f"admin:users:create:recover:{tg_id}",
+                )],
+                [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+            ]),
+        )
+        return
+
+    default_email = f"tg_{tg_id}"
+    await state.update_data(telegram_id=tg_id, default_email=default_email)
+    await state.set_state(CreateUserStates.email)
+    await render_input(
+        message,
+        "Технический email 3x-ui\n\n"
+        f"По умолчанию: {default_email}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="✅ Использовать предложенный",
+                callback_data="admin:users:create:email-default",
+            )],
+            [InlineKeyboardButton(
+                text="✏️ Ввести другой",
+                callback_data="admin:users:create:email-custom",
+            )],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+        ]),
+    )
+
+
+async def _create_show_display_name(call: CallbackQuery, state: FSMContext, email: str) -> None:
+    await state.update_data(email=email)
+    await state.set_state(CreateUserStates.display_name)
+    await render_callback(
+        call,
+        "Отображаемое имя\n\n"
+        "Можно задать имя для админки. Технический email от этого не изменится.\n"
+        "Отправь имя или нажми «Пропустить».",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:users:create:display-skip")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+        ]),
+    )
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:email-default")
+async def admin_users_create_email_default(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    if not data.get("telegram_id") or not data.get("default_email"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    email = str(data["default_email"])
+    try:
+        available, reason = await _email_available(email)
+    except XUIError as exc:
+        await call.answer(f"Не удалось проверить email: {exc}", show_alert=True)
+        return
+    if not available:
+        await call.answer(reason, show_alert=True)
+        return
+    await _create_show_display_name(call, state, email)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:email-custom")
+async def admin_users_create_email_custom(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    if not data.get("telegram_id"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    await state.set_state(CreateUserStates.email)
+    await render_callback(
+        call,
+        "Технический email 3x-ui\n\n"
+        "Введи значение из букв/цифр и символов ., _, - (до 64 символов).",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+        ]]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.message(CreateUserStates.email)
+async def admin_users_create_email_message(message: Message, state: FSMContext):
+    if not await guard_message(message, state, minimum="support"):
+        return
+    try:
+        email = normalize_machine_email(message.text or "")
+    except ValueError:
+        await render_input(
+            message,
+            "Некорректный технический email. Разрешены буквы, цифры, ., _, -; максимум 64 символа.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+            ]]),
+        )
+        return
+    try:
+        available, reason = await _email_available(email)
+    except XUIError as exc:
+        await render_input(message, f"⚠️ Не удалось проверить 3x-ui: {exc}", reply_markup=users_back())
+        return
+    if not available:
+        await render_input(message, reason, reply_markup=users_back())
+        return
+    await state.update_data(email=email)
+    await state.set_state(CreateUserStates.display_name)
+    await render_input(
+        message,
+        "Отображаемое имя\n\n"
+        "Можно задать имя для админки. Отправь имя или нажми «Пропустить».",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:users:create:display-skip")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+        ]),
+    )
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:display-skip")
+async def admin_users_create_display_skip(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    if not data.get("telegram_id") or not data.get("email"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    await state.update_data(display_name="")
+    await state.set_state(CreateUserStates.plan)
+    text, kb = await _create_plan_screen()
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.message(CreateUserStates.display_name)
+async def admin_users_create_display_name(message: Message, state: FSMContext):
+    if not await guard_message(message, state, minimum="support"):
+        return
+    try:
+        display_name = normalize_display_name(message.text or "")
+    except ValueError:
+        await render_input(
+            message,
+            "Имя должно содержать 1–64 символа без управляющих символов.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:users:create:display-skip")],
+                [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+            ]),
+        )
+        return
+    await state.update_data(display_name=display_name)
+    await state.set_state(CreateUserStates.plan)
+    text, kb = await _create_plan_screen()
+    await render_input(message, text, reply_markup=kb)
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:plans")
+async def admin_users_create_plans(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    if not data.get("telegram_id") or not data.get("email"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    await state.set_state(CreateUserStates.plan)
+    text, kb = await _create_plan_screen()
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+async def _create_select_plan(call: CallbackQuery, state: FSMContext, plan_id: int) -> None:
+    data = await state.get_data()
+    if not data.get("telegram_id") or not data.get("email"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    try:
+        text, kb = await _create_preview(data, plan_id)
+    except (ValueError, XUIError) as exc:
+        await call.answer(str(exc), show_alert=True)
+        return
+    await state.update_data(plan_id=int(plan_id))
+    await state.set_state(CreateUserStates.review)
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:users:create:plan:\d+$"))
+async def admin_users_create_plan(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    await _create_select_plan(call, state, int(call.data.rsplit(":", 1)[-1]))
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:plan-compat")
+async def admin_users_create_plan_compat(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    await _create_select_plan(call, state, 0)
 
 
 @advanced_users_router.callback_query(F.data == "admin:users:search")
