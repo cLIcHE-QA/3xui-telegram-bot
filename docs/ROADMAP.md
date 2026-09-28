@@ -1039,11 +1039,11 @@ Acceptance hotfix:
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
 
-**Статус: 🟡 Реализовано в `main`; release-prep/publish и production acceptance ещё не выполнены.**
+**Статус: 🟡 Реализовано в `main`; release-prep `v4.25.0` подготовлен, publish и production acceptance ещё не выполнены.**
 
 Цель — завершить v4.x User Management как цельный операторский workflow: карточка пользователя становится единой точкой входа для профиля, тарифа, срока, трафика, provisioning-доступа, подключений, подписки, платежей и персональной audit timeline. Релиз сохраняет существующие backend primitives и security boundaries, убирает конкурирующие legacy-пути синхронизации Inbounds и добавляет недостающие admin-facing функции без открытия Client Portal.
 
-Implementation scope закрыт в `main`: User list/search/create, каноническая карточка и detail navigation, policy-based Access/Flow, Connections/HWID/IP, local-only Subscription QR, user-scoped Payments/Activity, confirmation-first lifecycle и завершённый bulk workflow реализованы и защищены regression coverage. Следующий этап — отдельный `release: v4.25.0`, после публикации — production smoke/acceptance под ролями из acceptance contract.
+Implementation scope закрыт в `main`: User list/search/create, каноническая карточка и detail navigation, policy-based Access/Flow, Connections/HWID/IP, local-only Subscription QR, user-scoped Payments/Activity, confirmation-first lifecycle и завершённый bulk workflow реализованы и защищены regression coverage. Release-prep `v4.25.0` подготовлен отдельной веткой/PR; после публикации выполняется production smoke/acceptance под ролями из acceptance contract.
 
 Release boundary:
 
