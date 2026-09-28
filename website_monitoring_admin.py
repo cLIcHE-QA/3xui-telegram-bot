@@ -284,7 +284,13 @@ async def website_monitoring_add_url(message: Message, state: FSMContext):
     )
     if not ok:
         await state.clear()
-        await render_input(message, "Недостаточно прав.")
+        await render_input(
+            message,
+            "Недостаточно прав.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Мониторинг сайтов", callback_data="admin:webmon")
+            ]]),
+        )
         return
 
     raw = (message.text or "").strip()
@@ -326,7 +332,13 @@ async def website_monitoring_add_url(message: Message, state: FSMContext):
 
     current = await repository.get_monitor(item.id)
     if current is None:
-        await render_input(message, "Сайт добавлен, но карточка временно недоступна.")
+        await render_input(
+            message,
+            "Сайт добавлен, но карточка временно недоступна.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Мониторинг сайтов", callback_data="admin:webmon")
+            ]]),
+        )
         return
 
     enabled = await repository.notifications_enabled(current.id, message.from_user.id)
