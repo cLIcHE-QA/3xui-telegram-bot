@@ -30,7 +30,7 @@ class V4204AdminUiTests(unittest.TestCase):
             '@advanced_users_router.callback_query(F.data.startswith("adminsub:"))',
             1,
         )[0]
-        self.assertIn("text, kb = await render_user(tg_id)", legacy)
+        self.assertIn("text, kb = await render_user(tg_id, role)", legacy)
         self.assertIn("await render_callback(call, text, reply_markup=kb)", legacy)
         for callback in (
             'callback_data=f"adminextend:{tg_id}"',
