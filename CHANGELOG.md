@@ -26,6 +26,8 @@
 - Enable/Disable переведены с one-click mutations на отдельные confirmation callbacks; stale `admindisable:*` / `adminenable:*` теперь только открывают ask-screen, а mutation выполняется новым run callback.
 - Bulk User Management завершён по roadmap: добавлены отдельные Plan/Server Group assignment без implicit provisioning, custom expiry/traffic bounded FSM input с preview, а `+30`, enable/disable/reset/safe reconcile требуют count-based confirmation перед mutation.
 - Bulk result/audit summary хранит только counts и outcome, без списка email; custom per-user updates продолжают обработку остальных пользователей при локальной ошибке одного target.
+- Финализирован detail/navigation contract User Management: экран тарифа показывает price/period/plan-vs-current параметры, subscription card — masked ID и фактический status, пустой `VLESS Flow` явно отображается как `не настроен`; Plan/expiry/traffic/IP/profile/subscription actions возвращаются в свои canonical detail screens и очищают FSM при Cancel/Back.
+- Delete confirmation теперь явно показывает display/machine identity и необратимость; callback-size regression закрепляет Telegram 64-byte boundary для динамических v4.25 routes.
 
 ## v4.24.1 — Hotfix web diagnostics и IPv6
 - WHOIS/RDAP absolute timestamps в Telegram теперь нормализуются в `DD.MM.YYYY HH:MM MSK`; machine/RDAP instants остаются UTC, а возраст домена рассчитывается как раньше.
