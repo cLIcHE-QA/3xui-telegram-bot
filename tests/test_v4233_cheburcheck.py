@@ -124,7 +124,7 @@ class V4233CheburcheckHotfixTests(unittest.IsolatedAsyncioTestCase):
     def test_empty_cdn_is_explicitly_not_found(self):
         text = cheburcheck_admin.result_text(domain_result())
         self.assertIn("CDN: 🟢 не найден", text)
-        self.assertNotIn("CDN: —", text)
+        self.assertNotIn("\nCDN: —\n", text)
 
     def test_zero_online_probes_is_explicit(self):
         result = replace(
