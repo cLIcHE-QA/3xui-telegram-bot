@@ -2190,7 +2190,11 @@ Findings блокируют закрытие production acceptance `v4.25.0` д�
 - изменение HWID limit выполняется через существующий `XUIClient.update_client(..., limitHwid=value)` и после success возвращает в `⚙️ Параметры доступа`;
 - Plan apply, safe reconcile и strict reconcile не меняют индивидуальный `limitHwid`; HWID limit в этом patch-релизе остаётся per-user override и не добавляется в Plan schema;
 - create-user preview показывает итоговый `HWID limit: 5` до подтверждения;
-- обычные update-client операции обязаны сохранять существующий `limitHwid`, если операция явно его не меняет.
+- обычные update-client операции обязаны сохранять существующий `limitHwid`, если операция явно его не меняет;
+- привести `Система → Администраторы` к раздельной визуальной семантике status + role: каждая строка всегда показывает status marker и role emoji, используя существующий role mapping `👑 Owner / 🛡 Administrator / 🧑‍💻 Support / 👁 Read-only`;
+- активный администратор отображается как `🟢 {role_emoji} TG … · {Role}`; отключённый — как `⛔ {role_emoji} TG … · {Role} · отключён`; неоднозначный `⚪` для disabled больше не используется;
+- локальный break-glass Owner сохраняет явный source suffix и отображается консистентно как `🟢 👑 TG … · Owner · локальная конфигурация`;
+- экран списка содержит короткую legend `Статус: 🟢 включён · ⛔ отключён`, а detail screen использует ту же status semantics; role/security identifiers и RBAC behavior не меняются.
 
 Минимальные regression tests `v4.25.1`:
 
@@ -2203,7 +2207,9 @@ Findings блокируют закрытие production acceptance `v4.25.0` д�
 7. compat proxy передаёт reviewed HWID/device headers upstream и не пишет их значения в logs;
 8. subscription `Показать URL` возвращает в `🔗 Подписка`;
 9. user-scoped payments сохраняют user context и корректный Back;
-10. главная карточка больше не показывает `⏳ Продлить`.
+10. главная карточка больше не показывает `⏳ Продлить`;
+11. список администраторов всегда показывает отдельные status + role indicators для Owner/Administrator/Support/Read-only;
+12. disabled administrator использует явный `⛔ … · отключён`, detail/list semantics совпадают, а enable/disable и RBAC behavior не меняются.
 
 Повторный production acceptance `v4.25.1`:
 
@@ -2213,6 +2219,7 @@ Findings блокируют закрытие production acceptance `v4.25.0` д�
 - проверить default `HWID limit = 5` на новом пользователе и ручное изменение через Telegram UI;
 - подтвердить, что Plan apply/reconcile не перезаписывают индивидуальный HWID limit;
 - повторить HWID delete two-step с реальным или контролируемым test-device;
+- проверить `Система → Администраторы` на active/disabled Administrator, Support, Read-only и локальном Owner: role emoji всегда видим, disabled явно обозначен `⛔ … · отключён`, toggle не меняет назначенную роль;
 - выполнить final bot/DB/3x-ui health smoke.
 
 Линия `v4.25` считается production-accepted только после публикации `v4.25.1` и прохождения этого re-acceptance; после этого roadmap переходит к `v4.26.0`.
