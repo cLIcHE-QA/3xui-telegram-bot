@@ -222,6 +222,10 @@ DEPLOY_AGENT_TOKEN=
 CHEBURCHECK_URL=
 CHEBURCHECK_VERIFY_TLS=true
 
+# Optional Google PageSpeed Insights for v4.24+ web diagnostics.
+# Leave empty to keep only PageSpeed disabled; other diagnostics still work.
+PAGESPEED_API_KEY=
+
 MASTER_NAME=Master
 MASTER_FLAG=🖥
 
@@ -247,6 +251,16 @@ CHEBURCHECK_VERIFY_TLS=true
 Для remote endpoint используй verified HTTPS. HTTPS с `CHEBURCHECK_VERIFY_TLS=false` запрещён; plain HTTP допустим только для private/local address или внутреннего service name.
 
 Если `CHEBURCHECK_URL` пуст, функция остаётся выключенной, а бот работает без деградации остальных возможностей. Канонический integration/security/acceptance contract: [Cheburcheck integration](CHEBURCHECK.md). Воспроизводимая VPS-настройка отдельного pinned backend + PostgreSQL 18, internal-only networking, health checks и rollback зафиксирована в [Cheburcheck deployment](CHEBURCHECK_DEPLOY.md).
+
+### Optional PageSpeed diagnostics
+
+`/admin → Мониторинг → Мониторинг сайтов → Разовая диагностика → PageSpeed` использует Google PageSpeed Insights только когда локально задан API key:
+
+~~~env
+PAGESPEED_API_KEY=<google-pagespeed-api-key>
+~~~
+
+Ключ не вводится через Telegram, не сохраняется в SQLite/audit и не показывается в UI. Если переменная пустая, только PageSpeed отображается как `не настроен`; DNS/WHOIS/HTTP/redirect/CMS/SEO/Sitemap/URL-list/QR продолжают работать. Target URL перед обращением к PageSpeed проходит тот же public HTTP(S) validation boundary.
 
 ### Master backup paths
 
