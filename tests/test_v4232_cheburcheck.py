@@ -98,6 +98,7 @@ class V4232CheburcheckTests(unittest.TestCase):
         self.assertIn("Цель: example.org", text)
         self.assertIn("Результат: 🟢 блокировка не обнаружена", text)
         self.assertIn("Сеть: Example ISP · AS12345 · Москва", text)
+        self.assertIn("IP: 93.184.216.34", text)
         self.assertIn("📋 Списки", text)
         self.assertIn("РКН: 🟢 не найден", text)
         self.assertIn("CDN: Cloudflare · 3 сети", text)
@@ -105,8 +106,37 @@ class V4232CheburcheckTests(unittest.TestCase):
         self.assertIn("ASN: 2 / 3 подсетей в списках", text)
         self.assertIn("🌍 Регионы: 11 ответов · 🟢 8 · 🔴 2 · 🟡 1", text)
         self.assertTrue(text.endswith("Источник: Cheburcheck."))
-        for legacy in ("Reverse DNS:", "Заблокированные подсети:", "Жалобы за 14 дней:", "Тип:"):
-            self.assertNotIn(legacy, text)
+        for omitted in ("Reverse DNS:", "Заблокированные подсети:", "Жалобы за 14 дней:", "Тип:"):
+            self.assertNotIn(omitted, text)
+
+    def test_static_detail_is_bounded_and_direct_ip_is_not_duplicated(self):
+        detailed = replace(
+            fixture_result(),
+            ips=tuple(f"203.0.113.{index}" for index in range(1, 8)),
+            reverse_lookup=tuple(f"ptr-{index}.example.org" for index in range(1, 8)),
+            blocked_subnets=tuple(f"198.51.{index}.0/24" for index in range(1, 8)),
+            rkn_domain="registry.example.org",
+            subnet_size="256",
+        )
+        text = cheburcheck_admin.result_text(detailed)
+        self.assertIn("IP: 203.0.113.1", text)
+        self.assertIn("203.0.113.5, … ещё 2", text)
+        self.assertNotIn("203.0.113.6", text)
+        self.assertIn("Reverse DNS: ptr-1.example.org", text)
+        self.assertIn("ptr-5.example.org, … ещё 2", text)
+        self.assertIn("Заблокированные подсети: 198.51.1.0/24", text)
+        self.assertIn("198.51.5.0/24, … ещё 2", text)
+        self.assertIn("Домен из реестра: registry.example.org", text)
+        self.assertIn("Размер подсети: 256", text)
+
+        direct_ip = replace(
+            fixture_result(),
+            target="1.1.1.1",
+            target_type="IP",
+            ips=("1.1.1.1",),
+        )
+        direct_text = cheburcheck_admin.result_text(direct_ip)
+        self.assertNotIn("\nIP: 1.1.1.1", direct_text)
 
     def test_contextual_keyboards_do_not_cross_navigation_boundaries(self):
         monitoring = cheburcheck_admin._result_keyboard("monitoring")

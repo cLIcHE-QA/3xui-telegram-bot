@@ -107,7 +107,7 @@ Reviewed upstream response содержит как минимум:
 - optional `rkn_domain`, `asn_info`, `whitelist`, `subnet_size`;
 - `complaints`.
 
-Для domain/public-IP check response `id` может использоваться только для последующего `GET /api/v1/probe/{id}`. Regional SSE results агрегируются в три operator buckets: `🟢` доступно, `🔴` блокирующий verdict/CDN block, `🟡` whitelist/uncertain. `started.online_probes` используется только для честного operator status и не превращается в выдуманные региональные результаты. В основной карточке не выводятся individual probe/region payloads.
+Для domain/public-IP check response `id` может использоваться только для последующего `GET /api/v1/probe/{id}`. Regional SSE results агрегируются в три operator buckets: `🟢` доступно, `🔴` блокирующий verdict/CDN block, `🟡` whitelist/uncertain. `started.online_probes` используется только для честного operator status и не превращается в выдуманные региональные результаты. В основной карточке не выводятся individual probe/region payloads. Static detail (`ips`, `reverse_lookup`, `blocked_subnets`, optional `rkn_domain`/`subnet_size`) допускается только как bounded normalized summary: не более 5 IP/PTR/subnet значений каждого типа с `… ещё N`; raw JSON/SSE не выводится.
 
 Reviewed upstream заполняет `asn_info` только когда target сам является ASN. Поэтому для domain/public-IP строка `ASN: blocked / total` получается отдельным read-only check по уже возвращённому `geo.asn`; если этот follow-up не удался, основной static result всё равно показывается. Пустой `cdn_providers` является фактическим результатом «CDN не найден» и отображается как `🟢 не найден`, а не как неизвестное значение.
 
@@ -119,6 +119,11 @@ Reviewed upstream заполняет `asn_info` только когда target �
 Цель: example.org
 Результат: 🟢 блокировка не обнаружена
 Сеть: Example ISP · AS12345 · Москва
+IP: 93.184.216.34
+Reverse DNS: edge.example.net
+Заблокированные подсети: 203.0.113.0/24
+Домен из реестра: example.org
+Размер подсети: 256
 
 📋 Списки
 РКН: 🟢 не найден
@@ -131,7 +136,7 @@ ASN: 2 / 184 подсетей в списках
 Источник: Cheburcheck.
 ~~~
 
-Bot показывает только bounded operational summary и не копирует полный raw payload в UI, audit или logs.
+Bot показывает только bounded operational summary и не копирует полный raw payload в UI, audit или logs. Для direct-IP target строка `IP` не повторяет сам target без дополнительной UX-пользы; optional static строки показываются только когда upstream реально вернул значение.
 
 Если self-hosted runtime не имеет зарегистрированных/online Cheburcheck Probe reporters, static list/ASN checks продолжают работать, но Telegram явно показывает `🌍 Регионы: ⚪ нет активных региональных сканеров`. Bot hotfix не создаёт собственные regional probes и не эмулирует их данными static API.
 

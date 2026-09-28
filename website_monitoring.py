@@ -151,17 +151,20 @@ def _validate_public_address(value: str) -> str:
 
 
 def _validate_hostname_policy(hostname: str) -> str:
-    host = _normalized_host(hostname)
+    raw = (hostname or "").strip()
+    try:
+        address = ipaddress.ip_address(raw)
+    except ValueError:
+        address = None
+    if address is not None:
+        return _validate_public_address(raw)
+
+    host = _normalized_host(raw)
     if host in _METADATA_HOSTS or host.endswith(".metadata.google.internal"):
         raise UnsafeTargetError(
             "Cloud metadata endpoints запрещены.",
             code="unsafe_target",
         )
-    try:
-        ipaddress.ip_address(host)
-    except ValueError:
-        return host
-    _validate_public_address(host)
     return host
 
 
@@ -463,7 +466,7 @@ class WebsiteMonitoringRepository:
         max_targets: int = MAX_MONITORS_PER_ADMIN,
     ) -> WebsiteMonitorRecord:
         canonical = canonicalize_public_url(raw_url)
-        hostname = _normalized_host(urlsplit(canonical).hostname or "")
+        hostname = _validate_hostname_policy(urlsplit(canonical).hostname or "")
         now = int(time.time())
 
         async with aiosqlite.connect(self.db_path, timeout=15) as db:

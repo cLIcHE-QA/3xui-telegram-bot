@@ -7,6 +7,7 @@ from unittest.mock import patch
 from website_diagnostics import (
     DnsRecord,
     WebsiteDiagnosticsError,
+    _format_rdap_timestamp_msk,
     _robots_root_disallowed,
     detect_cms,
     format_url_list,
@@ -110,8 +111,21 @@ class WebsiteDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
             dt.fromisoformat.side_effect = __import__("datetime").datetime.fromisoformat
             result = await whois_summary("example.org", client)
         self.assertEqual(result.registrar, "Example Registrar")
-        self.assertEqual(result.expires_at, "2030-01-01T00:00:00Z")
+        self.assertEqual(result.created_at, "01.01.2020 03:00 MSK")
+        self.assertEqual(result.expires_at, "01.01.2030 03:00 MSK")
         self.assertGreater(result.age_days or 0, 2000)
+
+    def test_whois_timestamp_msk_handles_offsets_rollover_and_invalid_values(self):
+        self.assertEqual(
+            _format_rdap_timestamp_msk("2026-04-01T23:59:59Z"),
+            "02.04.2026 02:59 MSK",
+        )
+        self.assertEqual(
+            _format_rdap_timestamp_msk("2026-04-01T20:00:00-04:00"),
+            "02.04.2026 03:00 MSK",
+        )
+        self.assertEqual(_format_rdap_timestamp_msk("not-a-date"), "")
+        self.assertEqual(_format_rdap_timestamp_msk(""), "")
 
     async def test_seo_summary_combines_header_meta_and_robots(self):
         page_body = b'<meta name="robots" content="noindex,follow">'

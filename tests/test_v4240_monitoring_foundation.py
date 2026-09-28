@@ -99,6 +99,23 @@ class WebsiteMonitoringFoundationTests(unittest.IsolatedAsyncioTestCase):
             canonicalize_public_url("http://8.8.8.8"),
             "http://8.8.8.8/",
         )
+        self.assertEqual(
+            canonicalize_public_url("https://[2606:4700:4700::1111]"),
+            "https://[2606:4700:4700::1111]/",
+        )
+
+        with self.assertRaises(UnsafeTargetError) as ctx:
+            canonicalize_public_url("http://[::1]/")
+        self.assertEqual(ctx.exception.code, "unsafe_target")
+        self.assertIn("непубличные адреса", str(ctx.exception))
+
+    async def test_public_ipv6_literal_can_be_persisted_as_monitor_target(self):
+        item = await self.repo.add_watcher(
+            "https://[2606:4700:4700::1111]/",
+            101,
+        )
+        self.assertEqual(item.canonical_url, "https://[2606:4700:4700::1111]/")
+        self.assertEqual(item.hostname, "2606:4700:4700::1111")
 
     async def test_resolver_rejects_any_non_global_dns_answer(self):
         resolver = SafePublicResolver()

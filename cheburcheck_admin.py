@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, replace
+import ipaddress
 import re
 import time
 from urllib.parse import urlsplit
@@ -304,6 +305,32 @@ def _cdn_text(result: CheburcheckResult) -> str:
     return f"{names} · {networks} {_network_word(networks)}"
 
 
+def _bounded_values(
+    values: tuple[str, ...],
+    *,
+    limit: int = 5,
+    value_limit: int = 160,
+) -> str:
+    clean: list[str] = []
+    for raw in values:
+        value = " ".join(str(raw).replace("\x00", " ").split())[:value_limit]
+        if value:
+            clean.append(value)
+    selected = clean[: max(1, int(limit))]
+    text = ", ".join(selected)
+    if len(clean) > len(selected):
+        text += f", … ещё {len(clean) - len(selected)}"
+    return text
+
+
+def _target_is_ip(value: str) -> bool:
+    try:
+        ipaddress.ip_address((value or "").strip())
+    except ValueError:
+        return False
+    return True
+
+
 def result_text(result: CheburcheckResult) -> str:
     verdict = "🔴 обнаружена блокировка" if result.blocked else "🟢 блокировка не обнаружена"
     network = " · ".join(
@@ -347,12 +374,34 @@ def result_text(result: CheburcheckResult) -> str:
     elif regional_supported:
         regions = "🟡 региональная проверка недоступна"
 
-    return "\n".join([
+    lines = [
         "🔎 Проверка блокировок",
         "",
         f"Цель: {result.target}",
         f"Результат: {verdict}",
         f"Сеть: {network}",
+    ]
+
+    if result.ips and not _target_is_ip(result.target):
+        lines.append(f"IP: {_bounded_values(result.ips)}")
+    if result.reverse_lookup:
+        lines.append(f"Reverse DNS: {_bounded_values(result.reverse_lookup)}")
+    if result.blocked_subnets:
+        lines.append(
+            f"Заблокированные подсети: {_bounded_values(result.blocked_subnets)}"
+        )
+    if result.rkn_domain:
+        lines.append(
+            "Домен из реестра: "
+            + _bounded_values((result.rkn_domain,), limit=1)
+        )
+    if result.subnet_size:
+        lines.append(
+            "Размер подсети: "
+            + _bounded_values((result.subnet_size,), limit=1)
+        )
+
+    lines.extend([
         "",
         "📋 Списки",
         f"РКН: {rkn}",
@@ -364,6 +413,7 @@ def result_text(result: CheburcheckResult) -> str:
         "",
         "Источник: Cheburcheck.",
     ])
+    return "\n".join(lines)
 
 
 async def _check_result(target: str) -> CheburcheckResult:
