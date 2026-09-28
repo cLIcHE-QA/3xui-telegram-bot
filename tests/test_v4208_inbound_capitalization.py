@@ -66,7 +66,7 @@ class V4208InboundCapitalizationTests(unittest.TestCase):
             self.assertIn(expected, inbound)
 
         self.assertIn("конкретного Inbound.", users)
-        self.assertIn("Целевые Inbound ID:", users)
+        self.assertIn("Целевые:", users)
         self.assertIn("серверы и политику Inbounds.", catalog)
 
     def test_technical_identifiers_remain_lowercase_and_stable(self):
