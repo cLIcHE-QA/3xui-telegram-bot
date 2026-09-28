@@ -276,7 +276,7 @@ async def website_monitoring_add_cancel(call: CallbackQuery, state: FSMContext):
 async def website_monitoring_add_url(message: Message, state: FSMContext):
     if not message.from_user:
         return
-    ok, _ = await authorize_message(
+    ok, role = await authorize_message(
         db,
         settings,
         message.from_user.id,
@@ -344,7 +344,7 @@ async def website_monitoring_add_url(message: Message, state: FSMContext):
         text,
         reply_markup=_site_keyboard(
             current,
-            role="support",
+            role=role,
             notifications_enabled=enabled,
         ),
         disable_web_page_preview=True,
