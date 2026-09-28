@@ -51,7 +51,8 @@ class V4250UserManagementFoundationTests(unittest.TestCase):
 
     def test_bulk_sync_is_replaced_by_safe_reconcile(self):
         source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
-        self.assertIn('callback_data="admin:bulk:run:reconcile"', source)
+        self.assertIn('callback_data="admin:bulk:ask:reconcile"', source)
+        self.assertIn('_bulk_confirmation_keyboard(f"admin:bulk:run:{action}")', source)
         self.assertIn(
             "await provisioner.provision_many(\n                [rec.telegram_id for rec in records],\n                strict=False,",
             source,
