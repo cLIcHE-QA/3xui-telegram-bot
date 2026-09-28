@@ -756,13 +756,17 @@ async def promo_delete(call: CallbackQuery):
 # ---------------------------------------------------------------------
 
 
+ROLE_ICONS = {
+    "owner": "👑",
+    "admin": "🛡",
+    "support": "🧑‍💻",
+    "read_only": "👁",
+}
+
+
 def role_button(role: str) -> str:
-    return {
-        "owner": "👑 Owner",
-        "admin": "🛡 Administrator",
-        "support": "🧑‍💻 Support",
-        "read_only": "👁 Read-only",
-    }.get(role, role)
+    icon = ROLE_ICONS.get(role, "❓")
+    return f"{icon} {ROLE_LABELS.get(role, role)}"
 
 
 @business_router.callback_query(F.data == "admin:administrators")
@@ -779,7 +783,7 @@ async def administrators_list(call: CallbackQuery):
             rec = db_admins[tg_id]
             status = "🟢" if rec.enabled else "⛔"
             disabled = "" if rec.enabled else " · отключён"
-            text = f"{status} {role_button(rec.role)} TG {tg_id} · {ROLE_LABELS.get(rec.role, rec.role)}{disabled}"
+            text = f"{status} {ROLE_ICONS.get(rec.role, '❓')} TG {tg_id} · {ROLE_LABELS.get(rec.role, rec.role)}{disabled}"
         rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:administrator:{tg_id}")])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить администратора", callback_data="admin:administratoradd:start")],
@@ -805,12 +809,7 @@ async def roles_privileges(call: CallbackQuery):
     if not await guard(call, minimum="owner"):
         return
     role_order = ("read_only", "support", "admin", "owner")
-    role_icons = {
-        "read_only": "👁",
-        "support": "🧑‍💻",
-        "admin": "🛡",
-        "owner": "👑",
-    }
+    role_icons = ROLE_ICONS
     lines = [
         "🔐 Роли и права",
         "",
