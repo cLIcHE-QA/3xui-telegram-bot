@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import secrets
 import time
+import re
 import unicodedata
 
 from aiogram import F, Router
@@ -75,6 +76,14 @@ class UserListStates(StatesGroup):
     search = State()
 
 
+class CreateUserStates(StatesGroup):
+    telegram_id = State()
+    email = State()
+    display_name = State()
+    plan = State()
+    review = State()
+
+
 USER_LIST_PAGE_SIZE = 12
 
 
@@ -130,6 +139,8 @@ USER_AUDIT_LABELS = {
     "user.display_name.set": "✏️ Изменено имя",
     "user.note.set": "📝 Изменена заметка",
     "user.device.delete": "🗑 Удалено устройство",
+    "user.create": "➕ Создан пользователь",
+    "user.recover": "♻️ Восстановлена запись пользователя",
     "user.delete": "🗑 Удалён пользователь",
 }
 
@@ -181,6 +192,145 @@ def normalize_display_name(value: str) -> str:
     if not normalized or len(normalized) > 64:
         raise ValueError("length")
     return normalized
+
+
+def normalize_machine_email(value: str) -> str:
+    raw = (value or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", raw):
+        raise ValueError("machine_email")
+    return raw
+
+
+def _panel_client(item: object) -> dict:
+    if not isinstance(item, dict):
+        return {}
+    client = item.get("client", item)
+    return client if isinstance(client, dict) else {}
+
+
+async def _email_available(email: str) -> tuple[bool, str]:
+    if await db.get_by_email(email):
+        return False, "Такой технический email уже используется в БД бота."
+    try:
+        await xui.get_client(email)
+    except XUIError as exc:
+        if str(exc).startswith("Client not found:"):
+            return True, ""
+        raise
+    return False, "Клиент с таким техническим email уже существует в 3x-ui."
+
+
+async def _trial_create_values() -> tuple[int, int, int]:
+    try:
+        days = int(await db.get_runtime_setting("trial_days", str(settings.test_days)) or settings.test_days)
+        traffic = int(
+            await db.get_runtime_setting("trial_traffic_gb", str(settings.test_traffic_gb))
+            or settings.test_traffic_gb
+        )
+        ip_limit = int(
+            await db.get_runtime_setting("trial_ip_limit", str(settings.test_ip_limit))
+            or settings.test_ip_limit
+        )
+    except (TypeError, ValueError):
+        days = settings.test_days
+        traffic = settings.test_traffic_gb
+        ip_limit = settings.test_ip_limit
+    return max(0, days), max(0, traffic), max(0, ip_limit)
+
+
+async def _create_user_context(plan_id: int) -> dict[str, object]:
+    if plan_id:
+        plan = await db.get_plan(plan_id)
+        if not plan or not plan.active:
+            raise ValueError("Тариф недоступен.")
+        policy = await provisioner.policy_for_plan(plan)
+        inbound_ids = list(policy.actionable_inbound_ids)
+        if not inbound_ids:
+            raise ValueError("Для выбранного тарифа сейчас нет доступных целевых Inbounds.")
+        return {
+            "plan": plan,
+            "plan_name": plan.name,
+            "group_name": policy.group.name if policy.group else "не назначена",
+            "server_group_id": plan.server_group_id,
+            "duration_days": max(0, int(plan.duration_days)),
+            "traffic_gb": max(0, int(plan.traffic_gb)),
+            "ip_limit": max(0, int(plan.ip_limit)),
+            "inbound_ids": inbound_ids,
+            "unavailable_members": list(policy.unavailable_members),
+        }
+
+    chosen = choose_inbounds(await xui.inbound_options())
+    if not chosen:
+        raise ValueError("В режиме совместимости сейчас нет доступных управляемых Inbounds.")
+    days, traffic, ip_limit = await _trial_create_values()
+    return {
+        "plan": None,
+        "plan_name": "режим совместимости",
+        "group_name": "не назначена",
+        "server_group_id": None,
+        "duration_days": days,
+        "traffic_gb": traffic,
+        "ip_limit": ip_limit,
+        "inbound_ids": [int(item.id) for item in chosen],
+        "unavailable_members": [],
+    }
+
+
+async def _create_plan_screen() -> tuple[str, InlineKeyboardMarkup]:
+    plans = [plan for plan in await db.list_plans() if plan.active]
+    default_plan = await provisioner.default_plan()
+    rows: list[list[InlineKeyboardButton]] = []
+    for plan in plans[:30]:
+        marker = "⭐" if default_plan and plan.id == default_plan.id else "💎"
+        rows.append([InlineKeyboardButton(
+            text=f"{marker} {plan.name}",
+            callback_data=f"admin:users:create:plan:{plan.id}",
+        )])
+    rows.append([InlineKeyboardButton(
+        text="🧩 Режим совместимости",
+        callback_data="admin:users:create:plan-compat",
+    )])
+    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")])
+    text = (
+        "💎 Тариф нового пользователя\n\n"
+        "Выбери активный тариф. ⭐ отмечает тариф по умолчанию.\n"
+        "Режим совместимости использует текущие trial-параметры и все управляемые Inbounds."
+    )
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _create_preview(data: dict[str, object], plan_id: int) -> tuple[str, InlineKeyboardMarkup]:
+    ctx = await _create_user_context(plan_id)
+    tg_id = int(data["telegram_id"])
+    email = str(data["email"])
+    display_name = str(data.get("display_name") or "")
+    days = int(ctx["duration_days"])
+    expiry = int((time.time() + days * 86400) * 1000) if days else 0
+    traffic_gb = int(ctx["traffic_gb"])
+    ip_limit = int(ctx["ip_limit"])
+    inbound_ids = list(ctx["inbound_ids"])
+    lines = [
+        "➕ Новый пользователь",
+        "",
+        f"Telegram ID: {tg_id}",
+        f"Email: {email}",
+        f"Имя: {display_name or '—'}",
+        f"Тариф: {ctx['plan_name']}",
+        f"Группа серверов: {ctx['group_name']}",
+        f"Срок: {fmt_date(expiry)}",
+        f"Лимит трафика: {traffic_gb} GB" if traffic_gb else "Лимит трафика: без лимита",
+        f"IP limit: {ip_limit}" if ip_limit else "IP limit: без лимита",
+        f"Целевые Inbounds: {len(inbound_ids)}",
+    ]
+    unavailable = list(ctx.get("unavailable_members") or [])
+    if unavailable:
+        lines.append(f"⏸ Недоступные ноды: {len(unavailable)}")
+    rows = [
+        [InlineKeyboardButton(text="✅ Создать пользователя", callback_data="admin:users:create:run")],
+        [InlineKeyboardButton(text="⬅ Изменить тариф", callback_data="admin:users:create:display-skip")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+    ]
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def back_user(tg_id: int) -> InlineKeyboardMarkup:
