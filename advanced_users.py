@@ -484,6 +484,19 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
         return "Пользователь не найден.", users_back()
     profile = await db.get_user_profile(tg_id)
     plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
+    current_group = await db.get_server_group(profile.server_group_id) if profile and profile.server_group_id else None
+    plan_group = await db.get_server_group(plan.server_group_id) if plan and plan.server_group_id else None
+    current_traffic = "недоступно"
+    current_ip = "недоступно"
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        total = int(client.get("totalGB") or 0)
+        limit_ip = int(client.get("limitIp") or 0)
+        current_traffic = human_bytes(total) if total else "без лимита"
+        current_ip = str(limit_ip) if limit_ip else "без лимита"
+    except XUIError:
+        pass
     lines = [
         f"💎 Тариф · {await _display_label(rec)}",
         "",
@@ -491,9 +504,18 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
     ]
     if plan:
         lines += [
-            f"Срок тарифа: {plan.duration_days} дн.",
-            f"Трафик: {plan.traffic_gb} GB" if plan.traffic_gb else "Трафик: без лимита",
-            f"Лимит IP: {plan.ip_limit}" if plan.ip_limit else "Лимит IP: без лимита",
+            f"Стоимость: {money_text(plan.price_minor, plan.currency)}",
+            f"Период: {plan.duration_days} дн.",
+            "",
+            "Параметры тарифа:",
+            f"📦 Трафик: {plan.traffic_gb} GB" if plan.traffic_gb else "📦 Трафик: без лимита",
+            f"📱 IP limit: {plan.ip_limit}" if plan.ip_limit else "📱 IP limit: без лимита",
+            f"🗂 Группа серверов: {plan_group.name if plan_group else 'не назначена'}",
+            "",
+            "Текущие параметры пользователя:",
+            f"📦 Трафик: {current_traffic}",
+            f"📱 IP limit: {current_ip}",
+            f"🗂 Группа серверов: {current_group.name if current_group else 'не назначена'}",
         ]
     rows: list[list[InlineKeyboardButton]] = []
     if _role_can_support(role):
