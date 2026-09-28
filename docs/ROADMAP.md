@@ -957,9 +957,9 @@ Production acceptance после deployment:
 Критерий закрытия `v4.24.0`: website monitoring и обязательные diagnostics работают через единый safe outbound boundary, incidents/alerts переживают restart без replay, а PackBot attribution и parity matrix соответствуют reviewed revision.
 
 
-##### v4.24.1 — Hotfix WHOIS MSK и Cheburcheck diagnostic detail
+##### v4.24.1 — Hotfix diagnostics и IPv6
 
-**Статус: ⬜ Запланировано как targeted hotfix после production findings `v4.24.0`.**
+**Статус: 🟡 Реализовано в `main`; release-prep/publish и production acceptance ещё не закрыты.**
 
 Production smoke `v4.24.0` подтвердил корректную работу contextual web diagnostics и навигации, но выявил три narrowly-scoped presentation/diagnostics/validation finding, которые не требуют изменения control-plane architecture:
 
@@ -1034,7 +1034,7 @@ Acceptance hotfix:
 10. contextual `Другой инструмент` / `⬅ Сайт` navigation остаётся без изменений;
 11. финальный `deploy-release.sh --status` подтверждает exact `v4.24.1`, `RestartCount=0`, Health/DB/3x-ui `ok`.
 
-До публикации `v4.24.1` production acceptance `v4.24.0` продолжается по остальным пунктам. Все три finding считаются открытыми до targeted hotfix и не должны разрастаться в feature scope.
+До публикации и production smoke `v4.24.1` три finding считаются реализованными в коде, но operationally открытыми. Targeted hotfix не должен разрастаться в feature scope.
 
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
