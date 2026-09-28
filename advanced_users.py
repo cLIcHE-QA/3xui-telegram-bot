@@ -380,6 +380,12 @@ def back_subscription(tg_id: int) -> InlineKeyboardMarkup:
     ]])
 
 
+def back_profile(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Профиль", callback_data=f"admin:u:profile:{tg_id}")
+    ]])
+
+
 def users_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
@@ -1410,7 +1416,7 @@ async def user_expiry_start(call: CallbackQuery, state: FSMContext):
         "• +30 — добавить 30 дней к текущему сроку\n"
         "• 2026-12-31 — установить дату 23:59 MSK\n"
         "• 0 — без срока",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_expiry(tg_id),
     )
     await call.answer()
 
@@ -1449,12 +1455,12 @@ async def user_expiry_save(message: Message, state: FSMContext):
             details=f"old={current}; new={new_expiry}",
         )
         await state.clear()
-        await render_input(message, f"✅ Срок: {fmt_date(new_expiry)}", reply_markup=back_user(tg_id))
+        await render_input(message, f"✅ Срок: {fmt_date(new_expiry)}", reply_markup=back_expiry(tg_id))
     except (ValueError, XUIError) as exc:
         if isinstance(exc, XUIError):
-            await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+            await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_expiry(tg_id))
         else:
-            await render_input(message, "Формат: +30, YYYY-MM-DD или 0.", reply_markup=cancel_edit(tg_id))
+            await render_input(message, "Формат: +30, YYYY-MM-DD или 0.", reply_markup=back_expiry(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:traffic:"))
@@ -1467,7 +1473,7 @@ async def user_traffic_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(EditUserStates.traffic)
     await render_callback(call, 
         "📦 Новый лимит трафика в GB.\n0 = без лимита.\nНапример: 100",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_traffic(tg_id),
     )
     await call.answer()
 
@@ -1493,12 +1499,12 @@ async def user_traffic_save(message: Message, state: FSMContext):
         await state.clear()
         await render_input(message, 
             f"✅ Лимит трафика: {gb} GB" if gb else "✅ Лимит трафика: без лимита",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_traffic(tg_id),
         )
     except ValueError:
-        await render_input(message, "Введи целое число GB от 0 до 1000000.", reply_markup=cancel_edit(tg_id))
+        await render_input(message, "Введи целое число GB от 0 до 1000000.", reply_markup=back_traffic(tg_id))
     except XUIError as exc:
-        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_traffic(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:ip:"))
@@ -1511,7 +1517,7 @@ async def user_ip_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(EditUserStates.ip_limit)
     await render_callback(call, 
         "📱 Новый лимит IP.\n0 = без лимита.\nНапример: 2",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_access_config(tg_id),
     )
     await call.answer()
 
@@ -1537,12 +1543,12 @@ async def user_ip_save(message: Message, state: FSMContext):
         await state.clear()
         await render_input(message, 
             f"✅ Лимит IP: {limit}" if limit else "✅ Лимит IP: без лимита",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_access_config(tg_id),
         )
     except ValueError:
-        await render_input(message, "Введи целое число от 0 до 1000.", reply_markup=cancel_edit(tg_id))
+        await render_input(message, "Введи целое число от 0 до 1000.", reply_markup=back_access_config(tg_id))
     except XUIError as exc:
-        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=cancel_edit(tg_id))
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_access_config(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:name:"))
@@ -1561,7 +1567,7 @@ async def user_display_name_start(call: CallbackQuery, state: FSMContext):
         "✏️ Имя пользователя\n\n"
         "Введи отображаемое имя (до 64 символов).\n"
         "«-» очищает имя и возвращает отображение email.",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_profile(tg_id),
     )
     await call.answer()
 
@@ -1584,7 +1590,7 @@ async def user_display_name_save(message: Message, state: FSMContext):
             message,
             "Имя должно содержать 1–64 символа без управляющих символов. "
             "Используй «-», чтобы очистить имя.",
-            reply_markup=cancel_edit(tg_id),
+            reply_markup=back_profile(tg_id),
         )
         return
     old_profile = await db.get_user_profile(tg_id)
@@ -1601,7 +1607,7 @@ async def user_display_name_save(message: Message, state: FSMContext):
     )
     await state.clear()
     result = "✅ Имя очищено. Используется email." if not display_name else f"✅ Имя: {display_name}"
-    await render_input(message, result, reply_markup=back_user(tg_id))
+    await render_input(message, result, reply_markup=back_profile(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:note:"))
@@ -1614,7 +1620,7 @@ async def user_note_start(call: CallbackQuery, state: FSMContext):
     await state.set_state(EditUserStates.note)
     await render_callback(call, 
         "📝 Введи внутреннюю заметку (до 500 символов).\n«-» очищает заметку.",
-        reply_markup=cancel_edit(tg_id),
+        reply_markup=back_profile(tg_id),
     )
     await call.answer()
 
@@ -1630,7 +1636,7 @@ async def user_note_save(message: Message, state: FSMContext):
     if note == "-":
         note = ""
     if len(note) > 500:
-        await render_input(message, "Максимум 500 символов.", reply_markup=cancel_edit(tg_id))
+        await render_input(message, "Максимум 500 символов.", reply_markup=back_profile(tg_id))
         return
     await db.set_user_note(tg_id, note)
     await audit_from_message(
@@ -1638,7 +1644,7 @@ async def user_note_save(message: Message, state: FSMContext):
         details=f"length={len(note)}",
     )
     await state.clear()
-    await render_input(message, "✅ Заметка сохранена.", reply_markup=back_user(tg_id))
+    await render_input(message, "✅ Заметка сохранена.", reply_markup=back_profile(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:plan:"))
@@ -1658,7 +1664,7 @@ async def user_plan_menu(call: CallbackQuery):
         rows.append([InlineKeyboardButton(
             text=f"{icon} {plan.name}", callback_data=f"admin:u:planset:{tg_id}:{plan.id}"
         )])
-    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:u:planview:{tg_id}")])
     await render_callback(call, 
         "💎 Тариф\n\nНазначение здесь — административные метаданные. Лимиты 3x-ui не меняются автоматически.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
