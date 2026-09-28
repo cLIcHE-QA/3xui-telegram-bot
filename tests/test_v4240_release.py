@@ -1,4 +1,4 @@
-"""Release-prep contract for v4.24.0."""
+"""Release-prep contract for v4.24.1."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,55 +10,53 @@ from version import APP_VERSION
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class V4240ReleaseTests(unittest.TestCase):
-    def test_release_version_is_4240(self):
-        self.assertEqual(APP_VERSION, "4.24.0")
+class V4241ReleaseTests(unittest.TestCase):
+    def test_release_version_is_4241(self):
+        self.assertEqual(APP_VERSION, "4.24.1")
 
-    def test_current_docs_reference_release_4240(self):
+    def test_current_docs_reference_release_4241(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         sqlite_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
 
-        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.24.0"))
-        self.assertIn("Guide ориентирован на release v4.24.0.", admin_setup)
-        self.assertIn("git checkout --detach v4.24.0", admin_setup)
-        self.assertIn("Bot version: 4.24.0", admin_setup)
+        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.24.1"))
+        self.assertIn("Guide ориентирован на release v4.24.1.", admin_setup)
+        self.assertIn("git checkout --detach v4.24.1", admin_setup)
+        self.assertIn("Bot version: 4.24.1", admin_setup)
         self.assertIn(
-            "Для `v4.24.0` текущая bot schema version — **5**",
+            "Для `v4.24.0` и `v4.24.1` текущая bot schema version — **5**",
             sqlite_doc,
         )
 
-    def test_release_notes_cover_website_monitoring_scope(self):
+    def test_release_notes_cover_v4241_hotfix_scope(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertEqual(
-            changelog.count("## v4.24.0 — Мониторинг сайтов и web diagnostics"),
+            changelog.count("## v4.24.1 — Hotfix web diagnostics и IPv6"),
             1,
         )
         section = changelog.split(
-            "## v4.24.0 — Мониторинг сайтов и web diagnostics",
+            "## v4.24.1 — Hotfix web diagnostics и IPv6",
             1,
         )[1].split("\n## ", 1)[0]
 
         for needle in (
-            "🌐 Мониторинг сайтов",
-            "SSRF-safe",
+            "DD.MM.YYYY HH:MM MSK",
+            "Reverse DNS",
+            "blocked subnets",
+            "public IPv6 literals",
             "PAGESPEED_API_KEY",
-            "website_monitoring_v4_24_0",
-            "website_watcher_lifecycle_v4_24_0",
-            "3c4a5bb29626f8b3e28056bd52cd94fdce9f3c1a",
-            "dnspython",
-            "qrcode[pil]",
+            "SQLite schema",
         ):
             self.assertIn(needle, section)
 
-    def test_release_is_ready_for_production_acceptance_not_closed(self):
+    def test_release_is_ready_for_v4241_production_acceptance_not_closed(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "🟡 Реализовано для `v4.24.0`; production acceptance ещё не закрыт.",
+            "🟡 Реализовано в `main`; release-prep/publish и production acceptance ещё не закрыты.",
             roadmap,
         )
         self.assertIn(
-            "критерий окончательного закрытия остаётся production acceptance",
+            "operationally открытыми",
             roadmap,
         )
 
