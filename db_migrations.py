@@ -307,6 +307,21 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     "user_group_members": (
         "group_id", "telegram_id", "created_at",
     ),
+    "website_monitors": (
+        "id", "canonical_url", "hostname", "enabled", "state", "last_check_at",
+        "next_check_at", "last_http_status", "last_latency_ms", "last_error_kind",
+        "consecutive_failures", "created_at", "updated_at",
+    ),
+    "website_monitor_watchers": (
+        "monitor_id", "telegram_id", "notifications_enabled", "created_at",
+    ),
+    "website_incidents": (
+        "id", "monitor_id", "opened_at", "resolved_at", "reason_kind",
+        "first_http_status", "last_http_status", "alert_count", "last_alert_at",
+    ),
+    "website_incident_notifications": (
+        "incident_id", "telegram_id", "kind", "sequence", "sent_at",
+    ),
 }
 
 _EXPECTED_INDEXES = {
@@ -316,6 +331,10 @@ _EXPECTED_INDEXES = {
     "idx_payments_status_created",
     "idx_promo_active_code",
     "idx_user_group_members_user",
+    "idx_website_monitors_due",
+    "idx_website_watchers_user",
+    "idx_website_incidents_monitor_open",
+    "idx_website_notifications_recipient",
 }
 
 
@@ -323,8 +342,18 @@ async def _validate_current_schema(
     db: aiosqlite.Connection,
     *,
     include_user_groups: bool = True,
+    include_website_monitoring: bool = True,
 ) -> None:
-    skipped_tables = set() if include_user_groups else {"user_groups", "user_group_members"}
+    skipped_tables: set[str] = set()
+    if not include_user_groups:
+        skipped_tables.update({"user_groups", "user_group_members"})
+    if not include_website_monitoring:
+        skipped_tables.update({
+            "website_monitors",
+            "website_monitor_watchers",
+            "website_incidents",
+            "website_incident_notifications",
+        })
     for table, expected in _EXPECTED_COLUMNS.items():
         if table in skipped_tables:
             continue
@@ -340,11 +369,16 @@ async def _validate_current_schema(
         "SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%'"
     )
     actual_indexes = {str(row[0]) for row in await cursor.fetchall()}
-    expected_indexes = (
-        _EXPECTED_INDEXES
-        if include_user_groups
-        else _EXPECTED_INDEXES - {"idx_user_group_members_user"}
-    )
+    expected_indexes = set(_EXPECTED_INDEXES)
+    if not include_user_groups:
+        expected_indexes.discard("idx_user_group_members_user")
+    if not include_website_monitoring:
+        expected_indexes -= {
+            "idx_website_monitors_due",
+            "idx_website_watchers_user",
+            "idx_website_incidents_monitor_open",
+            "idx_website_notifications_recipient",
+        }
     missing_indexes = sorted(expected_indexes - actual_indexes)
     if missing_indexes:
         raise DatabaseMigrationError(
@@ -354,7 +388,11 @@ async def _validate_current_schema(
 
 async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
     for table, expected_current in _EXPECTED_COLUMNS.items():
-        if table in {"user_groups", "user_group_members"}:
+        if table in {
+            "user_groups", "user_group_members",
+            "website_monitors", "website_monitor_watchers",
+            "website_incidents", "website_incident_notifications",
+        }:
             continue
         expected = (
             ("telegram_id", "plan_id", "server_group_id", "note", "updated_at")
@@ -374,7 +412,16 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
     )
     actual_indexes = {str(row[0]) for row in await cursor.fetchall()}
     missing_indexes = sorted(
-        (_EXPECTED_INDEXES - {"idx_user_group_members_user"}) - actual_indexes
+        (
+            _EXPECTED_INDEXES
+            - {
+                "idx_user_group_members_user",
+                "idx_website_monitors_due",
+                "idx_website_watchers_user",
+                "idx_website_incidents_monitor_open",
+                "idx_website_notifications_recipient",
+            }
+        ) - actual_indexes
     )
     if missing_indexes:
         raise DatabaseMigrationError(
@@ -410,7 +457,11 @@ async def _migration_0002_user_display_name(db: aiosqlite.Connection) -> None:
         await db.execute(
             "ALTER TABLE user_profiles ADD COLUMN display_name TEXT NOT NULL DEFAULT ''"
         )
-    await _validate_current_schema(db, include_user_groups=False)
+    await _validate_current_schema(
+        db,
+        include_user_groups=False,
+        include_website_monitoring=False,
+    )
 
 
 async def _migration_0003_user_audience_groups(db: aiosqlite.Connection) -> None:
@@ -441,6 +492,95 @@ async def _migration_0003_user_audience_groups(db: aiosqlite.Connection) -> None
         ON user_group_members(telegram_id, group_id)
         """
     )
+    await _validate_current_schema(db, include_website_monitoring=False)
+
+
+async def _migration_0004_website_monitoring_v4_24_0(
+    db: aiosqlite.Connection,
+) -> None:
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS website_monitors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            canonical_url TEXT NOT NULL UNIQUE,
+            hostname TEXT NOT NULL,
+            enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0, 1)),
+            state TEXT NOT NULL DEFAULT 'unknown'
+                CHECK(state IN ('unknown', 'up', 'suspect', 'down')),
+            last_check_at INTEGER NOT NULL DEFAULT 0,
+            next_check_at INTEGER NOT NULL DEFAULT 0,
+            last_http_status INTEGER NOT NULL DEFAULT 0,
+            last_latency_ms INTEGER NOT NULL DEFAULT 0,
+            last_error_kind TEXT NOT NULL DEFAULT '',
+            consecutive_failures INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS website_monitor_watchers (
+            monitor_id INTEGER NOT NULL,
+            telegram_id INTEGER NOT NULL,
+            notifications_enabled INTEGER NOT NULL DEFAULT 1
+                CHECK(notifications_enabled IN (0, 1)),
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY(monitor_id, telegram_id)
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS website_incidents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            monitor_id INTEGER NOT NULL,
+            opened_at INTEGER NOT NULL,
+            resolved_at INTEGER NOT NULL DEFAULT 0,
+            reason_kind TEXT NOT NULL,
+            first_http_status INTEGER NOT NULL DEFAULT 0,
+            last_http_status INTEGER NOT NULL DEFAULT 0,
+            alert_count INTEGER NOT NULL DEFAULT 0,
+            last_alert_at INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS website_incident_notifications (
+            incident_id INTEGER NOT NULL,
+            telegram_id INTEGER NOT NULL,
+            kind TEXT NOT NULL CHECK(kind IN ('opened', 'repeat', 'recovered')),
+            sequence INTEGER NOT NULL DEFAULT 0 CHECK(sequence >= 0),
+            sent_at INTEGER NOT NULL,
+            PRIMARY KEY(incident_id, telegram_id, kind, sequence)
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_website_monitors_due
+        ON website_monitors(enabled, next_check_at, id)
+        """
+    )
+    await db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_website_watchers_user
+        ON website_monitor_watchers(telegram_id, monitor_id)
+        """
+    )
+    await db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_website_incidents_monitor_open
+        ON website_incidents(monitor_id, resolved_at, opened_at DESC)
+        """
+    )
+    await db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_website_notifications_recipient
+        ON website_incident_notifications(telegram_id, sent_at DESC)
+        """
+    )
     await _validate_current_schema(db)
 
 
@@ -461,6 +601,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=3,
         name="user_audience_groups_v4_22_0",
         apply=_migration_0003_user_audience_groups,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=4,
+        name="website_monitoring_v4_24_0",
+        apply=_migration_0004_website_monitoring_v4_24_0,
         requires_backup=False,
     ),
 )
