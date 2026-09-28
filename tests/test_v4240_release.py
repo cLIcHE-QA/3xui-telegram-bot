@@ -24,7 +24,7 @@ class V4241ReleaseTests(unittest.TestCase):
         self.assertIn("git checkout --detach v4.24.1", admin_setup)
         self.assertIn("Bot version: 4.24.1", admin_setup)
         self.assertIn(
-            "GitHub release/CI для `v4.24.1` завершены; operational closure требует отдельного targeted production smoke",
+            "Линия `v4.24.x` реализована, опубликована и принята в production",
             readme,
         )
         self.assertIn(
@@ -53,14 +53,14 @@ class V4241ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_release_is_published_but_v4241_production_acceptance_is_separate(self):
+    def test_v424x_production_acceptance_is_closed(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "🟠 Опубликовано в `v4.24.1`; GitHub release/CI закрыты, production acceptance ещё не подтверждён в репозитории.",
+            "✅ Выполнено и принято в production в `v4.24.1`; acceptance линии `v4.24.x` закрыт.",
             roadmap,
         )
         self.assertIn(
-            "operational closure остаётся открытым до подтверждённого production smoke",
+            "production smoke линии `v4.24.x` проведён и acceptance закрыт",
             roadmap,
         )
 
