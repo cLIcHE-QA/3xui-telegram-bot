@@ -2041,6 +2041,47 @@ Repo-wide проход актуальных Telegram hints, README, `.env.exampl
 - onboarding/import flows получают country metadata только как отдельное optional поле с validation; миграция не должна требовать destructive schema rewrite.
 
 До реализации этого пункта runtime и документация не должны вводить специальных условий для конкретной страны или production-ноды.
+
+#### Cheburcheck Probe fleet для региональных проверок
+
+**Статус: ⬜ Отложено. Не является блокером `v4.23.3`, `v4.24.0` или обязательным условием перехода к `v5.0.0`.**
+
+Текущий minimal self-hosted Cheburcheck runtime (`website + PostgreSQL`) достаточен для static list/ASN diagnostics, но не даёт реальных региональных результатов без подключённых Probe reporters. Bot начиная с `v4.23.3` должен честно показывать отсутствие active scanners и не эмулировать regional data.
+
+Цель отложенного улучшения — добавить собственный controlled Probe fleet без смешения его lifecycle с Telegram-ботом.
+
+Рекомендуемая реализация в два этапа:
+
+1. **Pilot.**
+   - добавить central RMQTT к существующему self-hosted Cheburcheck runtime;
+   - связать `website` с broker через отдельный `MQTT_ADMIN_TOKEN`;
+   - предоставить probes только authenticated MQTT over WebSocket/TLS endpoint;
+   - зарегистрировать один controlled Probe reporter с отдельными `PROBE_ID` / `PROBE_TOKEN` и metadata `region / ASN / provider`;
+   - запустить probe на отдельном Linux/Docker host с outbound-only connectivity к broker и только необходимым `NET_RAW` capability;
+   - подтвердить end-to-end path: Telegram check → Cheburcheck probe task → MQTT → reporter result → SSE → compact regional summary.
+
+2. **Fleet.**
+   - после успешного pilot развернуть несколько независимых reporters в разных сетях/регионах; ориентир для полезного первого fleet — минимум 3–5 probes, а не несколько probes в одном дата-центре;
+   - выбирать точки так, чтобы они измеряли действительно разные network paths/ISP/regions, а не только разные VPS одного provider-а;
+   - добавить health/readiness для online/offline reporters, `last_connected_at`, версию probe и безопасный operational inventory;
+   - определить lifecycle credential rotation/revocation для каждого reporter отдельно;
+   - зафиксировать controlled update/rollback procedure для probe packages/images;
+   - при необходимости расширять fleet постепенно, не меняя Telegram result contract.
+
+Security / operational boundary:
+
+- RMQTT не должен принимать anonymous/unrestricted clients;
+- каждый reporter имеет отдельные ID/token; token не переиспользуется между probes и не совпадает с bot/3x-ui/Host Control/Deploy Agent credentials;
+- broker/admin token и probe tokens не хранятся в Telegram, Git или bot SQLite;
+- bot не получает shell/container control над RMQTT или Probe hosts и только читает Cheburcheck API/SSE;
+- Probe hosts не требуют публичных inbound management ports для обычной работы; основной data path — исходящее WSS/MQTT соединение;
+- capability `NET_RAW` выдаётся только probe process/container и не означает общий privileged/root runtime;
+- отсутствие части fleet или timeout отдельных reporters не должно превращать static Cheburcheck verdict в ошибку;
+- UI показывает только фактически полученные regional responses и явно различает `нет активных сканеров`, `нет ответов` и `regional upstream unavailable`;
+- backup/recovery для broker config, reporter registry/tokens и probe deployment является отдельной infrastructure responsibility и не включается автоматически в Full Backup Telegram-бота.
+
+Этот пункт считается отдельной infrastructure-задачей средней сложности. Сам probe runtime лёгкий, но production-ready fleet требует broker/TLS/auth, нескольких независимых точек наблюдения, credential lifecycle, monitoring и runbook'ов.
+
 ### v5.0.0 — Client Portal
 
 `v5.0.0` открывает следующий продуктовый этап: `/start` становится основным пользовательским входом для клиентов.
