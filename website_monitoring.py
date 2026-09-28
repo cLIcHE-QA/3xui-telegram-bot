@@ -681,3 +681,139 @@ async def check_once(client: SafeOutboundHttpClient, url: str) -> WebsiteCheckOu
     except Exception as exc:
         return classify_check_error(exc)
     return classify_http_response(response)
+
+
+@dataclass(frozen=True)
+class MonitorCheckExecution:
+    monitor_id: int
+    previous_state: str
+    final_state: str
+    outcome: WebsiteCheckOutcome
+    incident_id: int | None
+    notify_kind: str
+
+
+class WebsiteMonitoringService:
+    def __init__(
+        self,
+        repository: WebsiteMonitoringRepository,
+        client: SafeOutboundHttpClient | None = None,
+    ):
+        self.repository = repository
+        self.client = client or SafeOutboundHttpClient()
+        self._locks: dict[int, asyncio.Lock] = {}
+
+    def _lock_for(self, monitor_id: int) -> asyncio.Lock:
+        key = int(monitor_id)
+        lock = self._locks.get(key)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._locks[key] = lock
+        return lock
+
+    @staticmethod
+    def _next_check_at(state: str, now: int) -> int:
+        interval = DOWN_CHECK_INTERVAL if state == "down" else NORMAL_CHECK_INTERVAL
+        return int(now) + interval
+
+    async def check_monitor(
+        self,
+        monitor_id: int,
+        *,
+        sleep=asyncio.sleep,
+    ) -> MonitorCheckExecution:
+        lock = self._lock_for(monitor_id)
+        async with lock:
+            monitor = await self.repository.get_monitor(monitor_id)
+            if monitor is None:
+                raise WebsiteMonitoringError("Monitor not found.", code="not_found")
+            if not monitor.enabled:
+                raise WebsiteMonitoringError("Monitor is disabled.", code="disabled")
+
+            previous_state = monitor.state
+            first = await check_once(self.client, monitor.canonical_url)
+            transition = transition_monitor(previous_state, first)
+            final_outcome = first
+            final_transition = transition
+
+            if transition.needs_recheck:
+                suspect_at = int(time.time())
+                await self.repository.store_check(
+                    monitor.id,
+                    state="suspect",
+                    outcome=first,
+                    next_check_at=suspect_at + CONFIRMATION_DELAY,
+                    checked_at=suspect_at,
+                )
+                await sleep(CONFIRMATION_DELAY)
+                second = await check_once(self.client, monitor.canonical_url)
+                final_outcome = second
+
+                if second.kind == "checker_error":
+                    stable = previous_state if previous_state in {"up", "down"} else "unknown"
+                    final_transition = MonitorTransition(next_state=stable)
+                else:
+                    final_transition = transition_monitor(
+                        "suspect",
+                        second,
+                        confirmed=True,
+                    )
+
+            now = int(time.time())
+            final_state = final_transition.next_state
+            await self.repository.store_check(
+                monitor.id,
+                state=final_state,
+                outcome=final_outcome,
+                next_check_at=self._next_check_at(final_state, now),
+                checked_at=now,
+            )
+
+            incident_id: int | None = None
+            if final_transition.open_incident:
+                incident_id = await self.repository.open_incident(
+                    monitor.id,
+                    final_outcome,
+                    opened_at=now,
+                )
+            elif final_transition.resolve_incident:
+                incident_id = await self.repository.resolve_incident(
+                    monitor.id,
+                    resolved_at=now,
+                )
+            elif final_state == "down":
+                async with aiosqlite.connect(self.repository.db_path) as db:
+                    cur = await db.execute(
+                        """
+                        SELECT id FROM website_incidents
+                        WHERE monitor_id = ? AND resolved_at = 0
+                        ORDER BY id DESC LIMIT 1
+                        """,
+                        (monitor.id,),
+                    )
+                    row = await cur.fetchone()
+                    incident_id = int(row[0]) if row else None
+
+            return MonitorCheckExecution(
+                monitor_id=monitor.id,
+                previous_state=previous_state,
+                final_state=final_state,
+                outcome=final_outcome,
+                incident_id=incident_id,
+                notify_kind=final_transition.notify_kind,
+            )
+
+    async def check_due_once(
+        self,
+        *,
+        now: int | None = None,
+        limit: int = 50,
+    ) -> tuple[MonitorCheckExecution | Exception, ...]:
+        monitors = await self.repository.due_monitors(now=now, limit=limit)
+        if not monitors:
+            return ()
+        results = await asyncio.gather(
+            *(self.check_monitor(item.id) for item in monitors),
+            return_exceptions=True,
+        )
+        return tuple(results)
