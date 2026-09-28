@@ -314,6 +314,7 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     ),
     "website_monitor_watchers": (
         "monitor_id", "telegram_id", "notifications_enabled", "created_at",
+        "monitoring_enabled",
     ),
     "website_incidents": (
         "id", "monitor_id", "opened_at", "resolved_at", "reason_kind",
@@ -343,6 +344,7 @@ async def _validate_current_schema(
     *,
     include_user_groups: bool = True,
     include_website_monitoring: bool = True,
+    include_website_watcher_lifecycle: bool = True,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -357,6 +359,10 @@ async def _validate_current_schema(
     for table, expected in _EXPECTED_COLUMNS.items():
         if table in skipped_tables:
             continue
+        if table == "website_monitor_watchers" and not include_website_watcher_lifecycle:
+            expected = tuple(
+                column for column in expected if column != "monitoring_enabled"
+            )
         cursor = await db.execute(f'PRAGMA table_info("{table}")')
         rows = await cursor.fetchall()
         actual = tuple(str(row[1]) for row in rows)
@@ -581,6 +587,23 @@ async def _migration_0004_website_monitoring_v4_24_0(
         ON website_incident_notifications(telegram_id, sent_at DESC)
         """
     )
+    await _validate_current_schema(
+        db,
+        include_website_watcher_lifecycle=False,
+    )
+
+
+async def _migration_0005_website_watcher_lifecycle_v4_24_0(
+    db: aiosqlite.Connection,
+) -> None:
+    cursor = await db.execute('PRAGMA table_info("website_monitor_watchers")')
+    columns = {str(row[1]) for row in await cursor.fetchall()}
+    if "monitoring_enabled" not in columns:
+        await db.execute(
+            "ALTER TABLE website_monitor_watchers "
+            "ADD COLUMN monitoring_enabled INTEGER NOT NULL DEFAULT 1 "
+            "CHECK(monitoring_enabled IN (0, 1))"
+        )
     await _validate_current_schema(db)
 
 
@@ -607,6 +630,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=4,
         name="website_monitoring_v4_24_0",
         apply=_migration_0004_website_monitoring_v4_24_0,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=5,
+        name="website_watcher_lifecycle_v4_24_0",
+        apply=_migration_0005_website_watcher_lifecycle_v4_24_0,
         requires_backup=False,
     ),
 )
