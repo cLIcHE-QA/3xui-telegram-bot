@@ -129,9 +129,11 @@ class PublicReadinessTests(unittest.TestCase):
     def test_destructive_confirmations_state_their_scope(self):
         users = self._source("advanced_users.py")
         self.assertIn(
-            "Клиент и его профиль будут удалены; платёжная история сохранится.",
+            "Будут удалены пользователь и его доступ из 3x-ui и локальной БД.",
             users,
         )
+        self.assertIn("Платёжная история сохранится.", users)
+        self.assertIn("Это действие необратимо.", users)
 
         business = self._source("business_admin.py")
         self.assertIn(
