@@ -178,6 +178,12 @@ Operator-facing термин `membership` в обычных экранах не 
 - региональная строка обязана различать фактические состояния: агрегированные ответы, `нет активных региональных сканеров`, `нет ответов`, transport/upstream unavailable и неприменимость для subnet/ASN; отсутствие probe fleet не маскируется нейтральным `—`;
 - auto-discovery целей показывает только безопасный hostname/IP и stable display label; URL path, query, credentials, tokens и subscription identifiers в кнопки/текст не попадают;
 - Cheburcheck screen не показывает internal service URL/credentials, явно называет внешний источник данных и различает `не настроен`, validation error, rate limit, upstream unavailable и фактический verdict;
+- `🌐 Мониторинг сайтов` живёт только в `Мониторинге`; home → список → карточка → incident history образуют один локальный navigation context, а add-site FSM имеет явный `✖ Отмена` обратно в website monitoring;
+- карточка monitored site различает `🟢 доступен`, `🟡 перепроверка`, `🔴 недоступен`, `⚪ не проверен` и `⏸ приостановлен`; checker/policy error не маскируется под подтверждённый site-down;
+- raw URL никогда не кодируется в website-monitoring callbacks: callbacks содержат только stable numeric monitor ID и fixed action token;
+- mutation-кнопки website monitoring privilege-aware: Read-only видит список/карточку/history, Support получает add/manual-check/notifications/unsubscribe; delete/unsubscribe остаётся двухшаговым;
+- unsubscribe удаляет только watcher текущего администратора; target очищается как orphan только после удаления последнего watcher;
+- website incident alerts являются отдельными Telegram notifications, а не заменяют односообщенческую admin panel; repeated/recovery delivery использует persistent idempotency journal;
 - shortcut на тот же экран из другого top-level раздела добавляется только при явной UX-причине, а не как дублирующий вход;
 - callback-screen после результата или обычной ошибки сохраняет явный путь назад/дальше; в односообщенческой admin-панели вызов `render_callback(...)` без `reply_markup` не должен создавать dead end;
 - временный progress screen во время уже запущенной state-changing/fail-closed операции может намеренно скрывать навигацию, если повторный клик или параллельное действие создают риск replay/неопределённого outcome;
