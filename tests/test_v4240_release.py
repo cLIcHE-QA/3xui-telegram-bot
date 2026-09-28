@@ -58,7 +58,7 @@ class V4240ReleaseTests(unittest.TestCase):
             roadmap,
         )
         self.assertIn(
-            "Критерий окончательного закрытия остаётся production acceptance",
+            "критерий окончательного закрытия остаётся production acceptance",
             roadmap,
         )
 
