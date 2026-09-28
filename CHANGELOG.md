@@ -6,6 +6,20 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.24.0 — Мониторинг сайтов и web diagnostics
+- В `/admin → Мониторинг` добавлен нативный раздел `🌐 Мониторинг сайтов`: persistent targets, many-to-many admin watchers, add/list/card/manual-check, incident history, per-watcher alerts, pause/resume, unsubscribe и Administrator-only global target management.
+- Background monitoring использует deterministic state machine `unknown/up → suspect → down → up`: первый candidate failure подтверждается повторной проверкой через 2 s, down-target проверяется каждые 3 минуты, normal target — каждые 10 минут. Incident state и notification journal сохраняются в SQLite, поэтому restart не replay'ит first/recovery alert.
+- Site alerts различают first/repeat/recovery и отправляются только active watchers с включёнными notifications. Repeat cadence сохраняет reviewed PackBot defaults: 30 минут, затем 320 минут; один target не получает параллельные checks благодаря per-target lock.
+- Добавлен единый SSRF-safe outbound HTTP boundary: только public HTTP/HTTPS на standard ports 80/443, IDNA/syntax validation, fail-closed private/loopback/link-local/CGNAT/reserved/metadata blocking, validation DNS answers в resolver connect path, `trust_env=False`, manual validation каждого redirect, hard limits 5 redirects / 3-7-10 s connect-read-total / 1 MiB ordinary body.
+- Добавлена `🔎 Разовая диагностика` и contextual `🩺 Диагностика` из карточки monitored site: RDAP/WHOIS + возраст домена, DNS A/AAAA/CNAME/MX/NS/TXT, HTTP summary, redirect trace, CMS detection, robots/meta/X-Robots indexability, optional Google PageSpeed, bounded Sitemap, local URL-list normalization и QR generation.
+- Sitemap ограничен 2 MiB на документ, максимум 10 документов и 5000 URL; raw WHOIS/RDAP/PageSpeed payload не выводится и не сохраняется. QR и URL-list работают local-only.
+- Optional PageSpeed использует только локальный `PAGESPEED_API_KEY`; отсутствие key отображается как `не настроен` и не влияет на остальные diagnostics.
+- SQLite schema повышена до v5: `v4 website_monitoring_v4_24_0` добавляет targets/watchers/incidents/idempotent notification journal, `v5 website_watcher_lifecycle_v4_24_0` добавляет watcher-scoped `monitoring_enabled`. Обе migration additive и `requires_backup=False`; downgrade на runtime, знающий только schema v3/v4, без совместимого pre-migration backup не поддерживается.
+- PackBot `vladpak1/packbot@3c4a5bb29626f8b3e28056bd52cd94fdce9f3c1a` использован как reviewed behavior/reference implementation; production runtime остаётся Python/aiogram/SQLite-native, PHP/MySQL/webhook stack не разворачивается. MIT attribution сохранён в `THIRD_PARTY_NOTICES.md`.
+- Screenshot/headless-browser diagnostics и перенос multilingual PackBot UI намеренно не входят в обязательный scope `v4.24.0`; Client Portal `/start` также не расширяется.
+- Добавлены `dnspython` и `qrcode[pil]`; новых обязательных host-side services/ports нет. 3x-ui/OpenAPI, provisioning, VPN mutation semantics, Host Control Agent, Deploy Agent и Cheburcheck runtime не меняются.
+- Release устанавливается обычным Safe Bot Self-Update. Production acceptance должен отдельно подтвердить add/up/manual diagnostics, controlled down/repeat/recovery, restart idempotency, SSRF rejects, optional PageSpeed-off state и финальный `deploy-release.sh --status`.
+
 ## v4.23.3 — Hotfix compact result Cheburcheck
 - Production smoke `v4.23.2` подтвердил compact layout и context-preserving navigation, но выявил неполный result enrichment: пустой CDN выглядел неизвестным, domain/IP не показывал ASN coverage, а отсутствие regional Probe reporters маскировалось нейтральным `—`.
 - Пустой upstream `cdn_providers` теперь отображается как фактический отрицательный результат `🟢 не найден`; optional значения, которых upstream действительно не предоставил, по-прежнему не выдумываются.
