@@ -150,7 +150,7 @@ PY
 Ожидается:
 
 ~~~text
-4.23.2
+4.23.3
 ~~~
 
 ## 4. Создай local admin venv
@@ -918,7 +918,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Git tag: v4.23.3
 Container: running
 RestartCount=0
-Bot version: 4.23.2
+Bot version: 4.23.3
 Health: ok
 DB: ok
 3x-ui connectivity: ok
