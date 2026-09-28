@@ -327,7 +327,7 @@ async def _create_preview(data: dict[str, object], plan_id: int) -> tuple[str, I
         lines.append(f"⏸ Недоступные ноды: {len(unavailable)}")
     rows = [
         [InlineKeyboardButton(text="✅ Создать пользователя", callback_data="admin:users:create:run")],
-        [InlineKeyboardButton(text="⬅ Изменить тариф", callback_data="admin:users:create:display-skip")],
+        [InlineKeyboardButton(text="⬅ Изменить тариф", callback_data="admin:users:create:plans")],
         [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
