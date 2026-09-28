@@ -2143,6 +2143,88 @@ Production acceptance после публикации `v4.25.0` должен п�
 
 Acceptance считается закрытым только если navigation contract принят на Telegram Desktop и mobile, privilege boundaries подтверждены, legacy sync paths не выдают лишний доступ, а новые HWID/IP calls соответствуют pinned 3x-ui contract.
 
+Production acceptance findings от 2026-09-28:
+
+- под `Read-only` главная карточка пользователя ошибочно показывает shortcut `⏳ Продлить` с callback `adminextend:{telegram_id}`, хотя callback защищён privilege `users.support`; backend RBAC корректно не допускает mutation, но keyboard нарушает role-aware UI contract;
+- acceptance review подтвердил более чистый fix: полностью убрать shortcut `⏳ Продлить` с главной карточки пользователя для всех ролей; продление срока остаётся только в каноническом parent-screen `📅 Срок → ➕ +30 дней`;
+- callback `adminextend:{telegram_id}` не удаляется: он остаётся backend action под `users.support` для кнопки `➕ +30 дней` и для совместимости со старыми сохранёнными Telegram callbacks;
+- `Пользователь → 🔗 Подписка → Показать URL` теряет parent context: текущий `adminsub:{telegram_id}` рендерит Back в карточку пользователя; fix — возвращать в канонический parent-screen `🔗 Подписка`;
+- `Пользователь → 💳 Платежи → 📋 Все платежи` теряет user-scoped context: кнопка уводит в глобальный `admin:payments`, после чего Back ведёт в admin home; fix — не покидать user-scoped payment flow и сохранять возврат в `💳 Платежи` текущего пользователя;
+- create-user flow ломается на проверке нового technical email: `_email_available()` считает email свободным только для ошибки `Client not found:`, тогда как pinned production 3x-ui при отсутствии записи возвращает `Obtain (record not found)`; в результате `✅ Использовать предложенный` (и общий путь проверки нового email) показывает `Не удалось проверить email` вместо продолжения wizard;
+- fix: нормализовать штатный upstream not-found response в семантику «email свободен», не ослабляя fail-closed обработку остальных XUI ошибок; добавить regression coverage для фактического `Obtain (record not found)` и обоих create-email paths;
+- HWID registration через публичный compat subscription path сломан: `subscription_proxy.py` при `GET /compat/{sub_id}` пересылает upstream только `Accept` и `User-Agent`, отбрасывая `X-HWID` и device metadata headers; при включённом HWID limit upstream отклоняет такой запрос, а compat proxy маскирует upstream `>=400` как HTTP 502;
+- fix: для normal VPN-client subscription request безопасно проксировать reviewed HWID/device headers к 3x-ui upstream, не логировать их значения и сохранить существующую фильтрацию остальных headers; добавить regression coverage, что `X-HWID`/device metadata доходят до upstream и upstream HWID error не возникает из-за их потери;
+- `⚙️ Ещё действия` под `Read-only` подтверждён как корректный negative case: mutation-кнопки не отображаются, остаётся только возврат к карточке пользователя.
+
+Findings блокируют закрытие production acceptance `v4.25.0` до исправления shortcut/navigation/create/HWID proxy и повторной проверки navigation/RBAC/back-chain.
+
+Отдельный HWID acceptance после исправления compat proxy:
+
+- prerequisite: на контролируемом test user `Max HWIDs > 0`; при отсутствии HWID limit механизм считается неактивным и реальная device registration не ожидается;
+- добавить публичную `/compat/{sub_id}` подписку в реальный mobile client, принудительно обновить subscription и подтвердить появление устройства в `Пользователь → 📱 Подключения → 📱 Устройства`;
+- повторить тот же сценарий с реальным desktop client;
+- проверить, что отображаются только разрешённые bounded metadata: модель/OS/version/User-Agent/short fingerprint/first+last seen без раскрытия полного HWID;
+- удалить одно test-device через двухшаговый confirmation flow, проверить post-condition и отсутствие удаления остальных устройств;
+- если конкретный клиент не регистрируется после proxy fix, отдельно подтвердить, отправляет ли он `X-HWID`/device metadata headers; отсутствие HWID headers у клиента не считать дефектом Telegram UI;
+- acceptance считается пройденным только после проверки хотя бы одного реального HWID-capable клиента через публичный compat URL, а не только synthetic direct-upstream `curl`.
+
+
+##### v4.25.1 — User Management stabilization / HWID completion
+
+**Статус: ⬜ Запланировано как hotfix/stabilization release перед закрытием production acceptance линии `v4.25`.**
+
+`v4.25.0` остаётся опубликованным baseline. Все production-acceptance blockers и незавершённые HWID operational flows исправляются в одном patch-релизе `v4.25.1`, после чего выполняется повторный acceptance только затронутых сценариев. `v4.26.0` по-прежнему остаётся Node Drain и не поглощает эти исправления.
+
+Объём `v4.25.1`:
+
+- удалить shortcut `⏳ Продлить` из главной карточки пользователя для всех ролей; канонический путь остаётся `📅 Срок → ➕ +30 дней`, stale `adminextend:{telegram_id}` остаётся backend-compatible;
+- исправить `Пользователь → 🔗 Подписка → Показать URL`: Back обязан возвращать в `🔗 Подписка`;
+- исправить `Пользователь → 💳 Платежи → 📋 Все платежи`: user-scoped context не должен теряться и Back не должен уводить в admin home;
+- исправить create-user email availability: production response `Obtain (record not found)` нормализуется как штатный not-found / «email свободен», остальные XUI errors остаются fail-closed;
+- исправить compat subscription proxy: для normal VPN-client request проксировать reviewed `X-HWID` и device metadata headers к upstream 3x-ui, не логировать их значения и не ослаблять фильтрацию остальных headers;
+- добавить явный HWID limit при создании клиента: новые пользователи создаются с `limitHwid=5` по умолчанию;
+- существующих пользователей автоматически массово на `5` не переводить;
+- добавить per-user HWID limit в `🌐 Доступ → ⚙️ Параметры доступа` и summary в `📱 Подключения`;
+- Read-only видит текущее значение HWID limit, но не получает mutation control;
+- Support+ получает `📱 Изменить HWID limit` с bounded FSM input и явной семантикой `0 = HWID limit отключён`;
+- изменение HWID limit выполняется через существующий `XUIClient.update_client(..., limitHwid=value)` и после success возвращает в `⚙️ Параметры доступа`;
+- Plan apply, safe reconcile и strict reconcile не меняют индивидуальный `limitHwid`; HWID limit в этом patch-релизе остаётся per-user override и не добавляется в Plan schema;
+- create-user preview показывает итоговый `HWID limit: 5` до подтверждения;
+- обычные update-client операции обязаны сохранять существующий `limitHwid`, если операция явно его не меняет;
+- привести `Система → Администраторы` к раздельной визуальной семантике status + role: каждая строка всегда показывает status marker и role emoji, используя существующий role mapping `👑 Owner / 🛡 Administrator / 🧑‍💻 Support / 👁 Read-only`;
+- активный администратор отображается как `🟢 {role_emoji} TG … · {Role}`; отключённый — как `⛔ {role_emoji} TG … · {Role} · отключён`; неоднозначный `⚪` для disabled больше не используется;
+- локальный break-glass Owner сохраняет явный source suffix и отображается консистентно как `🟢 👑 TG … · Owner · локальная конфигурация`;
+- экран списка содержит короткую legend `Статус: 🟢 включён · ⛔ отключён`, а detail screen использует ту же status semantics; role/security identifiers и RBAC behavior не меняются.
+
+Минимальные regression tests `v4.25.1`:
+
+1. новый клиент получает `limitHwid=5`;
+2. manual change `5 → 2` и `2 → 0`;
+3. Read-only видит значение без edit button, Support+ видит mutation control;
+4. Plan apply / safe reconcile / strict reconcile не меняют индивидуальный HWID limit;
+5. другие `update_client()` mutations не обнуляют `limitHwid`;
+6. create-user availability принимает фактический `Obtain (record not found)` как not-found и покрывает default/custom email paths;
+7. compat proxy передаёт reviewed HWID/device headers upstream и не пишет их значения в logs;
+8. subscription `Показать URL` возвращает в `🔗 Подписка`;
+9. user-scoped payments сохраняют user context и корректный Back;
+10. главная карточка больше не показывает `⏳ Продлить`;
+11. список администраторов всегда показывает отдельные status + role indicators для Owner/Administrator/Support/Read-only;
+12. disabled administrator использует явный `⛔ … · отключён`, detail/list semantics совпадают, а enable/disable и RBAC behavior не меняются.
+
+Повторный production acceptance `v4.25.1`:
+
+- повторить затронутые navigation/RBAC/back-chain cases;
+- повторить create-user test 17 целиком до успешного создания контролируемого test user;
+- выполнить отдельный real-device HWID acceptance, описанный выше, через публичный `/compat/{sub_id}`;
+- проверить default `HWID limit = 5` на новом пользователе и ручное изменение через Telegram UI;
+- подтвердить, что Plan apply/reconcile не перезаписывают индивидуальный HWID limit;
+- повторить HWID delete two-step с реальным или контролируемым test-device;
+- проверить `Система → Администраторы` на active/disabled Administrator, Support, Read-only и локальном Owner: role emoji всегда видим, disabled явно обозначен `⛔ … · отключён`, toggle не меняет назначенную роль;
+- выполнить final bot/DB/3x-ui health smoke.
+
+Линия `v4.25` считается production-accepted только после публикации `v4.25.1` и прохождения этого re-acceptance; после этого roadmap переходит к `v4.26.0`.
+
+
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
 
