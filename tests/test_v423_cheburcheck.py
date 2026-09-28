@@ -179,6 +179,19 @@ class V423CheburcheckTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("admin:cheburcheck:master", master_callbacks)
         self.assertIn("admin:cheburcheck:node:2", node_callbacks)
 
+    def test_per_admin_cooldown_blocks_only_rapid_repeat(self):
+        cheburcheck_admin._last_request_at.clear()
+        with patch.object(
+            cheburcheck_admin.time,
+            "monotonic",
+            side_effect=[100.0, 101.0, 101.0, 102.1],
+        ):
+            self.assertTrue(cheburcheck_admin._consume_cooldown(1))
+            self.assertFalse(cheburcheck_admin._consume_cooldown(1))
+            self.assertTrue(cheburcheck_admin._consume_cooldown(2))
+            self.assertTrue(cheburcheck_admin._consume_cooldown(1))
+        self.assertEqual(cheburcheck_admin._MIN_REQUEST_INTERVAL_SECONDS, 2.0)
+
     def test_client_has_bounded_network_contract(self):
         source = (ROOT / "cheburcheck.py").read_text(encoding="utf-8")
         self.assertIn('f"{self.base_url}/api/v1/check"', source)

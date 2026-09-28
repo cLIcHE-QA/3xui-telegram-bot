@@ -270,7 +270,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
-17. Cheburcheck integration как отдельный read-only diagnostics service/tool — 🟠 `v4.23.0` опубликован и развернут; domain/IP/Master/direct-node smoke пройден, ASN выявил response-limit defect; hotfix `v4.23.1` обязателен до полного production acceptance.
+17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ выполнено и принято в production в `v4.23.1`; follow-up `v4.23.2` запланирован для компактного расширения result parity (списки/региональная доступность) и строгой context-preserving navigation.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
@@ -511,7 +511,9 @@ Targeted smoke подтвердил production flow: создание време
 
 ##### Cheburcheck integration
 
-**Статус: 🟠 `v4.23.0` опубликован и развернут; production acceptance частично выполнен. ASN smoke выявил hard-limit defect (штатный response > 256 KiB), поэтому закрытие пункта перенесено на hotfix `v4.23.1`.**
+**Статус: ✅ Выполнено в `v4.23.1`.**
+
+Production acceptance закрыт после hotfix `v4.23.1` на exact release SHA `ff6638442cbe9c2adc9aa76d74c2cfb4b647aaf6`: Master/direct-node shortcuts, domain/public IP/ASN, URL/private-IP rejection, graceful unavailable/recovery и финальный base health пройдены; `AS213459` с response около 382 KiB успешно обработан новым 1 MiB bounded limit. После остановки и запуска только Cheburcheck backend оба runtime-сервиса вернулись в `healthy`, а bot status остался `RestartCount=0`, Health/DB/3x-ui `ok`. Проверка bot logs по exact internal URL и credential-variable names дала нулевые совпадения. Production flood для backend rate limit намеренно не выполнялся; per-admin 2-second cooldown закреплён отдельным regression-test без нагрузки на upstream.
 
 Цель — встроить в бот функциональность проверки доменов/IP/ASN на блокировки, сохраняя upstream Cheburcheck checker как source of behavior и не переписывая его алгоритм без необходимости.
 
@@ -543,6 +545,55 @@ upstream checker/database logic
 - production acceptance проверяет корректный verdict на test fixtures/known targets и graceful degradation при недоступном Cheburcheck service.
 
 Реализация в `main` использует reviewed upstream `LowderPlay/cheburcheck@0bbd2be8ca4b8f9ded1407597654314fc2a900c6`, отдельный `CheburcheckClient`, optional `CHEBURCHECK_URL`, read-only RBAC и экран `Мониторинг → Проверка блокировок`. Auto-discovery предлагает безопасные hostname/IP из Master/direct Nodes/enabled Hosts, а карточки Master/direct node имеют shortcut проверки; URL path/query/credentials и private/local targets не передаются.
+
+##### v4.23.2 — Cheburcheck: расширенный результат и контекстная навигация
+
+**Статус: ⬜ Запланировано на `v4.23.2`.**
+
+Scope:
+
+1. **Компактный parity результата с Cheburcheck site.** Расширить текущий bounded summary данными, которые уже доступны/могут быть надёжно получены из pinned Cheburcheck backend: нахождение цели в используемых блок-листах/реестрах и доступность по регионам. Telegram UI должен показывать это максимально компактно, без raw payload и без ослабления существующих response-size/timeouts/concurrency/rate-limit границ.
+
+   Целевой operator-facing формат:
+
+   ~~~text
+   🔎 Проверка блокировок
+
+   Цель: example.org
+   Результат: 🟢 блокировка не обнаружена
+   Сеть: Example ISP · AS12345 · Москва
+
+   📋 Списки
+   РКН: 🟢 не найден
+   CDN: Cloudflare · 3 сети
+   Исключение CDN: —
+   ASN: 2 / 184 подсетей в списках
+
+   🌍 Регионы: 11 ответов · 🟢 8 · 🔴 2 · 🟡 1
+
+   Источник: Cheburcheck.
+   ~~~
+
+   Presentation contract:
+   - верхняя часть содержит только цель, итоговый verdict и доступную network identity: организация / ASN / location;
+   - блок `📋 Списки` агрегирует РКН, CDN, CDN exception и ASN/subnet coverage в одну короткую секцию;
+   - региональные ответы сворачиваются в одну строку с общим числом и количеством `🟢 / 🔴 / 🟡`, без длинного перечня регионов в основном result card;
+   - отсутствующие optional значения отображаются как `—`, а не раздувают карточку дополнительными пояснениями;
+   - raw upstream payload и внутренние service details в Telegram UI не выводятся;
+   - строка `Источник: Cheburcheck.` сохраняет явную attribution внешнего источника данных.
+
+   Перед реализацией зафиксировать exact upstream fields/semantics для reviewed revision и покрыть их fixtures/contract tests; если часть site-only данных не выдаётся backend API, это явно фиксируется и не эмулируется догадками.
+
+2. **Контекстная навигация Cheburcheck.** Источник входа становится частью UI context:
+   - вход из `/admin → Мониторинг → Проверка блокировок` всегда возвращает только в Monitoring/Cheburcheck flow;
+   - вход из карточки Master возвращает только в карточку Master;
+   - вход из карточки direct Node возвращает только в ту же Node;
+   - discovered targets, manual search, result, error, `Проверить ещё` и повторный поиск обязаны сохранять исходный parent context;
+   - переход из Monitoring flow в Node/Master card и обратный cross-context jump через Cheburcheck запрещён;
+   - callback data хранит только safe stable context/identity, без URL/credentials;
+   - regression tests покрывают все entry points и Back/Repeat/Search transitions.
+
+Цель релиза — улучшить информативность и UX Cheburcheck без изменения его read-only security boundary, provisioning/VPN state или 3x-ui mutations.
 
 ##### PackBot-compatible monitoring и diagnostics
 

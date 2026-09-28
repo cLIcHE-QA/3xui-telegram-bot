@@ -274,6 +274,21 @@ docker compose ps bot
 
 Для v4.23.1 bot response body hard limit — 1 MiB. Он остаётся bounded вместе с concurrency/timeouts, но пропускает нормальные ASN responses, которые могут превышать 256 KiB.
 
+### Принятый production результат v4.23.1
+
+Acceptance выполнен на release `v4.23.1` / `ff6638442cbe9c2adc9aa76d74c2cfb4b647aaf6`:
+
+- service configured, discovery показал Master/direct Nodes без URL path/credentials;
+- Master и direct-node shortcuts вернули штатный результат и сохранили корректный parent navigation;
+- manual public IPv4 и ASN `AS213459` прошли; ASN response около 382 KiB корректно помещается в новый 1 MiB hard limit и UI остаётся bounded;
+- arbitrary URL и private IPv4 отклоняются локальной validation;
+- при остановленном Cheburcheck backend UI показал graceful unavailable error, bot не деградировал; после запуска backend повторный ASN прошёл;
+- `docker compose ps` показал Cheburcheck и PostgreSQL healthy;
+- финальный bot status: exact v4.23.1 SHA, container running, `RestartCount=0`, Health/DB/3x-ui `ok`;
+- targeted log scan не нашёл internal Cheburcheck URL, `CHEBURCHECK_URL`, `DATABASE_URL` или `POSTGRES_PASSWORD`;
+- backend rate-limit не проверялся production flood'ом; per-admin 2-second guard проверяется regression-test'ом до upstream request.
+
+
 ## 9. Rollback / disable
 
 Чтобы выключить integration без удаления external stack:
