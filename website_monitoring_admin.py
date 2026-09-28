@@ -141,7 +141,7 @@ def _site_keyboard(
         rows.append([
             InlineKeyboardButton(
                 text="🗑 Удалить / отписаться",
-                callback_data=f"admin:webmon:removeask:{item.id}",
+                callback_data=f"admin:webmon:deleteask:{item.id}",
             )
         ])
     rows.append([
@@ -477,8 +477,8 @@ async def website_monitoring_incidents(call: CallbackQuery):
     await call.answer()
 
 
-@website_monitoring_router.callback_query(F.data.regexp(r"^admin:webmon:removeask:\d+$"))
-async def website_monitoring_remove_ask(call: CallbackQuery):
+@website_monitoring_router.callback_query(F.data.regexp(r"^admin:webmon:deleteask:\d+$"))
+async def website_monitoring_delete_ask(call: CallbackQuery):
     ok, _ = await authorize_callback(db, settings, call)
     if not ok:
         return
@@ -490,7 +490,7 @@ async def website_monitoring_remove_ask(call: CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text="⚠️ Да, отписаться",
-            callback_data=f"admin:webmon:remove:{item.id}",
+            callback_data=f"admin:webmon:delete:{item.id}",
         )],
         [InlineKeyboardButton(
             text="✖ Отмена",
@@ -508,8 +508,8 @@ async def website_monitoring_remove_ask(call: CallbackQuery):
     await call.answer()
 
 
-@website_monitoring_router.callback_query(F.data.regexp(r"^admin:webmon:remove:\d+$"))
-async def website_monitoring_remove(call: CallbackQuery):
+@website_monitoring_router.callback_query(F.data.regexp(r"^admin:webmon:delete:\d+$"))
+async def website_monitoring_delete(call: CallbackQuery):
     ok, role = await authorize_callback(db, settings, call)
     if not ok:
         return
