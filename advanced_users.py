@@ -1165,6 +1165,32 @@ async def user_subscription_view(call: CallbackQuery):
     await _render_user_section(call, _user_subscription_view)
 
 
+@advanced_users_router.callback_query(F.data.startswith("admin:u:subqr:"))
+async def user_subscription_qr(call: CallbackQuery):
+    if not await guard(call, minimum="read_only"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    image = qr_png(sub_url(rec.sub_id))
+    if call.message is not None:
+        try:
+            await call.bot.send_photo(
+                call.message.chat.id,
+                BufferedInputFile(image, filename="subscription-qr.png"),
+                caption=f"🔳 QR подписки · {await _display_label(rec)}",
+            )
+            text = "🔳 QR-код подписки\n\nИзображение отправлено отдельным сообщением."
+        except Exception:
+            text = "🔳 QR-код подписки\n\n🔴 Не удалось отправить изображение."
+    else:
+        text = "🔳 QR-код подписки\n\n🔴 Сообщение недоступно."
+    await render_callback(call, text, reply_markup=back_user(tg_id))
+    await call.answer()
+
+
 @advanced_users_router.callback_query(F.data.startswith("admin:u:profile:"))
 async def user_profile_view(call: CallbackQuery):
     await _render_user_section(call, _user_profile_view)
@@ -1211,6 +1237,79 @@ async def user_access_config(call: CallbackQuery):
         f"VLESS Flow: {flow}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:flowask:"))
+async def user_flow_sync_ask(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    if not settings.vless_flow:
+        await call.answer("VLESS Flow не настроен.", show_alert=True)
+        return
+    await render_callback(
+        call,
+        f"🔄 Синхронизировать VLESS Flow?\n\n{await _display_label(rec)}\n\n"
+        "Будет обновлён только Flow. Inbounds не подключаются и не отключаются.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Синхронизировать Flow", callback_data=f"admin:u:flowrun:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:accesscfg:{tg_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:flowrun:"))
+async def user_flow_sync_run(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    if not settings.vless_flow:
+        await call.answer("VLESS Flow не настроен.", show_alert=True)
+        return
+    try:
+        await xui.bulk_adjust_clients([rec.email], flow=settings.vless_flow)
+        await audit_from_call(
+            db,
+            call,
+            "user.flow.sync",
+            target_type="user",
+            target_id=rec.email,
+            details="flow_configured=true; inbound_mutation=false",
+        )
+        await render_callback(
+            call,
+            "✅ VLESS Flow синхронизирован. Inbounds не изменялись.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+            ]]),
+        )
+    except XUIError as exc:
+        await audit_from_call(
+            db,
+            call,
+            "user.flow.sync",
+            target_type="user",
+            target_id=rec.email,
+            details=f"error={type(exc).__name__}",
+            success=False,
+        )
+        await render_callback(
+            call,
+            f"🔴 Не удалось синхронизировать Flow: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+            ]]),
+        )
     await call.answer()
 
 
