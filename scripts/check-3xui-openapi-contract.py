@@ -132,6 +132,15 @@ def discover_client_routes(root: Path, source_files: list[str]) -> set[tuple[str
                             path_expr = node.args[1]
                 elif name == "_mutation_request" and node.args:
                     method = "POST"
+                    for keyword in node.keywords:
+                        if (
+                            keyword.arg == "method"
+                            and isinstance(keyword.value, ast.Constant)
+                            and isinstance(keyword.value.value, str)
+                        ):
+                            candidate = keyword.value.value.upper()
+                            if candidate in HTTP_METHODS:
+                                method = candidate
                     path_expr = node.args[0]
                 elif name.upper() in HTTP_METHODS and node.args:
                     # Covers direct aiohttp GET used by download_database().
