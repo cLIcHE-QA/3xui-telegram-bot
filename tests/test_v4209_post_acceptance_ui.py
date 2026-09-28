@@ -76,7 +76,7 @@ class V4209PostAcceptanceUiTests(unittest.TestCase):
                 if "Удалить" not in label or "⚠️" in label:
                     continue
                 callback = _literal_text(kwargs.get("callback_data"))
-                if "deleteask" not in callback and "admindelask" not in callback:
+                if "deleteask" not in callback and "admindelask" not in callback and "devdelask" not in callback:
                     offenders.append(f"{path.name}:{node.lineno}:{label} -> {callback}")
 
         self.assertEqual(offenders, [])
