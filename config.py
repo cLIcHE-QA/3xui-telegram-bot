@@ -237,6 +237,7 @@ class Settings:
     deploy_agent_token: str
     cheburcheck_url: str
     cheburcheck_verify_tls: bool
+    pagespeed_api_key: str
     node_backup_targets: tuple[NodeBackupTarget, ...]
     host_control_targets: tuple[HostControlTarget, ...]
     master_name: str
@@ -396,6 +397,7 @@ def load_settings() -> Settings:
         deploy_agent_token=deploy_agent_token,
         cheburcheck_url=cheburcheck_url,
         cheburcheck_verify_tls=cheburcheck_verify_tls,
+        pagespeed_api_key=os.getenv("PAGESPEED_API_KEY", "").strip(),
         node_backup_targets=_load_node_backup_targets(),
         host_control_targets=_load_host_control_targets(),
         master_name=os.getenv("MASTER_NAME", "Master").strip() or "Master",
