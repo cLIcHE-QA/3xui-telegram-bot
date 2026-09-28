@@ -1982,7 +1982,13 @@ async def user_inbound_toggle(call: CallbackQuery):
             db, call, "user.inbound.toggle", target_type="user", target_id=rec.email,
             details=f"inbound_id={inbound_id}; error={exc}", success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(
+            call,
+            f"Ошибка 3x-ui: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")
+            ]]),
+        )
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:resetask:"))
