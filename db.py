@@ -864,6 +864,15 @@ class Database:
             row = await cur.fetchone()
             return int(row[0] if row else 0)
 
+    async def count_user_payments_by_status(self, telegram_id: int, status: str) -> int:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                "SELECT COUNT(*) FROM payments WHERE telegram_id = ? AND status = ?",
+                (int(telegram_id), str(status)),
+            )
+            row = await cur.fetchone()
+            return int(row[0] if row else 0)
+
     async def get_user_payment(self, telegram_id: int, payment_id: int) -> PaymentRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
