@@ -99,7 +99,7 @@ class V4232CheburcheckTests(unittest.TestCase):
         self.assertIn("Сеть: Example ISP · AS12345 · Москва", text)
         self.assertIn("📋 Списки", text)
         self.assertIn("РКН: 🟢 не найден", text)
-        self.assertIn("CDN: Cloudflare · 3 сетей", text)
+        self.assertIn("CDN: Cloudflare · 3 сети", text)
         self.assertIn("Исключение CDN: —", text)
         self.assertIn("ASN: 2 / 3 подсетей в списках", text)
         self.assertIn("🌍 Регионы: 11 ответов · 🟢 8 · 🔴 2 · 🟡 1", text)
