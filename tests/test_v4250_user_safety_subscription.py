@@ -10,13 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class V4250UserSafetySubscriptionTests(unittest.TestCase):
-    def test_user_card_has_extend_shortcut_and_canonical_sections(self):
+    def test_user_card_uses_canonical_sections_without_extend_shortcut(self):
         source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
         card = source.split("async def render_user", 1)[1].split(
             "async def _user_plan_view", 1
         )[0]
-        self.assertIn('text="⏳ Продлить"', card)
-        self.assertIn('callback_data=f"adminextend:{tg_id}"', card)
+        self.assertNotIn('text="⏳ Продлить"', card)
+        self.assertNotIn('callback_data=f"adminextend:{tg_id}"', card)
         for label in (
             "💎 Тариф", "📅 Срок", "📊 Трафик", "🌐 Доступ",
             "📱 Подключения", "🔗 Подписка", "💳 Платежи",
