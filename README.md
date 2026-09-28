@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.25.0
+# Telegram-бот для 3x-ui v4.25.1
 
 Административный Telegram Control Plane для 3x-ui. Текущая production-линия проекта — **v4.x Admin Control Plane**; полноценный client-facing Client Portal запланирован отдельно для v5.x.
 
@@ -139,7 +139,7 @@ domain routers
 
 `bot.py` сохраняется как стабильный executable path, в том числе для `restore_bootstrap.py`, но не владеет domain handlers или lifecycle implementation.
 
-Линия `v4.25.x` реализована и опубликована в `v4.25.0`: User Management получил канонические list/search/create/card flows, policy-based Access, Connections/HWID/IP, local-only Subscription QR, user-scoped Payments/Activity, confirmation-first lifecycle и завершённый bulk workflow. Production acceptance выполняется отдельно после deployment опубликованного `v4.25.0`.
+Линия `v4.25.x` стабилизируется в `v4.25.1`: поверх опубликованного `v4.25.0` закрываются production-acceptance findings User Management, завершается HWID flow с default `limitHwid=5` и per-user управлением, исправляются create/navigation contracts и compat proxy. Production acceptance линии закрывается после deployment и targeted re-acceptance `v4.25.1`.
 
 Линия `v4.24.x` реализована, опубликована и принята в production: `website_monitoring.py` содержит SQLite repository/state machine и SSRF-safe outbound boundary, `website_monitoring_runtime.py` — bounded scheduler/incident notifications, `website_monitoring_admin.py` — persistent monitoring UI, а `website_diagnostics.py` / `website_diagnostics_admin.py` — one-off DNS/WHOIS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/URL-list/QR diagnostics. Production smoke `v4.24.0` выявил targeted findings WHOIS MSK, bounded Cheburcheck detail и public IPv6 literal validation; они закрыты в `v4.24.1`, после чего smoke/acceptance линии завершён.
 
