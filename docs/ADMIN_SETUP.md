@@ -254,13 +254,47 @@ CHEBURCHECK_VERIFY_TLS=true
 
 ### Optional PageSpeed diagnostics
 
-`/admin → Мониторинг → Мониторинг сайтов → Разовая диагностика → PageSpeed` использует Google PageSpeed Insights только когда локально задан API key:
+`/admin → Мониторинг → Мониторинг сайтов → Разовая диагностика → PageSpeed` использует Google PageSpeed Insights только когда локально задан API key. По умолчанию интеграция остаётся выключенной:
+
+~~~env
+PAGESPEED_API_KEY=
+~~~
+
+Включай её только если оператору нужен внешний performance score для публичных страниц. Uptime/incident monitoring, DNS/WHOIS/HTTP/redirect/CMS/SEO/Sitemap/URL-list/QR от PageSpeed не зависят.
+
+Для будущего включения:
+
+1. в отдельном Google Cloud project включи **PageSpeed Insights API**;
+2. создай отдельный API key только для этой интеграции;
+3. ограничь key по API до PageSpeed Insights API; если у Master стабильный public egress IP, дополнительно используй server/IP application restriction;
+4. локально на Master добавь key в mode-0600 `.env`:
 
 ~~~env
 PAGESPEED_API_KEY=<google-pagespeed-api-key>
 ~~~
 
-Ключ не вводится через Telegram, не сохраняется в SQLite/audit и не показывается в UI. Если переменная пустая, только PageSpeed отображается как `не настроен`; DNS/WHOIS/HTTP/redirect/CMS/SEO/Sitemap/URL-list/QR продолжают работать. Target URL перед обращением к PageSpeed проходит тот же public HTTP(S) validation boundary.
+5. пересоздай только bot container, чтобы новое environment попало в runtime:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+docker compose \
+  --project-name 3xui-telegram-bot \
+  --env-file .env \
+  -f docker-compose.yml \
+  up -d --force-recreate bot
+~~~
+
+6. проверь базовый runtime status:
+
+~~~bash
+./scripts/deploy-release.sh --status
+~~~
+
+7. в Telegram открой monitored site → `🩺 Диагностика` → `⚡ PageSpeed`. При успешной конфигурации карточка показывает bounded `Performance: N/100` и, когда provider её возвращает, `Field category`.
+
+Ключ не вводится через Telegram, не сохраняется в SQLite/audit и не показывается в UI. Target URL перед обращением к PageSpeed проходит тот же public HTTP(S) validation boundary, но сам публичный URL передаётся внешнему Google API; не запускай эту диагностику для URL с чувствительными query-параметрами/токенами.
+
+Чтобы снова выключить интеграцию, оставь `PAGESPEED_API_KEY=`, пересоздай bot container тем же Compose command и повтори `--status`. Пустая переменная является штатным состоянием: PageSpeed отображается как `не настроен`, остальные diagnostics продолжают работать.
 
 ### Master backup paths
 
