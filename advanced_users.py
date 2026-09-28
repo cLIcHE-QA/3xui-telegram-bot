@@ -350,6 +350,36 @@ def back_user(tg_id: int) -> InlineKeyboardMarkup:
     ])
 
 
+def back_plan(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:u:planview:{tg_id}")
+    ]])
+
+
+def back_expiry(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Срок", callback_data=f"admin:u:expiryview:{tg_id}")
+    ]])
+
+
+def back_traffic(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Трафик", callback_data=f"admin:u:trafficview:{tg_id}")
+    ]])
+
+
+def back_access_config(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+    ]])
+
+
+def back_subscription(tg_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="⬅ Подписка", callback_data=f"admin:u:subview:{tg_id}")
+    ]])
+
+
 def users_back() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
@@ -1653,7 +1683,7 @@ async def user_plan_set(call: CallbackQuery):
         details=f"plan_id={plan_id or None}; name={plan.name if plan else ''}",
     )
     await render_callback(call, 
-        f"✅ Тариф: {plan.name if plan else 'не назначен'}", reply_markup=back_user(tg_id)
+        f"✅ Тариф: {plan.name if plan else 'не назначен'}", reply_markup=back_plan(tg_id)
     )
     await call.answer()
 
@@ -1677,7 +1707,7 @@ async def user_plan_apply_ask(call: CallbackQuery):
         "Накопленный трафик не сбрасывается. Группа серверов сохраняется отдельно.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Применить", callback_data=f"admin:u:planapplyrun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:planview:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -1713,14 +1743,14 @@ async def user_plan_apply_run(call: CallbackQuery):
             ),
         )
         await render_callback(call, 
-            f"✅ Тариф «{plan.name}» применён к лимитам 3x-ui.", reply_markup=back_user(tg_id)
+            f"✅ Тариф «{plan.name}» применён к лимитам 3x-ui.", reply_markup=back_plan(tg_id)
         )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.plan.apply", target_type="user", target_id=rec.email,
             details=f"error={exc}", success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_plan(tg_id))
     await call.answer()
 
 
@@ -1905,7 +1935,7 @@ async def user_plan_provision_ask(call: CallbackQuery):
         "Это обновит срок/трафик/лимит IP, назначит группу серверов тарифа и добавит отсутствующие Inbounds. Лишние Inbounds не удаляются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Тариф + согласование", callback_data=f"admin:u:planprovrun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:planview:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -1928,11 +1958,11 @@ async def user_plan_provision_run(call: CallbackQuery):
         )
         await render_callback(call, 
             f"✅ Тариф + согласование завершены.\nДобавлены: {result.attached_ids or 'нет'}\nОстались отсутствующими: {result.remaining_missing_ids or 'нет'}",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_plan(tg_id),
         )
     except Exception as exc:
         await audit_from_call(db, call, "user.plan.provision", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Тариф + согласование: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔴 Тариф + согласование: {type(exc).__name__}: {exc}", reply_markup=back_plan(tg_id))
     await call.answer()
 
 
