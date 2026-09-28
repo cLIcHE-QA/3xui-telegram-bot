@@ -74,6 +74,7 @@ class AdminNavigationTests(unittest.TestCase):
         self.assertIn("admin:nodes", infrastructure)
         self.assertIn("admin:health", callback_values(admin_navigation.monitoring_menu()))
         self.assertIn("admin:cheburcheck", callback_values(admin_navigation.monitoring_menu()))
+        self.assertIn("admin:webmon", callback_values(admin_navigation.monitoring_menu()))
         self.assertIn("admin:versions", system)
         self.assertIn("admin:botupd", system)
         self.assertIn("admin:backups", system)
@@ -112,6 +113,7 @@ class AdminNavigationTests(unittest.TestCase):
             "storage_admin.py",
             "system_admin.py",
             "cheburcheck_admin.py",
+            "website_monitoring_admin.py",
         )
         missing = []
         for name in files:
