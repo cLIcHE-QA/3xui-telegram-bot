@@ -6,6 +6,15 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.25.1 — User Management stabilization / HWID completion
+- Исправлены production-acceptance navigation defects: `Показать URL` возвращает в `🔗 Подписка`, user-scoped `💳 Платежи` больше не уводят в глобальный payment ledger, shortcut `⏳ Продлить` удалён из главной карточки.
+- Create-user корректно трактует production 3x-ui response `Obtain (record not found)` как отсутствие клиента, сохраняя fail-closed обработку остальных API errors.
+- Subscription compatibility proxy передаёт upstream reviewed `X-HWID` / device metadata headers для normal VPN-client requests; значения этих headers не логируются.
+- Новые 3x-ui clients получают `limitHwid=5` по умолчанию. Existing clients массово не меняются; per-user HWID limit доступен Support+ в `⚙️ Параметры доступа`, Read-only видит текущее значение.
+- Plan apply и reconcile не управляют HWID limit; существующий `update_client()` сохраняет индивидуальный `limitHwid`, если операция явно его не меняет.
+- `📱 Подключения` показывает текущий HWID limit рядом с количеством зарегистрированных устройств.
+- `Система → Администраторы` разделяет статус и роль: `🟢/⛔` обозначают enable state, а `👑/🛡/🧑‍💻/👁` — фиксированную RBAC роль.
+
 ## v4.25.0 — User Management
 - Начат рефакторинг `/admin → Пользователи`: список получил bounded pagination и поиск по Telegram ID, техническому email и display name при сохранении `telegram_id` как callback identity.
 - Mutation shortcuts списка теперь role-aware: Read-only не получает массовые действия/глобальное согласование, while handler authorization остаётся обязательной.

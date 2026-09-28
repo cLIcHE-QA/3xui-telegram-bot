@@ -58,8 +58,21 @@ class V4250UserConnectionsTests(unittest.IsolatedAsyncioTestCase):
         ):
             with self.subTest(callback=callback):
                 self.assertEqual(required_role_for_callback(callback), "read_only")
+        self.assertEqual(required_role_for_callback("admin:u:hwid:101"), "support")
         self.assertEqual(required_role_for_callback("admin:u:devdelask:101:7"), "support")
         self.assertEqual(required_role_for_callback("admin:u:devdel:101:7"), "support")
+
+    def test_hwid_limit_is_visible_and_support_editable(self):
+        source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
+        self.assertIn("HWID limit: {limit_hwid}", source)
+        self.assertIn('text="🧩 Изменить HWID limit"', source)
+        self.assertIn("EditUserStates.hwid_limit", source)
+        self.assertIn("update_client(rec.email, limitHwid=limit)", source)
+        self.assertIn("0 = HWID limit отключён", source)
+
+    def test_plan_and_reconcile_do_not_manage_hwid_limit(self):
+        provisioning = (ROOT / "provisioning.py").read_text(encoding="utf-8")
+        self.assertNotIn("limitHwid=", provisioning)
 
     def test_device_delete_is_two_step_and_uncertain_outcome_is_not_replayed(self):
         source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")

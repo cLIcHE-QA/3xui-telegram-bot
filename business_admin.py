@@ -756,13 +756,17 @@ async def promo_delete(call: CallbackQuery):
 # ---------------------------------------------------------------------
 
 
+ROLE_ICONS = {
+    "owner": "👑",
+    "admin": "🛡",
+    "support": "🧑‍💻",
+    "read_only": "👁",
+}
+
+
 def role_button(role: str) -> str:
-    return {
-        "owner": "👑 Owner",
-        "admin": "🛡 Administrator",
-        "support": "🧑‍💻 Support",
-        "read_only": "👁 Read-only",
-    }.get(role, role)
+    icon = ROLE_ICONS.get(role, "❓")
+    return f"{icon} {ROLE_LABELS.get(role, role)}"
 
 
 @business_router.callback_query(F.data == "admin:administrators")
@@ -774,10 +778,12 @@ async def administrators_list(call: CallbackQuery):
     rows = []
     for tg_id in all_ids:
         if tg_id in settings.admin_telegram_ids:
-            text = f"👑 TG {tg_id} · Owner · локальная конфигурация"
+            text = f"🟢 👑 TG {tg_id} · Owner · локальная конфигурация"
         else:
             rec = db_admins[tg_id]
-            text = f"{'🟢' if rec.enabled else '⚪'} TG {tg_id} · {ROLE_LABELS.get(rec.role, rec.role)}"
+            status = "🟢" if rec.enabled else "⛔"
+            disabled = "" if rec.enabled else " · отключён"
+            text = f"{status} {ROLE_ICONS.get(rec.role, '❓')} TG {tg_id} · {ROLE_LABELS.get(rec.role, rec.role)}{disabled}"
         rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:administrator:{tg_id}")])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить администратора", callback_data="admin:administratoradd:start")],
@@ -786,7 +792,8 @@ async def administrators_list(call: CallbackQuery):
     ]
     await render_callback(call, 
         "👮 Администраторы\n\n"
-        "Owner из локальной конфигурации — аварийный владелец; его нельзя отключить из Telegram.\n\n"
+        "Owner из локальной конфигурации — аварийный владелец; его нельзя отключить из Telegram.\n"
+        "Статус: 🟢 включён · ⛔ отключён\n\n"
         "Роли:\n"
         "👑 Owner — полный доступ и управление администраторами\n"
         "🛡 Administrator — все рабочие операции и безопасные настройки\n"
@@ -802,12 +809,7 @@ async def roles_privileges(call: CallbackQuery):
     if not await guard(call, minimum="owner"):
         return
     role_order = ("read_only", "support", "admin", "owner")
-    role_icons = {
-        "read_only": "👁",
-        "support": "🧑‍💻",
-        "admin": "🛡",
-        "owner": "👑",
-    }
+    role_icons = ROLE_ICONS
     lines = [
         "🔐 Роли и права",
         "",
@@ -868,7 +870,7 @@ async def administrator_detail(call: CallbackQuery):
     await render_callback(call, 
         f"👮 TG {tg_id}\n\n"
         f"Роль: {role_button(rec.role)}\n"
-        f"Статус: {'🟢 включён' if rec.enabled else '⚪ отключён'}\n"
+        f"Статус: {'🟢 включён' if rec.enabled else '⛔ отключён'}\n"
         f"Добавил: {f'TG {rec.added_by}' if rec.added_by else 'система'}\n"
         f"Создан: {utc_text(rec.created_at)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),

@@ -8,6 +8,9 @@ import json
 import aiohttp
 from version_api import VersionAPIMixin
 
+DEFAULT_HWID_LIMIT = 5
+
+
 class XUIError(RuntimeError):
     pass
 
@@ -542,6 +545,7 @@ class XUIClient(VersionAPIMixin):
                 "totalGB": kwargs["total_bytes"],
                 "expiryTime": kwargs["expiry_time_ms"],
                 "limitIp": kwargs["limit_ip"],
+                "limitHwid": int(kwargs.get("limit_hwid", DEFAULT_HWID_LIMIT)),
                 "enable": True,
                 "comment": kwargs["comment"],
                 "flow": kwargs.get("flow", ""),

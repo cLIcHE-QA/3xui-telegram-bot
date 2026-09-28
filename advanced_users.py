@@ -21,7 +21,7 @@ from db import Database, UserRecord
 from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
 from website_diagnostics import qr_png
-from xui import XUIClient, XUIError, XUIMutationError
+from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine
 
 settings = load_settings()
@@ -35,6 +35,7 @@ class EditUserStates(StatesGroup):
     expiry = State()
     traffic = State()
     ip_limit = State()
+    hwid_limit = State()
     note = State()
     display_name = State()
 
@@ -225,7 +226,8 @@ async def _email_available(email: str) -> tuple[bool, str]:
     try:
         await xui.get_client(email)
     except XUIError as exc:
-        if str(exc).startswith("Client not found:"):
+        message = str(exc).strip()
+        if message.startswith("Client not found:") or message.lower() == "obtain (record not found)":
             return True, ""
         raise
     return False, "Клиент с таким техническим email уже существует в 3x-ui."
@@ -331,6 +333,7 @@ async def _create_preview(data: dict[str, object], plan_id: int) -> tuple[str, I
         f"Срок: {fmt_date(expiry)}",
         f"Лимит трафика: {traffic_gb} GB" if traffic_gb else "Лимит трафика: без лимита",
         f"IP limit: {ip_limit}" if ip_limit else "IP limit: без лимита",
+        f"HWID limit: {DEFAULT_HWID_LIMIT}",
         f"Целевые Inbounds: {len(inbound_ids)}",
     ]
     unavailable = list(ctx.get("unavailable_members") or [])
@@ -494,10 +497,7 @@ async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, 
             lines += ["", f"📝 Заметка: {note}"]
 
     rows: list[list[InlineKeyboardButton]] = [
-        [
-            InlineKeyboardButton(text="💎 Тариф", callback_data=f"admin:u:planview:{tg_id}"),
-            InlineKeyboardButton(text="⏳ Продлить", callback_data=f"adminextend:{tg_id}"),
-        ],
+        [InlineKeyboardButton(text="💎 Тариф", callback_data=f"admin:u:planview:{tg_id}")],
         [
             InlineKeyboardButton(text="📅 Срок", callback_data=f"admin:u:expiryview:{tg_id}"),
             InlineKeyboardButton(text="📊 Трафик", callback_data=f"admin:u:trafficview:{tg_id}"),
@@ -783,10 +783,13 @@ async def _user_connections_view(tg_id: int, role: str | None) -> tuple[str, Inl
     client_result, online_result, last_result, hwid_result, ips_result = results
 
     limit_ip = "недоступно"
+    limit_hwid = "недоступно"
     if isinstance(client_result, dict):
         client = client_result.get("client", client_result)
         value = int(client.get("limitIp") or 0)
         limit_ip = str(value) if value else "без лимита"
+        hwid_value = int(client.get("limitHwid") or 0)
+        limit_hwid = str(hwid_value) if hwid_value else "отключён"
 
     online_text = "⚪ неизвестно"
     if isinstance(online_result, list):
@@ -805,6 +808,7 @@ async def _user_connections_view(tg_id: int, role: str | None) -> tuple[str, Inl
         f"Статус: {online_text}",
         f"Последняя активность: {last_text}",
         f"IP limit: {limit_ip}",
+        f"HWID limit: {limit_hwid}",
         "",
         f"Устройств: {hwid_count}",
         f"IP-адресов: {ip_count}",
@@ -1101,7 +1105,6 @@ async def _user_payments_view(tg_id: int, offset: int = 0) -> tuple[str, InlineK
         ))
     if nav:
         rows.append(nav)
-    rows.append([InlineKeyboardButton(text="📋 Все платежи", callback_data="admin:payments")])
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
     return "\n".join(lines)[:3900], InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -1300,12 +1303,15 @@ async def user_access_config(call: CallbackQuery, state: FSMContext):
         await call.answer("Пользователь не найден.", show_alert=True)
         return
     limit_ip = "недоступно"
+    limit_hwid = "недоступно"
     flow = "не настроен" if not settings.vless_flow else "недоступно"
     try:
         obj = await xui.get_client(rec.email)
         client = obj.get("client", obj)
         value = int(client.get("limitIp") or 0)
         limit_ip = str(value) if value else "без лимита"
+        hwid_value = int(client.get("limitHwid") or 0)
+        limit_hwid = str(hwid_value) if hwid_value else "отключён"
         if settings.vless_flow:
             flow = str(client.get("flow") or "none")
     except XUIError:
@@ -1313,6 +1319,7 @@ async def user_access_config(call: CallbackQuery, state: FSMContext):
     rows: list[list[InlineKeyboardButton]] = []
     if _role_can_support(role):
         rows.append([InlineKeyboardButton(text="📱 Изменить лимит IP", callback_data=f"admin:u:ip:{tg_id}")])
+        rows.append([InlineKeyboardButton(text="🧩 Изменить HWID limit", callback_data=f"admin:u:hwid:{tg_id}")])
         if settings.vless_flow:
             rows.append([InlineKeyboardButton(
                 text="🔄 Синхронизировать VLESS Flow",
@@ -1323,6 +1330,7 @@ async def user_access_config(call: CallbackQuery, state: FSMContext):
         call,
         f"⚙️ Параметры доступа · {await _display_label(rec)}\n\n"
         f"Лимит IP: {limit_ip}\n"
+        f"HWID limit: {limit_hwid}\n"
         f"VLESS Flow: {flow}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
@@ -1550,6 +1558,52 @@ async def user_ip_save(message: Message, state: FSMContext):
         )
     except ValueError:
         await render_input(message, "Введи целое число от 0 до 1000.", reply_markup=back_access_config(tg_id))
+    except XUIError as exc:
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_access_config(tg_id))
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:hwid:"))
+async def user_hwid_limit_start(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    await state.clear()
+    await state.update_data(tg_id=tg_id)
+    await state.set_state(EditUserStates.hwid_limit)
+    await render_callback(
+        call,
+        "🧩 Новый HWID limit.\n0 = HWID limit отключён.\nНапример: 5",
+        reply_markup=back_access_config(tg_id),
+    )
+    await call.answer()
+
+
+@advanced_users_router.message(EditUserStates.hwid_limit)
+async def user_hwid_limit_save(message: Message, state: FSMContext):
+    if not await guard_message(message, state):
+        return
+    data = await state.get_data()
+    tg_id = int(data["tg_id"])
+    rec = await db.get(tg_id)
+    try:
+        limit = int((message.text or "").strip())
+        if not 0 <= limit <= 100:
+            raise ValueError
+        if not rec:
+            raise XUIError("Пользователь не найден")
+        await xui.update_client(rec.email, limitHwid=limit)
+        await audit_from_message(
+            db, message, "user.hwid_limit.set", target_type="user", target_id=rec.email,
+            details=f"limitHwid={limit}",
+        )
+        await state.clear()
+        await render_input(
+            message,
+            f"✅ HWID limit: {limit}" if limit else "✅ HWID limit: отключён",
+            reply_markup=back_access_config(tg_id),
+        )
+    except ValueError:
+        await render_input(message, "Введи целое число от 0 до 100.", reply_markup=back_access_config(tg_id))
     except XUIError as exc:
         await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_access_config(tg_id))
 
@@ -2610,6 +2664,7 @@ async def admin_users_create_run(call: CallbackQuery, state: FSMContext):
             total_bytes=traffic_gb * 1024**3,
             expiry_time_ms=expiry,
             limit_ip=ip_limit,
+            limit_hwid=DEFAULT_HWID_LIMIT,
             comment=f"Создано Admin Control Plane · {ctx['plan_name']}",
             flow=settings.vless_flow,
         )
@@ -2969,7 +3024,7 @@ async def admin_sub(call: CallbackQuery):
     tg_id = int(call.data.split(":", 1)[1])
     rec = await db.get(tg_id)
     if rec:
-        await render_callback(call, f"🔗 {await _display_label(rec)}\n{sub_url(rec.sub_id)}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"🔗 {await _display_label(rec)}\n{sub_url(rec.sub_id)}", reply_markup=back_subscription(tg_id))
     await call.answer()
 
 

@@ -121,6 +121,29 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.headers["Cache-Control"], "no-store")
         self.assertNotIn("X-Secret", response.headers)
 
+    async def test_raw_client_forwards_reviewed_hwid_headers_only(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+        proxy._fetch = AsyncMock(return_value=(200, b"vless://id@example.test:443", {}))
+        headers = {
+            "User-Agent": "HWID-Test/1.0",
+            "X-HWID": "device-01",
+            "X-Device-OS": "Linux",
+            "X-Ver-OS": "test",
+            "X-Device-Model": "Acceptance-Smoke",
+            "X-Unreviewed-Secret": "must-not-forward",
+        }
+
+        await proxy.subscription(self.request("known", headers=headers))
+
+        kwargs = proxy._fetch.await_args.kwargs
+        forwarded = kwargs["headers"]
+        self.assertEqual(forwarded["X-HWID"], "device-01")
+        self.assertEqual(forwarded["X-Device-OS"], "Linux")
+        self.assertEqual(forwarded["X-Ver-OS"], "test")
+        self.assertEqual(forwarded["X-Device-Model"], "Acceptance-Smoke")
+        self.assertNotIn("X-Unreviewed-Secret", forwarded)
+
     async def test_shadowrocket_path_strips_only_affected_fingerprint_after_awg_conversion(self):
         db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
         proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")

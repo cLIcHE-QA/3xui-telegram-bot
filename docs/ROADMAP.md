@@ -2171,7 +2171,7 @@ Findings блокируют закрытие production acceptance `v4.25.0` д�
 
 ##### v4.25.1 — User Management stabilization / HWID completion
 
-**Статус: ⬜ Запланировано как hotfix/stabilization release перед закрытием production acceptance линии `v4.25`.**
+**Статус: 🟡 В реализации как hotfix/stabilization release перед закрытием production acceptance линии `v4.25`.**
 
 `v4.25.0` остаётся опубликованным baseline. Все production-acceptance blockers и незавершённые HWID operational flows исправляются в одном patch-релизе `v4.25.1`, после чего выполняется повторный acceptance только затронутых сценариев. `v4.26.0` по-прежнему остаётся Node Drain и не поглощает эти исправления.
 
