@@ -44,7 +44,8 @@ class V4233ReleaseTests(unittest.TestCase):
             "SQLite schema остаётся v3",
         ):
             self.assertIn(needle, section)
-        self.assertIn("🟡 Реализовано в `main`; release `v4.23.3` ещё не опубликован.", roadmap)
+        self.assertIn("✅ Закрыто. `v4.23.3` опубликован и принят", roadmap)
+        self.assertIn("Probe fleet", roadmap)
         self.assertIn("v4.23.3 не требует rebuild Cheburcheck runtime", deploy)
 
 
