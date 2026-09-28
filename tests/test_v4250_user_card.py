@@ -68,6 +68,39 @@ class V4250UserCardNavigationTests(unittest.TestCase):
         self.assertIn("authorize_callback", legacy)
         self.assertIn("text, kb = await render_user(tg_id, role)", legacy)
 
+    def test_access_children_keep_access_as_parent_and_warn_on_manual_drift(self):
+        source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
+        group = source.split("async def user_group_menu", 1)[1].split(
+            "async def user_group_set", 1
+        )[0]
+        self.assertIn('text="⬅ Доступ"', group)
+        self.assertIn('callback_data=f"admin:u:access:{tg_id}"', group)
+
+        provision = source.split("async def user_provisioning_card", 1)[1].split(
+            "async def user_provisioning_strict_ask", 1
+        )[0]
+        self.assertIn('text="⬅ Доступ"', provision)
+
+        inbounds = source.split("async def user_inbounds", 1)[1].split(
+            "async def user_inbound_toggle", 1
+        )[0]
+        self.assertIn("Ручные изменения могут отличаться от политики", inbounds)
+        self.assertIn('text="⬅ Доступ"', inbounds)
+
+        toggle = source.split("async def user_inbound_toggle", 1)[1].split(
+            "async def user_reset_ask", 1
+        )[0]
+        self.assertIn("Ручное состояние может отличаться от policy", toggle)
+        self.assertIn('text="⬅ Доступ"', toggle)
+
+    def test_reconcile_result_returns_to_reconcile_preview(self):
+        source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
+        run = source.split("async def user_provisioning_run", 1)[1].split(
+            "async def user_plan_provision_ask", 1
+        )[0]
+        self.assertIn('text="⬅ Согласование"', run)
+        self.assertIn('callback_data=f"admin:u:prov:{tg_id}"', run)
+
 
 if __name__ == "__main__":
     unittest.main()
