@@ -1274,7 +1274,7 @@ async def user_subscription_qr(call: CallbackQuery):
             text = "🔳 QR-код подписки\n\n🔴 Не удалось отправить изображение."
     else:
         text = "🔳 QR-код подписки\n\n🔴 Сообщение недоступно."
-    await render_callback(call, text, reply_markup=back_user(tg_id))
+    await render_callback(call, text, reply_markup=back_subscription(tg_id))
     await call.answer()
 
 
@@ -2090,7 +2090,7 @@ async def user_reset_ask(call: CallbackQuery):
         f"Сбросить накопленный трафик {await _display_label(rec)} до 0?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сбросить трафик", callback_data=f"admin:u:resetrun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:trafficview:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -2112,13 +2112,13 @@ async def user_reset_run(call: CallbackQuery):
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
             details=f"affected={affected}",
         )
-        await render_callback(call, f"✅ Трафик сброшен. Затронуто записей: {affected}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"✅ Трафик сброшен. Затронуто записей: {affected}", reply_markup=back_traffic(tg_id))
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
             details=f"error={exc}", success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_traffic(tg_id))
     await call.answer()
 
 
@@ -2137,7 +2137,7 @@ async def user_sub_rotate_ask(call: CallbackQuery):
         "но обновлять их по старому URL будет нельзя.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Сгенерировать новый subId", callback_data=f"admin:u:subrotaterun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:subview:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -2170,14 +2170,14 @@ async def user_sub_rotate_run(call: CallbackQuery):
         )
         await render_callback(call, 
             f"✅ Новый URL подписки для {await _display_label(rec)}:\n{sub_url(new_sid)}",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_subscription(tg_id),
         )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.subscription.rotate", target_type="user", target_id=rec.email,
             details=f"error={exc}", success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_subscription(tg_id))
     await call.answer()
 
 
@@ -3041,7 +3041,7 @@ async def admin_extend(call: CallbackQuery):
         await render_callback(
             call,
             f"✅ {await _display_label(rec)} продлён до {fmt_date(new_expiry)}",
-            reply_markup=back_user(tg_id),
+            reply_markup=back_expiry(tg_id),
         )
     except XUIError as exc:
         await audit_from_call(
@@ -3053,7 +3053,7 @@ async def admin_extend(call: CallbackQuery):
             details=f"3x-ui error: {exc}",
             success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_expiry(tg_id))
     await call.answer()
 
 
