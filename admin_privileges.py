@@ -138,6 +138,15 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:bulk:plan", "admin:bulk:group", "admin:bulk:expiry", "admin:bulk:traffic",
         "admin:bulk:runexpiry", "admin:bulk:runtraffic", "admin:bulk:input-cancel",
     )
+    + _rules(
+        "users.support",
+        "regex",
+        r"^admin:bulk:ask:(extend30|enable|disable|reset|reconcile)$",
+        r"^admin:bulk:plan:\d+$",
+        r"^admin:bulk:group:\d+$",
+        r"^admin:bulk:runplan:\d+$",
+        r"^admin:bulk:rungroup:\d+$",
+    )
     + _rules("users.view", "exact", "admin:bulk:noop")
     + _rules("payments.view", "regex", r"^admin:u:payments:\d+(?::\d+)?$", r"^admin:u:payment:\d+:\d+$")
     + _rules("monitoring.view", "regex", r"^admin:u:activity:\d+(?::\d+)?$")
