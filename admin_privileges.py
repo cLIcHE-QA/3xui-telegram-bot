@@ -274,7 +274,10 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules(
         "website_monitoring.manage",
         "regex",
-        r"^admin:webmon:(check|alerts|removeask|remove):\d+$",
+        r"^admin:webmon:check:\d+$",
+        r"^admin:webmon:alerts:\d+$",
+        r"^admin:webmon:deleteask:\d+$",
+        r"^admin:webmon:delete:\d+$",
     )
     + _rules("monitoring.view", "regex", r"^admin:audit:\d+$", r"^admin:audit:item:\d+:\d+$", r"^admin:logs:node:\d+$", r"^admin:logs:view:[a-z]+:(50|200):(all|warning|error)$", r"^admin:logs:nview:\d+:(panel|xray|awg):(50|200):(all|warning|error)$")
     + _rules(
