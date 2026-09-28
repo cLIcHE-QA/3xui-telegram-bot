@@ -24,6 +24,8 @@
 - `🔗 Подписка` дополнена `🌐 Открыть ссылку`, `🔗 Показать URL` и локальным `🔳 QR-код`; QR строится внутри bot process и не отправляет subscription URL внешнему сервису.
 - `⚙️ Параметры доступа` получил Support-level `🔄 Синхронизировать VLESS Flow`: операция меняет только Flow через существующий bulk-adjust primitive и не выполняет attach/detach Inbounds.
 - Enable/Disable переведены с one-click mutations на отдельные confirmation callbacks; stale `admindisable:*` / `adminenable:*` теперь только открывают ask-screen, а mutation выполняется новым run callback.
+- Bulk User Management завершён по roadmap: добавлены отдельные Plan/Server Group assignment без implicit provisioning, custom expiry/traffic bounded FSM input с preview, а `+30`, enable/disable/reset/safe reconcile требуют count-based confirmation перед mutation.
+- Bulk result/audit summary хранит только counts и outcome, без списка email; custom per-user updates продолжают обработку остальных пользователей при локальной ошибке одного target.
 
 ## v4.24.1 — Hotfix web diagnostics и IPv6
 - WHOIS/RDAP absolute timestamps в Telegram теперь нормализуются в `DD.MM.YYYY HH:MM MSK`; machine/RDAP instants остаются UTC, а возраст домена рассчитывается как раньше.

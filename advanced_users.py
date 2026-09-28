@@ -71,6 +71,8 @@ def provisioning_source_text(source: str) -> str:
 
 class BulkUserStates(StatesGroup):
     selecting = State()
+    expiry = State()
+    traffic = State()
 
 
 class UserListStates(StatesGroup):
@@ -3206,6 +3208,23 @@ async def bulk_noop(call: CallbackQuery):
     await call.answer()
 
 
+async def _bulk_records(state: FSMContext) -> list[UserRecord]:
+    data = await state.get_data()
+    records: list[UserRecord] = []
+    for tg_id in [int(x) for x in data.get("selected", [])]:
+        rec = await db.get(tg_id)
+        if rec:
+            records.append(rec)
+    return records
+
+
+def _bulk_confirmation_keyboard(confirm_callback: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Подтвердить", callback_data=confirm_callback)],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:bulk:actions")],
+    ])
+
+
 @advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:actions")
 async def bulk_actions(call: CallbackQuery, state: FSMContext):
     if not await guard(call, minimum="support"):
@@ -3215,16 +3234,246 @@ async def bulk_actions(call: CallbackQuery, state: FSMContext):
         await call.answer("Сначала выбери пользователей.", show_alert=True)
         return
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="➕ +30 дней", callback_data="admin:bulk:run:extend30")],
         [
-            InlineKeyboardButton(text="✅ Включить", callback_data="admin:bulk:run:enable"),
-            InlineKeyboardButton(text="⛔ Отключить", callback_data="admin:bulk:run:disable"),
+            InlineKeyboardButton(text="💎 Назначить тариф", callback_data="admin:bulk:plan"),
+            InlineKeyboardButton(text="🗂 Назначить группу", callback_data="admin:bulk:group"),
         ],
-        [InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data="admin:bulk:run:reset")],
-        [InlineKeyboardButton(text="🚀 Согласовать", callback_data="admin:bulk:run:reconcile")],
+        [
+            InlineKeyboardButton(text="➕ +30 дней", callback_data="admin:bulk:ask:extend30"),
+            InlineKeyboardButton(text="📅 Установить срок", callback_data="admin:bulk:expiry"),
+        ],
+        [
+            InlineKeyboardButton(text="📦 Лимит трафика", callback_data="admin:bulk:traffic"),
+            InlineKeyboardButton(text="🚀 Согласовать", callback_data="admin:bulk:ask:reconcile"),
+        ],
+        [
+            InlineKeyboardButton(text="✅ Включить", callback_data="admin:bulk:ask:enable"),
+            InlineKeyboardButton(text="⛔ Отключить", callback_data="admin:bulk:ask:disable"),
+        ],
+        [InlineKeyboardButton(text="♻️ Сбросить трафик", callback_data="admin:bulk:ask:reset")],
         [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
     ])
-    await render_callback(call, f"⚙️ Массовые действия\n\nВыбрано: {len(selected)}", reply_markup=kb)
+    await render_callback(
+        call,
+        f"⚙️ Массовые действия\n\nВыбрано: {len(selected)}",
+        reply_markup=kb,
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data.regexp(r"^admin:bulk:ask:(extend30|enable|disable|reset|reconcile)$"))
+async def bulk_ask(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    action = call.data.rsplit(":", 1)[-1]
+    records = await _bulk_records(state)
+    if not records:
+        await call.answer("Нет выбранных пользователей.", show_alert=True)
+        return
+    labels = {
+        "extend30": "➕ Добавить 30 дней",
+        "enable": "✅ Включить пользователей",
+        "disable": "⛔ Отключить пользователей",
+        "reset": "♻️ Сбросить трафик",
+        "reconcile": "🚀 Безопасно согласовать доступ",
+    }
+    await render_callback(
+        call,
+        f"{labels[action]}?\n\nПользователей: {len(records)}",
+        reply_markup=_bulk_confirmation_keyboard(f"admin:bulk:run:{action}"),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:plan")
+async def bulk_plan_menu(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    records = await _bulk_records(state)
+    if not records:
+        await call.answer("Нет выбранных пользователей.", show_alert=True)
+        return
+    plans = [plan for plan in await db.list_plans() if plan.active]
+    rows = [[InlineKeyboardButton(
+        text=f"💎 {plan.name}",
+        callback_data=f"admin:bulk:plan:{plan.id}",
+    )] for plan in plans[:30]]
+    rows.append([InlineKeyboardButton(text="⬅ К действиям", callback_data="admin:bulk:actions")])
+    await render_callback(
+        call,
+        f"💎 Назначить тариф\n\nПользователей: {len(records)}\n"
+        "Назначение не выполняет скрытое согласование.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data.regexp(r"^admin:bulk:plan:\d+$"))
+async def bulk_plan_ask(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
+    records = await _bulk_records(state)
+    if not plan or not plan.active or not records:
+        await call.answer("Тариф или выбранные пользователи недоступны.", show_alert=True)
+        return
+    await render_callback(
+        call,
+        f"💎 Назначить тариф «{plan.name}»?\n\nПользователей: {len(records)}\n"
+        "Remote access и Inbounds этим действием не меняются.",
+        reply_markup=_bulk_confirmation_keyboard(f"admin:bulk:runplan:{plan.id}"),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:group")
+async def bulk_group_menu(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    records = await _bulk_records(state)
+    if not records:
+        await call.answer("Нет выбранных пользователей.", show_alert=True)
+        return
+    groups = await db.list_server_groups()
+    rows = [[InlineKeyboardButton(
+        text=f"🗂 {group.name}",
+        callback_data=f"admin:bulk:group:{group.id}",
+    )] for group in groups[:30]]
+    rows.append([InlineKeyboardButton(text="⬅ К действиям", callback_data="admin:bulk:actions")])
+    await render_callback(
+        call,
+        f"🗂 Назначить группу серверов\n\nПользователей: {len(records)}\n"
+        "Назначение не выполняет скрытое согласование.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data.regexp(r"^admin:bulk:group:\d+$"))
+async def bulk_group_ask(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    group_id = int(call.data.rsplit(":", 1)[-1])
+    group = await db.get_server_group(group_id)
+    records = await _bulk_records(state)
+    if not group or not records:
+        await call.answer("Группа или выбранные пользователи недоступны.", show_alert=True)
+        return
+    await render_callback(
+        call,
+        f"🗂 Назначить группу «{group.name}»?\n\nПользователей: {len(records)}\n"
+        "Remote access и Inbounds этим действием не меняются.",
+        reply_markup=_bulk_confirmation_keyboard(f"admin:bulk:rungroup:{group.id}"),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:expiry")
+async def bulk_expiry_start(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    records = await _bulk_records(state)
+    if not records:
+        await call.answer("Нет выбранных пользователей.", show_alert=True)
+        return
+    await state.set_state(BulkUserStates.expiry)
+    await render_callback(
+        call,
+        f"📅 Установить срок\n\nПользователей: {len(records)}\n"
+        "Введи YYYY-MM-DD (23:59:59 MSK) или 0 для бессрочного доступа.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✖ Отмена", callback_data="admin:bulk:input-cancel")
+        ]]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.message(BulkUserStates.expiry)
+async def bulk_expiry_input(message: Message, state: FSMContext):
+    if not await guard_message(message, state, minimum="support"):
+        return
+    raw = (message.text or "").strip()
+    try:
+        value = 0 if raw == "0" else end_of_day_timestamp(raw) * 1000
+    except ValueError:
+        await render_input(
+            message,
+            "Некорректная дата. Введи YYYY-MM-DD или 0.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:bulk:input-cancel")
+            ]]),
+        )
+        return
+    records = await _bulk_records(state)
+    await state.update_data(bulk_expiry=value)
+    await state.set_state(BulkUserStates.selecting)
+    await render_input(
+        message,
+        f"📅 Подтвердить новый срок?\n\nПользователей: {len(records)}\n"
+        f"Срок: {fmt_date(value)}",
+        reply_markup=_bulk_confirmation_keyboard("admin:bulk:runexpiry"),
+    )
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:traffic")
+async def bulk_traffic_start(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    records = await _bulk_records(state)
+    if not records:
+        await call.answer("Нет выбранных пользователей.", show_alert=True)
+        return
+    await state.set_state(BulkUserStates.traffic)
+    await render_callback(
+        call,
+        f"📦 Лимит трафика\n\nПользователей: {len(records)}\n"
+        "Введи целое число GB от 0 до 100000. 0 означает без лимита.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✖ Отмена", callback_data="admin:bulk:input-cancel")
+        ]]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.message(BulkUserStates.traffic)
+async def bulk_traffic_input(message: Message, state: FSMContext):
+    if not await guard_message(message, state, minimum="support"):
+        return
+    raw = (message.text or "").strip()
+    try:
+        traffic_gb = int(raw)
+        if not 0 <= traffic_gb <= 100000:
+            raise ValueError
+    except ValueError:
+        await render_input(
+            message,
+            "Введи целое число GB от 0 до 100000.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:bulk:input-cancel")
+            ]]),
+        )
+        return
+    records = await _bulk_records(state)
+    await state.update_data(bulk_traffic_bytes=traffic_gb * 1024**3)
+    await state.set_state(BulkUserStates.selecting)
+    label = f"{traffic_gb} GB" if traffic_gb else "без лимита"
+    await render_input(
+        message,
+        f"📦 Подтвердить лимит трафика?\n\nПользователей: {len(records)}\nЛимит: {label}",
+        reply_markup=_bulk_confirmation_keyboard("admin:bulk:runtraffic"),
+    )
+
+
+@advanced_users_router.callback_query(BulkUserStates.expiry, F.data == "admin:bulk:input-cancel")
+@advanced_users_router.callback_query(BulkUserStates.traffic, F.data == "admin:bulk:input-cancel")
+async def bulk_input_cancel(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    await state.set_state(BulkUserStates.selecting)
+    await state.update_data(bulk_expiry=None, bulk_traffic_bytes=None)
+    text, kb = await _bulk_render(state)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
@@ -3245,6 +3494,158 @@ async def bulk_close(call: CallbackQuery, state: FSMContext):
     await render_callback(call, "Выбор для массовых действий закрыт.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")]
     ]))
+    await call.answer()
+
+
+async def _bulk_result(
+    call: CallbackQuery,
+    state: FSMContext,
+    *,
+    action: str,
+    ok: int,
+    failed: dict[int, str],
+    summary: str,
+) -> None:
+    details = f"ok={ok}; failed={len(failed)}"
+    await audit_from_call(
+        db,
+        call,
+        f"users.bulk.{action}",
+        target_type="users",
+        target_id=str(ok + len(failed)),
+        details=details,
+        success=not failed,
+    )
+    status = "✅" if not failed else "⚠️"
+    await render_callback(
+        call,
+        f"{status} {summary}\n\nУспешно: {ok}\nОшибок: {len(failed)}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+            [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+        ]),
+    )
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data.regexp(r"^admin:bulk:runplan:\d+$"))
+async def bulk_run_plan(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
+    records = await _bulk_records(state)
+    if not plan or not plan.active or not records:
+        await call.answer("Тариф или выбранные пользователи недоступны.", show_alert=True)
+        return
+    ok = 0
+    failed: dict[int, str] = {}
+    for rec in records:
+        try:
+            await db.set_user_plan(rec.telegram_id, plan.id)
+            ok += 1
+        except Exception as exc:
+            failed[rec.telegram_id] = type(exc).__name__
+    await _bulk_result(
+        call,
+        state,
+        action="plan",
+        ok=ok,
+        failed=failed,
+        summary=f"Тариф «{plan.name}» назначен. Remote access не изменялся.",
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data.regexp(r"^admin:bulk:rungroup:\d+$"))
+async def bulk_run_group(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    group_id = int(call.data.rsplit(":", 1)[-1])
+    group = await db.get_server_group(group_id)
+    records = await _bulk_records(state)
+    if not group or not records:
+        await call.answer("Группа или выбранные пользователи недоступны.", show_alert=True)
+        return
+    ok = 0
+    failed: dict[int, str] = {}
+    for rec in records:
+        try:
+            await db.set_user_server_group(rec.telegram_id, group.id)
+            ok += 1
+        except Exception as exc:
+            failed[rec.telegram_id] = type(exc).__name__
+    await _bulk_result(
+        call,
+        state,
+        action="group",
+        ok=ok,
+        failed=failed,
+        summary=f"Группа «{group.name}» назначена. Remote access не изменялся.",
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:runexpiry")
+async def bulk_run_expiry(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    value = data.get("bulk_expiry")
+    records = await _bulk_records(state)
+    if value is None or not records:
+        await call.answer("Нет подготовленного срока или выбранных пользователей.", show_alert=True)
+        return
+    expiry = int(value)
+    ok = 0
+    failed: dict[int, str] = {}
+    for rec in records:
+        try:
+            await xui.update_client(rec.email, expiryTime=expiry)
+            await db.update_expiry(rec.telegram_id, expiry)
+            ok += 1
+        except Exception as exc:
+            failed[rec.telegram_id] = type(exc).__name__
+    await state.update_data(bulk_expiry=None)
+    await _bulk_result(
+        call,
+        state,
+        action="expiry",
+        ok=ok,
+        failed=failed,
+        summary=f"Срок установлен: {fmt_date(expiry)}.",
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:runtraffic")
+async def bulk_run_traffic(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    value = data.get("bulk_traffic_bytes")
+    records = await _bulk_records(state)
+    if value is None or not records:
+        await call.answer("Нет подготовленного лимита или выбранных пользователей.", show_alert=True)
+        return
+    total_bytes = int(value)
+    ok = 0
+    failed: dict[int, str] = {}
+    for rec in records:
+        try:
+            await xui.update_client(rec.email, totalGB=total_bytes)
+            ok += 1
+        except Exception as exc:
+            failed[rec.telegram_id] = type(exc).__name__
+    await state.update_data(bulk_traffic_bytes=None)
+    label = human_bytes(total_bytes) if total_bytes else "без лимита"
+    await _bulk_result(
+        call,
+        state,
+        action="traffic",
+        ok=ok,
+        failed=failed,
+        summary=f"Лимит трафика установлен: {label}.",
+    )
     await call.answer()
 
 

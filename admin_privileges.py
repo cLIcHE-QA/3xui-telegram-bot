@@ -123,7 +123,8 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:u:group:", "admin:u:groupset:", "admin:u:planprovask:", "admin:u:planprovrun:",
         "admin:u:ibtoggle:", "admin:u:resetask:", "admin:u:resetrun:",
         "admin:u:devdelask:", "admin:u:devdel:",
-        "admin:bulk:toggle:", "admin:bulk:run:",
+        "admin:bulk:toggle:", "admin:bulk:run:", "admin:bulk:ask:",
+        "admin:bulk:plan:", "admin:bulk:group:", "admin:bulk:runplan:", "admin:bulk:rungroup:",
     )
     + _rules(
         "users.support",
@@ -134,6 +135,17 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:users:create:run",
         "admin:bulk:all", "admin:bulk:clear", "admin:bulk:actions",
         "admin:bulk:back", "admin:bulk:close", "admin:bulk:prev", "admin:bulk:next",
+        "admin:bulk:plan", "admin:bulk:group", "admin:bulk:expiry", "admin:bulk:traffic",
+        "admin:bulk:runexpiry", "admin:bulk:runtraffic", "admin:bulk:input-cancel",
+    )
+    + _rules(
+        "users.support",
+        "regex",
+        r"^admin:bulk:ask:(extend30|enable|disable|reset|reconcile)$",
+        r"^admin:bulk:plan:\d+$",
+        r"^admin:bulk:group:\d+$",
+        r"^admin:bulk:runplan:\d+$",
+        r"^admin:bulk:rungroup:\d+$",
     )
     + _rules("users.view", "exact", "admin:bulk:noop")
     + _rules("payments.view", "regex", r"^admin:u:payments:\d+(?::\d+)?$", r"^admin:u:payment:\d+:\d+$")
