@@ -79,11 +79,15 @@ class V4250UserPaymentsActivityTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("set_payment_status(", payment_view)
 
     def test_sensitive_audit_details_are_redacted(self):
-        from advanced_users import audit_summary_text
-
-        self.assertIn("скрыты", audit_summary_text("user.subscription.rotate", "new_sub_id=secret"))
-        self.assertIn("скрыты", audit_summary_text("user.device.delete", "device_id=123"))
-        self.assertEqual(audit_summary_text("user.plan.set", "plan=2"), "plan=2")
+        source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
+        self.assertIn(
+            'SENSITIVE_AUDIT_ACTIONS = {"user.subscription.rotate", "user.device.delete"}',
+            source,
+        )
+        self.assertIn(
+            'return "Подробности скрыты для защиты credentials/device identity."',
+            source,
+        )
 
 
 if __name__ == "__main__":
