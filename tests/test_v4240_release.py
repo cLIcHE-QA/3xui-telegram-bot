@@ -24,6 +24,10 @@ class V4241ReleaseTests(unittest.TestCase):
         self.assertIn("git checkout --detach v4.24.1", admin_setup)
         self.assertIn("Bot version: 4.24.1", admin_setup)
         self.assertIn(
+            "GitHub release/CI для `v4.24.1` завершены; operational closure требует отдельного targeted production smoke",
+            readme,
+        )
+        self.assertIn(
             "Для `v4.24.0` и `v4.24.1` текущая bot schema version — **5**",
             sqlite_doc,
         )
