@@ -658,7 +658,7 @@ async def user_device_delete_ask(call: CallbackQuery):
         "Пользователь сможет зарегистрировать устройство заново, "
         "если это разрешает текущий HWID limit.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🗑 Удалить устройство", callback_data=f"admin:u:devdel:{tg_id}:{device_id}")],
+            [InlineKeyboardButton(text="⚠️ Удалить устройство", callback_data=f"admin:u:devdel:{tg_id}:{device_id}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:device:{tg_id}:{device_id}")],
         ]),
     )
