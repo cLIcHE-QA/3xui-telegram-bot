@@ -28,6 +28,7 @@ from website_diagnostics import (
     whois_summary,
 )
 from website_monitoring import SafeOutboundHttpClient, WebsiteMonitoringError
+from website_monitoring_runtime import repository
 
 
 settings = load_settings()
@@ -90,6 +91,80 @@ def _result_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔎 Другая диагностика", callback_data="admin:webdiag")],
         [InlineKeyboardButton(text="⬅ Мониторинг сайтов", callback_data="admin:webmon")],
+    ])
+
+
+def site_diagnostics_keyboard(monitor_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="🌐 WHOIS / возраст",
+                callback_data=f"admin:webdiag:site:{monitor_id}:whois",
+            ),
+            InlineKeyboardButton(
+                text="🧭 DNS",
+                callback_data=f"admin:webdiag:site:{monitor_id}:dns",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🩺 HTTP",
+                callback_data=f"admin:webdiag:site:{monitor_id}:http",
+            ),
+            InlineKeyboardButton(
+                text="↪️ Redirects",
+                callback_data=f"admin:webdiag:site:{monitor_id}:redirects",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🧩 CMS",
+                callback_data=f"admin:webdiag:site:{monitor_id}:cms",
+            ),
+            InlineKeyboardButton(
+                text="🔍 SEO",
+                callback_data=f"admin:webdiag:site:{monitor_id}:seo",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="⚡ PageSpeed",
+                callback_data=f"admin:webdiag:site:{monitor_id}:pagespeed",
+            ),
+            InlineKeyboardButton(
+                text="🗺 Sitemap",
+                callback_data=f"admin:webdiag:site:{monitor_id}:sitemap",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🔳 QR",
+                callback_data=f"admin:webdiag:site:{monitor_id}:qr",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="⬅ Сайт",
+                callback_data=f"admin:webmon:site:{monitor_id}",
+            )
+        ],
+    ])
+
+
+def _site_result_keyboard(monitor_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="🩺 Другой инструмент",
+                callback_data=f"admin:webdiag:site:{monitor_id}",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="⬅ Сайт",
+                callback_data=f"admin:webmon:site:{monitor_id}",
+            )
+        ],
     ])
 
 
@@ -228,6 +303,93 @@ async def _run(action: str, value: str) -> tuple[str, bytes | None]:
         return "🔳 QR\n\nГотово. QR отправлен отдельным изображением.", data
 
     raise WebsiteDiagnosticsError("Неизвестная диагностика.", code="unknown_action")
+
+
+@website_diagnostics_router.callback_query(
+    F.data.regexp(r"^admin:webdiag:site:\d+$")
+)
+async def diagnostics_site_home(call: CallbackQuery, state: FSMContext):
+    ok, _ = await authorize_callback(db, settings, call)
+    if not ok:
+        return
+    monitor_id = int((call.data or "").rsplit(":", 1)[-1])
+    if not await repository.is_watcher(monitor_id, call.from_user.id):
+        await call.answer("Сайт не найден в твоих подписках.", show_alert=True)
+        return
+    item = await repository.get_monitor(monitor_id)
+    if item is None:
+        await call.answer("Сайт не найден.", show_alert=True)
+        return
+    await state.clear()
+    await render_callback(
+        call,
+        f"🩺 Диагностика · {item.hostname}\n\n"
+        "Выбери read-only проверку. Target берётся из карточки сайта "
+        "и не хранится в callback data.",
+        reply_markup=site_diagnostics_keyboard(item.id),
+        disable_web_page_preview=True,
+    )
+    await call.answer()
+
+
+@website_diagnostics_router.callback_query(
+    F.data.regexp(
+        r"^admin:webdiag:site:\d+:(whois|dns|http|redirects|cms|seo|pagespeed|sitemap|qr)$"
+    )
+)
+async def diagnostics_site_run(call: CallbackQuery, state: FSMContext):
+    ok, _ = await authorize_callback(db, settings, call)
+    if not ok:
+        return
+    parts = (call.data or "").split(":")
+    monitor_id = int(parts[3])
+    action = parts[4]
+    if not await repository.is_watcher(monitor_id, call.from_user.id):
+        await call.answer("Сайт не найден в твоих подписках.", show_alert=True)
+        return
+    item = await repository.get_monitor(monitor_id)
+    if item is None:
+        await call.answer("Сайт не найден.", show_alert=True)
+        return
+
+    await state.clear()
+    await call.answer("Проверяю…")
+    try:
+        text, image = await _run(action, item.canonical_url)
+    except (WebsiteDiagnosticsError, WebsiteMonitoringError) as exc:
+        await render_callback(
+            call,
+            f"{_ACTION_LABELS.get(action, '🩺 Диагностика')}\n\n🔴 {str(exc)}",
+            reply_markup=_site_result_keyboard(item.id),
+            disable_web_page_preview=True,
+        )
+        return
+    except Exception:
+        await render_callback(
+            call,
+            f"{_ACTION_LABELS.get(action, '🩺 Диагностика')}\n\n"
+            "🔴 Диагностика временно недоступна.",
+            reply_markup=_site_result_keyboard(item.id),
+            disable_web_page_preview=True,
+        )
+        return
+
+    if image is not None and call.message is not None:
+        try:
+            await call.bot.send_photo(
+                call.message.chat.id,
+                BufferedInputFile(image, filename="qr.png"),
+                caption=f"🔳 QR · {item.hostname}",
+            )
+        except Exception:
+            text = "🔳 QR\n\n🔴 Не удалось отправить изображение."
+
+    await render_callback(
+        call,
+        text,
+        reply_markup=_site_result_keyboard(item.id),
+        disable_web_page_preview=True,
+    )
 
 
 @website_diagnostics_router.callback_query(F.data == "admin:webdiag")
