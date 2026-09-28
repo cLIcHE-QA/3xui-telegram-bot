@@ -71,6 +71,9 @@ PRIVILEGES: tuple[Privilege, ...] = (
     Privilege("settings.view", "Настройки: просмотр", "read_only"),
     Privilege("settings.manage", "Настройки: изменения", "admin"),
     Privilege("monitoring.view", "Мониторинг/Журналы/Аудит/Задания: просмотр", "read_only"),
+    Privilege("website_monitoring.view", "Мониторинг сайтов: просмотр", "read_only"),
+    Privilege("website_monitoring.manage", "Мониторинг сайтов: подписки и ручные проверки", "support"),
+    Privilege("website_monitoring.admin", "Мониторинг сайтов: глобальные изменения", "admin"),
     Privilege("jobs.manage", "Задания: ручной запуск", "admin"),
     Privilege("alerts.view", "Оповещения: просмотр и ручная проверка", "read_only"),
     Privilege("alerts.manage", "Оповещения: изменение правил", "admin"),
@@ -251,6 +254,27 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:traffic", "admin:online", "admin:jobs", "admin:audit", "admin:logs", "admin:logs:nodes",
         "admin:cheburcheck", "admin:cheburcheck:start", "admin:cheburcheck:cancel",
         "admin:cheburcheck:master", "admin:cheburcheck:target:master",
+    )
+    + _rules(
+        "website_monitoring.view",
+        "exact",
+        "admin:webmon", "admin:webmon:list",
+    )
+    + _rules(
+        "website_monitoring.view",
+        "regex",
+        r"^admin:webmon:site:\d+$",
+        r"^admin:webmon:incidents:\d+$",
+    )
+    + _rules(
+        "website_monitoring.manage",
+        "exact",
+        "admin:webmon:add", "admin:webmon:add:cancel",
+    )
+    + _rules(
+        "website_monitoring.manage",
+        "regex",
+        r"^admin:webmon:(check|alerts|removeask|remove):\d+$",
     )
     + _rules("monitoring.view", "regex", r"^admin:audit:\d+$", r"^admin:audit:item:\d+:\d+$", r"^admin:logs:node:\d+$", r"^admin:logs:view:[a-z]+:(50|200):(all|warning|error)$", r"^admin:logs:nview:\d+:(panel|xray|awg):(50|200):(all|warning|error)$")
     + _rules(
