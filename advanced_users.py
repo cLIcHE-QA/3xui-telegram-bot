@@ -592,7 +592,8 @@ async def user_devices(call: CallbackQuery):
 
 @advanced_users_router.callback_query(F.data.regexp(r"^admin:u:device:\d+:\d+$"))
 async def user_device_detail(call: CallbackQuery):
-    if not await guard(call, minimum="read_only"):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
         return
     parts = call.data.split(":")
     tg_id, device_id = int(parts[-2]), int(parts[-1])
@@ -625,10 +626,13 @@ async def user_device_detail(call: CallbackQuery):
         f"Первое появление: {_fmt_optional_ms(item.get('firstSeen'))}\n"
         f"Последняя активность: {_fmt_optional_ms(item.get('lastSeen'))}"
     )
-    rows = [
-        [InlineKeyboardButton(text="🗑 Удалить устройство", callback_data=f"admin:u:devdelask:{tg_id}:{device_id}")],
-        [InlineKeyboardButton(text="⬅ Устройства", callback_data=f"admin:u:devices:{tg_id}")],
-    ]
+    rows: list[list[InlineKeyboardButton]] = []
+    if _role_can_support(role):
+        rows.append([InlineKeyboardButton(
+            text="🗑 Удалить устройство",
+            callback_data=f"admin:u:devdelask:{tg_id}:{device_id}",
+        )])
+    rows.append([InlineKeyboardButton(text="⬅ Устройства", callback_data=f"admin:u:devices:{tg_id}")])
     await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
