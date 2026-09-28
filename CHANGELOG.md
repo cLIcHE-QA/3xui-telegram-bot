@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.24.1 — Hotfix web diagnostics и IPv6
+- WHOIS/RDAP absolute timestamps в Telegram теперь нормализуются в `DD.MM.YYYY HH:MM MSK`; machine/RDAP instants остаются UTC, а возраст домена рассчитывается как раньше.
+- Compact Cheburcheck card снова показывает полезную bounded static detail: resolved IP для domain target, Reverse DNS, blocked subnets и optional `rkn_domain` / `subnet_size`; IP/PTR/subnet lists ограничены 5 значениями + `… ещё N`, raw JSON/SSE/probe payload не выводится.
+- Website monitoring корректно распознаёт public IPv6 literals до IDNA/domain validation, сохраняет bracketed canonical URL и по-прежнему fail-closed блокирует loopback/link-local/private/non-global IPv6.
+- Safe outbound timeouts/body/redirect/DNS-rebinding policy, SQLite schema, RBAC/navigation, pinned Cheburcheck revision и 3x-ui/OpenAPI contract не меняются.
+- `PAGESPEED_API_KEY` остаётся пустым и optional по умолчанию; `docs/ADMIN_SETUP.md` содержит воспроизводимый future setup/disable runbook.
+
 ## v4.24.0 — Мониторинг сайтов и web diagnostics
 - В `/admin → Мониторинг` добавлен нативный раздел `🌐 Мониторинг сайтов`: persistent targets, many-to-many admin watchers, add/list/card/manual-check, incident history, per-watcher alerts, pause/resume, unsubscribe и Administrator-only global target management.
 - Background monitoring использует deterministic state machine `unknown/up → suspect → down → up`: первый candidate failure подтверждается повторной проверкой через 2 s, down-target проверяется каждые 3 минуты, normal target — каждые 10 минут. Incident state и notification journal сохраняются в SQLite, поэтому restart не replay'ит first/recovery alert.
