@@ -518,8 +518,9 @@ class WebsiteMonitoringRepository:
             await db.execute(
                 """
                 INSERT INTO website_monitor_watchers(
-                    monitor_id, telegram_id, notifications_enabled, created_at
-                ) VALUES (?, ?, 1, ?)
+                    monitor_id, telegram_id, notifications_enabled, created_at,
+                    monitoring_enabled
+                ) VALUES (?, ?, 1, ?, 1)
                 """,
                 (monitor_id, int(telegram_id), now),
             )
@@ -546,10 +547,17 @@ class WebsiteMonitoringRepository:
             db.row_factory = aiosqlite.Row
             cur = await db.execute(
                 """
-                SELECT *
-                FROM website_monitors
-                WHERE enabled = 1 AND next_check_at <= ?
-                ORDER BY next_check_at, id
+                SELECT m.*
+                FROM website_monitors AS m
+                WHERE m.enabled = 1
+                  AND m.next_check_at <= ?
+                  AND EXISTS (
+                      SELECT 1
+                      FROM website_monitor_watchers AS w
+                      WHERE w.monitor_id = m.id
+                        AND w.monitoring_enabled = 1
+                  )
+                ORDER BY m.next_check_at, m.id
                 LIMIT ?
                 """,
                 (timestamp, max(1, min(200, int(limit)))),
@@ -560,7 +568,7 @@ class WebsiteMonitoringRepository:
     async def watchers(self, monitor_id: int, *, enabled_only: bool = True) -> tuple[int, ...]:
         query = "SELECT telegram_id FROM website_monitor_watchers WHERE monitor_id = ?"
         if enabled_only:
-            query += " AND notifications_enabled = 1"
+            query += " AND notifications_enabled = 1 AND monitoring_enabled = 1"
         query += " ORDER BY telegram_id"
         async with aiosqlite.connect(self.db_path) as db:
             cur = await db.execute(query, (int(monitor_id),))
@@ -736,6 +744,104 @@ class WebsiteMonitoringRepository:
                 (int(monitor_id), int(telegram_id)),
             )
             return await cur.fetchone() is not None
+
+    async def monitoring_enabled(self, monitor_id: int, telegram_id: int) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            cur = await db.execute(
+                """
+                SELECT monitoring_enabled
+                FROM website_monitor_watchers
+                WHERE monitor_id = ? AND telegram_id = ?
+                """,
+                (int(monitor_id), int(telegram_id)),
+            )
+            row = await cur.fetchone()
+            return bool(row and int(row[0]))
+
+    async def set_monitoring_enabled(
+        self,
+        monitor_id: int,
+        telegram_id: int,
+        enabled: bool,
+    ) -> bool:
+        now = int(time.time())
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            cur = await db.execute(
+                """
+                UPDATE website_monitor_watchers
+                SET monitoring_enabled = ?
+                WHERE monitor_id = ? AND telegram_id = ?
+                """,
+                (1 if enabled else 0, int(monitor_id), int(telegram_id)),
+            )
+            changed = bool(cur.rowcount)
+            if changed and enabled:
+                await db.execute(
+                    """
+                    UPDATE website_monitors
+                    SET next_check_at = CASE
+                        WHEN next_check_at = 0 OR next_check_at > ? THEN ?
+                        ELSE next_check_at
+                    END,
+                    updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (now, now, now, int(monitor_id)),
+                )
+            await db.commit()
+            return changed
+
+    async def list_all_monitors(self, *, limit: int = 100) -> list[WebsiteMonitorRecord]:
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM website_monitors
+                ORDER BY hostname COLLATE NOCASE, id
+                LIMIT ?
+                """,
+                (max(1, min(500, int(limit))),),
+            )
+            rows = await cur.fetchall()
+            return [WebsiteMonitorRecord(**dict(row)) for row in rows]
+
+    async def watcher_count(self, monitor_id: int) -> int:
+        async with aiosqlite.connect(self.db_path) as db:
+            cur = await db.execute(
+                "SELECT COUNT(*) FROM website_monitor_watchers WHERE monitor_id = ?",
+                (int(monitor_id),),
+            )
+            return int((await cur.fetchone())[0])
+
+    async def delete_monitor_global(self, monitor_id: int) -> bool:
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            incident_cur = await db.execute(
+                "SELECT id FROM website_incidents WHERE monitor_id = ?",
+                (int(monitor_id),),
+            )
+            incident_ids = [int(row[0]) for row in await incident_cur.fetchall()]
+            if incident_ids:
+                placeholders = ",".join("?" for _ in incident_ids)
+                await db.execute(
+                    f"DELETE FROM website_incident_notifications WHERE incident_id IN ({placeholders})",
+                    tuple(incident_ids),
+                )
+            await db.execute(
+                "DELETE FROM website_incidents WHERE monitor_id = ?",
+                (int(monitor_id),),
+            )
+            await db.execute(
+                "DELETE FROM website_monitor_watchers WHERE monitor_id = ?",
+                (int(monitor_id),),
+            )
+            deleted = await db.execute(
+                "DELETE FROM website_monitors WHERE id = ?",
+                (int(monitor_id),),
+            )
+            await db.commit()
+            return bool(deleted.rowcount)
 
     async def notifications_enabled(self, monitor_id: int, telegram_id: int) -> bool:
         async with aiosqlite.connect(self.db_path) as db:
