@@ -2143,6 +2143,14 @@ Production acceptance после публикации `v4.25.0` должен п�
 
 Acceptance считается закрытым только если navigation contract принят на Telegram Desktop и mobile, privilege boundaries подтверждены, legacy sync paths не выдают лишний доступ, а новые HWID/IP calls соответствуют pinned 3x-ui contract.
 
+Production acceptance finding от 2026-09-28:
+
+- под `Read-only` главная карточка пользователя ошибочно показывает shortcut `⏳ Продлить` с callback `adminextend:{telegram_id}`, хотя callback защищён privilege `users.support`; backend RBAC корректно не допускает mutation, но keyboard нарушает role-aware UI contract;
+- fix до закрытия acceptance: показывать `⏳ Продлить` только для `Support`, `Administrator` и `Owner`, сохранив обязательную handler authorization `users.support`;
+- `⚙️ Ещё действия` под `Read-only` подтверждён как корректный negative case: mutation-кнопки не отображаются, остаётся только возврат к карточке пользователя.
+
+Finding блокирует закрытие production acceptance `v4.25.0` до исправления и повторной проверки Read-only user card.
+
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
 
