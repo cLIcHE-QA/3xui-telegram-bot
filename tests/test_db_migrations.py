@@ -30,7 +30,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (4, "website_monitoring_v4_24_0", "success"))
+                self.assertEqual(row, (5, "website_watcher_lifecycle_v4_24_0", "success"))
                 columns = [
                     item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
                 ]
@@ -112,6 +112,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (2, "user_display_name_v4_21_0", "success"),
                         (3, "user_audience_groups_v4_22_0", "success"),
                         (4, "website_monitoring_v4_24_0", "success"),
+                        (5, "website_watcher_lifecycle_v4_24_0", "success"),
                     ],
                 )
 
@@ -153,6 +154,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (2, "user_display_name_v4_21_0", "success"),
                         (3, "user_audience_groups_v4_22_0", "success"),
                         (4, "website_monitoring_v4_24_0", "success"),
+                        (5, "website_watcher_lifecycle_v4_24_0", "success"),
                     ],
                 )
 
@@ -194,7 +196,62 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (4, "website_monitoring_v4_24_0", "success"),
+                    (5, "website_watcher_lifecycle_v4_24_0", "success"),
+                )
+
+    async def test_schema_v4_upgrades_watcher_lifecycle_without_data_loss(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bot.sqlite3"
+            await run_migrations(str(path), migrations=MIGRATIONS[:4])
+            with sqlite3.connect(path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO website_monitors(
+                        canonical_url, hostname, enabled, state, last_check_at,
+                        next_check_at, last_http_status, last_latency_ms,
+                        last_error_kind, consecutive_failures, created_at, updated_at
+                    ) VALUES (?, ?, 1, 'up', 1, 2, 200, 12, '', 0, 3, 4)
+                    """,
+                    ("https://example.org/", "example.org"),
+                )
+                monitor_id = conn.execute(
+                    "SELECT id FROM website_monitors WHERE hostname = 'example.org'"
+                ).fetchone()[0]
+                conn.execute(
+                    """
+                    INSERT INTO website_monitor_watchers(
+                        monitor_id, telegram_id, notifications_enabled, created_at
+                    ) VALUES (?, ?, 1, ?)
+                    """,
+                    (monitor_id, 707, 5),
+                )
+                conn.commit()
+
+            await Database(str(path)).init()
+
+            with sqlite3.connect(path) as conn:
+                columns = {
+                    row[1]
+                    for row in conn.execute(
+                        'PRAGMA table_info("website_monitor_watchers")'
+                    ).fetchall()
+                }
+                self.assertIn("monitoring_enabled", columns)
+                self.assertEqual(
+                    conn.execute(
+                        """
+                        SELECT telegram_id, notifications_enabled, monitoring_enabled
+                        FROM website_monitor_watchers
+                        WHERE telegram_id = 707
+                        """
+                    ).fetchone(),
+                    (707, 1, 1),
+                )
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
+                    ).fetchone(),
+                    (5, "website_watcher_lifecycle_v4_24_0", "success"),
                 )
 
     async def test_newer_schema_version_blocks_startup(self):

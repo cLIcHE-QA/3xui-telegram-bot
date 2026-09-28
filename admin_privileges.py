@@ -275,6 +275,8 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "website_monitoring.view",
         "regex",
         r"^admin:webdiag:(whois|dns|http|redirects|cms|seo|pagespeed|sitemap|urllist|qr)$",
+        r"^admin:webdiag:site:\d+$",
+        r"^admin:webdiag:site:\d+:(whois|dns|http|redirects|cms|seo|pagespeed|sitemap|qr)$",
     )
     + _rules(
         "website_monitoring.manage",
@@ -285,9 +287,22 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "website_monitoring.manage",
         "regex",
         r"^admin:webmon:check:\d+$",
+        r"^admin:webmon:pause:\d+$",
         r"^admin:webmon:alerts:\d+$",
         r"^admin:webmon:deleteask:\d+$",
         r"^admin:webmon:delete:\d+$",
+    )
+    + _rules(
+        "website_monitoring.admin",
+        "exact",
+        "admin:webmon:all",
+    )
+    + _rules(
+        "website_monitoring.admin",
+        "regex",
+        r"^admin:webmon:global:\d+$",
+        r"^admin:webmon:globaldeleteask:\d+$",
+        r"^admin:webmon:globaldelete:\d+$",
     )
     + _rules("monitoring.view", "regex", r"^admin:audit:\d+$", r"^admin:audit:item:\d+:\d+$", r"^admin:logs:node:\d+$", r"^admin:logs:view:[a-z]+:(50|200):(all|warning|error)$", r"^admin:logs:nview:\d+:(panel|xray|awg):(50|200):(all|warning|error)$")
     + _rules(

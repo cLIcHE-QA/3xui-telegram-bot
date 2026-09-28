@@ -39,8 +39,12 @@ def _role_at_least(role: str | None, minimum: str) -> bool:
     return ROLE_RANK.get(role or "", 0) >= ROLE_RANK[minimum]
 
 
-def _status_text(item: WebsiteMonitorRecord) -> str:
-    if not item.enabled:
+def _status_text(
+    item: WebsiteMonitorRecord,
+    *,
+    monitoring_enabled: bool = True,
+) -> str:
+    if not monitoring_enabled or not item.enabled:
         return "⏸ приостановлен"
     return {
         "up": "🟢 доступен",
@@ -73,6 +77,10 @@ def _home_keyboard(role: str | None) -> InlineKeyboardMarkup:
         rows.append([
             InlineKeyboardButton(text="➕ Добавить сайт", callback_data="admin:webmon:add")
         ])
+    if _role_at_least(role, "admin"):
+        rows.append([
+            InlineKeyboardButton(text="🛡 Все targets", callback_data="admin:webmon:all")
+        ])
     rows.append([
         InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")
     ])
@@ -82,8 +90,11 @@ def _home_keyboard(role: str | None) -> InlineKeyboardMarkup:
 def _list_keyboard(
     sites: list[WebsiteMonitorRecord],
     role: str | None,
+    *,
+    paused_ids: set[int] | None = None,
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
+    paused = paused_ids or set()
     for item in sites[:30]:
         icon = {
             "up": "🟢",
@@ -91,7 +102,7 @@ def _list_keyboard(
             "suspect": "🟡",
             "unknown": "⚪",
         }.get(item.state, "⚪")
-        if not item.enabled:
+        if not item.enabled or item.id in paused:
             icon = "⏸"
         label = item.hostname
         if len(label) > 42:
@@ -117,6 +128,7 @@ def _site_keyboard(
     *,
     role: str | None,
     notifications_enabled: bool,
+    monitoring_enabled: bool,
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     if _role_at_least(role, "support"):
@@ -128,16 +140,24 @@ def _site_keyboard(
         ])
     rows.append([
         InlineKeyboardButton(
-            text="📜 История инцидентов",
+            text="🩺 Диагностика",
+            callback_data=f"admin:webdiag:site:{item.id}",
+        ),
+        InlineKeyboardButton(
+            text="📜 История",
             callback_data=f"admin:webmon:incidents:{item.id}",
-        )
+        ),
     ])
     if _role_at_least(role, "support"):
         rows.append([
             InlineKeyboardButton(
-                text=("🔕 Выключить оповещения" if notifications_enabled else "🔔 Включить оповещения"),
+                text=("▶️ Возобновить" if not monitoring_enabled else "⏸ Приостановить"),
+                callback_data=f"admin:webmon:pause:{item.id}",
+            ),
+            InlineKeyboardButton(
+                text=("🔕 Оповещения" if notifications_enabled else "🔔 Оповещения"),
                 callback_data=f"admin:webmon:alerts:{item.id}",
-            )
+            ),
         ])
         rows.append([
             InlineKeyboardButton(
@@ -168,9 +188,12 @@ async def _owned_monitor(
 
 async def _render_home(call: CallbackQuery, role: str | None) -> None:
     sites = await repository.list_for_watcher(call.from_user.id)
-    counts = {"up": 0, "down": 0, "unknown": 0}
+    counts = {"up": 0, "down": 0, "unknown": 0, "paused": 0}
     for item in sites:
-        if item.state == "up":
+        active = await repository.monitoring_enabled(item.id, call.from_user.id)
+        if not active:
+            counts["paused"] += 1
+        elif item.state == "up":
             counts["up"] += 1
         elif item.state == "down":
             counts["down"] += 1
@@ -181,7 +204,8 @@ async def _render_home(call: CallbackQuery, role: str | None) -> None:
         f"Сайтов: {len(sites)}\n"
         f"🟢 Доступны: {counts['up']}\n"
         f"🔴 Недоступны: {counts['down']}\n"
-        f"⚪ Не проверены/перепроверка: {counts['unknown']}\n\n"
+        f"⚪ Не проверены/перепроверка: {counts['unknown']}\n"
+        f"⏸ Приостановлены: {counts['paused']}\n\n"
         "Периодические проверки используют безопасный outbound HTTP-контур "
         "и подтверждают подозрительный failure повторной проверкой."
     )
@@ -194,17 +218,19 @@ async def _render_site(
     role: str | None,
 ) -> None:
     enabled = await repository.notifications_enabled(item.id, call.from_user.id)
+    monitoring = await repository.monitoring_enabled(item.id, call.from_user.id)
     http = str(item.last_http_status) if item.last_http_status else "—"
     latency = f"{item.last_latency_ms} мс" if item.last_latency_ms else "—"
     error = item.last_error_kind or "—"
     text = (
         f"🌐 {item.hostname}\n\n"
         f"URL: {item.canonical_url}\n"
-        f"Статус: {_status_text(item)}\n"
+        f"Статус: {_status_text(item, monitoring_enabled=monitoring)}\n"
         f"HTTP: {http}\n"
         f"Ответ: {latency}\n"
         f"Последняя проверка: {_relative_time(item.last_check_at)}\n"
         f"Ошибка: {error}\n"
+        f"Мониторинг: {'▶️ активен' if monitoring else '⏸ приостановлен'}\n"
         f"Оповещения: {'🔔 включены' if enabled else '🔕 выключены'}"
     )
     await render_callback(
@@ -214,6 +240,7 @@ async def _render_site(
             item,
             role=role,
             notifications_enabled=enabled,
+            monitoring_enabled=monitoring,
         ),
         disable_web_page_preview=True,
     )
@@ -236,12 +263,21 @@ async def website_monitoring_list(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     sites = await repository.list_for_watcher(call.from_user.id)
+    paused_ids = {
+        item.id
+        for item in sites
+        if not await repository.monitoring_enabled(item.id, call.from_user.id)
+    }
     text = "📋 Сайты\n\n"
     if sites:
         text += f"Подписок: {len(sites)}. Выбери сайт:"
     else:
         text += "Сайтов пока нет."
-    await render_callback(call, text, reply_markup=_list_keyboard(sites, role))
+    await render_callback(
+        call,
+        text,
+        reply_markup=_list_keyboard(sites, role, paused_ids=paused_ids),
+    )
     await call.answer()
 
 
@@ -343,10 +379,11 @@ async def website_monitoring_add_url(message: Message, state: FSMContext):
         return
 
     enabled = await repository.notifications_enabled(current.id, message.from_user.id)
+    monitoring = await repository.monitoring_enabled(current.id, message.from_user.id)
     text = (
         f"🌐 {current.hostname}\n\n"
         f"URL: {current.canonical_url}\n"
-        f"Статус: {_status_text(current)}\n"
+        f"Статус: {_status_text(current, monitoring_enabled=monitoring)}\n"
         f"HTTP: {current.last_http_status or '—'}\n"
         f"Ответ: {f'{current.last_latency_ms} мс' if current.last_latency_ms else '—'}\n"
         f"Последняя проверка: {_relative_time(current.last_check_at)}\n"
@@ -359,6 +396,7 @@ async def website_monitoring_add_url(message: Message, state: FSMContext):
             current,
             role=role,
             notifications_enabled=enabled,
+            monitoring_enabled=monitoring,
         ),
         disable_web_page_preview=True,
     )
@@ -412,6 +450,32 @@ async def website_monitoring_check(call: CallbackQuery):
     current = await repository.get_monitor(item.id)
     if current:
         await _render_site(call, current, role)
+
+
+@website_monitoring_router.callback_query(F.data.regexp(r"^admin:webmon:pause:\d+$"))
+async def website_monitoring_toggle_pause(call: CallbackQuery):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok:
+        return
+    monitor_id = int((call.data or "").rsplit(":", 1)[-1])
+    item = await _owned_monitor(monitor_id, call.from_user.id)
+    if item is None:
+        await call.answer("Сайт не найден в твоих подписках.", show_alert=True)
+        return
+    current = await repository.monitoring_enabled(item.id, call.from_user.id)
+    await repository.set_monitoring_enabled(item.id, call.from_user.id, not current)
+    await audit_from_call(
+        db,
+        call,
+        "website_monitor.subscription",
+        target_type="website_monitor",
+        target_id=item.id,
+        details=f"enabled={not current}",
+    )
+    await call.answer("Мониторинг возобновлён" if not current else "Мониторинг приостановлен")
+    refreshed = await repository.get_monitor(item.id)
+    if refreshed:
+        await _render_site(call, refreshed, role)
 
 
 @website_monitoring_router.callback_query(F.data.regexp(r"^admin:webmon:alerts:\d+$"))
@@ -519,7 +583,7 @@ async def website_monitoring_delete(call: CallbackQuery):
     if item is None:
         await call.answer("Сайт уже удалён из твоих подписок.", show_alert=True)
         return
-    removed = await repository.remove_watcher(item.id, call.from_user.id)
+    removed = await service.remove_watcher(item.id, call.from_user.id)
     if removed:
         await audit_from_call(
             db,
@@ -531,3 +595,132 @@ async def website_monitoring_delete(call: CallbackQuery):
         )
     await call.answer("Подписка удалена")
     await _render_home(call, role)
+
+
+
+def _global_list_keyboard(sites: list[WebsiteMonitorRecord]) -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(
+            text=f"{'🟢' if item.state == 'up' else '🔴' if item.state == 'down' else '⚪'} {item.hostname}",
+            callback_data=f"admin:webmon:global:{item.id}",
+        )]
+        for item in sites[:50]
+    ]
+    rows.append([
+        InlineKeyboardButton(text="⬅ Мониторинг сайтов", callback_data="admin:webmon")
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+@website_monitoring_router.callback_query(F.data == "admin:webmon:all")
+async def website_monitoring_all_targets(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call)
+    if not ok:
+        return
+    sites = await repository.list_all_monitors(limit=100)
+    await render_callback(
+        call,
+        "🛡 Все monitor targets\n\n"
+        f"Targets: {len(sites)}\n"
+        "Этот экран доступен Administrator+ и управляет глобальной target identity.",
+        reply_markup=_global_list_keyboard(sites),
+    )
+    await call.answer()
+
+
+@website_monitoring_router.callback_query(F.data.regexp(r"^admin:webmon:global:\d+$"))
+async def website_monitoring_global_card(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call)
+    if not ok:
+        return
+    monitor_id = int((call.data or "").rsplit(":", 1)[-1])
+    item = await repository.get_monitor(monitor_id)
+    if item is None:
+        await call.answer("Target не найден.", show_alert=True)
+        return
+    watchers = await repository.watcher_count(item.id)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="🗑 Удалить target глобально",
+            callback_data=f"admin:webmon:globaldeleteask:{item.id}",
+        )],
+        [InlineKeyboardButton(text="⬅ Все targets", callback_data="admin:webmon:all")],
+    ])
+    await render_callback(
+        call,
+        f"🛡 Target · {item.hostname}\n\n"
+        f"URL: {item.canonical_url}\n"
+        f"Статус: {_status_text(item)}\n"
+        f"Watchers: {watchers}\n\n"
+        "Глобальное удаление очищает target, watchers и локальную incident history.",
+        reply_markup=keyboard,
+        disable_web_page_preview=True,
+    )
+    await call.answer()
+
+
+@website_monitoring_router.callback_query(
+    F.data.regexp(r"^admin:webmon:globaldeleteask:\d+$")
+)
+async def website_monitoring_global_delete_ask(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call)
+    if not ok:
+        return
+    monitor_id = int((call.data or "").rsplit(":", 1)[-1])
+    item = await repository.get_monitor(monitor_id)
+    if item is None:
+        await call.answer("Target не найден.", show_alert=True)
+        return
+    watchers = await repository.watcher_count(item.id)
+    await render_callback(
+        call,
+        "🗑 Глобальное удаление target\n\n"
+        f"Сайт: {item.canonical_url}\n"
+        f"Watchers: {watchers}\n\n"
+        "Будут удалены target, все watcher subscriptions и локальная incident history.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="⚠️ Да, удалить target",
+                callback_data=f"admin:webmon:globaldelete:{item.id}",
+            )],
+            [InlineKeyboardButton(
+                text="✖ Отмена",
+                callback_data=f"admin:webmon:global:{item.id}",
+            )],
+        ]),
+        disable_web_page_preview=True,
+    )
+    await call.answer()
+
+
+@website_monitoring_router.callback_query(
+    F.data.regexp(r"^admin:webmon:globaldelete:\d+$")
+)
+async def website_monitoring_global_delete(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call)
+    if not ok:
+        return
+    monitor_id = int((call.data or "").rsplit(":", 1)[-1])
+    item = await repository.get_monitor(monitor_id)
+    if item is None:
+        await call.answer("Target уже удалён.", show_alert=True)
+        return
+    watchers = await repository.watcher_count(item.id)
+    deleted = await service.delete_monitor_global(item.id)
+    if deleted:
+        await audit_from_call(
+            db,
+            call,
+            "website_monitor.global_delete",
+            target_type="website_monitor",
+            target_id=item.id,
+            details=f"host={item.hostname}; watchers={watchers}",
+        )
+    await call.answer("Target удалён")
+    sites = await repository.list_all_monitors(limit=100)
+    await render_callback(
+        call,
+        "🛡 Все monitor targets\n\n"
+        f"Targets: {len(sites)}",
+        reply_markup=_global_list_keyboard(sites),
+    )

@@ -181,7 +181,10 @@ Operator-facing термин `membership` в обычных экранах не 
 - `🌐 Мониторинг сайтов` живёт только в `Мониторинге`; home → список → карточка → incident history образуют один локальный navigation context, а add-site FSM имеет явный `✖ Отмена` обратно в website monitoring;
 - карточка monitored site различает `🟢 доступен`, `🟡 перепроверка`, `🔴 недоступен`, `⚪ не проверен` и `⏸ приостановлен`; checker/policy error не маскируется под подтверждённый site-down;
 - raw URL никогда не кодируется в website-monitoring callbacks: callbacks содержат только stable numeric monitor ID и fixed action token;
-- mutation-кнопки website monitoring privilege-aware: Read-only видит список/карточку/history, Support получает add/manual-check/notifications/unsubscribe; delete/unsubscribe остаётся двухшаговым;
+- mutation-кнопки website monitoring privilege-aware: Read-only видит список/карточку/history/contextual diagnostics, Support получает add/manual-check/pause-resume/notifications/unsubscribe, Administrator дополнительно получает global target management; delete/unsubscribe и global delete остаются двухшаговыми;
+- pause/resume является watcher-scoped состоянием: приостановка одним администратором не останавливает target для других active watchers; если active watchers не осталось, scheduler перестаёт планировать проверки до resume;
+- contextual `🩺 Диагностика` из карточки сайта использует только stable monitor ID в callback, перечитывает canonical URL из SQLite и всегда возвращается в ту же карточку;
+- global target removal доступен только Administrator+, явно показывает число watchers и удаляет target/watchers/local incident history только после отдельного confirmation screen; destructive operation сериализуется с check того же target;
 - unsubscribe удаляет только watcher текущего администратора; target очищается как orphan только после удаления последнего watcher;
 - website incident alerts являются отдельными Telegram notifications, а не заменяют односообщенческую admin panel; repeated/recovery delivery использует persistent idempotency journal;
 - `🔎 Разовая диагностика` является дочерним экраном `Мониторинг сайтов` и не создаёт persistent target; WHOIS/DNS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/URL-list/QR используют fixed tool callbacks и FSM input с `✖ Отмена`;

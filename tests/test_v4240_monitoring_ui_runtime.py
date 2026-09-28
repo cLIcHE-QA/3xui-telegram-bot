@@ -55,9 +55,16 @@ class V4240MonitoringUIRuntimeTests(unittest.IsolatedAsyncioTestCase):
             "admin:webmon:add": "support",
             "admin:webmon:add:cancel": "support",
             "admin:webmon:check:7": "support",
+            "admin:webmon:pause:7": "support",
             "admin:webmon:alerts:7": "support",
             "admin:webmon:deleteask:7": "support",
             "admin:webmon:delete:7": "support",
+            "admin:webmon:all": "admin",
+            "admin:webmon:global:7": "admin",
+            "admin:webmon:globaldeleteask:7": "admin",
+            "admin:webmon:globaldelete:7": "admin",
+            "admin:webdiag:site:7": "read_only",
+            "admin:webdiag:site:7:http": "read_only",
         }
         for callback, role in cases.items():
             with self.subTest(callback=callback):
@@ -147,6 +154,57 @@ class V4240MonitoringUIRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(await self.repo.notifications_enabled(item.id, 101))
         self.assertTrue(await self.repo.notifications_enabled(item.id, 202))
         self.assertEqual(await self.repo.watchers(item.id), (202,))
+
+
+    async def test_pause_is_watcher_scoped_and_scheduler_skips_fully_paused_target(self):
+        item = await self.repo.add_watcher("https://example.org", 101)
+        await self.repo.add_watcher("https://example.org", 202)
+
+        self.assertTrue(await self.repo.set_monitoring_enabled(item.id, 101, False))
+        self.assertFalse(await self.repo.monitoring_enabled(item.id, 101))
+        self.assertTrue(await self.repo.monitoring_enabled(item.id, 202))
+
+        due = await self.repo.due_monitors(now=10**12)
+        self.assertIn(item.id, {row.id for row in due})
+
+        self.assertTrue(await self.repo.set_monitoring_enabled(item.id, 202, False))
+        due = await self.repo.due_monitors(now=10**12)
+        self.assertNotIn(item.id, {row.id for row in due})
+
+        self.assertTrue(await self.repo.set_monitoring_enabled(item.id, 101, True))
+        due = await self.repo.due_monitors(now=10**12)
+        self.assertIn(item.id, {row.id for row in due})
+
+    async def test_global_delete_removes_target_watchers_and_incidents(self):
+        item = await self.repo.add_watcher("https://example.org", 101)
+        await self.repo.add_watcher("https://example.org", 202)
+        incident_id = await self.repo.open_incident(
+            item.id,
+            WebsiteCheckOutcome(
+                kind="failure",
+                http_status=503,
+                error_kind="http_status",
+            ),
+        )
+        await self.repo.record_notification(
+            incident_id,
+            101,
+            kind="opened",
+            sequence=0,
+        )
+
+        self.assertEqual(await self.repo.watcher_count(item.id), 2)
+        self.assertTrue(await self.repo.delete_monitor_global(item.id))
+        self.assertIsNone(await self.repo.get_monitor(item.id))
+        self.assertEqual(await self.repo.watchers(item.id, enabled_only=False), ())
+
+    def test_contextual_diagnostics_callbacks_keep_only_stable_monitor_id(self):
+        source = (
+            Path(__file__).resolve().parents[1] / "website_diagnostics_admin.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('callback_data=f"admin:webdiag:site:{monitor_id}:http"', source)
+        self.assertIn('callback_data=f"admin:webmon:site:{monitor_id}"', source)
+        self.assertNotIn('callback_data=f"admin:webdiag:site:{item.canonical_url}', source)
 
 
 if __name__ == "__main__":

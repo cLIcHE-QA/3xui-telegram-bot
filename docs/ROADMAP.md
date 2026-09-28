@@ -622,9 +622,9 @@ Hotfix scope:
 
 ##### v4.24.0 — Мониторинг сайтов и web diagnostics
 
-**Статус: ⬜ Запланировано на `v4.24.0`; foundation implementation начата, полный release scope ещё не завершён.**
+**Статус: 🟡 Runtime scope реализован; release-prep и production acceptance `v4.24.0` ещё не закрыты.**
 
-Текущий partial progress в feature cycle: schema v4 `website_monitoring_v4_24_0`, native repository/state-machine foundation, единый SSRF-safe outbound HTTP client, bounded background scheduler/incident notifications и core `/admin → Мониторинг → Мониторинг сайтов` UI (list/card/add/manual-check/history/notification toggle/unsubscribe). One-off diagnostics (WHOIS/DNS/HTTP/redirect/CMS/SEO/optional PageSpeed/Sitemap/URL-list/QR) реализованы отдельным bounded read-only flow; subscription pause/resume, global admin target removal, contextual diagnostics shortcut из карточки сайта и финальная parity/acceptance синхронизация остаются незавершёнными, поэтому статус не повышается до `🟡`.
+Runtime scope feature cycle завершён: schema v4/v5 website monitoring, native repository/state machine, SSRF-safe outbound boundary, bounded scheduler/incident notifications, watcher-scoped pause/resume, core admin UI, admin-only global target removal и one-off/contextual diagnostics (WHOIS/DNS/HTTP/redirect/CMS/SEO/optional PageSpeed/Sitemap/URL-list/QR) реализованы. До закрытия `v4.24.0` остаются release-prep, финальная parity/documentation regression синхронизация и production acceptance.
 
 Цель — нативно перенести полезное поведение `vladpak1/packbot` в текущий Admin Control Plane без встраивания отдельного PHP Telegram bot, MySQL runtime, webhook stack или второй application database.
 
@@ -664,8 +664,11 @@ Reviewed upstream contract:
    │  │     ├─ 🔄 Проверить сейчас
    │  │     ├─ 🩺 Диагностика
    │  │     ├─ 📜 История инцидентов
+   │  │     ├─ ⏸ Приостановить / ▶️ Возобновить
    │  │     ├─ 🔔 Оповещения
    │  │     └─ 🗑 Удалить / отписаться
+   │  ├─ 🛡 Все targets              ← Administrator+
+   │  │  └─ 🗑 Глобальное удаление  ← двухшаговое
    │  └─ 🔎 Разовая диагностика
    │     ├─ 🌐 Домен
    │     │  ├─ WHOIS / возраст
@@ -770,6 +773,7 @@ website_monitor_watchers
 - monitor_id
 - telegram_id
 - notifications_enabled
+- monitoring_enabled
 - created_at
 UNIQUE(monitor_id, telegram_id)
 
