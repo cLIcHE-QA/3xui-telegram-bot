@@ -17,6 +17,8 @@
 - Добавлен `📱 Подключения`: online/last-online/IP limit summary, отдельные `📱 Устройства` по HWID и `🌐 IP-адреса` без подмены session/IP данными device identity.
 - Pinned 3x-ui API surface расширен тремя reviewed endpoints текущей schema `v3.8.5`: `POST /clients/ips/{email}`, `POST /clients/hwids/{email}`, `DELETE /clients/hwids/{email}/{id}`; manifest теперь покрывает 54 используемых endpoint.
 - Удаление одного HWID device выполняется только после отдельного confirmation; DELETE использует no-retry mutation semantics, а uncertain outcome отображается как неизвестный и проверяется read-only обновлением списка.
+- Карточка пользователя получила read-only раздел `💳 Платежи`: scoped ledger по `payments.telegram_id`, суммы оплаченных группируются по валюте, detail callback проверяет принадлежность платежа текущему пользователю, write-actions остаются только в каноническом разделе `Платежи`.
+- Добавлен `🧾 Активность`: user-scoped presentation существующего `audit_log` по технической identity (`email`/`telegram_id`) с MSK timestamps, pagination и bounded summaries; subscription/device secret-like details не реконструируются в timeline.
 
 ## v4.24.1 — Hotfix web diagnostics и IPv6
 - WHOIS/RDAP absolute timestamps в Telegram теперь нормализуются в `DD.MM.YYYY HH:MM MSK`; machine/RDAP instants остаются UTC, а возраст домена рассчитывается как раньше.
