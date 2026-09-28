@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import ipaddress
+import re
 import socket
 import ssl
 import time
