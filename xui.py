@@ -114,8 +114,8 @@ class XUIClient(VersionAPIMixin):
                     raise XUIError(data.get("msg") or str(data))
                 return data
 
-    async def _mutation_request(self, path: str) -> dict[str, Any]:
-        """Send one state-changing POST without redirects or automatic retry."""
+    async def _mutation_request(self, path: str, *, method: str = "POST") -> dict[str, Any]:
+        """Send one state-changing request without redirects or automatic retry."""
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Accept": "application/json",
@@ -125,7 +125,7 @@ class XUIClient(VersionAPIMixin):
         try:
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.request(
-                    "POST",
+                    method,
                     f"{self.base_url}{path}",
                     headers=headers,
                     ssl=None if self.verify_tls else False,
@@ -468,6 +468,29 @@ class XUIClient(VersionAPIMixin):
         data = await self._request("POST", "/panel/api/clients/onlines")
         obj = data.get("obj") or []
         return [str(x) for x in obj] if isinstance(obj, list) else []
+
+    async def client_ips(self, email: str) -> list[str]:
+        """Return source-IP entries exactly as reported by 3x-ui."""
+        data = await self._request(
+            "POST", f"/panel/api/clients/ips/{quote(email, safe='')}"
+        )
+        obj = data.get("obj") or []
+        return [str(item) for item in obj] if isinstance(obj, list) else []
+
+    async def client_hwids(self, email: str) -> list[dict[str, Any]]:
+        """Return registered HWID device summaries; full hashes are not exposed."""
+        data = await self._request(
+            "POST", f"/panel/api/clients/hwids/{quote(email, safe='')}"
+        )
+        obj = data.get("obj") or []
+        return [item for item in obj if isinstance(item, dict)] if isinstance(obj, list) else []
+
+    async def delete_client_hwid(self, email: str, device_id: int) -> dict[str, Any]:
+        """Delete exactly one registered HWID device without automatic retry."""
+        return await self._mutation_request(
+            f"/panel/api/clients/hwids/{quote(email, safe='')}/{int(device_id)}",
+            method="DELETE",
+        )
 
     async def online_clients_by_guid(self) -> dict[str, list[str]]:
         data = await self._request("POST", "/panel/api/clients/onlinesByGuid")
