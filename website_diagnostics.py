@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import io
 import json
 import re
@@ -160,6 +160,9 @@ def _rdap_registrar(entities: object) -> str:
     return ""
 
 
+_MSK = timezone(timedelta(hours=3))
+
+
 def _parse_rdap_date(value: str) -> datetime | None:
     raw = (value or "").strip()
     if not raw:
@@ -168,6 +171,13 @@ def _parse_rdap_date(value: str) -> datetime | None:
         return datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(timezone.utc)
     except ValueError:
         return None
+
+
+def _format_rdap_timestamp_msk(value: str) -> str:
+    parsed = _parse_rdap_date(value)
+    if parsed is None:
+        return ""
+    return parsed.astimezone(_MSK).strftime("%d.%m.%Y %H:%M MSK")
 
 
 async def whois_summary(
@@ -211,8 +221,8 @@ async def whois_summary(
     return WhoisSummary(
         domain=domain,
         registrar=_rdap_registrar(payload.get("entities")),
-        created_at=created_raw,
-        expires_at=expires_raw,
+        created_at=_format_rdap_timestamp_msk(created_raw),
+        expires_at=_format_rdap_timestamp_msk(expires_raw),
         age_days=age_days,
         statuses=statuses,
     )
