@@ -270,7 +270,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
-17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ выполнено и принято в production в `v4.23.1`.
+17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ выполнено и принято в production в `v4.23.1`; follow-up `v4.23.2` запланирован для компактного расширения result parity (списки/региональная доступность) и строгой context-preserving navigation.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
@@ -545,6 +545,25 @@ upstream checker/database logic
 - production acceptance проверяет корректный verdict на test fixtures/known targets и graceful degradation при недоступном Cheburcheck service.
 
 Реализация в `main` использует reviewed upstream `LowderPlay/cheburcheck@0bbd2be8ca4b8f9ded1407597654314fc2a900c6`, отдельный `CheburcheckClient`, optional `CHEBURCHECK_URL`, read-only RBAC и экран `Мониторинг → Проверка блокировок`. Auto-discovery предлагает безопасные hostname/IP из Master/direct Nodes/enabled Hosts, а карточки Master/direct node имеют shortcut проверки; URL path/query/credentials и private/local targets не передаются.
+
+##### v4.23.2 — Cheburcheck: расширенный результат и контекстная навигация
+
+**Статус: ⬜ Запланировано на `v4.23.2`.**
+
+Scope:
+
+1. **Компактный parity результата с Cheburcheck site.** Расширить текущий bounded summary данными, которые уже доступны/могут быть надёжно получены из pinned Cheburcheck backend: нахождение цели в используемых блок-листах/реестрах и доступность по регионам. Telegram UI должен показывать это максимально компактно, без raw payload и без ослабления существующих response-size/timeouts/concurrency/rate-limit границ. Перед реализацией зафиксировать exact upstream fields/semantics для reviewed revision и покрыть их fixtures/contract tests; если часть site-only данных не выдаётся backend API, это явно фиксируется и не эмулируется догадками.
+
+2. **Контекстная навигация Cheburcheck.** Источник входа становится частью UI context:
+   - вход из `/admin → Мониторинг → Проверка блокировок` всегда возвращает только в Monitoring/Cheburcheck flow;
+   - вход из карточки Master возвращает только в карточку Master;
+   - вход из карточки direct Node возвращает только в ту же Node;
+   - discovered targets, manual search, result, error, `Проверить ещё` и повторный поиск обязаны сохранять исходный parent context;
+   - переход из Monitoring flow в Node/Master card и обратный cross-context jump через Cheburcheck запрещён;
+   - callback data хранит только safe stable context/identity, без URL/credentials;
+   - regression tests покрывают все entry points и Back/Repeat/Search transitions.
+
+Цель релиза — улучшить информативность и UX Cheburcheck без изменения его read-only security boundary, provisioning/VPN state или 3x-ui mutations.
 
 ##### PackBot-compatible monitoring и diagnostics
 
