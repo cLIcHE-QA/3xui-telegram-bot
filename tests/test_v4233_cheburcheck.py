@@ -152,6 +152,17 @@ class V4233CheburcheckHotfixTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("🌍 Регионы: —", text)
         self.assertNotIn("региональная проверка недоступна", text)
 
+    def test_domain_starting_with_as_is_not_misclassified_as_asn(self):
+        result = replace(domain_result(), target="as.example.org")
+        text = cheburcheck_admin.result_text(result)
+        self.assertIn("🌍 Регионы: 🟡 региональная проверка недоступна", text)
+
+        source = open(
+            cheburcheck_admin.__file__.replace("cheburcheck_admin.py", "cheburcheck.py"),
+            encoding="utf-8",
+        ).read()
+        self.assertIn('re.fullmatch(r"AS[1-9][0-9]{0,9}", target.upper())', source)
+
 
 if __name__ == "__main__":
     unittest.main()
