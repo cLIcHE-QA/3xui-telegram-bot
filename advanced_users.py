@@ -1215,10 +1215,12 @@ async def user_advanced_card(call: CallbackQuery, state: FSMContext):
     await call.answer()
 
 
-async def _render_user_section(call: CallbackQuery, renderer) -> None:
+async def _render_user_section(call: CallbackQuery, renderer, state: FSMContext | None = None) -> None:
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
         return
+    if state is not None:
+        await state.clear()
     tg_id = int(call.data.rsplit(":", 1)[-1])
     text, kb = await renderer(tg_id, role)
     await render_callback(call, text, reply_markup=kb)
@@ -1226,28 +1228,28 @@ async def _render_user_section(call: CallbackQuery, renderer) -> None:
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:planview:"))
-async def user_plan_view(call: CallbackQuery):
-    await _render_user_section(call, _user_plan_view)
+async def user_plan_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_plan_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:expiryview:"))
-async def user_expiry_view(call: CallbackQuery):
-    await _render_user_section(call, _user_expiry_view)
+async def user_expiry_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_expiry_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:trafficview:"))
-async def user_traffic_view(call: CallbackQuery):
-    await _render_user_section(call, _user_traffic_view)
+async def user_traffic_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_traffic_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:access:"))
-async def user_access_view(call: CallbackQuery):
-    await _render_user_section(call, _user_access_view)
+async def user_access_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_access_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:subview:"))
-async def user_subscription_view(call: CallbackQuery):
-    await _render_user_section(call, _user_subscription_view)
+async def user_subscription_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_subscription_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:subqr:"))
@@ -1277,20 +1279,21 @@ async def user_subscription_qr(call: CallbackQuery):
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:profile:"))
-async def user_profile_view(call: CallbackQuery):
-    await _render_user_section(call, _user_profile_view)
+async def user_profile_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_profile_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:more:"))
-async def user_more_view(call: CallbackQuery):
-    await _render_user_section(call, _user_more_view)
+async def user_more_view(call: CallbackQuery, state: FSMContext):
+    await _render_user_section(call, _user_more_view, state)
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:accesscfg:"))
-async def user_access_config(call: CallbackQuery):
+async def user_access_config(call: CallbackQuery, state: FSMContext):
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
         return
+    await state.clear()
     tg_id = int(call.data.rsplit(":", 1)[-1])
     rec = await db.get(tg_id)
     if not rec:
