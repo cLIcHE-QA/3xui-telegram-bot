@@ -136,7 +136,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:bulk:all", "admin:bulk:clear", "admin:bulk:actions",
         "admin:bulk:back", "admin:bulk:close", "admin:bulk:prev", "admin:bulk:next",
         "admin:bulk:plan", "admin:bulk:group", "admin:bulk:expiry", "admin:bulk:traffic",
-        "admin:bulk:runexpiry", "admin:bulk:runtraffic",
+        "admin:bulk:runexpiry", "admin:bulk:runtraffic", "admin:bulk:input-cancel",
     )
     + _rules("users.view", "exact", "admin:bulk:noop")
     + _rules("payments.view", "regex", r"^admin:u:payments:\d+(?::\d+)?$", r"^admin:u:payment:\d+:\d+$")
