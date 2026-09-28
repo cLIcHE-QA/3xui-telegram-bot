@@ -128,12 +128,21 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "users.support",
         "exact",
         "admin:provision:all:ask", "admin:provision:all:run", "admin:users:bulk",
+        "admin:users:create", "admin:users:create:email-default", "admin:users:create:email-custom",
+        "admin:users:create:display-skip", "admin:users:create:plans", "admin:users:create:plan-compat",
+        "admin:users:create:run",
         "admin:bulk:all", "admin:bulk:clear", "admin:bulk:actions",
         "admin:bulk:back", "admin:bulk:close", "admin:bulk:prev", "admin:bulk:next",
     )
     + _rules("users.view", "exact", "admin:bulk:noop")
     + _rules("payments.view", "regex", r"^admin:u:payments:\d+(?::\d+)?$", r"^admin:u:payment:\d+:\d+$")
     + _rules("monitoring.view", "regex", r"^admin:u:activity:\d+(?::\d+)?$")
+    + _rules(
+        "users.support",
+        "regex",
+        r"^admin:users:create:plan:\d+$",
+        r"^admin:users:create:recover:\d+$",
+    )
     + _rules("users.view", "regex", r"^admin:u:\d+$")
     + _rules("users.view", "regex", r"^admin:u:device:\d+:\d+$")
     + _rules("users.support", "regex", r"^admin:u:devdelask:\d+:\d+$", r"^admin:u:devdel:\d+:\d+$")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import secrets
 import time
+import re
 import unicodedata
 
 from aiogram import F, Router
@@ -75,6 +76,14 @@ class UserListStates(StatesGroup):
     search = State()
 
 
+class CreateUserStates(StatesGroup):
+    telegram_id = State()
+    email = State()
+    display_name = State()
+    plan = State()
+    review = State()
+
+
 USER_LIST_PAGE_SIZE = 12
 
 
@@ -130,6 +139,8 @@ USER_AUDIT_LABELS = {
     "user.display_name.set": "✏️ Изменено имя",
     "user.note.set": "📝 Изменена заметка",
     "user.device.delete": "🗑 Удалено устройство",
+    "user.create": "➕ Создан пользователь",
+    "user.recover": "♻️ Восстановлена запись пользователя",
     "user.delete": "🗑 Удалён пользователь",
 }
 
@@ -181,6 +192,145 @@ def normalize_display_name(value: str) -> str:
     if not normalized or len(normalized) > 64:
         raise ValueError("length")
     return normalized
+
+
+def normalize_machine_email(value: str) -> str:
+    raw = (value or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", raw):
+        raise ValueError("machine_email")
+    return raw
+
+
+def _panel_client(item: object) -> dict:
+    if not isinstance(item, dict):
+        return {}
+    client = item.get("client", item)
+    return client if isinstance(client, dict) else {}
+
+
+async def _email_available(email: str) -> tuple[bool, str]:
+    if await db.get_by_email(email):
+        return False, "Такой технический email уже используется в БД бота."
+    try:
+        await xui.get_client(email)
+    except XUIError as exc:
+        if str(exc).startswith("Client not found:"):
+            return True, ""
+        raise
+    return False, "Клиент с таким техническим email уже существует в 3x-ui."
+
+
+async def _trial_create_values() -> tuple[int, int, int]:
+    try:
+        days = int(await db.get_runtime_setting("trial_days", str(settings.test_days)) or settings.test_days)
+        traffic = int(
+            await db.get_runtime_setting("trial_traffic_gb", str(settings.test_traffic_gb))
+            or settings.test_traffic_gb
+        )
+        ip_limit = int(
+            await db.get_runtime_setting("trial_ip_limit", str(settings.test_ip_limit))
+            or settings.test_ip_limit
+        )
+    except (TypeError, ValueError):
+        days = settings.test_days
+        traffic = settings.test_traffic_gb
+        ip_limit = settings.test_ip_limit
+    return max(0, days), max(0, traffic), max(0, ip_limit)
+
+
+async def _create_user_context(plan_id: int) -> dict[str, object]:
+    if plan_id:
+        plan = await db.get_plan(plan_id)
+        if not plan or not plan.active:
+            raise ValueError("Тариф недоступен.")
+        policy = await provisioner.policy_for_plan(plan)
+        inbound_ids = list(policy.actionable_inbound_ids)
+        if not inbound_ids:
+            raise ValueError("Для выбранного тарифа сейчас нет доступных целевых Inbounds.")
+        return {
+            "plan": plan,
+            "plan_name": plan.name,
+            "group_name": policy.group.name if policy.group else "не назначена",
+            "server_group_id": plan.server_group_id,
+            "duration_days": max(0, int(plan.duration_days)),
+            "traffic_gb": max(0, int(plan.traffic_gb)),
+            "ip_limit": max(0, int(plan.ip_limit)),
+            "inbound_ids": inbound_ids,
+            "unavailable_members": list(policy.unavailable_members),
+        }
+
+    chosen = choose_inbounds(await xui.inbound_options())
+    if not chosen:
+        raise ValueError("В режиме совместимости сейчас нет доступных управляемых Inbounds.")
+    days, traffic, ip_limit = await _trial_create_values()
+    return {
+        "plan": None,
+        "plan_name": "режим совместимости",
+        "group_name": "не назначена",
+        "server_group_id": None,
+        "duration_days": days,
+        "traffic_gb": traffic,
+        "ip_limit": ip_limit,
+        "inbound_ids": [int(item.id) for item in chosen],
+        "unavailable_members": [],
+    }
+
+
+async def _create_plan_screen() -> tuple[str, InlineKeyboardMarkup]:
+    plans = [plan for plan in await db.list_plans() if plan.active]
+    default_plan = await provisioner.default_plan()
+    rows: list[list[InlineKeyboardButton]] = []
+    for plan in plans[:30]:
+        marker = "⭐" if default_plan and plan.id == default_plan.id else "💎"
+        rows.append([InlineKeyboardButton(
+            text=f"{marker} {plan.name}",
+            callback_data=f"admin:users:create:plan:{plan.id}",
+        )])
+    rows.append([InlineKeyboardButton(
+        text="🧩 Режим совместимости",
+        callback_data="admin:users:create:plan-compat",
+    )])
+    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")])
+    text = (
+        "💎 Тариф нового пользователя\n\n"
+        "Выбери активный тариф. ⭐ отмечает тариф по умолчанию.\n"
+        "Режим совместимости использует текущие trial-параметры и все управляемые Inbounds."
+    )
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _create_preview(data: dict[str, object], plan_id: int) -> tuple[str, InlineKeyboardMarkup]:
+    ctx = await _create_user_context(plan_id)
+    tg_id = int(data["telegram_id"])
+    email = str(data["email"])
+    display_name = str(data.get("display_name") or "")
+    days = int(ctx["duration_days"])
+    expiry = int((time.time() + days * 86400) * 1000) if days else 0
+    traffic_gb = int(ctx["traffic_gb"])
+    ip_limit = int(ctx["ip_limit"])
+    inbound_ids = list(ctx["inbound_ids"])
+    lines = [
+        "➕ Новый пользователь",
+        "",
+        f"Telegram ID: {tg_id}",
+        f"Email: {email}",
+        f"Имя: {display_name or '—'}",
+        f"Тариф: {ctx['plan_name']}",
+        f"Группа серверов: {ctx['group_name']}",
+        f"Срок: {fmt_date(expiry)}",
+        f"Лимит трафика: {traffic_gb} GB" if traffic_gb else "Лимит трафика: без лимита",
+        f"IP limit: {ip_limit}" if ip_limit else "IP limit: без лимита",
+        f"Целевые Inbounds: {len(inbound_ids)}",
+    ]
+    unavailable = list(ctx.get("unavailable_members") or [])
+    if unavailable:
+        lines.append(f"⏸ Недоступные ноды: {len(unavailable)}")
+    rows = [
+        [InlineKeyboardButton(text="✅ Создать пользователя", callback_data="admin:users:create:run")],
+        [InlineKeyboardButton(text="⬅ Изменить тариф", callback_data="admin:users:create:plans")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+    ]
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def back_user(tg_id: int) -> InlineKeyboardMarkup:
@@ -1817,12 +1967,17 @@ async def _users_page_view(page: int, role: str | None) -> tuple[str, InlineKeyb
             nav.append(InlineKeyboardButton(text="▶️", callback_data=f"admin:users:page:{page + 1}"))
         rows.append(nav)
 
-    rows.append([InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search")])
     if role in {"support", "admin", "owner"}:
+        rows.append([
+            InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search"),
+            InlineKeyboardButton(text="➕ Создать", callback_data="admin:users:create"),
+        ])
         rows.append([
             InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk"),
             InlineKeyboardButton(text="🚀 Согласовать всех", callback_data="admin:provision:all:ask"),
         ])
+    else:
+        rows.append([InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search")])
     rows.append([
         InlineKeyboardButton(text="👥 Группы пользователей", callback_data="admin:usergroups"),
         InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats"),
@@ -1863,6 +2018,518 @@ async def admin_users_page(call: CallbackQuery):
 async def admin_users_noop(call: CallbackQuery):
     if not await guard(call, minimum="read_only"):
         return
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create")
+async def admin_users_create_start(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    await state.clear()
+    await state.set_state(CreateUserStates.telegram_id)
+    await render_callback(
+        call,
+        "➕ Новый пользователь\n\nОтправь Telegram ID пользователя.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+        ]]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.message(CreateUserStates.telegram_id)
+async def admin_users_create_telegram_id(message: Message, state: FSMContext):
+    if not await guard_message(message, state, minimum="support"):
+        return
+    raw = (message.text or "").strip()
+    if not raw.isdigit() or int(raw) <= 0:
+        await render_input(
+            message,
+            "Telegram ID должен быть положительным числом.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+            ]]),
+        )
+        return
+    tg_id = int(raw)
+    existing = await db.get(tg_id)
+    if existing:
+        await state.clear()
+        await render_input(
+            message,
+            "Пользователь уже существует в БД бота.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="👤 Открыть пользователя", callback_data=f"admin:u:{tg_id}")],
+                [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
+            ]),
+        )
+        return
+    try:
+        panel_matches = await xui.get_client_by_tg_id(tg_id)
+    except XUIError as exc:
+        await render_input(
+            message,
+            f"⚠️ Не удалось проверить 3x-ui: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+            ]]),
+        )
+        return
+    if panel_matches:
+        valid = [
+            _panel_client(item) for item in panel_matches
+            if _panel_client(item).get("email") and _panel_client(item).get("subId")
+        ]
+        await state.clear()
+        if len(valid) != 1:
+            await render_input(
+                message,
+                "⚠️ В 3x-ui найдено несколько или неполных записей с этим Telegram ID. "
+                "Автоматическое восстановление заблокировано.",
+                reply_markup=users_back(),
+            )
+            return
+        client = valid[0]
+        await render_input(
+            message,
+            "⚠️ Клиент уже существует в 3x-ui.\n\n"
+            f"Email: {client['email']}\n"
+            f"Telegram ID: {tg_id}\n\n"
+            "Новый remote client создан не будет.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="♻️ Восстановить запись бота",
+                    callback_data=f"admin:users:create:recover:{tg_id}",
+                )],
+                [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+            ]),
+        )
+        return
+
+    default_email = f"tg_{tg_id}"
+    await state.update_data(telegram_id=tg_id, default_email=default_email)
+    await state.set_state(CreateUserStates.email)
+    await render_input(
+        message,
+        "Технический email 3x-ui\n\n"
+        f"По умолчанию: {default_email}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="✅ Использовать предложенный",
+                callback_data="admin:users:create:email-default",
+            )],
+            [InlineKeyboardButton(
+                text="✏️ Ввести другой",
+                callback_data="admin:users:create:email-custom",
+            )],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+        ]),
+    )
+
+
+async def _create_show_display_name(call: CallbackQuery, state: FSMContext, email: str) -> None:
+    await state.update_data(email=email)
+    await state.set_state(CreateUserStates.display_name)
+    await render_callback(
+        call,
+        "Отображаемое имя\n\n"
+        "Можно задать имя для админки. Технический email от этого не изменится.\n"
+        "Отправь имя или нажми «Пропустить».",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:users:create:display-skip")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+        ]),
+    )
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:email-default")
+async def admin_users_create_email_default(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    if not data.get("telegram_id") or not data.get("default_email"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    email = str(data["default_email"])
+    try:
+        available, reason = await _email_available(email)
+    except XUIError as exc:
+        await call.answer(f"Не удалось проверить email: {exc}", show_alert=True)
+        return
+    if not available:
+        await call.answer(reason, show_alert=True)
+        return
+    await _create_show_display_name(call, state, email)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:email-custom")
+async def admin_users_create_email_custom(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    if not data.get("telegram_id"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    await state.set_state(CreateUserStates.email)
+    await render_callback(
+        call,
+        "Технический email 3x-ui\n\n"
+        "Введи значение из букв/цифр и символов ., _, - (до 64 символов).",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+        ]]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.message(CreateUserStates.email)
+async def admin_users_create_email_message(message: Message, state: FSMContext):
+    if not await guard_message(message, state, minimum="support"):
+        return
+    try:
+        email = normalize_machine_email(message.text or "")
+    except ValueError:
+        await render_input(
+            message,
+            "Некорректный технический email. Разрешены буквы, цифры, ., _, -; максимум 64 символа.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")
+            ]]),
+        )
+        return
+    try:
+        available, reason = await _email_available(email)
+    except XUIError as exc:
+        await render_input(message, f"⚠️ Не удалось проверить 3x-ui: {exc}", reply_markup=users_back())
+        return
+    if not available:
+        await render_input(message, reason, reply_markup=users_back())
+        return
+    await state.update_data(email=email)
+    await state.set_state(CreateUserStates.display_name)
+    await render_input(
+        message,
+        "Отображаемое имя\n\n"
+        "Можно задать имя для админки. Отправь имя или нажми «Пропустить».",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:users:create:display-skip")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+        ]),
+    )
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:display-skip")
+async def admin_users_create_display_skip(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    if not data.get("telegram_id") or not data.get("email"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    await state.update_data(display_name="")
+    await state.set_state(CreateUserStates.plan)
+    text, kb = await _create_plan_screen()
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.message(CreateUserStates.display_name)
+async def admin_users_create_display_name(message: Message, state: FSMContext):
+    if not await guard_message(message, state, minimum="support"):
+        return
+    try:
+        display_name = normalize_display_name(message.text or "")
+    except ValueError:
+        await render_input(
+            message,
+            "Имя должно содержать 1–64 символа без управляющих символов.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:users:create:display-skip")],
+                [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:users")],
+            ]),
+        )
+        return
+    await state.update_data(display_name=display_name)
+    await state.set_state(CreateUserStates.plan)
+    text, kb = await _create_plan_screen()
+    await render_input(message, text, reply_markup=kb)
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:plans")
+async def admin_users_create_plans(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    if not data.get("telegram_id") or not data.get("email"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    await state.set_state(CreateUserStates.plan)
+    text, kb = await _create_plan_screen()
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+async def _create_select_plan(call: CallbackQuery, state: FSMContext, plan_id: int) -> None:
+    data = await state.get_data()
+    if not data.get("telegram_id") or not data.get("email"):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+    try:
+        text, kb = await _create_preview(data, plan_id)
+    except (ValueError, XUIError) as exc:
+        await call.answer(str(exc), show_alert=True)
+        return
+    await state.update_data(plan_id=int(plan_id))
+    await state.set_state(CreateUserStates.review)
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:users:create:plan:\d+$"))
+async def admin_users_create_plan(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    await _create_select_plan(call, state, int(call.data.rsplit(":", 1)[-1]))
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:plan-compat")
+async def admin_users_create_plan_compat(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    await _create_select_plan(call, state, 0)
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:create:run")
+async def admin_users_create_run(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    data = await state.get_data()
+    try:
+        tg_id = int(data["telegram_id"])
+        email = normalize_machine_email(str(data["email"]))
+        display_name = str(data.get("display_name") or "")
+        plan_id = int(data.get("plan_id") or 0)
+    except (KeyError, TypeError, ValueError):
+        await state.clear()
+        await call.answer("Сценарий создания устарел. Начни заново.", show_alert=True)
+        return
+
+    if await db.get(tg_id):
+        await state.clear()
+        await call.answer("Пользователь уже появился в БД бота.", show_alert=True)
+        return
+
+    try:
+        panel_matches = await xui.get_client_by_tg_id(tg_id)
+        if panel_matches:
+            await state.clear()
+            await render_callback(
+                call,
+                "⚠️ Клиент уже появился в 3x-ui. Создание не повторялось. "
+                "Запусти создание заново и используй восстановление записи.",
+                reply_markup=users_back(),
+            )
+            await call.answer()
+            return
+        available, reason = await _email_available(email)
+        if not available:
+            await state.clear()
+            await call.answer(reason, show_alert=True)
+            return
+        ctx = await _create_user_context(plan_id)
+    except (XUIError, ValueError) as exc:
+        await call.answer(f"Preflight не пройден: {exc}", show_alert=True)
+        return
+
+    duration_days = int(ctx["duration_days"])
+    traffic_gb = int(ctx["traffic_gb"])
+    ip_limit = int(ctx["ip_limit"])
+    inbound_ids = list(ctx["inbound_ids"])
+    now = int(time.time())
+    expiry = int((now + duration_days * 86400) * 1000) if duration_days else 0
+    sub_id = secrets.token_urlsafe(18)
+    verified_after_uncertain = False
+
+    try:
+        await xui.create_client(
+            email=email,
+            telegram_id=tg_id,
+            sub_id=sub_id,
+            inbound_ids=inbound_ids,
+            total_bytes=traffic_gb * 1024**3,
+            expiry_time_ms=expiry,
+            limit_ip=ip_limit,
+            comment=f"Создано Admin Control Plane · {ctx['plan_name']}",
+            flow=settings.vless_flow,
+        )
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db,
+                call,
+                "user.create",
+                target_type="user",
+                target_id=email,
+                details=f"result=rejected; code={exc.code}",
+                success=False,
+            )
+            await state.clear()
+            await render_callback(
+                call,
+                f"🔴 Создание отклонено: {exc}",
+                reply_markup=users_back(),
+            )
+            await call.answer()
+            return
+
+        try:
+            matches = await xui.get_client_by_tg_id(tg_id)
+        except XUIError:
+            matches = []
+        proof = [
+            _panel_client(item)
+            for item in matches
+            if _panel_client(item).get("email") == email
+            and _panel_client(item).get("subId") == sub_id
+        ]
+        if len(proof) != 1:
+            await audit_from_call(
+                db,
+                call,
+                "user.create",
+                target_type="user",
+                target_id=email,
+                details=f"result=unknown; code={exc.code}; mutation_not_retried=true",
+                success=False,
+            )
+            await state.clear()
+            await render_callback(
+                call,
+                "⚠️ Итог создания неизвестен. POST не повторялся. "
+                "Проверь 3x-ui/список пользователей и затем запусти создание заново; "
+                "если remote client существует, используй восстановление записи.",
+                reply_markup=users_back(),
+            )
+            await call.answer()
+            return
+        verified_after_uncertain = True
+
+    try:
+        await db.put(UserRecord(tg_id, email, sub_id, expiry, now))
+        await db.upsert_user_profile(
+            tg_id,
+            plan_id=plan_id or None,
+            server_group_id=ctx.get("server_group_id"),
+            note="",
+            display_name=display_name,
+            preserve_unspecified=False,
+        )
+    except Exception as exc:
+        await audit_from_call(
+            db,
+            call,
+            "user.create",
+            target_type="user",
+            target_id=email,
+            details=f"remote_created=true; local_save_failed={type(exc).__name__}",
+            success=False,
+        )
+        await state.clear()
+        await render_callback(
+            call,
+            "⚠️ Remote client создан, но локальную запись сохранить не удалось. "
+            "Не повторяй создание: запусти flow заново и используй восстановление записи.",
+            reply_markup=users_back(),
+        )
+        await call.answer()
+        return
+
+    await audit_from_call(
+        db,
+        call,
+        "user.create",
+        target_type="user",
+        target_id=email,
+        details=(
+            f"plan_id={plan_id or 'compat'}; inbound_count={len(inbound_ids)}; "
+            f"verified_after_uncertain={str(verified_after_uncertain).lower()}"
+        ),
+    )
+    await state.clear()
+    await render_callback(
+        call,
+        f"✅ Пользователь создан.\n\nEmail: {email}\nTelegram ID: {tg_id}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(
+                text="👤 Открыть пользователя",
+                callback_data=f"admin:u:{tg_id}",
+            )
+        ]]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:users:create:recover:\d+$"))
+async def admin_users_create_recover(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    if await db.get(tg_id):
+        await state.clear()
+        await call.answer("Локальная запись уже существует.", show_alert=True)
+        return
+    try:
+        matches = await xui.get_client_by_tg_id(tg_id)
+    except XUIError as exc:
+        await call.answer(f"Не удалось проверить 3x-ui: {exc}", show_alert=True)
+        return
+    valid = [
+        _panel_client(item)
+        for item in matches
+        if _panel_client(item).get("email") and _panel_client(item).get("subId")
+    ]
+    if len(valid) != 1:
+        await call.answer(
+            "Восстановление заблокировано: remote identity неоднозначна.",
+            show_alert=True,
+        )
+        return
+    client = valid[0]
+    email = str(client["email"])
+    sub_id = str(client["subId"])
+    expiry = int(client.get("expiryTime") or 0)
+    if await db.get_by_email(email):
+        await call.answer(
+            "Этот email уже связан с другой локальной записью.",
+            show_alert=True,
+        )
+        return
+    await db.put(UserRecord(tg_id, email, sub_id, expiry, int(time.time())))
+    await audit_from_call(
+        db,
+        call,
+        "user.recover",
+        target_type="user",
+        target_id=email,
+        details="source=3x-ui; explicit_recovery=true",
+    )
+    await state.clear()
+    await render_callback(
+        call,
+        "✅ Локальная запись восстановлена из существующего клиента 3x-ui.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(
+                text="👤 Открыть пользователя",
+                callback_data=f"admin:u:{tg_id}",
+            )
+        ]]),
+    )
     await call.answer()
 
 

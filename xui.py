@@ -114,7 +114,13 @@ class XUIClient(VersionAPIMixin):
                     raise XUIError(data.get("msg") or str(data))
                 return data
 
-    async def _mutation_request(self, path: str, *, method: str = "POST") -> dict[str, Any]:
+    async def _mutation_request(
+        self,
+        path: str,
+        *,
+        method: str = "POST",
+        json_payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Send one state-changing request without redirects or automatic retry."""
         headers = {
             "Authorization": f"Bearer {self.token}",
@@ -124,12 +130,16 @@ class XUIClient(VersionAPIMixin):
         timeout = aiohttp.ClientTimeout(total=20)
         try:
             async with aiohttp.ClientSession(timeout=timeout) as session:
+                request_kwargs: dict[str, Any] = {}
+                if json_payload is not None:
+                    request_kwargs["json"] = json_payload
                 async with session.request(
                     method,
                     f"{self.base_url}{path}",
                     headers=headers,
                     ssl=None if self.verify_tls else False,
                     allow_redirects=False,
+                    **request_kwargs,
                 ) as resp:
                     text = await resp.text()
                     try:
@@ -539,7 +549,10 @@ class XUIClient(VersionAPIMixin):
             },
             "inboundIds": kwargs["inbound_ids"],
         }
-        return await self._request("POST", "/panel/api/clients/add", json=payload)
+        return await self._mutation_request(
+            "/panel/api/clients/add",
+            json_payload=payload,
+        )
 
     @staticmethod
     def _full_update_payload(client: dict[str, Any], **changes) -> dict[str, Any]:
