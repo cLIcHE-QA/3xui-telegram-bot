@@ -176,7 +176,15 @@ async def _profile_labels(tg_id: int) -> tuple[str, str, str, str]:
     return plan_name, group_name, note, display_name
 
 
-async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
+def _role_can_support(role: str | None) -> bool:
+    return role in {"support", "admin", "owner"}
+
+
+def _role_can_admin(role: str | None) -> bool:
+    return role in {"admin", "owner"}
+
+
+async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, InlineKeyboardMarkup]:
     rec = await db.get(tg_id)
     if not rec:
         return "Пользователь не найден.", InlineKeyboardMarkup(inline_keyboard=[
@@ -185,6 +193,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
 
     plan_name, group_name, note, display_name = await _profile_labels(tg_id)
     provisioning_line = "🚀 Согласование: недоступно"
+    enabled: bool | None = None
     try:
         policy = await provisioner.policy_for_user(tg_id)
         pobj = await xui.get_client(rec.email)
@@ -195,6 +204,7 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
         provisioning_line = f"🚀 Согласование: целевых {len(pdesired)} · не хватает {pmissing} · лишних {pextra}"
     except Exception as exc:
         provisioning_line = f"🚀 Согласование: ⚠️ {type(exc).__name__}"
+
     try:
         obj = await xui.get_client(rec.email)
         client = obj.get("client", obj)
@@ -214,26 +224,22 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
             f"Статус: {'🟢 включён' if enabled else '⛔ отключён'}",
             "",
             f"💎 Тариф: {plan_name}",
-            f"🗂 Группа серверов: {group_name}",
-            provisioning_line,
             f"⏳ Срок: {fmt_date(expiry)}",
-            f"📦 Лимит трафика: {human_bytes(total) if total else 'без лимита'}",
-            f"📊 Использовано: {human_bytes(up + down)}",
-            f"📱 Лимит IP: {limit_ip if limit_ip else 'без лимита'}",
-            f"📡 Inbounds: {', '.join(map(str, inbound_ids)) if inbound_ids else 'нет'}",
-            f"🔀 Flow: {flow}",
+            f"📊 Трафик: {human_bytes(up + down)} / {human_bytes(total) if total else 'без лимита'}",
+            f"🌐 Доступ: {group_name} · Inbounds {len(inbound_ids)}",
+            provisioning_line,
+            f"📱 Лимит IP: {limit_ip if limit_ip else 'без лимита'} · Flow: {flow}",
         ]
         if note:
             lines += ["", f"📝 Заметка: {note}"]
     except XUIError as exc:
-        enabled = True
         lines = [
             f"👤 {display_name or rec.email}",
             *([f"Email: {rec.email}"] if display_name else []),
             f"Telegram ID: {rec.telegram_id}",
             "",
             f"💎 Тариф: {plan_name}",
-            f"🗂 Группа серверов: {group_name}",
+            f"🌐 Доступ: {group_name}",
             provisioning_line,
             "",
             f"⚠️ 3x-ui: {exc}",
@@ -241,53 +247,300 @@ async def render_user(tg_id: int) -> tuple[str, InlineKeyboardMarkup]:
         if note:
             lines += ["", f"📝 Заметка: {note}"]
 
-    state_button = (
-        InlineKeyboardButton(text="⛔ Отключить", callback_data=f"admindisable:{tg_id}")
-        if enabled else
-        InlineKeyboardButton(text="✅ Включить", callback_data=f"adminenable:{tg_id}")
-    )
-    rows = [
+    rows: list[list[InlineKeyboardButton]] = [
         [
-            InlineKeyboardButton(text="⏳ Срок", callback_data=f"admin:u:expiry:{tg_id}"),
-            InlineKeyboardButton(text="📦 Трафик", callback_data=f"admin:u:traffic:{tg_id}"),
+            InlineKeyboardButton(text="💎 Тариф", callback_data=f"admin:u:planview:{tg_id}"),
+            InlineKeyboardButton(text="📅 Срок", callback_data=f"admin:u:expiryview:{tg_id}"),
         ],
         [
-            InlineKeyboardButton(text="📱 Лимит IP", callback_data=f"admin:u:ip:{tg_id}"),
-            InlineKeyboardButton(text="📡 Inbounds", callback_data=f"admin:u:inbounds:{tg_id}"),
+            InlineKeyboardButton(text="📊 Трафик", callback_data=f"admin:u:trafficview:{tg_id}"),
+            InlineKeyboardButton(text="🌐 Доступ", callback_data=f"admin:u:access:{tg_id}"),
         ],
         [
-            InlineKeyboardButton(text="💎 Тариф", callback_data=f"admin:u:plan:{tg_id}"),
-            InlineKeyboardButton(text="🗂 Группа серверов", callback_data=f"admin:u:group:{tg_id}"),
+            InlineKeyboardButton(text="🔗 Подписка", callback_data=f"admin:u:subview:{tg_id}"),
+            InlineKeyboardButton(text="✏️ Профиль", callback_data=f"admin:u:profile:{tg_id}"),
         ],
-        [InlineKeyboardButton(text="▶ Применить тариф к лимитам", callback_data=f"admin:u:planapplyask:{tg_id}")],
-        [InlineKeyboardButton(text="🚀 Согласование", callback_data=f"admin:u:prov:{tg_id}")],
-        [InlineKeyboardButton(text="🚀 Тариф + согласование", callback_data=f"admin:u:planprovask:{tg_id}")],
         [
-            InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data=f"admin:u:resetask:{tg_id}"),
-            InlineKeyboardButton(text="📝 Заметка", callback_data=f"admin:u:note:{tg_id}"),
+            InlineKeyboardButton(text="👥 Группы", callback_data=f"admin:u:audgroups:{tg_id}"),
+            InlineKeyboardButton(text="⚙️ Ещё действия", callback_data=f"admin:u:more:{tg_id}"),
         ],
-        [InlineKeyboardButton(text="✏️ Имя", callback_data=f"admin:u:name:{tg_id}")],
-        [InlineKeyboardButton(text="👥 Группы пользователей", callback_data=f"admin:u:audgroups:{tg_id}")],
-        [
-            InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}"),
-            state_button,
-        ],
-        [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admindelask:{tg_id}")],
-        [InlineKeyboardButton(text="🔐 Сменить ID подписки", callback_data=f"admin:u:subrotateask:{tg_id}")],
-        [InlineKeyboardButton(text="🔗 Открыть подписку", callback_data=f"adminsub:{tg_id}")],
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
     ]
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    profile = await db.get_user_profile(tg_id)
+    plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
+    lines = [
+        f"💎 Тариф · {await _display_label(rec)}",
+        "",
+        f"Текущий тариф: {plan.name if plan else 'не назначен'}",
+    ]
+    if plan:
+        lines += [
+            f"Срок тарифа: {plan.duration_days} дн.",
+            f"Трафик: {plan.traffic_gb} GB" if plan.traffic_gb else "Трафик: без лимита",
+            f"Лимит IP: {plan.ip_limit}" if plan.ip_limit else "Лимит IP: без лимита",
+        ]
+    rows: list[list[InlineKeyboardButton]] = []
+    if _role_can_support(role):
+        rows.append([InlineKeyboardButton(text="💎 Сменить тариф", callback_data=f"admin:u:plan:{tg_id}")])
+        if plan:
+            rows.append([InlineKeyboardButton(text="▶ Применить параметры тарифа", callback_data=f"admin:u:planapplyask:{tg_id}")])
+            rows.append([InlineKeyboardButton(text="🚀 Тариф + согласование", callback_data=f"admin:u:planprovask:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _user_expiry_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    expiry = rec.expiry_time
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        expiry = int(client.get("expiryTime") or expiry or 0)
+    except XUIError:
+        pass
+    rows: list[list[InlineKeyboardButton]] = []
+    if _role_can_support(role):
+        rows.append([
+            InlineKeyboardButton(text="➕ +30 дней", callback_data=f"adminextend:{tg_id}"),
+            InlineKeyboardButton(text="📅 Установить дату", callback_data=f"admin:u:expiry:{tg_id}"),
+        ])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    return (
+        f"📅 Срок · {await _display_label(rec)}\n\nТекущий срок: {fmt_date(expiry)}",
+        InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+
+
+async def _user_traffic_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    lines = [f"📊 Трафик · {await _display_label(rec)}", ""]
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        traffic = await xui.traffic(rec.email)
+        up = int(traffic.get("up") or traffic.get("uplink") or 0)
+        down = int(traffic.get("down") or traffic.get("downlink") or 0)
+        total = int(client.get("totalGB") or 0)
+        used = up + down
+        lines += [
+            f"Использовано: {human_bytes(used)}",
+            f"Лимит: {human_bytes(total) if total else 'без лимита'}",
+            f"Осталось: {human_bytes(max(0, total - used)) if total else 'без лимита'}",
+        ]
+    except XUIError as exc:
+        lines.append(f"⚠️ 3x-ui: {exc}")
+    rows: list[list[InlineKeyboardButton]] = []
+    if _role_can_support(role):
+        rows.append([InlineKeyboardButton(text="✏️ Изменить лимит", callback_data=f"admin:u:traffic:{tg_id}")])
+        rows.append([InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data=f"admin:u:resetask:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _user_access_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    _plan_name, group_name, _note, _display_name = await _profile_labels(tg_id)
+    lines = [
+        f"🌐 Доступ · {await _display_label(rec)}",
+        "",
+        f"Группа серверов: {group_name}",
+    ]
+    try:
+        policy = await provisioner.policy_for_user(tg_id)
+        obj = await xui.get_client(rec.email)
+        current = {int(x) for x in (obj.get("inboundIds") or [])}
+        desired = set(policy.desired_inbound_ids)
+        lines += [
+            f"Источник политики: {provisioning_source_text(policy.source)}",
+            f"Целевые Inbounds: {len(desired)}",
+            f"Текущие Inbounds: {len(current)}",
+            f"Не хватает: {len(desired - current)}",
+        ]
+    except Exception as exc:
+        lines.append(f"⚠️ Согласование: {type(exc).__name__}")
+    rows: list[list[InlineKeyboardButton]] = [
+        [InlineKeyboardButton(text="🚀 Согласование", callback_data=f"admin:u:prov:{tg_id}")],
+        [InlineKeyboardButton(text="📡 Inbounds", callback_data=f"admin:u:inbounds:{tg_id}")],
+    ]
+    if _role_can_support(role):
+        rows.insert(0, [InlineKeyboardButton(text="🗂 Группа серверов", callback_data=f"admin:u:group:{tg_id}")])
+        rows.append([InlineKeyboardButton(text="⚙️ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _user_subscription_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    rows = [
+        [InlineKeyboardButton(text="🔗 Показать URL", callback_data=f"adminsub:{tg_id}")],
+    ]
+    if _role_can_admin(role):
+        rows.append([InlineKeyboardButton(text="🔐 Перевыпустить ссылку", callback_data=f"admin:u:subrotateask:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    return (
+        f"🔗 Подписка · {await _display_label(rec)}\n\n"
+        "Subscription identity сохраняется при обычном согласовании и изменяется только отдельной явной операцией.",
+        InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+
+
+async def _user_profile_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    _plan_name, _group_name, note, display_name = await _profile_labels(tg_id)
+    lines = [
+        f"✏️ Профиль · {display_name or rec.email}",
+        "",
+        f"Telegram ID: {rec.telegram_id}",
+        f"Email: {rec.email}",
+        f"Отображаемое имя: {display_name or 'не задано'}",
+        f"Заметка: {note or '—'}",
+    ]
+    rows: list[list[InlineKeyboardButton]] = []
+    if _role_can_support(role):
+        rows.append([
+            InlineKeyboardButton(text="✏️ Имя", callback_data=f"admin:u:name:{tg_id}"),
+            InlineKeyboardButton(text="📝 Заметка", callback_data=f"admin:u:note:{tg_id}"),
+        ])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _user_more_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    rec = await db.get(tg_id)
+    if not rec:
+        return "Пользователь не найден.", users_back()
+    enabled: bool | None = None
+    try:
+        obj = await xui.get_client(rec.email)
+        enabled = bool((obj.get("client", obj)).get("enable", True))
+    except XUIError:
+        pass
+    rows: list[list[InlineKeyboardButton]] = []
+    if _role_can_support(role):
+        if enabled is not None:
+            rows.append([(
+                InlineKeyboardButton(text="⛔ Отключить", callback_data=f"admindisable:{tg_id}")
+                if enabled else
+                InlineKeyboardButton(text="✅ Включить", callback_data=f"adminenable:{tg_id}")
+            )])
+        rows.append([InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data=f"admin:u:resetask:{tg_id}")])
+    if _role_can_admin(role):
+        rows.append([InlineKeyboardButton(text="⚠️ Строгое согласование", callback_data=f"admin:u:provstrictask:{tg_id}")])
+        rows.append([InlineKeyboardButton(text="🔐 Перевыпустить подписку", callback_data=f"admin:u:subrotateask:{tg_id}")])
+        rows.append([InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admindelask:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    return (
+        f"⚙️ Ещё действия · {await _display_label(rec)}\n\n"
+        "Здесь собраны lifecycle и destructive операции, доступные текущей роли.",
+        InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+
+
 @advanced_users_router.callback_query(F.data.regexp(r"^admin:u:\d+$"))
 async def user_advanced_card(call: CallbackQuery, state: FSMContext):
-    if not await guard(call, minimum="read_only"):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
         return
     await state.clear()
     tg_id = int(call.data.rsplit(":", 1)[-1])
-    text, kb = await render_user(tg_id)
+    text, kb = await render_user(tg_id, role)
     await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+async def _render_user_section(call: CallbackQuery, renderer) -> None:
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    text, kb = await renderer(tg_id, role)
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:planview:"))
+async def user_plan_view(call: CallbackQuery):
+    await _render_user_section(call, _user_plan_view)
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:expiryview:"))
+async def user_expiry_view(call: CallbackQuery):
+    await _render_user_section(call, _user_expiry_view)
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:trafficview:"))
+async def user_traffic_view(call: CallbackQuery):
+    await _render_user_section(call, _user_traffic_view)
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:access:"))
+async def user_access_view(call: CallbackQuery):
+    await _render_user_section(call, _user_access_view)
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:subview:"))
+async def user_subscription_view(call: CallbackQuery):
+    await _render_user_section(call, _user_subscription_view)
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:profile:"))
+async def user_profile_view(call: CallbackQuery):
+    await _render_user_section(call, _user_profile_view)
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:more:"))
+async def user_more_view(call: CallbackQuery):
+    await _render_user_section(call, _user_more_view)
+
+
+@advanced_users_router.callback_query(F.data.startswith("admin:u:accesscfg:"))
+async def user_access_config(call: CallbackQuery):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    tg_id = int(call.data.rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    limit_ip = "недоступно"
+    flow = "недоступно"
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        value = int(client.get("limitIp") or 0)
+        limit_ip = str(value) if value else "без лимита"
+        flow = str(client.get("flow") or "none")
+    except XUIError:
+        pass
+    rows: list[list[InlineKeyboardButton]] = []
+    if _role_can_support(role):
+        rows.append([InlineKeyboardButton(text="📱 Изменить лимит IP", callback_data=f"admin:u:ip:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")])
+    await render_callback(
+        call,
+        f"⚙️ Параметры доступа · {await _display_label(rec)}\n\n"
+        f"Лимит IP: {limit_ip}\n"
+        f"VLESS Flow: {flow}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
     await call.answer()
 
 
@@ -1279,11 +1532,12 @@ async def admin_stats(call: CallbackQuery):
 @advanced_users_router.callback_query(F.data.startswith("adminuser:"))
 async def admin_user(call: CallbackQuery, state: FSMContext):
     """Compatibility route for buttons in messages sent before v4.20.4."""
-    if not await guard(call, minimum="read_only"):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
         return
     await state.clear()
     tg_id = int(call.data.split(":", 1)[1])
-    text, kb = await render_user(tg_id)
+    text, kb = await render_user(tg_id, role)
     await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
