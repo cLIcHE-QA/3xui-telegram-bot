@@ -21,6 +21,26 @@ PASSTHROUGH_HEADERS = {
     "announce",
 }
 
+HWID_UPSTREAM_HEADERS = (
+    "X-HWID",
+    "X-Device-OS",
+    "X-Ver-OS",
+    "X-Device-Model",
+)
+MAX_UPSTREAM_CLIENT_HEADER_LENGTH = 512
+
+
+def _vpn_client_headers(request: web.Request) -> dict[str, str]:
+    headers = {
+        "Accept": "text/plain",
+        "User-Agent": request.headers.get("User-Agent", "3xui-telegram-bot-subproxy/1.1"),
+    }
+    for name in HWID_UPSTREAM_HEADERS:
+        value = (request.headers.get(name) or "").strip()
+        if value and len(value) <= MAX_UPSTREAM_CLIENT_HEADER_LENGTH:
+            headers[name] = value
+    return headers
+
 
 def _pad_b64(value: str) -> str:
     return value + "=" * (-len(value) % 4)
@@ -334,10 +354,7 @@ class SubscriptionProxy:
         try:
             status, upstream_body, upstream_headers = await self._fetch(
                 upstream_url,
-                headers={
-                    "Accept": "text/plain",
-                    "User-Agent": request.headers.get("User-Agent", "3xui-telegram-bot-subproxy/1.1"),
-                },
+                headers=_vpn_client_headers(request),
                 params=params,
             )
         except (aiohttp.ClientError, TimeoutError) as exc:
