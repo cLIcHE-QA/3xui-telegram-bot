@@ -41,3 +41,37 @@ The Cheburcheck license notice follows.
 > CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 > OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 > OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+## PackBot
+
+- Project: PackBot
+- Upstream: https://github.com/vladpak1/packbot
+- Reviewed revision: `3c4a5bb29626f8b3e28056bd52cd94fdce9f3c1a`
+- License: MIT
+- Copyright: Copyright (c) 2023 vladpak1
+- Use in this repository: behavior/reference implementation for website monitoring, domain/SEO diagnostics and utility workflows planned for `v4.24.0`. The production implementation is native to this repository's Python/aiogram/SQLite architecture; the PackBot PHP/MySQL/webhook runtime is not embedded or deployed.
+
+The PackBot license notice follows.
+
+> MIT License
+>
+> Copyright (c) 2023 vladpak1
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
