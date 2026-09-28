@@ -995,6 +995,14 @@ class WebsiteMonitoringService:
         interval = DOWN_CHECK_INTERVAL if state == "down" else NORMAL_CHECK_INTERVAL
         return int(now) + interval
 
+    async def remove_watcher(self, monitor_id: int, telegram_id: int) -> bool:
+        async with self._lock_for(monitor_id):
+            return await self.repository.remove_watcher(monitor_id, telegram_id)
+
+    async def delete_monitor_global(self, monitor_id: int) -> bool:
+        async with self._lock_for(monitor_id):
+            return await self.repository.delete_monitor_global(monitor_id)
+
     async def check_monitor(
         self,
         monitor_id: int,
