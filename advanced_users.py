@@ -1694,7 +1694,7 @@ async def user_group_menu(call: CallbackQuery):
             text=f"{'✅' if current == group.id else '⬜'} {group.name}",
             callback_data=f"admin:u:groupset:{tg_id}:{group.id}",
         )])
-    rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")])
     await render_callback(call, 
         "🗂 Группа серверов\n\nГруппа определяет целевой набор согласования. Само назначение не меняет 3x-ui мгновенно — используй «🚀 Согласование».",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -1718,8 +1718,14 @@ async def user_group_set(call: CallbackQuery):
         db, call, "user.server_group.set", target_type="user", target_id=rec.email if rec else str(tg_id),
         details=f"server_group_id={group_id or None}; name={group.name if group else ''}",
     )
-    await render_callback(call, 
-        f"✅ Группа серверов: {group.name if group else 'не назначена'}", reply_markup=back_user(tg_id)
+    await render_callback(
+        call,
+        f"✅ Группа серверов: {group.name if group else 'не назначена'}.\n\n"
+        "Для применения целевого доступа выполните согласование.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🚀 Согласовать сейчас", callback_data=f"admin:u:prov:{tg_id}")],
+            [InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")],
+        ]),
     )
     await call.answer()
 
@@ -1762,11 +1768,17 @@ async def user_provisioning_card(call: CallbackQuery):
         rows = [
             [InlineKeyboardButton(text="✅ Безопасное согласование", callback_data=f"admin:u:provrun:{tg_id}:safe")],
             [InlineKeyboardButton(text="⚠️ Строгое согласование", callback_data=f"admin:u:provstrictask:{tg_id}")],
-            [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
+            [InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")],
         ]
         await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     except Exception as exc:
-        await render_callback(call, f"🔴 Согласование: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(
+            call,
+            f"🔴 Согласование: {type(exc).__name__}: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")
+            ]]),
+        )
     await call.answer()
 
 
@@ -1812,10 +1824,22 @@ async def user_provisioning_run(call: CallbackQuery):
         ]
         if result.policy.unavailable_members:
             lines.append(f"⏸ Недоступные ноды: {', '.join(result.policy.unavailable_members)}")
-        await render_callback(call, "\n".join(lines), reply_markup=back_user(tg_id))
+        await render_callback(
+            call,
+            "\n".join(lines),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Согласование", callback_data=f"admin:u:prov:{tg_id}")
+            ]]),
+        )
     except Exception as exc:
         await audit_from_call(db, call, f"user.provision.{mode}", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Ошибка согласования: {type(exc).__name__}: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(
+            call,
+            f"🔴 Ошибка согласования: {type(exc).__name__}: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Согласование", callback_data=f"admin:u:prov:{tg_id}")
+            ]]),
+        )
     await call.answer()
 
 
@@ -1884,13 +1908,23 @@ async def user_inbounds(call: CallbackQuery):
                 text=f"{'✅' if inbound.id in current else '⬜'} #{inbound.id} · {inbound.port}/{inbound.protocol} · {inbound.remark}",
                 callback_data=f"admin:u:ibtoggle:{tg_id}:{inbound.id}",
             )])
-        rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
-        await render_callback(call, 
-            f"📡 Inbounds · {await _display_label(rec)}\n\nНажатие подключает/отключает пользователя от конкретного Inbound.",
+        rows.append([InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")])
+        await render_callback(
+            call,
+            f"📡 Inbounds · {await _display_label(rec)}\n\n"
+            "Нажатие подключает/отключает пользователя от конкретного Inbound.\n\n"
+            "⚠️ Ручные изменения могут отличаться от политики тарифа/Группы серверов. "
+            "Следующее строгое согласование может их изменить.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
         )
     except XUIError as exc:
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_user(tg_id))
+        await render_callback(
+            call,
+            f"Ошибка 3x-ui: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")
+            ]]),
+        )
     await call.answer()
 
 
@@ -1936,8 +1970,13 @@ async def user_inbound_toggle(call: CallbackQuery):
             text=f"{'✅' if i.id in now_ids else '⬜'} #{i.id} · {i.port}/{i.protocol} · {i.remark}",
             callback_data=f"admin:u:ibtoggle:{tg_id}:{i.id}",
         )] for i in all_inbounds[:40]]
-        rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
-        await render_callback(call, "📡 Inbounds обновлены.", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+        rows.append([InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")])
+        await render_callback(
+            call,
+            "📡 Inbounds обновлены.\n\n"
+            "⚠️ Ручное состояние может отличаться от policy и измениться при следующем строгом согласовании.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+        )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.inbound.toggle", target_type="user", target_id=rec.email,
