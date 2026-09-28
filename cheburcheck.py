@@ -330,7 +330,7 @@ class CheburcheckClient:
         if not result.check_id:
             return None
         target = result.target.strip()
-        if not target or "/" in target or target.upper().startswith("AS"):
+        if not target or "/" in target or re.fullmatch(r"AS[1-9][0-9]{0,9}", target.upper()):
             return None
 
         timeout = aiohttp.ClientTimeout(total=12, connect=3, sock_read=10)
