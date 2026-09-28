@@ -874,6 +874,19 @@ class Database:
             row = await cur.fetchone()
             return PaymentRecord(**dict(row)) if row else None
 
+    async def paid_user_totals_by_currency(self, telegram_id: int) -> dict[str, int]:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                SELECT currency, COALESCE(SUM(amount_minor), 0)
+                FROM payments
+                WHERE telegram_id = ? AND status = 'paid'
+                GROUP BY currency
+                """,
+                (int(telegram_id),),
+            )
+            return {str(currency): int(total) for currency, total in await cur.fetchall()}
+
     async def get_payment(self, payment_id: int) -> PaymentRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
@@ -1213,6 +1226,18 @@ class Database:
             )
             rows = await cur.fetchall()
             return [AuditRecord(**dict(r)) for r in rows]
+
+    async def count_user_audit(self, telegram_id: int, email: str) -> int:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                SELECT COUNT(*) FROM audit_log
+                WHERE target_type = 'user' AND target_id IN (?, ?)
+                """,
+                (str(email), str(int(telegram_id))),
+            )
+            row = await cur.fetchone()
+            return int(row[0] if row else 0)
 
     async def count_audit(self) -> int:
         async with aiosqlite.connect(self.path) as db:
