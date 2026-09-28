@@ -296,7 +296,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 10. patch-релизом `v4.23.1` закрыть ASN response-limit acceptance defect;
 11. patch-релизом `v4.23.2` завершить compact result parity и context-preserving navigation Cheburcheck;
 12. hotfix-релизом `v4.23.3` закрыть production findings `v4.23.2`: explicit CDN negative state, domain/IP ASN enrichment и truthful regional probe availability;
-13. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
+13. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics; targeted production findings закрыть patch-релизом `v4.24.1`, а финальный acceptance линии проводить на `v4.24.1`;
 14. отдельным релизом `v4.25.0` завершить User Management и рефакторинг карточки пользователя;
 15. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
 16. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
@@ -954,7 +954,7 @@ Production acceptance после deployment:
 9. optional PageSpeed без key остаётся корректно disabled;
 10. после smoke повторяется базовый status/health check.
 
-Критерий закрытия `v4.24.0`: website monitoring и обязательные diagnostics работают через единый safe outbound boundary, incidents/alerts переживают restart без replay, а PackBot attribution и parity matrix соответствуют reviewed revision.
+Критерий operational closure линии `v4.24.x`: website monitoring и обязательные diagnostics работают через единый safe outbound boundary, incidents/alerts переживают restart без replay, PackBot attribution/parity соответствуют reviewed revision, а targeted findings `v4.24.0` подтверждены исправленными на deployed `v4.24.1`.
 
 
 ##### v4.24.1 — Hotfix diagnostics и IPv6
