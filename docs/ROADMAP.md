@@ -2156,7 +2156,17 @@ Production acceptance findings от 2026-09-28:
 - fix: для normal VPN-client subscription request безопасно проксировать reviewed HWID/device headers к 3x-ui upstream, не логировать их значения и сохранить существующую фильтрацию остальных headers; добавить regression coverage, что `X-HWID`/device metadata доходят до upstream и upstream HWID error не возникает из-за их потери;
 - `⚙️ Ещё действия` под `Read-only` подтверждён как корректный negative case: mutation-кнопки не отображаются, остаётся только возврат к карточке пользователя.
 
-Findings блокируют закрытие production acceptance `v4.25.0` до исправления shortcut/navigation и повторной проверки navigation/RBAC/back-chain.
+Findings блокируют закрытие production acceptance `v4.25.0` до исправления shortcut/navigation/create/HWID proxy и повторной проверки navigation/RBAC/back-chain.
+
+Отдельный HWID acceptance после исправления compat proxy:
+
+- prerequisite: на контролируемом test user `Max HWIDs > 0`; при отсутствии HWID limit механизм считается неактивным и реальная device registration не ожидается;
+- добавить публичную `/compat/{sub_id}` подписку в реальный mobile client, принудительно обновить subscription и подтвердить появление устройства в `Пользователь → 📱 Подключения → 📱 Устройства`;
+- повторить тот же сценарий с реальным desktop client;
+- проверить, что отображаются только разрешённые bounded metadata: модель/OS/version/User-Agent/short fingerprint/first+last seen без раскрытия полного HWID;
+- удалить одно test-device через двухшаговый confirmation flow, проверить post-condition и отсутствие удаления остальных устройств;
+- если конкретный клиент не регистрируется после proxy fix, отдельно подтвердить, отправляет ли он `X-HWID`/device metadata headers; отсутствие HWID headers у клиента не считать дефектом Telegram UI;
+- acceptance считается пройденным только после проверки хотя бы одного реального HWID-capable клиента через публичный compat URL, а не только synthetic direct-upstream `curl`.
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
