@@ -25,6 +25,8 @@ from audit import audit_system
 from runtime_jobs import backup_lock
 from logs_alerts import logs_alerts_router, alert_monitor_loop
 from cheburcheck_admin import cheburcheck_router
+from website_monitoring_admin import website_monitoring_router
+from website_monitoring_runtime import website_monitoring_loop
 from logging_setup import configure_logging
 from disaster_recovery import disaster_recovery_router, send_boot_restore_notice
 from restore_manager import RestoreManager
@@ -197,6 +199,7 @@ async def main():
     dp.include_router(observability_router)
     dp.include_router(logs_alerts_router)
     dp.include_router(cheburcheck_router)
+    dp.include_router(website_monitoring_router)
     dp.include_router(disaster_recovery_router)
     dp.include_router(business_router)
     backup_task = (
@@ -204,13 +207,24 @@ async def main():
         if settings.backup_enabled else None
     )
     alert_task = asyncio.create_task(alert_monitor_loop(bot))
+    website_monitoring_task = asyncio.create_task(website_monitoring_loop(bot))
     try:
         await dp.start_polling(bot)
     finally:
-        for task in (backup_task, alert_task, deploy_recovery_task):
+        for task in (
+            backup_task,
+            alert_task,
+            website_monitoring_task,
+            deploy_recovery_task,
+        ):
             if task:
                 task.cancel()
-        for task in (backup_task, alert_task, deploy_recovery_task):
+        for task in (
+            backup_task,
+            alert_task,
+            website_monitoring_task,
+            deploy_recovery_task,
+        ):
             if task:
                 try:
                     await task
