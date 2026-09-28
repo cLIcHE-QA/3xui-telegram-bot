@@ -87,6 +87,7 @@ class V4232CheburcheckTests(unittest.TestCase):
         result = replace(
             fixture_result(),
             probe_summary=ProbeSummary(
+                online_probes=11,
                 response_count=11,
                 green=8,
                 red=2,
