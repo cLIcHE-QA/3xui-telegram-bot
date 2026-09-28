@@ -186,10 +186,10 @@ class AdminBoundaryRegressionTests(unittest.IsolatedAsyncioTestCase):
             patch.object(module, "audit_from_call", new=AsyncMock()),
             patch.object(module, "render_callback", new=AsyncMock()),
         ):
-            disable_call = SimpleNamespace(data="admindisable:101", answer=AsyncMock())
-            enable_call = SimpleNamespace(data="adminenable:101", answer=AsyncMock())
-            await module.admin_disable(disable_call)
-            await module.admin_enable(enable_call)
+            disable_call = SimpleNamespace(data="admindisablerun:101", answer=AsyncMock())
+            enable_call = SimpleNamespace(data="adminenablerun:101", answer=AsyncMock())
+            await module.admin_disable_run(disable_call)
+            await module.admin_enable_run(enable_call)
 
         self.assertEqual(
             xui_mock.update_client.await_args_list[0].kwargs,
