@@ -2143,14 +2143,16 @@ Production acceptance после публикации `v4.25.0` должен п�
 
 Acceptance считается закрытым только если navigation contract принят на Telegram Desktop и mobile, privilege boundaries подтверждены, legacy sync paths не выдают лишний доступ, а новые HWID/IP calls соответствуют pinned 3x-ui contract.
 
-Production acceptance finding от 2026-09-28:
+Production acceptance findings от 2026-09-28:
 
 - под `Read-only` главная карточка пользователя ошибочно показывает shortcut `⏳ Продлить` с callback `adminextend:{telegram_id}`, хотя callback защищён privilege `users.support`; backend RBAC корректно не допускает mutation, но keyboard нарушает role-aware UI contract;
 - acceptance review подтвердил более чистый fix: полностью убрать shortcut `⏳ Продлить` с главной карточки пользователя для всех ролей; продление срока остаётся только в каноническом parent-screen `📅 Срок → ➕ +30 дней`;
 - callback `adminextend:{telegram_id}` не удаляется: он остаётся backend action под `users.support` для кнопки `➕ +30 дней` и для совместимости со старыми сохранёнными Telegram callbacks;
+- `Пользователь → 🔗 Подписка → Показать URL` теряет parent context: текущий `adminsub:{telegram_id}` рендерит Back в карточку пользователя; fix — возвращать в канонический parent-screen `🔗 Подписка`;
+- `Пользователь → 💳 Платежи → 📋 Все платежи` теряет user-scoped context: кнопка уводит в глобальный `admin:payments`, после чего Back ведёт в admin home; fix — не покидать user-scoped payment flow и сохранять возврат в `💳 Платежи` текущего пользователя;
 - `⚙️ Ещё действия` под `Read-only` подтверждён как корректный negative case: mutation-кнопки не отображаются, остаётся только возврат к карточке пользователя.
 
-Finding блокирует закрытие production acceptance `v4.25.0` до удаления shortcut с главной карточки и повторной проверки navigation/RBAC.
+Findings блокируют закрытие production acceptance `v4.25.0` до исправления shortcut/navigation и повторной проверки navigation/RBAC/back-chain.
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
