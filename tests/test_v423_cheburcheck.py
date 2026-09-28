@@ -157,9 +157,9 @@ class V423CheburcheckTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [item.callback_data for item in targets],
             [
-                "admin:cheburcheck:master",
-                "admin:cheburcheck:node:2",
-                "admin:cheburcheck:host:7",
+                "admin:cheburcheck:target:master",
+                "admin:cheburcheck:target:node:2",
+                "admin:cheburcheck:target:host:7",
             ],
         )
 
