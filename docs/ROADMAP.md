@@ -270,7 +270,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 14. compact Inbound keyboard follow-up после production smoke `v4.20.9` — ✅ выполнено и принято в production в `v4.20.10`.
 15. редактируемое display name пользователя без изменения 3x-ui machine identity — ✅ выполнено и принято в production в `v4.21.0`; follow-up fixes закрыты и приняты в production в `v4.21.2`.
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
-17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ выполнено и принято в production в `v4.23.1`; follow-up `v4.23.2` запланирован для компактного расширения result parity (списки/региональная доступность) и строгой context-preserving navigation.
+17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ выполнено и принято в production в `v4.23.1`; follow-up `v4.23.2` с compact result parity и context-preserving navigation — 🟡 реализован в `main`, release ещё не опубликован.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ⬜ запланировано на `v4.24.0`.
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ⬜ запланировано на `v4.25.0`.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
@@ -293,14 +293,16 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 7. отдельным релизом `v4.21.0` добавить редактируемое display name пользователя;
 8. отдельным релизом `v4.22.0` добавить User/Audience Groups;
 9. отдельным релизом `v4.23.0` интегрировать Cheburcheck;
-10. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
-11. отдельным релизом `v4.25.0` завершить User Management и рефакторинг карточки пользователя;
-12. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
-13. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-14. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-15. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-16. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-17. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+10. patch-релизом `v4.23.1` закрыть ASN response-limit acceptance defect;
+11. patch-релизом `v4.23.2` завершить compact result parity и context-preserving navigation Cheburcheck;
+12. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics;
+13. отдельным релизом `v4.25.0` завершить User Management и рефакторинг карточки пользователя;
+14. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
+15. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+16. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+17. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+18. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+19. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
@@ -548,7 +550,7 @@ upstream checker/database logic
 
 ##### v4.23.2 — Cheburcheck: расширенный результат и контекстная навигация
 
-**Статус: ⬜ Запланировано на `v4.23.2`.**
+**Статус: 🟡 Реализовано в `main`; release `v4.23.2` ещё не опубликован.**
 
 Scope:
 
