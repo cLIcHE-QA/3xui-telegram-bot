@@ -7,7 +7,7 @@
 - repository: `LowderPlay/cheburcheck`
 - reviewed revision: `0bbd2be8ca4b8f9ded1407597654314fc2a900c6`
 - license: BSD 3-Clause
-- upstream API used by bot: `GET /api/v1/check?target=...`
+- upstream API used by bot: `GET /api/v1/check?target=...` и bounded `GET /api/v1/probe/{id}` для regional probe summary
 
 Авторские уведомления и полный license notice находятся в [../THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
@@ -31,6 +31,7 @@
 
 Дополнительно карточки Master и direct node содержат read-only shortcut `🔎 Проверить блокировку`. Callback хранит только stable identity (`master` или `node_id`), а актуальный адрес перечитывается в момент проверки; адрес не кодируется в callback data.
 
+Контекст входа сохраняется до конца flow: Monitoring/discovered/manual остаётся внутри `Мониторинг → Проверка блокировок`, shortcut из Master возвращается только в Master, shortcut из direct Node — только в ту же Node. `Проверить ещё`, Cancel, retry и error-state не создают cross-context jump.
 
 Инструмент доступен роли Read-only и выше. Он не меняет VPN state, не выполняет provisioning и не вызывает 3x-ui mutations.
 
@@ -79,7 +80,10 @@ Bot client:
 - не принимает и не проксирует произвольные HTTP URL;
 - не следует redirects;
 - использует connect timeout 3 s, read timeout 7 s, total timeout 10 s;
-- ограничивает response body 1 MiB;
+- ограничивает `/api/v1/check` response body 1 MiB;
+- regional SSE `/api/v1/probe/{id}` использует только `id`, полученный из успешного check response, total/connect/read timeouts 12/3/10 s и отдельный hard limit 256 KiB;
+- subnet/ASN не запускают regional probe, потому что reviewed upstream endpoint их не принимает;
+- ошибка/недоступность regional probe не превращает уже успешный static check в ошибку: Telegram показывает `🌍 Регионы: —`;
 - ограничивает concurrent requests;
 - имеет per-admin cooldown;
 - различает rate limit, rejected/not-found target, unavailable service и malformed response.
@@ -96,11 +100,34 @@ Reviewed upstream response содержит как минимум:
 - `ips`;
 - `reverse_lookup`;
 - `blocked_subnets`;
+- `cdn_providers`;
 - `geo`;
 - optional `rkn_domain`, `asn_info`, `whitelist`, `subnet_size`;
 - `complaints`.
 
-Bot показывает bounded operational summary и не копирует полный raw payload в UI, audit или logs.
+Для domain/public-IP check response `id` может использоваться только для последующего `GET /api/v1/probe/{id}`. Regional SSE results агрегируются в три operator buckets: `🟢` доступно, `🔴` блокирующий verdict/CDN block, `🟡` whitelist/uncertain. В основной карточке не выводятся individual probe/region payloads.
+
+Канонический compact result:
+
+~~~text
+🔎 Проверка блокировок
+
+Цель: example.org
+Результат: 🟢 блокировка не обнаружена
+Сеть: Example ISP · AS12345 · Москва
+
+📋 Списки
+РКН: 🟢 не найден
+CDN: Cloudflare · 3 сетей
+Исключение CDN: —
+ASN: 2 / 184 подсетей в списках
+
+🌍 Регионы: 11 ответов · 🟢 8 · 🔴 2 · 🟡 1
+
+Источник: Cheburcheck.
+~~~
+
+Bot показывает только bounded operational summary и не копирует полный raw payload в UI, audit или logs.
 
 ## v4.23.1 production note
 
