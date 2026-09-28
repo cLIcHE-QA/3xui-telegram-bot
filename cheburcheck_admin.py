@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, replace
 import time
 from urllib.parse import urlsplit
@@ -294,7 +295,7 @@ def _network_word(count: int) -> str:
 
 def _cdn_text(result: CheburcheckResult) -> str:
     if not result.cdn_providers:
-        return "—"
+        return "🟢 не найден"
     names = ", ".join(item.name for item in result.cdn_providers[:3])
     if len(result.cdn_providers) > 3:
         names += f", … ещё {len(result.cdn_providers) - 3}"
@@ -329,12 +330,21 @@ def result_text(result: CheburcheckResult) -> str:
         )
 
     regions = "—"
+    target = result.target.strip().upper()
+    regional_supported = "/" not in target and not target.startswith("AS")
     if result.probe_summary is not None:
         summary = result.probe_summary
-        regions = (
-            f"{summary.response_count} ответов · "
-            f"🟢 {summary.green} · 🔴 {summary.red} · 🟡 {summary.yellow}"
-        )
+        if summary.online_probes == 0:
+            regions = "⚪ нет активных региональных сканеров"
+        elif summary.response_count == 0:
+            regions = f"🟡 нет ответов · {summary.online_probes} сканеров онлайн"
+        else:
+            regions = (
+                f"{summary.response_count} ответов · "
+                f"🟢 {summary.green} · 🔴 {summary.red} · 🟡 {summary.yellow}"
+            )
+    elif regional_supported:
+        regions = "🟡 региональная проверка недоступна"
 
     return "\n".join([
         "🔎 Проверка блокировок",
@@ -357,11 +367,23 @@ def result_text(result: CheburcheckResult) -> str:
 
 async def _check_result(target: str) -> CheburcheckResult:
     result = await client.check(target)
-    try:
-        probe_summary = await client.probe_summary(result)
-    except CheburcheckError:
-        probe_summary = None
-    return replace(result, probe_summary=probe_summary)
+
+    asn_task = client.asn_summary(result)
+    probe_task = client.probe_summary(result)
+    asn_summary, probe_summary = await asyncio.gather(
+        asn_task,
+        probe_task,
+        return_exceptions=True,
+    )
+
+    updates = {}
+    if not isinstance(asn_summary, Exception) and asn_summary is not None:
+        blocked_count, prefix_count = asn_summary
+        updates["asn_blocked_prefix_count"] = blocked_count
+        updates["asn_prefix_count"] = prefix_count
+    if not isinstance(probe_summary, Exception):
+        updates["probe_summary"] = probe_summary
+    return replace(result, **updates)
 
 def _consume_cooldown(actor_id: int) -> bool:
     now = time.monotonic()
