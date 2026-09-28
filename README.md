@@ -130,12 +130,14 @@ domain routers
 ├─ host_control_ui.py
 ├─ fleet_operations.py
 ├─ website_monitoring.py
+├─ website_monitoring_runtime.py
+├─ website_monitoring_admin.py
 └─ disaster_recovery.py
 ~~~
 
 `bot.py` сохраняется как стабильный executable path, в том числе для `restore_bootstrap.py`, но не владеет domain handlers или lifecycle implementation.
 
-`website_monitoring.py` содержит foundation запланированного `v4.24.0`: SQLite repository/state machine и общий SSRF-safe outbound HTTP boundary. До завершения release scope этот модуль не означает, что Telegram UI website monitoring уже опубликован.
+Линия `v4.24.0` реализуется нативно: `website_monitoring.py` содержит SQLite repository/state machine и SSRF-safe outbound boundary, `website_monitoring_runtime.py` — bounded scheduler/incident notifications, а `website_monitoring_admin.py` — `/admin → Мониторинг → Мониторинг сайтов`. Release scope остаётся незавершённым до diagnostics/parity/acceptance.
 
 ### 3x-ui API contract
 
