@@ -12,6 +12,7 @@ from subscription_proxy import (
     SubscriptionProxy,
     _try_decode_subscription,
     convert_vpn_to_amneziawg,
+    filter_incy_desktop_awg,
     remove_shadowrocket_xhttp_reality_fp,
 )
 
@@ -57,6 +58,19 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         converted = convert_vpn_to_amneziawg(f"vpn://{payload}")
         self.assertTrue(converted.startswith("amneziawg://"))
         self.assertTrue(converted.endswith("#Finland%20AWG"))
+
+    def test_incy_desktop_filters_awg_entries_only(self):
+        text = (
+            "vpn://YWJjZA#AWG\n"
+            "amneziawg://ZWVmZw#AWG2\n"
+            "awg://aGlqaw#AWG3\n"
+            "vless://id@example.test:443?type=tcp#VLESS"
+        )
+        filtered = filter_incy_desktop_awg(text)
+        self.assertNotIn("vpn://", filtered)
+        self.assertNotIn("amneziawg://", filtered)
+        self.assertNotIn("awg://", filtered)
+        self.assertIn("vless://id@example.test:443?type=tcp#VLESS", filtered)
 
     def test_shadowrocket_removes_fp_only_for_vless_xhttp_reality(self):
         xhttp = (
@@ -163,6 +177,69 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(lines[0].startswith("amneziawg://"))
         self.assertNotIn("fp=", lines[1])
         self.assertIn("fp=chrome", lines[2])
+
+    async def test_incy_desktop_uses_documented_platform_ua_and_mobile_keeps_awg(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+        body = b"vpn://YWJjZA#AWG\nvless://id@example.test:443?type=tcp#VLESS"
+        proxy._fetch = AsyncMock(return_value=(200, body, {}))
+
+        desktop = await proxy.subscription(
+            self.request("known", headers={"User-Agent": "INCY/1.2.3/Windows"})
+        )
+        self.assertNotIn(b"vpn://", desktop.body)
+        self.assertNotIn(b"amneziawg://", desktop.body)
+        self.assertIn(b"vless://", desktop.body)
+
+        mobile = await proxy.subscription(
+            self.request("known", headers={"User-Agent": "INCY/1.2.3/Android"})
+        )
+        self.assertIn(b"amneziawg://YWJjZA#AWG", mobile.body)
+
+    async def test_hwid_rejections_preserve_404_and_diagnostic_headers(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+
+        proxy._fetch = AsyncMock(return_value=(
+            404,
+            b"",
+            {
+                "X-Hwid-Active": "true",
+                "X-Hwid-Limit": "true",
+                "X-Hwid-Max-Devices-Reached": "true",
+            },
+        ))
+        response = await proxy.subscription(self.request("known"))
+        self.assertEqual(response.status, 404)
+        self.assertEqual(response.headers["X-Hwid-Active"], "true")
+        self.assertEqual(response.headers["X-Hwid-Max-Devices-Reached"], "true")
+        self.assertIn(b"hwid_max_devices_reached", response.body)
+
+        proxy._fetch = AsyncMock(return_value=(
+            404,
+            b"",
+            {"X-Hwid-Active": "true", "X-Hwid-Not-Supported": "true"},
+        ))
+        response = await proxy.subscription(self.request("known"))
+        self.assertEqual(response.status, 404)
+        self.assertEqual(response.headers["X-Hwid-Not-Supported"], "true")
+        self.assertIn(b"hwid_not_supported", response.body)
+
+    async def test_generic_upstream_404_stays_gateway_error(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+        proxy._fetch = AsyncMock(return_value=(404, b"", {}))
+        with self.assertRaises(web.HTTPBadGateway):
+            await proxy.subscription(self.request("known"))
+
+    async def test_proxy_never_synthesizes_hwid(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+        proxy._fetch = AsyncMock(return_value=(200, b"vless://id@example.test:443", {}))
+
+        await proxy.subscription(self.request("known", headers={"User-Agent": "Shadowrocket/2.2"}))
+        forwarded = proxy._fetch.await_args.kwargs["headers"]
+        self.assertNotIn("X-HWID", forwarded)
 
     async def test_upstream_network_and_http_failures_are_bad_gateway(self):
         db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
