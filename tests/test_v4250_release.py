@@ -24,7 +24,7 @@ class V4251ReleaseTests(unittest.TestCase):
         self.assertIn("git checkout --detach v4.25.4", admin_setup)
         self.assertIn("Bot version: 4.25.4", admin_setup)
         self.assertIn(
-            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2` и `v4.25.4` текущая bot schema version — **5**",
+            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3` и `v4.25.4` текущая bot schema version — **5**",
             sqlite_doc,
         )
 
@@ -47,7 +47,7 @@ class V4251ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_roadmap_marks_v4252_partial_acceptance_and_v4253_required(self):
+    def test_roadmap_tracks_v4253_history_and_v4254_streisand_patch(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn(
             "✅ Опубликовано в `v4.25.1` и принято в production.",
@@ -58,11 +58,15 @@ class V4251ReleaseTests(unittest.TestCase):
             roadmap,
         )
         self.assertIn(
-            "##### v4.25.4 — INCY Desktop UA compatibility",
+            "##### v4.25.3 — INCY Desktop UA compatibility",
             roadmap,
         )
         self.assertIn(
             "INCY Desktop: **FAIL** — AWG entries остались.",
+            roadmap,
+        )
+        self.assertIn(
+            "##### v4.25.4 — Streisand plain subscription compatibility",
             roadmap,
         )
         self.assertIn(
