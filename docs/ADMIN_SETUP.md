@@ -1164,3 +1164,8 @@ cat /etc/3xui-host-control/nginx-snapshot.env
 - docs/HOST_CONTROL_AGENT.md
 - docs/VPS_RECOVERY.md
 - docs/GIT_WORKFLOW.md
+
+
+## Shadowrocket: обязательный Send HWID при активном device limit
+
+Для пользователя с `HWID limit > 0` в Shadowrocket включите `Send HWID` / «Отправлять HWID», затем обновите подписку. Если все device slots заняты, удалите ненужное устройство или увеличьте per-user `HWID limit`; proxy не генерирует synthetic HWID и не обходит лимит.
