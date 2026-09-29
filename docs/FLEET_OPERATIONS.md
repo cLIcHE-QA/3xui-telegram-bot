@@ -69,6 +69,8 @@ Maintenance только ставит direct node в control-plane pause чер�
 
 Пользователь без policy alternative не мутируется. Drain не использует legacy attach-all и никогда автоматически не вызывает Stop Xray или Stop service.
 
+Один Drain ограничен 500 затронутыми пользователями и выполняется последовательно; превышение лимита блокирует запуск на preflight, а не создаёт unbounded batch.
+
 Persistent journal хранится в `fleet/drain-<id>.json` рядом с bot DB с private permissions. Journal не содержит email, subscription URL, `sub_id` или credentials.
 
 После restart незавершённый `draining` переводится в `interrupted`, parent job — в `unknown`; mutation не replay'ится.
