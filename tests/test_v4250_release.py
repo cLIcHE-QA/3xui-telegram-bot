@@ -47,14 +47,18 @@ class V4251ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_roadmap_records_streisand_hwid_incompatibility_and_revert(self):
+    def test_roadmap_closes_v425_line_after_v4256_acceptance(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn("##### v4.25.4 — Streisand plain subscription compatibility", roadmap)
         self.assertIn("##### v4.25.5 — Streisand plain mode precedence", roadmap)
         self.assertIn("##### v4.25.6 — Streisand incompatibility / forward revert", roadmap)
+        self.assertIn("test 50 — version/health: **PASS**", roadmap)
+        self.assertIn("test 55 — Streisand: **EXPECTED LIMITATION**", roadmap)
+        self.assertIn("test 56 — final bot/DB/3x-ui health: **PASS**", roadmap)
         self.assertIn("hwid_not_supported", roadmap)
         self.assertIn("не передаёт совместимый `X-HWID`", roadmap)
-        self.assertIn("вернуть runtime subscription proxy и его regression contract к `v4.25.3`", roadmap)
+        self.assertIn("линия `v4.25.x` полностью production-accepted и закрыта", roadmap)
+        self.assertIn("Следующий активный релиз — `v4.26.0` Node Drain.", roadmap)
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
