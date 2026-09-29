@@ -26,13 +26,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from admin_auth import authorize_callback
+from admin_auth import ROLE_RANK, authorize_callback
 from admin_ui import render_callback
 from audit import audit_system
 from backup_manager import BackupManager
 from config import HostControlTarget, load_settings
 from db import Database
 from host_control import HostControlClient, HostControlError
+from node_drain import DrainPlanStore, NodeDrainBlocked, NodeDrainError, NodeDrainService, NodeDrainUnknown
 from node_ui import node_display_name, node_status_text
 from system_backup import SystemBackupService
 from version_api import same_version
@@ -51,6 +52,8 @@ db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
 system_backup = SystemBackupService(backup_manager, settings.node_backup_targets, settings.host_control_targets)
+drain_service = NodeDrainService(db, xui, settings)
+drain_store = DrainPlanStore(Path(settings.db_path).parent / "fleet")
 fleet_router = Router(name="fleet_operations")
 
 MAX_MUTATION_TARGETS = 20
@@ -230,7 +233,18 @@ async def _assess_node(node: NodeInfo) -> dict[str, Any]:
     else:
         state = "degraded"
 
+    drain_plan = drain_store.latest_for_node(node.id)
+    drain_state = str((drain_plan or {}).get("state") or "")
+    if drain_state == "draining":
+        state = "draining"
+    elif drain_state == "drained":
+        state = "drained"
+    elif drain_state in {"partial", "unknown", "interrupted"}:
+        state = "degraded"
+
     problems: list[str] = []
+    if drain_state in {"partial", "unknown", "interrupted"}:
+        problems.append(f"Node Drain={drain_state}")
     if not master_online:
         problems.append(f"Master={node_status_text(node.status)}")
     if not direct_online:
@@ -269,6 +283,8 @@ def _health_icon(state: str) -> str:
     return {
         "healthy": "🟢",
         "maintenance": "🛠",
+        "draining": "🚧",
+        "drained": "✅",
         "offline": "🔴",
         "degraded": "🟡",
     }.get(state, "🟡")
@@ -277,6 +293,8 @@ def _health_icon(state: str) -> str:
 HEALTH_STATE_LABELS = {
     "healthy": "здоровы",
     "maintenance": "обслуживание",
+    "draining": "выводится из трафика",
+    "drained": "выведена из трафика",
     "offline": "не в сети",
     "degraded": "деградация",
 }
@@ -351,6 +369,7 @@ def _fleet_home_keyboard() -> InlineKeyboardMarkup:
             ("🛠 Включить обслуживание", "admin:fleet:mt:e"),
             ("▶ Выключить обслуживание", "admin:fleet:mt:x"),
         ],
+        [("🚧 Вывести из трафика", "admin:fleet:drain")],
         [("🚀 Контролируемое обновление", "admin:fleet:rollout")],
         [("🧾 Задания по нодам", "admin:fleet:jobs")],
         [("⬅ Инфраструктура", "admin:section:infrastructure")],
@@ -387,12 +406,13 @@ async def fleet_health(call: CallbackQuery):
         await render_callback(call, f"🔴 Состояние нод: {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
         return
 
-    counts = {name: 0 for name in ("healthy", "maintenance", "degraded", "offline")}
+    counts = {name: 0 for name in ("healthy", "maintenance", "draining", "drained", "degraded", "offline")}
     lines = ["🩺 Состояние нод", ""]
     for item in assessments:
         counts[item["state"]] = counts.get(item["state"], 0) + 1
     lines.append(
         f"🟢 Здоровы: {counts['healthy']} · 🛠 Обслуживание: {counts['maintenance']} · "
+        f"🚧 Drain: {counts['draining']} · ✅ Drained: {counts['drained']} · "
         f"🟡 Деградация: {counts['degraded']} · 🔴 Не в сети: {counts['offline']}"
     )
     lines.append("")
@@ -415,6 +435,263 @@ async def fleet_health(call: CallbackQuery):
         "\n".join(lines),
         reply_markup=_keyboard([
             [("🔄 Обновить", "admin:fleet:health")],
+            [("⬅ Операции с нодами", "admin:fleet")],
+        ]),
+    )
+
+
+def _drain_summary(review) -> str:
+    return (
+        f"Нода: {node_display_name(review.node_name)} · ID {review.node_id}\n"
+        f"Target Inbounds: {len(review.target_inbound_ids)}\n"
+        f"Затронуто пользователей: {review.affected_users}\n"
+        f"Готовы к переносу: {review.movable_users}\n"
+        f"Blockers: {review.blockers}"
+    )
+
+
+@fleet_router.callback_query(F.data == "admin:fleet:drain")
+async def drain_home(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    await call.answer()
+    try:
+        nodes = await _direct_nodes()
+    except Exception as exc:
+        await render_callback(
+            call,
+            f"🔴 Node Drain: {safe_error(exc)}",
+            reply_markup=_fleet_home_keyboard(),
+        )
+        return
+    rows: list[list[tuple[str, str]]] = []
+    lines = [
+        "🚧 Node Drain",
+        "",
+        "Drain отдельно от maintenance: сначала блокируются новые назначения, затем пользователи переводятся на policy alternatives по правилу attach-before-detach.",
+        "",
+    ]
+    for node in nodes[:50]:
+        plan = drain_store.latest_for_node(node.id)
+        state = str((plan or {}).get("state") or "")
+        suffix = {
+            "draining": " · 🚧 draining",
+            "drained": " · ✅ drained",
+            "partial": " · 🟡 partial",
+            "unknown": " · 🟡 unknown",
+            "interrupted": " · 🟡 interrupted",
+        }.get(state, "")
+        rows.append([(
+            f"🌍 {node_display_name(node.name)} · ID {node.id}{suffix}",
+            f"admin:fleet:drain:n{node.id}",
+        )])
+    if not rows:
+        lines.append("Прямые ноды не найдены.")
+    rows.append([("⬅ Операции с нодами", "admin:fleet")])
+    await render_callback(call, "\n".join(lines), reply_markup=_keyboard(rows))
+
+
+@fleet_router.callback_query(F.data.regexp(r"^admin:fleet:drain:n[1-9][0-9]{0,18}$"))
+async def drain_preflight(call: CallbackQuery):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    try:
+        node_id = int((call.data or "").rsplit("n", 1)[1])
+    except (TypeError, ValueError):
+        await call.answer("Некорректный ID ноды", show_alert=True)
+        return
+    await call.answer()
+    await render_callback(call, "🚧 Node Drain: выполняю read-only preflight…")
+    try:
+        review = await drain_service.review(node_id)
+    except Exception as exc:
+        await render_callback(
+            call,
+            f"🔴 Node Drain preflight: {safe_error(exc)}",
+            reply_markup=_keyboard([
+                [("⬅ Node Drain", "admin:fleet:drain")],
+            ]),
+        )
+        return
+    rows: list[list[tuple[str, str]]] = []
+    if ROLE_RANK.get(role or "", 0) >= ROLE_RANK["admin"]:
+        rows.append([("➡ Подготовить Drain", f"admin:fleet:drain:n{node_id}:prepare")])
+    rows.append([("🔄 Обновить", f"admin:fleet:drain:n{node_id}")])
+    rows.append([("⬅ Node Drain", "admin:fleet:drain")])
+    await render_callback(
+        call,
+        "🚧 Node Drain · preflight\n\n"
+        + _drain_summary(review)
+        + "\n\nBlockers не мутируются. Active Xray sessions специально не обрываются.",
+        reply_markup=_keyboard(rows),
+    )
+
+
+@fleet_router.callback_query(F.data.regexp(r"^admin:fleet:drain:n[1-9][0-9]{0,18}:prepare$"))
+async def drain_prepare(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="admin")
+    if not ok:
+        return
+    try:
+        node_id = int((call.data or "").split(":")[-2][1:])
+        review = await drain_service.review(node_id)
+        actor = int(call.from_user.id) if call.from_user else 0
+        plan = drain_store.create(review, actor_id=actor)
+    except Exception as exc:
+        await call.answer(str(exc)[:180], show_alert=True)
+        return
+    await call.answer()
+    await render_callback(
+        call,
+        "🚧 Node Drain · подтверждение\n\n"
+        + _drain_summary(review)
+        + "\n\nСначала нода будет исключена из новых назначений через maintenance primitive. "
+          "Stop Xray/service не выполняются.",
+        reply_markup=_keyboard([
+            [("✅ Начать Drain", f"admin:fleet:drain:{plan['id']}:run")],
+            [("✖ Отмена", f"admin:fleet:drain:{plan['id']}:cancel")],
+        ]),
+    )
+
+
+@fleet_router.callback_query(F.data.regexp(r"^admin:fleet:drain:[0-9a-f]{12}:cancel$"))
+async def drain_cancel(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="admin")
+    if not ok:
+        return
+    plan_id = (call.data or "").split(":")[-2]
+    try:
+        plan = drain_store.get(plan_id)
+        if str(plan.get("state")) != "review":
+            raise NodeDrainError("Запущенный Drain нельзя отменить как неприменённый.")
+        plan["state"] = "cancelled"
+        plan["updated_at"] = int(time.time())
+        drain_store.save(plan)
+    except Exception as exc:
+        await call.answer(str(exc)[:180], show_alert=True)
+        return
+    await call.answer("Отменено")
+    await render_callback(call, "⏹ Node Drain отменён до mutation.", reply_markup=_fleet_home_keyboard())
+
+
+@fleet_router.callback_query(F.data.regexp(r"^admin:fleet:drain:[0-9a-f]{12}:run$"))
+async def drain_run(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="admin")
+    if not ok:
+        return
+    plan_id = (call.data or "").split(":")[-2]
+    try:
+        plan = drain_store.get(plan_id)
+    except Exception as exc:
+        await call.answer(str(exc)[:180], show_alert=True)
+        return
+    if str(plan.get("state")) != "review":
+        await call.answer("Drain уже запускался; mutation не повторяется.", show_alert=True)
+        return
+
+    actor = int(call.from_user.id) if call.from_user else 0
+    node_id = int(plan.get("node_id") or 0)
+    await call.answer()
+    await render_callback(call, "🚧 Node Drain: выполняю последовательно…")
+
+    run_id = await db.start_job_run(
+        name="fleet.drain",
+        trigger="admin",
+        actor_id=actor,
+        details=f"plan={plan_id}; node={node_id}",
+    )
+    started = time.monotonic()
+    plan["state"] = "draining"
+    plan["job_id"] = run_id
+    plan["updated_at"] = int(time.time())
+    drain_store.save(plan)
+    await db.add_audit(
+        actor_id=actor,
+        action="fleet.drain.started",
+        target_type="node",
+        target_id=str(node_id),
+        details=f"plan={plan_id}",
+    )
+
+    results: dict[str, Any] = {}
+    final_state = "partial"
+    job_status = "failed"
+    try:
+        await _set_node_enabled(node_id, False)
+        for item in plan.get("users") or []:
+            telegram_id = int(item.get("telegram_id") or 0)
+            if not telegram_id or not item.get("target_inbound_ids"):
+                continue
+            if item.get("blocker"):
+                results[str(telegram_id)] = {"status": "blocked", "reason": str(item.get("blocker"))}
+                continue
+            try:
+                outcome = await drain_service.evacuate_user(node_id, telegram_id)
+                results[str(telegram_id)] = {"status": str(outcome.get("status") or "success")}
+            except NodeDrainBlocked as exc:
+                results[str(telegram_id)] = {"status": "blocked", "reason": str(exc)[:160]}
+            except NodeDrainUnknown as exc:
+                results[str(telegram_id)] = {"status": "unknown", "reason": str(exc)[:160]}
+                final_state = "unknown"
+                job_status = "unknown"
+                break
+            except Exception as exc:
+                results[str(telegram_id)] = {"status": "failed", "reason": type(exc).__name__}
+
+        if final_state != "unknown":
+            post = await drain_service.review(node_id)
+            if post.affected_users == 0 and post.blockers == 0:
+                final_state = "drained"
+                job_status = "success"
+            else:
+                final_state = "partial"
+                job_status = "failed"
+            plan["remaining_affected"] = post.affected_users
+            plan["remaining_blockers"] = post.blockers
+    except FleetMutationUnknown as exc:
+        final_state = "unknown"
+        job_status = "unknown"
+        results["_node"] = {"status": "unknown", "reason": str(exc)[:160]}
+    except Exception as exc:
+        final_state = "failed"
+        job_status = "failed"
+        results["_node"] = {"status": "failed", "reason": type(exc).__name__}
+
+    plan["state"] = final_state
+    plan["results"] = results
+    plan["updated_at"] = int(time.time())
+    drain_store.save(plan)
+    details = (
+        f"plan={plan_id}; node={node_id}; state={final_state}; "
+        f"remaining={int(plan.get('remaining_affected') or 0)}; "
+        f"blockers={int(plan.get('remaining_blockers') or 0)}"
+    )
+    await db.finish_job_run(
+        run_id,
+        status=job_status,
+        duration_ms=max(0, int((time.monotonic() - started) * 1000)),
+        details=details,
+    )
+    await db.add_audit(
+        actor_id=actor,
+        action=f"fleet.drain.{final_state}",
+        target_type="node",
+        target_id=str(node_id),
+        details=details,
+        success=final_state == "drained",
+    )
+    icon = {"drained": "✅", "partial": "🟡", "unknown": "🟡", "failed": "🔴"}.get(final_state, "•")
+    await render_callback(
+        call,
+        f"{icon} Node Drain · {final_state}\n\n"
+        f"Нода: ID {node_id}\n"
+        f"Осталось назначений: {int(plan.get('remaining_affected') or 0)}\n"
+        f"Blockers: {int(plan.get('remaining_blockers') or 0)}\n\n"
+        "Active Xray sessions не обрывались специально. Stop Xray/service не выполнялись.",
+        reply_markup=_keyboard([
+            [("🔄 Проверить", f"admin:fleet:drain:n{node_id}")],
             [("⬅ Операции с нодами", "admin:fleet")],
         ]),
     )
@@ -1227,6 +1504,30 @@ async def recover_fleet_operations() -> int:
             target_type="fleet",
             target_id=str(plan["id"]),
             details="process restarted; rollout not resumed; mutation_not_retried=true",
+            success=False,
+        )
+        recovered += 1
+
+    for plan in drain_store.list():
+        if plan.get("state") != "draining":
+            continue
+        plan["state"] = "interrupted"
+        plan["updated_at"] = int(time.time())
+        drain_store.save(plan)
+        job_id = int(plan.get("job_id") or 0)
+        if job_id:
+            await db.finish_job_run(
+                job_id,
+                status="unknown",
+                duration_ms=max(0, (int(time.time()) - int(plan.get("created_at") or time.time())) * 1000),
+                details=f"plan={plan['id']}; process restarted; mutation_not_retried=true",
+            )
+        await audit_system(
+            db,
+            "fleet.drain.recovered",
+            target_type="node",
+            target_id=str(plan.get("node_id") or ""),
+            details=f"plan={plan['id']}; process restarted; mutation_not_retried=true",
             success=False,
         )
         recovered += 1
