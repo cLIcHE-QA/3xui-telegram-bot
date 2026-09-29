@@ -502,13 +502,15 @@ async def admin_node_detail(call: CallbackQuery):
     text = node_detail_text(node)
     drain_plan = drain_store.latest_for_node(node_id)
     drain_state = str((drain_plan or {}).get("state") or "")
-    drain_line = {
-        "draining": "🚧 Node Drain: выводится из трафика",
-        "drained": "✅ Node Drain: выведена из трафика",
-        "partial": "🟡 Node Drain: частично, требуется проверка",
-        "unknown": "🟡 Node Drain: результат неизвестен",
-        "interrupted": "🟡 Node Drain: прерван, mutation не повторялась",
-    }.get(drain_state)
+    drain_line = None
+    if not node.enable:
+        drain_line = {
+            "draining": "🚧 Node Drain: выводится из трафика",
+            "drained": "✅ Node Drain: выведена из трафика",
+            "partial": "🟡 Node Drain: частично, требуется проверка",
+            "unknown": "🟡 Node Drain: результат неизвестен",
+            "interrupted": "🟡 Node Drain: прерван, mutation не повторялась",
+        }.get(drain_state)
     if drain_line:
         text += f"\n{drain_line}"
     if probe_error and not node.last_error:
