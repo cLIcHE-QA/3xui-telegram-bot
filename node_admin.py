@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -13,6 +14,7 @@ from backup_manager import BackupManager
 from config import load_settings
 from db import Database
 from host_control import HostControlClient, HostControlError
+from node_drain import DrainPlanStore
 from node_onboarding import AddNodeStates, node_mutation_payload, parse_node_url
 from node_ui import (
     add_node_retry_keyboard,
@@ -39,6 +41,7 @@ system_backup = SystemBackupService(
     settings.node_backup_targets,
     settings.host_control_targets,
 )
+drain_store = DrainPlanStore(Path(settings.db_path).parent / "fleet")
 
 node_admin_router = Router(name="node_admin")
 
@@ -497,6 +500,19 @@ async def admin_node_detail(call: CallbackQuery):
         return
 
     text = node_detail_text(node)
+    drain_plan = drain_store.latest_for_node(node_id)
+    drain_state = str((drain_plan or {}).get("state") or "")
+    drain_line = None
+    if not node.enable:
+        drain_line = {
+            "draining": "🚧 Node Drain: выводится из трафика",
+            "drained": "✅ Node Drain: выведена из трафика",
+            "partial": "🟡 Node Drain: частично, требуется проверка",
+            "unknown": "🟡 Node Drain: результат неизвестен",
+            "interrupted": "🟡 Node Drain: прерван, mutation не повторялась",
+        }.get(drain_state)
+    if drain_line:
+        text += f"\n{drain_line}"
     if probe_error and not node.last_error:
         text += f"\n⚠️ Проверка: {probe_error[:240]}"
     await render_callback(

@@ -244,9 +244,9 @@ class XUIClient(VersionAPIMixin):
         return await self._request("POST", f"/panel/api/nodes/del/{int(node_id)}")
 
     async def node_set_enable(self, node_id: int, enable: bool) -> dict[str, Any]:
-        return await self._request(
-            "POST", f"/panel/api/nodes/setEnable/{int(node_id)}",
-            json={"enable": bool(enable)},
+        return await self._mutation_request(
+            f"/panel/api/nodes/setEnable/{int(node_id)}",
+            json_payload={"enable": bool(enable)},
         )
 
     async def node_update_panels(self, node_ids: list[int], *, dev: bool = False) -> list[dict[str, Any]]:
@@ -599,19 +599,17 @@ class XUIClient(VersionAPIMixin):
     async def attach_client(self, email: str, inbound_ids: list[int]) -> dict[str, Any]:
         if not inbound_ids:
             return {"success": True, "obj": {"attached": [], "skipped": []}}
-        return await self._request(
-            "POST",
+        return await self._mutation_request(
             f"/panel/api/clients/{quote(email, safe='')}/attach",
-            json={"inboundIds": inbound_ids},
+            json_payload={"inboundIds": inbound_ids},
         )
 
     async def detach_client(self, email: str, inbound_ids: list[int]) -> dict[str, Any]:
         if not inbound_ids:
             return {"success": True, "obj": {"detached": [], "skipped": []}}
-        return await self._request(
-            "POST",
+        return await self._mutation_request(
             f"/panel/api/clients/{quote(email, safe='')}/detach",
-            json={"inboundIds": inbound_ids},
+            json_payload={"inboundIds": inbound_ids},
         )
 
     async def bulk_attach_clients(self, emails: list[str], inbound_ids: list[int]) -> dict[str, Any]:

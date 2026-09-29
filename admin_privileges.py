@@ -359,9 +359,10 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("host_control.view", "regex", r"^admin:hostctl:(m|n[1-9][0-9]{0,18})$")
     + _rules("host_control.destructive", "regex", r"^admin:hostctl:(m|n[1-9][0-9]{0,18}):(sp:(ask|run)|stopcancel|xs:(ask|run))$")
     + _rules("host_control.manage", "regex", r"^admin:hostctl:(m|n[1-9][0-9]{0,18}):(ss|sr|pr|xr):(ask|run)$")
-    + _rules("fleet.view", "exact", "admin:fleet", "admin:fleet:health", "admin:fleet:jobs")
+    + _rules("fleet.view", "exact", "admin:fleet", "admin:fleet:health", "admin:fleet:jobs", "admin:fleet:drain")
+    + _rules("fleet.view", "regex", r"^admin:fleet:drain:n[1-9][0-9]{0,18}$")
     + _rules("fleet.manage", "exact", "admin:fleet:rollout")
-    + _rules("fleet.manage", "regex", r"^admin:fleet:mt:(e|x)(:n[1-9][0-9]{0,18}|:review|:run)?$", r"^admin:fleet:ro:(p|x)(:n[1-9][0-9]{0,18}|:review)?$", r"^admin:fleet:ro:x:v:[A-Za-z0-9.-]+$", r"^admin:fleet:run:[0-9a-f]{12}:(canary|continue|cancel)$")
+    + _rules("fleet.manage", "regex", r"^admin:fleet:mt:(e|x)(:n[1-9][0-9]{0,18}|:review|:run)?$", r"^admin:fleet:ro:(p|x)(:n[1-9][0-9]{0,18}|:review)?$", r"^admin:fleet:ro:x:v:[A-Za-z0-9.-]+$", r"^admin:fleet:run:[0-9a-f]{12}:(canary|continue|cancel)$", r"^admin:fleet:drain:n[1-9][0-9]{0,18}:prepare$", r"^admin:fleet:drain:[0-9a-f]{12}:(run|cancel)$")
     + _rules("versions.view", "exact", "admin:versions")
     + _rules("versions.view", "regex", r"^admin:ver:(target|panel):(m|n[1-9][0-9]{0,18})$", r"^admin:ver:xray:(m|n[1-9][0-9]{0,18}):[0-9]+$", r"^admin:ver:check:[0-9a-f]{16}$")
     + _rules("versions.view", "regex", r"^admin:ver:op:[0-9a-f]{16}$")
@@ -428,6 +429,9 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         r"^admin:fleet:mt:(e|x):n[1-9][0-9]{0,18}$",
         r"^admin:fleet:mt:(e|x):review$",
         r"^admin:fleet:mt:(e|x):run$",
+        r"^admin:fleet:drain:n[1-9][0-9]{0,18}:prepare$",
+        r"^admin:fleet:drain:[0-9a-f]{12}:run$",
+        r"^admin:fleet:drain:[0-9a-f]{12}:cancel$",
         r"^admin:fleet:ro:(p|x)$",
         r"^admin:fleet:ro:(p|x):n[1-9][0-9]{0,18}$",
         r"^admin:fleet:ro:(p|x):review$",
