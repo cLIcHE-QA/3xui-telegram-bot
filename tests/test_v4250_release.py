@@ -76,7 +76,7 @@ class V4258ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_roadmap_closes_previous_v425_releases_after_v4256_acceptance(self):
+    def test_roadmap_closes_full_v425_line_after_v4258_acceptance(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn("##### v4.25.4 — Streisand plain subscription compatibility", roadmap)
         self.assertIn("##### v4.25.5 — Streisand plain mode precedence", roadmap)
@@ -86,13 +86,14 @@ class V4258ReleaseTests(unittest.TestCase):
         self.assertIn("test 56 — final bot/DB/3x-ui health: **PASS**", roadmap)
         self.assertIn("hwid_not_supported", roadmap)
         self.assertIn("не передаёт совместимый `X-HWID`", roadmap)
-        self.assertIn("релизы `v4.25.0–v4.25.7` полностью проверены и закрыты", roadmap)
-        self.assertIn("Следующий активный патч — `v4.25.8`", roadmap)
-        self.assertIn("следующий feature release — `v4.26.0` Node Drain.", roadmap)
+        self.assertIn("`v4.25.0–v4.25.8` полностью проверены и operationally закрыты", roadmap)
+        self.assertIn("Следующий активный runtime-релиз — `v4.26.0` Node Drain.", roadmap)
+        self.assertIn("issue #202 закрыт как `completed`", roadmap)
+        self.assertIn("issue #204 закрыт как `completed`", roadmap)
 
-    def test_previous_v425_sections_are_closed_without_claiming_streisand_support(self):
+    def test_v425_line_is_closed_without_claiming_streisand_support(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
-        for patch_version in range(7):
+        for patch_version in range(8):
             heading = f"##### v4.25.{patch_version} — "
             with self.subTest(release=heading):
                 self.assertEqual(roadmap.count(heading), 1)
@@ -102,6 +103,13 @@ class V4258ReleaseTests(unittest.TestCase):
                     self.assertIn("исторический diagnostic release", section)
                     self.assertIn("`v4.25.6`", section)
                     self.assertIn("не список полученных PASS", section)
+        self.assertEqual(roadmap.count("##### v4.25.8 — "), 2)
+        for heading in (
+            "##### v4.25.8 — Inbound clone navigation hotfix",
+            "##### v4.25.8 — Owner self-role safety",
+        ):
+            section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
+            self.assertIn("**Статус: ✅ Выполнено в `v4.25.8`", section)
         self.assertNotIn("production acceptance ещё не закрыт", roadmap)
         self.assertIn("**N/A production exception**", roadmap)
 
@@ -124,6 +132,23 @@ class V4258ReleaseTests(unittest.TestCase):
             "issue #202",
         ):
             self.assertIn(needle, section)
+
+    def test_v4258_production_acceptance_is_recorded(self):
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        for needle in (
+            "tag/GitHub Release `v4.25.8`",
+            "768fc0e4b9a0c0d2e35508febf272709896c3e7f",
+            "587 tests OK",
+            "targeted production tests navigation hotfix и Owner self-demotion safety — **PASS**",
+            "final bot/DB/3x-ui health — **PASS**",
+            "issues #202 и #204",
+            "Следующий активный runtime-релиз — `v4.26.0` Node Drain.",
+        ):
+            self.assertIn(needle, roadmap)
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована", readme)
+        self.assertIn("Следующий активный runtime-релиз — `v4.26.0` Node Drain.", readme)
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
