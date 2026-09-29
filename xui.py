@@ -599,19 +599,17 @@ class XUIClient(VersionAPIMixin):
     async def attach_client(self, email: str, inbound_ids: list[int]) -> dict[str, Any]:
         if not inbound_ids:
             return {"success": True, "obj": {"attached": [], "skipped": []}}
-        return await self._request(
-            "POST",
+        return await self._mutation_request(
             f"/panel/api/clients/{quote(email, safe='')}/attach",
-            json={"inboundIds": inbound_ids},
+            json_payload={"inboundIds": inbound_ids},
         )
 
     async def detach_client(self, email: str, inbound_ids: list[int]) -> dict[str, Any]:
         if not inbound_ids:
             return {"success": True, "obj": {"detached": [], "skipped": []}}
-        return await self._request(
-            "POST",
+        return await self._mutation_request(
             f"/panel/api/clients/{quote(email, safe='')}/detach",
-            json={"inboundIds": inbound_ids},
+            json_payload={"inboundIds": inbound_ids},
         )
 
     async def bulk_attach_clients(self, emails: list[str], inbound_ids: list[int]) -> dict[str, Any]:
