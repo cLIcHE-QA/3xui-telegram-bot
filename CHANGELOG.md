@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.25.4 — Streisand plain subscription compatibility
+- Добавлен opt-in `?plain=1` для raw subscription response: Base64-wrapped upstream body декодируется в newline-separated links.
+- `plain` является локальным параметром compat proxy и не пересылается upstream в 3x-ui.
+- Default `/compat/{sub_id}` без `plain` сохраняет прежний encoding и client-specific behavior, включая Shadowrocket, V2Box, V2RayTun, Happ и INCY.
+- HWID forwarding/enforcement и диагностические response headers не меняются.
+
 ## v4.25.3 — INCY Desktop UA compatibility
 - Исправлена детекция реального INCY macOS Desktop User-Agent вида `INCY/<version>/mac os x Dalvik/<runtime>`; AWG filtering теперь включается и для этого подтверждённого Desktop UA.
 - Парсер остаётся fail-closed для неизвестных INCY platform tokens и не применяет Desktop filtering к неоднозначным User-Agent.

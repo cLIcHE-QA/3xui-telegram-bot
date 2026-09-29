@@ -2322,6 +2322,39 @@ Targeted acceptance `v4.25.3`:
 Линия `v4.25` закрывается только после targeted acceptance `v4.25.3`.
 
 
+##### v4.25.4 — Streisand plain subscription compatibility
+
+**Статус: 🟡 В реализации как targeted compatibility patch перед переходом к `v4.26.0`.**
+
+Production finding после успешного acceptance `v4.25.3`:
+
+- Shadowrocket, V2Box, V2RayTun, Happ и INCY subscription import работают;
+- Streisand получает `HTTP 200`, но сообщает «подписка не содержит действующей конфигурации»;
+- та же subscription, сокращённая до двух VLESS entries, продолжает давать ту же ошибку;
+- оба VLESS entries импортируются в Streisand по одному успешно;
+- следовательно, finding локализован на subscription-container parsing, а не на VLESS transport/Reality URI.
+
+Объём `v4.25.4`:
+
+- добавить opt-in query flag `plain=1` / `plain=true` / `plain=yes`;
+- при `plain` возвращать decoded newline-separated subscription links после существующих client compatibility transforms;
+- не пересылать `plain` upstream в 3x-ui;
+- default `/compat/{sub_id}` без `plain` оставить неизменным по encoding/semantics;
+- сохранить HWID forwarding/enforcement и fail-closed error handling;
+- не добавлять UA-based Streisand detection: фактический Streisand request использует обычный Safari UA и неотличим от browser/WebView traffic.
+
+Targeted acceptance `v4.25.4`:
+
+1. Streisand с `?plain=1` импортирует subscription;
+2. те же VLESS entries появляются как валидные configs;
+3. обычный URL без `plain` остаётся byte-compatible по default encoding path;
+4. Shadowrocket/V2Box/V2RayTun/Happ/INCY smoke не регрессирует;
+5. HWID gate/full-slot diagnostics не регрессируют;
+6. final bot/DB/3x-ui health остаётся PASS.
+
+Линия `v4.25` закрывается только после targeted acceptance `v4.25.4`.
+
+
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
 
 **Статус: ⬜ Запланировано на `v4.26.0`.**
