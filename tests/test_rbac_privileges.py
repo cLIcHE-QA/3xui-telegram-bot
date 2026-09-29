@@ -54,6 +54,7 @@ class RBACPrivilegesTests(unittest.TestCase):
             "admin:payments": "read_only",
             "admin:payment:status:4:paid": "admin",
             "admin:administrators": "owner",
+            "admin:admsd:run:555:read_only:a1b2c3d4": "owner",
             "admin:privileges": "owner",
             "admin:settings": "read_only",
             "admin:alerts": "read_only",
