@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import os
+from pathlib import Path
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
@@ -34,6 +35,17 @@ def callbacks(markup):
 
 
 class V4258HotfixTests(unittest.IsolatedAsyncioTestCase):
+    def test_bug_issue_lifecycle_is_documented(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / "docs" / "GIT_WORKFLOW.md").read_text(encoding="utf-8")
+        for needle in (
+            "Закрытие bug-issue после исправления",
+            "targeted verification подтверждает",
+            "закрывается как `completed`",
+            "Новый независимый finding",
+        ):
+            self.assertIn(needle, workflow)
+
     async def asyncSetUp(self):
         self.storage = MemoryStorage()
 
