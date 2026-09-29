@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.25.8
+# Telegram-бот для 3x-ui v4.26.0
 
 Административный Telegram Control Plane для 3x-ui. Текущая production-линия проекта — **v4.x Admin Control Plane**; полноценный client-facing Client Portal запланирован отдельно для v5.x.
 
@@ -139,7 +139,9 @@ domain routers
 
 `bot.py` сохраняется как стабильный executable path, в том числе для `restore_bootstrap.py`, но не владеет domain handlers или lifecycle implementation.
 
-Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована, развёрнута, проверена и закрыта в production. Финальные patch findings закрыты в `v4.25.8`: Clone Inbound сохраняет source parent при `✖ Отмена`, а DB-backed Owner подтверждает self-demotion отдельным fail-closed confirmation flow. Subscription proxy сохраняет принятый контракт `v4.25.3`; временные Streisand workarounds из `v4.25.4–v4.25.5` удалены. Известное ограничение: Streisand не передаёт совместимый `X-HWID`, поэтому при включённом HWID limit 3x-ui отклоняет raw subscription как `hwid_not_supported`. Следующий активный runtime-релиз — `v4.26.0` Node Drain.
+Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована, развёрнута, проверена и закрыта в production. Финальные patch findings закрыты в `v4.25.8`: Clone Inbound сохраняет source parent при `✖ Отмена`, а DB-backed Owner подтверждает self-demotion отдельным fail-closed confirmation flow. Subscription proxy сохраняет принятый контракт `v4.25.3`; временные Streisand workarounds из `v4.25.4–v4.25.5` удалены. Известное ограничение: Streisand не передаёт совместимый `X-HWID`, поэтому при включённом HWID limit 3x-ui отклоняет raw subscription как `hwid_not_supported`.
+
+Текущий runtime-релиз `v4.26.0` добавляет graceful Node Drain для direct nodes: policy-based preflight, attach-before-detach, отдельные `draining` / `drained` состояния и no-replay recovery без смешения с maintenance или Owner-only Stop Xray/service. Релиз считается operationally закрытым только после production deployment, targeted Node Drain smoke и повторного базового health/status-check.
 
 Линия `v4.24.x` реализована, опубликована и принята в production: `website_monitoring.py` содержит SQLite repository/state machine и SSRF-safe outbound boundary, `website_monitoring_runtime.py` — bounded scheduler/incident notifications, `website_monitoring_admin.py` — persistent monitoring UI, а `website_diagnostics.py` / `website_diagnostics_admin.py` — one-off DNS/WHOIS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/URL-list/QR diagnostics. Production smoke `v4.24.0` выявил targeted findings WHOIS MSK, bounded Cheburcheck detail и public IPv6 literal validation; они закрыты в `v4.24.1`, после чего smoke/acceptance линии завершён.
 
