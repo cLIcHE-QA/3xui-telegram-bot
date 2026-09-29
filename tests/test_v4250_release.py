@@ -164,23 +164,27 @@ class V4260ReleaseTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована", readme)
 
-    def test_v4260_is_release_candidate_not_production_accepted(self):
+    def test_v4260_is_deployed_but_production_acceptance_is_partial(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         heading = "##### v4.26.0 — Node Drain / graceful traffic evacuation"
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
         for needle in (
-            "🟡 Реализовано в `main` для `v4.26.0`",
-            "production acceptance ещё не закрыт",
+            "`v4.26.0` опубликован и развёрнут",
+            "production acceptance частичный",
+            "полный mutation smoke ещё не закрыт",
             "issue #208",
             "implementation PR #209",
             "e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a",
-            "targeted production smoke",
+            "release-prep PR #210",
+            "cd39048a2da00443523e7b33b400f4c8b5dcd608",
+            "finding #211",
+            "полный mutation smoke",
         ):
             self.assertIn(needle, section)
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("Текущий runtime-релиз `v4.26.0` добавляет graceful Node Drain", readme)
-        self.assertIn("operationally закрытым только после production deployment", readme)
+        self.assertIn("targeted Node Drain smoke", readme)
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
