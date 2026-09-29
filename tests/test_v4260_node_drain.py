@@ -160,7 +160,9 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result["detached"], [20])
         self.assertEqual(xui.client_ids["one@example.test"], {10})
-        self.assertEqual(post.affected_users, 0)
+        self.assertEqual(post.affected_users, 1)
+        remaining = [item.telegram_id for item in post.users if item.target_inbound_ids]
+        self.assertEqual(remaining, [2])
 
     async def test_existing_alternative_detaches_without_extra_attach(self):
         db = FakeDB()
