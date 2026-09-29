@@ -278,7 +278,11 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("promo.manage", "exact", "admin:promoadd:start", "admin:promoadd:save", "admin:promoadd:cancel")
     + _rules("promo.manage", "prefix", "admin:promoadd:type:", "admin:promoadd:plan:", "admin:promo:toggle:", "admin:promo:deleteask:", "admin:promo:delete:")
     + _rules("administrators.manage", "exact", "admin:administrators", "admin:administratoradd:start", "admin:administratoradd:cancel")
-    + _rules("administrators.manage", "prefix", "admin:administrator:", "admin:administratoradd:role:")
+    + _rules(
+        "administrators.manage",
+        "prefix",
+        "admin:administrator:", "admin:administratoradd:role:", "admin:admsd:run:",
+    )
     + _rules("administrators.privileges.view", "exact", "admin:privileges")
     + _rules("settings.view", "exact", "admin:settings")
     + _rules("settings.manage", "exact", "admin:settings:cancel")
@@ -401,6 +405,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "prefix",
         "admin:administrator:role:", "admin:administrator:toggle:",
         "admin:administrator:deleteask:", "admin:administrator:delete:",
+        "admin:admsd:run:",
     )
     + _rules("administrators.manage", "regex", r"^admin:administrator:\d+$")
     + _rules("restore.manage", "exact", "admin:restore:history")
