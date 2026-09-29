@@ -273,7 +273,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ закрыто в `v4.23.3`: базовая интеграция принята в production в `v4.23.1`, findings `v4.23.2` закрыты hotfix-релизом `v4.23.3`; дальнейший Cheburcheck Probe fleet вынесен в «Отложенные инфраструктурные улучшения» и не блокирует следующий feature release.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ✅ выполнено и принято в production в линии `v4.24.x`; smoke `v4.24.0` выявил targeted findings, закрытые и повторно проверенные в `v4.24.1`.
 19. целостный User Management и follow-up линия `v4.25.x` — ✅ выполнено; релизы `v4.25.0–v4.25.8` опубликованы, развёрнуты и приняты в production, Streisand при активном HWID limit остаётся зафиксированным expected limitation.
-20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
+20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — 🟡 реализовано в `main` для `v4.26.0`; release/deployment/production acceptance ещё не выполнены.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 22. исправление неверного ввода Inbound/шаблонов — ✅ выполнено, опубликовано и принято в production в `v4.25.7`; targeted smoke и final health — PASS.
 23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server возвращает в исходный Inbound) — ✅ выполнено и принято в production в `v4.25.8`; issue #202 закрыт как `completed`.
@@ -2527,7 +2527,7 @@ Admin Setup: новых настроек и действий установки 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
 
-**Статус: ⬜ Запланировано на `v4.26.0`.**
+**Статус: 🟡 Реализовано в `main` для `v4.26.0`; production acceptance ещё не закрыт.**
 
 Цель — добавить управляемый вывод direct-ноды из пользовательского VPN-трафика перед обслуживанием, миграцией или decommission, не смешивая три разные операции: control-plane maintenance, graceful drain и destructive stop.
 
@@ -2604,6 +2604,14 @@ Regression / acceptance minimum:
 11. production smoke на контролируемой test node/user cohort: новые назначения прекращаются, тестовый пользователь получает альтернативу до detach, после refresh/reconnect target node исчезает из рабочего пути, базовый health остаётся green.
 
 Конкретный способ определения remaining active sessions должен использовать только реально доступные 3x-ui/Xray данные и документировать их ограничения. Online/IP наблюдение не должно выдаваться за точный учёт физических устройств или гарантированный session drain, если upstream этого не доказывает.
+
+Implementation evidence перед release:
+
+- feature issue #208 остаётся открытым до publication/deployment/targeted production smoke;
+- implementation PR #209 слит в `main` squash commit `e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a`;
+- post-merge `Python checks` на merge commit — **PASS**: compileall, полный unittest suite, pinned 3x-ui OpenAPI contract, release tooling и `git diff --check`;
+- отдельный release-prep `v4.26.0` меняет только version/docs/version-tests и не добавляет runtime-функциональность;
+- targeted production smoke из пункта 11 остаётся обязательным и не считается выполненным до фактического deployment опубликованного tag.
 
 ##### Финальный v4 Repository / Public-Release Audit
 
