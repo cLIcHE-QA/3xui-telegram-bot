@@ -2605,13 +2605,16 @@ Regression / acceptance minimum:
 
 Конкретный способ определения remaining active sessions должен использовать только реально доступные 3x-ui/Xray данные и документировать их ограничения. Online/IP наблюдение не должно выдаваться за точный учёт физических устройств или гарантированный session drain, если upstream этого не доказывает.
 
-Implementation evidence перед release:
+Implementation / production evidence:
 
-- feature issue #208 остаётся открытым до publication/deployment/targeted production smoke;
+- feature issue #208 остаётся открытым до полного targeted production smoke;
 - implementation PR #209 слит в `main` squash commit `e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a`;
-- post-merge `Python checks` на merge commit — **PASS**: compileall, полный unittest suite, pinned 3x-ui OpenAPI contract, release tooling и `git diff --check`;
-- отдельный release-prep `v4.26.0` меняет только version/docs/version-tests и не добавляет runtime-функциональность;
-- targeted production smoke из пункта 11 остаётся обязательным и не считается выполненным до фактического deployment опубликованного tag.
+- post-merge `Python checks` на implementation merge commit — **PASS**: compileall, полный unittest suite, pinned 3x-ui OpenAPI contract, release tooling и `git diff --check`;
+- release-prep PR #210 слит в `main` squash commit `cd39048a2da00443523e7b33b400f4c8b5dcd608`; штатный workflow опубликовал tag/GitHub Release `v4.26.0`;
+- production deployment `v4.26.0` выполнен; базовые release status и runtime version checks подтверждены оператором;
+- read-only Node Drain preflight на production direct node показал 4 target Inbounds, 2 затронутых пользователей, 2 готовых к переносу и 0 blockers;
+- pre-mutation confirmation был отменён без remote mutation; finding #211: `✖ Отмена` вернула в корень `Операции с нодами` вместо canonical parent — preflight той же ноды;
+- полный targeted production smoke из пункта 11, включая maintenance + attach-before-detach + post-condition `drained`, намеренно не выполнялся на боевой ноде без безопасной test node/user cohort и остаётся обязательным до operational closure линии.
 
 ##### v4.26.1 — Node Drain Cancel navigation
 
