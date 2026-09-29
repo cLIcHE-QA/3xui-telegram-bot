@@ -303,6 +303,28 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"drained": "✅ Node Drain: выведена из трафика"', source)
         self.assertIn('"interrupted": "🟡 Node Drain: прерван, mutation не повторялась"', source)
 
+    def test_drain_claim_and_journals_happen_before_remote_mutation(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "fleet_operations.py").read_text(encoding="utf-8")
+        start = source.index("async def drain_run")
+        end = source.index("async def _selection_data", start)
+        handler = source[start:end]
+
+        self.assertIn("drain_lock = asyncio.Lock()", source)
+        self.assertIn("async with drain_lock:", handler)
+        self.assertLess(handler.index('plan["state"] = "draining"'), handler.index("await _set_node_enabled("))
+        self.assertLess(handler.index('action="fleet.drain.started"'), handler.index("await _set_node_enabled("))
+        self.assertIn("Remote mutation не отправлялась.", handler)
+        self.assertIn("target_inbound_ids=plan.get", handler)
+
+    def test_partial_unknown_interrupted_continue_requires_new_preflight(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "fleet_operations.py").read_text(encoding="utf-8")
+
+        self.assertIn('"▶ Продолжить после проверки"', source)
+        self.assertIn('latest_state in {"partial", "unknown", "interrupted"}', source)
+        self.assertIn('"🔄 Новый preflight"', source)
+
     def test_drain_flow_never_stops_xray_or_service(self):
         root = Path(__file__).resolve().parents[1]
         source = (root / "node_drain.py").read_text(encoding="utf-8")
