@@ -187,9 +187,18 @@ class NodeDrainService:
             alternatives.add(int(inbound_id))
         return alternatives
 
-    async def review(self, node_id: int) -> DrainReview:
+    async def review(
+        self,
+        node_id: int,
+        *,
+        target_inbound_ids: list[int] | tuple[int, ...] | set[int] | None = None,
+    ) -> DrainReview:
         node = await self._direct_node(node_id)
-        target_ids = await self._target_inbound_ids(node_id)
+        target_ids = (
+            {int(value) for value in target_inbound_ids}
+            if target_inbound_ids is not None
+            else await self._target_inbound_ids(node_id)
+        )
         users: list[DrainUserReview] = []
         blockers = 0
 
@@ -250,9 +259,19 @@ class NodeDrainService:
             raise NodeDrainUnknown("Не удалось доказать текущее назначение пользователя.") from exc
         return rec, current
 
-    async def evacuate_user(self, node_id: int, telegram_id: int) -> dict[str, Any]:
+    async def evacuate_user(
+        self,
+        node_id: int,
+        telegram_id: int,
+        *,
+        target_inbound_ids: list[int] | tuple[int, ...] | set[int] | None = None,
+    ) -> dict[str, Any]:
         await self._direct_node(node_id)
-        target_ids = await self._target_inbound_ids(node_id)
+        target_ids = (
+            {int(value) for value in target_inbound_ids}
+            if target_inbound_ids is not None
+            else await self._target_inbound_ids(node_id)
+        )
         rec, current = await self._read_current(telegram_id)
         affected = current & target_ids
         if not affected:
