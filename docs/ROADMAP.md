@@ -276,8 +276,8 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 22. исправление неверного ввода Inbound/шаблонов — ✅ выполнено, опубликовано и принято в production в `v4.25.7`; targeted smoke и final health — PASS.
-23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server должна возвращать в исходный Inbound) — ⬜ запланировано на `v4.25.8`; issue #202, отдельный Low/UX navigation hotfix перед Node Drain.
-24. защита DB-backed Owner от случайного self-demotion одним нажатием — ⬜ запланировано на `v4.25.8`; issue #204, confirmation-only UX/safety patch без изменения RBAC-модели.
+23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server должна возвращать в исходный Inbound) — 🟡 реализовано в `main` для `v4.25.8`; issue #202 остаётся открытым до production acceptance.
+24. защита DB-backed Owner от случайного self-demotion одним нажатием — 🟡 реализовано в `main` для `v4.25.8`; issue #204 остаётся открытым до production acceptance.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -2476,7 +2476,7 @@ Admin Setup: новых настроек и действий установки 
 
 ##### v4.25.8 — Inbound clone navigation hotfix
 
-**Статус: ⬜ Запланировано на `v4.25.8`; issues #202 и #204 открыты после production acceptance `v4.25.7`.**
+**Статус: 🟡 Реализовано в `main`; fix PR #205 слит, release-prep `v4.25.8` выполняется; issues #202 и #204 остаются открытыми до production acceptance.**
 
 Production finding:
 
@@ -2484,10 +2484,7 @@ Production finding:
 - на экране выбора target server кнопка `✖ Отмена` возвращает в общий список `📡 Inbounds`;
 - по действующему navigation contract вложенный flow должен возвращать в экран, из которого он был начат — карточку исходного Inbound.
 
-Root cause:
-
-- `_target_keyboard(prefix, source_id)` получает `source_id`, но Cancel callback сейчас жёстко задан как `admin:infra:inbounds`;
-- более глубокий clone-port FSM уже использует `inbound_cancel_keyboard(iid)` и возвращает корректно в `admin:inbound:{iid}`.
+Root cause был подтверждён и закрыт в implementation PR #205: shared `_target_keyboard(...)` теперь получает явный Cancel parent; Clone Inbound передаёт `admin:inbound:{iid}`, а Deploy Template сохраняет `admin:inboundtemplate:{tid}`. Более глубокий clone-port FSM по-прежнему использует `inbound_cancel_keyboard(iid)`.
 
 Scope:
 
@@ -2506,11 +2503,11 @@ Acceptance:
 
 Finding имеет Low/UX severity и не отменяет успешный acceptance core validation fix `v4.25.7`.
 
-Tracking: [issue #202](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/202), [issue #204](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/204).
+Tracking: [issue #202](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/202), [issue #204](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/204), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205). PR #205 слит в `main` squash-коммитом `1b28d5cc3e668b134bb18a6f29364533ac5398be`; post-merge `Python checks` — success.
 
 ##### v4.25.8 — Owner self-role safety
 
-Второй narrowly-scoped finding этого же patch-релиза относится к защите DB-backed Owner от случайного self-demotion.
+Второй narrowly-scoped finding этого же patch-релиза относится к защите DB-backed Owner от случайного self-demotion. Реализация слита в `main` в PR #205: self-demotion требует отдельного confirmation screen, а mutation защищена актуальным FSM state + nonce; direct/stale run fail-closed.
 
 Текущий RBAC остаётся корректным: управление администраторами требует `Owner`, а локальный break-glass Owner из `ADMIN_TELEGRAM_IDS` immutable через Telegram. Finding относится только к UX/safety обычного DB-backed Owner, который сейчас может одним нажатием изменить собственную роль ниже Owner и немедленно потерять Owner-only доступ.
 

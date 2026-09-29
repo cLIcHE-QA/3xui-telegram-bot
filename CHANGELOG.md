@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.25.8 — navigation and Owner self-role safety
+- В Clone Inbound кнопка `✖ Отмена` на экране выбора target server теперь возвращает в карточку исходного Inbound; shared target keyboard получает явный parent, а Deploy Template сохраняет собственный parent.
+- Self-demotion DB-backed Owner ниже `Owner` больше не выполняется одним нажатием: добавлен отдельный confirmation screen с предупреждением о потере Owner-only доступа.
+- Self-demotion mutation выполняется только через Owner-only callback с актуальным FSM state и nonce; direct/stale confirmation блокируется, Cancel очищает confirmation и возвращает в карточку администратора.
+- Изменение ролей других DB-администраторов и immutable break-glass Owner из `ADMIN_TELEGRAM_IDS` сохраняют прежнюю семантику; role model и privilege levels не меняются.
+- Добавлены regression tests для navigation parent, confirmation/cancel/stale-run/single-mutation/audit, RBAC catalog и lifecycle закрытия проверенных bug issues.
+- SQLite schema v5, pinned 3x-ui OpenAPI contract v3.8.5, provisioning, subscription/HWID, Host Control и clone disabled/clientless semantics не меняются.
+
 ## v4.25.7 — Inbound input validation
 - Исправлен `UnboundLocalError` при неверном вводе порта в clone/deploy Inbound и при неверном имени шаблона: FSM identifiers читаются до validation branch после успешного authorization guard.
 - Ошибочный ввод сохраняет исходный FSM/Cancel context и не выполняет remote/database mutation; после исправления можно повторить ввод или отменить действие штатной кнопкой.
