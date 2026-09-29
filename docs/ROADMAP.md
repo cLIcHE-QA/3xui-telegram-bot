@@ -1039,7 +1039,7 @@ Acceptance hotfix:
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
 
-**Статус: 🟠 Опубликовано в `v4.25.0`; production acceptance ещё не выполнен.**
+**Статус: ✅ Линия `v4.25` принята в production после stabilization release `v4.25.1`.**
 
 Цель — завершить v4.x User Management как цельный операторский workflow: карточка пользователя становится единой точкой входа для профиля, тарифа, срока, трафика, provisioning-доступа, подключений, подписки, платежей и персональной audit timeline. Релиз сохраняет существующие backend primitives и security boundaries, убирает конкурирующие legacy-пути синхронизации Inbounds и добавляет недостающие admin-facing функции без открытия Client Portal.
 
@@ -2171,7 +2171,7 @@ Findings блокируют закрытие production acceptance `v4.25.0` д�
 
 ##### v4.25.1 — User Management stabilization / HWID completion
 
-**Статус: 🟡 В реализации как hotfix/stabilization release перед закрытием production acceptance линии `v4.25`.**
+**Статус: ✅ Опубликовано в `v4.25.1` и принято в production.**
 
 `v4.25.0` остаётся опубликованным baseline. Все production-acceptance blockers и незавершённые HWID operational flows исправляются в одном patch-релизе `v4.25.1`, после чего выполняется повторный acceptance только затронутых сценариев. `v4.26.0` по-прежнему остаётся Node Drain и не поглощает эти исправления.
 
@@ -2222,7 +2222,18 @@ Findings блокируют закрытие production acceptance `v4.25.0` д�
 - проверить `Система → Администраторы` на active/disabled Administrator, Support, Read-only и локальном Owner: role emoji всегда видим, disabled явно обозначен `⛔ … · отключён`, toggle не меняет назначенную роль;
 - выполнить final bot/DB/3x-ui health smoke.
 
-Линия `v4.25` считается production-accepted только после публикации `v4.25.1` и прохождения этого re-acceptance; после этого roadmap переходит к `v4.26.0`.
+Линия `v4.25` production-accepted после публикации `v4.25.1` и targeted re-acceptance от 2026-09-29.
+
+Production evidence `v4.25.1`:
+
+- deployment: tag `v4.25.1`, commit `99e51b8988ffd90413b324021cac352ee71b39b7`, container running, `RestartCount=0`, bot version `4.25.1`;
+- baseline health: `Health: ok`, `DB: ok`, expected Docker subnet, 3x-ui connectivity `ok`;
+- targeted re-acceptance cases 28–37: **PASS**;
+- подтверждены navigation/back-chain fixes, create-user production not-found handling, default/per-user HWID limit, preservation across Plan/reconcile, real mobile + desktop HWID registration через public compat path, HWID delete two-step, administrator status/role emoji contract и single-user traffic limit;
+- final post-smoke health: **PASS**;
+- исторический stale legacy sync callback production-click (бывший test 25) не воспроизведён из-за отсутствия сохранённого старого Telegram message и зафиксирован как **N/A production exception**; compatibility handler и non-mutating redirect покрыты code review/regression tests, mutation path через старый callback не используется.
+
+После этого roadmap переходит к `v4.26.0`.
 
 
 
