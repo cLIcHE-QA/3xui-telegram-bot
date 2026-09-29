@@ -2239,7 +2239,7 @@ Production evidence `v4.25.1`:
 
 ##### v4.25.2 — Subscription client compatibility
 
-**Статус: ⬜ Запланировано как обязательный compatibility hotfix перед переходом к `v4.26.0`.**
+**Статус: 🟡 В реализации как обязательный compatibility hotfix перед переходом к `v4.26.0`.**
 
 После успешного production acceptance `v4.25.1` отдельно выявлены client-side compatibility проблемы, не относящиеся к User Management logic:
 
