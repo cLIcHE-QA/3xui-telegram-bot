@@ -6,6 +6,16 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+
+## v4.26.0 — Node Drain
+- Начата реализация отдельного graceful Node Drain для direct nodes без изменения семантики maintenance и без автоматического Stop Xray/service.
+- Добавлен backend preflight по stable `node_id`: определяется набор управляемых Inbounds target-ноды, затронутые локальные пользователи, policy alternatives и blockers.
+- Эвакуация пользователя использует существующий `ProvisioningEngine` как источник policy и соблюдает attach-before-detach: target Inbounds отключаются только после read-back подтверждения альтернативного Inbound.
+- Добавлен last-working-Inbound guard; пользователь без подтверждённой policy alternative остаётся blocker и не мутируется.
+- Attach/detach 3x-ui переведены на существующую no-retry mutation boundary `XUIMutationError`; uncertain outcome проверяется read-only состоянием и не приводит к автоматическому повтору mutation.
+- Добавлен private persistent journal `fleet/drain-<id>.json` с mode 0600; в нём сохраняются только stable IDs и техническое состояние без email, subscription URL, `sub_id` или credentials.
+- Добавлены regression tests backend safety contract. Telegram Fleet UI, orchestration job lifecycle, restart recovery и production acceptance будут подключены следующими PR этой feature-линии; `APP_VERSION` до release-prep остаётся `4.25.8`.
+
 ## v4.25.8 — navigation and Owner self-role safety
 - В Clone Inbound кнопка `✖ Отмена` на экране выбора target server теперь возвращает в карточку исходного Inbound; shared target keyboard получает явный parent, а Deploy Template сохраняет собственный parent.
 - Self-demotion DB-backed Owner ниже `Owner` больше не выполняется одним нажатием: добавлен отдельный confirmation screen с предупреждением о потере Owner-only доступа.
