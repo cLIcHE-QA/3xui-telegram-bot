@@ -60,6 +60,7 @@ MAX_MUTATION_TARGETS = 20
 HEALTH_TIMEOUT = 8.0
 PLAN_ID_RE = re.compile(r"^[0-9a-f]{12}$")
 rollout_lock = asyncio.Lock()
+drain_lock = asyncio.Lock()
 
 
 class FleetStates(StatesGroup):
@@ -601,28 +602,68 @@ async def drain_run(call: CallbackQuery):
     if not ok:
         return
     plan_id = (call.data or "").split(":")[-2]
-    try:
-        plan = drain_store.get(plan_id)
-    except Exception as exc:
-        await call.answer(str(exc)[:180], show_alert=True)
-        return
-    if str(plan.get("state")) != "review":
-        await call.answer("Drain уже запускался; mutation не повторяется.", show_alert=True)
-        return
-
     actor = int(call.from_user.id) if call.from_user else 0
-    node_id = int(plan.get("node_id") or 0)
     await call.answer()
+    async with drain_lock:
+        try:
+            plan = drain_store.get(plan_id)
+        except Exception as exc:
+            await render_callback(call, f"🔴 Node Drain: {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
+            return
+        if str(plan.get("state")) != "review":
+            await render_callback(
+                call,
+                "🟡 Drain уже запускался; mutation не повторяется.",
+                reply_markup=_fleet_home_keyboard(),
+            )
+            return
+        node_id = int(plan.get("node_id") or 0)
+        created_at = int(plan.get("created_at") or 0)
+        newer_effective = [
+            item for item in drain_store.list()
+            if str(item.get("id") or "") != plan_id
+            and int(item.get("node_id") or 0) == node_id
+            and str(item.get("state") or "") not in {"review", "cancelled"}
+            and int(item.get("updated_at") or 0) >= created_at
+        ]
+        if newer_effective:
+            plan["state"] = "cancelled"
+            plan["updated_at"] = int(time.time())
+            drain_store.save(plan)
+            await render_callback(
+                call,
+                "🟡 Этот review-plan устарел после другого Node Drain. Выполните новый preflight; mutation не отправлялась.",
+                reply_markup=_keyboard([
+                    [("🔄 Новый preflight", f"admin:fleet:drain:n{node_id}")],
+                    [("⬅ Операции с нодами", "admin:fleet")],
+                ]),
+            )
+            return
+        plan["state"] = "draining"
+        plan["updated_at"] = int(time.time())
+        drain_store.save(plan)
+
     await render_callback(call, "🚧 Node Drain: выполняю последовательно…")
 
-    run_id = await db.start_job_run(
-        name="fleet.drain",
-        trigger="admin",
-        actor_id=actor,
-        details=f"plan={plan_id}; node={node_id}",
-    )
+    try:
+        run_id = await db.start_job_run(
+            name="fleet.drain",
+            trigger="admin",
+            actor_id=actor,
+            details=f"plan={plan_id}; node={node_id}",
+        )
+    except Exception as exc:
+        plan = drain_store.get(plan_id)
+        plan["state"] = "failed"
+        plan["updated_at"] = int(time.time())
+        drain_store.save(plan)
+        await render_callback(
+            call,
+            f"🔴 Node Drain не начат: job journal недоступен ({safe_error(exc)}). Remote mutation не отправлялась.",
+            reply_markup=_fleet_home_keyboard(),
+        )
+        return
     started = time.monotonic()
-    plan["state"] = "draining"
     plan["job_id"] = run_id
     plan["updated_at"] = int(time.time())
     drain_store.save(plan)
