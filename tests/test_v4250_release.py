@@ -40,7 +40,7 @@ class V4260ReleaseTests(unittest.TestCase):
             "draining",
             "drained",
             "fleet.drain",
-            "without reverse replay" if False else "без reverse replay",
+            "без reverse replay",
             "SQLite schema остаётся v5",
         ):
             self.assertIn(needle, section)
