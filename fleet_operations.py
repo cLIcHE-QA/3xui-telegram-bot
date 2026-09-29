@@ -549,7 +549,7 @@ async def drain_prepare(call: CallbackQuery):
         "🚧 Node Drain · подтверждение\n\n"
         + _drain_summary(review)
         + "\n\nСначала нода будет исключена из новых назначений через maintenance primitive. "
-          "Stop Xray/service не выполняются.",
+          "Разрушительные операции Xray/service не выполняются.",
         reply_markup=_keyboard([
             [("✅ Начать Drain", f"admin:fleet:drain:{plan['id']}:run")],
             [("✖ Отмена", f"admin:fleet:drain:{plan['id']}:cancel")],
@@ -690,7 +690,7 @@ async def drain_run(call: CallbackQuery):
         f"Нода: ID {node_id}\n"
         f"Осталось назначений: {int(plan.get('remaining_affected') or 0)}\n"
         f"Blockers: {int(plan.get('remaining_blockers') or 0)}\n\n"
-        "Active Xray sessions не обрывались специально. Stop Xray/service не выполнялись.",
+        "Active Xray sessions не обрывались специально. Разрушительные операции Xray/service не выполнялись.",
         reply_markup=_keyboard([
             [("🔄 Проверить", f"admin:fleet:drain:n{node_id}")],
             [("⬅ Операции с нодами", "admin:fleet")],
