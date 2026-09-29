@@ -244,9 +244,9 @@ class XUIClient(VersionAPIMixin):
         return await self._request("POST", f"/panel/api/nodes/del/{int(node_id)}")
 
     async def node_set_enable(self, node_id: int, enable: bool) -> dict[str, Any]:
-        return await self._request(
-            "POST", f"/panel/api/nodes/setEnable/{int(node_id)}",
-            json={"enable": bool(enable)},
+        return await self._mutation_request(
+            f"/panel/api/nodes/setEnable/{int(node_id)}",
+            json_payload={"enable": bool(enable)},
         )
 
     async def node_update_panels(self, node_ids: list[int], *, dev: bool = False) -> list[dict[str, Any]]:
