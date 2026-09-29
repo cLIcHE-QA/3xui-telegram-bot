@@ -15,6 +15,7 @@ from xui import XUIClient, XUIError, XUIMutationError
 
 
 DRAIN_ID_RE = re.compile(r"^[0-9a-f]{12}$")
+MAX_DRAIN_USERS = 500
 
 
 class NodeDrainError(RuntimeError):
@@ -133,7 +134,14 @@ class DrainPlanStore:
         matches = [p for p in self.list() if int(p.get("node_id") or 0) == int(node_id)]
         if not matches:
             return None
-        return max(matches, key=lambda p: int(p.get("updated_at") or 0))
+        effective = [
+            plan for plan in matches
+            if str(plan.get("state") or "") not in {"review", "cancelled"}
+        ]
+        return max(
+            effective or matches,
+            key=lambda p: int(p.get("updated_at") or 0),
+        )
 
 
 class NodeDrainService:
@@ -158,8 +166,7 @@ class NodeDrainService:
         return {
             int(item.id)
             for item in options
-            if item.enable
-            and item.node_id is not None
+            if item.node_id is not None
             and int(item.node_id) == int(node_id)
             and is_managed_inbound(self.settings, item)
         }
@@ -204,6 +211,10 @@ class NodeDrainService:
             affected = tuple(sorted(current & target_ids))
             if not affected:
                 continue
+            if sum(1 for item in users if item.target_inbound_ids) >= MAX_DRAIN_USERS:
+                raise NodeDrainError(
+                    f"Node Drain ограничен {MAX_DRAIN_USERS} затронутыми пользователями за один запуск."
+                )
             try:
                 alternatives = await self._policy_alternatives(telegram_id, node_id)
             except Exception:
