@@ -275,7 +275,8 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ✅ выполнено; production acceptance релизов `v4.25.0–v4.25.6` закрыт на `v4.25.6`, Streisand при активном HWID limit зафиксирован как expected limitation.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
-22. исправление неверного ввода Inbound/шаблонов — ⬜ запланировано на `v4.25.7`; отдельный post-acceptance patch #199 / PR #200, до перехода к Node Drain.
+22. исправление неверного ввода Inbound/шаблонов — ✅ выполнено, опубликовано и принято в production в `v4.25.7`; targeted smoke и final health — PASS.
+23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server должна возвращать в исходный Inbound) — ⬜ запланировано на `v4.25.8`; issue #202, отдельный Low/UX navigation hotfix перед Node Drain.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -298,8 +299,9 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 11. patch-релизом `v4.23.2` завершить compact result parity и context-preserving navigation Cheburcheck;
 12. hotfix-релизом `v4.23.3` закрыть production findings `v4.23.2`: explicit CDN negative state, domain/IP ASN enrichment и truthful regional probe availability;
 13. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics; targeted production findings закрыть patch-релизом `v4.24.1`, а финальный acceptance линии проводить на `v4.24.1`;
-14. User Management и follow-up релизы `v4.25.0–v4.25.6` завершены и проверены; перед следующим feature release закрыть отдельный validation hotfix `v4.25.7`;
-15. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
+14. User Management и follow-up релизы `v4.25.0–v4.25.7` завершены и проверены; `v4.25.7` принят в production после targeted validation smoke;
+15. перед следующим feature release закрыть navigation hotfix `v4.25.8` для Cancel parent в Clone Inbound;
+16. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
 16. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
 17. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
 18. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
@@ -2469,6 +2471,41 @@ Tests: `tests/test_inbound_input_validation.py` выполняет реальн�
 - финальная проверка bot/DB/3x-ui health и только затем `✅ Выполнено в v4.25.7`.
 
 Admin Setup: новых настроек и действий установки нет; при release-prep обновляются только ссылки на текущую версию. Production deployment и приёмка нового патча не считаются выполненными на основании предыдущего acceptance `v4.25.0–v4.25.6`.
+
+
+##### v4.25.8 — Inbound clone navigation hotfix
+
+**Статус: ⬜ Запланировано на `v4.25.8`; issue #202 открыт после production acceptance `v4.25.7`.**
+
+Production finding:
+
+- путь: `/admin → Инфраструктура → Inbounds → <Inbound> → 📋 Клонировать`;
+- на экране выбора target server кнопка `✖ Отмена` возвращает в общий список `📡 Inbounds`;
+- по действующему navigation contract вложенный flow должен возвращать в экран, из которого он был начат — карточку исходного Inbound.
+
+Root cause:
+
+- `_target_keyboard(prefix, source_id)` получает `source_id`, но Cancel callback сейчас жёстко задан как `admin:infra:inbounds`;
+- более глубокий clone-port FSM уже использует `inbound_cancel_keyboard(iid)` и возвращает корректно в `admin:inbound:{iid}`.
+
+Scope:
+
+- изменить только Cancel parent для target-selection экрана Clone Inbound;
+- сохранить clone target callbacks, RBAC, disabled/clientless payload, port validation, audit и 3x-ui API semantics без изменений;
+- добавить regression test на точный callback `admin:inbound:{source_id}`;
+- не смешивать hotfix с Node Drain или общим UI refactor.
+
+Acceptance:
+
+1. `📋 Клонировать → ✖ Отмена` возвращает в исходный Inbound;
+2. выбор target server и valid clone работают без regression;
+3. invalid-port Cancel по-прежнему возвращает в исходный Inbound;
+4. full CI green;
+5. production smoke и final bot/DB/3x-ui health green.
+
+Finding имеет Low/UX severity и не отменяет успешный acceptance core validation fix `v4.25.7`.
+
+Tracking: [issue #202](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/202).
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
