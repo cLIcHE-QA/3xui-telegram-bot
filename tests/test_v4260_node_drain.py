@@ -7,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from node_drain import (
+    MAX_DRAIN_USERS,
     DrainPlanStore,
     NodeDrainBlocked,
     NodeDrainError,
@@ -196,6 +197,54 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("@example.test", serialized)
         self.assertNotIn("sub_id", serialized)
         self.assertNotIn("subscription", serialized)
+
+
+    async def test_disabled_target_inbound_still_counts_as_assignment(self):
+        db = FakeDB()
+        xui = FakeXUI()
+        xui.inbounds[0].enable = False
+        service = NodeDrainService(db, xui, settings())
+
+        review = await service.review(2)
+
+        self.assertEqual(review.target_inbound_ids, (20,))
+        self.assertEqual(review.affected_users, 2)
+
+    async def test_review_is_bounded_by_affected_user_count(self):
+        db = FakeDB()
+        xui = FakeXUI()
+        db.users = {
+            idx: SimpleNamespace(telegram_id=idx, email=f"user{idx}@example.test")
+            for idx in range(1, MAX_DRAIN_USERS + 2)
+        }
+        xui.client_ids = {
+            rec.email: {20}
+            for rec in db.users.values()
+        }
+        service = NodeDrainService(db, xui, settings())
+
+        with self.assertRaisesRegex(NodeDrainError, str(MAX_DRAIN_USERS)):
+            await service.review(2)
+
+    async def test_cancelled_review_does_not_hide_previous_effective_drain_state(self):
+        db = FakeDB()
+        xui = FakeXUI()
+        service = NodeDrainService(db, xui, settings())
+        review = await service.review(2)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = DrainPlanStore(Path(tmp) / "fleet")
+            first = store.create(review, actor_id=99)
+            first["state"] = "drained"
+            first["updated_at"] = 10
+            store.save(first)
+            second = store.create(review, actor_id=99)
+            second["state"] = "cancelled"
+            second["updated_at"] = 20
+            store.save(second)
+            latest = store.latest_for_node(2)
+
+        self.assertEqual(latest["state"], "drained")
 
     def test_rbac_catalog_separates_view_and_manage(self):
         from admin_auth import required_role_for_callback
