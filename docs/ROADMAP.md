@@ -2429,16 +2429,16 @@ Production acceptance `v4.25.6` от 2026-09-29:
 - временные `plain=1` workarounds отсутствуют в финальном runtime; subscription proxy соответствует принятому контракту `v4.25.3`;
 - synthetic/fallback HWID не добавляется, per-device enforcement не ослабляется.
 
-**Итог: релизы `v4.25.0–v4.25.6` полностью проверены и закрыты.** Владелец повторно подтвердил завершение предыдущих релизов 2026-09-29. `v4.25.4–v4.25.5` закрыты как диагностические попытки с forward-revert в `v4.25.6`, а не как успешная поддержка Streisand.
+**Итог: релизы `v4.25.0–v4.25.7` полностью проверены и закрыты.** Владелец повторно подтвердил завершение предыдущих релизов 2026-09-29. `v4.25.4–v4.25.5` закрыты как диагностические попытки с forward-revert в `v4.25.6`, а не как успешная поддержка Streisand.
 
-Следующий активный патч — `v4.25.7` Inbound input validation. После его отдельного release/acceptance следующий feature release — `v4.26.0` Node Drain.
+Следующий активный патч — `v4.25.8` с navigation hotfix Clone Inbound и Owner self-role safety. После его отдельного release/acceptance следующий feature release — `v4.26.0` Node Drain.
 
 
 ##### v4.25.7 — Inbound input validation
 
-**Статус: 🟡 Реализовано в `main`; release-prep `v4.25.7` подготовлен, публикация и production acceptance ещё не выполнены.**
+**Статус: ✅ Выполнено в `v4.25.7`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #199 закрыт как completed после targeted smoke.**
 
-Tracking: [issue #199](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/199), [fix PR #200](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/200). Fix PR #200 слит в `main` squash-коммитом `2b24ce709ffe77d479c98e1604462deb4910c072`; release-prep переводит `APP_VERSION` на `4.25.7` без изменения runtime scope.
+Tracking: [issue #199](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/199) (closed/completed), [fix PR #200](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/200), [release PR #201](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/201). Fix PR #200 слит в `main` squash-коммитом `2b24ce709ffe77d479c98e1604462deb4910c072`; release-prep PR #201 слит коммитом `053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890`, на который указывает tag `v4.25.7`.
 
 Новый post-acceptance finding: в `inbound_admin.py` ветки ошибочного ввода строят Cancel keyboard с локальным `iid`/`tid` до его присваивания. Нечисловой/вне диапазона порт в `inbound_clone_port` и `template_deploy_port`, а также пустое/слишком длинное имя в `inbound_template_save` приводят к `UnboundLocalError` вместо подсказки.
 
@@ -2462,16 +2462,16 @@ Regression contract:
 
 Tests: `tests/test_inbound_input_validation.py` выполняет реальные async handlers с `MemoryStorage`; внешние вызовы и Telegram rendering заменены моками. Итоговый fix PR HEAD `186b958cf6d8af7d6f37c794f19405046ae18483` прошёл штатные `Python checks` и `PR conventions`; после squash merge повторный `Python checks` на `main` commit `2b24ce709ffe77d479c98e1604462deb4910c072` также завершился success (576 tests).
 
-Порядок закрытия патча:
+Production acceptance `v4.25.7` от 2026-09-29:
 
-- fix PR #200 слит в `main` после зелёного CI;
-- отдельный release-prep PR переводит `APP_VERSION=4.25.7`, добавляет новый раздел `CHANGELOG.md`, обновляет текущие version references и release tests; исторические release notes не переписываются;
-- публикация tag/GitHub Release только штатным workflow после успешных проверок, без ручного перемещения tags;
-- отдельный явный deployment опубликованного `v4.25.7`;
-- targeted production smoke трёх форм: неверный ввод → подсказка → повторный ввод/отмена; контролируемый valid path сохраняет disabled/clientless contract;
-- финальная проверка bot/DB/3x-ui health и только затем `✅ Выполнено в v4.25.7`.
+- tag/GitHub Release `v4.25.7` опубликованы штатным workflow; tag указывает на `053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890`;
+- production deployment выполнен на опубликованный tag;
+- invalid/non-numeric/out-of-range port, invalid template name, invalid → valid retry, Cancel context, occupied port, Master/direct-node и controlled valid disabled/clientless flows — **PASS**;
+- финальный bot/DB/3x-ui health — **PASS**;
+- исходный `UnboundLocalError` finding устранён; issue #199 обновлён evidence и закрыт как `completed`;
+- отдельный Low/UX navigation finding Clone Inbound вынесен в issue #202 / `v4.25.8` и не переоткрывает #199.
 
-Admin Setup: новых настроек и действий установки нет; при release-prep обновляются только ссылки на текущую версию. Production deployment и приёмка нового патча не считаются выполненными на основании предыдущего acceptance `v4.25.0–v4.25.6`.
+Admin Setup: новых настроек и действий установки для `v4.25.7` не потребовалось.
 
 
 ##### v4.25.8 — Inbound clone navigation hotfix
