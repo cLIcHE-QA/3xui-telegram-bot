@@ -442,12 +442,23 @@ async def fleet_health(call: CallbackQuery):
 
 
 def _drain_summary(review) -> str:
+    target_ids = list(review.target_inbound_ids)
+    target_text = ", ".join(f"#{value}" for value in target_ids[:20]) or "нет"
+    if len(target_ids) > 20:
+        target_text += f" · … ещё {len(target_ids) - 20}"
+    blocker_counts: dict[str, int] = {}
+    for item in review.users:
+        if item.blocker:
+            blocker_counts[item.blocker] = blocker_counts.get(item.blocker, 0) + 1
+    blocker_text = ", ".join(
+        f"{key}={value}" for key, value in sorted(blocker_counts.items())
+    ) or "нет"
     return (
         f"Нода: {node_display_name(review.node_name)} · ID {review.node_id}\n"
-        f"Target Inbounds: {len(review.target_inbound_ids)}\n"
+        f"Target Inbounds: {target_text}\n"
         f"Затронуто пользователей: {review.affected_users}\n"
         f"Готовы к переносу: {review.movable_users}\n"
-        f"Blockers: {review.blockers}"
+        f"Blockers: {review.blockers} · {blocker_text}"
     )
 
 
@@ -517,8 +528,15 @@ async def drain_preflight(call: CallbackQuery):
         )
         return
     rows: list[list[tuple[str, str]]] = []
+    latest = drain_store.latest_for_node(node_id)
+    latest_state = str((latest or {}).get("state") or "")
     if ROLE_RANK.get(role or "", 0) >= ROLE_RANK["admin"]:
-        rows.append([("➡ Подготовить Drain", f"admin:fleet:drain:n{node_id}:prepare")])
+        label = (
+            "▶ Продолжить после проверки"
+            if latest_state in {"partial", "unknown", "interrupted"}
+            else "➡ Подготовить Drain"
+        )
+        rows.append([(label, f"admin:fleet:drain:n{node_id}:prepare")])
     rows.append([("🔄 Обновить", f"admin:fleet:drain:n{node_id}")])
     rows.append([("⬅ Node Drain", "admin:fleet:drain")])
     await render_callback(
@@ -697,7 +715,8 @@ async def drain_run(call: CallbackQuery):
         f"Нода: ID {node_id}\n"
         f"Осталось назначений: {int(plan.get('remaining_affected') or 0)}\n"
         f"Blockers: {int(plan.get('remaining_blockers') or 0)}\n\n"
-        "Active Xray sessions не обрывались специально. Разрушительные операции Xray/service не выполнялись.",
+        "Active Xray sessions не обрывались специально. Разрушительные операции Xray/service не выполнялись.\n"
+        "Возврат ноды: выключите обслуживание и выполните обычное policy-согласование; обратный replay Drain не выполняется.",
         reply_markup=_keyboard([
             [("🔄 Проверить", f"admin:fleet:drain:n{node_id}")],
             [("⬅ Операции с нодами", "admin:fleet")],
