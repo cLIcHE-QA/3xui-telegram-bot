@@ -191,6 +191,16 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(b"amneziawg://", desktop.body)
         self.assertIn(b"vless://", desktop.body)
 
+        mac_desktop = await proxy.subscription(
+            self.request(
+                "known",
+                headers={"User-Agent": "INCY/3.8.8/mac os x Dalvik/21.0.12.1+1-LTS"},
+            )
+        )
+        self.assertNotIn(b"vpn://", mac_desktop.body)
+        self.assertNotIn(b"amneziawg://", mac_desktop.body)
+        self.assertIn(b"vless://", mac_desktop.body)
+
         mobile = await proxy.subscription(
             self.request("known", headers={"User-Agent": "INCY/1.2.3/Android"})
         )
