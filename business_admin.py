@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import secrets
 import sqlite3
 import time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -77,6 +78,10 @@ class AddPromoStates(StatesGroup):
 class AddAdministratorStates(StatesGroup):
     telegram_id = State()
     role = State()
+
+
+class AdministratorRoleStates(StatesGroup):
+    self_demote = State()
 
 
 class EditSettingStates(StatesGroup):
@@ -833,9 +838,10 @@ async def roles_privileges(call: CallbackQuery):
 
 
 @business_router.callback_query(F.data.regexp(r"^admin:administrator:\d+$"))
-async def administrator_detail(call: CallbackQuery):
+async def administrator_detail(call: CallbackQuery, state: FSMContext):
     if not await guard(call, minimum="owner"):
         return
+    await state.clear()
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
         await render_callback(call, 
@@ -961,7 +967,7 @@ async def administrator_add_cancel(call: CallbackQuery, state: FSMContext):
 
 
 @business_router.callback_query(F.data.startswith("admin:administrator:role:"))
-async def administrator_role(call: CallbackQuery):
+async def administrator_role(call: CallbackQuery, state: FSMContext):
     if not await guard(call, minimum="owner"):
         return
     parts = call.data.split(":")
@@ -974,14 +980,133 @@ async def administrator_role(call: CallbackQuery):
     if not rec:
         await call.answer("Администратор не найден.", show_alert=True)
         return
-    await db.upsert_administrator(telegram_id=tg_id, role=role, enabled=bool(rec.enabled), added_by=rec.added_by)
-    await audit_from_call(db, call, "administrator.role", target_type="administrator", target_id=tg_id, details=f"{rec.role}->{role}")
+
+    await state.clear()
+    if rec.role == role:
+        await call.answer("Эта роль уже назначена.")
+        return
+
+    if tg_id == int(call.from_user.id) and rec.role == "owner" and role != "owner":
+        nonce = secrets.token_hex(4)
+        await state.set_state(AdministratorRoleStates.self_demote)
+        await state.update_data(
+            administrator_self_role_actor=int(call.from_user.id),
+            administrator_self_role_target=tg_id,
+            administrator_self_role_from=rec.role,
+            administrator_self_role_to=role,
+            administrator_self_role_nonce=nonce,
+        )
+        await render_callback(
+            call,
+            "⚠️ Понизить собственную роль?\n\n"
+            f"Текущая роль: {ROLE_LABELS[rec.role]}\n"
+            f"Новая роль: {ROLE_LABELS[role]}\n\n"
+            "После подтверждения этот аккаунт потеряет Owner-only доступ, "
+            "включая управление администраторами.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text=f"⚠️ Сменить на {ROLE_LABELS[role]}",
+                    callback_data=f"admin:admsd:run:{tg_id}:{role}:{nonce}",
+                )],
+                [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:administrator:{tg_id}")],
+            ]),
+        )
+        await call.answer()
+        return
+
+    await db.upsert_administrator(
+        telegram_id=tg_id,
+        role=role,
+        enabled=bool(rec.enabled),
+        added_by=rec.added_by,
+    )
+    await audit_from_call(
+        db,
+        call,
+        "administrator.role",
+        target_type="administrator",
+        target_id=tg_id,
+        details=f"{rec.role}->{role}",
+    )
     await call.answer("Роль обновлена")
-    await render_callback(call, 
+    await render_callback(
+        call,
         f"✅ TG {tg_id}: {ROLE_LABELS[role]}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔎 Открыть", callback_data=f"admin:administrator:{tg_id}")],
             [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
+        ]),
+    )
+
+
+@business_router.callback_query(F.data.startswith("admin:admsd:run:"))
+async def administrator_self_role_run(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="owner"):
+        return
+
+    parts = call.data.split(":")
+    if len(parts) != 6:
+        await call.answer("Некорректное подтверждение.", show_alert=True)
+        return
+    tg_id = int(parts[3])
+    role = parts[4]
+    nonce = parts[5]
+    if (
+        role not in ROLE_LABELS
+        or role == "owner"
+        or tg_id in settings.admin_telegram_ids
+        or tg_id != int(call.from_user.id)
+    ):
+        await call.answer("Изменение запрещено.", show_alert=True)
+        return
+
+    data = await state.get_data()
+    expected = (
+        await state.get_state() == AdministratorRoleStates.self_demote.state
+        and int(data.get("administrator_self_role_actor") or 0) == int(call.from_user.id)
+        and int(data.get("administrator_self_role_target") or 0) == tg_id
+        and data.get("administrator_self_role_from") == "owner"
+        and data.get("administrator_self_role_to") == role
+        and data.get("administrator_self_role_nonce") == nonce
+    )
+    if not expected:
+        await call.answer(
+            "Подтверждение устарело. Открой карточку администратора заново.",
+            show_alert=True,
+        )
+        return
+
+    rec = await db.get_administrator(tg_id)
+    if not rec or rec.role != "owner" or not rec.enabled:
+        await state.clear()
+        await call.answer(
+            "Роль или статус уже изменились. Открой карточку администратора заново.",
+            show_alert=True,
+        )
+        return
+
+    await db.upsert_administrator(
+        telegram_id=tg_id,
+        role=role,
+        enabled=True,
+        added_by=rec.added_by,
+    )
+    await audit_from_call(
+        db,
+        call,
+        "administrator.role",
+        target_type="administrator",
+        target_id=tg_id,
+        details=f"owner->{role}; self_demote=1",
+    )
+    await state.clear()
+    await call.answer("Роль обновлена")
+    await render_callback(
+        call,
+        f"✅ Ваша роль изменена: {ROLE_LABELS[role]}.\n\n"
+        "Owner-only действия для этого аккаунта теперь недоступны.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
         ]),
     )
 

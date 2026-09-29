@@ -802,7 +802,12 @@ async def inbound_reset_run(call: CallbackQuery):
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
 
-async def _target_keyboard(prefix: str, source_id: int) -> InlineKeyboardMarkup:
+async def _target_keyboard(
+    prefix: str,
+    source_id: int,
+    *,
+    cancel_callback: str,
+) -> InlineKeyboardMarkup:
     rows = [[InlineKeyboardButton(
         text=f"{settings.master_flag} {settings.master_name}",
         callback_data=f"{prefix}:{source_id}:0",
@@ -816,7 +821,7 @@ async def _target_keyboard(prefix: str, source_id: int) -> InlineKeyboardMarkup:
             rows.append([InlineKeyboardButton(
                 text=f"🌍 {node_display_name(node.name)}", callback_data=f"{prefix}:{source_id}:{node.id}"
             )])
-    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:infra:inbounds")])
+    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data=cancel_callback)])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -827,7 +832,9 @@ async def inbound_clone_start(call: CallbackQuery):
     iid = int(call.data.rsplit(":", 1)[-1])
     await render_callback(call, 
         "📋 Клонирование Inbound\n\nВыбери сервер. Клон создаётся отключённым и без клиентов.",
-        reply_markup=await _target_keyboard("admin:inbound:clonetarget", iid),
+        reply_markup=await _target_keyboard(
+            "admin:inbound:clonetarget", iid, cancel_callback=f"admin:inbound:{iid}"
+        ),
     )
     await call.answer()
 
@@ -1026,7 +1033,9 @@ async def template_deploy_start(call: CallbackQuery):
         return
     await render_callback(call, 
         "🚀 Развёртывание шаблона\n\nВыбери сервер. Новый Inbound будет отключён и без клиентов.",
-        reply_markup=await _target_keyboard("admin:inboundtemplate:target", tid),
+        reply_markup=await _target_keyboard(
+            "admin:inboundtemplate:target", tid, cancel_callback=f"admin:inboundtemplate:{tid}"
+        ),
     )
     await call.answer()
 
