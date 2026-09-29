@@ -271,6 +271,14 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("_mutation_request(", inspect.getsource(XUIClient.attach_client))
         self.assertIn("_mutation_request(", inspect.getsource(XUIClient.detach_client))
 
+    def test_node_card_presents_effective_drain_state(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "node_admin.py").read_text(encoding="utf-8")
+
+        self.assertIn('"draining": "🚧 Node Drain: выводится из трафика"', source)
+        self.assertIn('"drained": "✅ Node Drain: выведена из трафика"', source)
+        self.assertIn('"interrupted": "🟡 Node Drain: прерван, mutation не повторялась"', source)
+
     def test_drain_flow_never_stops_xray_or_service(self):
         root = Path(__file__).resolve().parents[1]
         source = (root / "node_drain.py").read_text(encoding="utf-8")
