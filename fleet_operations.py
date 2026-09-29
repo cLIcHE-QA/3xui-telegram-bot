@@ -44,7 +44,7 @@ from versions_updates import (
     service as update_service,
     stable_version,
 )
-from xui import NodeInfo, XUIClient, XUIError
+from xui import NodeInfo, XUIClient, XUIError, XUIMutationError
 
 
 settings = load_settings()
@@ -933,14 +933,31 @@ async def _set_node_enabled(node_id: int, enabled: bool) -> str:
         return "skipped"
     try:
         await xui.node_set_enable(node_id, enabled)
-    except Exception as exc:
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise FleetError(
+                f"3x-ui отклонил изменение обслуживания ноды {node_id}; mutation не повторялась."
+            ) from exc
+        try:
+            check = await xui.node_get(node_id)
+        except XUIError as read_exc:
+            raise FleetMutationUnknown(
+                f"Результат изменения обслуживания ноды {node_id} неизвестен; read-back недоступен, mutation не повторялась."
+            ) from read_exc
+        if check.enable == enabled:
+            return "changed"
         raise FleetMutationUnknown(
-            f"Результат изменения обслуживания ноды {node_id} неизвестен; запрос не повторялся ({type(exc).__name__})."
+            f"Результат изменения обслуживания ноды {node_id} неизвестен; post-condition не подтверждён, mutation не повторялась."
         ) from exc
+    except Exception as exc:
+        raise FleetError(
+            f"Изменение обслуживания ноды {node_id} не было подтверждено ({type(exc).__name__})."
+        ) from exc
+
     check = await xui.node_get(node_id)
     if check.enable != enabled:
         raise FleetMutationUnknown(
-            f"Нода {node_id} не подтвердила запрошенное состояние обслуживания; запрос не повторялся."
+            f"Нода {node_id} не подтвердила запрошенное состояние обслуживания; mutation не повторялась."
         )
     return "changed"
 
