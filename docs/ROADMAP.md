@@ -1039,7 +1039,7 @@ Acceptance hotfix:
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
 
-**Статус: ✅ Линия `v4.25` принята в production после stabilization release `v4.25.1`.**
+**Статус: 🟡 `v4.25.1` принят по User Management/HWID scope; линия `v4.25` остаётся открытой до compatibility hotfix `v4.25.2`.**
 
 Цель — завершить v4.x User Management как цельный операторский workflow: карточка пользователя становится единой точкой входа для профиля, тарифа, срока, трафика, provisioning-доступа, подключений, подписки, платежей и персональной audit timeline. Релиз сохраняет существующие backend primitives и security boundaries, убирает конкурирующие legacy-пути синхронизации Inbounds и добавляет недостающие admin-facing функции без открытия Client Portal.
 
@@ -2222,7 +2222,7 @@ Findings блокируют закрытие production acceptance `v4.25.0` д�
 - проверить `Система → Администраторы` на active/disabled Administrator, Support, Read-only и локальном Owner: role emoji всегда видим, disabled явно обозначен `⛔ … · отключён`, toggle не меняет назначенную роль;
 - выполнить final bot/DB/3x-ui health smoke.
 
-Линия `v4.25` production-accepted после публикации `v4.25.1` и targeted re-acceptance от 2026-09-29.
+`v4.25.1` production-accepted по своему User Management/HWID scope после targeted re-acceptance от 2026-09-29.
 
 Production evidence `v4.25.1`:
 
@@ -2233,8 +2233,58 @@ Production evidence `v4.25.1`:
 - final post-smoke health: **PASS**;
 - исторический stale legacy sync callback production-click (бывший test 25) не воспроизведён из-за отсутствия сохранённого старого Telegram message и зафиксирован как **N/A production exception**; compatibility handler и non-mutating redirect покрыты code review/regression tests, mutation path через старый callback не используется.
 
-После этого roadmap переходит к `v4.26.0`.
+После этого acceptance `v4.25.1` считается закрытым, но линия `v4.25` остаётся открытой из-за отдельно выявленных client-compatibility findings. Перед `v4.26.0` обязателен `v4.25.2`.
 
+
+
+##### v4.25.2 — Subscription client compatibility
+
+**Статус: ⬜ Запланировано как обязательный compatibility hotfix перед переходом к `v4.26.0`.**
+
+После успешного production acceptance `v4.25.1` отдельно выявлены client-side compatibility проблемы, не относящиеся к User Management logic:
+
+- INCY Desktop получает AmneziaWG entries из raw subscription, но Desktop-клиент не должен представлять неподдерживаемый AWG path как рабочий узел; требуется client-aware output/filtering для INCY Desktop без регрессии INCY mobile;
+- Shadowrocket mobile/desktop при активном HWID limit может получать generic «URL сервера столкнулся с проблемой», потому что 3x-ui HWID gate отвечает `404`, а compat proxy сейчас сворачивает любой upstream `>=400` в непрозрачный `502 subscription upstream error`;
+- production diagnosis подтвердил штатный full-slot case: `hwid-status` вернул `active=true, limit=3, registered=3, remaining=0, full=true`; после увеличения HWID limit проблема Shadowrocket исчезла;
+- следовательно, HWID enforcement 3x-ui сохраняется, а compatibility layer должен уметь отличать HWID gate от реального upstream outage.
+
+Объём `v4.25.2`:
+
+- добавить bounded client-aware subscription output для INCY Desktop: неподдерживаемые AmneziaWG entries не должны показываться как рабочие Desktop-ноды; остальные протоколы и порядок подписки сохраняются;
+- сохранить текущую `vpn:// → amneziawg://` совместимость для INCY mobile/поддерживаемых клиентов; нельзя глобально удалять AWG из raw subscription;
+- определить INCY Desktop только по подтверждённому User-Agent/platform contract; при неоднозначном UA не применять агрессивный filtering;
+- добавить явную operator/user documentation для Shadowrocket: при включённом per-user HWID limit необходимо включить `Send HWID` / «Отправлять HWID»;
+- распознавать allowlisted HWID response headers 3x-ui: `X-Hwid-Active`, `X-Hwid-Not-Supported`, `X-Hwid-Limit`, `X-Hwid-Max-Devices-Reached`;
+- HWID-specific upstream `404` не маскировать generic `502`: сохранить/перевести HWID gate в диагностически полезный ответ с allowlisted headers, не раскрывая `sub_id`, HWID value/hash или device secrets;
+- generic network/timeout/real upstream 5xx по-прежнему возвращать как fail-closed gateway error; HWID diagnostics не должны превращать настоящий upstream outage в ложный client-limit response;
+- в logs разрешены только bounded reason/status fields (например, `hwid_not_supported` / `hwid_max_devices_reached`), но не значения `X-HWID`, subscription URL или `sub_id`;
+- **не синтезировать и не подменять fake HWID в compat proxy**: device identity всегда приходит от клиента; proxy не должен обходить реальный per-device limit и не должен объединять разные устройства под одной synthetic identity;
+- сохранить forwarding reviewed client headers из `v4.25.1`: `X-HWID`, `X-Device-OS`, `X-Ver-OS`, `X-Device-Model`, при сохранении фильтрации остальных request headers;
+- при полном лимите пользователь/operator должен иметь однозначный operational path: освободить device slot или увеличить per-user HWID limit; автоматическое ослабление лимита запрещено.
+
+Минимальные regression tests `v4.25.2`:
+
+1. active HWID + свободный slot + валидный `X-HWID` → subscription `200`, устройство регистрируется ровно один раз;
+2. active HWID + missing/слишком короткий HWID → HWID gate остаётся отказом с `X-Hwid-Not-Supported`, а не generic `502`;
+3. active HWID + все slots заняты + новый HWID → отказ сохраняет `X-Hwid-Max-Devices-Reached` / `X-Hwid-Limit` и не маскируется generic `502`;
+4. известный зарегистрированный HWID продолжает получать subscription при заполненном лимите;
+5. `limitHwid=0` не вводит новый HWID gate;
+6. proxy никогда не генерирует synthetic/fallback HWID и не логирует HWID/subscription secrets;
+7. Shadowrocket с включённым `Send HWID` и свободным slot получает subscription; full-slot scenario даёт диагностически различимый отказ, после освобождения/увеличения slot subscription снова загружается;
+8. INCY Desktop не получает неподдерживаемые AWG entries как рабочие nodes, при этом VLESS/другие поддерживаемые entries сохраняются;
+9. INCY mobile сохраняет существующую AmneziaWG conversion/работоспособность;
+10. generic upstream 404/5xx без HWID diagnostic headers не переопределяются как HWID-limit case.
+
+Production acceptance `v4.25.2`:
+
+- проверить INCY Desktop на реальной подписке: неподдерживаемые AWG entries не создают «мёртвые» Desktop-ноды, остальные протоколы работают;
+- повторить INCY mobile AWG smoke и подтвердить отсутствие regression;
+- проверить Shadowrocket mobile и desktop с включённым `Send HWID` при свободном HWID slot;
+- воспроизвести controlled full-slot case и подтвердить диагностически понятный HWID-limit response вместо generic gateway failure;
+- освободить/увеличить slot и подтвердить восстановление той же Shadowrocket subscription без rotation identity;
+- выполнить final bot/DB/3x-ui health smoke.
+
+Линия `v4.25` считается полностью production-closed только после публикации и targeted production acceptance `v4.25.2`. После этого можно начинать `v4.26.0`.
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
