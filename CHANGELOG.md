@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.25.5 — Streisand plain mode precedence
+- `?plain=1` теперь принудительно обходит HTML branch даже если клиент присылает `Accept: text/html`.
+- Это закрывает Safari/WebView-like Streisand request path, который ранее получал HTML page вместо raw links.
+- Default subscription URL без `plain` не меняется.
+- HWID enforcement/diagnostics и client-specific transforms остаются без изменений.
+
 ## v4.25.4 — Streisand plain subscription compatibility
 - Добавлен opt-in `?plain=1` для raw subscription response: Base64-wrapped upstream body декодируется в newline-separated links.
 - `plain` является локальным параметром compat proxy и не пересылается upstream в 3x-ui.
