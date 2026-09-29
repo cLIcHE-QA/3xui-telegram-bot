@@ -1,4 +1,4 @@
-"""Release contract for v4.25.2 subscription compatibility hotfix."""
+"""Release contract for v4.25.3 subscription compatibility hotfix."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,19 +12,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class V4251ReleaseTests(unittest.TestCase):
     def test_release_version_is_4251(self):
-        self.assertEqual(APP_VERSION, "4.25.2")
+        self.assertEqual(APP_VERSION, "4.25.3")
 
     def test_current_docs_reference_release_4251(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         sqlite_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
 
-        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.25.2"))
-        self.assertIn("Guide ориентирован на release v4.25.2.", admin_setup)
-        self.assertIn("git checkout --detach v4.25.2", admin_setup)
-        self.assertIn("Bot version: 4.25.2", admin_setup)
+        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.25.3"))
+        self.assertIn("Guide ориентирован на release v4.25.3.", admin_setup)
+        self.assertIn("git checkout --detach v4.25.3", admin_setup)
+        self.assertIn("Bot version: 4.25.3", admin_setup)
         self.assertIn(
-            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1` и `v4.25.2` текущая bot schema version — **5**",
+            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2` и `v4.25.3` текущая bot schema version — **5**",
             sqlite_doc,
         )
 
@@ -47,7 +47,7 @@ class V4251ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_roadmap_marks_v4251_accepted_and_v4252_required_before_v426(self):
+    def test_roadmap_marks_v4252_partial_acceptance_and_v4253_required(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn(
             "✅ Опубликовано в `v4.25.1` и принято в production.",
@@ -58,18 +58,22 @@ class V4251ReleaseTests(unittest.TestCase):
             roadmap,
         )
         self.assertIn(
-            "обязательный compatibility hotfix перед переходом к `v4.26.0`",
+            "##### v4.25.3 — INCY Desktop UA compatibility",
             roadmap,
         )
         self.assertIn(
-            "Линия `v4.25` считается полностью production-closed только после публикации и targeted production acceptance `v4.25.2`.",
+            "INCY Desktop: **FAIL** — AWG entries остались.",
+            roadmap,
+        )
+        self.assertIn(
+            "Линия `v4.25` закрывается только после targeted acceptance `v4.25.3`.",
             roadmap,
         )
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "Для bot release `v4.25.2` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
+            "Для bot release `v4.25.3` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
             admin_setup,
         )
 
