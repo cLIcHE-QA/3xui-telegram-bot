@@ -75,6 +75,10 @@ Persistent journal хранится в `fleet/drain-<id>.json` рядом с bot
 
 После restart незавершённый `draining` переводится в `interrupted`, parent job — в `unknown`; mutation не replay'ится.
 
+После `partial` / `unknown` / `interrupted` продолжение начинается только с нового read-only preflight и явного решения Administrator. Это создаёт новый безопасный plan поверх фактического состояния, а не replay старых mutations.
+
+Возврат ноды в обычную работу выполняется через штатный выход из maintenance и обычное policy-согласование пользователей. Drain не выполняет слепой reverse replay прежних assignments.
+
 Fleet Health различает `maintenance`, `draining` и `drained`. Active Xray sessions намеренно не обрываются: detach влияет на последующий reconnect/refresh и не является гарантией мгновенного завершения уже установленной сессии.
 
 Roles:
