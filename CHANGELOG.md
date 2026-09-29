@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.25.2 — Subscription client compatibility
+- INCY Desktop определяется только по documented `INCY/<version>/<platform>` UA для `Windows/Linux/macOS`; неподдерживаемые AmneziaWG entries отфильтровываются только для этих Desktop requests, а INCY mobile сохраняет существующий `vpn:// → amneziawg://` flow.
+- HWID-specific upstream `404` больше не маскируется generic `502`: compat proxy сохраняет allowlisted `X-Hwid-Active`, `X-Hwid-Not-Supported`, `X-Hwid-Limit`, `X-Hwid-Max-Devices-Reached` и возвращает диагностически различимый HWID rejection.
+- Generic upstream 404/5xx без HWID diagnostic headers остаются fail-closed gateway errors.
+- Compat proxy не генерирует synthetic/fallback HWID, не ослабляет per-user limit и не логирует HWID/subscription secrets.
+- Документирован Shadowrocket `Send HWID`; production finding подтвердил full-slot scenario как причину отказа и восстановление subscription после увеличения свободных HWID slots.
+
 ## v4.25.1 — User Management stabilization / HWID completion
 - Исправлены production-acceptance navigation defects: `Показать URL` возвращает в `🔗 Подписка`, user-scoped `💳 Платежи` больше не уводят в глобальный payment ledger, shortcut `⏳ Продлить` удалён из главной карточки.
 - Create-user корректно трактует production 3x-ui response `Obtain (record not found)` как отсутствие клиента, сохраняя fail-closed обработку остальных API errors.

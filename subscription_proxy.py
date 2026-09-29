@@ -21,6 +21,15 @@ PASSTHROUGH_HEADERS = {
     "announce",
 }
 
+HWID_RESPONSE_HEADERS = {
+    "x-hwid-active",
+    "x-hwid-not-supported",
+    "x-hwid-limit",
+    "x-hwid-max-devices-reached",
+}
+
+INCY_DESKTOP_PLATFORMS = {"windows", "linux", "macos"}
+
 HWID_UPSTREAM_HEADERS = (
     "X-HWID",
     "X-Device-OS",
@@ -134,6 +143,46 @@ def _is_shadowrocket(request: web.Request) -> bool:
     """Detect Shadowrocket subscription requests without changing nginx config."""
     user_agent = request.headers.get("User-Agent", "")
     return "shadowrocket" in user_agent.lower()
+
+
+def _incy_platform(request: web.Request) -> str | None:
+    """Return a verified INCY platform from the documented UA contract."""
+    user_agent = (request.headers.get("User-Agent") or "").strip()
+    parts = user_agent.split("/")
+    if len(parts) != 3 or parts[0].lower() != "incy":
+        return None
+    if not parts[1].strip() or not parts[2].strip():
+        return None
+    return parts[2].strip().lower()
+
+
+def _is_incy_desktop(request: web.Request) -> bool:
+    platform = _incy_platform(request)
+    return platform in INCY_DESKTOP_PLATFORMS
+
+
+def filter_incy_desktop_awg(text: str) -> str:
+    """Hide unsupported AmneziaWG entries from verified INCY Desktop clients."""
+    out: list[str] = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip().lower()
+        if line.startswith(("vpn://", "amneziawg://", "awg://")):
+            continue
+        out.append(raw_line)
+    return "\n".join(out)
+
+
+def _hwid_rejection_reason(upstream_headers: dict[str, str]) -> str | None:
+    headers = {key.lower(): value.strip().lower() for key, value in upstream_headers.items()}
+    if headers.get("x-hwid-max-devices-reached") == "true":
+        return "hwid_max_devices_reached"
+    if headers.get("x-hwid-not-supported") == "true":
+        return "hwid_not_supported"
+    if headers.get("x-hwid-limit") == "true":
+        return "hwid_limit_reached"
+    if headers.get("x-hwid-active") == "true":
+        return "hwid_rejected"
+    return None
 
 
 def remove_shadowrocket_xhttp_reality_fp(text: str) -> str:
@@ -272,7 +321,7 @@ class SubscriptionProxy:
         result = {
             key: value
             for key, value in upstream_headers.items()
-            if key.lower() in PASSTHROUGH_HEADERS
+            if key.lower() in PASSTHROUGH_HEADERS or key.lower() in HWID_RESPONSE_HEADERS
         }
         result["Cache-Control"] = "no-store"
         result["X-Subscription-Compat"] = "3x-ui-awg-to-incy"
@@ -360,12 +409,23 @@ class SubscriptionProxy:
         except (aiohttp.ClientError, TimeoutError) as exc:
             LOG.warning("subscription upstream request failed: %s", exc)
             raise web.HTTPBadGateway(text="subscription upstream unavailable\n")
+        if status == 404:
+            hwid_reason = _hwid_rejection_reason(upstream_headers)
+            if hwid_reason:
+                LOG.warning("subscription upstream rejected by HWID gate: %s", hwid_reason)
+                headers = self._response_headers(upstream_headers)
+                headers["Content-Type"] = "text/plain; charset=utf-8"
+                body = f"subscription hwid rejected: {hwid_reason}\n".encode("utf-8")
+                return web.Response(status=404, body=body, headers=headers)
         if status >= 400:
             LOG.warning("subscription upstream returned HTTP %s", status)
             raise web.HTTPBadGateway(text="subscription upstream error\n")
 
         plain, was_base64 = _try_decode_subscription(upstream_body)
-        converted = convert_vpn_to_amneziawg(plain)
+        if _is_incy_desktop(request):
+            converted = filter_incy_desktop_awg(plain)
+        else:
+            converted = convert_vpn_to_amneziawg(plain)
 
         # Shadowrocket-specific compatibility: for VLESS + XHTTP + Reality,
         # remove only the fp query parameter. INCY and other clients keep the
