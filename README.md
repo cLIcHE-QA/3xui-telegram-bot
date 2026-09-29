@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.25.4
+# Telegram-бот для 3x-ui v4.25.5
 
 Административный Telegram Control Plane для 3x-ui. Текущая production-линия проекта — **v4.x Admin Control Plane**; полноценный client-facing Client Portal запланирован отдельно для v5.x.
 
@@ -139,7 +139,7 @@ domain routers
 
 `bot.py` сохраняется как стабильный executable path, в том числе для `restore_bootstrap.py`, но не владеет domain handlers или lifecycle implementation.
 
-Линия `v4.25.x` продолжается targeted compatibility patch `v4.25.4`: поверх принятого `v4.25.3` добавляется opt-in plain subscription output для диагностики/совместимости Streisand без изменения default `/compat/{sub_id}` поведения существующих клиентов. Переход к `v4.26.0` допускается после targeted production acceptance `v4.25.4`.
+Линия `v4.25.x` продолжается targeted patch `v4.25.5`: `?plain=1` теперь принудительно выбирает raw subscription path даже при Safari/WebView `Accept: text/html`, сохраняя default `/compat/{sub_id}` behavior без изменений.
 
 Линия `v4.24.x` реализована, опубликована и принята в production: `website_monitoring.py` содержит SQLite repository/state machine и SSRF-safe outbound boundary, `website_monitoring_runtime.py` — bounded scheduler/incident notifications, `website_monitoring_admin.py` — persistent monitoring UI, а `website_diagnostics.py` / `website_diagnostics_admin.py` — one-off DNS/WHOIS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/URL-list/QR diagnostics. Production smoke `v4.24.0` выявил targeted findings WHOIS MSK, bounded Cheburcheck detail и public IPv6 literal validation; они закрыты в `v4.24.1`, после чего smoke/acceptance линии завершён.
 
