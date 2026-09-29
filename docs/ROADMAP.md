@@ -1039,11 +1039,11 @@ Acceptance hotfix:
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
 
-**Статус: 🟡 `v4.25.1` принят по User Management/HWID scope; линия `v4.25` остаётся открытой до compatibility hotfix `v4.25.2`.**
+**Статус: ✅ Линия `v4.25` опубликована и полностью принята в production после targeted patch `v4.25.3`.**
 
 Цель — завершить v4.x User Management как цельный операторский workflow: карточка пользователя становится единой точкой входа для профиля, тарифа, срока, трафика, provisioning-доступа, подключений, подписки, платежей и персональной audit timeline. Релиз сохраняет существующие backend primitives и security boundaries, убирает конкурирующие legacy-пути синхронизации Inbounds и добавляет недостающие admin-facing функции без открытия Client Portal.
 
-Implementation scope закрыт и опубликован в `v4.25.0`: User list/search/create, каноническая карточка и detail navigation, policy-based Access/Flow, Connections/HWID/IP, local-only Subscription QR, user-scoped Payments/Activity, confirmation-first lifecycle и завершённый bulk workflow реализованы и защищены regression coverage. GitHub release/CI завершены; следующий этап — deployment и production smoke/acceptance под ролями из acceptance contract.
+Implementation scope закрыт и опубликован в `v4.25.0`: User list/search/create, каноническая карточка и detail navigation, policy-based Access/Flow, Connections/HWID/IP, local-only Subscription QR, user-scoped Payments/Activity, confirmation-first lifecycle и завершённый bulk workflow реализованы и защищены regression coverage. Production findings были последовательно закрыты в `v4.25.1`–`v4.25.3`; линия `v4.25` полностью production-accepted 2026-09-29.
 
 Release boundary:
 
@@ -2233,7 +2233,7 @@ Production evidence `v4.25.1`:
 - final post-smoke health: **PASS**;
 - исторический stale legacy sync callback production-click (бывший test 25) не воспроизведён из-за отсутствия сохранённого старого Telegram message и зафиксирован как **N/A production exception**; compatibility handler и non-mutating redirect покрыты code review/regression tests, mutation path через старый callback не используется.
 
-После этого acceptance `v4.25.1` считается закрытым, но линия `v4.25` остаётся открытой из-за отдельно выявленных client-compatibility findings. Перед `v4.26.0` обязателен `v4.25.2`.
+Acceptance `v4.25.1` закрыт по User Management/HWID scope. Последующие client-compatibility findings были вынесены в `v4.25.2`, а реальный INCY macOS Desktop UA finding — в targeted patch `v4.25.3`; оба patch-релиза завершены до перехода к `v4.26.0`.
 
 
 
@@ -2284,12 +2284,12 @@ Production acceptance `v4.25.2`:
 - освободить/увеличить slot и подтвердить восстановление той же Shadowrocket subscription без rotation identity;
 - выполнить final bot/DB/3x-ui health smoke.
 
-Линия `v4.25` считается полностью production-closed только после публикации и targeted production acceptance `v4.25.2`. После этого можно начинать `v4.26.0`.
+`v4.25.2` не закрыл линию полностью: Shadowrocket/HWID acceptance прошёл, но INCY Desktop выявил отдельный UA compatibility finding. Финальное закрытие перенесено в `v4.25.3`.
 
 
 ##### v4.25.3 — INCY Desktop UA compatibility
 
-**Статус: 🟡 В реализации как targeted patch перед закрытием линии `v4.25`.**
+**Статус: ✅ Опубликовано в `v4.25.3` и принято в production; линия `v4.25` закрыта.**
 
 Production acceptance `v4.25.2` от 2026-09-29:
 
@@ -2319,7 +2319,16 @@ Targeted acceptance `v4.25.3`:
 4. Shadowrocket/HWID smoke не регрессирует;
 5. final bot/DB/3x-ui health остаётся PASS.
 
-Линия `v4.25` закрывается только после targeted acceptance `v4.25.3`.
+Production evidence `v4.25.3`:
+
+- release tag `v4.25.3` указывает на commit `92909cde932c09d5b1b98742ef66e4fc3041424f`;
+- targeted production acceptance cases 45–49: **PASS**;
+- INCY Desktop macOS: AWG entries больше не выдаются, VLESS/прочие поддерживаемые entries остаются рабочими;
+- INCY mobile: AWG flow сохранён без regression;
+- Shadowrocket/HWID smoke: **PASS**, ранее принятые HWID diagnostics/enforcement не регрессировали;
+- final bot/DB/3x-ui health: **PASS**.
+
+Линия `v4.25` полностью production-accepted 2026-09-29. Следующий roadmap release — `v4.26.0 — Node Drain`.
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
