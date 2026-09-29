@@ -272,12 +272,12 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ закрыто в `v4.23.3`: базовая интеграция принята в production в `v4.23.1`, findings `v4.23.2` закрыты hotfix-релизом `v4.23.3`; дальнейший Cheburcheck Probe fleet вынесен в «Отложенные инфраструктурные улучшения» и не блокирует следующий feature release.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ✅ выполнено и принято в production в линии `v4.24.x`; smoke `v4.24.0` выявил targeted findings, закрытые и повторно проверенные в `v4.24.1`.
-19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ✅ выполнено; production acceptance релизов `v4.25.0–v4.25.6` закрыт на `v4.25.6`, Streisand при активном HWID limit зафиксирован как expected limitation.
+19. целостный User Management и follow-up линия `v4.25.x` — ✅ выполнено; релизы `v4.25.0–v4.25.8` опубликованы, развёрнуты и приняты в production, Streisand при активном HWID limit остаётся зафиксированным expected limitation.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 22. исправление неверного ввода Inbound/шаблонов — ✅ выполнено, опубликовано и принято в production в `v4.25.7`; targeted smoke и final health — PASS.
-23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server должна возвращать в исходный Inbound) — 🟡 реализовано в `main` для `v4.25.8`; issue #202 остаётся открытым до production acceptance.
-24. защита DB-backed Owner от случайного self-demotion одним нажатием — 🟡 реализовано в `main` для `v4.25.8`; issue #204 остаётся открытым до production acceptance.
+23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server возвращает в исходный Inbound) — ✅ выполнено и принято в production в `v4.25.8`; issue #202 закрыт как `completed`.
+24. защита DB-backed Owner от случайного self-demotion одним нажатием — ✅ выполнено и принято в production в `v4.25.8`; issue #204 закрыт как `completed`.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -300,9 +300,8 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 11. patch-релизом `v4.23.2` завершить compact result parity и context-preserving navigation Cheburcheck;
 12. hotfix-релизом `v4.23.3` закрыть production findings `v4.23.2`: explicit CDN negative state, domain/IP ASN enrichment и truthful regional probe availability;
 13. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics; targeted production findings закрыть patch-релизом `v4.24.1`, а финальный acceptance линии проводить на `v4.24.1`;
-14. User Management и follow-up релизы `v4.25.0–v4.25.7` завершены и проверены; `v4.25.7` принят в production после targeted validation smoke;
-15. перед следующим feature release закрыть `v4.25.8`: navigation hotfix Clone Inbound и confirmation-защиту DB-Owner self-demotion;
-16. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
+14. User Management и follow-up линия `v4.25.0–v4.25.8` завершены и приняты в production; линия `v4.25.x` закрыта;
+15. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
 16. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
 17. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
 18. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
@@ -2476,65 +2475,54 @@ Admin Setup: новых настроек и действий установки 
 
 ##### v4.25.8 — Inbound clone navigation hotfix
 
-**Статус: 🟡 Реализовано в `main`; fix PR #205 слит, release-prep `v4.25.8` выполняется; issues #202 и #204 остаются открытыми до production acceptance.**
+**Статус: ✅ Выполнено в `v4.25.8`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #202 закрыт как `completed`.**
 
 Production finding:
 
 - путь: `/admin → Инфраструктура → Inbounds → <Inbound> → 📋 Клонировать`;
-- на экране выбора target server кнопка `✖ Отмена` возвращает в общий список `📡 Inbounds`;
-- по действующему navigation contract вложенный flow должен возвращать в экран, из которого он был начат — карточку исходного Inbound.
+- до исправления `✖ Отмена` на выборе target server возвращала в общий список `📡 Inbounds`;
+- после исправления вложенный flow возвращается в карточку исходного Inbound: `admin:inbound:{source_id}`.
 
-Root cause был подтверждён и закрыт в implementation PR #205: shared `_target_keyboard(...)` теперь получает явный Cancel parent; Clone Inbound передаёт `admin:inbound:{iid}`, а Deploy Template сохраняет `admin:inboundtemplate:{tid}`. Более глубокий clone-port FSM по-прежнему использует `inbound_cancel_keyboard(iid)`.
+Implementation:
 
-Scope:
+- shared `_target_keyboard(...)` получает явный Cancel parent;
+- Clone Inbound передаёт `admin:inbound:{iid}`;
+- Deploy Template сохраняет собственный parent `admin:inboundtemplate:{tid}`;
+- invalid-port Cancel по-прежнему возвращает в исходный Inbound;
+- clone target callbacks, disabled/clientless payload, RBAC, audit и 3x-ui API semantics не изменены.
 
-- изменить только Cancel parent для target-selection экрана Clone Inbound;
-- сохранить clone target callbacks, RBAC, disabled/clientless payload, port validation, audit и 3x-ui API semantics без изменений;
-- добавить regression test на точный callback `admin:inbound:{source_id}`;
-- не смешивать hotfix с Node Drain или общим UI refactor.
-
-Acceptance:
-
-1. `📋 Клонировать → ✖ Отмена` возвращает в исходный Inbound;
-2. выбор target server и valid clone работают без regression;
-3. invalid-port Cancel по-прежнему возвращает в исходный Inbound;
-4. full CI green;
-5. production smoke и final bot/DB/3x-ui health green.
-
-Finding имеет Low/UX severity и не отменяет успешный acceptance core validation fix `v4.25.7`.
-
-Tracking: [issue #202](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/202), [issue #204](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/204), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205). PR #205 слит в `main` squash-коммитом `1b28d5cc3e668b134bb18a6f29364533ac5398be`; post-merge `Python checks` — success.
+Tracking: [issue #202](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/202) (closed/completed), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205), [release PR #206](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/206).
 
 ##### v4.25.8 — Owner self-role safety
 
-Второй narrowly-scoped finding этого же patch-релиза относится к защите DB-backed Owner от случайного self-demotion. Реализация слита в `main` в PR #205: self-demotion требует отдельного confirmation screen, а mutation защищена актуальным FSM state + nonce; direct/stale run fail-closed.
+**Статус: ✅ Выполнено в `v4.25.8`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #204 закрыт как `completed`.**
 
-Текущий RBAC остаётся корректным: управление администраторами требует `Owner`, а локальный break-glass Owner из `ADMIN_TELEGRAM_IDS` immutable через Telegram. Finding относится только к UX/safety обычного DB-backed Owner, который сейчас может одним нажатием изменить собственную роль ниже Owner и немедленно потерять Owner-only доступ.
+DB-backed Owner теперь не может понизить собственную роль ниже Owner одним нажатием:
 
-Scope:
+- self-demotion требует отдельного confirmation screen с явным предупреждением о потере Owner-only прав;
+- mutation выполняется только через Owner-only confirm callback с актуальным FSM state + nonce;
+- direct/stale confirmation fail-closed;
+- Cancel очищает confirmation и возвращает в собственную карточку без mutation;
+- изменение ролей других DB-администраторов Owner'ом сохраняет прежнюю семантику;
+- локальный break-glass Owner из `ADMIN_TELEGRAM_IDS` остаётся immutable;
+- audit фиксирует actor/target и переход роли;
+- role model, privilege catalog и уровни ролей не меняются.
 
-- изменение ролей других DB-администраторов Owner'ом остаётся без изменений;
-- локальный break-glass Owner остаётся immutable;
-- self-demotion DB-backed Owner требует отдельного confirmation screen с явным предупреждением о потере Owner-only прав;
-- mutation выполняется только отдельным confirm/run callback;
-- direct/stale mutation callback без валидного confirmation context не должен обходить confirmation;
-- Cancel возвращает в собственную карточку администратора без mutation;
-- audit фиксирует actor, target и переход роли;
-- role model, privilege catalog и уровни ролей не меняются;
-- self-disable/self-delete не входят в этот scope без отдельного finding.
+Tracking: [issue #204](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/204) (closed/completed), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205), [release PR #206](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/206).
 
-Acceptance:
+Production acceptance `v4.25.8`:
 
-1. `Owner → собственная роль ниже Owner` не выполняется одним нажатием;
-2. confirmation явно предупреждает о потере Owner-only доступа;
-3. Cancel не меняет роль и возвращает в собственную карточку;
-4. confirm выполняет ровно одну смену роли и создаёт audit event;
-5. изменение ролей других DB-admins работает как раньше;
-6. локальный break-glass Owner по-прежнему нельзя изменить через Telegram;
-7. прямой/stale run callback без валидного confirmation context блокируется;
-8. full CI и targeted production smoke green.
+- tag/GitHub Release `v4.25.8` опубликованы штатным workflow; tag указывает на `768fc0e4b9a0c0d2e35508febf272709896c3e7f`;
+- implementation PR #205 и release-prep PR #206 слиты в `main`;
+- post-merge `Python checks` на release commit: **587 tests OK**, compileall, OpenAPI gate, release-notes smoke, deploy/helper/Compose checks и `git diff --check` — success;
+- production deployment выполнен на опубликованный tag;
+- targeted production tests navigation hotfix и Owner self-demotion safety — **PASS**;
+- final bot/DB/3x-ui health — **PASS**;
+- issues #202 и #204 обновлены acceptance evidence и закрыты как `completed`.
 
+**Итог линии: `v4.25.0–v4.25.8` полностью проверены и operationally закрыты. Следующий активный runtime-релиз — `v4.26.0` Node Drain.**
 
+Admin Setup: новых настроек и действий установки для `v4.25.8` не потребовалось.
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
