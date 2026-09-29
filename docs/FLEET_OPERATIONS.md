@@ -52,6 +52,35 @@ Mutation автоматически не повторяется.
 
 За один batch разрешено не более 20 nodes.
 
+## Node Drain v4.26
+
+Node Drain является отдельной операцией от Fleet Maintenance.
+
+Maintenance только ставит direct node в control-plane pause через `enable=false`; это само по себе не доказывает вывод пользовательского трафика. Drain использует ту же primitive первым шагом, а затем выполняет policy-based evacuation пользователей.
+
+Порядок:
+
+1. read-only preflight определяет target Inbounds, затронутых пользователей, policy alternatives и blockers;
+2. перед пользовательскими mutations direct node переводится в maintenance, чтобы новые provisioning/reconcile назначения больше не выбирали target;
+3. для каждого пользователя сначала подтверждается альтернативный Inbound по текущей `ProvisioningEngine` policy;
+4. недостающая альтернатива attach'ится и проверяется read-back;
+5. только после этого target Inbounds detach'ятся;
+6. финальный read-back доказывает, что target assignments отсутствуют, иначе результат остаётся `partial` / `unknown`.
+
+Пользователь без policy alternative не мутируется. Drain не использует legacy attach-all и никогда автоматически не вызывает Stop Xray или Stop service.
+
+Persistent journal хранится в `fleet/drain-<id>.json` рядом с bot DB с private permissions. Journal не содержит email, subscription URL, `sub_id` или credentials.
+
+После restart незавершённый `draining` переводится в `interrupted`, parent job — в `unknown`; mutation не replay'ится.
+
+Fleet Health различает `maintenance`, `draining` и `drained`. Active Xray sessions намеренно не обрываются: detach влияет на последующий reconnect/refresh и не является гарантией мгновенного завершения уже установленной сессии.
+
+Roles:
+
+- status/preflight: Read-only+;
+- prepare/start/cancel до mutation: Administrator+;
+- Stop Xray / Stop service: по-прежнему отдельные Owner-only Host Control operations.
+
 ## Controlled Rollout
 
 Поддерживаются:
