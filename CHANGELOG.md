@@ -8,13 +8,15 @@
 
 
 ## v4.26.0 — Node Drain
-- Начата реализация отдельного graceful Node Drain для direct nodes без изменения семантики maintenance и без автоматического Stop Xray/service.
-- Добавлен backend preflight по stable `node_id`: определяется набор управляемых Inbounds target-ноды, затронутые локальные пользователи, policy alternatives и blockers.
-- Эвакуация пользователя использует существующий `ProvisioningEngine` как источник policy и соблюдает attach-before-detach: target Inbounds отключаются только после read-back подтверждения альтернативного Inbound.
-- Добавлен last-working-Inbound guard; пользователь без подтверждённой policy alternative остаётся blocker и не мутируется.
+- Реализован отдельный graceful Node Drain для direct nodes без изменения семантики maintenance и без автоматического Stop Xray/service.
+- Read-only preflight по stable `node_id` определяет управляемые Inbounds target-ноды, затронутых локальных пользователей, policy alternatives, blockers и remaining work; transitive/неоднозначная node identity блокируется fail-closed.
+- Эвакуация использует существующий `ProvisioningEngine` как источник policy и соблюдает attach-before-detach: target Inbounds detach'ятся только после read-back подтверждения альтернативного Inbound; disabled target Inbounds также учитываются как оставшиеся назначения.
+- Добавлен last-working-Inbound guard; пользователь без подтверждённой policy alternative остаётся blocker и не мутируется. Один Drain ограничен 500 затронутыми пользователями и выполняется последовательно.
 - Attach/detach 3x-ui переведены на существующую no-retry mutation boundary `XUIMutationError`; uncertain outcome проверяется read-only состоянием и не приводит к автоматическому повтору mutation.
-- Добавлен private persistent journal `fleet/drain-<id>.json` с mode 0600; в нём сохраняются только stable IDs и техническое состояние без email, subscription URL, `sub_id` или credentials.
-- Добавлены regression tests backend safety contract. Telegram Fleet UI, orchestration job lifecycle, restart recovery и production acceptance будут подключены следующими PR этой feature-линии; `APP_VERSION` до release-prep остаётся `4.25.8`.
+- Fleet UI получил `🚧 Вывести из трафика`: просмотр/preflight доступен Read-only+, prepare/confirm/run — Administrator+; сначала target node переводится в maintenance, затем выполняется controlled evacuation. Fleet Health и карточка direct-ноды различают `maintenance`, `draining`, `drained` и проблемные terminal states.
+- Добавлен parent job `fleet.drain`, audit и private persistent journal `fleet/drain-<id>.json` с mode 0600; journal хранит только stable IDs и техническое состояние без email, subscription URL, `sub_id` или credentials.
+- Startup recovery переводит незавершённый `draining` в `interrupted/unknown` без mutation replay. Active Xray sessions специально не обрываются; Stop Xray/service остаются отдельными Owner-only operations.
+- Добавлены regression tests safety/RBAC/recovery/bounded-state contract и обновлён Fleet Operations runbook. `APP_VERSION` до отдельного release-prep остаётся `4.25.8`; production smoke/acceptance ещё не выполнены.
 
 ## v4.25.8 — navigation and Owner self-role safety
 - В Clone Inbound кнопка `✖ Отмена` на экране выбора target server теперь возвращает в карточку исходного Inbound; shared target keyboard получает явный parent, а Deploy Template сохраняет собственный parent.
