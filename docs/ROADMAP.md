@@ -2355,6 +2355,32 @@ Targeted acceptance `v4.25.4`:
 Линия `v4.25` закрывается только после targeted acceptance `v4.25.4`.
 
 
+##### v4.25.5 — Streisand plain mode precedence
+
+**Статус: 🟡 В реализации как targeted follow-up к `v4.25.4`.**
+
+Production finding после deploy `v4.25.4`:
+
+- Streisand с `?plain=1` продолжил сообщать, что subscription не содержит действующих конфигураций;
+- фактический request использует Safari/WebView-like UA и `Accept: text/html`;
+- `v4.25.4` вычислял `plain_mode`, но HTML branch выполнялся раньше raw response path, поэтому `plain=1` не гарантировал raw subscription;
+- root cause подтверждён кодом compat proxy.
+
+Fix `v4.25.5`:
+
+- при `plain_mode` HTML branch всегда пропускается;
+- upstream raw fetch получает `Accept: text/plain`;
+- default URL без `plain` не меняется;
+- добавлен regression на Safari-like UA + `Accept: text/html` + `plain=1`.
+
+Targeted acceptance:
+
+1. Streisand с `?plain=1` импортирует subscription;
+2. те же VLESS configs появляются как валидные;
+3. обычные Shadowrocket/V2Box/V2RayTun/Happ/INCY URLs продолжают работать без regression;
+4. final bot/DB/3x-ui health остаётся PASS.
+
+
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
 
 **Статус: ⬜ Запланировано на `v4.26.0`.**
