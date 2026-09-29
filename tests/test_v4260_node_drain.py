@@ -115,6 +115,17 @@ def settings():
 
 
 class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
+    async def test_disabled_target_is_not_actionable_for_new_provisioning(self):
+        db = FakeDB()
+        xui = FakeXUI()
+        xui.nodes[0].enable = False
+        service = NodeDrainService(db, xui, settings())
+
+        policy = await service.provisioner.policy_for_user(1)
+
+        self.assertIn(10, policy.actionable_inbound_ids)
+        self.assertNotIn(20, policy.actionable_inbound_ids)
+
     async def test_review_marks_user_without_policy_alternative_as_blocker(self):
         db = FakeDB()
         xui = FakeXUI()
@@ -291,6 +302,19 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("evacuate_user(", recovery)
         self.assertNotIn("_set_node_enabled(", recovery)
 
+    def test_maintenance_block_uses_no_retry_and_readback(self):
+        from xui import XUIClient
+
+        self.assertIn("_mutation_request(", inspect.getsource(XUIClient.node_set_enable))
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "fleet_operations.py").read_text(encoding="utf-8")
+        start = source.index("async def _set_node_enabled")
+        end = source.index("\n\n", start)
+        block = source[start:end]
+        self.assertIn("except XUIMutationError as exc:", block)
+        self.assertIn("await xui.node_get(node_id)", block)
+        self.assertIn("if check.enable == enabled:", block)
+
     def test_attach_detach_use_no_retry_mutation_boundary(self):
         from xui import XUIClient
 
@@ -326,6 +350,14 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('"▶ Продолжить после проверки"', source)
         self.assertIn('latest_state in {"partial", "unknown", "interrupted"}', source)
         self.assertIn('"🔄 Новый preflight"', source)
+
+    def test_node_drain_never_uses_legacy_attach_all(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "node_drain.py").read_text(encoding="utf-8")
+
+        self.assertNotIn("bulk_attach_clients", source)
+        self.assertNotIn("attach_all", source)
+        self.assertIn("ProvisioningEngine", source)
 
     def test_drain_flow_never_stops_xray_or_service(self):
         root = Path(__file__).resolve().parents[1]
