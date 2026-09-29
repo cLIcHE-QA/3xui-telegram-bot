@@ -381,7 +381,7 @@ class SubscriptionProxy:
             headers["Content-Type"] = upstream_headers.get("Content-Type", "application/json; charset=utf-8")
             return web.Response(body=body, headers=headers)
 
-        if _wants_html(request):
+        if not plain_mode and _wants_html(request):
             try:
                 status, body, upstream_headers = await self._fetch(
                     upstream_url,
