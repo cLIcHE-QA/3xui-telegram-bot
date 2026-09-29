@@ -1,4 +1,4 @@
-"""Release contract for v4.25.6 Streisand forward-revert."""
+"""Release contract for v4.25.7 Inbound input validation."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,23 +10,37 @@ from version import APP_VERSION
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class V4251ReleaseTests(unittest.TestCase):
-    def test_release_version_is_4251(self):
-        self.assertEqual(APP_VERSION, "4.25.6")
+class V4257ReleaseTests(unittest.TestCase):
+    def test_release_version_is_4257(self):
+        self.assertEqual(APP_VERSION, "4.25.7")
 
-    def test_current_docs_reference_release_4251(self):
+    def test_current_docs_reference_release_4257(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         sqlite_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
 
-        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.25.6"))
-        self.assertIn("Guide ориентирован на release v4.25.6.", admin_setup)
-        self.assertIn("git checkout --detach v4.25.6", admin_setup)
-        self.assertIn("Bot version: 4.25.6", admin_setup)
+        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.25.7"))
+        self.assertIn("Guide ориентирован на release v4.25.7.", admin_setup)
+        self.assertIn("git checkout --detach v4.25.7", admin_setup)
+        self.assertIn("Bot version: 4.25.7", admin_setup)
         self.assertIn(
-            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5` и `v4.25.6` текущая bot schema version — **5**",
+            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6` и `v4.25.7` текущая bot schema version — **5**",
             sqlite_doc,
         )
+
+    def test_release_notes_cover_v4257_scope(self):
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertEqual(changelog.count("## v4.25.7 — Inbound input validation"), 1)
+        section = changelog.split("## v4.25.7 — Inbound input validation", 1)[1].split("\n## ", 1)[0]
+        for needle in (
+            "UnboundLocalError",
+            "FSM",
+            "occupied port",
+            "disabled/clientless",
+            "SQLite schema v5",
+            "OpenAPI contract v3.8.5",
+        ):
+            self.assertIn(needle, section)
 
     def test_release_notes_cover_v4250_scope(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
@@ -81,16 +95,17 @@ class V4251ReleaseTests(unittest.TestCase):
         heading = "##### v4.25.7 — Inbound input validation"
         self.assertEqual(roadmap.count(heading), 1)
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
-        self.assertIn("**Статус: ⬜ Запланировано", section)
+        self.assertIn("**Статус: 🟡 Реализовано в `main`", section)
         self.assertNotIn("**Статус: ✅", section)
         for needle in (
             "issue #199",
             "fix PR #200",
+            "2b24ce709ffe77d479c98e1604462deb4910c072",
             "inbound_clone_port",
             "inbound_template_save",
             "template_deploy_port",
             "tests/test_inbound_input_validation.py",
-            "отдельный release-prep PR",
+            "release-prep PR",
             "отдельный явный deployment",
             "targeted production smoke",
         ):
@@ -99,7 +114,7 @@ class V4251ReleaseTests(unittest.TestCase):
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "Для bot release `v4.25.6` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
+            "Для bot release `v4.25.7` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
             admin_setup,
         )
 

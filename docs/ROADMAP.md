@@ -2433,9 +2433,9 @@ Production acceptance `v4.25.6` от 2026-09-29:
 
 ##### v4.25.7 — Inbound input validation
 
-**Статус: ⬜ Запланировано на `v4.25.7`; исправление и regression tests подготовлены в PR #200, выпуск и production acceptance ещё не выполнены.**
+**Статус: 🟡 Реализовано в `main`; release-prep `v4.25.7` подготовлен, публикация и production acceptance ещё не выполнены.**
 
-Tracking: [issue #199](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/199), [fix PR #200](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/200). Базовый срез — `main` @ `c7f44b7ec88e6c2ec25b58f724731c80d3fc56bd`, `APP_VERSION=4.25.6`.
+Tracking: [issue #199](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/199), [fix PR #200](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/200). Fix PR #200 слит в `main` squash-коммитом `2b24ce709ffe77d479c98e1604462deb4910c072`; release-prep переводит `APP_VERSION` на `4.25.7` без изменения runtime scope.
 
 Новый post-acceptance finding: в `inbound_admin.py` ветки ошибочного ввода строят Cancel keyboard с локальным `iid`/`tid` до его присваивания. Нечисловой/вне диапазона порт в `inbound_clone_port` и `template_deploy_port`, а также пустое/слишком длинное имя в `inbound_template_save` приводят к `UnboundLocalError` вместо подсказки.
 
@@ -2457,12 +2457,12 @@ Regression contract:
 6. успешное создание по-прежнему отключено и без клиентов, исходный payload не изменяется;
 7. допустимые имена, duplicate-name retry, последовательность invalid → valid input и отказ авторизации до чтения FSM.
 
-Tests: `tests/test_inbound_input_validation.py` выполняет реальные async handlers с `MemoryStorage`; внешние вызовы и Telegram rendering заменены моками. Первичный CI на test-only commit `5191d5439e8455292ace469d079cb1a7401f8a8a` завершился failure, а после исправления на `abe0b792f20162cf7218240d8d58caf2a590cf87` штатные `Python checks` и `PR conventions` завершились success. Для merge требуется повторная проверка итогового HEAD PR, а не только этого промежуточного commit.
+Tests: `tests/test_inbound_input_validation.py` выполняет реальные async handlers с `MemoryStorage`; внешние вызовы и Telegram rendering заменены моками. Итоговый fix PR HEAD `186b958cf6d8af7d6f37c794f19405046ae18483` прошёл штатные `Python checks` и `PR conventions`; после squash merge повторный `Python checks` на `main` commit `2b24ce709ffe77d479c98e1604462deb4910c072` также завершился success (576 tests).
 
 Порядок закрытия патча:
 
-- merge narrowly-scoped fix PR после зелёного CI;
-- отдельный release-prep PR: `APP_VERSION=4.25.7`, новый раздел `CHANGELOG.md`, текущие version references и release tests; исторические release notes не переписываются;
+- fix PR #200 слит в `main` после зелёного CI;
+- отдельный release-prep PR переводит `APP_VERSION=4.25.7`, добавляет новый раздел `CHANGELOG.md`, обновляет текущие version references и release tests; исторические release notes не переписываются;
 - публикация tag/GitHub Release только штатным workflow после успешных проверок, без ручного перемещения tags;
 - отдельный явный deployment опубликованного `v4.25.7`;
 - targeted production smoke трёх форм: неверный ввод → подсказка → повторный ввод/отмена; контролируемый valid path сохраняет disabled/clientless contract;

@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.25.7 — Inbound input validation
+- Исправлен `UnboundLocalError` при неверном вводе порта в clone/deploy Inbound и при неверном имени шаблона: FSM identifiers читаются до validation branch после успешного authorization guard.
+- Ошибочный ввод сохраняет исходный FSM/Cancel context и не выполняет remote/database mutation; после исправления можно повторить ввод или отменить действие штатной кнопкой.
+- Добавлены исполняемые async regression tests для invalid/boundary input, occupied port, duplicate template name, retry, authorization guard и сохранения disabled/clientless Inbound payload.
+- Callback identifiers, RBAC, SQLite schema v5, pinned 3x-ui OpenAPI contract v3.8.5, HWID/subscription proxy и mutation retry semantics не меняются.
+
 ## v4.25.6 — revert Streisand subscription workarounds
 - Удалены временные `plain=1` workarounds из `v4.25.4–v4.25.5`; runtime subscription proxy возвращён к контракту `v4.25.3`.
 - Production diagnosis подтвердил root cause: Streisand raw subscription request не передаёт совместимый `X-HWID`, поэтому при активном HWID limit upstream 3x-ui отвечает `hwid_not_supported`.
