@@ -71,8 +71,8 @@ class V4257ReleaseTests(unittest.TestCase):
         self.assertIn("test 56 — final bot/DB/3x-ui health: **PASS**", roadmap)
         self.assertIn("hwid_not_supported", roadmap)
         self.assertIn("не передаёт совместимый `X-HWID`", roadmap)
-        self.assertIn("релизы `v4.25.0–v4.25.6` полностью проверены и закрыты", roadmap)
-        self.assertIn("Следующий активный патч — `v4.25.7` Inbound input validation.", roadmap)
+        self.assertIn("релизы `v4.25.0–v4.25.7` полностью проверены и закрыты", roadmap)
+        self.assertIn("Следующий активный патч — `v4.25.8`", roadmap)
         self.assertIn("следующий feature release — `v4.26.0` Node Drain.", roadmap)
 
     def test_previous_v425_sections_are_closed_without_claiming_streisand_support(self):
@@ -90,24 +90,23 @@ class V4257ReleaseTests(unittest.TestCase):
         self.assertNotIn("production acceptance ещё не закрыт", roadmap)
         self.assertIn("**N/A production exception**", roadmap)
 
-    def test_new_validation_patch_has_separate_pending_acceptance(self):
+    def test_v4257_validation_patch_is_closed_after_production_acceptance(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         heading = "##### v4.25.7 — Inbound input validation"
         self.assertEqual(roadmap.count(heading), 1)
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
-        self.assertIn("**Статус: 🟡 Реализовано в `main`", section)
-        self.assertNotIn("**Статус: ✅", section)
+        self.assertIn("**Статус: ✅ Выполнено в `v4.25.7`", section)
         for needle in (
             "issue #199",
+            "closed/completed",
             "fix PR #200",
+            "release PR #201",
             "2b24ce709ffe77d479c98e1604462deb4910c072",
-            "inbound_clone_port",
-            "inbound_template_save",
-            "template_deploy_port",
-            "tests/test_inbound_input_validation.py",
-            "release-prep PR",
-            "отдельный явный deployment",
-            "targeted production smoke",
+            "053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890",
+            "tag `v4.25.7`",
+            "production deployment выполнен",
+            "final bot/DB/3x-ui health — **PASS**",
+            "issue #202",
         ):
             self.assertIn(needle, section)
 
