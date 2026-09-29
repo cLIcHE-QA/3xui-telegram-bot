@@ -1039,7 +1039,7 @@ Acceptance hotfix:
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
 
-**Статус: 🟡 `v4.25.1` принят по User Management/HWID scope; линия `v4.25` остаётся открытой до compatibility hotfix `v4.25.2`.**
+**Статус: ✅ Линия `v4.25.x` полностью принята в production и закрыта на `v4.25.6`; следующий этап — `v4.26.0` Node Drain.**
 
 Цель — завершить v4.x User Management как цельный операторский workflow: карточка пользователя становится единой точкой входа для профиля, тарифа, срока, трафика, provisioning-доступа, подключений, подписки, платежей и персональной audit timeline. Релиз сохраняет существующие backend primitives и security boundaries, убирает конкурирующие legacy-пути синхронизации Inbounds и добавляет недостающие admin-facing функции без открытия Client Portal.
 
@@ -2289,7 +2289,7 @@ Production acceptance `v4.25.2`:
 
 ##### v4.25.3 — INCY Desktop UA compatibility
 
-**Статус: 🟡 В реализации как targeted patch перед закрытием линии `v4.25`.**
+**Статус: ✅ Опубликовано в `v4.25.3` и принято в production; последующие `v4.25.4–v4.25.6` относились только к Streisand compatibility investigation/revert.**
 
 Production acceptance `v4.25.2` от 2026-09-29:
 
@@ -2324,7 +2324,7 @@ Targeted acceptance `v4.25.3`:
 
 ##### v4.25.4 — Streisand plain subscription compatibility
 
-**Статус: 🟡 В реализации как targeted compatibility patch перед переходом к `v4.26.0`.**
+**Статус: ⚪ Исторический diagnostic release; гипотеза `plain=1` не решила Streisand compatibility и была удалена в `v4.25.6`.**
 
 Production finding после успешного acceptance `v4.25.3`:
 
@@ -2357,7 +2357,7 @@ Targeted acceptance `v4.25.4`:
 
 ##### v4.25.5 — Streisand plain mode precedence
 
-**Статус: 🟡 В реализации как targeted follow-up к `v4.25.4`.**
+**Статус: ⚪ Исторический diagnostic release; HTML-precedence fix не устранил корневую HWID-несовместимость и был удалён в `v4.25.6`.**
 
 Production finding после deploy `v4.25.4`:
 
@@ -2383,7 +2383,7 @@ Targeted acceptance:
 
 ##### v4.25.6 — Streisand incompatibility / forward revert
 
-**Статус: 🟡 Forward-revert перед закрытием линии `v4.25`.**
+**Статус: ✅ Опубликовано в `v4.25.6`, принято в production; линия `v4.25.x` закрыта.**
 
 Итог production investigation:
 
@@ -2410,6 +2410,22 @@ Targeted acceptance `v4.25.6`:
 3. HWID full-slot / unsupported diagnostics остаются fail-closed;
 4. `plain=1` больше не является поддерживаемым compatibility contract;
 5. final bot/DB/3x-ui health остаётся PASS.
+
+
+Production acceptance `v4.25.6` от 2026-09-29:
+
+- release: tag `v4.25.6`, commit `b3fb80d334c8cded51e4bc9de4b08af2e31d0cd6`;
+- test 50 — version/health: **PASS**;
+- test 51 — Shadowrocket: **PASS**;
+- test 52 — V2Box / V2RayTun / Happ: **PASS**;
+- test 53 — INCY mobile + desktop: **PASS**;
+- test 54 — HWID full-slot / recovery diagnostics: **PASS**;
+- test 55 — Streisand: **EXPECTED LIMITATION** — raw subscription при `HWID limit > 0` несовместим, потому что клиент не передаёт совместимый `X-HWID`; 3x-ui корректно отвечает `hwid_not_supported`;
+- test 56 — final bot/DB/3x-ui health: **PASS**;
+- временные `plain=1` workarounds отсутствуют в финальном runtime; subscription proxy соответствует принятому контракту `v4.25.3`;
+- synthetic/fallback HWID не добавляется, per-device enforcement не ослабляется.
+
+**Итог: линия `v4.25.x` полностью production-accepted и закрыта. Следующий активный релиз — `v4.26.0` Node Drain.**
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
