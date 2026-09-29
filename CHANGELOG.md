@@ -16,7 +16,7 @@
 - Fleet UI получил `🚧 Вывести из трафика`: просмотр/preflight доступен Read-only+, prepare/confirm/run — Administrator+; сначала target node переводится в maintenance, затем выполняется controlled evacuation. Fleet Health и карточка direct-ноды различают `maintenance`, `draining`, `drained` и проблемные terminal states.
 - Добавлен parent job `fleet.drain`, audit и private persistent journal `fleet/drain-<id>.json` с mode 0600; journal хранит только stable IDs и техническое состояние без email, subscription URL, `sub_id` или credentials.
 - Startup recovery переводит незавершённый `draining` в `interrupted/unknown` без mutation replay. После `partial/unknown/interrupted` продолжение требует нового preflight и нового plan; возврат ноды в работу выполняется через выход из maintenance + обычный policy reconcile без reverse replay. Active Xray sessions специально не обрываются; Stop Xray/service остаются отдельными Owner-only operations.
-- Добавлены regression tests safety/RBAC/recovery/bounded-state contract и обновлён Fleet Operations runbook. `APP_VERSION` до отдельного release-prep остаётся `4.25.8`; production smoke/acceptance ещё не выполнены.
+- Добавлены regression tests safety/RBAC/recovery/bounded-state contract и обновлён Fleet Operations runbook. `APP_VERSION` поднят до `4.26.0` отдельным release-prep; SQLite schema остаётся v5, используемый 3x-ui route surface не меняется, production smoke/acceptance ещё не выполнены.
 
 ## v4.25.8 — navigation and Owner self-role safety
 - В Clone Inbound кнопка `✖ Отмена` на экране выбора target server теперь возвращает в карточку исходного Inbound; shared target keyboard получает явный parent, а Deploy Template сохраняет собственный parent.
