@@ -146,14 +146,21 @@ def _is_shadowrocket(request: web.Request) -> bool:
 
 
 def _incy_platform(request: web.Request) -> str | None:
-    """Return a verified INCY platform from the documented UA contract."""
+    """Return a verified INCY platform from known desktop/mobile UA prefixes."""
     user_agent = (request.headers.get("User-Agent") or "").strip()
-    parts = user_agent.split("/")
+    parts = user_agent.split("/", 2)
     if len(parts) != 3 or parts[0].lower() != "incy":
         return None
     if not parts[1].strip() or not parts[2].strip():
         return None
-    return parts[2].strip().lower()
+
+    platform_token = parts[2].strip().lower()
+    if platform_token.startswith("mac os x"):
+        return "macos"
+    for platform in INCY_DESKTOP_PLATFORMS | {"android", "ios"}:
+        if platform_token == platform or platform_token.startswith(platform + " "):
+            return platform
+    return None
 
 
 def _is_incy_desktop(request: web.Request) -> bool:
