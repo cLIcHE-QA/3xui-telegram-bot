@@ -155,7 +155,14 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         )
 
         plain_response = await proxy.subscription(
-            self.request("known", query={"plain": "1", "client": "keep"})
+            self.request(
+                "known",
+                query={"plain": "1", "client": "keep"},
+                headers={
+                    "Accept": "text/html,application/xhtml+xml",
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Mobile/22H340 Safari/604.1",
+                },
+            )
         )
         self.assertEqual(plain_response.body.decode(), plain)
         self.assertEqual(
@@ -163,6 +170,10 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
             [("client", "keep")],
         )
         self.assertTrue(plain_response.headers["Content-Type"].startswith("text/plain"))
+        self.assertEqual(
+            proxy._fetch.await_args.kwargs["headers"]["Accept"],
+            "text/plain",
+        )
 
     async def test_plain_mode_keeps_hwid_forwarding_and_no_synthetic_identity(self):
         db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
