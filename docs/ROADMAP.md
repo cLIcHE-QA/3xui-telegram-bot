@@ -2381,6 +2381,37 @@ Targeted acceptance:
 4. final bot/DB/3x-ui health остаётся PASS.
 
 
+##### v4.25.6 — Streisand incompatibility / forward revert
+
+**Статус: 🟡 Forward-revert перед закрытием линии `v4.25`.**
+
+Итог production investigation:
+
+- Streisand получает обычный browser/HTML path с HTTP 200;
+- при принудительном raw subscription path клиент доходит до compat proxy, но upstream 3x-ui отвечает HTTP 404 с bounded reason `hwid_not_supported`;
+- в access log подтверждён реальный Streisand UA `Streisand/50 CFNetwork/... Darwin/...`;
+- клиент не передаёт совместимый `X-HWID` для raw subscription requests;
+- те же VLESS links импортируются по одному, поэтому VLESS/Reality URI сами по себе валидны;
+- следовательно, Streisand несовместим с HWID-protected subscription flow при `HWID limit > 0`.
+
+Решение:
+
+- удалить временные `plain=1` workarounds из `v4.25.4–v4.25.5`;
+- вернуть runtime subscription proxy и его regression contract к `v4.25.3`;
+- не генерировать synthetic/fallback HWID;
+- не ослаблять или обходить per-device HWID enforcement ради Streisand;
+- оставить `v4.25.4` и `v4.25.5` в Git/release history как диагностические релизы;
+- документировать Streisand как известное client limitation для пользователей с активным HWID limit.
+
+Targeted acceptance `v4.25.6`:
+
+1. default subscription behavior совпадает с `v4.25.3`;
+2. Shadowrocket/V2Box/V2RayTun/Happ/INCY smoke не регрессирует;
+3. HWID full-slot / unsupported diagnostics остаются fail-closed;
+4. `plain=1` больше не является поддерживаемым compatibility contract;
+5. final bot/DB/3x-ui health остаётся PASS.
+
+
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
 
 **Статус: ⬜ Запланировано на `v4.26.0`.**

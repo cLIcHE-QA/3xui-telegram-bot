@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.25.6 — revert Streisand subscription workarounds
+- Удалены временные `plain=1` workarounds из `v4.25.4–v4.25.5`; runtime subscription proxy возвращён к контракту `v4.25.3`.
+- Production diagnosis подтвердил root cause: Streisand raw subscription request не передаёт совместимый `X-HWID`, поэтому при активном HWID limit upstream 3x-ui отвечает `hwid_not_supported`.
+- Compat proxy по-прежнему не генерирует synthetic/fallback HWID и не обходит per-device enforcement.
+- `v4.25.4` и `v4.25.5` остаются в истории релизов как диагностические попытки и не удаляются.
+
 ## v4.25.5 — Streisand plain mode precedence
 - `?plain=1` теперь принудительно обходит HTML branch даже если клиент присылает `Accept: text/html`.
 - Это закрывает Safari/WebView-like Streisand request path, который ранее получал HTML page вместо raw links.

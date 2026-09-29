@@ -351,15 +351,8 @@ class SubscriptionProxy:
             else upstream_url
         )
 
-        # Keep upstream query flags used by 3x-ui's built-in page, especially
-        # ?format=info. "plain" is a compat-proxy-only diagnostic/output flag
-        # and must never be forwarded upstream.
-        plain_mode = request.query.get("plain", "").lower() in {"1", "true", "yes"}
-        params = [
-            (key, value)
-            for key, value in request.query.items()
-            if key.lower() != "plain"
-        ]
+        # Keep query flags used by 3x-ui's built-in page, especially ?format=info.
+        params = list(request.query.items())
 
         if request.query.get("format", "").lower() == "info":
             accept = request.headers.get("Accept", "application/json")
@@ -381,7 +374,7 @@ class SubscriptionProxy:
             headers["Content-Type"] = upstream_headers.get("Content-Type", "application/json; charset=utf-8")
             return web.Response(body=body, headers=headers)
 
-        if not plain_mode and _wants_html(request):
+        if _wants_html(request):
             try:
                 status, body, upstream_headers = await self._fetch(
                     upstream_url,
@@ -447,7 +440,7 @@ class SubscriptionProxy:
         if _is_shadowrocket(request):
             converted = remove_shadowrocket_xhttp_reality_fp(converted)
 
-        body = converted.encode("utf-8") if plain_mode else _encode_like_upstream(converted, was_base64)
+        body = _encode_like_upstream(converted, was_base64)
 
         headers = self._response_headers(upstream_headers)
         headers["Content-Type"] = "text/plain; charset=utf-8"
