@@ -47,18 +47,22 @@ class V4251ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_roadmap_marks_published_release_without_claiming_acceptance(self):
+    def test_roadmap_marks_v4251_accepted_and_v4252_required_before_v426(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "🟠 Опубликовано в `v4.25.0`; production acceptance ещё не выполнен.",
+            "✅ Опубликовано в `v4.25.1` и принято в production.",
             roadmap,
         )
         self.assertIn(
-            "GitHub release/CI завершены; следующий этап — deployment и production smoke/acceptance",
+            "##### v4.25.2 — Subscription client compatibility",
             roadmap,
         )
-        self.assertNotIn(
-            "✅ Выполнено и принято в production в `v4.25.0`",
+        self.assertIn(
+            "обязательный compatibility hotfix перед переходом к `v4.26.0`",
+            roadmap,
+        )
+        self.assertIn(
+            "Линия `v4.25` считается полностью production-closed только после публикации и targeted production acceptance `v4.25.2`.",
             roadmap,
         )
 
