@@ -188,6 +188,17 @@ V4.22 добавляет отдельные `Группы пользовател
 
 Общие правила: **[SECURITY.md](SECURITY.md)**.
 
+## Shadowrocket и HWID
+
+Если для пользователя включён `HWID limit > 0`, в Shadowrocket необходимо включить отправку HWID для subscription requests:
+
+1. Откройте настройки Shadowrocket.
+2. Перейдите в настройки подписок / Subscription.
+3. Включите `Send HWID` / «Отправлять HWID».
+4. Повторно обновите или добавьте subscription URL.
+
+Если все HWID slots уже заняты, 3x-ui отклонит новый device. Освободите один зарегистрированный device slot или увеличьте per-user `HWID limit` в Telegram Admin Control Plane. Compat proxy не генерирует synthetic HWID и не обходит device limit.
+
 ## Subscription Compatibility Proxy
 
 V4 сохраняет встроенный compatibility proxy для подписок, управляемых ботом.
