@@ -47,7 +47,7 @@ class V4251ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_roadmap_marks_v4252_partial_acceptance_and_v4253_required(self):
+    def test_roadmap_marks_v4253_production_accepted(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn(
             "✅ Опубликовано в `v4.25.1` и принято в production.",
@@ -62,11 +62,15 @@ class V4251ReleaseTests(unittest.TestCase):
             roadmap,
         )
         self.assertIn(
-            "INCY Desktop: **FAIL** — AWG entries остались.",
+            "✅ Опубликовано в `v4.25.3` и принято в production; линия `v4.25` закрыта.",
             roadmap,
         )
         self.assertIn(
-            "Линия `v4.25` закрывается только после targeted acceptance `v4.25.3`.",
+            "targeted production acceptance cases 45–49: **PASS**",
+            roadmap,
+        )
+        self.assertIn(
+            "Линия `v4.25` полностью production-accepted 2026-09-29.",
             roadmap,
         )
 
