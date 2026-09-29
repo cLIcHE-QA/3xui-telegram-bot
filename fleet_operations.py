@@ -235,15 +235,16 @@ async def _assess_node(node: NodeInfo) -> dict[str, Any]:
 
     drain_plan = drain_store.latest_for_node(node.id)
     drain_state = str((drain_plan or {}).get("state") or "")
-    if drain_state == "draining":
-        state = "draining"
-    elif drain_state == "drained":
-        state = "drained"
-    elif drain_state in {"partial", "unknown", "interrupted"}:
-        state = "degraded"
+    if not node.enable:
+        if drain_state == "draining":
+            state = "draining"
+        elif drain_state == "drained":
+            state = "drained"
+        elif drain_state in {"partial", "unknown", "interrupted"}:
+            state = "degraded"
 
     problems: list[str] = []
-    if drain_state in {"partial", "unknown", "interrupted"}:
+    if not node.enable and drain_state in {"partial", "unknown", "interrupted"}:
         problems.append(f"Node Drain={drain_state}")
     if not master_online:
         problems.append(f"Master={node_status_text(node.status)}")
