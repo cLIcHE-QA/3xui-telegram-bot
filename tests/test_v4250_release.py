@@ -47,7 +47,7 @@ class V4251ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-    def test_roadmap_closes_v425_line_after_v4256_acceptance(self):
+    def test_roadmap_closes_previous_v425_releases_after_v4256_acceptance(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn("##### v4.25.4 — Streisand plain subscription compatibility", roadmap)
         self.assertIn("##### v4.25.5 — Streisand plain mode precedence", roadmap)
@@ -57,8 +57,44 @@ class V4251ReleaseTests(unittest.TestCase):
         self.assertIn("test 56 — final bot/DB/3x-ui health: **PASS**", roadmap)
         self.assertIn("hwid_not_supported", roadmap)
         self.assertIn("не передаёт совместимый `X-HWID`", roadmap)
-        self.assertIn("линия `v4.25.x` полностью production-accepted и закрыта", roadmap)
-        self.assertIn("Следующий активный релиз — `v4.26.0` Node Drain.", roadmap)
+        self.assertIn("релизы `v4.25.0–v4.25.6` полностью проверены и закрыты", roadmap)
+        self.assertIn("Следующий активный патч — `v4.25.7` Inbound input validation.", roadmap)
+        self.assertIn("следующий feature release — `v4.26.0` Node Drain.", roadmap)
+
+    def test_previous_v425_sections_are_closed_without_claiming_streisand_support(self):
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        for patch_version in range(7):
+            heading = f"##### v4.25.{patch_version} — "
+            with self.subTest(release=heading):
+                self.assertEqual(roadmap.count(heading), 1)
+                section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
+                self.assertIn("**Статус: ✅", section)
+                if patch_version in (4, 5):
+                    self.assertIn("исторический diagnostic release", section)
+                    self.assertIn("`v4.25.6`", section)
+                    self.assertIn("не список полученных PASS", section)
+        self.assertNotIn("production acceptance ещё не закрыт", roadmap)
+        self.assertIn("**N/A production exception**", roadmap)
+
+    def test_new_validation_patch_has_separate_pending_acceptance(self):
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        heading = "##### v4.25.7 — Inbound input validation"
+        self.assertEqual(roadmap.count(heading), 1)
+        section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
+        self.assertIn("**Статус: ⬜ Запланировано", section)
+        self.assertNotIn("**Статус: ✅", section)
+        for needle in (
+            "issue #199",
+            "fix PR #200",
+            "inbound_clone_port",
+            "inbound_template_save",
+            "template_deploy_port",
+            "tests/test_inbound_input_validation.py",
+            "отдельный release-prep PR",
+            "отдельный явный deployment",
+            "targeted production smoke",
+        ):
+            self.assertIn(needle, section)
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")

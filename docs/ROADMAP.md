@@ -272,9 +272,10 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 16. независимые User/Audience Groups для будущей сегментации Client Portal — ✅ выполнено и принято в production в `v4.22.0`.
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ закрыто в `v4.23.3`: базовая интеграция принята в production в `v4.23.1`, findings `v4.23.2` закрыты hotfix-релизом `v4.23.3`; дальнейший Cheburcheck Probe fleet вынесен в «Отложенные инфраструктурные улучшения» и не блокирует следующий feature release.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ✅ выполнено и принято в production в линии `v4.24.x`; smoke `v4.24.0` выявил targeted findings, закрытые и повторно проверенные в `v4.24.1`.
-19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — 🟠 опубликовано в `v4.25.0`; production acceptance ещё не закрыт.
+19. целостный User Management и рефакторинг карточки пользователя без legacy attach-all sync — ✅ выполнено; production acceptance релизов `v4.25.0–v4.25.6` закрыт на `v4.25.6`, Streisand при активном HWID limit зафиксирован как expected limitation.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ⬜ запланировано на `v4.26.0`.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
+22. исправление неверного ввода Inbound/шаблонов — ⬜ запланировано на `v4.25.7`; отдельный post-acceptance patch #199 / PR #200, до перехода к Node Drain.
 
 Отдельный release-specific PR может уточнить реализацию каждого пункта, но перенос любого из них за границу v5 должен быть явным решением с обновлением этого roadmap, а не неявным следствием начала Client Portal.
 
@@ -297,7 +298,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 11. patch-релизом `v4.23.2` завершить compact result parity и context-preserving navigation Cheburcheck;
 12. hotfix-релизом `v4.23.3` закрыть production findings `v4.23.2`: explicit CDN negative state, domain/IP ASN enrichment и truthful regional probe availability;
 13. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics; targeted production findings закрыть patch-релизом `v4.24.1`, а финальный acceptance линии проводить на `v4.24.1`;
-14. отдельным релизом `v4.25.0` завершить User Management и рефакторинг карточки пользователя;
+14. User Management и follow-up релизы `v4.25.0–v4.25.6` завершены и проверены; перед следующим feature release закрыть отдельный validation hotfix `v4.25.7`;
 15. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
 16. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
 17. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
@@ -1039,11 +1040,11 @@ Acceptance hotfix:
 
 ##### v4.25.0 — User Management: рефакторинг карточки пользователя
 
-**Статус: ✅ Линия `v4.25.x` полностью принята в production и закрыта на `v4.25.6`; следующий этап — `v4.26.0` Node Drain.**
+**Статус: ✅ User Management и follow-up релизы `v4.25.0–v4.25.6` проверены и закрыты на `v4.25.6`. Новый validation patch `v4.25.7` отслеживается отдельно.**
 
 Цель — завершить v4.x User Management как цельный операторский workflow: карточка пользователя становится единой точкой входа для профиля, тарифа, срока, трафика, provisioning-доступа, подключений, подписки, платежей и персональной audit timeline. Релиз сохраняет существующие backend primitives и security boundaries, убирает конкурирующие legacy-пути синхронизации Inbounds и добавляет недостающие admin-facing функции без открытия Client Portal.
 
-Implementation scope закрыт и опубликован в `v4.25.0`: User list/search/create, каноническая карточка и detail navigation, policy-based Access/Flow, Connections/HWID/IP, local-only Subscription QR, user-scoped Payments/Activity, confirmation-first lifecycle и завершённый bulk workflow реализованы и защищены regression coverage. GitHub release/CI завершены; следующий этап — deployment и production smoke/acceptance под ролями из acceptance contract.
+Implementation scope закрыт и опубликован в `v4.25.0`: User list/search/create, каноническая карточка и detail navigation, policy-based Access/Flow, Connections/HWID/IP, local-only Subscription QR, user-scoped Payments/Activity, confirmation-first lifecycle и завершённый bulk workflow реализованы и защищены regression coverage. Production smoke выполнен; найденные follow-up исправлены и повторно проверены в `v4.25.1–v4.25.6`. Закрытие предыдущих релизов подтверждено владельцем 2026-09-29; новый finding валидации Inbound не переоткрывает их исторический acceptance scope.
 
 Release boundary:
 
@@ -2156,7 +2157,7 @@ Production acceptance findings от 2026-09-28:
 - fix: для normal VPN-client subscription request безопасно проксировать reviewed HWID/device headers к 3x-ui upstream, не логировать их значения и сохранить существующую фильтрацию остальных headers; добавить regression coverage, что `X-HWID`/device metadata доходят до upstream и upstream HWID error не возникает из-за их потери;
 - `⚙️ Ещё действия` под `Read-only` подтверждён как корректный negative case: mutation-кнопки не отображаются, остаётся только возврат к карточке пользователя.
 
-Findings блокируют закрытие production acceptance `v4.25.0` до исправления shortcut/navigation/create/HWID proxy и повторной проверки navigation/RBAC/back-chain.
+Эти findings блокировали acceptance `v4.25.0`; исправления shortcut/navigation/create/HWID proxy опубликованы в `v4.25.1` и прошли повторную проверку. Исторический stale-callback production exception остаётся явно указан ниже, а не заменяется вымышленным PASS.
 
 Отдельный HWID acceptance после исправления compat proxy:
 
@@ -2233,13 +2234,13 @@ Production evidence `v4.25.1`:
 - final post-smoke health: **PASS**;
 - исторический stale legacy sync callback production-click (бывший test 25) не воспроизведён из-за отсутствия сохранённого старого Telegram message и зафиксирован как **N/A production exception**; compatibility handler и non-mutating redirect покрыты code review/regression tests, mutation path через старый callback не используется.
 
-После этого acceptance `v4.25.1` считается закрытым, но линия `v4.25` остаётся открытой из-за отдельно выявленных client-compatibility findings. Перед `v4.26.0` обязателен `v4.25.2`.
+Acceptance `v4.25.1` закрыт. Выявленные затем client-compatibility findings были выделены в `v4.25.2–v4.25.6` и также проверены и закрыты; незавершённого acceptance прежних релизов `v4.25.x` не осталось.
 
 
 
 ##### v4.25.2 — Subscription client compatibility
 
-**Статус: 🟠 Опубликовано в `v4.25.2`; Shadowrocket/HWID acceptance пройден, INCY Desktop acceptance выявил UA compatibility finding и требует `v4.25.3`.**
+**Статус: ✅ Проверено и закрыто: Shadowrocket/HWID acceptance пройден в `v4.25.2`, INCY Desktop UA finding исправлен и принят в `v4.25.3`.**
 
 После успешного production acceptance `v4.25.1` отдельно выявлены client-side compatibility проблемы, не относящиеся к User Management logic:
 
@@ -2284,7 +2285,7 @@ Production acceptance `v4.25.2`:
 - освободить/увеличить slot и подтвердить восстановление той же Shadowrocket subscription без rotation identity;
 - выполнить final bot/DB/3x-ui health smoke.
 
-Линия `v4.25` считается полностью production-closed только после публикации и targeted production acceptance `v4.25.2`. После этого можно начинать `v4.26.0`.
+Acceptance `v4.25.2` завершён с follow-up в `v4.25.3`: первоначальный INCY Desktop FAIL сохранён в истории ниже, а исправление подтверждено последующим smoke. Этот finding больше не блокирует дальнейшие релизы.
 
 
 ##### v4.25.3 — INCY Desktop UA compatibility
@@ -2319,12 +2320,12 @@ Targeted acceptance `v4.25.3`:
 4. Shadowrocket/HWID smoke не регрессирует;
 5. final bot/DB/3x-ui health остаётся PASS.
 
-Линия `v4.25` закрывается только после targeted acceptance `v4.25.3`.
+Targeted acceptance `v4.25.3` закрыт; принятый runtime contract повторно подтверждён финальным smoke `v4.25.6`.
 
 
 ##### v4.25.4 — Streisand plain subscription compatibility
 
-**Статус: ⚪ Исторический diagnostic release; гипотеза `plain=1` не решила Streisand compatibility и была удалена в `v4.25.6`.**
+**Статус: ✅ Проверено и закрыто как исторический diagnostic release; гипотеза `plain=1` не решила Streisand compatibility и была удалена в `v4.25.6`.**
 
 Production finding после успешного acceptance `v4.25.3`:
 
@@ -2343,7 +2344,7 @@ Production finding после успешного acceptance `v4.25.3`:
 - сохранить HWID forwarding/enforcement и fail-closed error handling;
 - не добавлять UA-based Streisand detection: фактический Streisand request использует обычный Safari UA и неотличим от browser/WebView traffic.
 
-Targeted acceptance `v4.25.4`:
+Исторический план targeted acceptance `v4.25.4` (не список полученных PASS):
 
 1. Streisand с `?plain=1` импортирует subscription;
 2. те же VLESS entries появляются как валидные configs;
@@ -2352,12 +2353,12 @@ Targeted acceptance `v4.25.4`:
 5. HWID gate/full-slot diagnostics не регрессируют;
 6. final bot/DB/3x-ui health остаётся PASS.
 
-Линия `v4.25` закрывается только после targeted acceptance `v4.25.4`.
+Проверка `v4.25.4` завершена отрицательным результатом для гипотезы `plain=1`; investigation и forward-revert закрыты в `v4.25.6`. Поддержка Streisand при активном HWID limit не заявляется.
 
 
 ##### v4.25.5 — Streisand plain mode precedence
 
-**Статус: ⚪ Исторический diagnostic release; HTML-precedence fix не устранил корневую HWID-несовместимость и был удалён в `v4.25.6`.**
+**Статус: ✅ Проверено и закрыто как исторический diagnostic release; HTML-precedence fix не устранил корневую HWID-несовместимость и был удалён в `v4.25.6`.**
 
 Production finding после deploy `v4.25.4`:
 
@@ -2373,7 +2374,7 @@ Fix `v4.25.5`:
 - default URL без `plain` не меняется;
 - добавлен regression на Safari-like UA + `Accept: text/html` + `plain=1`.
 
-Targeted acceptance:
+Исторический план targeted acceptance `v4.25.5` (не список полученных PASS):
 
 1. Streisand с `?plain=1` импортирует subscription;
 2. те же VLESS configs появляются как валидные;
@@ -2383,7 +2384,7 @@ Targeted acceptance:
 
 ##### v4.25.6 — Streisand incompatibility / forward revert
 
-**Статус: ✅ Опубликовано в `v4.25.6`, принято в production; линия `v4.25.x` закрыта.**
+**Статус: ✅ Опубликовано в `v4.25.6`, принято в production; предыдущие релизы `v4.25.0–v4.25.6` закрыты.**
 
 Итог production investigation:
 
@@ -2425,7 +2426,49 @@ Production acceptance `v4.25.6` от 2026-09-29:
 - временные `plain=1` workarounds отсутствуют в финальном runtime; subscription proxy соответствует принятому контракту `v4.25.3`;
 - synthetic/fallback HWID не добавляется, per-device enforcement не ослабляется.
 
-**Итог: линия `v4.25.x` полностью production-accepted и закрыта. Следующий активный релиз — `v4.26.0` Node Drain.**
+**Итог: релизы `v4.25.0–v4.25.6` полностью проверены и закрыты.** Владелец повторно подтвердил завершение предыдущих релизов 2026-09-29. `v4.25.4–v4.25.5` закрыты как диагностические попытки с forward-revert в `v4.25.6`, а не как успешная поддержка Streisand.
+
+Следующий активный патч — `v4.25.7` Inbound input validation. После его отдельного release/acceptance следующий feature release — `v4.26.0` Node Drain.
+
+
+##### v4.25.7 — Inbound input validation
+
+**Статус: ⬜ Запланировано на `v4.25.7`; исправление и regression tests подготовлены в PR #200, выпуск и production acceptance ещё не выполнены.**
+
+Tracking: [issue #199](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/199), [fix PR #200](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/200). Базовый срез — `main` @ `c7f44b7ec88e6c2ec25b58f724731c80d3fc56bd`, `APP_VERSION=4.25.6`.
+
+Новый post-acceptance finding: в `inbound_admin.py` ветки ошибочного ввода строят Cancel keyboard с локальным `iid`/`tid` до его присваивания. Нечисловой/вне диапазона порт в `inbound_clone_port` и `template_deploy_port`, а также пустое/слишком длинное имя в `inbound_template_save` приводят к `UnboundLocalError` вместо подсказки.
+
+Scope:
+
+- считывать FSM data и существующие идентификаторы сразу после успешного `guard_message()` и до проверки пользовательского ввода в трёх обработчиках;
+- сохранять текущий FSM и корректный Cancel parent при неверном вводе, позволяя повторить ввод;
+- ошибочный ввод не вызывает создание Inbound, запись шаблона или успешный audit;
+- не менять callback identifiers, RBAC, допустимые диапазоны, payload semantics, схему SQLite, pinned 3x-ui/OpenAPI, HWID/proxy, Host Control/Deploy Agent или политику повторов запросов;
+- не смешивать исправление с Node Drain, общим рефакторингом или новыми возможностями.
+
+Regression contract:
+
+1. нечисловой, пустой и отсутствующий текст порта; `0`, отрицательный порт и `65536`;
+2. пустое/пробельное/отсутствующее имя и имя длиннее 64 символов;
+3. точная подсказка и Cancel callback исходного Inbound/шаблона, сохранение реального FSM state/data;
+4. отсутствие remote/database mutations при неверном вводе и занятом порте;
+5. допустимые порты `1`, `65535`, обычный порт с пробелами, Master и direct-node targets;
+6. успешное создание по-прежнему отключено и без клиентов, исходный payload не изменяется;
+7. допустимые имена, duplicate-name retry, последовательность invalid → valid input и отказ авторизации до чтения FSM.
+
+Tests: `tests/test_inbound_input_validation.py` выполняет реальные async handlers с `MemoryStorage`; внешние вызовы и Telegram rendering заменены моками. Первичный CI на test-only commit `5191d5439e8455292ace469d079cb1a7401f8a8a` завершился failure, а после исправления на `abe0b792f20162cf7218240d8d58caf2a590cf87` штатные `Python checks` и `PR conventions` завершились success. Для merge требуется повторная проверка итогового HEAD PR, а не только этого промежуточного commit.
+
+Порядок закрытия патча:
+
+- merge narrowly-scoped fix PR после зелёного CI;
+- отдельный release-prep PR: `APP_VERSION=4.25.7`, новый раздел `CHANGELOG.md`, текущие version references и release tests; исторические release notes не переписываются;
+- публикация tag/GitHub Release только штатным workflow после успешных проверок, без ручного перемещения tags;
+- отдельный явный deployment опубликованного `v4.25.7`;
+- targeted production smoke трёх форм: неверный ввод → подсказка → повторный ввод/отмена; контролируемый valid path сохраняет disabled/clientless contract;
+- финальная проверка bot/DB/3x-ui health и только затем `✅ Выполнено в v4.25.7`.
+
+Admin Setup: новых настроек и действий установки нет; при release-prep обновляются только ссылки на текущую версию. Production deployment и приёмка нового патча не считаются выполненными на основании предыдущего acceptance `v4.25.0–v4.25.6`.
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation

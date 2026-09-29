@@ -874,6 +874,9 @@ async def inbound_clone_target(call: CallbackQuery, state: FSMContext):
 async def inbound_clone_port(message: Message, state: FSMContext):
     if not await guard_message(message, state):
         return
+    data = await state.get_data()
+    iid = int(data.get("clone_inbound_id") or 0)
+    target_node = int(data.get("clone_target_node") or 0)
     try:
         port = int((message.text or "").strip())
     except ValueError:
@@ -882,9 +885,6 @@ async def inbound_clone_port(message: Message, state: FSMContext):
     if not 1 <= port <= 65535:
         await render_input(message, "Порт должен быть 1-65535.", reply_markup=inbound_cancel_keyboard(iid))
         return
-    data = await state.get_data()
-    iid = int(data.get("clone_inbound_id") or 0)
-    target_node = int(data.get("clone_target_node") or 0)
     if not await _port_free(target_node, port):
         await render_input(message, "Этот порт уже занят на выбранном сервере.", reply_markup=inbound_cancel_keyboard(iid))
         return
@@ -934,12 +934,12 @@ async def inbound_template_start(call: CallbackQuery, state: FSMContext):
 async def inbound_template_save(message: Message, state: FSMContext):
     if not await guard_message(message, state):
         return
+    data = await state.get_data()
+    iid = int(data.get("template_source_id") or 0)
     name = (message.text or "").strip()
     if not 1 <= len(name) <= 64:
         await render_input(message, "Имя должно быть от 1 до 64 символов.", reply_markup=inbound_cancel_keyboard(iid))
         return
-    data = await state.get_data()
-    iid = int(data.get("template_source_id") or 0)
     try:
         ib = await xui.inbound_get(iid)
         payload = _template_payload(ib)
@@ -1085,6 +1085,9 @@ async def template_deploy_target(call: CallbackQuery, state: FSMContext):
 async def template_deploy_port(message: Message, state: FSMContext):
     if not await guard_message(message, state):
         return
+    data = await state.get_data()
+    tid = int(data.get("template_id") or 0)
+    target_node = int(data.get("template_target_node") or 0)
     try:
         port = int((message.text or "").strip())
     except ValueError:
@@ -1093,9 +1096,6 @@ async def template_deploy_port(message: Message, state: FSMContext):
     if not 1 <= port <= 65535:
         await render_input(message, "Порт должен быть 1-65535.", reply_markup=template_cancel_keyboard(tid))
         return
-    data = await state.get_data()
-    tid = int(data.get("template_id") or 0)
-    target_node = int(data.get("template_target_node") or 0)
     if not await _port_free(target_node, port):
         await render_input(message, "Этот порт уже занят на выбранном сервере.", reply_markup=template_cancel_keyboard(tid))
         return
