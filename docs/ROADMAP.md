@@ -273,7 +273,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ закрыто в `v4.23.3`: базовая интеграция принята в production в `v4.23.1`, findings `v4.23.2` закрыты hotfix-релизом `v4.23.3`; дальнейший Cheburcheck Probe fleet вынесен в «Отложенные инфраструктурные улучшения» и не блокирует следующий feature release.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ✅ выполнено и принято в production в линии `v4.24.x`; smoke `v4.24.0` выявил targeted findings, закрытые и повторно проверенные в `v4.24.1`.
 19. целостный User Management и follow-up линия `v4.25.x` — ✅ выполнено; релизы `v4.25.0–v4.25.8` опубликованы, развёрнуты и приняты в production, Streisand при активном HWID limit остаётся зафиксированным expected limitation.
-20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — 🟡 реализовано в `main` для `v4.26.0`; release/deployment/production acceptance ещё не выполнены.
+20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — 🟡 `v4.26.0` опубликован и развёрнут; read-only preflight и pre-mutation Cancel проверены в production, полный mutation smoke отложен до безопасной test node/cohort; navigation finding #211 запланирован на `v4.26.1`.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 22. исправление неверного ввода Inbound/шаблонов — ✅ выполнено, опубликовано и принято в production в `v4.25.7`; targeted smoke и final health — PASS.
 23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server возвращает в исходный Inbound) — ✅ выполнено и принято в production в `v4.25.8`; issue #202 закрыт как `completed`.
@@ -2527,7 +2527,7 @@ Admin Setup: новых настроек и действий установки 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
 
-**Статус: 🟡 Реализовано в `main` для `v4.26.0`; production acceptance ещё не закрыт.**
+**Статус: 🟡 `v4.26.0` опубликован и развёрнут; production acceptance частичный, полный mutation smoke ещё не закрыт.**
 
 Цель — добавить управляемый вывод direct-ноды из пользовательского VPN-трафика перед обслуживанием, миграцией или decommission, не смешивая три разные операции: control-plane maintenance, graceful drain и destructive stop.
 
@@ -2605,13 +2605,33 @@ Regression / acceptance minimum:
 
 Конкретный способ определения remaining active sessions должен использовать только реально доступные 3x-ui/Xray данные и документировать их ограничения. Online/IP наблюдение не должно выдаваться за точный учёт физических устройств или гарантированный session drain, если upstream этого не доказывает.
 
-Implementation evidence перед release:
+Implementation / production evidence:
 
-- feature issue #208 остаётся открытым до publication/deployment/targeted production smoke;
+- feature issue #208 остаётся открытым до полного targeted production smoke;
 - implementation PR #209 слит в `main` squash commit `e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a`;
-- post-merge `Python checks` на merge commit — **PASS**: compileall, полный unittest suite, pinned 3x-ui OpenAPI contract, release tooling и `git diff --check`;
-- отдельный release-prep `v4.26.0` меняет только version/docs/version-tests и не добавляет runtime-функциональность;
-- targeted production smoke из пункта 11 остаётся обязательным и не считается выполненным до фактического deployment опубликованного tag.
+- post-merge `Python checks` на implementation merge commit — **PASS**: compileall, полный unittest suite, pinned 3x-ui OpenAPI contract, release tooling и `git diff --check`;
+- release-prep PR #210 слит в `main` squash commit `cd39048a2da00443523e7b33b400f4c8b5dcd608`; штатный workflow опубликовал tag/GitHub Release `v4.26.0`;
+- production deployment `v4.26.0` выполнен; базовые release status и runtime version checks подтверждены оператором;
+- read-only Node Drain preflight на production direct node показал 4 target Inbounds, 2 затронутых пользователей, 2 готовых к переносу и 0 blockers;
+- pre-mutation confirmation был отменён без remote mutation; finding #211: `✖ Отмена` вернула в корень `Операции с нодами` вместо canonical parent — preflight той же ноды;
+- полный targeted production smoke из пункта 11, включая maintenance + attach-before-detach + post-condition `drained`, намеренно не выполнялся на боевой ноде без безопасной test node/user cohort и остаётся обязательным до operational closure линии.
+
+##### v4.26.1 — Node Drain Cancel navigation
+
+**Статус: ⬜ Запланировано как production navigation patch; issue #211.**
+
+Production pre-mutation smoke `v4.26.0` подтвердил safety path: `✖ Отмена` помечает review-plan как `cancelled` до remote mutation. При этом navigation parent нарушает общий UI contract: после Cancel пользователь попадает сразу в `Операции с нодами`, а не в read-only preflight выбранной direct node.
+
+Scope patch:
+
+1. `✖ Отмена` на Node Drain confirmation возвращает в `admin:fleet:drain:n<node_id>` — preflight той же stable direct node.
+2. Отменённый plan остаётся terminal `cancelled`; stale `run` callback не может его запустить.
+3. Cancel не выполняет maintenance, attach, detach или другую remote mutation.
+4. RBAC остаётся без изменений: preflight — Read-only+, prepare/cancel/run — Administrator+.
+5. Regression test закрепляет canonical parent, no-mutation Cancel и stale-plan rejection.
+6. После release/deployment выполняется targeted production verification именно navigation path; полный Node Drain mutation smoke по-прежнему проводится только на безопасной test node/user cohort.
+
+Этот patch не расширяет Node Drain scope и не меняет SQLite schema, 3x-ui API contract или destructive Host Control boundaries.
 
 ##### Финальный v4 Repository / Public-Release Audit
 
