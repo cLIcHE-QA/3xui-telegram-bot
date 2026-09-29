@@ -139,6 +139,29 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(xui.calls[1][0], "detach")
         self.assertEqual(xui.client_ids["one@example.test"], {10})
 
+    async def test_persisted_target_ids_survive_catalog_disappearance_after_maintenance(self):
+        db = FakeDB()
+        xui = FakeXUI()
+        service = NodeDrainService(db, xui, settings())
+
+        review = await service.review(2)
+        self.assertEqual(review.target_inbound_ids, (20,))
+
+        xui.inbounds = [item for item in xui.inbounds if item.id != 20]
+        result = await service.evacuate_user(
+            2,
+            1,
+            target_inbound_ids=review.target_inbound_ids,
+        )
+        post = await service.review(
+            2,
+            target_inbound_ids=review.target_inbound_ids,
+        )
+
+        self.assertEqual(result["detached"], [20])
+        self.assertEqual(xui.client_ids["one@example.test"], {10})
+        self.assertEqual(post.affected_users, 0)
+
     async def test_existing_alternative_detaches_without_extra_attach(self):
         db = FakeDB()
         xui = FakeXUI()
