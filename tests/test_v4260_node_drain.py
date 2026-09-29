@@ -257,13 +257,14 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(required_role_for_callback("admin:fleet:drain:n2:stop"))
 
     def test_runtime_recovery_never_replays_drain_mutation(self):
-        import fleet_operations
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "fleet_operations.py").read_text(encoding="utf-8")
+        recovery = source[source.index("async def recover_fleet_operations()"):]
 
-        source = inspect.getsource(fleet_operations.recover_fleet_operations)
-        self.assertIn('"fleet.drain.recovered"', source)
-        self.assertIn("mutation_not_retried=true", source)
-        self.assertNotIn("evacuate_user(", source)
-        self.assertNotIn("_set_node_enabled(", source)
+        self.assertIn('"fleet.drain.recovered"', recovery)
+        self.assertIn("mutation_not_retried=true", recovery)
+        self.assertNotIn("evacuate_user(", recovery)
+        self.assertNotIn("_set_node_enabled(", recovery)
 
     def test_attach_detach_use_no_retry_mutation_boundary(self):
         from xui import XUIClient
@@ -292,6 +293,7 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("stop_xray", drain_handler)
         self.assertNotIn("stop_service", drain_handler)
         self.assertIn("Active Xray sessions", drain_handler)
+        self.assertIn("Разрушительные операции Xray/service", drain_handler)
 
 
 if __name__ == "__main__":
