@@ -2239,7 +2239,7 @@ Production evidence `v4.25.1`:
 
 ##### v4.25.2 — Subscription client compatibility
 
-**Статус: 🟡 В реализации как обязательный compatibility hotfix перед переходом к `v4.26.0`.**
+**Статус: 🟠 Опубликовано в `v4.25.2`; Shadowrocket/HWID acceptance пройден, INCY Desktop acceptance выявил UA compatibility finding и требует `v4.25.3`.**
 
 После успешного production acceptance `v4.25.1` отдельно выявлены client-side compatibility проблемы, не относящиеся к User Management logic:
 
@@ -2285,6 +2285,41 @@ Production acceptance `v4.25.2`:
 - выполнить final bot/DB/3x-ui health smoke.
 
 Линия `v4.25` считается полностью production-closed только после публикации и targeted production acceptance `v4.25.2`. После этого можно начинать `v4.26.0`.
+
+
+##### v4.25.3 — INCY Desktop UA compatibility
+
+**Статус: 🟡 В реализации как targeted patch перед закрытием линии `v4.25`.**
+
+Production acceptance `v4.25.2` от 2026-09-29:
+
+- INCY mobile: **PASS**;
+- Shadowrocket mobile: **PASS**;
+- Shadowrocket desktop: **PASS**;
+- controlled full-slot diagnostic: **PASS**, proxy log reason `hwid_max_devices_reached`;
+- same-URL recovery после освобождения/увеличения HWID slot: **PASS**;
+- final health: **PASS**;
+- INCY Desktop: **FAIL** — AWG entries остались.
+
+Root cause подтверждён по безопасно извлечённому User-Agent без subscription URL/sub_id: реальный Desktop UA — `INCY/3.8.8/mac os x Dalvik/21.0.12.1+1-LTS`. Реализация `v4.25.2` ожидала ровно три slash-сегмента и platform token `macos`, поэтому этот валидный Desktop request не попадал под filtering.
+
+Объём `v4.25.3`:
+
+- поддержать подтверждённый INCY macOS Desktop UA prefix `mac os x` с optional runtime suffix после platform token;
+- сохранить поддержку Windows/Linux/macOS desktop variants и Android/iOS mobile variants;
+- неизвестные/неоднозначные INCY platform tokens не классифицировать как Desktop;
+- не менять Shadowrocket/HWID gate semantics, уже принятые в `v4.25.2`;
+- включить явную операционную инструкцию Shadowrocket `Send HWID` в README и ADMIN_SETUP.
+
+Targeted acceptance `v4.25.3`:
+
+1. INCY Desktop macOS с реальным UA больше не получает AWG entries;
+2. VLESS/прочие поддерживаемые entries остаются и работают;
+3. INCY mobile сохраняет AWG;
+4. Shadowrocket/HWID smoke не регрессирует;
+5. final bot/DB/3x-ui health остаётся PASS.
+
+Линия `v4.25` закрывается только после targeted acceptance `v4.25.3`.
 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation

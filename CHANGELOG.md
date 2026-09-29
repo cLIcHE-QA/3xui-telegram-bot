@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v4.25.3 — INCY Desktop UA compatibility
+- Исправлена детекция реального INCY macOS Desktop User-Agent вида `INCY/<version>/mac os x Dalvik/<runtime>`; AWG filtering теперь включается и для этого подтверждённого Desktop UA.
+- Парсер остаётся fail-closed для неизвестных INCY platform tokens и не применяет Desktop filtering к неоднозначным User-Agent.
+- Сохранены принятые в `v4.25.2` Shadowrocket/HWID diagnostics и strict per-device enforcement.
+- Явная инструкция Shadowrocket `Send HWID` добавлена в README/ADMIN_SETUP.
+
 ## v4.25.2 — Subscription client compatibility
 - INCY Desktop определяется только по documented `INCY/<version>/<platform>` UA для `Windows/Linux/macOS`; неподдерживаемые AmneziaWG entries отфильтровываются только для этих Desktop requests, а INCY mobile сохраняет существующий `vpn:// → amneziawg://` flow.
 - HWID-specific upstream `404` больше не маскируется generic `502`: compat proxy сохраняет allowlisted `X-Hwid-Active`, `X-Hwid-Not-Supported`, `X-Hwid-Limit`, `X-Hwid-Max-Devices-Reached` и возвращает диагностически различимый HWID rejection.
