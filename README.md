@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v4.25.5
+# Telegram-бот для 3x-ui v4.25.6
 
 Административный Telegram Control Plane для 3x-ui. Текущая production-линия проекта — **v4.x Admin Control Plane**; полноценный client-facing Client Portal запланирован отдельно для v5.x.
 
@@ -139,7 +139,7 @@ domain routers
 
 `bot.py` сохраняется как стабильный executable path, в том числе для `restore_bootstrap.py`, но не владеет domain handlers или lifecycle implementation.
 
-Линия `v4.25.x` продолжается targeted patch `v4.25.5`: `?plain=1` теперь принудительно выбирает raw subscription path даже при Safari/WebView `Accept: text/html`, сохраняя default `/compat/{sub_id}` behavior без изменений.
+Линия `v4.25.x` завершается forward-revert `v4.25.6`: временные Streisand workarounds из `v4.25.4–v4.25.5` удалены, а subscription proxy возвращён к поведению `v4.25.3`. Production root cause: Streisand не передаёт совместимый `X-HWID`, поэтому при включённом HWID limit 3x-ui отклоняет raw subscription как `hwid_not_supported`.
 
 Линия `v4.24.x` реализована, опубликована и принята в production: `website_monitoring.py` содержит SQLite repository/state machine и SSRF-safe outbound boundary, `website_monitoring_runtime.py` — bounded scheduler/incident notifications, `website_monitoring_admin.py` — persistent monitoring UI, а `website_diagnostics.py` / `website_diagnostics_admin.py` — one-off DNS/WHOIS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/URL-list/QR diagnostics. Production smoke `v4.24.0` выявил targeted findings WHOIS MSK, bounded Cheburcheck detail и public IPv6 literal validation; они закрыты в `v4.24.1`, после чего smoke/acceptance линии завершён.
 
@@ -199,12 +199,9 @@ V4.22 добавляет отдельные `Группы пользовател
 
 Если все HWID slots уже заняты, 3x-ui отклонит новый device. Освободите один зарегистрированный device slot или увеличьте per-user `HWID limit` в Telegram Admin Control Plane. Compat proxy не генерирует synthetic HWID и не обходит device limit.
 
+Streisand не передаёт совместимый `X-HWID` в raw subscription request. Поэтому при `HWID limit > 0` 3x-ui отклоняет такой request как `hwid_not_supported`. Это ограничение клиента: compat proxy намеренно не подставляет synthetic/fallback HWID и не ослабляет per-device enforcement. Одиночные VLESS links могут импортироваться отдельно, но это не эквивалентно HWID-защищённой subscription.
+
 ## Subscription Compatibility Proxy
-
-### Plain subscription mode
-
-Для клиентов, которые не разбирают Base64-wrapped subscription container, compat proxy поддерживает opt-in query flag `plain=1` (также `true/yes`). Флаг применяется только на proxy и не пересылается в 3x-ui. Default URL без `plain` сохраняет прежний encoding и поведение.
-
 
 
 V4 сохраняет встроенный compatibility proxy для подписок, управляемых ботом.
