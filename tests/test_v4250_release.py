@@ -105,7 +105,7 @@ class V4257ReleaseTests(unittest.TestCase):
             "053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890",
             "tag `v4.25.7`",
             "production deployment выполнен",
-            "final bot/DB/3x-ui health — **PASS**",
+            "финальный bot/DB/3x-ui health — **PASS**",
             "issue #202",
         ):
             self.assertIn(needle, section)
