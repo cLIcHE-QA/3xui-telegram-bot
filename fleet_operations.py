@@ -629,7 +629,11 @@ async def drain_run(call: CallbackQuery):
                 results[str(telegram_id)] = {"status": "blocked", "reason": str(item.get("blocker"))}
                 continue
             try:
-                outcome = await drain_service.evacuate_user(node_id, telegram_id)
+                outcome = await drain_service.evacuate_user(
+                    node_id,
+                    telegram_id,
+                    target_inbound_ids=plan.get("target_inbound_ids") or [],
+                )
                 results[str(telegram_id)] = {"status": str(outcome.get("status") or "success")}
             except NodeDrainBlocked as exc:
                 results[str(telegram_id)] = {"status": "blocked", "reason": str(exc)[:160]}
@@ -642,7 +646,10 @@ async def drain_run(call: CallbackQuery):
                 results[str(telegram_id)] = {"status": "failed", "reason": type(exc).__name__}
 
         if final_state != "unknown":
-            post = await drain_service.review(node_id)
+            post = await drain_service.review(
+                node_id,
+                target_inbound_ids=plan.get("target_inbound_ids") or [],
+            )
             if post.affected_users == 0 and post.blockers == 0:
                 final_state = "drained"
                 job_status = "success"
