@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import tempfile
 import unittest
 from pathlib import Path
@@ -195,6 +196,45 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("@example.test", serialized)
         self.assertNotIn("sub_id", serialized)
         self.assertNotIn("subscription", serialized)
+
+    def test_rbac_catalog_separates_view_and_manage(self):
+        from admin_auth import required_role_for_callback
+
+        self.assertEqual(required_role_for_callback("admin:fleet:drain"), "read_only")
+        self.assertEqual(required_role_for_callback("admin:fleet:drain:n2"), "read_only")
+        self.assertEqual(required_role_for_callback("admin:fleet:drain:n2:prepare"), "admin")
+        self.assertEqual(required_role_for_callback("admin:fleet:drain:012345abcdef:run"), "admin")
+        self.assertEqual(required_role_for_callback("admin:fleet:drain:012345abcdef:cancel"), "admin")
+        self.assertIsNone(required_role_for_callback("admin:fleet:drain:n2:stop"))
+
+    def test_runtime_recovery_never_replays_drain_mutation(self):
+        import fleet_operations
+
+        source = inspect.getsource(fleet_operations.recover_fleet_operations)
+        self.assertIn('"fleet.drain.recovered"', source)
+        self.assertIn("mutation_not_retried=true", source)
+        self.assertNotIn("evacuate_user(", source)
+        self.assertNotIn("_set_node_enabled(", source)
+
+    def test_attach_detach_use_no_retry_mutation_boundary(self):
+        from xui import XUIClient
+
+        self.assertIn("_mutation_request(", inspect.getsource(XUIClient.attach_client))
+        self.assertIn("_mutation_request(", inspect.getsource(XUIClient.detach_client))
+
+    def test_drain_flow_never_stops_xray_or_service(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "node_drain.py").read_text(encoding="utf-8")
+        fleet = (root / "fleet_operations.py").read_text(encoding="utf-8")
+        drain_start = fleet.index("async def drain_run")
+        drain_end = fleet.index("async def _selection_data", drain_start)
+        drain_handler = fleet[drain_start:drain_end]
+
+        self.assertNotIn("stop_xray", source)
+        self.assertNotIn("stop_service", source)
+        self.assertNotIn("stop_xray", drain_handler)
+        self.assertNotIn("stop_service", drain_handler)
+        self.assertIn("Active Xray sessions", drain_handler)
 
 
 if __name__ == "__main__":
