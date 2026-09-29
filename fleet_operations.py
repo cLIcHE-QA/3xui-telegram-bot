@@ -624,7 +624,10 @@ async def drain_run(call: CallbackQuery):
             if str(item.get("id") or "") != plan_id
             and int(item.get("node_id") or 0) == node_id
             and str(item.get("state") or "") not in {"review", "cancelled"}
-            and int(item.get("updated_at") or 0) >= created_at
+            and (
+                str(item.get("state") or "") == "draining"
+                or int(item.get("updated_at") or 0) > created_at
+            )
         ]
         if newer_effective:
             plan["state"] = "cancelled"
@@ -667,13 +670,31 @@ async def drain_run(call: CallbackQuery):
     plan["job_id"] = run_id
     plan["updated_at"] = int(time.time())
     drain_store.save(plan)
-    await db.add_audit(
-        actor_id=actor,
-        action="fleet.drain.started",
-        target_type="node",
-        target_id=str(node_id),
-        details=f"plan={plan_id}",
-    )
+    try:
+        await db.add_audit(
+            actor_id=actor,
+            action="fleet.drain.started",
+            target_type="node",
+            target_id=str(node_id),
+            details=f"plan={plan_id}",
+        )
+    except Exception as exc:
+        plan = drain_store.get(plan_id)
+        plan["state"] = "failed"
+        plan["updated_at"] = int(time.time())
+        drain_store.save(plan)
+        await db.finish_job_run(
+            run_id,
+            status="failed",
+            duration_ms=max(0, int((time.monotonic() - started) * 1000)),
+            details=f"plan={plan_id}; audit_start_failed=true",
+        )
+        await render_callback(
+            call,
+            f"🔴 Node Drain не начат: audit journal недоступен ({safe_error(exc)}). Remote mutation не отправлялась.",
+            reply_markup=_fleet_home_keyboard(),
+        )
+        return
 
     results: dict[str, Any] = {}
     final_state = "partial"
