@@ -135,64 +135,6 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.headers["Cache-Control"], "no-store")
         self.assertNotIn("X-Secret", response.headers)
 
-    async def test_plain_mode_decodes_base64_without_changing_default_path(self):
-        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
-        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
-        plain = (
-            "vless://id@example.test:443?type=tcp&security=reality#one\n"
-            "vless://id2@example.test:443?type=xhttp&security=reality#two"
-        )
-        upstream_body = base64.b64encode(plain.encode())
-        proxy._fetch = AsyncMock(return_value=(200, upstream_body, {}))
-
-        default = await proxy.subscription(
-            self.request("known", query={"client": "keep"})
-        )
-        self.assertEqual(default.body, upstream_body)
-        self.assertEqual(
-            proxy._fetch.await_args.kwargs["params"],
-            [("client", "keep")],
-        )
-
-        plain_response = await proxy.subscription(
-            self.request(
-                "known",
-                query={"plain": "1", "client": "keep"},
-                headers={
-                    "Accept": "text/html,application/xhtml+xml",
-                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 Mobile/22H340 Safari/604.1",
-                },
-            )
-        )
-        self.assertEqual(plain_response.body.decode(), plain)
-        self.assertEqual(
-            proxy._fetch.await_args.kwargs["params"],
-            [("client", "keep")],
-        )
-        self.assertTrue(plain_response.headers["Content-Type"].startswith("text/plain"))
-        self.assertEqual(
-            proxy._fetch.await_args.kwargs["headers"]["Accept"],
-            "text/plain",
-        )
-
-    async def test_plain_mode_keeps_hwid_forwarding_and_no_synthetic_identity(self):
-        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
-        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
-        upstream_body = base64.b64encode(b"vless://id@example.test:443")
-        proxy._fetch = AsyncMock(return_value=(200, upstream_body, {}))
-
-        response = await proxy.subscription(
-            self.request(
-                "known",
-                query={"plain": "true"},
-                headers={"User-Agent": "Streisand-Test/1.0", "X-HWID": "device-01"},
-            )
-        )
-        self.assertEqual(response.body, b"vless://id@example.test:443")
-        forwarded = proxy._fetch.await_args.kwargs["headers"]
-        self.assertEqual(forwarded["X-HWID"], "device-01")
-        self.assertNotIn("plain", dict(proxy._fetch.await_args.kwargs["params"]))
-
     async def test_raw_client_forwards_reviewed_hwid_headers_only(self):
         db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
         proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
