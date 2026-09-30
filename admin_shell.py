@@ -141,7 +141,7 @@ async def admin(message: Message):
     if role is None:
         await message.answer("Команда доступна только администратору.")
         return
-    panel = await message.answer(f"⚙️ Панель администратора · {role}", reply_markup=admin_menu())
+    panel = await message.answer(f"⚙️ Панель администратора · {role}", reply_markup=admin_menu(role))
     register_panel_message(message.from_user.id, panel)
 
 def _section_header(title: str, subtitle: str) -> str:
@@ -319,7 +319,8 @@ async def admin_dashboard(call: CallbackQuery):
 
 @admin_shell_router.callback_query(F.data == "admin:attention")
 async def admin_attention(call: CallbackQuery):
-    if not await guard_admin_call(call):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok or role is None:
         return
 
     master_online = False
@@ -355,7 +356,7 @@ async def admin_attention(call: CallbackQuery):
     await render_callback(
         call,
         "\n".join(_attention_detail_lines(items)),
-        reply_markup=attention_menu(),
+        reply_markup=attention_menu({item.category for item in items}, role),
     )
     await call.answer()
 
@@ -384,40 +385,43 @@ async def admin_subscriptions(call: CallbackQuery):
 
 @admin_shell_router.callback_query(F.data == "admin:section:infrastructure")
 async def admin_infrastructure(call: CallbackQuery):
-    if not await guard_admin_call(call):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok or role is None:
         return
     await render_callback(call, 
         _section_header(
             "🌐 Инфраструктура",
             "Управление нодами, Inbounds, хостами и группами серверов.",
         ),
-        reply_markup=infrastructure_menu(),
+        reply_markup=infrastructure_menu(role),
     )
     await call.answer()
 
 
 @admin_shell_router.callback_query(F.data == "admin:section:monitoring")
 async def admin_monitoring(call: CallbackQuery):
-    if not await guard_admin_call(call):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok or role is None:
         return
     await render_callback(call, 
         _section_header(
             "📈 Мониторинг",
             "Трафик, состояние клиентов, здоровье системы, проверка блокировок и журналы.",
         ),
-        reply_markup=monitoring_menu(),
+        reply_markup=monitoring_menu(role),
     )
     await call.answer()
 
 
 @admin_shell_router.callback_query(F.data == "admin:section:system")
 async def admin_system(call: CallbackQuery):
-    if not await guard_admin_call(call):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok or role is None:
         return
     await render_callback(
         call,
         system_section_text(),
-        reply_markup=system_menu(),
+        reply_markup=system_menu(role),
     )
     await call.answer()
 
@@ -533,7 +537,8 @@ async def admin_coming_soon(call: CallbackQuery):
 
 @admin_shell_router.callback_query(F.data == "admin:home")
 async def admin_home(call: CallbackQuery):
-    if not await guard_admin_call(call):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok or role is None:
         return
-    await render_callback(call, "⚙️ Панель администратора", reply_markup=admin_menu())
+    await render_callback(call, "⚙️ Панель администратора", reply_markup=admin_menu(role))
     await call.answer()
