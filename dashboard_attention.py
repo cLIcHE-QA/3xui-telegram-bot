@@ -11,10 +11,28 @@ class JobLike(Protocol):
     status: str
 
 
+class AlertLike(Protocol):
+    code: str
+    target: str
+    active: int
+    first_seen: int
+    last_seen: int
+
+
 @dataclass(frozen=True)
 class AttentionSummary:
     total: int
     lines: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class AttentionItem:
+    category: str
+    stable_id: str
+    status: str
+    label: str
+    context: str = ""
+    updated_at: int = 0
 
 
 _JOB_PROBLEM_STATES = {"failed", "unknown", "interrupted"}
@@ -28,33 +46,70 @@ _ROLLOUT_PROBLEM_STATES = {
 }
 _DRAIN_PROBLEM_STATES = {"partial", "failed", "unknown", "interrupted"}
 
+_ALERT_LABELS = {
+    "master_down": "Master / 3x-ui недоступен",
+    "xray_down": "Xray не работает",
+    "node_offline": "Нода не в сети",
+    "job_failed": "Фоновое задание завершилось ошибкой",
+    "disk_high": "Высокое использование диска",
+    "backup_stale": "Резервная копия устарела",
+}
 
-def latest_rollout_problem_states(plans: Iterable[Mapping[str, object]]) -> tuple[str, ...]:
+_STATUS_LABELS = {
+    "failed": "ошибка",
+    "unknown": "неизвестно",
+    "interrupted": "прервано",
+    "offline": "не в сети",
+    "unhealthy": "недоступно",
+    "degraded": "деградация",
+    "partial": "частично",
+    "stopped_failed": "остановлено: ошибка",
+    "stopped_unknown": "остановлено: неизвестно",
+}
+
+
+def _int(value: object) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _safe_text(value: object, *, limit: int = 64) -> str:
+    text = " ".join(str(value or "").replace("\x00", "").split())
+    return text[:limit]
+
+
+def latest_rollout_problem_plan(plans: Iterable[Mapping[str, object]]) -> Mapping[str, object] | None:
     effective = [
         plan for plan in plans
         if str(plan.get("state") or "").lower() not in {"review", "cancelled"}
     ]
     if not effective:
-        return ()
+        return None
     latest = max(
         effective,
         key=lambda plan: (
-            int(plan.get("updated_at") or 0),
-            int(plan.get("created_at") or 0),
+            _int(plan.get("updated_at")),
+            _int(plan.get("created_at")),
             str(plan.get("id") or ""),
         ),
     )
     state = str(latest.get("state") or "").lower()
-    return (state,) if state in _ROLLOUT_PROBLEM_STATES else ()
+    return latest if state in _ROLLOUT_PROBLEM_STATES else None
 
 
-def latest_drain_problem_states(plans: Iterable[Mapping[str, object]]) -> tuple[str, ...]:
+def latest_rollout_problem_states(plans: Iterable[Mapping[str, object]]) -> tuple[str, ...]:
+    latest = latest_rollout_problem_plan(plans)
+    if latest is None:
+        return ()
+    return (str(latest.get("state") or "").lower(),)
+
+
+def latest_drain_problem_plans(plans: Iterable[Mapping[str, object]]) -> tuple[Mapping[str, object], ...]:
     latest_by_node: dict[int, Mapping[str, object]] = {}
     for plan in plans:
-        try:
-            node_id = int(plan.get("node_id") or 0)
-        except (TypeError, ValueError):
-            continue
+        node_id = _int(plan.get("node_id"))
         if node_id <= 0:
             continue
         state = str(plan.get("state") or "").lower()
@@ -62,43 +117,149 @@ def latest_drain_problem_states(plans: Iterable[Mapping[str, object]]) -> tuple[
             continue
         current = latest_by_node.get(node_id)
         sort_key = (
-            int(plan.get("updated_at") or 0),
-            int(plan.get("created_at") or 0),
+            _int(plan.get("updated_at")),
+            _int(plan.get("created_at")),
             str(plan.get("id") or ""),
         )
         current_key = (
-            int(current.get("updated_at") or 0),
-            int(current.get("created_at") or 0),
+            _int(current.get("updated_at")),
+            _int(current.get("created_at")),
             str(current.get("id") or ""),
         ) if current is not None else (-1, -1, "")
         if sort_key > current_key:
             latest_by_node[node_id] = plan
 
-    result: list[str] = []
+    result: list[Mapping[str, object]] = []
     for node_id in sorted(latest_by_node):
-        state = str(latest_by_node[node_id].get("state") or "").lower()
+        plan = latest_by_node[node_id]
+        state = str(plan.get("state") or "").lower()
         if state in _DRAIN_PROBLEM_STATES:
-            result.append(state)
+            result.append(plan)
     return tuple(result)
 
 
-def latest_job_problem_statuses(runs: Iterable[JobLike]) -> tuple[str, ...]:
-    """Return one current problem state per non-fleet job name.
+def latest_drain_problem_states(plans: Iterable[Mapping[str, object]]) -> tuple[str, ...]:
+    return tuple(
+        str(plan.get("state") or "").lower()
+        for plan in latest_drain_problem_plans(plans)
+    )
 
-    Job history is intentionally collapsed to the latest run for each name so an
-    old failure does not remain an attention item after a later successful run.
-    Fleet rollout/drain jobs are represented by their orchestration journals
-    instead, avoiding duplicate counting of those outcomes. Other fleet jobs,
-    such as maintenance, keep their latest job status in the summary.
-    """
-    latest: dict[str, str] = {}
-    ordered = sorted(runs, key=lambda run: int(getattr(run, "id", 0)), reverse=True)
+
+def latest_job_problem_runs(runs: Iterable[JobLike]) -> tuple[JobLike, ...]:
+    """Return the latest problematic run for each non-orchestration job name."""
+    latest: dict[str, JobLike] = {}
+    ordered = sorted(runs, key=lambda run: _int(getattr(run, "id", 0)), reverse=True)
     for run in ordered:
         name = str(getattr(run, "name", "") or "").strip()
         if not name or name in latest or name in {"fleet.rollout", "fleet.drain"}:
             continue
-        latest[name] = str(getattr(run, "status", "") or "").strip().lower()
-    return tuple(status for status in latest.values() if status in _JOB_PROBLEM_STATES)
+        latest[name] = run
+    return tuple(
+        run for run in latest.values()
+        if str(getattr(run, "status", "") or "").strip().lower() in _JOB_PROBLEM_STATES
+    )
+
+
+def latest_job_problem_statuses(runs: Iterable[JobLike]) -> tuple[str, ...]:
+    return tuple(
+        str(getattr(run, "status", "") or "").strip().lower()
+        for run in latest_job_problem_runs(runs)
+    )
+
+
+def build_attention_items(
+    *,
+    active_alerts: Iterable[AlertLike],
+    job_runs: Iterable[JobLike],
+    infrastructure: Iterable[Mapping[str, object]],
+    rollout_plans: Iterable[Mapping[str, object]],
+    drain_plans: Iterable[Mapping[str, object]],
+) -> tuple[AttentionItem, ...]:
+    """Build bounded, secret-free detail items from the same states as the summary."""
+    items: list[AttentionItem] = []
+
+    for alert in active_alerts:
+        if not _int(getattr(alert, "active", 0)):
+            continue
+        code = _safe_text(getattr(alert, "code", ""), limit=40)
+        target = _safe_text(getattr(alert, "target", ""), limit=48)
+        if not code:
+            continue
+        category = "backups" if code == "backup_stale" else "alerts"
+        label = _ALERT_LABELS.get(code, code)
+        context = f"цель: {target}" if target else ""
+        items.append(AttentionItem(
+            category=category,
+            stable_id=f"alert:{code}:{target or '-'}",
+            status="failed",
+            label=label,
+            context=context,
+            updated_at=_int(getattr(alert, "last_seen", 0)),
+        ))
+
+    for run in latest_job_problem_runs(job_runs):
+        name = _safe_text(getattr(run, "name", ""), limit=56)
+        status = str(getattr(run, "status", "") or "").strip().lower()
+        category = "backups" if name.startswith("backup.") else "jobs"
+        items.append(AttentionItem(
+            category=category,
+            stable_id=f"job:{name}:{_int(getattr(run, 'id', 0))}",
+            status=status,
+            label=name,
+            context=_STATUS_LABELS.get(status, status),
+            updated_at=_int(getattr(run, "finished_at", 0)) or _int(getattr(run, "started_at", 0)),
+        ))
+
+    for raw in infrastructure:
+        status = str(raw.get("status") or "").lower()
+        if status not in _INFRA_PROBLEM_STATES:
+            continue
+        stable_id = _safe_text(raw.get("stable_id"), limit=56) or "unknown"
+        label = _safe_text(raw.get("label"), limit=72) or stable_id
+        items.append(AttentionItem(
+            category="infrastructure",
+            stable_id=f"infra:{stable_id}",
+            status=status,
+            label=label,
+            context=_STATUS_LABELS.get(status, status),
+            updated_at=_int(raw.get("updated_at")),
+        ))
+
+    rollout = latest_rollout_problem_plan(rollout_plans)
+    if rollout is not None:
+        state = str(rollout.get("state") or "").lower()
+        plan_id = _safe_text(rollout.get("id"), limit=32) or "latest"
+        items.append(AttentionItem(
+            category="operations",
+            stable_id=f"rollout:{plan_id}",
+            status=state,
+            label="Контролируемое обновление нод",
+            context=_STATUS_LABELS.get(state, state),
+            updated_at=_int(rollout.get("updated_at")),
+        ))
+
+    for plan in latest_drain_problem_plans(drain_plans):
+        state = str(plan.get("state") or "").lower()
+        node_id = _int(plan.get("node_id"))
+        plan_id = _safe_text(plan.get("id"), limit=32) or "latest"
+        items.append(AttentionItem(
+            category="operations",
+            stable_id=f"drain:{node_id}:{plan_id}",
+            status=state,
+            label=f"Node Drain · node_id={node_id}",
+            context=_STATUS_LABELS.get(state, state),
+            updated_at=_int(plan.get("updated_at")),
+        ))
+
+    category_order = {"infrastructure": 0, "jobs": 1, "alerts": 2, "backups": 3, "operations": 4}
+    return tuple(sorted(
+        items,
+        key=lambda item: (
+            category_order.get(item.category, 99),
+            -item.updated_at,
+            item.stable_id,
+        ),
+    ))
 
 
 def build_attention_summary(
