@@ -2734,7 +2734,7 @@ Production smoke `v4.26.3` подтвердил сам Attention Center, но в
 
 ##### v4.26.4 — Permission-aware admin navigation fix
 
-**Статус: 🟡 Реализовано в fix PR #228; полный PR CI — PASS, release `v4.26.4` ещё не опубликован. Bug #226 и acceptance #217 остаются открыты до production smoke.**
+**Статус: 🟡 Реализовано и release-prep подготовлен; publication/deployment `v4.26.4` и production smoke ещё не завершены. Bug #226 и acceptance #217 остаются открыты до production smoke.**
 
 Цель — устранить presentation-level RBAC drift без ослабления backend authorization и без нового product scope.
 
@@ -2761,6 +2761,9 @@ Implementation evidence перед release:
 - regression matrix покрывает `read_only / support / admin / owner`, unknown admin callback fail-closed и wiring затронутых screens;
 - `PR conventions` и финальный `Python checks` на head fix PR — **PASS**;
 - SQLite schema, pinned 3x-ui OpenAPI contract и backend mutation/RBAC boundaries не меняются.
+- merge fix PR #228 в `main`: `7e34a61354a94f8565cd94967654f127ec0f258d`;
+- `Python checks` на merge commit в `main` — **PASS**;
+- release-prep обновляет только versioned metadata/docs/tests; runtime behavior после #228 не меняется.
 
 После acceptance `v4.26.4` порядок остаётся прежним: #219 hardening decision/closure → encrypted off-site backup/restore drill → final v4 feature freeze → repository/public-release audit.
 
