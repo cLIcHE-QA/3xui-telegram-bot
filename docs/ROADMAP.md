@@ -302,11 +302,14 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 13. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics; targeted production findings закрыть patch-релизом `v4.24.1`, а финальный acceptance линии проводить на `v4.24.1`;
 14. User Management и follow-up линия `v4.25.0–v4.25.8` завершены и приняты в production; линия `v4.25.x` закрыта;
 15. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
-16. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-17. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-18. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-19. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-20. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+16. закрыть controlled state-changing Node Drain production smoke на безопасной test node/user cohort и завершить issue #208;
+17. отдельным patch-релизом `v4.26.2` добавить read-only Dashboard Attention summary (`⚠️ Требует внимания`);
+18. отдельным patch-релизом `v4.26.3` добавить read-only Attention Center drill-down и canonical deep-links;
+19. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+20. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+21. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+22. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+23. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
@@ -2643,6 +2646,43 @@ Implementation / production evidence:
 - финальный health/status — **PASS**;
 - issue #211 закрыт как `completed`;
 - полный state-changing Node Drain mutation smoke остаётся отдельным открытым acceptance scope в issue #208 и выполняется только на безопасной test node/user cohort.
+
+##### v4.26.2 — Dashboard Attention summary
+
+**Статус: ⬜ Запланировано; issue #216.**
+
+Цель — добавить в `/admin → Обзор` компактный read-only блок `⚠️ Требует внимания`, который агрегирует уже существующие problem states без нового mutation surface.
+
+Scope:
+
+1. Сводка показывает общий count и bounded breakdown проблем прямо на `Обзор`.
+2. Источники — только существующие read-only/local states: active alerts, failed/unknown/interrupted jobs, unhealthy/offline/unknown infrastructure, problematic terminal Fleet/Node Drain states и иные уже существующие operator-facing failures.
+3. `failed`, `unknown`, `interrupted` и degraded/unhealthy не смешиваются в один неразличимый статус.
+4. При отсутствии проблем выводится явное спокойное состояние `✅ Требует внимания: нет`.
+5. Summary не содержит credentials, subscription URL/`sub_id`, raw upstream payloads или персональные списки пользователей.
+6. `Обзор` остаётся Read-only+; новых privilege IDs, auto-remediation и remote mutations нет.
+7. Regression coverage фиксирует deterministic aggregation, bounded output и отсутствие state-changing calls.
+
+Отдельный drill-down screen и canonical deep-links не входят в этот релиз и переносятся в `v4.26.3`.
+
+##### v4.26.3 — Attention Center drill-down
+
+**Статус: ⬜ Запланировано; issue #217.**
+
+Цель — добавить отдельный read-only экран `⚠️ Требует внимания` как drill-down для summary из `v4.26.2`, не создавая новый incident/ticket subsystem.
+
+Scope:
+
+1. Вход — из `/admin → Обзор`; экран имеет `🔄 Обновить` и `⬅ Обзор`.
+2. Detail группируется по существующим доменам: infrastructure/health, jobs, alerts, backups и Fleet/Node Drain problem states.
+3. Каждый item содержит bounded operator context и stable identity без secrets.
+4. Переходы ведут только в существующие canonical screens: `Состояние системы`, `Задания`, `Оповещения`, `Резервные копии`, `Операции с нодами` и аналогичные уже существующие родители.
+5. Navigation permission-aware: drill-down не повышает роль и не открывает actions выше текущего RBAC.
+6. Resolved item исчезает после read-only refresh; собственного acknowledge/snooze/assignment storage нет.
+7. Stale/deleted objects не создают dead-end или callback exception.
+8. Count/detail согласованы с `v4.26.2`; regression tests фиксируют navigation/back/refresh и no-mutation contract.
+
+Оба релиза относятся к финальной полировке Admin Control Plane и должны быть опубликованы/приняты до off-site drill и final v4 feature freeze. Они не меняют SQLite schema по умолчанию, pinned 3x-ui API contract или destructive Host Control boundaries.
 
 ##### Финальный v4 Repository / Public-Release Audit
 
