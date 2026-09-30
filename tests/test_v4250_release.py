@@ -1,4 +1,4 @@
-"""Release contracts through v4.26.0 Node Drain."""
+"""Release contracts through v4.26.1 Node Drain Cancel navigation."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,23 +10,39 @@ from version import APP_VERSION
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class V4260ReleaseTests(unittest.TestCase):
-    def test_release_version_is_4260(self):
-        self.assertEqual(APP_VERSION, "4.26.0")
+class V4261ReleaseTests(unittest.TestCase):
+    def test_release_version_is_4261(self):
+        self.assertEqual(APP_VERSION, "4.26.1")
 
-    def test_current_docs_reference_release_4260(self):
+    def test_current_docs_reference_release_4261(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         sqlite_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
 
-        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.26.0"))
-        self.assertIn("Guide ориентирован на release v4.26.0.", admin_setup)
-        self.assertIn("git checkout --detach v4.26.0", admin_setup)
-        self.assertIn("Bot version: 4.26.0", admin_setup)
+        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.26.1"))
+        self.assertIn("Guide ориентирован на release v4.26.1.", admin_setup)
+        self.assertIn("git checkout --detach v4.26.1", admin_setup)
+        self.assertIn("Bot version: 4.26.1", admin_setup)
         self.assertIn(
-            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8` и `v4.26.0` текущая bot schema version — **5**",
+            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0` и `v4.26.1` текущая bot schema version — **5**",
             sqlite_doc,
         )
+
+    def test_release_notes_cover_v4261_scope(self):
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertEqual(changelog.count("## v4.26.1 — Node Drain Cancel navigation"), 1)
+        section = changelog.split("## v4.26.1 — Node Drain Cancel navigation", 1)[1].split("\n## ", 1)[0]
+        for needle in (
+            "✖ Отмена",
+            "read-only preflight",
+            "review → cancelled",
+            "no-mutation contract",
+            "Stale `run`",
+            "SQLite schema остаётся v5",
+            "OpenAPI contract остаётся v3.8.5",
+            "finding #211",
+        ):
+            self.assertIn(needle, section)
 
     def test_release_notes_cover_v4260_scope(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
@@ -183,13 +199,29 @@ class V4260ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Текущий runtime-релиз `v4.26.0` добавляет graceful Node Drain", readme)
-        self.assertIn("targeted Node Drain smoke", readme)
+        self.assertIn("Текущий runtime-релиз `v4.26.1` сохраняет graceful Node Drain", readme)
+        self.assertIn("Полный Node Drain mutation smoke", readme)
+
+    def test_v4261_fix_is_merged_but_not_production_verified(self):
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        heading = "##### v4.26.1 — Node Drain Cancel navigation"
+        section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
+        for needle in (
+            "🟡 Реализовано в `main`",
+            "release `v4.26.1` ещё не опубликован",
+            "issue #211 остаётся открыт",
+            "fix PR #213",
+            "218f2e9fda914b05121051dd0dd00a94ba99dc6b",
+            "no-mutation Cancel",
+            "stale/cancelled `run`",
+            "targeted Cancel smoke",
+        ):
+            self.assertIn(needle, section)
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "Для bot release `v4.26.0` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
+            "Для bot release `v4.26.1` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
             admin_setup,
         )
 

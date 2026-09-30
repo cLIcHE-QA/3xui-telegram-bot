@@ -7,6 +7,14 @@
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
 
+## v4.26.1 — Node Drain Cancel navigation
+- Исправлена навигация `✖ Отмена` на confirmation screen Node Drain: после terminal `review → cancelled` оператор возвращается в read-only preflight той же stable direct node вместо корня `Операции с нодами`.
+- Cancel сохраняет no-mutation contract: maintenance, attach/detach, Xray/service и другие remote mutations не выполняются; отменённый plan остаётся terminal `cancelled`.
+- Stale `run` для cancelled plan по-прежнему блокируется fail-closed до первой remote mutation; RBAC callback catalog и Administrator+ boundary не меняются.
+- Добавлен regression contract на canonical parent, no-mutation Cancel и stale-plan rejection. SQLite schema остаётся v5, pinned 3x-ui OpenAPI contract остаётся v3.8.5.
+- Patch закрывает production finding #211 после публикации, deployment и targeted verification `preflight → prepare → ✖ Отмена`; полный Node Drain mutation smoke по-прежнему выполняется только на безопасной test node/user cohort.
+
+
 ## v4.26.0 — Node Drain
 - Реализован отдельный graceful Node Drain для direct nodes без изменения семантики maintenance и без автоматического Stop Xray/service.
 - Read-only preflight по stable `node_id` определяет управляемые Inbounds target-ноды, затронутых локальных пользователей, policy alternatives, blockers и remaining work; transitive/неоднозначная node identity блокируется fail-closed.
