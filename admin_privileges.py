@@ -101,7 +101,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     _rules(
         "dashboard.view",
         "exact",
-        "admin:home", "admin:dashboard", "admin:stats",
+        "admin:home", "admin:dashboard", "admin:attention", "admin:stats",
         "admin:section:infrastructure", "admin:section:monitoring", "admin:section:system",
         "admin:health",
     )
