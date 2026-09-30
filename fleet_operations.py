@@ -281,13 +281,22 @@ async def _fleet_assessments(nodes: list[NodeInfo] | None = None) -> list[dict[s
     return list(await asyncio.gather(*(_assess_node(node) for node in selected)))
 
 
+def fleet_attention_detail_plans() -> tuple[tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
+    """Return local Fleet/Node Drain journals for read-only attention aggregation."""
+    return (
+        tuple(plan_store.list()),
+        tuple(drain_store.list()),
+    )
+
+
 def fleet_attention_states() -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Return local terminal Fleet/Node Drain problem states for dashboard summary."""
     from dashboard_attention import latest_drain_problem_states, latest_rollout_problem_states
 
+    rollout_plans, drain_plans = fleet_attention_detail_plans()
     return (
-        latest_rollout_problem_states(plan_store.list()),
-        latest_drain_problem_states(drain_store.list()),
+        latest_rollout_problem_states(rollout_plans),
+        latest_drain_problem_states(drain_plans),
     )
 
 

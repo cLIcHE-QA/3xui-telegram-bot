@@ -8,13 +8,13 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_auth import authorize_callback, get_admin_role
-from admin_navigation import admin_menu, dashboard_menu, infrastructure_menu, monitoring_menu, system_menu
+from admin_navigation import admin_menu, attention_menu, dashboard_menu, infrastructure_menu, monitoring_menu, system_menu
 from admin_ui import register_panel_message, render_callback
 from backup_manager import BackupManager
 from config import load_settings
-from dashboard_attention import build_attention_summary, latest_job_problem_statuses
+from dashboard_attention import AttentionItem, build_attention_items, build_attention_summary, latest_job_problem_statuses
 from db import Database
-from fleet_operations import fleet_attention_states
+from fleet_operations import fleet_attention_detail_plans, fleet_attention_states
 from ui_time import format_datetime
 from user_ui import user_label
 from inbound_admin import inbound_list_view
@@ -46,6 +46,92 @@ def human_bytes(n: int) -> str:
         if n < 1024 or unit == "TB":
             return f"{n:.1f} {unit}" if unit != "B" else f"{n} B"
         n /= 1024
+
+def _attention_infrastructure(
+    *,
+    master_online: bool,
+    nodes: list[NodeInfo],
+    nodes_error: str | None,
+) -> list[dict[str, object]]:
+    result: list[dict[str, object]] = []
+    if not master_online:
+        result.append({
+            "stable_id": "master",
+            "label": f"{settings.master_flag} {settings.master_name}",
+            "status": "unknown",
+        })
+    if nodes_error:
+        result.append({
+            "stable_id": "nodes-api",
+            "label": "API direct-нод",
+            "status": "unknown",
+        })
+        return result
+    for node in nodes:
+        if not node.enable:
+            continue
+        state = str(node.status or "unknown").lower()
+        if state == "online":
+            continue
+        result.append({
+            "stable_id": f"node:{node.id}",
+            "label": f"{node.name} · node_id={node.id}",
+            "status": "offline" if state == "offline" else "unknown",
+        })
+    return result
+
+
+def _attention_age(ts: int) -> str:
+    value = int(ts or 0)
+    if not value:
+        return "возраст неизвестен"
+    delta = max(0, int(time.time()) - value)
+    if delta < 60:
+        return "только что"
+    if delta < 3600:
+        return f"{delta // 60} мин назад"
+    if delta < 86400:
+        return f"{delta // 3600} ч назад"
+    return f"{delta // 86400} дн назад"
+
+
+def _attention_item_icon(item: AttentionItem) -> str:
+    if item.status in {"failed", "offline", "unhealthy", "stopped_failed"}:
+        return "🔴"
+    return "🟡"
+
+
+def _attention_detail_lines(items: tuple[AttentionItem, ...]) -> list[str]:
+    if not items:
+        return [
+            "⚠️ Требует внимания",
+            "",
+            "✅ Актуальных проблем нет.",
+            "Обновите экран после изменения состояния, чтобы проверить его повторно.",
+        ]
+
+    groups = (
+        ("infrastructure", "Инфраструктура"),
+        ("jobs", "Задания"),
+        ("alerts", "Оповещения"),
+        ("backups", "Резервные копии"),
+        ("operations", "Операции с нодами"),
+    )
+    lines = ["⚠️ Требует внимания", "", f"Всего: {len(items)}"]
+    for category, title in groups:
+        selected = [item for item in items if item.category == category]
+        if not selected:
+            continue
+        lines += ["", f"{title} · {len(selected)}"]
+        for item in selected[:5]:
+            age = _attention_age(item.updated_at)
+            context = f" · {item.context}" if item.context else ""
+            lines.append(f"{_attention_item_icon(item)} {item.label}{context} · {age}")
+            lines.append(f"ID: {item.stable_id}")
+        if len(selected) > 5:
+            lines.append(f"… ещё {len(selected) - 5}")
+    return lines
+
 
 @admin_shell_router.message(Command("admin"))
 async def admin(message: Message):
@@ -144,20 +230,15 @@ async def admin_dashboard(call: CallbackQuery):
     active_alerts = await db.list_alert_states(active_only=True)
     job_runs = await db.list_job_runs(limit=100)
     rollout_states, drain_states = fleet_attention_states()
-    infrastructure_states: list[str] = []
-    if not master_online:
-        infrastructure_states.append("unknown")
-    if nodes_error:
-        infrastructure_states.append("unknown")
-    else:
-        for node in nodes:
-            if not node.enable:
-                continue
-            node_state = str(node.status or "unknown").lower()
-            if node_state == "offline":
-                infrastructure_states.append("offline")
-            elif node_state != "online":
-                infrastructure_states.append("unknown")
+    attention_infrastructure = _attention_infrastructure(
+        master_online=master_online,
+        nodes=nodes,
+        nodes_error=nodes_error,
+    )
+    infrastructure_states = [
+        str(item.get("status") or "unknown")
+        for item in attention_infrastructure
+    ]
     attention = build_attention_summary(
         active_alerts=len(active_alerts),
         job_statuses=latest_job_problem_statuses(job_runs),
@@ -233,6 +314,49 @@ async def admin_dashboard(call: CallbackQuery):
     ]
 
     await render_callback(call, "\n".join(lines), reply_markup=dashboard_menu())
+    await call.answer()
+
+
+@admin_shell_router.callback_query(F.data == "admin:attention")
+async def admin_attention(call: CallbackQuery):
+    if not await guard_admin_call(call):
+        return
+
+    master_online = False
+    nodes: list[NodeInfo] = []
+    nodes_error: str | None = None
+
+    try:
+        await xui.server_status()
+        master_online = True
+    except XUIError:
+        pass
+
+    try:
+        nodes = await xui.nodes_list()
+    except XUIError as exc:
+        nodes_error = str(exc)[:120]
+
+    active_alerts = await db.list_alert_states(active_only=True)
+    job_runs = await db.list_job_runs(limit=100)
+    rollout_plans, drain_plans = fleet_attention_detail_plans()
+    items = build_attention_items(
+        active_alerts=active_alerts,
+        job_runs=job_runs,
+        infrastructure=_attention_infrastructure(
+            master_online=master_online,
+            nodes=nodes,
+            nodes_error=nodes_error,
+        ),
+        rollout_plans=rollout_plans,
+        drain_plans=drain_plans,
+    )
+
+    await render_callback(
+        call,
+        "\n".join(_attention_detail_lines(items)),
+        reply_markup=attention_menu(),
+    )
     await call.answer()
 
 

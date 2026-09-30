@@ -28,8 +28,25 @@ def admin_menu() -> InlineKeyboardMarkup:
 
 def dashboard_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚠️ Требует внимания", callback_data="admin:attention")],
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:dashboard")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
+    ])
+
+
+def attention_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:health")],
+        [
+            InlineKeyboardButton(text="⚙️ Задания", callback_data="admin:jobs"),
+            InlineKeyboardButton(text="🚨 Оповещения", callback_data="admin:alerts"),
+        ],
+        [
+            InlineKeyboardButton(text="💾 Резервные копии", callback_data="admin:backups"),
+            InlineKeyboardButton(text="🌐 Операции с нодами", callback_data="admin:fleet"),
+        ],
+        [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:attention")],
+        [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:dashboard")],
     ])
 
 
