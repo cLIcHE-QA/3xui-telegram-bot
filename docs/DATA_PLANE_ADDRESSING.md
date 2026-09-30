@@ -94,9 +94,9 @@ sudo nft -a list ruleset
 sudo iptables -nvL INPUT --line-numbers
 ~~~
 
-## Production incident note: Finland AmneziaWG
+## Production incident note: AmneziaWG blocked by host firewall
 
-A Finland AmneziaWG inbound received UDP packets at the VPS interface but never completed a handshake. The existing inbound, a direct client config, and a newly generated local diagnostic inbound all reproduced the same `handshake=0` state.
+A production AmneziaWG inbound received UDP packets at the VPS interface but never completed a handshake. The existing inbound, a direct client config, and a newly generated local diagnostic inbound all reproduced the same `handshake=0` state.
 
 The root cause was UFW default-deny INPUT without an allow rule for the AWG UDP port. After the production AWG UDP port was explicitly allowed, both the direct client config and subscription path connected successfully.
 
@@ -108,7 +108,7 @@ This incident ruled out several misleading hypotheses:
 - stored AWG key material and generated profiles were not the cause;
 - seeing UDP in `tcpdump` was not proof of socket delivery.
 
-After firewall remediation, the Finland client endpoint was switched back to the explicit node public IP through `shareAddrStrategy=custom`, and the subscription smoke passed.
+After firewall remediation, the client endpoint was switched back to the explicit node public IP through `shareAddrStrategy=custom`, and the subscription smoke passed.
 
 ## New direct-node acceptance checklist
 
