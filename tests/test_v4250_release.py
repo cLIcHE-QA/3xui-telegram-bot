@@ -285,6 +285,26 @@ class V4264ReleaseTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("`v4.26.2` опубликован, развёрнут и принят в production", readme)
 
+    def test_v4264_production_acceptance_is_recorded(self):
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        heading = "##### v4.26.4 — Permission-aware admin navigation fix"
+        section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
+        for needle in (
+            "✅ Выполнено в `v4.26.4`",
+            "release-prep PR #229",
+            "e2b6834d549a6b3272702fc27570c8a8a3a99bfe",
+            "targeted role smoke — **PASS**",
+            "Attention Center `Refresh/Back`",
+            "`RestartCount=0`",
+            "Health/DB/3x-ui connectivity — ok",
+            "bug #226 и feature acceptance #217 закрыты как `completed`",
+        ):
+            self.assertIn(needle, section)
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("`v4.26.4` опубликован, развёрнут и принят в production", readme)
+        self.assertIn("finding #226 и production acceptance Attention Center #217 закрыты", readme)
+
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
