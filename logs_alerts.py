@@ -10,8 +10,8 @@ from typing import Iterable
 from aiogram import Bot, F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
-from admin_ui import render_callback, render_input
-from admin_auth import authorize_callback
+from admin_ui import filter_keyboard_for_role, render_callback, render_input
+from admin_auth import authorize_callback, get_admin_role
 from audit import audit_from_call, audit_system
 from backup_manager import BackupManager
 from config import load_settings
@@ -391,7 +391,12 @@ async def _send_alerts_view(call: CallbackQuery) -> None:
     else:
         lines.append("✅ Активных инцидентов нет")
     lines += ["", "Проверка выполняется автоматически примерно раз в 5 минут. Повторное уведомление отправляется только после периода ожидания."]
-    await render_callback(call, "\n".join(lines), reply_markup=_alerts_keyboard(rules))
+    role = await get_admin_role(db, settings, call.from_user.id) if call.from_user else None
+    await render_callback(
+        call,
+        "\n".join(lines),
+        reply_markup=filter_keyboard_for_role(_alerts_keyboard(rules), role),
+    )
 
 
 @logs_alerts_router.callback_query(F.data == "admin:alerts")
