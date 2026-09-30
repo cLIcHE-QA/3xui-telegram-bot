@@ -322,7 +322,11 @@ async def jobs_view(call: CallbackQuery):
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:jobs")],
         [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ])
-    await render_callback(call, "\n".join(lines), reply_markup=kb)
+    await render_callback(
+        call,
+        "\n".join(lines),
+        reply_markup=filter_keyboard_for_role(kb, role),
+    )
     await call.answer()
 
 
