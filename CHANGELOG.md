@@ -8,6 +8,15 @@
 
 
 
+
+## v4.26.3 — Attention Center drill-down
+- Добавлен отдельный read-only экран `⚠️ Требует внимания` из `/admin → Обзор` с grouped detail по инфраструктуре, заданиям, оповещениям, резервным копиям и Fleet/Node Drain problem states.
+- Detail использует те же current-state источники, что summary `v4.26.2`: active alerts, latest problematic job per name, offline/unknown infrastructure и latest terminal rollout/drain journals; resolved job исчезает после refresh, а item count согласован с summary contract.
+- Каждый item содержит bounded operator context и stable technical identity без job details, alert raw values, credentials, subscription URL/`sub_id` или персональных списков пользователей; на группу показывается не более 5 items + `… ещё N`.
+- Добавлены canonical read-only deep-links в `Состояние системы`, `Задания`, `Оповещения`, `Резервные копии` и `Операции с нодами`, а также `🔄 Обновить` и `⬅ Обзор`.
+- Новый callback `admin:attention` использует существующий `dashboard.view` / Read-only+ permission; новых privilege IDs, SQLite schema, auto-remediation и remote mutations нет.
+- Добавлен regression coverage count/detail parity, resolved/stale semantics, bounded rendering, secret exclusion, canonical navigation и no-mutation handler contract.
+
 ## v4.26.2 — Dashboard Attention summary
 - В `/admin → Обзор` добавлен compact read-only блок `⚠️ Требует внимания` с общим count и bounded breakdown существующих проблемных состояний.
 - Summary агрегирует active alerts, latest problematic background jobs, текущие offline/unknown direct-node states и latest terminal Fleet/Node Drain states; старый failed job не остаётся проблемой после более нового успешного run того же job name.
