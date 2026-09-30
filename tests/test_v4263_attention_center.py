@@ -176,7 +176,7 @@ class AttentionCenterTests(unittest.TestCase):
 
         self.assertIn("build_attention_items(", handler)
         self.assertIn("fleet_attention_detail_plans()", handler)
-        self.assertIn("attention_menu()", handler)
+        self.assertIn("attention_menu(", handler)
         for mutation in (
             "start_job_run(",
             "finish_job_run(",

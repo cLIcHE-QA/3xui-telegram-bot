@@ -87,7 +87,7 @@ class V4205AdminUiTests(unittest.TestCase):
             '@admin_shell_router.callback_query(F.data == "admin:home")',
             1,
         )[1]
-        self.assertIn("reply_markup=admin_menu()", home)
+        self.assertIn("reply_markup=admin_menu(role)", home)
 
 
 if __name__ == "__main__":

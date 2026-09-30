@@ -9,6 +9,14 @@
 
 
 
+## v4.26.4 — Permission-aware admin navigation
+- Исправлен production finding #226: admin keyboards теперь могут фильтровать callback buttons по effective role через существующий RBAC callback catalog; неизвестные admin callbacks скрываются fail-closed.
+- Role-aware rendering подключён к смешанным экранам `Задания`, `Резервные копии`, `Оповещения`, `Операции с нодами`, а также к core admin/system navigation.
+- `read_only`/`support` больше не видят admin/owner actions, `admin` не видит owner-only actions; backend `authorize_callback` остаётся обязательной второй границей.
+- Attention Center показывает domain deep-links только для реально присутствующих problem groups; calm/empty state сохраняет только `🔄 Обновить` и `⬅ Обзор`.
+- Canonical parent semantics не меняются: переход из Attention Center открывает обычный destination screen, который возвращается в свой канонический раздел.
+- Добавлен regression coverage role matrix, unknown-callback fail-closed filtering, context-aware Attention links и wiring затронутых destination screens.
+
 ## v4.26.3 — Attention Center drill-down
 - Добавлен отдельный read-only экран `⚠️ Требует внимания` из `/admin → Обзор` с grouped detail по инфраструктуре, заданиям, оповещениям, резервным копиям и Fleet/Node Drain problem states.
 - Detail использует те же current-state источники, что summary `v4.26.2`: active alerts, latest problematic job per name, offline/unknown infrastructure и latest terminal rollout/drain journals; resolved job исчезает после refresh, а item count согласован с summary contract.

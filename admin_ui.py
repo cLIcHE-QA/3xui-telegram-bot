@@ -4,7 +4,9 @@ from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
+
+from admin_privileges import ROLE_RANK, required_role_for_callback
 
 
 # Active single-message panels are intentionally process-local. A fresh /admin
@@ -32,6 +34,37 @@ def register_panel_from_callback(call: CallbackQuery) -> None:
 
 def get_panel_message(chat_id: int, user_id: int) -> Message | None:
     return _ACTIVE_PANELS.get(_key(chat_id, user_id))
+
+
+def filter_keyboard_for_role(reply_markup, role: str | None):
+    """Hide admin callbacks above the effective role using the RBAC catalog.
+
+    Unknown admin callbacks are hidden fail-closed. Non-admin callbacks and
+    non-callback buttons are preserved because this helper is also safe for
+    mixed Telegram keyboards.
+    """
+    if not isinstance(reply_markup, InlineKeyboardMarkup):
+        return reply_markup
+    rank = ROLE_RANK.get(str(role or "").lower(), 0)
+    rows = []
+    for row in reply_markup.inline_keyboard:
+        allowed = []
+        for button in row:
+            data = button.callback_data or ""
+            if not data:
+                allowed.append(button)
+                continue
+            if not data.startswith("admin"):
+                allowed.append(button)
+                continue
+            needed = required_role_for_callback(data)
+            if needed is None:
+                continue
+            if rank >= ROLE_RANK.get(needed, 999):
+                allowed.append(button)
+        if allowed:
+            rows.append(allowed)
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 class AdminPanelSessionMiddleware(BaseMiddleware):

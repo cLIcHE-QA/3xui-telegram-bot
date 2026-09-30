@@ -2734,7 +2734,7 @@ Production smoke `v4.26.3` подтвердил сам Attention Center, но в
 
 ##### v4.26.4 — Permission-aware admin navigation fix
 
-**Статус: ⬜ Запланировано; bug #226. Обязательный fix gate перед закрытием #217.**
+**Статус: 🟡 Реализовано в fix PR #228; полный PR CI — PASS, release `v4.26.4` ещё не опубликован. Bug #226 и acceptance #217 остаются открыты до production smoke.**
 
 Цель — устранить presentation-level RBAC drift без ослабления backend authorization и без нового product scope.
 
@@ -2752,6 +2752,15 @@ Scope:
 10. После publication/deployment выполнить targeted production smoke минимум под `read_only` и `admin`, затем final health/status. Только после PASS закрыть #226 и #217.
 
 Дополнительно в рамках fix провести bounded inventory остальных статических admin keyboards: если screen содержит callbacks с разными minimum roles, rendering должен быть role-aware. Это считается исправлением общей причины finding, а не расширением feature scope.
+
+Implementation evidence перед release:
+
+- fix PR #228 вводит общий `filter_keyboard_for_role()` на базе канонического callback privilege catalog;
+- role-aware rendering подключён к `Jobs`, `Backups`, `Alerts`, `Fleet`, core `/admin` / `Система` navigation и legacy parent menus;
+- Attention Center передаёт фактический набор problem categories в keyboard builder; empty state не показывает domain deep-links;
+- regression matrix покрывает `read_only / support / admin / owner`, unknown admin callback fail-closed и wiring затронутых screens;
+- `PR conventions` и финальный `Python checks` на head fix PR — **PASS**;
+- SQLite schema, pinned 3x-ui OpenAPI contract и backend mutation/RBAC boundaries не меняются.
 
 После acceptance `v4.26.4` порядок остаётся прежним: #219 hardening decision/closure → encrypted off-site backup/restore drill → final v4 feature freeze → repository/public-release audit.
 

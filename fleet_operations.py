@@ -26,8 +26,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from admin_auth import ROLE_RANK, authorize_callback
-from admin_ui import render_callback
+from admin_auth import ROLE_RANK, authorize_callback, get_admin_role
+from admin_ui import filter_keyboard_for_role, render_callback
 from audit import audit_system
 from backup_manager import BackupManager
 from config import HostControlTarget, load_settings
@@ -383,8 +383,8 @@ def _plan_state_text(value: str) -> str:
     return PLAN_STATE_LABELS.get(value, value or "неизвестно")
 
 
-def _fleet_home_keyboard() -> InlineKeyboardMarkup:
-    return _keyboard([
+def _fleet_home_keyboard(role: str | None = None) -> InlineKeyboardMarkup:
+    markup = _keyboard([
         [("🩺 Состояние нод", "admin:fleet:health")],
         [
             ("🛠 Включить обслуживание", "admin:fleet:mt:e"),
@@ -395,6 +395,12 @@ def _fleet_home_keyboard() -> InlineKeyboardMarkup:
         [("🧾 Задания по нодам", "admin:fleet:jobs")],
         [("⬅ Инфраструктура", "admin:section:infrastructure")],
     ])
+    return markup if role is None else filter_keyboard_for_role(markup, role)
+
+
+async def _fleet_home_keyboard_for_call(call: CallbackQuery) -> InlineKeyboardMarkup:
+    role = await get_admin_role(db, settings, call.from_user.id) if call.from_user else None
+    return _fleet_home_keyboard(role)
 
 
 @fleet_router.callback_query(F.data == "admin:fleet")
@@ -409,7 +415,7 @@ async def fleet_home(call: CallbackQuery, state: FSMContext):
         "🌐 Операции с нодами\n\n"
         "Массовые изменения выполняются только для нод с прямым подключением, последовательно и с блокировкой при неопределённости. "
         "Контролируемое обновление сначала проверяется на одной контрольной ноде и останавливается при первой ошибке или неизвестном результате.",
-        reply_markup=_fleet_home_keyboard(),
+        reply_markup=await _fleet_home_keyboard_for_call(call),
     )
 
 
@@ -424,7 +430,7 @@ async def fleet_health(call: CallbackQuery):
         nodes = await _direct_nodes()
         assessments = await _fleet_assessments(nodes)
     except Exception as exc:
-        await render_callback(call, f"🔴 Состояние нод: {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
+        await render_callback(call, f"🔴 Состояние нод: {safe_error(exc)}", reply_markup=await _fleet_home_keyboard_for_call(call))
         return
 
     counts = {name: 0 for name in ("healthy", "maintenance", "draining", "drained", "degraded", "offline")}
@@ -494,7 +500,7 @@ async def drain_home(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Node Drain: {safe_error(exc)}",
-            reply_markup=_fleet_home_keyboard(),
+            reply_markup=await _fleet_home_keyboard_for_call(call),
         )
         return
     rows: list[list[tuple[str, str]]] = []
@@ -647,13 +653,13 @@ async def drain_run(call: CallbackQuery):
         try:
             plan = drain_store.get(plan_id)
         except Exception as exc:
-            await render_callback(call, f"🔴 Node Drain: {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
+            await render_callback(call, f"🔴 Node Drain: {safe_error(exc)}", reply_markup=await _fleet_home_keyboard_for_call(call))
             return
         if str(plan.get("state")) != "review":
             await render_callback(
                 call,
                 "🟡 Drain уже запускался; mutation не повторяется.",
-                reply_markup=_fleet_home_keyboard(),
+                reply_markup=await _fleet_home_keyboard_for_call(call),
             )
             return
         node_id = int(plan.get("node_id") or 0)
@@ -702,7 +708,7 @@ async def drain_run(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Node Drain не начат: job journal недоступен ({safe_error(exc)}). Remote mutation не отправлялась.",
-            reply_markup=_fleet_home_keyboard(),
+            reply_markup=await _fleet_home_keyboard_for_call(call),
         )
         return
     started = time.monotonic()
@@ -731,7 +737,7 @@ async def drain_run(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Node Drain не начат: audit journal недоступен ({safe_error(exc)}). Remote mutation не отправлялась.",
-            reply_markup=_fleet_home_keyboard(),
+            reply_markup=await _fleet_home_keyboard_for_call(call),
         )
         return
 
@@ -1066,7 +1072,7 @@ async def maintenance_run(call: CallbackQuery, state: FSMContext):
     await render_callback(
         call,
         "🛠 Обслуживание нод · результат\n\n" + "\n".join(results),
-        reply_markup=_fleet_home_keyboard(),
+        reply_markup=await _fleet_home_keyboard_for_call(call),
     )
 
 
@@ -1149,13 +1155,13 @@ async def rollout_review(call: CallbackQuery, state: FSMContext):
         try:
             versions = await _common_xray_versions(selected)
         except Exception as exc:
-            await render_callback(call, f"🔴 {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
+            await render_callback(call, f"🔴 {safe_error(exc)}", reply_markup=await _fleet_home_keyboard_for_call(call))
             return
         if not versions:
             await render_callback(
                 call,
                 "🔴 У выбранных нод нет общей версии Xray.",
-                reply_markup=_fleet_home_keyboard(),
+                reply_markup=await _fleet_home_keyboard_for_call(call),
             )
             return
         rows = [[(f"📦 {value}", f"admin:fleet:ro:x:v:{value}")] for value in versions[:10]]
@@ -1170,7 +1176,7 @@ async def rollout_review(call: CallbackQuery, state: FSMContext):
     try:
         await _create_rollout_review(call, state, component="panel", desired="")
     except Exception as exc:
-        await render_callback(call, f"🔴 {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
+        await render_callback(call, f"🔴 {safe_error(exc)}", reply_markup=await _fleet_home_keyboard_for_call(call))
 
 
 @fleet_router.callback_query(F.data.regexp(r"^admin:fleet:ro:x:v:[A-Za-z0-9.-]+$"))
@@ -1187,7 +1193,7 @@ async def rollout_xray_version(call: CallbackQuery, state: FSMContext):
     try:
         await _create_rollout_review(call, state, component="xray", desired=desired)
     except Exception as exc:
-        await render_callback(call, f"🔴 {safe_error(exc)}", reply_markup=_fleet_home_keyboard())
+        await render_callback(call, f"🔴 {safe_error(exc)}", reply_markup=await _fleet_home_keyboard_for_call(call))
 
 
 async def _create_rollout_review(

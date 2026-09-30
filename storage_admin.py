@@ -7,7 +7,7 @@ import time
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, FSInputFile
 
-from admin_auth import authorize_callback
+from admin_auth import authorize_callback, get_admin_role
 from admin_navigation import backup_menu
 from admin_ui import render_callback
 from audit import audit_from_call
@@ -43,6 +43,11 @@ storage_admin_router = Router(name="storage_admin")
 async def _guard(call: CallbackQuery) -> bool:
     ok, _ = await authorize_callback(db, settings, call)
     return ok
+
+
+async def _backup_menu_for_call(call: CallbackQuery):
+    role = await get_admin_role(db, settings, call.from_user.id) if call.from_user else None
+    return backup_menu(role)
 
 
 def human_bytes(value: int) -> str:
@@ -87,7 +92,7 @@ def backup_status_text() -> str:
 async def admin_backups(call: CallbackQuery):
     if not await _guard(call):
         return
-    await render_callback(call, backup_status_text(), reply_markup=backup_menu())
+    await render_callback(call, backup_status_text(), reply_markup=await _backup_menu_for_call(call))
     await call.answer()
 
 
@@ -163,7 +168,7 @@ async def admin_backup_create(call: CallbackQuery):
         if result.missing:
             lines.append(f"⚠️ Не найдено: {', '.join(result.missing)}")
 
-        await render_callback(call, "\n".join(lines), reply_markup=backup_menu())
+        await render_callback(call, "\n".join(lines), reply_markup=await _backup_menu_for_call(call))
     except Exception as exc:
         duration_ms = int((time.monotonic() - started) * 1000)
         await db.finish_job_run(
@@ -184,7 +189,7 @@ async def admin_backup_create(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Не удалось создать резервную копию: {type(exc).__name__}: {exc}",
-            reply_markup=backup_menu(),
+            reply_markup=await _backup_menu_for_call(call),
         )
 
 
@@ -221,7 +226,7 @@ async def admin_backup_botdb(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Ошибка резервной копии SQLite: {type(exc).__name__}: {exc}",
-            reply_markup=backup_menu(),
+            reply_markup=await _backup_menu_for_call(call),
         )
 
 
@@ -238,7 +243,7 @@ async def admin_backup_full(call: CallbackQuery):
                 await render_callback(
                     call,
                     "Резервная копия уже создаётся. Повтори скачивание чуть позже.",
-                    reply_markup=backup_menu(),
+                    reply_markup=await _backup_menu_for_call(call),
                 )
                 return
             async with backup_lock:
@@ -273,5 +278,5 @@ async def admin_backup_full(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Ошибка отправки резервной копии: {type(exc).__name__}: {exc}",
-            reply_markup=backup_menu(),
+            reply_markup=await _backup_menu_for_call(call),
         )
