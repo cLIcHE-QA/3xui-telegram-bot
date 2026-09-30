@@ -2697,7 +2697,7 @@ Implementation evidence перед release:
 
 ##### v4.26.3 — Attention Center drill-down
 
-**Статус: 🟠 Опубликовано и развёрнуто; production acceptance заблокирован navigation finding #226, issue #217 остаётся открыт.**
+**Статус: ✅ Выполнено; production acceptance завершён через fix `v4.26.4`, issue #217 закрыт как `completed`.**
 
 Цель — добавить отдельный read-only экран `⚠️ Требует внимания` как drill-down для summary из `v4.26.2`, не создавая новый incident/ticket subsystem.
 
@@ -2734,7 +2734,7 @@ Production smoke `v4.26.3` подтвердил сам Attention Center, но в
 
 ##### v4.26.4 — Permission-aware admin navigation fix
 
-**Статус: 🟡 Реализовано и release-prep подготовлен; publication/deployment `v4.26.4` и production smoke ещё не завершены. Bug #226 и acceptance #217 остаются открыты до production smoke.**
+**Статус: ✅ Выполнено в `v4.26.4`; release опубликован, развёрнут и production acceptance завершён. Bug #226 и issue #217 закрыты как `completed`.**
 
 Цель — устранить presentation-level RBAC drift без ослабления backend authorization и без нового product scope.
 
@@ -2764,6 +2764,12 @@ Implementation evidence перед release:
 - merge fix PR #228 в `main`: `7e34a61354a94f8565cd94967654f127ec0f258d`;
 - `Python checks` на merge commit в `main` — **PASS**;
 - release-prep обновляет только versioned metadata/docs/tests; runtime behavior после #228 не меняется.
+- release-prep PR #229 слит в `main` squash commit `e2b6834d549a6b3272702fc27570c8a8a3a99bfe`; штатный workflow опубликовал tag/GitHub Release `v4.26.4`;
+- production deployment exact tag `v4.26.4` / SHA `e2b6834d549a6b3272702fc27570c8a8a3a99bfe` подтверждён;
+- targeted role smoke — **PASS**: `read_only` не видит admin/owner actions, `admin` не видит owner-only actions;
+- Attention Center `Refresh/Back` и context-aware navigation — **PASS**;
+- финальный status — **PASS**: container running, `RestartCount=0`, Bot version `4.26.4`, Health/DB/3x-ui connectivity — ok;
+- bug #226 и feature acceptance #217 закрыты как `completed`.
 
 После acceptance `v4.26.4` порядок остаётся прежним: #219 hardening decision/closure → encrypted off-site backup/restore drill → final v4 feature freeze → repository/public-release audit.
 
