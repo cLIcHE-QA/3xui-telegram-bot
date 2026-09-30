@@ -67,6 +67,10 @@ Bootstrap helper намеренно не является универсальн
 
 **[Node Onboarding](docs/NODE_ONBOARDING.md)**
 
+Client-facing endpoint/IP policy and inbound firewall checks:
+
+**[Data-plane addressing and inbound firewall](docs/DATA_PLANE_ADDRESSING.md)**
+
 Host-level управление `x-ui.service`:
 
 - [Host Control Agent — security contract](docs/HOST_CONTROL_AGENT.md)
@@ -310,6 +314,7 @@ git diff --check
 | Product roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
 | UI style | [docs/UI_STYLE.md](docs/UI_STYLE.md) |
 | Direct-node onboarding | [docs/NODE_ONBOARDING.md](docs/NODE_ONBOARDING.md) |
+| Data-plane address / inbound firewall | [docs/DATA_PLANE_ADDRESSING.md](docs/DATA_PLANE_ADDRESSING.md) |
 | Host Control security | [docs/HOST_CONTROL_AGENT.md](docs/HOST_CONTROL_AGENT.md) |
 | Host Control deployment | [docs/HOST_CONTROL_DEPLOY.md](docs/HOST_CONTROL_DEPLOY.md) |
 | Host Control rollout | [docs/HOST_CONTROL_ROLLOUT.md](docs/HOST_CONTROL_ROLLOUT.md) |
