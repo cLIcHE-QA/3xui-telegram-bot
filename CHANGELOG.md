@@ -7,6 +7,15 @@
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
 
+
+## v4.26.2 — Dashboard Attention summary
+- В `/admin → Обзор` добавлен compact read-only блок `⚠️ Требует внимания` с общим count и bounded breakdown существующих проблемных состояний.
+- Summary агрегирует active alerts, latest problematic background jobs, текущие offline/unknown direct-node states и latest terminal Fleet/Node Drain states; старый failed job не остаётся проблемой после более нового успешного run того же job name.
+- `failed`, `unknown`, `interrupted`, degraded/offline и partial Drain отображаются раздельно; при отсутствии проблем показывается `✅ Требует внимания: нет`.
+- Fleet/Node Drain журналы читаются локально и не запускают health probes или remote mutations; `Обзор` сохраняет Read-only+ boundary, новых privilege IDs, SQLite schema и auto-remediation нет.
+- В summary не выводятся job details, user lists, credentials, subscription URL/`sub_id` или raw upstream payloads. Отдельный drill-down и deep-links остаются scope `v4.26.3`.
+- Добавлен regression coverage deterministic/latest-state aggregation, bounded category order и no-mutation wiring. Admin Setup: изменений не требуется.
+
 ## v4.26.1 — Node Drain Cancel navigation
 - Исправлена навигация `✖ Отмена` на confirmation screen Node Drain: после terminal `review → cancelled` оператор возвращается в read-only preflight той же stable direct node вместо корня `Операции с нодами`.
 - Cancel сохраняет no-mutation contract: maintenance, attach/detach, Xray/service и другие remote mutations не выполняются; отменённый plan остаётся terminal `cancelled`.
