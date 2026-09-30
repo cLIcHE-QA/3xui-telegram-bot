@@ -227,27 +227,47 @@ class V4264ReleaseTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована", readme)
 
-    def test_v4260_is_deployed_but_production_acceptance_is_partial(self):
+    def test_v4260_production_acceptance_is_recorded(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         heading = "##### v4.26.0 — Node Drain / graceful traffic evacuation"
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
         for needle in (
             "`v4.26.0` опубликован и развёрнут",
-            "production acceptance частичный",
-            "полный mutation smoke ещё не закрыт",
-            "issue #208",
+            "полный controlled state-changing production acceptance завершён 2026-10-01",
+            "issue #208 закрыт как `completed`",
             "implementation PR #209",
             "e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a",
             "release-prep PR #210",
             "cd39048a2da00443523e7b33b400f4c8b5dcd608",
             "finding #211",
-            "полный mutation smoke",
+            "affected=1, movable=1, blockers=0",
+            "`drained`",
+            "remaining assignments=0",
+            "reconnect через альтернативный Master прошёл успешно",
+            "временные test user/plan/server group/Inbound/node bindings",
         ):
             self.assertIn(needle, section)
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("Текущий runtime-релиз `v4.26.4` исправляет production finding #226", readme)
-        self.assertIn("Полный Node Drain mutation smoke", readme)
+        self.assertIn("Controlled Node Drain production acceptance #208 завершён 2026-10-01", readme)
+        self.assertIn("Единственный оставшийся обязательный pre-freeze gate — encrypted off-site backup/restore drill", readme)
+
+    def test_data_plane_hardening_219_is_closed(self):
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        heading = "##### Data-plane address hardening — issue #219"
+        section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
+        for needle in (
+            "issue #219 закрыт как `completed`",
+            "`Node.address` остаётся только control-plane endpoint",
+            "Отдельная node-level `data_plane_address`",
+            "`shareAddrStrategy=custom`",
+            "Automatic DNS→IP persistence",
+            "Reality SNI/serverNames",
+            "read-back подтвердил `custom`",
+            "обновлённая subscription успешно переподключилась через test node",
+        ):
+            self.assertIn(needle, section)
 
     def test_v4261_production_acceptance_is_recorded(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
