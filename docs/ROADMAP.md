@@ -287,6 +287,20 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Зафиксированный порядок финального закрытия v4.x:
 
+**Текущий активный остаток после acceptance `v4.26.4`:**
+
+1. закрыть controlled state-changing Node Drain production smoke на безопасной test node/user cohort и завершить issue #208; до этого `v4.26.0` остаётся в статусе частичного production acceptance;
+2. закрыть hardening issue #219 по разделению control-plane `Node.address` и operator-owned data-plane address;
+3. выполнить отложенный production drill encrypted off-site backup/restore;
+4. объявить **final v4 feature freeze**;
+5. провести полный финальный repository/public-release audit;
+6. закрыть findings только narrowly-scoped fix PR/patch releases с повторным regression/production acceptance;
+7. после закрытия audit gate опубликовать/принять финальный v4.x release и только затем открыть реализацию `v5.0.0`.
+
+Ни #219, ни off-site drill не заменяют незакрытый acceptance #208. Финальная заморозка v4.x запрещена, пока #208 и #219 не закрыты и off-site drill не принят.
+
+Ниже сохранён исторический порядок уже выполненных и оставшихся этапов:
+
 1. закрыть и принять в production `v4.20.5` с финальными UI consistency fixes;
 2. отдельным patch-релизом `v4.20.6` закрыть UI-04 и выровнять health summary Master/direct nodes без искусственного добавления недоступных метрик;
 3. отдельным patch-релизом `v4.20.7` привести operator-facing терминологию к `Inbound` / `Inbounds` без изменения technical identifiers;
@@ -315,7 +329,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
-Off-site acceptance остаётся обязательным pre-v5 gate, но теперь выполняется после завершения запланированных `v4.20.5`–`v4.26.0` релизов и непосредственно перед feature freeze. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
+Off-site acceptance остаётся обязательным pre-v5 gate и выполняется только после operational closure незакрытых #208 и #219, непосредственно перед feature freeze. Опубликованные и принятые `v4.26.2–v4.26.4` не делают #208 закрытым автоматически: `v4.26.0` остаётся частично принятым до controlled state-changing Node Drain smoke. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
 
 ##### Финальный Admin UI consistency patch
 
