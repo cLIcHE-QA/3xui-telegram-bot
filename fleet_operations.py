@@ -505,17 +505,13 @@ async def drain_home(call: CallbackQuery):
     await render_callback(call, "\n".join(lines), reply_markup=_keyboard(rows))
 
 
-@fleet_router.callback_query(F.data.regexp(r"^admin:fleet:drain:n[1-9][0-9]{0,18}$"))
-async def drain_preflight(call: CallbackQuery):
-    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
-    if not ok:
-        return
-    try:
-        node_id = int((call.data or "").rsplit("n", 1)[1])
-    except (TypeError, ValueError):
-        await call.answer("Некорректный ID ноды", show_alert=True)
-        return
-    await call.answer()
+async def _render_drain_preflight(
+    call: CallbackQuery,
+    node_id: int,
+    role: str | None,
+    *,
+    notice: str | None = None,
+) -> None:
     await render_callback(call, "🚧 Node Drain: выполняю read-only preflight…")
     try:
         review = await drain_service.review(node_id)
@@ -540,13 +536,29 @@ async def drain_preflight(call: CallbackQuery):
         rows.append([(label, f"admin:fleet:drain:n{node_id}:prepare")])
     rows.append([("🔄 Обновить", f"admin:fleet:drain:n{node_id}")])
     rows.append([("⬅ Node Drain", "admin:fleet:drain")])
-    await render_callback(
-        call,
-        "🚧 Node Drain · preflight\n\n"
-        + _drain_summary(review)
-        + "\n\nBlockers не мутируются. Active Xray sessions специально не обрываются.",
-        reply_markup=_keyboard(rows),
+
+    body = "🚧 Node Drain · preflight\n\n"
+    if notice:
+        body += notice + "\n\n"
+    body += (
+        _drain_summary(review)
+        + "\n\nBlockers не мутируются. Active Xray sessions специально не обрываются."
     )
+    await render_callback(call, body, reply_markup=_keyboard(rows))
+
+
+@fleet_router.callback_query(F.data.regexp(r"^admin:fleet:drain:n[1-9][0-9]{0,18}$"))
+async def drain_preflight(call: CallbackQuery):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    try:
+        node_id = int((call.data or "").rsplit("n", 1)[1])
+    except (TypeError, ValueError):
+        await call.answer("Некорректный ID ноды", show_alert=True)
+        return
+    await call.answer()
+    await _render_drain_preflight(call, node_id, role)
 
 
 @fleet_router.callback_query(F.data.regexp(r"^admin:fleet:drain:n[1-9][0-9]{0,18}:prepare$"))
@@ -578,7 +590,7 @@ async def drain_prepare(call: CallbackQuery):
 
 @fleet_router.callback_query(F.data.regexp(r"^admin:fleet:drain:[0-9a-f]{12}:cancel$"))
 async def drain_cancel(call: CallbackQuery):
-    ok, _ = await authorize_callback(db, settings, call, minimum="admin")
+    ok, role = await authorize_callback(db, settings, call, minimum="admin")
     if not ok:
         return
     plan_id = (call.data or "").split(":")[-2]
@@ -586,6 +598,9 @@ async def drain_cancel(call: CallbackQuery):
         plan = drain_store.get(plan_id)
         if str(plan.get("state")) != "review":
             raise NodeDrainError("Запущенный Drain нельзя отменить как неприменённый.")
+        node_id = int(plan.get("node_id") or 0)
+        if node_id <= 0:
+            raise NodeDrainError("План Drain не содержит корректный ID ноды.")
         plan["state"] = "cancelled"
         plan["updated_at"] = int(time.time())
         drain_store.save(plan)
@@ -593,7 +608,12 @@ async def drain_cancel(call: CallbackQuery):
         await call.answer(str(exc)[:180], show_alert=True)
         return
     await call.answer("Отменено")
-    await render_callback(call, "⏹ Node Drain отменён до mutation.", reply_markup=_fleet_home_keyboard())
+    await _render_drain_preflight(
+        call,
+        node_id,
+        role,
+        notice="⏹ Предыдущий review-plan отменён до mutation.",
+    )
 
 
 @fleet_router.callback_query(F.data.regexp(r"^admin:fleet:drain:[0-9a-f]{12}:run$"))

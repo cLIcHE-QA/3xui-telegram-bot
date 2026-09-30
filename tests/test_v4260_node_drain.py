@@ -292,6 +292,72 @@ class NodeDrainTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(required_role_for_callback("admin:fleet:drain:012345abcdef:cancel"), "admin")
         self.assertIsNone(required_role_for_callback("admin:fleet:drain:n2:stop"))
 
+    def test_cancel_returns_to_same_node_preflight_without_remote_mutation(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "fleet_operations.py").read_text(encoding="utf-8")
+        start = source.index("async def drain_cancel")
+        end = source.index("async def drain_run", start)
+        handler = source[start:end]
+
+        self.assertIn('node_id = int(plan.get("node_id") or 0)', handler)
+        self.assertIn('plan["state"] = "cancelled"', handler)
+        self.assertIn("await _render_drain_preflight(", handler)
+        self.assertIn('notice="⏹ Предыдущий review-plan отменён до mutation."', handler)
+        self.assertNotIn("_fleet_home_keyboard()", handler)
+        self.assertNotIn("_set_node_enabled(", handler)
+        self.assertNotIn("evacuate_user(", handler)
+        self.assertNotIn("attach_client(", handler)
+        self.assertNotIn("detach_client(", handler)
+
+    def test_cancelled_or_stale_plan_cannot_reach_remote_mutation(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "fleet_operations.py").read_text(encoding="utf-8")
+        start = source.index("async def drain_run")
+        end = source.index("async def _selection_data", start)
+        handler = source[start:end]
+
+        state_guard = handler.index('if str(plan.get("state")) != "review":')
+        first_mutation = handler.index("await _set_node_enabled(")
+        self.assertLess(state_guard, first_mutation)
+        self.assertIn("mutation не повторяется", handler)
+
+    def test_drain_cancel_returns_to_same_node_preflight_without_remote_mutation(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "fleet_operations.py").read_text(encoding="utf-8")
+        start = source.index("async def drain_cancel")
+        end = source.index("async def drain_run", start)
+        handler = source[start:end]
+
+        self.assertIn('node_id = int(plan.get("node_id") or 0)', handler)
+        self.assertIn('plan["state"] = "cancelled"', handler)
+        self.assertIn("await _render_drain_preflight(", handler)
+        self.assertIn('notice="⏹ Предыдущий review-plan отменён до mutation."', handler)
+        self.assertNotIn("_fleet_home_keyboard()", handler)
+        self.assertNotIn("_set_node_enabled(", handler)
+        self.assertNotIn("evacuate_user(", handler)
+        self.assertLess(
+            handler.index('plan["state"] = "cancelled"'),
+            handler.index("await _render_drain_preflight("),
+        )
+
+    def test_cancelled_drain_plan_cannot_run_from_stale_callback(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "fleet_operations.py").read_text(encoding="utf-8")
+        start = source.index("async def drain_run")
+        end = source.index("async def _selection_data", start)
+        handler = source[start:end]
+
+        self.assertIn('if str(plan.get("state")) != "review":', handler)
+        self.assertIn("mutation не повторяется", handler)
+        self.assertLess(
+            handler.index('if str(plan.get("state")) != "review":'),
+            handler.index('plan["state"] = "draining"'),
+        )
+        self.assertLess(
+            handler.index('if str(plan.get("state")) != "review":'),
+            handler.index("await _set_node_enabled("),
+        )
+
     def test_runtime_recovery_never_replays_drain_mutation(self):
         root = Path(__file__).resolve().parents[1]
         source = (root / "fleet_operations.py").read_text(encoding="utf-8")
