@@ -305,12 +305,13 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 16. закрыть controlled state-changing Node Drain production smoke на безопасной test node/user cohort и завершить issue #208;
 17. отдельным patch-релизом `v4.26.2` добавить read-only Dashboard Attention summary (`⚠️ Требует внимания`);
 18. отдельным patch-релизом `v4.26.3` добавить read-only Attention Center drill-down и canonical deep-links;
-19. закрыть hardening issue #219 по явному разделению control-plane `Node.address` и operator-owned data-plane address: documentation/firewall contract уже зафиксирован, а решение по node-level metadata и его реализации должно быть принято до feature freeze без неявного DNS→IP persistence;
-20. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-21. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-22. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-23. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-24. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+19. закрыть production navigation finding #226 отдельным fix-релизом `v4.26.4`, затем завершить production acceptance #217;
+20. закрыть hardening issue #219 по явному разделению control-plane `Node.address` и operator-owned data-plane address: documentation/firewall contract уже зафиксирован, а решение по node-level metadata и его реализации должно быть принято до feature freeze без неявного DNS→IP persistence;
+21. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+22. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+23. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+24. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+25. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
@@ -2696,7 +2697,7 @@ Implementation evidence перед release:
 
 ##### v4.26.3 — Attention Center drill-down
 
-**Статус: 🟡 Реализовано в `main`; release `v4.26.3` ещё не опубликован, issue #217 остаётся открыт до production acceptance.**
+**Статус: 🟠 Опубликовано и развёрнуто; production acceptance заблокирован navigation finding #226, issue #217 остаётся открыт.**
 
 Цель — добавить отдельный read-only экран `⚠️ Требует внимания` как drill-down для summary из `v4.26.2`, не создавая новый incident/ticket subsystem.
 
@@ -2720,7 +2721,41 @@ Implementation evidence перед release:
 - detail использует те же current-state semantics, что summary `v4.26.2`, а item rendering bounded и secret-free;
 - issue #217 остаётся открыт до publication/deployment `v4.26.3`, targeted navigation/refresh smoke и финального health/status-check.
 
-Оба релиза относятся к финальной полировке Admin Control Plane и должны быть опубликованы/приняты до off-site drill и final v4 feature freeze. Они не меняют SQLite schema по умолчанию, pinned 3x-ui API contract или destructive Host Control boundaries.
+Production smoke `v4.26.3` подтвердил сам Attention Center, но выявил navigation/RBAC presentation finding #226:
+
+- первый уровень Attention Center соответствует canonical contract: `🔄 Обновить`, `⬅ Обзор` и deep-links ведут в существующие screens;
+- backend RBAC остаётся fail-closed, privilege escalation не подтверждён;
+- destination screens строят часть keyboards статически и показывают actions выше роли текущего оператора:
+  - `⚙️ Задания` показывает manual backup (`jobs.manage`, admin);
+  - `💾 Резервные копии` показывает create/download actions (`backups.manage`, admin) и Restore/DR (`restore.manage`, owner);
+  - `🚨 Оповещения` показывает rule toggle/threshold actions (`alerts.manage`, admin);
+  - `🌐 Операции с нодами` показывает maintenance/rollout management entry points (`fleet.manage`, admin);
+- static `attention_menu()` показывает domain deep-links даже при calm/empty state; это не прямой RBAC defect, но создаёт misleading drill-down UX и включается в fix scope.
+
+##### v4.26.4 — Permission-aware admin navigation fix
+
+**Статус: ⬜ Запланировано; bug #226. Обязательный fix gate перед закрытием #217.**
+
+Цель — устранить presentation-level RBAC drift без ослабления backend authorization и без нового product scope.
+
+Scope:
+
+1. Ввести общий role-aware keyboard filtering/rendering helper, использующий существующий callback privilege catalog как single source of truth; не создавать второй ручной permission map.
+2. Применить helper как минимум к `Jobs`, `Backups`, `Alerts`, `Fleet` и другим затронутым admin keyboards, обнаруженным regression inventory.
+3. `read_only` и `support` не видят admin/owner actions; `admin` не видит owner-only actions; `owner` сохраняет полный разрешённый UI.
+4. Backend `authorize_callback` / minimum-role checks остаются обязательной второй границей и не упрощаются.
+5. Attention Center сохраняет canonical `Refresh/Back`; domain deep-links становятся context-aware по реально присутствующим problem groups. В empty state остаются только нейтральная навигация/refresh, без misleading problem links.
+6. Canonical parent semantics не меняются: destination screen возвращается в свой обычный раздел, а не в Attention Center.
+7. Stale callback для скрытого/недоступного action по-прежнему fail-closed и не выполняет mutation.
+8. Regression matrix покрывает роли `read_only / support / admin / owner`, direct entry и переход из Attention Center, `Back/Refresh`, empty state, stale callbacks и no-mutation-on-view.
+9. Перед release выполнить полный стандартный gate: compileall, unittest, 3x-ui OpenAPI contract, `git diff --check`.
+10. После publication/deployment выполнить targeted production smoke минимум под `read_only` и `admin`, затем final health/status. Только после PASS закрыть #226 и #217.
+
+Дополнительно в рамках fix провести bounded inventory остальных статических admin keyboards: если screen содержит callbacks с разными minimum roles, rendering должен быть role-aware. Это считается исправлением общей причины finding, а не расширением feature scope.
+
+После acceptance `v4.26.4` порядок остаётся прежним: #219 hardening decision/closure → encrypted off-site backup/restore drill → final v4 feature freeze → repository/public-release audit.
+
+Оба Attention-релиза и их fix относятся к финальной полировке Admin Control Plane и должны быть operationally приняты до off-site drill и final v4 feature freeze. Они не меняют SQLite schema по умолчанию, pinned 3x-ui API contract или destructive Host Control boundaries.
 
 ##### Финальный v4 Repository / Public-Release Audit
 
