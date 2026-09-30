@@ -43,11 +43,12 @@ class DashboardAttentionTests(unittest.TestCase):
             Job(7, "deploy.bot", "unknown"),
             Job(6, "host.control", "interrupted"),
             Job(5, "fleet.drain", "failed"),
+            Job(4, "fleet.maintenance", "failed"),
         ]
 
         self.assertEqual(
             latest_job_problem_statuses(runs),
-            ("unknown", "interrupted"),
+            ("unknown", "interrupted", "failed"),
         )
 
     def test_latest_rollout_terminal_state_resolves_previous_failure(self):
