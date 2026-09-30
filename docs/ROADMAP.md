@@ -2666,7 +2666,7 @@ Issue #219 не блокирует начало `v4.26.2` / `v4.26.3`, но до
 
 ##### v4.26.2 — Dashboard Attention summary
 
-**Статус: ⬜ Запланировано; issue #216.**
+**Статус: 🟡 Реализовано в `main`; release `v4.26.2` ещё не опубликован, issue #216 остаётся открыт до production acceptance.**
 
 Цель — добавить в `/admin → Обзор` компактный read-only блок `⚠️ Требует внимания`, который агрегирует уже существующие problem states без нового mutation surface.
 
@@ -2681,6 +2681,14 @@ Scope:
 7. Regression coverage фиксирует deterministic aggregation, bounded output и отсутствие state-changing calls.
 
 Отдельный drill-down screen и canonical deep-links не входят в этот релиз и переносятся в `v4.26.3`.
+
+Implementation evidence перед release:
+
+- implementation PR #221 слит в `main` squash commit `1b6c72a91f2aac340bca2df37220f8934a8bc52c`;
+- `PR conventions` и `Python checks` на финальном head implementation PR — **PASS**;
+- summary читает active alerts/job history/local Fleet/Node Drain journals и не добавляет mutation callback, privilege ID или auto-remediation;
+- regression coverage закрепляет calm state, latest-state aggregation, различение `failed/unknown/interrupted`, bounded output и no-mutation wiring;
+- issue #216 остаётся открыт до publication/deployment `v4.26.2`, targeted read-only smoke `/admin → Обзор` и финального health/status-check.
 
 ##### v4.26.3 — Attention Center drill-down
 
