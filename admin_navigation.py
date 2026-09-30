@@ -29,11 +29,11 @@ def admin_menu(role: str | None = None) -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="📈 Мониторинг", callback_data="admin:section:monitoring"),
             InlineKeyboardButton(text="⚙️ Система", callback_data="admin:section:system"),
         ],
-    ])
+    ]), role)
 
 
-def dashboard_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def dashboard_menu(role: str | None = None) -> InlineKeyboardMarkup:
+    return _for_role(InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⚠️ Требует внимания", callback_data="admin:attention")],
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:dashboard")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
