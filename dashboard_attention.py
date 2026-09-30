@@ -87,14 +87,15 @@ def latest_job_problem_statuses(runs: Iterable[JobLike]) -> tuple[str, ...]:
 
     Job history is intentionally collapsed to the latest run for each name so an
     old failure does not remain an attention item after a later successful run.
-    Fleet jobs are represented by their orchestration journals instead, avoiding
-    duplicate counting of the same rollout/drain outcome.
+    Fleet rollout/drain jobs are represented by their orchestration journals
+    instead, avoiding duplicate counting of those outcomes. Other fleet jobs,
+    such as maintenance, keep their latest job status in the summary.
     """
     latest: dict[str, str] = {}
     ordered = sorted(runs, key=lambda run: int(getattr(run, "id", 0)), reverse=True)
     for run in ordered:
         name = str(getattr(run, "name", "") or "").strip()
-        if not name or name in latest or name.startswith("fleet."):
+        if not name or name in latest or name in {"fleet.rollout", "fleet.drain"}:
             continue
         latest[name] = str(getattr(run, "status", "") or "").strip().lower()
     return tuple(status for status in latest.values() if status in _JOB_PROBLEM_STATES)
