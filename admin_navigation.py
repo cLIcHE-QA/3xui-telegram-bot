@@ -44,7 +44,9 @@ def attention_menu(
     categories: set[str] | None = None,
     role: str | None = None,
 ) -> InlineKeyboardMarkup:
-    active = categories or set()
+    active = categories if categories is not None else {
+        "infrastructure", "jobs", "alerts", "backups", "operations",
+    }
     rows: list[list[InlineKeyboardButton]] = []
     if "infrastructure" in active:
         rows.append([InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:health")])
