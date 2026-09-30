@@ -519,18 +519,19 @@ COMING_SOON = {
 
 @admin_shell_router.callback_query(F.data.startswith("admin:coming:"))
 async def admin_coming_soon(call: CallbackQuery):
-    if not await guard_admin_call(call):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok or role is None:
         return
     key = call.data.rsplit(":", 1)[-1]
     title, body = COMING_SOON.get(key, ("Раздел", "Раздел зарезервирован для следующего этапа."))
     if key in {"panels", "hosts", "servergroups"}:
-        back = infrastructure_menu()
+        back = infrastructure_menu(role)
     elif key in {"traffic", "online", "logs"}:
-        back = monitoring_menu()
+        back = monitoring_menu(role)
     elif key in {"jobs", "audit", "administrators", "settings"}:
-        back = system_menu()
+        back = system_menu(role)
     else:
-        back = admin_menu()
+        back = admin_menu(role)
     await render_callback(call, f"{title}\n\n{body}", reply_markup=back)
     await call.answer()
 
