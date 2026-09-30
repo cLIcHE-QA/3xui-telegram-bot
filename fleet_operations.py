@@ -281,6 +281,16 @@ async def _fleet_assessments(nodes: list[NodeInfo] | None = None) -> list[dict[s
     return list(await asyncio.gather(*(_assess_node(node) for node in selected)))
 
 
+def fleet_attention_states() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return local terminal Fleet/Node Drain problem states for dashboard summary."""
+    from dashboard_attention import latest_drain_problem_states, latest_rollout_problem_states
+
+    return (
+        latest_rollout_problem_states(plan_store.list()),
+        latest_drain_problem_states(drain_store.list()),
+    )
+
+
 def _health_icon(state: str) -> str:
     return {
         "healthy": "🟢",
