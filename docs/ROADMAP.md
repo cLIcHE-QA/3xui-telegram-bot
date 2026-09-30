@@ -2696,7 +2696,7 @@ Implementation evidence перед release:
 
 ##### v4.26.3 — Attention Center drill-down
 
-**Статус: ⬜ Запланировано; issue #217.**
+**Статус: 🟡 Реализовано в `main`; release `v4.26.3` ещё не опубликован, issue #217 остаётся открыт до production acceptance.**
 
 Цель — добавить отдельный read-only экран `⚠️ Требует внимания` как drill-down для summary из `v4.26.2`, не создавая новый incident/ticket subsystem.
 
@@ -2710,6 +2710,15 @@ Scope:
 6. Resolved item исчезает после read-only refresh; собственного acknowledge/snooze/assignment storage нет.
 7. Stale/deleted objects не создают dead-end или callback exception.
 8. Count/detail согласованы с `v4.26.2`; regression tests фиксируют navigation/back/refresh и no-mutation contract.
+
+Implementation evidence перед release:
+
+- implementation PR #224 слит в `main` squash commit `9acbbe85d16a6907b11e477d96245a7cc3be656d`;
+- `PR conventions` и финальный `Python checks` на implementation PR — **PASS**;
+- `Python checks` на merge commit в `main` — **PASS**;
+- `admin:attention` использует существующий `dashboard.view` / Read-only+ boundary, новых privilege IDs и storage нет;
+- detail использует те же current-state semantics, что summary `v4.26.2`, а item rendering bounded и secret-free;
+- issue #217 остаётся открыт до publication/deployment `v4.26.3`, targeted navigation/refresh smoke и финального health/status-check.
 
 Оба релиза относятся к финальной полировке Admin Control Plane и должны быть опубликованы/приняты до off-site drill и final v4 feature freeze. Они не меняют SQLite schema по умолчанию, pinned 3x-ui API contract или destructive Host Control boundaries.
 
