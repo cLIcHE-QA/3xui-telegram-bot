@@ -273,7 +273,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ закрыто в `v4.23.3`: базовая интеграция принята в production в `v4.23.1`, findings `v4.23.2` закрыты hotfix-релизом `v4.23.3`; дальнейший Cheburcheck Probe fleet вынесен в «Отложенные инфраструктурные улучшения» и не блокирует следующий feature release.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ✅ выполнено и принято в production в линии `v4.24.x`; smoke `v4.24.0` выявил targeted findings, закрытые и повторно проверенные в `v4.24.1`.
 19. целостный User Management и follow-up линия `v4.25.x` — ✅ выполнено; релизы `v4.25.0–v4.25.8` опубликованы, развёрнуты и приняты в production, Streisand при активном HWID limit остаётся зафиксированным expected limitation.
-20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — 🟡 `v4.26.0` опубликован и развёрнут; navigation fix #211 выполнен и принят в production в `v4.26.1`; полный state-changing mutation smoke остаётся открытым до безопасной test node/user cohort.
+20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ✅ `v4.26.0` опубликован и развёрнут; navigation fix #211 выполнен и принят в production в `v4.26.1`; controlled state-changing production acceptance на безопасной test node/user cohort завершён 2026-10-01, issue #208 закрыт как `completed`.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 22. исправление неверного ввода Inbound/шаблонов — ✅ выполнено, опубликовано и принято в production в `v4.25.7`; targeted smoke и final health — PASS.
 23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server возвращает в исходный Inbound) — ✅ выполнено и принято в production в `v4.25.8`; issue #202 закрыт как `completed`.
@@ -287,17 +287,15 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Зафиксированный порядок финального закрытия v4.x:
 
-**Текущий активный остаток после acceptance `v4.26.4`:**
+**Текущий активный остаток после закрытия #208 и #219 (2026-10-01):**
 
-1. закрыть controlled state-changing Node Drain production smoke на безопасной test node/user cohort и завершить issue #208; до этого `v4.26.0` остаётся в статусе частичного production acceptance;
-2. закрыть hardening issue #219 по разделению control-plane `Node.address` и operator-owned data-plane address;
-3. выполнить отложенный production drill encrypted off-site backup/restore;
-4. объявить **final v4 feature freeze**;
-5. провести полный финальный repository/public-release audit;
-6. закрыть findings только narrowly-scoped fix PR/patch releases с повторным regression/production acceptance;
-7. после закрытия audit gate опубликовать/принять финальный v4.x release и только затем открыть реализацию `v5.0.0`.
+1. выполнить отложенный production drill encrypted off-site backup/restore;
+2. объявить **final v4 feature freeze**;
+3. провести полный финальный repository/public-release audit;
+4. закрыть findings только narrowly-scoped fix PR/patch releases с повторным regression/production acceptance;
+5. после закрытия audit gate опубликовать/принять финальный v4.x release и только затем открыть реализацию `v5.0.0`.
 
-Ни #219, ни off-site drill не заменяют незакрытый acceptance #208. Финальная заморозка v4.x запрещена, пока #208 и #219 не закрыты и off-site drill не принят.
+Controlled Node Drain acceptance #208 и data-plane hardening #219 закрыты. Единственный оставшийся обязательный pre-freeze gate — production drill encrypted off-site backup/restore; финальная заморозка v4.x запрещена до его успешного acceptance.
 
 Ниже сохранён исторический порядок уже выполненных и оставшихся этапов:
 
@@ -316,11 +314,11 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 13. отдельным релизом `v4.24.0` интегрировать PackBot-compatible monitoring/diagnostics; targeted production findings закрыть patch-релизом `v4.24.1`, а финальный acceptance линии проводить на `v4.24.1`;
 14. User Management и follow-up линия `v4.25.0–v4.25.8` завершены и приняты в production; линия `v4.25.x` закрыта;
 15. отдельным релизом `v4.26.0` добавить graceful Node Drain / controlled traffic evacuation для direct nodes;
-16. закрыть controlled state-changing Node Drain production smoke на безопасной test node/user cohort и завершить issue #208;
+16. controlled state-changing Node Drain production smoke на безопасной test node/user cohort — ✅ выполнен 2026-10-01; issue #208 закрыт как `completed`;
 17. отдельным patch-релизом `v4.26.2` добавить read-only Dashboard Attention summary (`⚠️ Требует внимания`);
 18. отдельным patch-релизом `v4.26.3` добавить read-only Attention Center drill-down и canonical deep-links;
 19. закрыть production navigation finding #226 отдельным fix-релизом `v4.26.4`, затем завершить production acceptance #217;
-20. закрыть hardening issue #219 по явному разделению control-plane `Node.address` и operator-owned data-plane address: documentation/firewall contract уже зафиксирован, а решение по node-level metadata и его реализации должно быть принято до feature freeze без неявного DNS→IP persistence;
+20. data-plane address hardening #219 — ✅ закрыт 2026-10-01: для v4.x зафиксирован operator-managed per-Inbound contract `shareAddrStrategy=custom` + явный `shareAddr`; отдельная node-level `data_plane_address` metadata до freeze не вводится, automatic DNS→IP persistence запрещён;
 21. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
 22. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
 23. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
@@ -329,7 +327,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
-Off-site acceptance остаётся обязательным pre-v5 gate и выполняется только после operational closure незакрытых #208 и #219, непосредственно перед feature freeze. Опубликованные и принятые `v4.26.2–v4.26.4` не делают #208 закрытым автоматически: `v4.26.0` остаётся частично принятым до controlled state-changing Node Drain smoke. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
+Off-site acceptance остаётся единственным обязательным pre-freeze/pre-v5 gate после operational closure #208 и #219 2026-10-01. Controlled Node Drain production smoke завершён, `v4.26.0` принят по обязательному mutation scope, а data-plane hardening закрыт документированным v4.x product decision и production proof. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
 
 ##### Финальный Admin UI consistency patch
 
@@ -2546,7 +2544,7 @@ Admin Setup: новых настроек и действий установки 
 
 ##### v4.26.0 — Node Drain / graceful traffic evacuation
 
-**Статус: 🟡 `v4.26.0` опубликован и развёрнут; production acceptance частичный, полный mutation smoke ещё не закрыт.**
+**Статус: ✅ `v4.26.0` опубликован и развёрнут; полный controlled state-changing production acceptance завершён 2026-10-01, issue #208 закрыт как `completed`.**
 
 Цель — добавить управляемый вывод direct-ноды из пользовательского VPN-трафика перед обслуживанием, миграцией или decommission, не смешивая три разные операции: control-plane maintenance, graceful drain и destructive stop.
 
@@ -2626,14 +2624,14 @@ Regression / acceptance minimum:
 
 Implementation / production evidence:
 
-- feature issue #208 остаётся открытым до полного targeted production smoke;
+- feature issue #208 на момент release оставался открытым до полного targeted production smoke; обязательный smoke завершён 2026-10-01 и issue закрыт как `completed`;
 - implementation PR #209 слит в `main` squash commit `e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a`;
 - post-merge `Python checks` на implementation merge commit — **PASS**: compileall, полный unittest suite, pinned 3x-ui OpenAPI contract, release tooling и `git diff --check`;
 - release-prep PR #210 слит в `main` squash commit `cd39048a2da00443523e7b33b400f4c8b5dcd608`; штатный workflow опубликовал tag/GitHub Release `v4.26.0`;
 - production deployment `v4.26.0` выполнен; базовые release status и runtime version checks подтверждены оператором;
 - read-only Node Drain preflight на production direct node показал 4 target Inbounds, 2 затронутых пользователей, 2 готовых к переносу и 0 blockers;
 - pre-mutation confirmation был отменён без remote mutation; finding #211: `✖ Отмена` вернула в корень `Операции с нодами` вместо canonical parent — preflight той же ноды;
-- полный targeted production smoke из пункта 11, включая maintenance + attach-before-detach + post-condition `drained`, намеренно не выполнялся на боевой ноде без безопасной test node/user cohort и остаётся обязательным до operational closure линии.
+- полный targeted production smoke из пункта 11 был отложен до безопасной test node/user cohort и завершён 2026-10-01: read-only preflight показал affected=1, movable=1, blockers=0; state-changing run выполнил maintenance → attach-before-detach с read-back → detach с read-back → `drained`; remaining assignments=0, blockers=0; reconnect через альтернативный Master прошёл успешно; test node возвращена из maintenance и обычное policy reconciliation восстановило исходную тестовую политику; временные test user/plan/server group/Inbound/node bindings после acceptance удалены с Master, audit/job/Drain history сохранена.
 
 ##### v4.26.1 — Node Drain Cancel navigation
 
@@ -2661,23 +2659,24 @@ Implementation / production evidence:
 - targeted smoke: read-only preflight blockers 0, confirmation screen PASS, `✖ Отмена` вернула в preflight той же direct node, node осталась в рабочем состоянии без maintenance/draining/drained;
 - финальный health/status — **PASS**;
 - issue #211 закрыт как `completed`;
-- полный state-changing Node Drain mutation smoke остаётся отдельным открытым acceptance scope в issue #208 и выполняется только на безопасной test node/user cohort.
+- на момент acceptance `v4.26.1` полный state-changing Node Drain mutation smoke оставался отдельным scope #208; он выполнен 2026-10-01 на безопасной test node/user cohort и issue #208 закрыт как `completed`.
 
 ##### Data-plane address hardening — issue #219
 
-**Статус: ⬜ Запланировано; documentation/firewall contract уже зафиксирован в `main`, product-level node metadata ещё не реализована.**
+**Статус: ✅ Pre-freeze hardening принят 2026-10-01; issue #219 закрыт как `completed` документированным v4.x product decision и production proof.**
 
 Production diagnosis подтвердил, что control-plane адрес панели и client-facing data-plane endpoint являются независимыми сущностями. Канонический runbook `docs/DATA_PLANE_ADDRESSING.md` уже фиксирует текущую policy: `Node.address` может оставаться verified HTTPS hostname, а client-facing Inbounds используют явный operator-supplied public IP через `shareAddrStrategy=custom`; protocol-specific SNI/Reality names не переписываются, а readiness включает host/provider firewall для каждого TCP/UDP Inbound.
 
-Оставшийся hardening scope:
+Принятый v4.x product decision:
 
-1. Не вводить автоматическое DNS→IP persistence из panel hostname.
-2. До final v4 feature freeze принять явное решение по node-level `data_plane_address` / public-IP metadata.
-3. Если metadata реализуется в v4.x, значение задаётся оператором, валидируется отдельно от `Node.address`, используется как default для client-facing share address и подтверждается mutation read-back.
-4. Existing nodes без явного data-plane metadata не меняются автоматически.
-5. Secrets/client identifiers не попадают в audit/log output; SNI/Reality identity fields не изменяются побочно.
+1. `Node.address` остаётся только control-plane endpoint и может быть verified HTTPS hostname.
+2. Отдельная node-level `data_plane_address` / public-IP metadata до final v4 freeze не вводится.
+3. Client-facing Inbounds на direct node используют operator-managed per-Inbound contract `shareAddrStrategy=custom` + явный `shareAddr`.
+4. Automatic DNS→IP persistence из panel hostname запрещён; existing nodes не переписываются автоматически.
+5. Protocol identity fields, включая Reality SNI/serverNames, независимы от dial address и не изменяются побочно.
+6. Secrets/client identifiers не попадают в audit/log/docs evidence.
 
-Issue #219 не блокирует начало `v4.26.2` / `v4.26.3`, но должен быть явно закрыт либо документированным product decision, либо реализацией до final v4 feature freeze.
+Production proof 2026-10-01 на безопасной test node подтвердил реальный drift: исходный Inbound имел `shareAddrStrategy=node` и пустой `shareAddr`. Выполнена одна контролируемая mutation только share-address полей, после которой read-back подтвердил `custom` и явный operator-supplied public data-plane IP. `Node.address`, `settings`, `streamSettings`, `sniffing` и Reality SNI остались без изменений; обновлённая subscription успешно переподключилась через test node. После acceptance временный тестовый контур удалён с Master. Issue #219 закрыт как `completed`.
 
 ##### v4.26.2 — Dashboard Attention summary
 
@@ -2785,7 +2784,7 @@ Implementation evidence перед release:
 - финальный status — **PASS**: container running, `RestartCount=0`, Bot version `4.26.4`, Health/DB/3x-ui connectivity — ok;
 - bug #226 и feature acceptance #217 закрыты как `completed`.
 
-После acceptance `v4.26.4` порядок остаётся прежним: #219 hardening decision/closure → encrypted off-site backup/restore drill → final v4 feature freeze → repository/public-release audit.
+После closure #208 и #219 2026-10-01 следующий порядок: encrypted off-site backup/restore drill → final v4 feature freeze → repository/public-release audit.
 
 Оба Attention-релиза и их fix относятся к финальной полировке Admin Control Plane и должны быть operationally приняты до off-site drill и final v4 feature freeze. Они не меняют SQLite schema по умолчанию, pinned 3x-ui API contract или destructive Host Control boundaries.
 
