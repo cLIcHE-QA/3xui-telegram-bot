@@ -1,4 +1,4 @@
-"""Release contracts through v4.26.2 Dashboard Attention summary."""
+"""Release contracts through v4.26.3 Attention Center drill-down."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,21 +10,21 @@ from version import APP_VERSION
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class V4262ReleaseTests(unittest.TestCase):
-    def test_release_version_is_4262(self):
-        self.assertEqual(APP_VERSION, "4.26.2")
+class V4263ReleaseTests(unittest.TestCase):
+    def test_release_version_is_4263(self):
+        self.assertEqual(APP_VERSION, "4.26.3")
 
-    def test_current_docs_reference_release_4262(self):
+    def test_current_docs_reference_release_4263(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         sqlite_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
 
-        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.26.2"))
-        self.assertIn("Guide ориентирован на release v4.26.2.", admin_setup)
-        self.assertIn("git checkout --detach v4.26.2", admin_setup)
-        self.assertIn("Bot version: 4.26.2", admin_setup)
+        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.26.3"))
+        self.assertIn("Guide ориентирован на release v4.26.3.", admin_setup)
+        self.assertIn("git checkout --detach v4.26.3", admin_setup)
+        self.assertIn("Bot version: 4.26.3", admin_setup)
         self.assertIn(
-            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1` и `v4.26.2` текущая bot schema version — **5**",
+            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1` и `v4.26.3` текущая bot schema version — **5**",
             sqlite_doc,
         )
 
@@ -44,10 +44,26 @@ class V4262ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
+    def test_release_notes_cover_v4263_scope(self):
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertEqual(changelog.count("## v4.26.3 — Attention Center drill-down"), 1)
+        section = changelog.split("## v4.26.3 — Attention Center drill-down", 1)[1].split("\n## ", 1)[0]
+        for needle in (
+            "⚠️ Требует внимания",
+            "grouped detail",
+            "stable technical identity",
+            "5 items",
+            "canonical read-only deep-links",
+            "admin:attention",
+            "Read-only+",
+            "remote mutations нет",
+        ):
+            self.assertIn(needle, section)
+
     def test_release_notes_cover_v4262_scope(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        self.assertEqual(changelog.count("## v4.26.2 — Dashboard Attention summary"), 1)
-        section = changelog.split("## v4.26.2 — Dashboard Attention summary", 1)[1].split("\n## ", 1)[0]
+        self.assertEqual(changelog.count("## v4.26.3 — Dashboard Attention summary"), 1)
+        section = changelog.split("## v4.26.3 — Dashboard Attention summary", 1)[1].split("\n## ", 1)[0]
         for needle in (
             "⚠️ Требует внимания",
             "latest problematic background jobs",
@@ -215,7 +231,7 @@ class V4262ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Текущий runtime-релиз `v4.26.2` добавляет compact read-only Dashboard Attention summary", readme)
+        self.assertIn("Текущий runtime-релиз `v4.26.3` добавляет compact read-only Dashboard Attention summary", readme)
         self.assertIn("Полный Node Drain mutation smoke", readme)
 
     def test_v4261_production_acceptance_is_recorded(self):
@@ -238,10 +254,10 @@ class V4262ReleaseTests(unittest.TestCase):
 
     def test_v4262_production_acceptance_is_recorded(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
-        heading = "##### v4.26.2 — Dashboard Attention summary"
+        heading = "##### v4.26.3 — Dashboard Attention summary"
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
         for needle in (
-            "✅ Выполнено в `v4.26.2`",
+            "✅ Выполнено в `v4.26.3`",
             "release-prep PR #222",
             "467d4f5609290622f0f839ce103fbf606f6f29b6",
             "targeted read-only smoke `/admin → Обзор` — **PASS**",
@@ -252,12 +268,12 @@ class V4262ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("`v4.26.2` опубликован, развёрнут и принят в production", readme)
+        self.assertIn("`v4.26.3` опубликован, развёрнут и принят в production", readme)
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "Для bot release `v4.26.2` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
+            "Для bot release `v4.26.3` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
             admin_setup,
         )
 
