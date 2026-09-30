@@ -200,7 +200,7 @@ class V4261ReleaseTests(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("Текущий runtime-релиз `v4.26.1` сохраняет graceful Node Drain", readme)
-        self.assertIn("полный Node Drain mutation smoke", readme)
+        self.assertIn("Полный Node Drain mutation smoke", readme)
 
     def test_v4261_fix_is_merged_but_not_production_verified(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
