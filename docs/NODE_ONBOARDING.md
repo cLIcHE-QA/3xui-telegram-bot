@@ -204,7 +204,26 @@ Runtime readiness: ready
 Stable identity: node_id
 ~~~
 
-После этого открой `🧩 Управление 3x-ui` и выполни обычный smoke-test.
+Зелёная `🧭 Готовность` подтверждает control-plane/direct API/Host Control bindings, но сама по себе **не доказывает**, что client-facing subscription использует правильный data-plane endpoint.
+
+После этого открой `🧩 Управление 3x-ui` и выполни обычный control-plane smoke-test, затем отдельно выполни обязательный data-plane smoke.
+
+## 5.1. Проверь data-plane до допуска client traffic
+
+Для каждого client-facing Inbound новой direct node:
+
+1. Оставь panel URL / `Node.address` на verified HTTPS hostname.
+2. Проверь, что `shareAddrStrategy=custom`, а `shareAddr` содержит явный operator-owned public IP ноды.
+3. После изменения share address выполни read-back и убедись, что сохранились ожидаемые значения.
+4. Убедись, что Reality/TLS SNI, `serverNames`, transport settings и другие protocol identity fields не изменились побочно.
+5. Проверь listener и точный TCP/UDP port в host/provider firewall.
+6. Обнови реальную client subscription и убедись, что dial endpoint использует ожидаемый public IP/port.
+7. Выполни реальный reconnect через новую node; для каждого используемого protocol должен проходить client smoke.
+8. Для AmneziaWG дополнительно проверь runtime handshake/counters после подключения.
+
+Если control-plane readiness зелёный, но subscription всё ещё публикует panel hostname или другой неожиданный endpoint, node **не считается готовой к client traffic** до исправления data-plane address.
+
+Полный контракт: [Data-plane addressing and inbound firewall](DATA_PLANE_ADDRESSING.md).
 
 ## 6. Rename
 
