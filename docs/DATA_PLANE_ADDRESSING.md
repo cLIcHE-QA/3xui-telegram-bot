@@ -1,45 +1,45 @@
-# Data-plane addressing and inbound firewall
+# Data-plane адреса и firewall для Inbounds
 
-This document defines the production contract for client-facing inbound addresses and host firewall rules.
+Этот документ задаёт production-контракт для client-facing адресов Inbound и host firewall.
 
-## Control plane vs data plane
+## Control plane и data plane — разные контуры
 
-3x-ui node connectivity and client VPN connectivity are separate concerns.
+Подключение 3x-ui node к Master и подключение VPN-клиента — разные задачи.
 
-- **Control plane**: the node panel URL / `Node.address` used by Master and administrative tooling. It may remain a verified HTTPS hostname such as `panel-node.example.com`.
-- **Data plane**: the address written into client configs and subscriptions for an inbound. In 3x-ui this is controlled by `shareAddrStrategy` / `shareAddr`.
+- **Control plane**: panel URL / `Node.address`, который используют Master и административные инструменты. Он может оставаться verified HTTPS hostname, например `panel-node.example.com`.
+- **Data plane**: адрес, который попадает в клиентские конфиги и subscription для конкретного Inbound. В 3x-ui он определяется через `shareAddrStrategy` / `shareAddr`.
 
-Do not change `Node.address` merely to make client configs use an IP address.
+Не меняй `Node.address` только ради того, чтобы в клиентском конфиге появился IP.
 
-For the current production deployment policy, node-hosted client inbounds should use:
+Текущая production policy для client-facing Inbounds на direct node:
 
 ~~~text
 shareAddrStrategy = custom
-shareAddr = <node public IP>
+shareAddr = <public IP ноды>
 ~~~
 
-This keeps the client dial endpoint independent from panel DNS.
+Так client dial endpoint не зависит от DNS имени панели.
 
-Do **not** silently resolve a panel hostname and persist its current A record as the client endpoint. DNS may be proxied, dynamic, multi-address, or intentionally separate from the VPN data plane. The public data-plane IP must be an explicit operator-owned value.
+Не нужно автоматически резолвить panel hostname и сохранять текущий A-record как client endpoint. DNS может быть проксирован, динамически меняться, иметь несколько адресов или намеренно отличаться от VPN data plane. Public data-plane IP должен быть явным операторским значением.
 
-## SNI and Reality names are separate
+## SNI и Reality names независимы от dial address
 
-Changing the client dial address from a hostname to an IP must not rewrite protocol identity fields.
+При замене client dial address с hostname на IP нельзя переписывать protocol identity fields.
 
-Examples:
+Примеры:
 
-- VLESS Reality: keep the configured Reality `serverNames` / SNI.
-- Hysteria2 TLS: keep the configured TLS SNI.
-- XHTTP/Reality: keep Reality SNI and transport fields unchanged.
-- AmneziaWG: only the `Endpoint` host changes; the AWG server/client keys and obfuscation profile do not.
+- VLESS Reality: сохраняются настроенные `serverNames` / SNI.
+- Hysteria2 TLS: сохраняется настроенный TLS SNI.
+- XHTTP/Reality: сохраняются Reality SNI и transport settings.
+- AmneziaWG: меняется только host в `Endpoint`; server/client keys и AWG obfuscation profile не меняются.
 
-A typical resulting client config may therefore dial an IP while still using a hostname in TLS/Reality metadata. That is expected.
+Поэтому конфиг, который dial'ит IP, но продолжает использовать hostname в TLS/Reality metadata, является нормальным.
 
-## Host firewall is part of inbound readiness
+## Host firewall входит в readiness Inbound
 
-A listening socket alone is not sufficient. Every exposed inbound port must also be permitted by the host/provider firewall.
+Наличие listening socket само по себе недостаточно. Каждый внешний порт Inbound должен быть разрешён также в host/provider firewall.
 
-For UFW, examples:
+Примеры для UFW:
 
 ~~~bash
 sudo ufw allow 2053/tcp comment 'vless-reality'
@@ -48,33 +48,33 @@ sudo ufw allow 443/udp comment 'hysteria2'
 sudo ufw allow 51820/udp comment 'amneziawg'
 ~~~
 
-Use the actual ports and transports configured on the server. Do not copy these examples blindly when the deployment differs.
+Используй реальные ports/transports конкретного сервера. Эти значения нельзя копировать вслепую в deployment с другой конфигурацией.
 
-Verification:
+Проверка:
 
 ~~~bash
 sudo ufw status verbose
 sudo ss -lntup
 ~~~
 
-For AmneziaWG, verify both:
+Для AmneziaWG должны одновременно выполняться два условия:
 
 ~~~text
-UDP listener exists on the configured port
-firewall explicitly allows that UDP port
+UDP listener существует на настроенном порту
+firewall явно разрешает этот UDP port
 ~~~
 
-## Diagnostic caveat: tcpdump vs netfilter
+## Важный нюанс диагностики: tcpdump и netfilter
 
-Seeing an inbound packet in:
+Наличие входящего пакета в:
 
 ~~~bash
 sudo tcpdump -ni any udp port <port>
 ~~~
 
-does **not** prove that the packet reached the userspace socket.
+не доказывает, что пакет дошёл до userspace socket.
 
-Packet capture can observe traffic on the host interface before a later INPUT/netfilter rule drops it. If an AWG client sends packets, `tcpdump` sees ingress, but the 3x-ui AmneziaWG runtime still reports:
+Packet capture может увидеть пакет на host interface до того, как последующий INPUT/netfilter rule его отбросит. Если AWG-клиент отправляет пакеты и `tcpdump` видит ingress, но runtime 3x-ui AmneziaWG продолжает показывать:
 
 ~~~text
 handshake = 0
@@ -83,9 +83,9 @@ up = 0
 down = 0
 ~~~
 
-check INPUT/UFW/nftables before investigating client keys or the embedded AWG runtime.
+сначала проверяй INPUT/UFW/nftables, а уже потом client keys или embedded AWG runtime.
 
-Recommended read-only checks:
+Рекомендуемые read-only проверки:
 
 ~~~bash
 ss -lunp | grep ":<port>"
@@ -94,48 +94,48 @@ sudo nft -a list ruleset
 sudo iptables -nvL INPUT --line-numbers
 ~~~
 
-## Production incident note: AmneziaWG blocked by host firewall
+## Production finding: AmneziaWG блокировался host firewall
 
-A production AmneziaWG inbound received UDP packets at the VPS interface but never completed a handshake. The existing inbound, a direct client config, and a newly generated local diagnostic inbound all reproduced the same `handshake=0` state.
+На production AmneziaWG inbound получал UDP-пакеты на VPS interface, но handshake не завершался. Тот же `handshake=0` воспроизводился на существующем Inbound, direct client config и новом локальном diagnostic Inbound.
 
-The root cause was UFW default-deny INPUT without an allow rule for the AWG UDP port. After the production AWG UDP port was explicitly allowed, both the direct client config and subscription path connected successfully.
+Root cause: UFW работал с default-deny INPUT, а allow rule для AWG UDP port отсутствовал. После явного открытия production AWG UDP port заработали и direct client config, и subscription path.
 
-This incident ruled out several misleading hypotheses:
+Этот finding позволил исключить несколько ложных направлений диагностики:
 
-- panel hostname vs IP was not the AWG failure cause;
-- subscription conversion was not the cause;
-- Master/sub-node synchronization was not the cause;
-- stored AWG key material and generated profiles were not the cause;
-- seeing UDP in `tcpdump` was not proof of socket delivery.
+- hostname vs IP не был причиной AWG failure;
+- subscription conversion не был причиной;
+- Master/direct-node synchronization не был причиной;
+- сохранённые AWG keys и сгенерированные profiles не были причиной;
+- наличие UDP в `tcpdump` не означало delivery до socket.
 
-After firewall remediation, the client endpoint was switched back to the explicit node public IP through `shareAddrStrategy=custom`, and the subscription smoke passed.
+После исправления firewall client endpoint снова перевели на явный public IP через `shareAddrStrategy=custom`; subscription smoke прошёл.
 
-## New direct-node acceptance checklist
+## Acceptance checklist новой direct node
 
-Before considering a new node ready for client traffic:
+Перед тем как считать новую node готовой к client traffic:
 
-1. Keep the panel URL / `Node.address` on verified HTTPS for the control plane.
-2. Record an explicit public data-plane IP for the node.
-3. For each client-facing inbound, set and read back `shareAddrStrategy=custom` and the intended public IP.
-4. Preserve protocol-specific SNI/Reality names while changing only the dial address.
-5. Open the exact TCP/UDP ports in UFW/provider firewall.
-6. Verify listeners with `ss`.
-7. Refresh a real subscription and confirm the generated endpoint uses the intended IP.
-8. Run one client smoke per protocol.
-9. For AmneziaWG, confirm runtime handshake/counters after the smoke.
-10. Remove temporary diagnostic inbounds and rotate/delete any temporary credentials or keys used during troubleshooting.
+1. Оставить panel URL / `Node.address` на verified HTTPS для control plane.
+2. Зафиксировать явный public data-plane IP ноды.
+3. Для каждого client-facing Inbound выставить и прочитать обратно `shareAddrStrategy=custom` и ожидаемый public IP.
+4. При смене dial address сохранить protocol-specific SNI/Reality names.
+5. Открыть точные TCP/UDP ports в UFW/provider firewall.
+6. Проверить listeners через `ss`.
+7. Обновить реальную subscription и убедиться, что endpoint использует ожидаемый IP.
+8. Выполнить client smoke каждого protocol.
+9. Для AmneziaWG после smoke проверить handshake/counters runtime.
+10. Удалить временные diagnostic Inbounds и удалить/ротировать временные credentials/keys, использованные в troubleshooting.
 
-## Future product hardening
+## Будущий product hardening
 
-Preferred implementation direction is an explicit node-level data-plane address/public-IP field owned by the operator. Creation/deployment of node-hosted inbounds can then default their share address to that value.
+Предпочтительное направление — отдельный явный node-level data-plane address/public IP, которым управляет оператор. При создании/деплое node-hosted Inbounds этот адрес может использоваться как default для share address.
 
-Safety requirements:
+Требования безопасности:
 
-- no implicit DNS-to-IP persistence;
-- no rewriting of SNI/Reality values;
-- explicit validation of the supplied address;
-- mutation read-back after applying share-address changes;
-- no secret values in audit/log output;
-- existing nodes without explicit data-plane metadata remain unchanged until configured.
+- никакого неявного DNS→IP persistence;
+- никаких изменений SNI/Reality values;
+- явная validation введённого адреса;
+- mutation read-back после применения share-address change;
+- никаких secret values в audit/log output;
+- существующие nodes без явного data-plane metadata не меняются автоматически.
 
-Tracked in GitHub issue #219.
+Tracking: GitHub issue #219.
