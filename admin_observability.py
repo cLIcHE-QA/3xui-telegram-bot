@@ -8,7 +8,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 from audit import audit_from_call
-from admin_ui import render_callback, render_input
+from admin_ui import filter_keyboard_for_role, render_callback, render_input
 from admin_auth import authorize_callback
 from backup_manager import BackupManager
 from config import load_settings
@@ -165,7 +165,7 @@ async def traffic_view(call: CallbackQuery):
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:traffic")],
         [InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")],
     ])
-    await render_callback(call, "\n".join(lines), reply_markup=kb)
+    await render_callback(call, "\n".join(lines), reply_markup=filter_keyboard_for_role(kb, role))
 
 
 @observability_router.callback_query(F.data == "admin:online")
@@ -285,7 +285,8 @@ def job_line(run: JobRunRecord | None) -> str:
 
 @observability_router.callback_query(F.data == "admin:jobs")
 async def jobs_view(call: CallbackQuery):
-    if not await guard(call):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok or role is None:
         return
     daily = await db.last_job_run("backup.daily")
     manual = await db.last_job_run("backup.manual")
