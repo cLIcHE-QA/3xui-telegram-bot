@@ -202,19 +202,21 @@ class V4261ReleaseTests(unittest.TestCase):
         self.assertIn("Текущий runtime-релиз `v4.26.1` сохраняет graceful Node Drain", readme)
         self.assertIn("Полный Node Drain mutation smoke", readme)
 
-    def test_v4261_fix_is_merged_but_not_production_verified(self):
+    def test_v4261_production_acceptance_is_recorded(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         heading = "##### v4.26.1 — Node Drain Cancel navigation"
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
         for needle in (
-            "🟡 Реализовано в `main`",
-            "release `v4.26.1` ещё не опубликован",
-            "issue #211 остаётся открыт",
+            "✅ Выполнено в `v4.26.1`",
+            "issue #211 закрыт как `completed`",
             "fix PR #213",
             "218f2e9fda914b05121051dd0dd00a94ba99dc6b",
-            "no-mutation Cancel",
-            "stale/cancelled `run`",
-            "targeted Cancel smoke",
+            "release-prep PR #214",
+            "c2fc8baee1c11a716babb4bfc72743dface686ed",
+            "runtime version `4.26.1` подтверждён",
+            "финальный health/status — **PASS**",
+            "issue #208",
+            "полный state-changing Node Drain mutation smoke",
         ):
             self.assertIn(needle, section)
 
