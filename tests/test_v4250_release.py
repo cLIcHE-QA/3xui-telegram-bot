@@ -236,6 +236,24 @@ class V4262ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
+    def test_v4262_production_acceptance_is_recorded(self):
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        heading = "##### v4.26.2 — Dashboard Attention summary"
+        section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
+        for needle in (
+            "✅ Выполнено в `v4.26.2`",
+            "release-prep PR #222",
+            "467d4f5609290622f0f839ce103fbf606f6f29b6",
+            "targeted read-only smoke `/admin → Обзор` — **PASS**",
+            "`RestartCount=0`",
+            "Health/DB/3x-ui connectivity — ok",
+            "issue #216 закрыт как `completed`",
+        ):
+            self.assertIn(needle, section)
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("`v4.26.2` опубликован, развёрнут и принят в production", readme)
+
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
