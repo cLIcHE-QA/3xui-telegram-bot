@@ -273,7 +273,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 17. Cheburcheck integration как отдельный read-only diagnostics service/tool — ✅ закрыто в `v4.23.3`: базовая интеграция принята в production в `v4.23.1`, findings `v4.23.2` закрыты hotfix-релизом `v4.23.3`; дальнейший Cheburcheck Probe fleet вынесен в «Отложенные инфраструктурные улучшения» и не блокирует следующий feature release.
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ✅ выполнено и принято в production в линии `v4.24.x`; smoke `v4.24.0` выявил targeted findings, закрытые и повторно проверенные в `v4.24.1`.
 19. целостный User Management и follow-up линия `v4.25.x` — ✅ выполнено; релизы `v4.25.0–v4.25.8` опубликованы, развёрнуты и приняты в production, Streisand при активном HWID limit остаётся зафиксированным expected limitation.
-20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — 🟡 `v4.26.0` опубликован и развёрнут; navigation fix #211 реализован в `main` для `v4.26.1`, но patch ещё не опубликован/не проверен в production; полный mutation smoke отложен до безопасной test node/cohort.
+20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — 🟡 `v4.26.0` опубликован и развёрнут; navigation fix #211 выполнен и принят в production в `v4.26.1`; полный state-changing mutation smoke остаётся открытым до безопасной test node/user cohort.
 21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
 22. исправление неверного ввода Inbound/шаблонов — ✅ выполнено, опубликовано и принято в production в `v4.25.7`; targeted smoke и final health — PASS.
 23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server возвращает в исходный Inbound) — ✅ выполнено и принято в production в `v4.25.8`; issue #202 закрыт как `completed`.
@@ -2618,7 +2618,7 @@ Implementation / production evidence:
 
 ##### v4.26.1 — Node Drain Cancel navigation
 
-**Статус: 🟡 Реализовано в `main`; release `v4.26.1` ещё не опубликован, issue #211 остаётся открыт до production verification.**
+**Статус: ✅ Выполнено в `v4.26.1`; patch опубликован, развёрнут и targeted production verification завершён, issue #211 закрыт как `completed`.**
 
 Production pre-mutation smoke `v4.26.0` подтвердил safety path: `✖ Отмена` помечает review-plan как `cancelled` до remote mutation. При этом navigation parent нарушает общий UI contract: после Cancel пользователь попадает сразу в `Операции с нодами`, а не в read-only preflight выбранной direct node.
 
@@ -2633,13 +2633,16 @@ Scope patch:
 
 Этот patch не расширяет Node Drain scope и не меняет SQLite schema, 3x-ui API contract или destructive Host Control boundaries.
 
-Implementation evidence перед release:
+Implementation / production evidence:
 
 - fix PR #213 слит в `main` squash commit `218f2e9fda914b05121051dd0dd00a94ba99dc6b`;
-- `PR conventions` и `Python checks` на head fix PR — **PASS**;
-- Cancel path после terminal `review → cancelled` использует общий read-only preflight renderer той же stable `node_id`;
-- regression coverage закрепляет no-mutation Cancel и fail-closed stale/cancelled `run` до первой remote mutation;
-- issue #211 остаётся открытым до publication/deployment `v4.26.1`, targeted Cancel smoke и финального health/status-check.
+- release-prep PR #214 слит в `main` squash commit `c2fc8baee1c11a716babb4bfc72743dface686ed`; штатный workflow опубликовал tag/GitHub Release `v4.26.1`;
+- `PR conventions` и `Python checks` для fix/release-prep — **PASS**;
+- production deployment `v4.26.1` выполнен, runtime version `4.26.1` подтверждён;
+- targeted smoke: read-only preflight blockers 0, confirmation screen PASS, `✖ Отмена` вернула в preflight той же direct node, node осталась в рабочем состоянии без maintenance/draining/drained;
+- финальный health/status — **PASS**;
+- issue #211 закрыт как `completed`;
+- полный state-changing Node Drain mutation smoke остаётся отдельным открытым acceptance scope в issue #208 и выполняется только на безопасной test node/user cohort.
 
 ##### Финальный v4 Repository / Public-Release Audit
 
