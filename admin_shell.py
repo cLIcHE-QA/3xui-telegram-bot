@@ -12,7 +12,9 @@ from admin_navigation import admin_menu, dashboard_menu, infrastructure_menu, mo
 from admin_ui import register_panel_message, render_callback
 from backup_manager import BackupManager
 from config import load_settings
+from dashboard_attention import build_attention_summary, latest_job_problem_statuses
 from db import Database
+from fleet_operations import fleet_attention_states
 from ui_time import format_datetime
 from user_ui import user_label
 from inbound_admin import inbound_list_view
@@ -140,6 +142,29 @@ async def admin_dashboard(call: CallbackQuery):
     payment_summary = await db.payment_summary()
     promo_codes = await db.list_promo_codes()
     active_alerts = await db.list_alert_states(active_only=True)
+    job_runs = await db.list_job_runs(limit=100)
+    rollout_states, drain_states = fleet_attention_states()
+    infrastructure_states: list[str] = []
+    if not master_online:
+        infrastructure_states.append("unknown")
+    if nodes_error:
+        infrastructure_states.append("unknown")
+    else:
+        for node in nodes:
+            if not node.enable:
+                continue
+            node_state = str(node.status or "unknown").lower()
+            if node_state == "offline":
+                infrastructure_states.append("offline")
+            elif node_state != "online":
+                infrastructure_states.append("unknown")
+    attention = build_attention_summary(
+        active_alerts=len(active_alerts),
+        job_statuses=latest_job_problem_statuses(job_runs),
+        infrastructure_states=infrastructure_states,
+        rollout_states=rollout_states,
+        drain_states=drain_states,
+    )
     now_s = int(time.time())
     active_promos = sum(
         1 for promo in promo_codes
@@ -156,6 +181,8 @@ async def admin_dashboard(call: CallbackQuery):
 
     lines = [
         "📊 Обзор",
+        "",
+        *attention.lines,
         "",
         "Пользователи",
         f"👥 Всего: {len(users)}",
