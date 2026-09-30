@@ -147,7 +147,14 @@ class DashboardAttentionTests(unittest.TestCase):
 
     def test_fleet_attention_reads_journals_without_remote_calls(self):
         source = (ROOT / "fleet_operations.py").read_text(encoding="utf-8")
-        block = source.split(
+        detail_block = source.split(
+            "def fleet_attention_detail_plans()",
+            1,
+        )[1].split(
+            "def fleet_attention_states()",
+            1,
+        )[0]
+        summary_block = source.split(
             "def fleet_attention_states()",
             1,
         )[1].split(
@@ -155,10 +162,11 @@ class DashboardAttentionTests(unittest.TestCase):
             1,
         )[0]
 
-        self.assertIn("plan_store.list()", block)
-        self.assertIn("drain_store.list()", block)
-        self.assertNotIn("await ", block)
-        self.assertNotIn("xui.", block)
+        self.assertIn("plan_store.list()", detail_block)
+        self.assertIn("drain_store.list()", detail_block)
+        self.assertIn("fleet_attention_detail_plans()", summary_block)
+        self.assertNotIn("await ", detail_block + summary_block)
+        self.assertNotIn("xui.", detail_block + summary_block)
 
 
 if __name__ == "__main__":
