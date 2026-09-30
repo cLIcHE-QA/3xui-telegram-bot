@@ -305,11 +305,12 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 16. закрыть controlled state-changing Node Drain production smoke на безопасной test node/user cohort и завершить issue #208;
 17. отдельным patch-релизом `v4.26.2` добавить read-only Dashboard Attention summary (`⚠️ Требует внимания`);
 18. отдельным patch-релизом `v4.26.3` добавить read-only Attention Center drill-down и canonical deep-links;
-19. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-20. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-21. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-22. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-23. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+19. закрыть hardening issue #219 по явному разделению control-plane `Node.address` и operator-owned data-plane address: documentation/firewall contract уже зафиксирован, а решение по node-level metadata и его реализации должно быть принято до feature freeze без неявного DNS→IP persistence;
+20. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
+21. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
+22. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+23. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
+24. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
 Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
 
@@ -2646,6 +2647,22 @@ Implementation / production evidence:
 - финальный health/status — **PASS**;
 - issue #211 закрыт как `completed`;
 - полный state-changing Node Drain mutation smoke остаётся отдельным открытым acceptance scope в issue #208 и выполняется только на безопасной test node/user cohort.
+
+##### Data-plane address hardening — issue #219
+
+**Статус: ⬜ Запланировано; documentation/firewall contract уже зафиксирован в `main`, product-level node metadata ещё не реализована.**
+
+Production diagnosis подтвердил, что control-plane адрес панели и client-facing data-plane endpoint являются независимыми сущностями. Канонический runbook `docs/DATA_PLANE_ADDRESSING.md` уже фиксирует текущую policy: `Node.address` может оставаться verified HTTPS hostname, а client-facing Inbounds используют явный operator-supplied public IP через `shareAddrStrategy=custom`; protocol-specific SNI/Reality names не переписываются, а readiness включает host/provider firewall для каждого TCP/UDP Inbound.
+
+Оставшийся hardening scope:
+
+1. Не вводить автоматическое DNS→IP persistence из panel hostname.
+2. До final v4 feature freeze принять явное решение по node-level `data_plane_address` / public-IP metadata.
+3. Если metadata реализуется в v4.x, значение задаётся оператором, валидируется отдельно от `Node.address`, используется как default для client-facing share address и подтверждается mutation read-back.
+4. Existing nodes без явного data-plane metadata не меняются автоматически.
+5. Secrets/client identifiers не попадают в audit/log output; SNI/Reality identity fields не изменяются побочно.
+
+Issue #219 не блокирует начало `v4.26.2` / `v4.26.3`, но должен быть явно закрыт либо документированным product decision, либо реализацией до final v4 feature freeze.
 
 ##### v4.26.2 — Dashboard Attention summary
 
