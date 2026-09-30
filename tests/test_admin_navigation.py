@@ -69,7 +69,7 @@ class AdminNavigationTests(unittest.TestCase):
         dashboard = callback_values(admin_navigation.dashboard_menu())
         infrastructure = callback_values(admin_navigation.infrastructure_menu())
         system = callback_values(admin_navigation.system_menu())
-        self.assertEqual(dashboard, {"admin:dashboard", "admin:home"})
+        self.assertEqual(dashboard, {"admin:attention", "admin:dashboard", "admin:home"})
         self.assertNotIn("admin:versions", infrastructure)
         self.assertIn("admin:nodes", infrastructure)
         self.assertIn("admin:health", callback_values(admin_navigation.monitoring_menu()))
