@@ -125,17 +125,22 @@ Root cause: UFW работал с default-deny INPUT, а allow rule для AWG U
 9. Для AmneziaWG после smoke проверить handshake/counters runtime.
 10. Удалить временные diagnostic Inbounds и удалить/ротировать временные credentials/keys, использованные в troubleshooting.
 
-## Будущий product hardening
+## Product decision для v4.x
 
-Предпочтительное направление — отдельный явный node-level data-plane address/public IP, которым управляет оператор. При создании/деплое node-hosted Inbounds этот адрес может использоваться как default для share address.
+Pre-freeze hardening по issue #219 закрыт 2026-10-01 документированным product decision и production proof.
 
-Требования безопасности:
+Для всей оставшейся линии v4.x действует следующий контракт:
 
-- никакого неявного DNS→IP persistence;
-- никаких изменений SNI/Reality values;
-- явная validation введённого адреса;
-- mutation read-back после применения share-address change;
-- никаких secret values в audit/log output;
-- существующие nodes без явного data-plane metadata не меняются автоматически.
+- `Node.address` остаётся только control-plane endpoint и может быть verified HTTPS hostname;
+- отдельная node-level `data_plane_address` / public-IP metadata до final v4 freeze не вводится;
+- client-facing Inbounds на direct node используют operator-managed per-Inbound contract `shareAddrStrategy=custom` + явный `shareAddr`;
+- public data-plane address задаётся оператором явно и не выводится автоматически из DNS имени панели;
+- automatic DNS→IP persistence запрещён;
+- existing nodes и Inbounds не переписываются автоматически;
+- protocol identity fields, включая SNI/Reality `serverNames`, не меняются побочно при смене dial address;
+- любые state-changing share-address изменения подтверждаются mutation read-back;
+- credentials, subscription identifiers и другие secret-like значения не включаются в audit/log/docs evidence.
 
-Tracking: GitHub issue #219.
+Production proof на безопасной test node подтвердил именно этот контракт: control-plane `Node.address` остался без изменений, share-address поля были отдельно переведены на `custom` + явный public data-plane IP, `settings`, `streamSettings`, `sniffing` и Reality SNI не изменились, а обновлённая subscription успешно переподключилась через test node.
+
+Явная node-level data-plane metadata может быть пересмотрена уже в v5/provider-neutral architecture. Если она будет добавляться позже, она не должна неявно менять v4 semantics, автоматически сохранять DNS resolution или переписывать protocol identity fields.
