@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from admin_ui import filter_keyboard_for_role
 
-def admin_menu() -> InlineKeyboardMarkup:
+
+def _for_role(markup: InlineKeyboardMarkup, role: str | None) -> InlineKeyboardMarkup:
+    return markup if role is None else filter_keyboard_for_role(markup, role)
+
+
+def admin_menu(role: str | None = None) -> InlineKeyboardMarkup:
     """Production admin navigation with stable callback identifiers."""
-    return InlineKeyboardMarkup(inline_keyboard=[
+    return _for_role(InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📊 Обзор", callback_data="admin:dashboard")],
         [
             InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users"),
@@ -31,27 +37,34 @@ def dashboard_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="⚠️ Требует внимания", callback_data="admin:attention")],
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:dashboard")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
-    ])
+    ]), role)
 
 
-def attention_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:health")],
-        [
-            InlineKeyboardButton(text="⚙️ Задания", callback_data="admin:jobs"),
-            InlineKeyboardButton(text="🚨 Оповещения", callback_data="admin:alerts"),
-        ],
-        [
-            InlineKeyboardButton(text="💾 Резервные копии", callback_data="admin:backups"),
-            InlineKeyboardButton(text="🌐 Операции с нодами", callback_data="admin:fleet"),
-        ],
+def attention_menu(
+    categories: set[str] | None = None,
+    role: str | None = None,
+) -> InlineKeyboardMarkup:
+    active = categories or set()
+    rows: list[list[InlineKeyboardButton]] = []
+    if "infrastructure" in active:
+        rows.append([InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:health")])
+    if "jobs" in active:
+        rows.append([InlineKeyboardButton(text="⚙️ Задания", callback_data="admin:jobs")])
+    if "alerts" in active:
+        rows.append([InlineKeyboardButton(text="🚨 Оповещения", callback_data="admin:alerts")])
+    if "backups" in active:
+        rows.append([InlineKeyboardButton(text="💾 Резервные копии", callback_data="admin:backups")])
+    if "operations" in active:
+        rows.append([InlineKeyboardButton(text="🌐 Операции с нодами", callback_data="admin:fleet")])
+    rows += [
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:attention")],
         [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:dashboard")],
-    ])
+    ]
+    return _for_role(InlineKeyboardMarkup(inline_keyboard=rows), role)
 
 
-def infrastructure_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def infrastructure_menu(role: str | None = None) -> InlineKeyboardMarkup:
+    return _for_role(InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🌍 Ноды", callback_data="admin:nodes")],
         [
             InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds"),
@@ -60,11 +73,11 @@ def infrastructure_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🌐 Операции с нодами", callback_data="admin:fleet")],
         [InlineKeyboardButton(text="🗂 Группы серверов", callback_data="admin:servergroups")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
-    ])
+    ]), role)
 
 
-def monitoring_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def monitoring_menu(role: str | None = None) -> InlineKeyboardMarkup:
+    return _for_role(InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="📊 Трафик", callback_data="admin:traffic"),
             InlineKeyboardButton(text="🟢 В сети", callback_data="admin:online"),
@@ -77,11 +90,11 @@ def monitoring_menu() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🚨 Оповещения", callback_data="admin:alerts"),
         ],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
-    ])
+    ]), role)
 
 
-def system_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def system_menu(role: str | None = None) -> InlineKeyboardMarkup:
+    return _for_role(InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🤖 Обновления бота", callback_data="admin:botupd")],
         [InlineKeyboardButton(text="🧩 Версии и обновления", callback_data="admin:versions")],
         [
@@ -92,7 +105,7 @@ def system_menu() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="👮 Администраторы", callback_data="admin:administrators")],
         [InlineKeyboardButton(text="🔧 Настройки", callback_data="admin:settings")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
-    ])
+    ]), role)
 
 
 def confirm_delete_keyboard(tg_id: int) -> InlineKeyboardMarkup:
@@ -109,11 +122,11 @@ def confirm_sync_all_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def backup_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
+def backup_menu(role: str | None = None) -> InlineKeyboardMarkup:
+    return _for_role(InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💾 Создать сейчас", callback_data="admin:backup:create")],
         [InlineKeyboardButton(text="📥 Скачать bot.sqlite3", callback_data="admin:backup:botdb")],
         [InlineKeyboardButton(text="📦 Скачать полную резервную копию", callback_data="admin:backup:full")],
         [InlineKeyboardButton(text="🧯 Восстановление / DR", callback_data="admin:restore")],
         [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
-    ])
+    ]), role)
