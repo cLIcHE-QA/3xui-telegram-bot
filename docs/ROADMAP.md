@@ -2666,7 +2666,7 @@ Issue #219 не блокирует начало `v4.26.2` / `v4.26.3`, но до
 
 ##### v4.26.2 — Dashboard Attention summary
 
-**Статус: 🟡 Реализовано в `main`; release `v4.26.2` ещё не опубликован, issue #216 остаётся открыт до production acceptance.**
+**Статус: ✅ Выполнено в `v4.26.2`; release опубликован, развёрнут и production acceptance завершён, issue #216 закрыт как `completed`.**
 
 Цель — добавить в `/admin → Обзор` компактный read-only блок `⚠️ Требует внимания`, который агрегирует уже существующие problem states без нового mutation surface.
 
@@ -2688,7 +2688,11 @@ Implementation evidence перед release:
 - `PR conventions` и `Python checks` на финальном head implementation PR — **PASS**;
 - summary читает active alerts/job history/local Fleet/Node Drain journals и не добавляет mutation callback, privilege ID или auto-remediation;
 - regression coverage закрепляет calm state, latest-state aggregation, различение `failed/unknown/interrupted`, bounded output и no-mutation wiring;
-- issue #216 остаётся открыт до publication/deployment `v4.26.2`, targeted read-only smoke `/admin → Обзор` и финального health/status-check.
+- release-prep PR #222 слит в `main` squash commit `467d4f5609290622f0f839ce103fbf606f6f29b6`; штатный workflow опубликовал tag/GitHub Release `v4.26.2`;
+- production deployment `v4.26.2` выполнен, exact tag/SHA и runtime version `4.26.2` подтверждены;
+- targeted read-only smoke `/admin → Обзор` — **PASS**: блок `⚠️ Требует внимания` отображается, calm state `✅ Требует внимания: нет`, остальной dashboard остаётся работоспособным;
+- финальный status — **PASS**: container running, `RestartCount=0`, Health/DB/3x-ui connectivity — ok;
+- issue #216 закрыт как `completed`.
 
 ##### v4.26.3 — Attention Center drill-down
 
