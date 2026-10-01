@@ -223,6 +223,8 @@ V4 сохраняет встроенный compatibility proxy для подпи
 - проксирует assets встроенной subscription page через `/compat/assets/`;
 - применяет ограниченную Shadowrocket compatibility только к соответствующим VLESS/XHTTP/Reality links.
 
+Client-side routing profiles Happ/Incy являются отдельным subscription contract. Текущий `/compat/{sub_id}` использует explicit response-header allowlist и не считается прозрачным passthrough routing metadata без отдельного regression/client acceptance. Настройка и проверка: **[Subscription client routing](docs/SUBSCRIPTION_ROUTING.md)**.
+
 Основные переменные:
 
 ~~~env
@@ -315,6 +317,7 @@ git diff --check
 | UI style | [docs/UI_STYLE.md](docs/UI_STYLE.md) |
 | Direct-node onboarding | [docs/NODE_ONBOARDING.md](docs/NODE_ONBOARDING.md) |
 | Data-plane address / inbound firewall | [docs/DATA_PLANE_ADDRESSING.md](docs/DATA_PLANE_ADDRESSING.md) |
+| Client-side subscription routing | [docs/SUBSCRIPTION_ROUTING.md](docs/SUBSCRIPTION_ROUTING.md) |
 | Host Control security | [docs/HOST_CONTROL_AGENT.md](docs/HOST_CONTROL_AGENT.md) |
 | Host Control deployment | [docs/HOST_CONTROL_DEPLOY.md](docs/HOST_CONTROL_DEPLOY.md) |
 | Host Control rollout | [docs/HOST_CONTROL_ROLLOUT.md](docs/HOST_CONTROL_ROLLOUT.md) |
