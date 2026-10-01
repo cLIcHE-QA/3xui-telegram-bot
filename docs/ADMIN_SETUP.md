@@ -99,6 +99,8 @@ systemctl is-active x-ui.service
 
 Для каждого client-facing Inbound отдельно проверь data-plane address и host firewall. В текущей production policy panel URL / `Node.address` остаётся control-plane hostname, а client dial endpoint задаётся явным public IP через `shareAddrStrategy=custom`; SNI/Reality names при этом не переписываются. Полный addressing/firewall contract и post-onboarding smoke: [Data-plane addressing and inbound firewall](DATA_PLANE_ADDRESSING.md).
 
+Client-side routing profiles Happ/Incy настраиваются отдельно от server-side Xray/data-plane. Общий operator contract, native-vs-compat boundary и acceptance: [Subscription client routing](SUBSCRIPTION_ROUTING.md).
+
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
 Для bot release `v4.26.4` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
