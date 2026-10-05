@@ -176,6 +176,21 @@ Reference module использует внешние HTTPS rule-sets. URL на �
 
 Shadowrocket module acceptance не доказывает Happ/Incy routing, и наоборот.
 
+### Production acceptance: Shadowrocket module
+
+Статус: **PASS, 2026-10-05**.
+
+Production acceptance выполнен на текущем module `RU Direct`:
+
+- module импортирован и активен в Shadowrocket;
+- известный `DIRECT` target маршрутизируется напрямую;
+- обычный внешний target уходит через `PROXY`;
+- advertising target блокируется через `REJECT`;
+- VPN connectivity и server entries остаются рабочими;
+- client module не потребовал изменений server-side Xray или subscription identity.
+
+Результат: **Shadowrocket client module production-accepted**. Это отдельный client-side acceptance и он не меняет контракт Happ/Incy или Shadowrocket-only `fp` compatibility rewrite в `subscription_proxy.py`.
+
 ## Сохранение и применение
 
 Routing settings относятся к panel/subscription configuration.
@@ -296,4 +311,4 @@ Acceptance выполняется на отдельном test user/subscription
 10. реальный Happ refresh применяет profile после compat subscription update;
 11. отключение client routing возвращает прежнее subscription behavior без rotation `sub_id`.
 
-Happ support через compat proxy и Incy client routing независимо production-accepted 2026-10-05. Shadowrocket module остаётся отдельным client-side contract со своим acceptance.
+Happ support через compat proxy, Incy client routing и Shadowrocket client module независимо production-accepted 2026-10-05. Client-routing acceptance track закрыт по всем трём поддерживаемым contracts.
