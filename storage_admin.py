@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 
 from aiogram import F, Router
-from aiogram.types import CallbackQuery, FSInputFile
+from aiogram.types import CallbackQuery
 
 from admin_auth import authorize_callback, get_admin_role
 from admin_navigation import backup_menu
@@ -73,8 +72,6 @@ def backup_status_text() -> str:
     lines.append(f"{'🟢' if settings.backup_enabled else '⚪'} Автоматически: {'включено' if settings.backup_enabled else 'выключено'}")
     if settings.backup_enabled:
         lines.append(f"🗓 Ежедневно: {backup_schedule_text(settings.backup_hour_utc)}")
-        if settings.backup_send_to_admins:
-            lines.append("📤 Отправка администраторам: включена")
     if settings.offsite_backup_enabled:
         lines.append(f"☁️ Внешняя копия: включена · шифрование · хранить {settings.offsite_backup_keep}")
     else:
@@ -189,94 +186,5 @@ async def admin_backup_create(call: CallbackQuery):
         await render_callback(
             call,
             f"🔴 Не удалось создать резервную копию: {type(exc).__name__}: {exc}",
-            reply_markup=await _backup_menu_for_call(call),
-        )
-
-
-@storage_admin_router.callback_query(F.data == "admin:backup:botdb")
-async def admin_backup_botdb(call: CallbackQuery):
-    if not await _guard(call):
-        return
-    await call.answer("Готовлю SQLite…")
-
-    try:
-        path = await asyncio.to_thread(backup_manager.create_bot_snapshot)
-        await call.message.answer_document(
-            FSInputFile(path),
-            caption="Свежая консистентная копия bot.sqlite3",
-        )
-        await audit_from_call(
-            db,
-            call,
-            "backup.download",
-            target_type="bot.sqlite3",
-            target_id=path.name,
-            details="consistent SQLite snapshot",
-        )
-    except Exception as exc:
-        await audit_from_call(
-            db,
-            call,
-            "backup.download",
-            target_type="bot.sqlite3",
-            details=f"{type(exc).__name__}: {exc}",
-            success=False,
-        )
-        logging.exception("Bot DB snapshot failed")
-        await render_callback(
-            call,
-            f"🔴 Ошибка резервной копии SQLite: {type(exc).__name__}: {exc}",
-            reply_markup=await _backup_menu_for_call(call),
-        )
-
-
-@storage_admin_router.callback_query(F.data == "admin:backup:full")
-async def admin_backup_full(call: CallbackQuery):
-    if not await _guard(call):
-        return
-    await call.answer("Готовлю архив…")
-
-    try:
-        info = await asyncio.to_thread(backup_manager.latest_backup)
-        if info is None:
-            if backup_lock.locked():
-                await render_callback(
-                    call,
-                    "Резервная копия уже создаётся. Повтори скачивание чуть позже.",
-                    reply_markup=await _backup_menu_for_call(call),
-                )
-                return
-            async with backup_lock:
-                result = await system_backup.create_full_backup()
-            info = result.info
-
-        await call.message.answer_document(
-            FSInputFile(info.path),
-            caption=(
-                "Полная резервная копия. Храните файл в защищённом месте.\n"
-                f"Создан: {format_datetime(info.created_at)}"
-            ),
-        )
-        await audit_from_call(
-            db,
-            call,
-            "backup.download",
-            target_type="full",
-            target_id=info.path.name,
-            details=f"size={info.size}",
-        )
-    except Exception as exc:
-        await audit_from_call(
-            db,
-            call,
-            "backup.download",
-            target_type="full",
-            details=f"{type(exc).__name__}: {exc}",
-            success=False,
-        )
-        logging.exception("Full backup download failed")
-        await render_callback(
-            call,
-            f"🔴 Ошибка отправки резервной копии: {type(exc).__name__}: {exc}",
             reply_markup=await _backup_menu_for_call(call),
         )
