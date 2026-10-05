@@ -127,6 +127,9 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
 
 
     def test_field_update_handlers_read_back_uncertain_outcomes_without_replay(self) -> None:
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
         cases = (
             (
                 "advanced_nodes.py",
@@ -166,7 +169,7 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
         )
         for filename, signature, mutation_call, readback_call, unknown_marker in cases:
             with self.subTest(filename=filename, signature=signature):
-                source = (ROOT / filename).read_text(encoding="utf-8")
+                source = (root / filename).read_text(encoding="utf-8")
                 start = source.index(signature)
                 next_handler = source.find("\n@", start)
                 block = source[start:] if next_handler < 0 else source[start:next_handler]
