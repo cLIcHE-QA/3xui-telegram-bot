@@ -210,11 +210,11 @@ Roadmap не задаёт искусственный глобальный про
 
 ##### Off-site backup
 
-**Статус: 🟠 Опубликовано в `v4.18.0` и развернуто; production off-site acceptance отложен.**
+**Статус: ✅ Выполнено и принято в production; off-site recovery drill завершён 2026-10-05.**
 
 Encrypted off-site backup опубликован и развернут в production как `v4.18.0` (release commit `1cc730c5929ba8b2fe1152a0db1ade4b1aaa21f9`). Базовый runtime acceptance пройден: exact tag/SHA, container, app version, health, DB и 3x-ui connectivity подтверждены. Full Backup использует checksummed manifest schema 2, S3-compatible transport шифрует canonical archive client-side через AES-256-GCM, local и off-site outcomes записываются раздельно (`backup.daily`/`backup.manual` и `backup.offsite`), после upload обязателен remote download/decrypt/SHA/deep-validation round trip, retention ограничен fixed prefix, а host-side recovery CLI скачивает и проверяет latest external copy перед существующим bootstrap restore flow. Feature выключена по умолчанию и не открывает Telegram доступ к bucket/object key/credentials/filesystem path.
 
-**Отложенный acceptance:** после завершения остальных релизов финализации v4.x, но до окончательного v4 freeze / перехода к v5, нужно вернуться к `v4.18.0` и провести отдельный production drill на реально внешнем S3-compatible target: настроить dedicated credentials и recovery encryption key локально, создать manual Full Backup, подтвердить отдельный `backup.offsite` success/допустимый partial, проверить remote round-trip validation и выполнить host-side recovery fetch/deep validation latest external copy. Секреты bucket credentials/encryption key не должны передаваться через Telegram/chat или Git.
+**Production acceptance завершён 2026-10-05:** на реально внешнем S3-compatible target с dedicated credentials и отдельно сохранённым recovery encryption key создан manual Full Backup; `backup.offsite` завершился `success`, а обязательный upload → HEAD → download → AES-GCM authentication/decrypt → SHA-256/size → повторный deep validation round trip подтверждён. На отдельном recovery VPS host-side CLI получил latest canonical object и завершился `OFFSITE_RECOVERY_OK`; `manifest.version=4.26.4`. Дополнительный bootstrap smoke восстановил `bot.env` и `bot.sqlite3`, поднял container с `APP_VERSION=4.26.4`, Health/DB `ok`; финальный generic upstream TCP probe из изолированного recovery VPS получил timeout, что относится к подготовке полного replacement Master/network path и не входит в критерий этого off-site gate. После smoke recovery bot остановлен, production Master возвращён с Health/DB/3x-ui connectivity `ok`, временное recovery окружение очищено. Секреты bucket credentials/encryption key не публиковались в Telegram/chat/Git.
 
 Локальный Full Backup остаётся необходимым, но сам по себе не закрывает сценарий полной потери Master VPS. До v5.0.0 должен появиться поддерживаемый способ иметь хотя бы одну актуальную recovery copy вне Master host.
 
@@ -260,7 +260,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 4. Host Control startup recovery — ✅ выполнено в `v4.13.2`;
 5. versioned SQLite migrations — ✅ выполнено в `v4.15.0`;
 6. расширенный regression coverage критических admin/business/recovery путей — ✅ выполнено в `v4.16.0`;
-7. off-site backup и проверяемый restore path — 🟠 опубликовано в `v4.18.0`, production drill отложен до финального v4 freeze;
+7. off-site backup и проверяемый restore path — ✅ выполнено в `v4.18.0`; production off-site recovery drill завершён 2026-10-05 (`backup.offsite=success`, remote round trip, isolated host-side `OFFSITE_RECOVERY_OK`);
 8. 3x-ui API compatibility / OpenAPI contract gate — ✅ выполнено в `v4.17.0`.
 9. финальный Admin UI consistency patch после production acceptance `v4.20.4` — ✅ выполнено и принято в production в `v4.20.5`.
 10. UI-04: симметрия Master/direct-node health summary на экране `Мониторинг → Состояние системы` — ✅ выполнено и принято в production в `v4.20.6`.
@@ -287,15 +287,15 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Зафиксированный порядок финального закрытия v4.x:
 
-**Текущий активный остаток после закрытия #208 и #219 (2026-10-01):**
+**Текущий активный остаток после off-site acceptance и объявления freeze (2026-10-05):**
 
-1. выполнить отложенный production drill encrypted off-site backup/restore;
-2. объявить **final v4 feature freeze**;
-3. провести полный финальный repository/public-release audit;
-4. закрыть findings только narrowly-scoped fix PR/patch releases с повторным regression/production acceptance;
+1. ✅ production drill encrypted off-site backup/restore завершён 2026-10-05;
+2. ✅ **final v4 feature freeze объявлен 2026-10-05**; после этой точки новые функции в v4.x не добавляются;
+3. **Активный gate:** провести полный финальный repository/public-release audit;
+4. findings закрывать только narrowly-scoped fix PR/patch releases с повторным regression/production acceptance;
 5. после закрытия audit gate опубликовать/принять финальный v4.x release и только затем открыть реализацию `v5.0.0`.
 
-Controlled Node Drain acceptance #208 и data-plane hardening #219 закрыты. Единственный оставшийся обязательный pre-freeze gate — production drill encrypted off-site backup/restore; финальная заморозка v4.x запрещена до его успешного acceptance.
+Все обязательные pre-freeze gates закрыты. Final v4 feature freeze действует с 2026-10-05: в v4.x разрешены только исправления audit/security/reliability/data-integrity/regression findings, необходимые tests/docs и production acceptance. Новый product scope, новые feature tracks и отложенные compatibility improvements в v4.x не возвращаются; любое исключение требует явного изменения этого roadmap до реализации.
 
 Ниже сохранён исторический порядок уже выполненных и оставшихся этапов:
 
@@ -319,15 +319,15 @@ Controlled Node Drain acceptance #208 и data-plane hardening #219 закрыт�
 18. отдельным patch-релизом `v4.26.3` добавить read-only Attention Center drill-down и canonical deep-links;
 19. закрыть production navigation finding #226 отдельным fix-релизом `v4.26.4`, затем завершить production acceptance #217;
 20. data-plane address hardening #219 — ✅ закрыт 2026-10-01: для v4.x зафиксирован operator-managed per-Inbound contract `shareAddrStrategy=custom` + явный `shareAddr`; отдельная node-level `data_plane_address` metadata до freeze не вводится, automatic DNS→IP persistence запрещён;
-21. после acceptance всех feature-релизов выполнить отложенный production drill encrypted off-site backup/restore;
-22. объявить **final v4 feature freeze**: после этой точки новые функции в v4.x не добавляются;
-23. после feature freeze провести полный финальный repository/public-release audit по всему продукту;
+21. ✅ production drill encrypted off-site backup/restore завершён 2026-10-05;
+22. ✅ **final v4 feature freeze объявлен 2026-10-05**: после этой точки новые функции в v4.x не добавляются;
+23. **активно:** после feature freeze провести полный финальный repository/public-release audit по всему продукту;
 24. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
 25. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
 
-Feature freeze здесь означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release.
+Feature freeze означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release; необходимые regression tests, docs и production acceptance остаются разрешены.
 
-Off-site acceptance остаётся единственным обязательным pre-freeze/pre-v5 gate после operational closure #208 и #219 2026-10-01. Controlled Node Drain production smoke завершён, `v4.26.0` принят по обязательному mutation scope, а data-plane hardening закрыт документированным v4.x product decision и production proof. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
+Pre-freeze gates закрыты: Controlled Node Drain production acceptance #208 и data-plane hardening #219 закрыты 2026-10-01, encrypted off-site backup/restore production acceptance закрыт 2026-10-05. Финальный аудит выполняется **после** freeze, чтобы проверяемый codebase больше не менялся функционально во время review.
 
 ##### Финальный Admin UI consistency patch
 
