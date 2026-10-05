@@ -391,8 +391,25 @@ async def node_delete_run(call: CallbackQuery):
     except XUIMutationError as exc:
         if exc.uncertain:
             try:
-                await xui.node_get(node_id)
-            except XUIError:
+                nodes = await xui.nodes_list()
+            except XUIError as read_exc:
+                await audit_from_call(
+                    db, call, "node.delete.unknown", target_type="node", target_id=node_id,
+                    details=(
+                        f"code={exc.code}; mutation_not_retried=true; "
+                        f"readback=unavailable:{type(read_exc).__name__}"
+                    ),
+                    success=False,
+                )
+                await call.answer("Итог удаления неизвестен", show_alert=True)
+                await render_callback(
+                    call,
+                    "🟡 Ответ 3x-ui потерян, а read-back недоступен. Mutation не повторялась. "
+                    "Проверь список нод после восстановления связи перед любым новым удалением.",
+                    reply_markup=_back(node_id),
+                )
+                return
+            if all(int(item.id) != node_id for item in nodes):
                 await audit_from_call(
                     db, call, "node.delete", target_type="node", target_id=node_id,
                     details=f"name={name}; readback=absent; uncertain_resolved=success",
