@@ -373,15 +373,18 @@ class RestoreManager:
     def export_member(self, path: Path, member_name: str, *, filename: str | None = None) -> Path:
         data = self.read_member(path, member_name)
         self.export_root.mkdir(parents=True, exist_ok=True)
+        os.chmod(self.export_root, 0o700)
         safe = Path(filename or Path(member_name).name).name
         if not safe or safe in {".", ".."}:
             safe = "restore-export.bin"
         out = self.export_root / f"{self.backup_id(path)}-{safe}"
         out.write_bytes(data)
+        os.chmod(out, 0o600)
         return out
 
     def export_nginx_bundle(self, path: Path) -> Path:
         self.export_root.mkdir(parents=True, exist_ok=True)
+        os.chmod(self.export_root, 0o700)
         out = self.export_root / f"{self.backup_id(path)}-nginx.tar.gz"
         with tarfile.open(path, "r:gz") as src, tarfile.open(out, "w:gz") as dst:
             members = self._checked_members(src)
@@ -402,6 +405,7 @@ class RestoreManager:
                 info.mode = member.mode
                 info.mtime = member.mtime
                 dst.addfile(info, io.BytesIO(data))
+        os.chmod(out, 0o600)
         return out
 
     @staticmethod
