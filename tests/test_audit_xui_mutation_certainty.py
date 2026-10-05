@@ -94,9 +94,9 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
 
         root = Path(__file__).resolve().parents[1]
         cases = (
-            ("advanced_users.py", "async def admin_del", "await xui.get_client(rec.email)", "user.delete.unknown"),
-            ("inbound_admin.py", "async def inbound_delete", "await xui.inbound_get(iid)", "inbound.delete.unknown"),
-            ("advanced_nodes.py", "async def node_delete_run", "await xui.node_get(node_id)", "node.delete.unknown"),
+            ("advanced_users.py", "async def admin_del", "await xui.clients_list()", "user.delete.unknown"),
+            ("inbound_admin.py", "async def inbound_delete", "await xui.inbounds_list(slim=True)", "inbound.delete.unknown"),
+            ("advanced_nodes.py", "async def node_delete_run", "await xui.nodes_list()", "node.delete.unknown"),
         )
         for filename, function_name, readback, audit_action in cases:
             with self.subTest(filename=filename):
@@ -109,6 +109,7 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("if exc.uncertain:", block)
                 self.assertIn(readback, block)
                 self.assertIn("mutation_not_retried=true", block)
+                self.assertIn("readback=unavailable", block)
                 self.assertIn(audit_action, block)
                 self.assertEqual(block.count("delete_client(rec.email)") if filename == "advanced_users.py" else block.count("inbound_delete(iid)") if filename == "inbound_admin.py" else block.count("node_delete(node_id)"), 1)
 
