@@ -42,6 +42,8 @@ Host-control в v4.10.0 не является каналом доступа к V
 
 ## Backup/Restore
 
+Полные backup-архивы, `bot.sqlite3`, direct-node snapshots и exports вроде `bot.env` являются secret-bearing artifacts. Telegram используется только как control UI: такие файлы не прикладываются к сообщениям и не рассылаются администраторам. Получение выполняется только через защищённый host-side/off-site recovery path.
+
 Полные backup-архивы содержат секреты и должны храниться вне публичных артефактов репозитория. Restore-операции следует выполнять только после preflight/dry-run и наличия rescue-копии текущего состояния.
 
 Direct-node snapshot собирается из двух раздельных privilege domains: `x-ui.db` приходит через dedicated `NODE_BACKUP_*` direct-admin token, а nginx configuration — через fixed read-only Host Control snapshot source. Telegram/Master не передаёт filesystem path на node. `node.json` и `manifest.json` не должны содержать API/Host Control tokens; manifest фиксирует checksums и явно отмечает missing/degraded components.
