@@ -1020,6 +1020,29 @@ async def inbound_reset_run(call: CallbackQuery):
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
 
+async def _target_keyboard(
+    prefix: str,
+    source_id: int,
+    *,
+    cancel_callback: str,
+) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(
+        text=f"{settings.master_flag} {settings.master_name}",
+        callback_data=f"{prefix}:{source_id}:0",
+    )]]
+    try:
+        nodes = await xui.nodes_list()
+    except XUIError:
+        nodes = []
+    for node in nodes:
+        if node.enable and node.status == "online":
+            rows.append([InlineKeyboardButton(
+                text=f"🌍 {node_display_name(node.name)}", callback_data=f"{prefix}:{source_id}:{node.id}"
+            )])
+    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data=cancel_callback)])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:clone:"))
 async def inbound_clone_start(call: CallbackQuery):
     if not await guard(call, minimum="admin"):
