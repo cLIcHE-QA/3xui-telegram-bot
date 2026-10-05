@@ -199,3 +199,8 @@ Final v4 release publication and repository visibility change are blocked by ope
 7. final audit revision and production release acceptance.
 
 Each remediation is a narrowly scoped v4 fix under the active feature freeze. Findings are not considered closed by source changes alone: regression/CI and the required production/operational acceptance must be recorded.
+
+
+## Remediation log
+
+- **2026-10-05 · A-001 / #234:** implementation PR #248 открыт. Secret-bearing Full Backup/DB/node/DR artifacts переводятся на host-side/off-site only; Telegram document delivery и `BACKUP_SEND_TO_ADMINS` удаляются. Finding остаётся **Open / acceptance pending** до публикации patch release, deployment, targeted production smoke и финального health check.
