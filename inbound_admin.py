@@ -1209,8 +1209,25 @@ async def inbound_delete(call: CallbackQuery):
     except XUIMutationError as exc:
         if exc.uncertain:
             try:
-                await xui.inbound_get(iid)
-            except XUIError:
+                inbounds = await xui.inbounds_list(slim=True)
+            except XUIError as read_exc:
+                await audit_from_call(
+                    db, call, "inbound.delete.unknown", target_type="inbound", target_id=str(iid),
+                    details=(
+                        f"code={exc.code}; mutation_not_retried=true; "
+                        f"readback=unavailable:{type(read_exc).__name__}"
+                    ),
+                    success=False,
+                )
+                await call.answer("Итог удаления неизвестен", show_alert=True)
+                await render_callback(
+                    call,
+                    "🟡 Ответ 3x-ui потерян, а read-back недоступен. Mutation не повторялась. "
+                    "Проверь список Inbounds после восстановления связи перед новым удалением.",
+                    reply_markup=inbound_back_keyboard(iid),
+                )
+                return
+            if all(int(item.get("id") or 0) != iid for item in inbounds if isinstance(item, dict)):
                 await audit_from_call(
                     db, call, "inbound.delete", target_type="inbound", target_id=str(iid),
                     details="readback=absent; uncertain_resolved=success",
