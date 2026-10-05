@@ -208,6 +208,67 @@ async def _port_free(target_node_id: int, port: int, *, exclude_inbound_id: int 
     return True
 
 
+async def _inbound_update_with_readback(
+    inbound_id: int,
+    payload: dict[str, Any],
+) -> tuple[bool, str]:
+    try:
+        await xui.inbound_update(inbound_id, payload)
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            readback = await xui.inbound_get(inbound_id)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        if _update_payload(readback) != payload:
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=match; uncertain_resolved=success"
+
+
+async def _inbound_add_with_readback(payload: dict[str, Any]) -> tuple[bool, str]:
+    try:
+        await xui.inbound_add(payload)
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            inbounds = await xui.inbounds_list(slim=True)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        expected_node = _node_key(payload.get("nodeId"))
+        expected_port = int(payload.get("port") or 0)
+        candidates = [
+            item for item in inbounds
+            if isinstance(item, dict)
+            and _node_key(item.get("nodeId")) == expected_node
+            and int(item.get("port") or 0) == expected_port
+        ]
+        if len(candidates) != 1:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback={'ambiguous' if len(candidates) > 1 else 'absent'}"
+            )
+        candidate = candidates[0]
+        expected_protocol = str(payload.get("protocol") or "")
+        expected_remark = str(payload.get("remark") or "")
+        if (
+            str(candidate.get("protocol") or "") != expected_protocol
+            or str(candidate.get("remark") or "") != expected_remark
+            or bool(candidate.get("enable", True)) != bool(payload.get("enable", True))
+        ):
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=unique_match; uncertain_resolved=success"
+
+
 def _visible(inbound: dict[str, Any]) -> bool:
     protocol = str(inbound.get("protocol") or "").lower()
     tag = str(inbound.get("tag") or "").lower()
