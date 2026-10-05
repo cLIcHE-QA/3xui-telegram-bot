@@ -3269,6 +3269,58 @@ async def admin_del(call: CallbackQuery):
             target_id=rec.email,
         )
         await render_callback(call, f"🗑 {display_label} удалён.", reply_markup=users_back())
+    except XUIMutationError as exc:
+        if exc.uncertain:
+            try:
+                clients = await xui.clients_list()
+            except XUIError as read_exc:
+                await audit_from_call(
+                    db, call, "user.delete.unknown", target_type="user", target_id=rec.email,
+                    details=(
+                        f"code={exc.code}; mutation_not_retried=true; "
+                        f"readback=unavailable:{type(read_exc).__name__}"
+                    ),
+                    success=False,
+                )
+                await render_callback(
+                    call,
+                    "🟡 Итог удаления неизвестен, а read-back недоступен. Mutation не повторялась. "
+                    "Локальная запись сохранена. Проверь 3x-ui после восстановления связи перед любым повтором.",
+                    reply_markup=back_user(tg_id),
+                )
+                await call.answer()
+                return
+            present = any(
+                isinstance(item, dict) and str(item.get("email") or "") == rec.email
+                for item in clients
+            )
+            if not present:
+                await db.delete(tg_id)
+                await audit_from_call(
+                    db, call, "user.delete", target_type="user", target_id=rec.email,
+                    details="readback=absent; uncertain_resolved=success",
+                )
+                await render_callback(
+                    call,
+                    f"🗑 {display_label} удалён. Результат подтверждён read-back после потерянного ответа.",
+                    reply_markup=users_back(),
+                )
+                await call.answer()
+                return
+            await audit_from_call(
+                db, call, "user.delete.unknown", target_type="user", target_id=rec.email,
+                details=f"code={exc.code}; mutation_not_retried=true; readback=present",
+                success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог удаления неизвестен. Mutation не повторялась; клиент всё ещё виден в 3x-ui. "
+                "Локальная запись сохранена. Проверь состояние перед любым повтором.",
+                reply_markup=back_user(tg_id),
+            )
+            await call.answer()
+            return
+        raise
     except XUIError as exc:
         await audit_from_call(
             db,
