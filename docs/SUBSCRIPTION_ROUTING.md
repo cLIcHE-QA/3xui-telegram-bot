@@ -1,6 +1,6 @@
 # Client-side routing profiles for subscription clients
 
-Этот runbook описывает operator-side настройку client-side routing profiles в 3x-ui для клиентов, которые умеют получать routing metadata/profile через subscription.
+Этот runbook описывает operator-side настройку client-side routing profiles в 3x-ui для клиентов, которые умеют получать routing metadata/profile через subscription, а также независимые client modules, которые устанавливаются непосредственно в VPN-клиент.
 
 Документ намеренно не привязан к конкретному routing provider, стране или набору правил. Используй operator-controlled или заранее проверенный постоянный HTTPS URL, например:
 
@@ -83,6 +83,98 @@ incy://autorouting/onadd/...
 Для постоянного remote JSON profile предпочтителен прямой HTTPS URL, если текущая production/pinned версия 3x-ui поддерживает самостоятельное обновление такого profile.
 
 В фактическом поле панели используй обычный URL `https://...`, а не экранированное представление `https\://...`.
+
+## Shadowrocket client module
+
+Shadowrocket routing module — отдельный client-side policy boundary. Он устанавливается и активируется непосредственно в Shadowrocket и **не** передаётся через Happ `Routing` / `Routing-Enable`, не является Incy deeplink/body semantics и не меняет server-side Xray routing.
+
+Не путай две разные Shadowrocket-функции проекта:
+
+- `subscription_proxy.py` содержит узкий compatibility rewrite для VLESS + XHTTP + Reality и удаляет только проблемный `fp` для Shadowrocket;
+- Shadowrocket routing module управляет локальными `DIRECT` / `PROXY` / `REJECT` rules и дополнительным сетевым поведением клиента.
+
+Текущий operator reference module:
+
+~~~ini
+#!name = RU Direct
+#!desc = Direct Routing + Global Proxy + AdBlock
+
+[General]
+loglevel = notify
+private-ip-answer = true
+dns-direct-system = true
+ipv6 = false
+udp-policy-not-supported-behaviour = REJECT
+block-quic = all-proxy
+
+# [Proxy Group]
+# PROXY = select, policy-regex-filter=.*
+
+[Rule]
+
+RULE-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Advertising/Advertising.list,REJECT
+
+DOMAIN,localhost,DIRECT
+DOMAIN-SUFFIX,local,DIRECT
+DOMAIN,captive.apple.com,DIRECT
+
+IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
+IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+
+DOMAIN-SUFFIX,jql.twitch.tv,PROXY
+DOMAIN-SUFFIX,usher.ttvnw.net,PROXY
+
+RULE-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Twitch/Twitch.list,DIRECT
+RULE-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Pinterest/Pinterest.list,DIRECT
+RULE-SET,https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Shadowrocket/Apple/Apple_Domain.list,DIRECT
+
+RULE-SET,https://raw.githubusercontent.com/hydraponique/roscomvpn-geoip/release/text/direct.txt,DIRECT
+
+# GEOIP,RU,DIRECT
+
+FINAL,PROXY
+~~~
+
+Intended policy этого модуля:
+
+- advertising rule-set → `REJECT`;
+- localhost, private/link-local адреса и captive portal → `DIRECT`;
+- явные Twitch service exceptions `jql.twitch.tv` и `usher.ttvnw.net` → `PROXY`;
+- Twitch/Pinterest/Apple rule-sets → `DIRECT`;
+- внешний RU direct list → `DIRECT`;
+- всё остальное через `FINAL,PROXY`.
+
+Блок `[General]` также является частью client policy: IPv6 выключен, unsupported UDP отклоняется, QUIC для proxy traffic блокируется, а direct DNS использует system resolver. Поэтому этот module нельзя описывать только как список routing rules.
+
+### Remote dependencies
+
+Reference module использует внешние HTTPS rule-sets. URL на ветки `master` / `release` являются mutable dependencies: их содержимое может измениться без commit в этом repository.
+
+Для production:
+
+- не помещай subscription URL, `sub_id`, tokens или user identifiers в module/rule-set URLs;
+- не отключай TLS verification;
+- перед заметным изменением поведения проверяй upstream rule-set availability и diff;
+- если потребуется reproducible/pinned policy, используй operator-controlled mirror или immutable reviewed revision вместо mutable branch URL;
+- недоступность внешнего rule-set не должна приводить к изменению server-side Xray, Inbounds, SNI, data-plane address или rotation subscription id.
+
+### Shadowrocket acceptance
+
+Проверка выполняется независимо от Happ/Incy acceptance:
+
+1. обновить обычную subscription и убедиться, что server entries и VPN connectivity не изменились;
+2. импортировать/обновить module и убедиться, что активен именно `RU Direct`;
+3. проверить известный target, который должен идти через `DIRECT`;
+4. проверить target, который должен идти через `PROXY`;
+5. проверить advertising target, который должен получить `REJECT`;
+6. отдельно проверить Twitch service exception, если он используется в production;
+7. убедиться, что отключение module возвращает поведение обычной subscription без изменения `sub_id` или server-side config.
+
+Shadowrocket module acceptance не доказывает Happ/Incy routing, и наоборот.
 
 ## Сохранение и применение
 

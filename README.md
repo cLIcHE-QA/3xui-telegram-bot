@@ -224,7 +224,7 @@ V4 сохраняет встроенный compatibility proxy для подпи
 - применяет ограниченную Shadowrocket compatibility только к соответствующим VLESS/XHTTP/Reality links;
 - для Happ requests явно пропускает upstream `Routing` / `Routing-Enable`, не раскрывая эти client-specific headers INCY или generic clients.
 
-Client-side routing profiles Happ/Incy являются отдельным subscription contract. Happ routing через `/compat/{sub_id}` production-accepted 2026-10-05; Incy остаётся отдельной body/deeplink семантикой и проверяется независимо. Proxy по-прежнему использует explicit allowlist и не является прозрачным passthrough всех upstream metadata. Настройка и acceptance: **[Subscription client routing](docs/SUBSCRIPTION_ROUTING.md)**.
+Client-side routing profiles Happ/Incy и отдельный Shadowrocket client module имеют разные contracts. Happ routing через `/compat/{sub_id}` production-accepted 2026-10-05; Incy остаётся отдельной body/deeplink семантикой; Shadowrocket module устанавливается в клиенте независимо от proxy и не связан с Shadowrocket-only `fp` rewrite в `subscription_proxy.py`. Proxy по-прежнему использует explicit allowlist и не является прозрачным passthrough всех upstream metadata. Настройка и acceptance: **[Subscription client routing](docs/SUBSCRIPTION_ROUTING.md)**.
 
 Основные переменные:
 
