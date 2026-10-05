@@ -94,7 +94,7 @@ Encrypted off-site replication и recovery:
 
 **[Off-site Backup](docs/OFFSITE_BACKUP.md)**
 
-Off-site transport выключен по умолчанию. Full Backup содержит secrets; Telegram и GitHub не являются backup storage.
+Off-site transport выключен по умолчанию. Full Backup содержит secrets; Telegram и GitHub не являются backup storage. Admin UI может создать backup или подготовить DR export, но secret-bearing файлы не прикладываются к Telegram: их получают только через защищённый host-side/off-site recovery path.
 
 ## Архитектура v4.x
 

@@ -127,8 +127,6 @@ def confirm_sync_all_keyboard() -> InlineKeyboardMarkup:
 def backup_menu(role: str | None = None) -> InlineKeyboardMarkup:
     return _for_role(InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💾 Создать сейчас", callback_data="admin:backup:create")],
-        [InlineKeyboardButton(text="📥 Скачать bot.sqlite3", callback_data="admin:backup:botdb")],
-        [InlineKeyboardButton(text="📦 Скачать полную резервную копию", callback_data="admin:backup:full")],
         [InlineKeyboardButton(text="🧯 Восстановление / DR", callback_data="admin:restore")],
         [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ]), role)

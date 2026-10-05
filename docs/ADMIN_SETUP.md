@@ -204,7 +204,6 @@ BACKUP_ENABLED=true
 BACKUP_DIR=/app/data/backups
 BACKUP_KEEP=14
 BACKUP_HOUR_UTC=2
-BACKUP_SEND_TO_ADMINS=false
 
 # Optional, disabled until a physically/logically separate S3-compatible target
 # and a separately stored recovery encryption key are prepared.
@@ -957,6 +956,8 @@ nodes/Edge-1/
 
 Master nginx в Full Backup берётся через BACKUP_NGINX_CONF_HOST_PATH. Direct node nginx — через Host Control snapshot endpoint. Это два разных механизма.
 
+Full Backup, `bot.sqlite3`, direct-node snapshot, `bot.env` и nginx recovery bundle через Telegram **не отправляются**. Telegram UI только создаёт backup/host-side export. Забирай secret-bearing artifacts с Master по защищённому host-side каналу либо используй encrypted off-site recovery flow. DR exports, подготовленные из UI, находятся в `data/restore/exports/` и должны оставаться mode `0600` внутри private directory.
+
 ## 21. Финальный health check Master
 
 ~~~bash
@@ -1098,6 +1099,7 @@ Host Control token при обычном reinstall сохраняется и н�
 - node-sync/direct-admin/Host-Control tokens не переиспользуются;
 - privileged direct-node targets привязаны stable node_id;
 - secrets не попадают в Git/chat/issues/logs;
+- Full Backup, bot/node DB snapshots и DR exports не передаются как Telegram documents;
 - Full Backup рассматривается как secret-bearing archive.
 
 ## 26. Типичные ошибки

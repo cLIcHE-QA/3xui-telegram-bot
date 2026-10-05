@@ -686,7 +686,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "📦 Размер:",
             "🗄 Хранится полных копий:",
             "🗓 Ежедневно:",
-            "📤 Отправка администраторам:",
+            "🔐 Передача файлов в Telegram:",
             "🌍 Резервные копии нод:",
         ):
             self.assertIn(needle, storage)
