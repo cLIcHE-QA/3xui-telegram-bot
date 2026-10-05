@@ -89,6 +89,29 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertFalse(request.await_args.kwargs["json_payload"]["enable"])
 
+    def test_destructive_handlers_read_back_uncertain_outcomes_without_replay(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
+        cases = (
+            ("advanced_users.py", "async def admin_del", "await xui.get_client(rec.email)", "user.delete.unknown"),
+            ("inbound_admin.py", "async def inbound_delete", "await xui.inbound_get(iid)", "inbound.delete.unknown"),
+            ("advanced_nodes.py", "async def node_delete_run", "await xui.node_get(node_id)", "node.delete.unknown"),
+        )
+        for filename, function_name, readback, audit_action in cases:
+            with self.subTest(filename=filename):
+                source = (root / filename).read_text(encoding="utf-8")
+                block = source[source.index(function_name):]
+                next_handler = block.find("\n@")
+                if next_handler > 0:
+                    block = block[:next_handler]
+                self.assertIn("except XUIMutationError as exc:", block)
+                self.assertIn("if exc.uncertain:", block)
+                self.assertIn(readback, block)
+                self.assertIn("mutation_not_retried=true", block)
+                self.assertIn(audit_action, block)
+                self.assertEqual(block.count("delete_client(rec.email)") if filename == "advanced_users.py" else block.count("inbound_delete(iid)") if filename == "inbound_admin.py" else block.count("node_delete(node_id)"), 1)
+
     def test_disaster_recovery_records_uncertain_import_as_unknown(self):
         from pathlib import Path
 
