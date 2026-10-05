@@ -72,6 +72,24 @@ PR body должен кратко фиксировать:
 
 Не перечисляй в PR body secrets, tokens, private keys или содержимое mode-0600 enrollment files.
 
+### Язык GitHub-коммуникации
+
+Рабочий язык repository discussions — **русский**.
+
+По-русски оформляются:
+
+- issue title/body и tracking updates;
+- PR title/body;
+- issue/PR comments и review comments;
+- audit/acceptance status notes;
+- release и roadmap discussion.
+
+В исходном виде сохраняются точные технические имена: code identifiers, API/routes, filenames, commands, error/status values вроде `unknown`, `failed`, `success`, а также короткие устоявшиеся engineering terms, если перевод ухудшает точность.
+
+Цитаты из logs, CI, API или внешних систем можно оставлять на языке источника, но пояснение к ним пишется по-русски.
+
+AI coding agents и automation, создающие или обновляющие GitHub discussion, следуют тому же правилу. Английский используется как основной язык GitHub-коммуникации только если конкретная задача или существующий внешний thread явно этого требует.
+
 ### Merge strategy
 
 Для обычных feature/fix/security/docs/chore/release PR используется **Squash and merge**.
