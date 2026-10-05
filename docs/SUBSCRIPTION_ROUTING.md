@@ -116,6 +116,20 @@ Panel restart не означает обязательный restart Xray servic
 
 Наличие implementation и regression tests не заменяет production acceptance: после deployment нужно сравнить native и compat headers на test subscription и затем выполнить реальный refresh в Happ.
 
+## Production acceptance: Happ compat routing
+
+Статус: **PASS, 2026-10-05**.
+
+Production acceptance выполнен на контролируемой test subscription после deployment commit `85e7c5e209b857ff238bbdfa596496e2e2d69dbe`:
+
+- native 3x-ui subscription вернул HTTP 200 с `Routing` и `Routing-Enable: true`;
+- `/compat/{sub_id}` после patch вернул HTTP 200 с теми же Happ routing headers;
+- после возврата штатного HWID limit запрос без device identity снова получил ожидаемый HTTP 404 с `X-Hwid-Active: true` и `X-Hwid-Not-Supported: true`, то есть routing fix не ослабил HWID gate;
+- реальный Happ refresh через compat subscription подтянул routing profile;
+- client-side маршрутизация после refresh работает.
+
+Результат: **Happ routing через `/compat/{sub_id}` production-accepted**. Это acceptance только для Happ contract и не означает автоматический acceptance Incy routing.
+
 ## Проверка после настройки
 
 Acceptance выполняется на отдельном test user/subscription, а не только по состоянию toggle в UI.
@@ -175,4 +189,4 @@ Acceptance выполняется на отдельном test user/subscription
 10. реальный Happ refresh применяет profile после compat subscription update;
 11. отключение client routing возвращает прежнее subscription behavior без rotation `sub_id`.
 
-До production smoke поддержка считается реализованной и regression-covered, но не production-accepted.
+Happ support через compat proxy production-accepted 2026-10-05. Incy остаётся отдельным client contract и требует собственного independent acceptance.

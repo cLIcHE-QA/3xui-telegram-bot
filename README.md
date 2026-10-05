@@ -221,9 +221,10 @@ V4 сохраняет встроенный compatibility proxy для подпи
 - для raw/machine subscription преобразует 3x-ui AmneziaWG `vpn://` в `amneziawg://`;
 - сохраняет штатное HTML-представление 3x-ui;
 - проксирует assets встроенной subscription page через `/compat/assets/`;
-- применяет ограниченную Shadowrocket compatibility только к соответствующим VLESS/XHTTP/Reality links.
+- применяет ограниченную Shadowrocket compatibility только к соответствующим VLESS/XHTTP/Reality links;
+- для Happ requests явно пропускает upstream `Routing` / `Routing-Enable`, не раскрывая эти client-specific headers INCY или generic clients.
 
-Client-side routing profiles Happ/Incy являются отдельным subscription contract. Текущий `/compat/{sub_id}` использует explicit response-header allowlist и не считается прозрачным passthrough routing metadata без отдельного regression/client acceptance. Настройка и проверка: **[Subscription client routing](docs/SUBSCRIPTION_ROUTING.md)**.
+Client-side routing profiles Happ/Incy являются отдельным subscription contract. Happ routing через `/compat/{sub_id}` production-accepted 2026-10-05; Incy остаётся отдельной body/deeplink семантикой и проверяется независимо. Proxy по-прежнему использует explicit allowlist и не является прозрачным passthrough всех upstream metadata. Настройка и acceptance: **[Subscription client routing](docs/SUBSCRIPTION_ROUTING.md)**.
 
 Основные переменные:
 
