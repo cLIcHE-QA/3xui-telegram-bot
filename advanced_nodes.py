@@ -5,7 +5,7 @@ from typing import Any
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
@@ -291,12 +291,14 @@ async def node_backup(call: CallbackQuery):
         missing = ""
         if snapshot.missing:
             missing = "\nОтсутствует/неполно: " + "; ".join(snapshot.missing[:4])
-        await call.message.answer_document(
-            FSInputFile(snapshot.path),
-            caption=(
+        await render_callback(
+            call,
+            (
                 f"💾 Снимок ноды · {node_display_name(node.name)}\n"
                 f"Статус: {state}{missing}\n"
-                "Архив содержит секретные данные. Храни его безопасно."
+                f"Файл: {snapshot.path.name}\n\n"
+                "🔐 Архив содержит секретные данные и сохранён только на Master. "
+                "Telegram-export отключён; забирай его через защищённый host-side/off-site recovery path."
             ),
             reply_markup=_back(node_id),
         )
