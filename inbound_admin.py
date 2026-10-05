@@ -611,14 +611,32 @@ async def inbound_set_fingerprint(call: CallbackQuery):
         except ValueError:
             await call.answer("Этот Inbound не использует Reality.", show_alert=True)
             return
-        await xui.inbound_update(iid, _update_payload(ib))
+        confirmed, evidence = await _inbound_update_with_readback(iid, _update_payload(ib))
+        if not confirmed:
+            await audit_from_call(
+                db,
+                call,
+                "inbound.update.unknown",
+                target_type="inbound",
+                target_id=str(iid),
+                details=f"field=reality.fingerprint; {evidence}",
+                success=False,
+            )
+            await call.answer(
+                "Итог изменения fingerprint неизвестен; mutation не повторялась.",
+                show_alert=True,
+            )
+            return
         await audit_from_call(
             db,
             call,
             "inbound.update",
             target_type="inbound",
             target_id=str(iid),
-            details=f"field=reality.fingerprint; old={old[:120]}; new={fingerprint}",
+            details=(
+                f"field=reality.fingerprint; old={old[:120]}; "
+                f"new={fingerprint}; {evidence}"
+            ),
         )
         await call.answer("Сохранено.")
         text, kb = await _inbound_card(iid)
@@ -639,18 +657,30 @@ async def inbound_edit_mode(call: CallbackQuery):
     await call.answer()
 
 
-async def _apply_mode(call: CallbackQuery, iid: int, mode: str) -> None:
+async def _apply_mode(call: CallbackQuery, iid: int, mode: str) -> bool:
     ib = await xui.inbound_get(iid)
     stream = _stream(ib)
     xhttp = _json_obj(stream.get("xhttpSettings"))
     xhttp["mode"] = mode
     stream["xhttpSettings"] = xhttp
     ib["streamSettings"] = stream
-    await xui.inbound_update(iid, _update_payload(ib))
+    confirmed, evidence = await _inbound_update_with_readback(iid, _update_payload(ib))
+    if not confirmed:
+        await audit_from_call(
+            db,
+            call,
+            "inbound.update.unknown",
+            target_type="inbound",
+            target_id=str(iid),
+            details=f"field=xhttp.mode; value={mode}; {evidence}",
+            success=False,
+        )
+        return False
     await audit_from_call(
         db, call, "inbound.update", target_type="inbound", target_id=str(iid),
-        details=f"field=xhttp.mode; value={mode}",
+        details=f"field=xhttp.mode; value={mode}; {evidence}",
     )
+    return True
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:setmode:"))
@@ -664,7 +694,13 @@ async def inbound_set_mode(call: CallbackQuery):
         await call.answer("Некорректный режим.", show_alert=True)
         return
     try:
-        await _apply_mode(call, iid, mode)
+        confirmed = await _apply_mode(call, iid, mode)
+        if not confirmed:
+            await call.answer(
+                "Итог изменения режима неизвестен; mutation не повторялась.",
+                show_alert=True,
+            )
+            return
         await call.answer("Сохранено.")
         text, kb = await _inbound_card(iid)
         await render_callback(call, text, reply_markup=kb)
@@ -749,10 +785,26 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             await render_input(message, "Поле не поддерживается.", reply_markup=inbound_back_keyboard(iid))
             await state.clear()
             return
-        await xui.inbound_update(iid, _update_payload(ib))
+        confirmed, evidence = await _inbound_update_with_readback(iid, _update_payload(ib))
+        if not confirmed:
+            await state.clear()
+            await audit_from_message(
+                db, message, "inbound.update.unknown", target_type="inbound", target_id=str(iid),
+                details=f"field={field}; {evidence}", success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог изменения Inbound неизвестен. Mutation не повторялась; "
+                "обнови карточку перед повтором.",
+                reply_markup=inbound_back_keyboard(iid),
+            )
+            return
         await audit_from_message(
             db, message, "inbound.update", target_type="inbound", target_id=str(iid),
-            details=f"field={field}; old={old_display[:120]}; new={new_display[:120]}",
+            details=(
+                f"field={field}; old={old_display[:120]}; "
+                f"new={new_display[:120]}; {evidence}"
+            ),
         )
         await state.clear()
         text, kb = await _inbound_card(iid)
