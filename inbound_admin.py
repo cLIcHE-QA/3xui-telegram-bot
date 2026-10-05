@@ -900,6 +900,9 @@ async def inbound_sync_run(call: CallbackQuery):
     iid = int(call.data.rsplit(":", 1)[-1])
     users = await db.list_users()
     emails = [u.email for u in users]
+    if not emails:
+        await call.answer("Нет пользователей для синхронизации.", show_alert=True)
+        return
     try:
         result = await xui.bulk_attach_clients(emails, [iid])
         obj = result.get("obj") if isinstance(result, dict) else {}
