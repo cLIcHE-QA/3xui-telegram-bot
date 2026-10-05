@@ -8,7 +8,7 @@ from pathlib import Path
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_ui import render_callback, render_input
 from admin_auth import authorize_callback, authorize_message
@@ -512,16 +512,18 @@ async def restore_export_env(call: CallbackQuery):
     try:
         path = _backup_by_id(bid)
         out = await asyncio.to_thread(restore_manager.export_member, path, "bot.env", filename="bot.env")
-        await call.message.answer_document(
-            FSInputFile(out),
-            caption="bot.env из резервной копии. Содержит секреты. Бот НЕ применяет его автоматически.",
-        )
-        try:
-            out.unlink()
-        except OSError:
-            pass
         await audit_from_call(db, call, "restore.export_env", target_type="backup", target_id=path.name)
-        await call.answer()
+        await render_callback(
+            call,
+            (
+                "✅ bot.env подготовлен только на Master.\n"
+                f"Файл: data/restore/exports/{out.name}\n\n"
+                "🔐 Файл содержит секреты и не отправляется через Telegram. "
+                "Забери его с host filesystem по защищённому каналу; бот НЕ применяет его автоматически."
+            ),
+            reply_markup=_restore_back(bid),
+        )
+        await call.answer("Экспорт подготовлен на Master")
     except Exception as exc:
         await call.answer("Ошибка экспорта", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
@@ -536,18 +538,18 @@ async def restore_export_nginx(call: CallbackQuery):
     try:
         path = _backup_by_id(bid)
         out = await asyncio.to_thread(restore_manager.export_nginx_bundle, path)
-        await call.message.answer_document(
-            FSInputFile(out),
-            caption=(
-                "nginx/ из резервной копии. Автоматически НЕ применяется: восстанови вручную, затем обязательно `nginx -t` перед reload."
-            ),
-        )
-        try:
-            out.unlink()
-        except OSError:
-            pass
         await audit_from_call(db, call, "restore.export_nginx", target_type="backup", target_id=path.name)
-        await call.answer()
+        await render_callback(
+            call,
+            (
+                "✅ nginx/ bundle подготовлен только на Master.\n"
+                f"Файл: data/restore/exports/{out.name}\n\n"
+                "🔐 Bundle не отправляется через Telegram. Забери его с host filesystem по защищённому каналу. "
+                "Автоматически НЕ применяется: после ручного восстановления обязательно выполни `nginx -t` перед reload."
+            ),
+            reply_markup=_restore_back(bid),
+        )
+        await call.answer("Экспорт подготовлен на Master")
     except Exception as exc:
         await call.answer("Ошибка экспорта", show_alert=True)
         await render_callback(call, f"🔴 {type(exc).__name__}: {exc}", reply_markup=_restore_back(bid))
