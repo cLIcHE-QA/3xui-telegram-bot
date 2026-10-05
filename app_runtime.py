@@ -3,7 +3,6 @@ import logging
 import time
 from datetime import datetime, timedelta, timezone
 from aiogram import Bot, Dispatcher
-from aiogram.types import FSInputFile
 
 from backup_manager import BackupManager
 from config import load_settings
@@ -102,19 +101,6 @@ async def automatic_backup_loop(bot: Bot):
                     logging.error("Off-site backup failed: %s", offsite_detail)
                 else:
                     logging.info("Off-site backup %s: %s", offsite_status, result.info.path.name)
-            if settings.backup_send_to_admins:
-                for admin_id in settings.admin_telegram_ids:
-                    try:
-                        await bot.send_document(
-                            admin_id,
-                            FSInputFile(result.info.path),
-                            caption=(
-                                "💾 Ежедневный backup 3x-ui bot. "
-                                "Архив содержит секреты."
-                            ),
-                        )
-                    except Exception:
-                        logging.exception("Could not send automatic backup to admin %s", admin_id)
         except asyncio.CancelledError:
             duration_ms = int((time.monotonic() - started) * 1000)
             await db.finish_job_run(
