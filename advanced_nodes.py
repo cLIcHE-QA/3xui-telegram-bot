@@ -15,7 +15,7 @@ from config import load_settings
 from db import Database
 from node_ui import node_display_name
 from system_backup import SystemBackupService
-from xui import XUIClient, XUIError
+from xui import XUIClient, XUIError, XUIMutationError
 from versions_updates import show_panel_screen
 
 settings = load_settings()
@@ -388,6 +388,38 @@ async def node_delete_run(call: CallbackQuery):
             db, call, "node.delete", target_type="node", target_id=node_id,
             details=f"name={name}",
         )
+    except XUIMutationError as exc:
+        if exc.uncertain:
+            try:
+                await xui.node_get(node_id)
+            except XUIError:
+                await audit_from_call(
+                    db, call, "node.delete", target_type="node", target_id=node_id,
+                    details=f"name={name}; readback=absent; uncertain_resolved=success",
+                )
+                await call.answer("Нода удалена")
+                await render_callback(
+                    call,
+                    f"✅ Нода {name} удалена из Master. Результат подтверждён read-back после потерянного ответа.",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="⬅ Ноды", callback_data="admin:nodes")],
+                    ]),
+                )
+                return
+            await audit_from_call(
+                db, call, "node.delete.unknown", target_type="node", target_id=node_id,
+                details=f"code={exc.code}; mutation_not_retried=true; readback=present",
+                success=False,
+            )
+            await call.answer("Итог удаления неизвестен", show_alert=True)
+            await render_callback(
+                call,
+                "🟡 Ответ 3x-ui потерян. Mutation не повторялась; нода всё ещё видна при read-back. "
+                "Обнови список и проверь состояние перед любым новым удалением.",
+                reply_markup=_back(node_id),
+            )
+            return
+        raise
     except XUIError as exc:
         await audit_from_call(
             db, call, "node.delete", target_type="node", target_id=node_id,
