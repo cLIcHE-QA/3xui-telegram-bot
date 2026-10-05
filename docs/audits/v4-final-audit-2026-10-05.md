@@ -108,8 +108,9 @@ Closure: inventory all state-changing calls, move them to no-retry mutation hand
 Progress evidence:
 - transport phase #250 moved the state-changing 3x-ui surface to the explicit one-shot mutation boundary;
 - destructive phase #252 added fail-closed absence read-back for user/inbound/node delete without replay;
-- phase 3 covers deterministic field updates: node rename, inbound enable/disable and user expiry/traffic/flow only resolve uncertain success when a read-only post-condition matches; unavailable/mismatched read-back remains `unknown` with `mutation_not_retried=true`.
-- A-003 remains open until create/reset/bulk/provisioning paths and production acceptance are completed.
+- phase 3 (#253) covers deterministic field updates: node rename, inbound enable/disable and user expiry/traffic/flow only resolve uncertain success when a read-only post-condition matches; unavailable/mismatched read-back remains `unknown` with `mutation_not_retried=true`;
+- phase 4 covers the remaining handler/service classes: provisioning attach/detach/limits/flow, bulk enable/disable/extend/reset, plan/apply/extend/IP/HWID/subscription mutations, manual inbound membership, node/inbound/client create, inbound full updates/sync and maintenance. Create/update success after a lost response requires an exact or unique read-only post-condition; traffic reset remains `unknown` because a live counter cannot provide a stable proof of reset.
+- A-003 remains open until phase-4 CI/merge, patch release and targeted production acceptance are completed.
 
 ### A-004 — admin chat boundary
 
@@ -213,4 +214,4 @@ Each remediation is a narrowly scoped v4 fix under the active feature freeze. Fi
 
 - **2026-10-05 · A-002 / #235:** implementation PR #249 открыт. Built-in aiohttp access log для `/compat/{sub_id}` отключается, canonical Nginx `/compat/` route получает `access_log off`, logging contract закрепляется regression test. Finding остаётся **Open / acceptance pending** до patch release, deployment, targeted raw-log smoke и rotation известных exposed test credentials.
 
-- **2026-10-05 · A-003 / #236:** phase-1 PR #250 merged (`d4178af779e344f757ee4bed27cc43c675c32794`): все инвентаризированные state-changing node/inbound/client/importDB calls используют единый one-shot no-redirect mutation boundary, Disaster Recovery сохраняет uncertain importDB как `unknown` без replay. Phase-2 отдельно добавляет read-back resolution для destructive user/inbound/node delete: доказанное отсутствие после lost response считается подтверждённым success, иначе состояние остаётся `unknown` с `mutation_not_retried=true`. Finding остаётся **Open** до завершения handler/service review, patch release и production acceptance.
+- **2026-10-05 · A-003 / #236:** phase-1 PR #250 merged (`d4178af779e344f757ee4bed27cc43c675c32794`): все инвентаризированные state-changing node/inbound/client/importDB calls используют единый one-shot no-redirect mutation boundary, Disaster Recovery сохраняет uncertain importDB как `unknown` без replay. Phase-2 PR #252 добавил fail-closed read-back для destructive user/inbound/node delete; phase-3 PR #253 — post-condition для deterministic field updates. Phase-4 implementation расширяет ту же semantics на provisioning, bulk, create/reset, manual membership и оставшиеся node/inbound/client handlers; нестабильные traffic-reset post-conditions намеренно не объявляются success. Finding остаётся **Open** до зелёного phase-4 PR, patch release и targeted production acceptance.
