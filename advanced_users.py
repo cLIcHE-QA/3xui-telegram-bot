@@ -2042,13 +2042,26 @@ async def user_plan_apply_run(call: CallbackQuery):
         await call.answer("Тариф не найден.", show_alert=True)
         return
     expiry = int((time.time() + max(0, plan.duration_days) * 86400) * 1000) if plan.duration_days else 0
+    changes = {
+        "expiryTime": expiry,
+        "totalGB": max(0, plan.traffic_gb) * 1024**3,
+        "limitIp": max(0, plan.ip_limit),
+    }
     try:
-        await xui.update_client(
-            rec.email,
-            expiryTime=expiry,
-            totalGB=max(0, plan.traffic_gb) * 1024**3,
-            limitIp=max(0, plan.ip_limit),
-        )
+        confirmed, evidence = await _update_client_with_readback(rec.email, **changes)
+        if not confirmed:
+            await audit_from_call(
+                db, call, "user.plan.apply.unknown", target_type="user", target_id=rec.email,
+                details=f"plan_id={plan.id}; {evidence}", success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог применения лимитов неизвестен. Mutation не повторялась; "
+                "локальные значения не изменены.",
+                reply_markup=back_plan(tg_id),
+            )
+            await call.answer()
+            return
         await db.update_expiry(tg_id, expiry)
         if plan.server_group_id:
             await db.set_user_server_group(tg_id, plan.server_group_id)
@@ -2056,16 +2069,18 @@ async def user_plan_apply_run(call: CallbackQuery):
             db, call, "user.plan.apply", target_type="user", target_id=rec.email,
             details=(
                 f"plan_id={plan.id}; expiry={expiry}; traffic_gb={plan.traffic_gb}; "
-                f"limit_ip={plan.ip_limit}; server_group_id={plan.server_group_id}"
+                f"limit_ip={plan.ip_limit}; server_group_id={plan.server_group_id}; {evidence}"
             ),
         )
-        await render_callback(call, 
-            f"✅ Тариф «{plan.name}» применён к лимитам 3x-ui.", reply_markup=back_plan(tg_id)
+        await render_callback(
+            call,
+            f"✅ Тариф «{plan.name}» применён к лимитам 3x-ui.",
+            reply_markup=back_plan(tg_id),
         )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.plan.apply", target_type="user", target_id=rec.email,
-            details=f"error={exc}", success=False,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_plan(tg_id))
     await call.answer()
@@ -3412,7 +3427,22 @@ async def admin_extend(call: CallbackQuery):
         now_ms = int(time.time() * 1000)
         base = max(current, now_ms)
         new_expiry = base + 30 * 86400 * 1000
-        await xui.update_client(rec.email, expiryTime=new_expiry, enable=True)
+        confirmed, evidence = await _update_client_with_readback(
+            rec.email, expiryTime=new_expiry, enable=True
+        )
+        if not confirmed:
+            await audit_from_call(
+                db, call, "user.extend.unknown", target_type="user", target_id=rec.email,
+                details=evidence, success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог продления неизвестен. Mutation не повторялась; "
+                "локальный срок не изменён.",
+                reply_markup=back_expiry(tg_id),
+            )
+            await call.answer()
+            return
         await db.update_expiry(tg_id, new_expiry)
         await audit_from_call(
             db,
@@ -3420,7 +3450,7 @@ async def admin_extend(call: CallbackQuery):
             "user.extend",
             target_type="user",
             target_id=rec.email,
-            details=f"+30 days; expiry={new_expiry}",
+            details=f"+30 days; expiry={new_expiry}; {evidence}",
         )
         await render_callback(
             call,
@@ -3434,7 +3464,7 @@ async def admin_extend(call: CallbackQuery):
             "user.extend",
             target_type="user",
             target_id=rec.email,
-            details=f"3x-ui error: {exc}",
+            details=f"error={type(exc).__name__}",
             success=False,
         )
         await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_expiry(tg_id))
