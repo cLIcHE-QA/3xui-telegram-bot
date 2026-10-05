@@ -20,7 +20,7 @@ from node_ui import node_display_name
 from restore_manager import BackupInspection, RestoreError, RestoreManager
 from system_backup import SystemBackupService
 from ui_time import format_datetime, format_short_datetime
-from xui import XUIClient, XUIError
+from xui import XUIClient, XUIError, XUIMutationError
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -491,6 +491,36 @@ async def restore_confirm_message(message: Message, state: FSMContext):
             return
 
         raise RestoreError("Неизвестное действие восстановления")
+    except XUIMutationError as exc:
+        status = "unknown" if exc.uncertain else "failed"
+        audit_action = "restore.unknown" if exc.uncertain else "restore.failed"
+        await asyncio.to_thread(restore_manager.append_history, {
+            "status": status, "kind": action or "unknown", "backup_id": bid,
+            "actor_id": message.from_user.id,
+            "error": f"{type(exc).__name__}: {exc}",
+            "mutation_not_retried": True,
+        })
+        await audit_from_message(
+            db,
+            message,
+            audit_action,
+            target_type="backup",
+            target_id=bid,
+            details=(
+                f"action={action}; code={exc.code}; uncertain={exc.uncertain}; "
+                "mutation_not_retried=true"
+            ),
+            success=False,
+        )
+        if exc.uncertain:
+            text = (
+                "🟡 Итог importDB неизвестен. Mutation не повторялась. "
+                "Не запускай restore повторно вслепую: сначала проверь состояние Panel API, "
+                "версию/данные 3x-ui и сохранённую rescue-копию."
+            )
+        else:
+            text = f"🔴 Восстановление отклонено 3x-ui: {exc}"
+        await render_input(message, text, reply_markup=_restore_back(bid))
     except Exception as exc:
         await asyncio.to_thread(restore_manager.append_history, {
             "status": "failed", "kind": action or "unknown", "backup_id": bid,
