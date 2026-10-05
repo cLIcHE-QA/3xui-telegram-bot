@@ -2609,6 +2609,54 @@ async def user_sub_rotate_run(call: CallbackQuery):
     await call.answer()
 
 
+async def _users_page_view(page: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+    users = await db.list_users()
+    pages = max(1, (len(users) + USER_LIST_PAGE_SIZE - 1) // USER_LIST_PAGE_SIZE)
+    page = min(max(0, int(page)), pages - 1)
+    visible = users[page * USER_LIST_PAGE_SIZE:(page + 1) * USER_LIST_PAGE_SIZE]
+
+    rows: list[list[InlineKeyboardButton]] = []
+    for user in visible:
+        profile = await db.get_user_profile(user.telegram_id)
+        rows.append([InlineKeyboardButton(
+            text=f"👤 {user_label(user, profile)} · TG {user.telegram_id}",
+            callback_data=f"admin:u:{user.telegram_id}",
+        )])
+
+    if pages > 1:
+        nav: list[InlineKeyboardButton] = []
+        if page > 0:
+            nav.append(InlineKeyboardButton(text="◀️", callback_data=f"admin:users:page:{page - 1}"))
+        nav.append(InlineKeyboardButton(text=f"{page + 1}/{pages}", callback_data="admin:users:noop"))
+        if page + 1 < pages:
+            nav.append(InlineKeyboardButton(text="▶️", callback_data=f"admin:users:page:{page + 1}"))
+        rows.append(nav)
+
+    if role in {"support", "admin", "owner"}:
+        rows.append([
+            InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search"),
+            InlineKeyboardButton(text="➕ Создать", callback_data="admin:users:create"),
+        ])
+        rows.append([
+            InlineKeyboardButton(text="☑️ Массовые действия", callback_data="admin:users:bulk"),
+            InlineKeyboardButton(text="🚀 Согласовать всех", callback_data="admin:provision:all:ask"),
+        ])
+    else:
+        rows.append([InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search")])
+    rows.append([
+        InlineKeyboardButton(text="👥 Группы пользователей", callback_data="admin:usergroups"),
+        InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats"),
+    ])
+    rows.append([InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")])
+
+    text = (
+        "👥 Пользователи\n\n"
+        f"Пользователей: {len(users)}\n"
+        f"Страница: {page + 1}/{pages}"
+    )
+    return text, InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 @advanced_users_router.callback_query(F.data == "admin:users")
 async def admin_users(call: CallbackQuery, state: FSMContext):
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
