@@ -209,11 +209,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:usergroup:deleteask:", "admin:usergroup:delete:",
     )
     + _rules("backups.view", "exact", "admin:backups")
-    + _rules(
-        "backups.manage",
-        "exact",
-        "admin:backup:create", "admin:backup:botdb", "admin:backup:full",
-    )
+    + _rules("backups.manage", "exact", "admin:backup:create")
     + _rules(
         "nodes.view",
         "exact",
