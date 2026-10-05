@@ -4257,13 +4257,18 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
         return
     try:
         details = ""
+        failed: dict[int, str] = {}
+        unknown: dict[int, str] = {}
         if action == "extend30":
             result = await xui.bulk_adjust_clients(emails, add_days=30)
             for rec in records:
                 try:
                     obj = await xui.get_client(rec.email)
                     client = obj.get("client", obj)
-                    await db.update_expiry(rec.telegram_id, int(client.get("expiryTime") or rec.expiry_time))
+                    await db.update_expiry(
+                        rec.telegram_id,
+                        int(client.get("expiryTime") or rec.expiry_time),
+                    )
                 except XUIError:
                     pass
             details = str(result.get("obj") or {})[:1000]
@@ -4286,13 +4291,14 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
                 strict=False,
             )
             failed = summary.get("failed") or {}
+            unknown = summary.get("unknown") or {}
             details = (
                 f"ok={summary.get('ok')}; failed={len(failed)}; "
-                f"attached={summary.get('attached')}"
+                f"unknown={len(unknown)}; attached={summary.get('attached')}"
             )
             message = (
                 "✅ Безопасное согласование выполнено."
-                if not failed else
+                if not failed and not unknown else
                 "⚠️ Безопасное согласование выполнено частично."
             )
         elif action == "sync":
@@ -4311,20 +4317,124 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
             await call.answer("Неизвестное действие.", show_alert=True)
             return
         await audit_from_call(
-            db, call, f"users.bulk.{action}", target_type="users", target_id=str(len(emails)),
-            details=f"users={len(records)}; {details}",
+            db,
+            call,
+            f"users.bulk.{action}",
+            target_type="users",
+            target_id=str(len(emails)),
+            details=f"users={len(records)}; {details}; unknown={len(unknown)}",
+            success=not failed and not unknown,
         )
-        await render_callback(call, f"{message}\nПользователей: {len(emails)}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
-            [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
-        ]))
+        suffix = f"\nНеизвестно: {len(unknown)}" if unknown else ""
+        await render_callback(
+            call,
+            f"{message}\nПользователей: {len(emails)}{suffix}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+            ]),
+        )
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db,
+                call,
+                f"users.bulk.{action}",
+                target_type="users",
+                target_id=str(len(emails)),
+                details=f"code={exc.code}; certainty=failed",
+                success=False,
+            )
+            await render_callback(
+                call,
+                f"Ошибка 3x-ui: {exc}",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                    [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+                ]),
+            )
+        else:
+            readback = "not_provable"
+            resolved = False
+            if action in {"enable", "disable"}:
+                expected = action == "enable"
+                try:
+                    matches: list[bool] = []
+                    for email in emails:
+                        obj = await xui.get_client(email)
+                        client = obj.get("client", obj)
+                        matches.append(
+                            isinstance(client, dict)
+                            and _client_field_matches(client.get("enable"), expected)
+                        )
+                    resolved = bool(matches) and all(matches)
+                    readback = "match" if resolved else "mismatch"
+                except XUIError as read_exc:
+                    readback = f"unavailable:{type(read_exc).__name__}"
+            if resolved:
+                await audit_from_call(
+                    db,
+                    call,
+                    f"users.bulk.{action}",
+                    target_type="users",
+                    target_id=str(len(emails)),
+                    details=(
+                        f"users={len(records)}; readback=match; "
+                        "uncertain_resolved=success"
+                    ),
+                )
+                message = (
+                    "✅ Пользователи включены."
+                    if action == "enable"
+                    else "✅ Пользователи отключены."
+                )
+                await render_callback(
+                    call,
+                    f"{message}\nПользователей: {len(emails)}",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+                    ]),
+                )
+            else:
+                await audit_from_call(
+                    db,
+                    call,
+                    f"users.bulk.{action}.unknown",
+                    target_type="users",
+                    target_id=str(len(emails)),
+                    details=(
+                        f"users={len(records)}; code={exc.code}; "
+                        f"mutation_not_retried=true; readback={readback}"
+                    ),
+                    success=False,
+                )
+                await render_callback(
+                    call,
+                    "🟡 Итог массовой операции неизвестен. Mutation не повторялась. "
+                    "Перед любым повтором обнови состояние пользователей.",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+                    ]),
+                )
     except Exception as exc:
         await audit_from_call(
-            db, call, f"users.bulk.{action}", target_type="users", target_id=str(len(emails)),
-            details=f"error={exc}", success=False,
+            db,
+            call,
+            f"users.bulk.{action}",
+            target_type="users",
+            target_id=str(len(emails)),
+            details=f"error={type(exc).__name__}",
+            success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
-            [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
-        ]))
+        await render_callback(
+            call,
+            f"Ошибка 3x-ui: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+            ]),
+        )
     await call.answer()
+
