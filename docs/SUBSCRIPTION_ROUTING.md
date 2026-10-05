@@ -105,13 +105,16 @@ Panel restart не означает обязательный restart Xray servic
 
 Поэтому настройка routing в 3x-ui **не доказывает**, что routing metadata автоматически доходит через `/compat/{sub_id}`.
 
-До отдельного proxy implementation/acceptance действует следующий contract:
+Текущий code contract:
 
 - native 3x-ui subscription routing проверяется отдельно;
-- routing через `/compat/{sub_id}` считается непроверенным, пока необходимые client-routing metadata не добавлены в explicit allowlist и не покрыты regression/client smoke;
+- `/compat/{sub_id}` пропускает upstream `Routing` и `Routing-Enable` только для request с подтверждённым Happ User-Agent;
+- INCY и generic clients не получают Happ routing headers через compat proxy;
+- Incy routing остаётся отдельной upstream body/deeplink семантикой и не реализуется через Happ headers;
 - нельзя расширять proxy до passthrough-all headers ради routing;
-- новые response headers/metadata добавляются только явным allowlist с проверкой privacy и cross-client semantics;
-- Happ и Incy проверяются независимо: metadata одного client integration не должна случайно применяться другим клиентом.
+- новые response headers/metadata добавляются только явным allowlist с проверкой privacy и cross-client semantics.
+
+Наличие implementation и regression tests не заменяет production acceptance: после deployment нужно сравнить native и compat headers на test subscription и затем выполнить реальный refresh в Happ.
 
 ## Проверка после настройки
 
@@ -156,20 +159,20 @@ Acceptance выполняется на отдельном test user/subscription
 - полный remote JSON не сохраняется в audit/job history;
 - в audit достаточно bounded technical state без query/secrets.
 
-## Regression contract для будущего proxy support
+## Regression contract для routing proxy support
 
-Если routing metadata будет добавляться в `subscription_proxy.py`, минимальный gate:
+Для client-scoped routing metadata действует минимальный gate:
 
 1. существующие raw subscription transformations не меняются;
 2. routing headers/metadata добавляются только explicit allowlist;
-3. Happ получает только Happ-compatible routing semantics;
-4. Incy получает только Incy-compatible routing semantics;
-5. обычный клиент без соответствующей capability не получает неожиданный routing payload;
-6. HWID/device forwarding остаётся без изменений;
-7. unknown `sub_id` по-прежнему fail closed;
-8. redirects не приводят к утечке client/device headers;
-9. logs/audit не содержат routing body, subscription URL, `sub_id` или HWID;
-10. native и compat client smoke проходят на контролируемом test user;
+3. Happ получает `Routing` / `Routing-Enable` только при Happ User-Agent;
+4. INCY и generic clients не получают Happ routing headers;
+5. HWID/device forwarding остаётся без изменений;
+6. unknown `sub_id` по-прежнему fail closed;
+7. redirects не приводят к утечке client/device headers;
+8. logs/audit не содержат routing body, subscription URL, `sub_id` или HWID;
+9. native и compat header smoke проходят на контролируемом test user;
+10. реальный Happ refresh применяет profile после compat subscription update;
 11. отключение client routing возвращает прежнее subscription behavior без rotation `sub_id`.
 
-До закрытия такого gate production documentation не должна утверждать, что `/compat/{sub_id}` поддерживает Happ/Incy routing автоматически.
+До production smoke поддержка считается реализованной и regression-covered, но не production-accepted.

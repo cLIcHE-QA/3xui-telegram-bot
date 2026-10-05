@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 import logging
+import re
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import aiohttp
@@ -20,6 +21,16 @@ PASSTHROUGH_HEADERS = {
     "support-url",
     "announce",
 }
+
+# Happ routing is client-specific metadata. Never expose it through the generic
+# passthrough allowlist because other clients (notably INCY) can interpret the
+# same header with different semantics.
+HAPP_ROUTING_RESPONSE_HEADERS = {
+    "routing",
+    "routing-enable",
+}
+
+HAPP_USER_AGENT_RE = re.compile(r"\bhapp\b", re.IGNORECASE)
 
 HWID_RESPONSE_HEADERS = {
     "x-hwid-active",
@@ -137,6 +148,12 @@ def convert_vpn_to_amneziawg(text: str) -> str:
 
         out.append(f"amneziawg://{payload}{suffix}")
     return "\n".join(out)
+
+
+def _is_happ(request: web.Request) -> bool:
+    """Match the upstream 3x-ui Happ UA boundary without matching e.g. Happy."""
+    user_agent = request.headers.get("User-Agent", "")
+    return bool(HAPP_USER_AGENT_RE.search(user_agent))
 
 
 def _is_shadowrocket(request: web.Request) -> bool:
@@ -324,11 +341,20 @@ class SubscriptionProxy:
             ) as resp:
                 return resp.status, await resp.read(), dict(resp.headers)
 
-    def _response_headers(self, upstream_headers: dict[str, str]) -> dict[str, str]:
+    def _response_headers(
+        self,
+        upstream_headers: dict[str, str],
+        *,
+        include_happ_routing: bool = False,
+    ) -> dict[str, str]:
+        allowed_headers = PASSTHROUGH_HEADERS | HWID_RESPONSE_HEADERS
+        if include_happ_routing:
+            allowed_headers = allowed_headers | HAPP_ROUTING_RESPONSE_HEADERS
+
         result = {
             key: value
             for key, value in upstream_headers.items()
-            if key.lower() in PASSTHROUGH_HEADERS or key.lower() in HWID_RESPONSE_HEADERS
+            if key.lower() in allowed_headers
         }
         result["Cache-Control"] = "no-store"
         result["X-Subscription-Compat"] = "3x-ui-awg-to-incy"
@@ -442,7 +468,10 @@ class SubscriptionProxy:
 
         body = _encode_like_upstream(converted, was_base64)
 
-        headers = self._response_headers(upstream_headers)
+        headers = self._response_headers(
+            upstream_headers,
+            include_happ_routing=_is_happ(request),
+        )
         headers["Content-Type"] = "text/plain; charset=utf-8"
         return web.Response(body=body, headers=headers)
 

@@ -135,6 +135,40 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.headers["Cache-Control"], "no-store")
         self.assertNotIn("X-Secret", response.headers)
 
+    async def test_happ_routing_headers_are_forwarded_only_to_happ(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
+        proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
+        proxy._fetch = AsyncMock(
+            return_value=(
+                200,
+                b"vless://id@example.test:443?type=tcp#VLESS",
+                {
+                    "Routing-Enable": "true",
+                    "Routing": "happ://routing/onadd/https://routing.example.test/profile.json",
+                    "X-Secret": "must-not-pass",
+                },
+            )
+        )
+
+        happ = await proxy.subscription(
+            self.request("known", headers={"User-Agent": "Happ/5.5.0/ios"})
+        )
+        self.assertEqual(happ.headers["Routing-Enable"], "true")
+        self.assertTrue(happ.headers["Routing"].startswith("happ://routing/onadd/"))
+        self.assertNotIn("X-Secret", happ.headers)
+
+        incy = await proxy.subscription(
+            self.request("known", headers={"User-Agent": "INCY/1.2.3/Android"})
+        )
+        self.assertNotIn("Routing-Enable", incy.headers)
+        self.assertNotIn("Routing", incy.headers)
+
+        generic = await proxy.subscription(
+            self.request("known", headers={"User-Agent": "HappyClient/1.0"})
+        )
+        self.assertNotIn("Routing-Enable", generic.headers)
+        self.assertNotIn("Routing", generic.headers)
+
     async def test_raw_client_forwards_reviewed_hwid_headers_only(self):
         db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=object()))
         proxy = SubscriptionProxy(db, "https://upstream.example.invalid/sub/{sub_id}")
