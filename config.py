@@ -222,7 +222,6 @@ class Settings:
     backup_dir: str
     backup_keep: int
     backup_hour_utc: int
-    backup_send_to_admins: bool
     offsite_backup_enabled: bool
     offsite_backup_bucket: str
     offsite_backup_prefix: str
@@ -382,7 +381,6 @@ def load_settings() -> Settings:
         backup_dir=os.getenv("BACKUP_DIR", "/app/data/backups"),
         backup_keep=max(1, int(os.getenv("BACKUP_KEEP", "14"))),
         backup_hour_utc=max(0, min(23, int(os.getenv("BACKUP_HOUR_UTC", "2")))),
-        backup_send_to_admins=env_bool(os.getenv("BACKUP_SEND_TO_ADMINS"), False),
         offsite_backup_enabled=offsite_enabled,
         offsite_backup_bucket=offsite_bucket,
         offsite_backup_prefix=offsite_prefix,
