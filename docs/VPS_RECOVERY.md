@@ -23,6 +23,24 @@ Full Backup может содержать:
 
 Локальные каталоги `/opt/3xui-bot/deploy-backups` полезны для rollback, но **не являются disaster-recovery копией**, если теряется весь VPS.
 
+## Последний проверенный recovery drill
+
+Production off-site recovery drill успешно завершён **2026-10-05** на runtime release `v4.26.4`.
+
+Проверенная цепочка:
+
+- manual Full Backup завершился отдельным `backup.offsite=success`;
+- внешняя encrypted copy прошла обязательный upload → HEAD → download → AES-256-GCM authentication/decrypt → plaintext SHA-256/size → повторный deep Full Backup validation round trip;
+- отдельный recovery VPS получил latest canonical object через host-side recovery CLI с результатом `OFFSITE_RECOVERY_OK`;
+- восстановленный archive имел `manifest.version=4.26.4`;
+- bootstrap smoke на recovery VPS восстановил `bot.env` и `bot.sqlite3`, запустил bot container с `APP_VERSION=4.26.4`; health и SQLite quick-check завершились `ok`;
+- финальный generic upstream TCP probe с изолированного recovery VPS получил timeout до production subscription endpoint. Это не было ошибкой backup/restore: DNS resolution работал, а сетевой доступ replacement Master к production upstream относится к отдельной инфраструктурной подготовке нового VPS;
+- recovery bot после smoke был остановлен до возврата production polling, production Master возвращён в состояние Health/DB/3x-ui connectivity `ok`, временное recovery окружение очищено.
+
+Этот drill подтверждает **off-site backup/read/decrypt/deep-validation и bot-state restore path**, но не означает, что bootstrap автоматически восстанавливает 3x-ui, DNS/TLS/firewall/nginx/MTProxy, Host Control Agent или direct-node network policy. Эти слои по-прежнему выполняются отдельно по разделам ниже.
+
+Drill не публикует bucket credentials, encryption key, bot/panel tokens, archive contents или иные production secrets. Канонический transport для secret-bearing recovery artifacts — только защищённый host-side/off-site path; Telegram/GitHub не используются как backup storage.
+
 ## Что bootstrap-скрипт НЕ делает
 
 `scripts/bootstrap-bot-from-backup.sh` намеренно не:
