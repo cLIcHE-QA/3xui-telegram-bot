@@ -1031,14 +1031,26 @@ async def inbound_clone_start(call: CallbackQuery):
     await call.answer()
 
 
-async def _create_clone(call: CallbackQuery, iid: int, target_node: int, port: int) -> None:
+async def _create_clone(
+    call: CallbackQuery,
+    iid: int,
+    target_node: int,
+    port: int,
+) -> bool:
     ib = await xui.inbound_get(iid)
     payload = _clone_payload(ib, port=port, node_id=(target_node or None))
-    await xui.inbound_add(payload)
+    confirmed, evidence = await _inbound_add_with_readback(payload)
+    if not confirmed:
+        await audit_from_call(
+            db, call, "inbound.clone.unknown", target_type="inbound", target_id=str(iid),
+            details=f"target_node={target_node}; port={port}; {evidence}", success=False,
+        )
+        return False
     await audit_from_call(
         db, call, "inbound.clone", target_type="inbound", target_id=str(iid),
-        details=f"target_node={target_node}; port={port}",
+        details=f"target_node={target_node}; port={port}; {evidence}",
     )
+    return True
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:clonetarget:"))
@@ -1052,7 +1064,13 @@ async def inbound_clone_target(call: CallbackQuery, state: FSMContext):
         ib = await xui.inbound_get(iid)
         source_port = int(ib.get("port") or 0)
         if await _port_free(target_node, source_port):
-            await _create_clone(call, iid, target_node, source_port)
+            confirmed = await _create_clone(call, iid, target_node, source_port)
+            if not confirmed:
+                await call.answer(
+                    "Итог создания клона неизвестен; mutation не повторялась. Проверь список Inbounds.",
+                    show_alert=True,
+                )
+                return
             await call.answer("Клон создан отключённым.")
             text, kb = await inbound_list_view()
             await render_callback(call, text, reply_markup=kb)
@@ -1088,15 +1106,31 @@ async def inbound_clone_port(message: Message, state: FSMContext):
         await render_input(message, "Этот порт уже занят на выбранном сервере.", reply_markup=inbound_cancel_keyboard(iid))
         return
     try:
-        # This path has no CallbackQuery for audit, so record the mutation directly.
         ib = await xui.inbound_get(iid)
-        await xui.inbound_add(_clone_payload(ib, port=port, node_id=(target_node or None)))
+        payload = _clone_payload(ib, port=port, node_id=(target_node or None))
+        confirmed, evidence = await _inbound_add_with_readback(payload)
+        if not confirmed:
+            await audit_from_message(
+                db, message, "inbound.clone.unknown", target_type="inbound", target_id=str(iid),
+                details=f"target_node={target_node}; port={port}; {evidence}", success=False,
+            )
+            await state.clear()
+            await render_input(
+                message,
+                "🟡 Итог создания клона неизвестен. Mutation не повторялась; "
+                "проверь список Inbounds перед новым запуском.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
+                ]]),
+            )
+            return
         await audit_from_message(
             db, message, "inbound.clone", target_type="inbound", target_id=str(iid),
-            details=f"target_node={target_node}; port={port}",
+            details=f"target_node={target_node}; port={port}; {evidence}",
         )
         await state.clear()
-        await render_input(message, 
+        await render_input(
+            message,
             "✅ Клон создан отключённым.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
@@ -1232,14 +1266,15 @@ async def template_deploy_start(call: CallbackQuery):
     await call.answer()
 
 
-async def _deploy_template(tid: int, target_node: int, port: int) -> None:
+async def _deploy_template(tid: int, target_node: int, port: int) -> tuple[bool, str]:
     t = await db.get_inbound_template(tid)
     if not t:
         raise ValueError("Шаблон не найден")
     payload = json.loads(t.payload_json)
     if not isinstance(payload, dict):
         raise ValueError("Некорректные данные шаблона")
-    await xui.inbound_add(_deploy_payload(payload, port=port, node_id=(target_node or None)))
+    mutation_payload = _deploy_payload(payload, port=port, node_id=(target_node or None))
+    return await _inbound_add_with_readback(mutation_payload)
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inboundtemplate:target:"))
@@ -1261,10 +1296,22 @@ async def template_deploy_target(call: CallbackQuery, state: FSMContext):
         return
     try:
         if port and await _port_free(target_node, port):
-            await _deploy_template(tid, target_node, port)
+            confirmed, evidence = await _deploy_template(tid, target_node, port)
+            if not confirmed:
+                await audit_from_call(
+                    db, call, "inbound_template.deploy.unknown",
+                    target_type="inbound_template", target_id=str(tid),
+                    details=f"target_node={target_node}; port={port}; {evidence}",
+                    success=False,
+                )
+                await call.answer(
+                    "Итог развёртывания неизвестен; mutation не повторялась. Проверь список Inbounds.",
+                    show_alert=True,
+                )
+                return
             await audit_from_call(
                 db, call, "inbound_template.deploy", target_type="inbound_template",
-                target_id=str(tid), details=f"target_node={target_node}; port={port}",
+                target_id=str(tid), details=f"target_node={target_node}; port={port}; {evidence}",
             )
             await call.answer("Развёртывание завершено. Inbound отключён.")
             text, kb = await inbound_list_view()
@@ -1301,13 +1348,30 @@ async def template_deploy_port(message: Message, state: FSMContext):
         await render_input(message, "Этот порт уже занят на выбранном сервере.", reply_markup=template_cancel_keyboard(tid))
         return
     try:
-        await _deploy_template(tid, target_node, port)
+        confirmed, evidence = await _deploy_template(tid, target_node, port)
+        if not confirmed:
+            await audit_from_message(
+                db, message, "inbound_template.deploy.unknown",
+                target_type="inbound_template", target_id=str(tid),
+                details=f"target_node={target_node}; port={port}; {evidence}", success=False,
+            )
+            await state.clear()
+            await render_input(
+                message,
+                "🟡 Итог развёртывания неизвестен. Mutation не повторялась; "
+                "проверь список Inbounds перед новым запуском.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
+                ]]),
+            )
+            return
         await audit_from_message(
             db, message, "inbound_template.deploy", target_type="inbound_template",
-            target_id=str(tid), details=f"target_node={target_node}; port={port}",
+            target_id=str(tid), details=f"target_node={target_node}; port={port}; {evidence}",
         )
         await state.clear()
-        await render_input(message, 
+        await render_input(
+            message,
             "✅ Развёртывание завершено. Новый Inbound отключён.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
