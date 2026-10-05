@@ -855,17 +855,63 @@ async def inbound_sync_run(call: CallbackQuery):
             db, call, "inbound.sync_users", target_type="inbound", target_id=str(iid),
             details=f"users={len(emails)}; result={str(obj)[:800]}",
         )
-        await render_callback(call, 
+        await render_callback(
+            call,
             f"✅ Синхронизация завершена для Inbound #{iid}.\nПользователей обработано: {len(emails)}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")
             ]]),
         )
         await call.answer()
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db, call, "inbound.sync_users", target_type="inbound", target_id=str(iid),
+                details=f"code={exc.code}; certainty=failed", success=False,
+            )
+            await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
+            return
+        readback = "match"
+        try:
+            for email in emails:
+                obj = await xui.get_client(email)
+                ids = {int(x) for x in (obj.get("inboundIds") or [])}
+                if iid not in ids:
+                    readback = "mismatch"
+                    break
+        except XUIError as read_exc:
+            readback = f"unavailable:{type(read_exc).__name__}"
+        if readback == "match":
+            await audit_from_call(
+                db, call, "inbound.sync_users", target_type="inbound", target_id=str(iid),
+                details=(
+                    f"users={len(emails)}; readback=match; "
+                    "uncertain_resolved=success"
+                ),
+            )
+            await render_callback(
+                call,
+                f"✅ Синхронизация подтверждена read-back для Inbound #{iid}.\n"
+                f"Пользователей: {len(emails)}",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")
+                ]]),
+            )
+            await call.answer()
+            return
+        await audit_from_call(
+            db, call, "inbound.sync_users.unknown", target_type="inbound", target_id=str(iid),
+            details=(
+                f"users={len(emails)}; code={exc.code}; "
+                f"mutation_not_retried=true; readback={readback}"
+            ),
+            success=False,
+        )
+        await call.answer("Итог синхронизации неизвестен; mutation не повторялась.", show_alert=True)
     except XUIError as exc:
         await audit_from_call(
             db, call, "inbound.sync_users", target_type="inbound", target_id=str(iid),
-            details=str(exc)[:500], success=False,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
@@ -892,35 +938,31 @@ async def inbound_reset_run(call: CallbackQuery):
     iid = int(call.data.rsplit(":", 1)[-1])
     try:
         await xui.inbound_reset_traffic(iid)
-        await audit_from_call(db, call, "inbound.reset_traffic", target_type="inbound", target_id=str(iid))
+        await audit_from_call(
+            db, call, "inbound.reset_traffic", target_type="inbound", target_id=str(iid)
+        )
         await call.answer("Трафик обнулён.")
         text, kb = await _inbound_card(iid)
         await render_callback(call, text, reply_markup=kb)
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db, call, "inbound.reset_traffic", target_type="inbound", target_id=str(iid),
+                details=f"code={exc.code}; certainty=failed", success=False,
+            )
+            await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
+            return
+        await audit_from_call(
+            db, call, "inbound.reset_traffic.unknown", target_type="inbound", target_id=str(iid),
+            details=f"code={exc.code}; mutation_not_retried=true; readback=not_provable",
+            success=False,
+        )
+        await call.answer(
+            "Итог сброса трафика неизвестен; mutation не повторялась.",
+            show_alert=True,
+        )
     except XUIError as exc:
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
-
-
-async def _target_keyboard(
-    prefix: str,
-    source_id: int,
-    *,
-    cancel_callback: str,
-) -> InlineKeyboardMarkup:
-    rows = [[InlineKeyboardButton(
-        text=f"{settings.master_flag} {settings.master_name}",
-        callback_data=f"{prefix}:{source_id}:0",
-    )]]
-    try:
-        nodes = await xui.nodes_list()
-    except XUIError:
-        nodes = []
-    for node in nodes:
-        if node.enable and node.status == "online":
-            rows.append([InlineKeyboardButton(
-                text=f"🌍 {node_display_name(node.name)}", callback_data=f"{prefix}:{source_id}:{node.id}"
-            )])
-    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data=cancel_callback)])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:clone:"))
