@@ -22,13 +22,98 @@ from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
 from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
-from provisioning import ProvisioningEngine
+from provisioning import ProvisioningEngine, ProvisioningUnknown
 
 settings = load_settings()
 db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 advanced_users_router = Router(name="advanced_users")
 provisioner = ProvisioningEngine(db, xui, settings)
+
+
+def _client_field_matches(actual: object, expected: object) -> bool:
+    if isinstance(expected, bool):
+        if isinstance(actual, str):
+            normalized = actual.strip().lower()
+            return normalized in {"1", "true", "yes", "on"} if expected else normalized in {"0", "false", "no", "off", ""}
+        return bool(actual) is expected
+    if isinstance(expected, int):
+        try:
+            return int(actual or 0) == expected
+        except (TypeError, ValueError):
+            return False
+    return str(actual or "") == str(expected)
+
+
+async def _update_client_with_readback(email: str, **changes: object) -> tuple[bool, str]:
+    try:
+        await xui.update_client(email, **changes)
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            readback = await xui.get_client(email)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        client = readback.get("client", readback)
+        if not isinstance(client, dict) or any(
+            not _client_field_matches(client.get(key), value)
+            for key, value in changes.items()
+        ):
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=match; uncertain_resolved=success"
+
+
+async def _membership_with_readback(
+    email: str,
+    inbound_id: int,
+    *,
+    present: bool,
+) -> tuple[bool, str]:
+    try:
+        if present:
+            await xui.attach_client(email, [inbound_id])
+        else:
+            await xui.detach_client(email, [inbound_id])
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            readback = await xui.get_client(email)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        ids = {int(x) for x in (readback.get("inboundIds") or [])}
+        if (inbound_id in ids) is not present:
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=match; uncertain_resolved=success"
+
+
+async def _flow_with_readback(email: str, flow: str) -> tuple[bool, str]:
+    try:
+        await xui.bulk_adjust_clients([email], flow=flow)
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            readback = await xui.get_client(email)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        client = readback.get("client", readback)
+        if not isinstance(client, dict) or str(client.get("flow") or "") != flow:
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=match; uncertain_resolved=success"
 
 
 class EditUserStates(StatesGroup):
