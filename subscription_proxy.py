@@ -513,7 +513,9 @@ class SubscriptionProxy:
         # Register assets before /compat/{sub_id}.
         app.router.add_get("/compat/assets/{tail:.*}", self.asset)
         app.router.add_get("/compat/{sub_id}", self.subscription)
-        self.runner = web.AppRunner(app, access_log=LOG)
+        # /compat/{sub_id} carries a bearer-like subscription credential in the URI.
+        # Never let aiohttp's raw access logger persist that path.
+        self.runner = web.AppRunner(app, access_log=None)
         await self.runner.setup()
         site = web.TCPSite(self.runner, self.host, self.port)
         await site.start()

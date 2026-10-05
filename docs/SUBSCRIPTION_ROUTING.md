@@ -306,7 +306,7 @@ Acceptance выполняется на отдельном test user/subscription
 5. HWID/device forwarding остаётся без изменений;
 6. unknown `sub_id` по-прежнему fail closed;
 7. redirects не приводят к утечке client/device headers;
-8. logs/audit не содержат routing body, subscription URL, `sub_id` или HWID;
+8. logs/audit не содержат routing body, subscription URL, `sub_id` или HWID; встроенный aiohttp access log выключен, а внешний reverse proxy для `/compat/` не пишет secret-bearing request URI/`$request_uri`;
 9. native и compat header smoke проходят на контролируемом test user;
 10. реальный Happ refresh применяет profile после compat subscription update;
 11. отключение client routing возвращает прежнее subscription behavior без rotation `sub_id`.

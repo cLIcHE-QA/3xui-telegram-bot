@@ -248,6 +248,9 @@ Docker Compose публикует proxy только на loopback Master:
 
 ~~~nginx
 location /compat/ {
+    # URI содержит bearer-like sub_id: не сохраняй request URI в access logs.
+    access_log off;
+
     proxy_pass http://127.0.0.1:18080;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
@@ -262,7 +265,7 @@ location /compat/ {
 curl -fsS http://127.0.0.1:18080/healthz
 ~~~
 
-Не публикуй реальный `sub_id` в issue/PR/chat.
+Не публикуй реальный `sub_id` в issue/PR/chat. Встроенный aiohttp access log для compatibility proxy отключён. На внешнем reverse proxy для `/compat/` также не включай access log с request URI/`$request_uri`: путь содержит bearer-like credential.
 
 ## Telegram surfaces
 

@@ -23,6 +23,15 @@
 3. Очистить Git history специализированным инструментом (`git filter-repo`/аналог) и force-push только после согласования.
 4. Проверить forks, CI logs, artifacts и GitHub Actions secrets.
 
+## Subscription credentials и access logs
+
+`sub_id` и полный subscription URL считаются bearer-like credentials. Compatibility path `/compat/{sub_id}` поэтому не должен попадать в raw HTTP access logs:
+
+- встроенный aiohttp access logger compatibility proxy отключён;
+- reverse proxy для `/compat/` должен использовать `access_log off` либо доказанно sanitized формат без request URI/`$request_uri`;
+- HWID/device headers и subscription identifiers не выводятся в application/audit diagnostics;
+- если действующий `sub_id` попал в raw logs/chat/issue, его следует ротировать как скомпрометированный credential.
+
 ## Host Control Agent
 
 Host-control в v4.10.0 не является каналом доступа к VPS. Security boundary:
