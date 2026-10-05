@@ -3237,35 +3237,61 @@ async def admin_provision_all_run(call: CallbackQuery):
         summary = await provisioner.provision_many([u.telegram_id for u in users], strict=False)
         duration_ms = int((time.monotonic() - started) * 1000)
         failed = summary.get("failed") or {}
-        status = "success" if not failed else "partial"
+        unknown = summary.get("unknown") or {}
+        if not failed and not unknown:
+            status = "success"
+        elif unknown and not failed and not summary.get("ok"):
+            status = "unknown"
+        else:
+            status = "partial"
+        details = (
+            f"ok={summary.get('ok')}; failed={len(failed)}; unknown={len(unknown)}; "
+            f"attached={summary.get('attached')}"
+        )
         await db.finish_job_run(
-            run_id, status=status, duration_ms=duration_ms,
-            details=f"ok={summary.get('ok')}; failed={len(failed)}; attached={summary.get('attached')}",
+            run_id, status=status, duration_ms=duration_ms, details=details,
         )
         await audit_from_call(
             db, call, "users.provision_all", target_type="users", target_id=str(len(users)),
-            details=f"ok={summary.get('ok')}; failed={len(failed)}; attached={summary.get('attached')}",
-            success=not bool(failed),
+            details=details, success=not bool(failed or unknown),
         )
         lines = [
-            "✅ Согласование завершено." if not failed else "⚠️ Согласование завершено частично.",
+            "✅ Согласование завершено." if not failed and not unknown else "⚠️ Согласование завершено частично.",
             "",
             f"Пользователей: {len(users)}",
             f"Успешно: {summary.get('ok')}",
             f"Добавлено связей Inbounds: {summary.get('attached')}",
             f"Ошибок: {len(failed)}",
+            f"Неизвестно: {len(unknown)}",
             f"Время: {duration_ms / 1000:.1f}s",
         ]
+        if unknown:
+            lines += ["", "Неопределённый outcome: mutation не повторялась."]
         if failed:
             lines += ["", "Первые ошибки:"]
             for tg_id, err in list(failed.items())[:8]:
                 lines.append(f"• TG {tg_id}: {err[:140]}")
-        await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")]]))
+        await render_callback(
+            call, "\n".join(lines),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")
+            ]]),
+        )
     except Exception as exc:
         duration_ms = int((time.monotonic() - started) * 1000)
-        await db.finish_job_run(run_id, status="failed", duration_ms=duration_ms, details=f"{type(exc).__name__}: {exc}")
-        await audit_from_call(db, call, "users.provision_all", target_type="users", details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Задание согласования завершилось ошибкой: {type(exc).__name__}: {exc}", reply_markup=users_back())
+        await db.finish_job_run(
+            run_id, status="failed", duration_ms=duration_ms,
+            details=f"{type(exc).__name__}: {exc}",
+        )
+        await audit_from_call(
+            db, call, "users.provision_all", target_type="users",
+            details=f"error={type(exc).__name__}: {exc}", success=False,
+        )
+        await render_callback(
+            call,
+            f"🔴 Задание согласования завершилось ошибкой: {type(exc).__name__}: {exc}",
+            reply_markup=users_back(),
+        )
 
 
 @advanced_users_router.callback_query(F.data == "admin:syncall:ask")
@@ -4057,21 +4083,23 @@ async def _bulk_result(
     ok: int,
     failed: dict[int, str],
     summary: str,
+    unknown: dict[int, str] | None = None,
 ) -> None:
-    details = f"ok={ok}; failed={len(failed)}"
+    unknown = unknown or {}
+    details = f"ok={ok}; failed={len(failed)}; unknown={len(unknown)}"
     await audit_from_call(
         db,
         call,
         f"users.bulk.{action}",
         target_type="users",
-        target_id=str(ok + len(failed)),
+        target_id=str(ok + len(failed) + len(unknown)),
         details=details,
-        success=not failed,
+        success=not failed and not unknown,
     )
-    status = "✅" if not failed else "⚠️"
+    status = "✅" if not failed and not unknown else "⚠️"
     await render_callback(
         call,
-        f"{status} {summary}\n\nУспешно: {ok}\nОшибок: {len(failed)}",
+        f"{status} {summary}\n\nУспешно: {ok}\nОшибок: {len(failed)}\nНеизвестно: {len(unknown)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
             [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
@@ -4150,9 +4178,13 @@ async def bulk_run_expiry(call: CallbackQuery, state: FSMContext):
     expiry = int(value)
     ok = 0
     failed: dict[int, str] = {}
+    unknown: dict[int, str] = {}
     for rec in records:
         try:
-            await xui.update_client(rec.email, expiryTime=expiry)
+            confirmed, evidence = await _update_client_with_readback(rec.email, expiryTime=expiry)
+            if not confirmed:
+                unknown[rec.telegram_id] = evidence
+                continue
             await db.update_expiry(rec.telegram_id, expiry)
             ok += 1
         except Exception as exc:
@@ -4164,6 +4196,7 @@ async def bulk_run_expiry(call: CallbackQuery, state: FSMContext):
         action="expiry",
         ok=ok,
         failed=failed,
+        unknown=unknown,
         summary=f"Срок установлен: {fmt_date(expiry)}.",
     )
     await call.answer()
@@ -4182,9 +4215,13 @@ async def bulk_run_traffic(call: CallbackQuery, state: FSMContext):
     total_bytes = int(value)
     ok = 0
     failed: dict[int, str] = {}
+    unknown: dict[int, str] = {}
     for rec in records:
         try:
-            await xui.update_client(rec.email, totalGB=total_bytes)
+            confirmed, evidence = await _update_client_with_readback(rec.email, totalGB=total_bytes)
+            if not confirmed:
+                unknown[rec.telegram_id] = evidence
+                continue
             ok += 1
         except Exception as exc:
             failed[rec.telegram_id] = type(exc).__name__
@@ -4196,6 +4233,7 @@ async def bulk_run_traffic(call: CallbackQuery, state: FSMContext):
         action="traffic",
         ok=ok,
         failed=failed,
+        unknown=unknown,
         summary=f"Лимит трафика установлен: {label}.",
     )
     await call.answer()
