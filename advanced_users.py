@@ -2225,8 +2225,23 @@ async def user_provisioning_run(call: CallbackQuery):
                 InlineKeyboardButton(text="⬅ Согласование", callback_data=f"admin:u:prov:{tg_id}")
             ]]),
         )
+    except ProvisioningUnknown as exc:
+        await audit_from_call(
+            db, call, f"user.provision.{mode}.unknown", target_type="user", target_id=rec.email,
+            details=str(exc)[:500], success=False,
+        )
+        await render_callback(
+            call,
+            "🟡 Итог согласования неизвестен. Mutation не повторялась; выполни новый preflight перед следующим запуском.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Согласование", callback_data=f"admin:u:prov:{tg_id}")
+            ]]),
+        )
     except Exception as exc:
-        await audit_from_call(db, call, f"user.provision.{mode}", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
+        await audit_from_call(
+            db, call, f"user.provision.{mode}", target_type="user", target_id=rec.email,
+            details=f"error={type(exc).__name__}: {exc}", success=False,
+        )
         await render_callback(
             call,
             f"🔴 Ошибка согласования: {type(exc).__name__}: {exc}",
@@ -2273,13 +2288,32 @@ async def user_plan_provision_run(call: CallbackQuery):
             db, call, "user.plan.provision", target_type="user", target_id=rec.email,
             details=f"plan={result.policy.plan.id if result.policy.plan else None}; attached={result.attached_ids}; remaining={result.remaining_missing_ids}",
         )
-        await render_callback(call, 
+        await render_callback(
+            call,
             f"✅ Тариф + согласование завершены.\nДобавлены: {result.attached_ids or 'нет'}\nОстались отсутствующими: {result.remaining_missing_ids or 'нет'}",
             reply_markup=back_plan(tg_id),
         )
+    except ProvisioningUnknown as exc:
+        await audit_from_call(
+            db, call, "user.plan.provision.unknown", target_type="user", target_id=rec.email,
+            details=str(exc)[:500], success=False,
+        )
+        await render_callback(
+            call,
+            "🟡 Итог применения тарифа/согласования неизвестен. Mutation не повторялась; "
+            "локальные plan limits обновляются только после подтверждённого read-back.",
+            reply_markup=back_plan(tg_id),
+        )
     except Exception as exc:
-        await audit_from_call(db, call, "user.plan.provision", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Тариф + согласование: {type(exc).__name__}: {exc}", reply_markup=back_plan(tg_id))
+        await audit_from_call(
+            db, call, "user.plan.provision", target_type="user", target_id=rec.email,
+            details=f"error={type(exc).__name__}: {exc}", success=False,
+        )
+        await render_callback(
+            call,
+            f"🔴 Тариф + согласование: {type(exc).__name__}: {exc}",
+            reply_markup=back_plan(tg_id),
+        )
     await call.answer()
 
 
@@ -2341,22 +2375,56 @@ async def user_inbound_toggle(call: CallbackQuery):
             if inbound_id in managed_current and len(managed_current) <= 1:
                 await call.answer("Нельзя отключить последний управляемый Inbound.", show_alert=True)
                 return
-            await xui.detach_client(rec.email, [inbound_id])
             action = "detach"
+            confirmed, evidence = await _membership_with_readback(
+                rec.email, inbound_id, present=False
+            )
         else:
             if inbound_id not in allowed:
                 await call.answer("Inbound не разрешён настройками бота.", show_alert=True)
                 return
-            await xui.attach_client(rec.email, [inbound_id])
-            if settings.vless_flow:
-                await xui.bulk_adjust_clients([rec.email], flow=settings.vless_flow)
             action = "attach"
+            confirmed, evidence = await _membership_with_readback(
+                rec.email, inbound_id, present=True
+            )
+        if not confirmed:
+            await audit_from_call(
+                db, call, f"user.inbound.{action}.unknown", target_type="user", target_id=rec.email,
+                details=f"inbound_id={inbound_id}; {evidence}", success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог изменения Inbound неизвестен. Mutation не повторялась; обнови состояние перед повтором.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")
+                ]]),
+            )
+            await call.answer()
+            return
+        if action == "attach" and settings.vless_flow:
+            flow_ok, flow_evidence = await _flow_with_readback(rec.email, settings.vless_flow)
+            if not flow_ok:
+                await audit_from_call(
+                    db, call, "user.inbound.attach.unknown", target_type="user", target_id=rec.email,
+                    details=f"inbound_id={inbound_id}; membership={evidence}; flow={flow_evidence}",
+                    success=False,
+                )
+                await render_callback(
+                    call,
+                    "🟡 Inbound подключён, но итог синхронизации Flow неизвестен. "
+                    "Mutation не повторялась; проверь параметры доступа.",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                        InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")
+                    ]]),
+                )
+                await call.answer()
+                return
+            evidence = f"{evidence}; flow={flow_evidence}"
         await audit_from_call(
             db, call, f"user.inbound.{action}", target_type="user", target_id=rec.email,
-            details=f"inbound_id={inbound_id}",
+            details=f"inbound_id={inbound_id}; {evidence}",
         )
         await call.answer("Обновлено.")
-        # Re-render the list as a new message so Telegram callback state stays simple.
         all_inbounds = choose_inbounds(await xui.inbound_options())
         updated = await xui.get_client(rec.email)
         now_ids = {int(x) for x in (updated.get("inboundIds") or [])}
@@ -2374,7 +2442,7 @@ async def user_inbound_toggle(call: CallbackQuery):
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.inbound.toggle", target_type="user", target_id=rec.email,
-            details=f"inbound_id={inbound_id}; error={exc}", success=False,
+            details=f"inbound_id={inbound_id}; error={type(exc).__name__}", success=False,
         )
         await render_callback(
             call,
@@ -2420,11 +2488,34 @@ async def user_reset_run(call: CallbackQuery):
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
             details=f"affected={affected}",
         )
-        await render_callback(call, f"✅ Трафик сброшен. Затронуто записей: {affected}", reply_markup=back_traffic(tg_id))
+        await render_callback(
+            call,
+            f"✅ Трафик сброшен. Затронуто записей: {affected}",
+            reply_markup=back_traffic(tg_id),
+        )
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
+                details=f"code={exc.code}; certainty=failed", success=False,
+            )
+            await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_traffic(tg_id))
+        else:
+            await audit_from_call(
+                db, call, "user.traffic.reset.unknown", target_type="user", target_id=rec.email,
+                details=f"code={exc.code}; mutation_not_retried=true; readback=not_provable",
+                success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог сброса трафика неизвестен. Счётчик может измениться сразу после reset, "
+                "поэтому read-back не считается доказательством. Mutation не повторялась.",
+                reply_markup=back_traffic(tg_id),
+            )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
-            details=f"error={exc}", success=False,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_traffic(tg_id))
     await call.answer()
