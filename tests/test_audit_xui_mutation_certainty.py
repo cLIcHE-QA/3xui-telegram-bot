@@ -181,5 +181,85 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn(unknown_marker, block)
                 self.assertEqual(block.count(mutation_call), 1)
 
+
+    def test_phase4_create_bulk_and_provisioning_paths_preserve_unknown_without_replay(self) -> None:
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1]
+
+        users = (root / "advanced_users.py").read_text(encoding="utf-8")
+        update_helper = users[
+            users.index("async def _update_client_with_readback"):
+            users.index("async def _membership_with_readback")
+        ]
+        self.assertIn("except XUIMutationError as exc:", update_helper)
+        self.assertIn("await xui.get_client(email)", update_helper)
+        self.assertIn("mutation_not_retried=true", update_helper)
+        self.assertEqual(update_helper.count("await xui.update_client("), 1)
+
+        membership_helper = users[
+            users.index("async def _membership_with_readback"):
+            users.index("async def _flow_with_readback")
+        ]
+        self.assertIn("except XUIMutationError as exc:", membership_helper)
+        self.assertIn("await xui.get_client(email)", membership_helper)
+        self.assertIn("mutation_not_retried=true", membership_helper)
+
+        bulk = users[users.index("async def bulk_run(call: CallbackQuery"):]
+        self.assertIn("except XUIMutationError as exc:", bulk)
+        self.assertIn("users.bulk.{action}.unknown", bulk)
+        self.assertIn("mutation_not_retried=true", bulk)
+        self.assertIn('readback = "not_provable"', bulk)
+
+        user_reset = users[
+            users.index("async def user_reset_run(call: CallbackQuery):"):
+            users.index("async def user_plan_view", users.index("async def user_reset_run(call: CallbackQuery):"))
+        ]
+        self.assertIn("user.traffic.reset.unknown", user_reset)
+        self.assertIn("readback=not_provable", user_reset)
+        self.assertIn("mutation_not_retried=true", user_reset)
+
+        inbound = (root / "inbound_admin.py").read_text(encoding="utf-8")
+        add_helper = inbound[
+            inbound.index("async def _inbound_add_with_readback"):
+            inbound.index("def _visible", inbound.index("async def _inbound_add_with_readback"))
+        ]
+        self.assertIn("except XUIMutationError as exc:", add_helper)
+        self.assertIn("await xui.inbounds_list(slim=True)", add_helper)
+        self.assertIn("mutation_not_retried=true", add_helper)
+        self.assertEqual(add_helper.count("await xui.inbound_add("), 1)
+
+        inbound_reset = inbound[
+            inbound.index("async def inbound_reset_run(call: CallbackQuery):"):
+            inbound.index("async def _target_keyboard", inbound.index("async def inbound_reset_run(call: CallbackQuery):"))
+        ]
+        self.assertIn("inbound.reset_traffic.unknown", inbound_reset)
+        self.assertIn("readback=not_provable", inbound_reset)
+        self.assertEqual(inbound_reset.count("await xui.inbound_reset_traffic(iid)"), 1)
+
+        node_admin = (root / "node_admin.py").read_text(encoding="utf-8")
+        node_add = node_admin[node_admin.index("async def admin_node_add_save"):]
+        self.assertIn("except XUIMutationError as exc:", node_add)
+        self.assertIn("await xui.nodes_list()", node_add)
+        self.assertIn("node.add.unknown", node_add)
+        self.assertIn("mutation_not_retried=true", node_add)
+        self.assertEqual(node_add.count("await xui.node_add(payload)"), 1)
+
+        client_access = (root / "client_access.py").read_text(encoding="utf-8")
+        create = client_access[client_access.index("async def create_user"):]
+        self.assertIn("except XUIMutationError as exc:", create)
+        self.assertIn("await xui.get_client_by_tg_id(tg_id)", create)
+        self.assertEqual(create.count("await xui.create_client("), 1)
+
+        provisioning = (root / "provisioning.py").read_text(encoding="utf-8")
+        sync = provisioning[
+            provisioning.index("async def sync_user("):
+            provisioning.index("async def provision_many(")
+        ]
+        self.assertIn("except XUIMutationError as exc:", sync)
+        self.assertIn("ProvisioningUnknown", sync)
+        self.assertIn("mutation_not_retried=true", provisioning)
+        self.assertIn('"unknown": unknown', provisioning)
+
 if __name__ == "__main__":
     unittest.main()
