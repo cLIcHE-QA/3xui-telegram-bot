@@ -105,6 +105,12 @@ Impact: a lost response can be shown as ordinary failure even when the remote mu
 
 Closure: inventory all state-changing calls, move them to no-retry mutation handling and implement read-back/post-condition reconciliation where practical. Tests must simulate lost response after remote commit.
 
+Progress evidence:
+- transport phase #250 moved the state-changing 3x-ui surface to the explicit one-shot mutation boundary;
+- destructive phase #252 added fail-closed absence read-back for user/inbound/node delete without replay;
+- phase 3 covers deterministic field updates: node rename, inbound enable/disable and user expiry/traffic/flow only resolve uncertain success when a read-only post-condition matches; unavailable/mismatched read-back remains `unknown` with `mutation_not_retried=true`.
+- A-003 remains open until create/reset/bulk/provisioning paths and production acceptance are completed.
+
 ### A-004 — admin chat boundary
 
 Evidence: command/callback/FSM authorization is based on the Telegram sender role; a central private-chat requirement is absent.

@@ -235,6 +235,49 @@ async def node_rename_finish(message: Message, state: FSMContext):
             db, message, "node.rename", target_type="node", target_id=node_id,
             details=f"old={old_name}; new={name}",
         )
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_message(
+                db, message, "node.rename", target_type="node", target_id=node_id,
+                details=f"code={exc.code}; certainty=failed", success=False,
+            )
+            await render_input(message, f"🔴 Не удалось переименовать ноду: {exc}", reply_markup=_rename_cancel(node_id))
+            return
+        try:
+            readback = await xui.node_get_raw(node_id)
+        except XUIError as read_exc:
+            await audit_from_message(
+                db, message, "node.rename.unknown", target_type="node", target_id=node_id,
+                details=(
+                    f"code={exc.code}; mutation_not_retried=true; "
+                    f"readback=unavailable:{type(read_exc).__name__}"
+                ),
+                success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог переименования неизвестен: ответ 3x-ui потерян, а read-back недоступен. "
+                "Mutation не повторялась. Проверь имя ноды после восстановления связи.",
+                reply_markup=_back(node_id),
+            )
+            return
+        if str(readback.get("name") or "").strip() != name:
+            await audit_from_message(
+                db, message, "node.rename.unknown", target_type="node", target_id=node_id,
+                details=f"code={exc.code}; mutation_not_retried=true; readback=mismatch",
+                success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог переименования неизвестен: mutation не повторялась, а read-back не подтвердил новое имя. "
+                "Обнови карточку ноды перед любым повтором.",
+                reply_markup=_back(node_id),
+            )
+            return
+        await audit_from_message(
+            db, message, "node.rename", target_type="node", target_id=node_id,
+            details=f"old={old_name}; new={name}; readback=match; uncertain_resolved=success",
+        )
     except XUIError as exc:
         await audit_from_message(
             db, message, "node.rename", target_type="node", target_id=node_id,

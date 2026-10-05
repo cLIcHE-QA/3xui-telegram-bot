@@ -1390,6 +1390,67 @@ async def user_flow_sync_run(call: CallbackQuery):
                 InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
             ]]),
         )
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db, call, "user.flow.sync", target_type="user", target_id=rec.email,
+                details=f"code={exc.code}; certainty=failed", success=False,
+            )
+            await render_callback(
+                call, f"🔴 Не удалось синхронизировать Flow: {exc}",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+                ]]),
+            )
+            await call.answer()
+            return
+        try:
+            readback = await xui.get_client(rec.email)
+        except XUIError as read_exc:
+            await audit_from_call(
+                db, call, "user.flow.sync.unknown", target_type="user", target_id=rec.email,
+                details=(
+                    f"code={exc.code}; mutation_not_retried=true; "
+                    f"readback=unavailable:{type(read_exc).__name__}"
+                ),
+                success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог синхронизации Flow неизвестен. Mutation не повторялась; проверь пользователя после восстановления связи.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+                ]]),
+            )
+            await call.answer()
+            return
+        read_client = readback.get("client", readback)
+        if str(read_client.get("flow") or "") != settings.vless_flow:
+            await audit_from_call(
+                db, call, "user.flow.sync.unknown", target_type="user", target_id=rec.email,
+                details=f"code={exc.code}; mutation_not_retried=true; readback=mismatch",
+                success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог синхронизации Flow неизвестен. Mutation не повторялась; read-back не подтвердил значение.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+                ]]),
+            )
+            await call.answer()
+            return
+        await audit_from_call(
+            db, call, "user.flow.sync", target_type="user", target_id=rec.email,
+            details="flow_configured=true; inbound_mutation=false; readback=match; uncertain_resolved=success",
+        )
+        await render_callback(
+            call,
+            "✅ VLESS Flow синхронизирован. Результат подтверждён read-back.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
+            ]]),
+        )
     except XUIError as exc:
         await audit_from_call(
             db,
@@ -1467,11 +1528,51 @@ async def user_expiry_save(message: Message, state: FSMContext):
         )
         await state.clear()
         await render_input(message, f"✅ Срок: {fmt_date(new_expiry)}", reply_markup=back_expiry(tg_id))
-    except (ValueError, XUIError) as exc:
-        if isinstance(exc, XUIError):
+    except XUIMutationError as exc:
+        if not exc.uncertain:
             await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_expiry(tg_id))
-        else:
-            await render_input(message, "Формат: +30, YYYY-MM-DD или 0.", reply_markup=back_expiry(tg_id))
+            return
+        try:
+            readback = await xui.get_client(rec.email)
+        except XUIError as read_exc:
+            await audit_from_message(
+                db, message, "user.expiry.set.unknown", target_type="user", target_id=rec.email,
+                details=(
+                    f"code={exc.code}; mutation_not_retried=true; "
+                    f"readback=unavailable:{type(read_exc).__name__}"
+                ),
+                success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог изменения срока неизвестен. Mutation не повторялась; проверь пользователя после восстановления связи.",
+                reply_markup=back_expiry(tg_id),
+            )
+            return
+        read_client = readback.get("client", readback)
+        if int(read_client.get("expiryTime") or 0) != new_expiry:
+            await audit_from_message(
+                db, message, "user.expiry.set.unknown", target_type="user", target_id=rec.email,
+                details=f"code={exc.code}; mutation_not_retried=true; readback=mismatch",
+                success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог изменения срока неизвестен. Mutation не повторялась; read-back не подтвердил новое значение.",
+                reply_markup=back_expiry(tg_id),
+            )
+            return
+        await db.update_expiry(tg_id, new_expiry)
+        await audit_from_message(
+            db, message, "user.expiry.set", target_type="user", target_id=rec.email,
+            details=f"old={current}; new={new_expiry}; readback=match; uncertain_resolved=success",
+        )
+        await state.clear()
+        await render_input(message, f"✅ Срок: {fmt_date(new_expiry)}", reply_markup=back_expiry(tg_id))
+    except ValueError:
+        await render_input(message, "Формат: +30, YYYY-MM-DD или 0.", reply_markup=back_expiry(tg_id))
+    except XUIError as exc:
+        await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_expiry(tg_id))
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:traffic:"))
@@ -1502,13 +1603,58 @@ async def user_traffic_save(message: Message, state: FSMContext):
             raise ValueError
         if not rec:
             raise XUIError("Пользователь не найден")
-        await xui.update_client(rec.email, totalGB=gb * 1024**3)
+        total_bytes = gb * 1024**3
+        await xui.update_client(rec.email, totalGB=total_bytes)
         await audit_from_message(
             db, message, "user.traffic_limit.set", target_type="user", target_id=rec.email,
             details=f"traffic_gb={gb}",
         )
         await state.clear()
         await render_input(message, 
+            f"✅ Лимит трафика: {gb} GB" if gb else "✅ Лимит трафика: без лимита",
+            reply_markup=back_traffic(tg_id),
+        )
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await render_input(message, f"Ошибка 3x-ui: {exc}", reply_markup=back_traffic(tg_id))
+            return
+        try:
+            readback = await xui.get_client(rec.email)
+        except XUIError as read_exc:
+            await audit_from_message(
+                db, message, "user.traffic_limit.set.unknown", target_type="user", target_id=rec.email,
+                details=(
+                    f"code={exc.code}; mutation_not_retried=true; "
+                    f"readback=unavailable:{type(read_exc).__name__}"
+                ),
+                success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог изменения лимита неизвестен. Mutation не повторялась; проверь пользователя после восстановления связи.",
+                reply_markup=back_traffic(tg_id),
+            )
+            return
+        read_client = readback.get("client", readback)
+        if int(read_client.get("totalGB") or 0) != total_bytes:
+            await audit_from_message(
+                db, message, "user.traffic_limit.set.unknown", target_type="user", target_id=rec.email,
+                details=f"code={exc.code}; mutation_not_retried=true; readback=mismatch",
+                success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог изменения лимита неизвестен. Mutation не повторялась; read-back не подтвердил новое значение.",
+                reply_markup=back_traffic(tg_id),
+            )
+            return
+        await audit_from_message(
+            db, message, "user.traffic_limit.set", target_type="user", target_id=rec.email,
+            details=f"traffic_gb={gb}; readback=match; uncertain_resolved=success",
+        )
+        await state.clear()
+        await render_input(
+            message,
             f"✅ Лимит трафика: {gb} GB" if gb else "✅ Лимит трафика: без лимита",
             reply_markup=back_traffic(tg_id),
         )

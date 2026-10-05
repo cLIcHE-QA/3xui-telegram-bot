@@ -721,6 +721,43 @@ async def inbound_toggle(call: CallbackQuery):
         await call.answer("Включён" if enabled else "Отключён")
         text, kb = await _inbound_card(iid)
         await render_callback(call, text, reply_markup=kb)
+    except XUIMutationError as exc:
+        action = "inbound.enable" if enabled else "inbound.disable"
+        if not exc.uncertain:
+            await audit_from_call(
+                db, call, action, target_type="inbound", target_id=str(iid),
+                details=f"code={exc.code}; certainty=failed", success=False,
+            )
+            await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
+            return
+        try:
+            readback = await xui.inbound_get(iid)
+        except XUIError as read_exc:
+            await audit_from_call(
+                db, call, f"{action}.unknown", target_type="inbound", target_id=str(iid),
+                details=(
+                    f"code={exc.code}; mutation_not_retried=true; "
+                    f"readback=unavailable:{type(read_exc).__name__}"
+                ),
+                success=False,
+            )
+            await call.answer("Итог изменения неизвестен", show_alert=True)
+            return
+        if bool(readback.get("enable", True)) != enabled:
+            await audit_from_call(
+                db, call, f"{action}.unknown", target_type="inbound", target_id=str(iid),
+                details=f"code={exc.code}; mutation_not_retried=true; readback=mismatch",
+                success=False,
+            )
+            await call.answer("Итог изменения неизвестен", show_alert=True)
+            return
+        await audit_from_call(
+            db, call, action, target_type="inbound", target_id=str(iid),
+            details="readback=match; uncertain_resolved=success",
+        )
+        await call.answer("Включён" if enabled else "Отключён")
+        text, kb = await _inbound_card(iid)
+        await render_callback(call, text, reply_markup=kb)
     except XUIError as exc:
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
