@@ -17,7 +17,7 @@ from config import load_settings
 from db import Database
 from user_ui import user_label
 from node_ui import node_display_name
-from xui import XUIClient, XUIError
+from xui import XUIClient, XUIError, XUIMutationError
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -1206,6 +1206,33 @@ async def inbound_delete(call: CallbackQuery):
         await call.answer("Inbound удалён.")
         text, kb = await inbound_list_view()
         await render_callback(call, text, reply_markup=kb)
+    except XUIMutationError as exc:
+        if exc.uncertain:
+            try:
+                await xui.inbound_get(iid)
+            except XUIError:
+                await audit_from_call(
+                    db, call, "inbound.delete", target_type="inbound", target_id=str(iid),
+                    details="readback=absent; uncertain_resolved=success",
+                )
+                await call.answer("Inbound удалён.")
+                text, kb = await inbound_list_view()
+                await render_callback(call, text, reply_markup=kb)
+                return
+            await audit_from_call(
+                db, call, "inbound.delete.unknown", target_type="inbound", target_id=str(iid),
+                details=f"code={exc.code}; mutation_not_retried=true; readback=present",
+                success=False,
+            )
+            await call.answer("Итог удаления неизвестен", show_alert=True)
+            await render_callback(
+                call,
+                "🟡 Ответ 3x-ui потерян. Mutation не повторялась; Inbound всё ещё виден при read-back. "
+                "Обнови карточку и проверь состояние перед новым удалением.",
+                reply_markup=inbound_back_keyboard(iid),
+            )
+            return
+        raise
     except XUIError as exc:
         await audit_from_call(
             db, call, "inbound.delete", target_type="inbound", target_id=str(iid),
