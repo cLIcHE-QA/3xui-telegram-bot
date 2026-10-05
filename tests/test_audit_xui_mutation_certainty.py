@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+import inspect
+import unittest
+from unittest.mock import AsyncMock, patch
+
+import aiohttp
+
+from xui import XUIClient
+
+
+STATE_CHANGING_METHODS = (
+    "node_update",
+    "node_delete",
+    "node_set_enable",
+    "node_update_panels",
+    "node_add",
+    "restart_xray",
+    "stop_xray",
+    "restart_panel",
+    "import_database",
+    "inbound_add",
+    "inbound_update",
+    "inbound_set_enable",
+    "inbound_delete",
+    "inbound_reset_traffic",
+    "create_client",
+    "update_client",
+    "attach_client",
+    "detach_client",
+    "bulk_attach_clients",
+    "bulk_detach_clients",
+    "bulk_enable_clients",
+    "bulk_disable_clients",
+    "bulk_reset_traffic",
+    "bulk_adjust_clients",
+    "delete_client",
+    "delete_client_hwid",
+)
+
+
+class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.client = XUIClient("https://panel.example.invalid", "offline-token")
+
+    def test_all_state_changing_methods_use_explicit_mutation_boundary(self):
+        for name in STATE_CHANGING_METHODS:
+            with self.subTest(method=name):
+                source = inspect.getsource(getattr(XUIClient, name))
+                self.assertIn("_mutation_request(", source)
+                self.assertNotIn("self._request(", source)
+
+    def test_mutation_boundary_is_one_shot_and_rejects_redirects(self):
+        source = inspect.getsource(XUIClient._mutation_request)
+        self.assertIn("allow_redirects=False", source)
+        self.assertNotIn("for attempt", source)
+        self.assertNotIn("while True", source)
+        self.assertIn("data_payload", source)
+
+    async def test_import_database_uses_multipart_mutation_boundary(self):
+        request = AsyncMock(return_value={"success": True})
+        with patch.object(self.client, "_mutation_request", new=request):
+            await self.client.import_database(b"SQLite format 3\x00payload", "x-ui.db")
+
+        request.assert_awaited_once()
+        args = request.await_args.args
+        kwargs = request.await_args.kwargs
+        self.assertEqual(args, ("/panel/api/server/importDB",))
+        self.assertIsInstance(kwargs.get("data_payload"), aiohttp.FormData)
+        self.assertNotIn("json_payload", kwargs)
+
+    async def test_update_client_reads_then_dispatches_exactly_one_mutation(self):
+        self.client.get_client = AsyncMock(return_value={
+            "client": {
+                "email": "user@example.test",
+                "subId": "offline-sub",
+                "tgId": 1,
+                "enable": True,
+            }
+        })
+        request = AsyncMock(return_value={"success": True})
+        with patch.object(self.client, "_mutation_request", new=request):
+            await self.client.update_client("user@example.test", enable=False)
+
+        request.assert_awaited_once()
+        self.assertEqual(
+            request.await_args.args,
+            ("/panel/api/clients/update/user%40example.test",),
+        )
+        self.assertFalse(request.await_args.kwargs["json_payload"]["enable"])
+
+    def test_disaster_recovery_records_uncertain_import_as_unknown(self):
+        from pathlib import Path
+
+        source = (Path(__file__).resolve().parents[1] / "disaster_recovery.py").read_text(encoding="utf-8")
+        block = source[source.index("async def restore_confirm_message"):source.index("async def restore_export_env")]
+        self.assertIn("except XUIMutationError as exc:", block)
+        self.assertIn('status = "unknown" if exc.uncertain else "failed"', block)
+        self.assertIn('audit_action = "restore.unknown" if exc.uncertain else "restore.failed"', block)
+        self.assertIn("mutation_not_retried=true", block)
+        self.assertIn("Не запускай restore повторно вслепую", block)
+
+
+if __name__ == "__main__":
+    unittest.main()

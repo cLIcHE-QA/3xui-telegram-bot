@@ -123,19 +123,27 @@ class XUIClient(VersionAPIMixin):
         *,
         method: str = "POST",
         json_payload: dict[str, Any] | None = None,
+        data_payload: Any | None = None,
     ) -> dict[str, Any]:
         """Send one state-changing request without redirects or automatic retry."""
+        if json_payload is not None and data_payload is not None:
+            raise ValueError("mutation request cannot use json_payload and data_payload together")
+
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Accept": "application/json",
-            "Content-Type": "application/json",
         }
+        if json_payload is not None:
+            headers["Content-Type"] = "application/json"
+
         timeout = aiohttp.ClientTimeout(total=20)
         try:
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 request_kwargs: dict[str, Any] = {}
                 if json_payload is not None:
                     request_kwargs["json"] = json_payload
+                elif data_payload is not None:
+                    request_kwargs["data"] = data_payload
                 async with session.request(
                     method,
                     f"{self.base_url}{path}",
@@ -236,12 +244,12 @@ class XUIClient(VersionAPIMixin):
         return await self.node_get(target_id)
 
     async def node_update(self, node_id: int, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._request(
-            "POST", f"/panel/api/nodes/update/{int(node_id)}", json=payload
+        return await self._mutation_request(
+            f"/panel/api/nodes/update/{int(node_id)}", json_payload=payload
         )
 
     async def node_delete(self, node_id: int) -> dict[str, Any]:
-        return await self._request("POST", f"/panel/api/nodes/del/{int(node_id)}")
+        return await self._mutation_request(f"/panel/api/nodes/del/{int(node_id)}")
 
     async def node_set_enable(self, node_id: int, enable: bool) -> dict[str, Any]:
         return await self._mutation_request(
@@ -250,9 +258,9 @@ class XUIClient(VersionAPIMixin):
         )
 
     async def node_update_panels(self, node_ids: list[int], *, dev: bool = False) -> list[dict[str, Any]]:
-        data = await self._request(
-            "POST", "/panel/api/nodes/updatePanel",
-            json={"ids": [int(x) for x in node_ids], "dev": bool(dev)},
+        data = await self._mutation_request(
+            "/panel/api/nodes/updatePanel",
+            json_payload={"ids": [int(x) for x in node_ids], "dev": bool(dev)},
         )
         obj = data.get("obj") or []
         return obj if isinstance(obj, list) else []
@@ -270,7 +278,7 @@ class XUIClient(VersionAPIMixin):
         return obj if isinstance(obj, dict) else {}
 
     async def node_add(self, payload: dict[str, Any]) -> NodeInfo:
-        data = await self._request("POST", "/panel/api/nodes/add", json=payload)
+        data = await self._mutation_request("/panel/api/nodes/add", json_payload=payload)
         obj = data.get("obj") or {}
         if not isinstance(obj, dict) or not obj:
             raise XUIError("3x-ui did not return the created node")
@@ -386,7 +394,10 @@ class XUIClient(VersionAPIMixin):
             content_type="application/octet-stream",
         )
         form.add_field("keepHostSettings", "true" if keep_host_settings else "false")
-        return await self._request("POST", "/panel/api/server/importDB", data=form)
+        return await self._mutation_request(
+            "/panel/api/server/importDB",
+            data_payload=form,
+        )
 
     async def download_database(self) -> tuple[bytes, str]:
         headers = {
@@ -437,25 +448,25 @@ class XUIClient(VersionAPIMixin):
         return obj
 
     async def inbound_add(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._request("POST", "/panel/api/inbounds/add", json=payload)
+        return await self._mutation_request("/panel/api/inbounds/add", json_payload=payload)
 
     async def inbound_update(self, inbound_id: int, payload: dict[str, Any]) -> dict[str, Any]:
-        return await self._request(
-            "POST", f"/panel/api/inbounds/update/{int(inbound_id)}", json=payload
+        return await self._mutation_request(
+            f"/panel/api/inbounds/update/{int(inbound_id)}", json_payload=payload
         )
 
     async def inbound_set_enable(self, inbound_id: int, enable: bool) -> dict[str, Any]:
-        return await self._request(
-            "POST", f"/panel/api/inbounds/setEnable/{int(inbound_id)}",
-            json={"enable": bool(enable)},
+        return await self._mutation_request(
+            f"/panel/api/inbounds/setEnable/{int(inbound_id)}",
+            json_payload={"enable": bool(enable)},
         )
 
     async def inbound_delete(self, inbound_id: int) -> dict[str, Any]:
-        return await self._request("POST", f"/panel/api/inbounds/del/{int(inbound_id)}")
+        return await self._mutation_request(f"/panel/api/inbounds/del/{int(inbound_id)}")
 
     async def inbound_reset_traffic(self, inbound_id: int) -> dict[str, Any]:
-        return await self._request(
-            "POST", f"/panel/api/inbounds/{int(inbound_id)}/resetTraffic"
+        return await self._mutation_request(
+            f"/panel/api/inbounds/{int(inbound_id)}/resetTraffic"
         )
 
     @staticmethod
@@ -592,8 +603,8 @@ class XUIClient(VersionAPIMixin):
         obj = await self.get_client(email)
         client = obj.get("client", obj)
         payload = self._full_update_payload(client, **changes)
-        return await self._request(
-            "POST", f"/panel/api/clients/update/{quote(email, safe='')}", json=payload
+        return await self._mutation_request(
+            f"/panel/api/clients/update/{quote(email, safe='')}", json_payload=payload
         )
 
     async def attach_client(self, email: str, inbound_ids: list[int]) -> dict[str, Any]:
@@ -615,36 +626,38 @@ class XUIClient(VersionAPIMixin):
     async def bulk_attach_clients(self, emails: list[str], inbound_ids: list[int]) -> dict[str, Any]:
         if not emails or not inbound_ids:
             return {"success": True, "obj": {"attached": {}, "skipped": {}, "errors": {}}}
-        return await self._request(
-            "POST",
+        return await self._mutation_request(
             "/panel/api/clients/bulkAttach",
-            json={"emails": emails, "inboundIds": inbound_ids},
+            json_payload={"emails": emails, "inboundIds": inbound_ids},
         )
 
     async def bulk_detach_clients(self, emails: list[str], inbound_ids: list[int]) -> dict[str, Any]:
         if not emails or not inbound_ids:
             return {"success": True, "obj": {"detached": {}, "skipped": {}, "errors": {}}}
-        return await self._request(
-            "POST",
+        return await self._mutation_request(
             "/panel/api/clients/bulkDetach",
-            json={"emails": emails, "inboundIds": inbound_ids},
+            json_payload={"emails": emails, "inboundIds": inbound_ids},
         )
 
     async def bulk_enable_clients(self, emails: list[str]) -> dict[str, Any]:
         if not emails:
             return {"success": True, "obj": {"changed": 0, "skipped": []}}
-        return await self._request("POST", "/panel/api/clients/bulkEnable", json={"emails": emails})
+        return await self._mutation_request(
+            "/panel/api/clients/bulkEnable", json_payload={"emails": emails}
+        )
 
     async def bulk_disable_clients(self, emails: list[str]) -> dict[str, Any]:
         if not emails:
             return {"success": True, "obj": {"changed": 0, "skipped": []}}
-        return await self._request("POST", "/panel/api/clients/bulkDisable", json={"emails": emails})
+        return await self._mutation_request(
+            "/panel/api/clients/bulkDisable", json_payload={"emails": emails}
+        )
 
     async def bulk_reset_traffic(self, emails: list[str]) -> dict[str, Any]:
         if not emails:
             return {"success": True, "obj": {"affected": 0}}
-        return await self._request(
-            "POST", "/panel/api/clients/bulkResetTraffic", json={"emails": emails}
+        return await self._mutation_request(
+            "/panel/api/clients/bulkResetTraffic", json_payload={"emails": emails}
         )
 
     async def bulk_adjust_clients(
@@ -664,14 +677,15 @@ class XUIClient(VersionAPIMixin):
         }
         if flow:
             payload["flow"] = flow
-        return await self._request(
-            "POST",
+        return await self._mutation_request(
             "/panel/api/clients/bulkAdjust",
-            json=payload,
+            json_payload=payload,
         )
 
     async def delete_client(self, email: str) -> dict[str, Any]:
-        return await self._request("POST", f"/panel/api/clients/del/{quote(email, safe='')}")
+        return await self._mutation_request(
+            f"/panel/api/clients/del/{quote(email, safe='')}"
+        )
 
     async def sub_links(self, sub_id: str) -> list[str]:
         data = await self._request("GET", f"/panel/api/clients/subLinks/{quote(sub_id, safe='')}")

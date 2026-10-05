@@ -99,9 +99,9 @@ Closure: disable or sanitize raw access logs for the secret-bearing route, defin
 
 ### A-003 — inconsistent mutation safety
 
-Evidence: the client contains a hardened one-shot mutation primitive, but legacy state-changing node/inbound/client/import methods still use the generic request path.
+Evidence: the client contains a hardened one-shot mutation primitive, but legacy state-changing node/inbound/client/import methods still use the generic request path. The generic path does not currently contain a retry loop, but it does not preserve explicit outcome certainty and follows normal HTTP redirect behavior.
 
-Impact: a lost response can be shown as safe failure even when the remote mutation was applied, enabling duplicate/repeated operations and state divergence.
+Impact: a lost response can be shown as ordinary failure even when the remote mutation was applied, enabling manual duplicate/repeated operations and state divergence.
 
 Closure: inventory all state-changing calls, move them to no-retry mutation handling and implement read-back/post-condition reconciliation where practical. Tests must simulate lost response after remote commit.
 
@@ -206,3 +206,5 @@ Each remediation is a narrowly scoped v4 fix under the active feature freeze. Fi
 - **2026-10-05 · A-001 / #234:** implementation PR #248 открыт. Secret-bearing Full Backup/DB/node/DR artifacts переводятся на host-side/off-site only; Telegram document delivery и `BACKUP_SEND_TO_ADMINS` удаляются. Finding остаётся **Open / acceptance pending** до публикации patch release, deployment, targeted production smoke и финального health check.
 
 - **2026-10-05 · A-002 / #235:** implementation PR #249 открыт. Built-in aiohttp access log для `/compat/{sub_id}` отключается, canonical Nginx `/compat/` route получает `access_log off`, logging contract закрепляется regression test. Finding остаётся **Open / acceptance pending** до patch release, deployment, targeted raw-log smoke и rotation известных exposed test credentials.
+
+- **2026-10-05 · A-003 / #236:** phase-1 implementation PR #250 открыт. Инвентаризированные state-changing node/inbound/client/importDB calls переводятся на единый one-shot no-redirect mutation boundary; Disaster Recovery сохраняет uncertain importDB как `unknown` без replay. Finding остаётся **Open** до полного handler/read-back review, patch release и production acceptance.
