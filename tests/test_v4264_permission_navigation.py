@@ -74,12 +74,13 @@ class PermissionAwareNavigationTests(unittest.TestCase):
             callbacks(admin_navigation.backup_menu("admin")),
             {
                 "admin:backup:create",
-                "admin:backup:botdb",
-                "admin:backup:full",
                 "admin:section:system",
             },
         )
-        self.assertIn("admin:restore", callbacks(admin_navigation.backup_menu("owner")))
+        owner = callbacks(admin_navigation.backup_menu("owner"))
+        self.assertIn("admin:restore", owner)
+        self.assertNotIn("admin:backup:botdb", owner)
+        self.assertNotIn("admin:backup:full", owner)
 
     def test_system_menu_hides_owner_only_entries(self):
         read_only = callbacks(admin_navigation.system_menu("read_only"))
