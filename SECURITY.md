@@ -49,6 +49,18 @@ Host-control в v4.10.0 не является каналом доступа к V
 
 Любое расширение этого privilege boundary требует отдельного threat-model review.
 
+## 3x-ui mutation safety
+
+State-changing 3x-ui API calls используют отдельную one-shot mutation boundary:
+
+- redirects запрещены;
+- request автоматически не повторяется после timeout/lost response/5xx или другого uncertain outcome;
+- uncertain outcome поднимается как `XUIMutationError(uncertain=True)`, а не как доказанный failure;
+- read-only POST diagnostics не считаются mutation только из-за HTTP method;
+- `importDB` использует тот же one-shot boundary, несмотря на multipart payload;
+- после uncertain outcome caller должен выполнить read-back/post-condition там, где это возможно, либо явно оставить состояние `unknown`; слепой повтор запрещён.
+
+Особенно для restore/import unknown outcome не означает «restore не произошёл»: сначала проверяется фактическое состояние 3x-ui и rescue copy.
 ## Backup/Restore
 
 Полные backup-архивы, `bot.sqlite3`, direct-node snapshots и exports вроде `bot.env` являются secret-bearing artifacts. Telegram используется только как control UI: такие файлы не прикладываются к сообщениям и не рассылаются администраторам. Получение выполняется только через защищённый host-side/off-site recovery path.
