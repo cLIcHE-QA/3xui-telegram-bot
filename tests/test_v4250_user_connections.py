@@ -67,7 +67,7 @@ class V4250UserConnectionsTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("HWID limit: {limit_hwid}", source)
         self.assertIn('text="🧩 Изменить HWID limit"', source)
         self.assertIn("EditUserStates.hwid_limit", source)
-        self.assertIn("update_client(rec.email, limitHwid=limit)", source)
+        self.assertIn("_update_client_with_readback(rec.email, limitHwid=limit)", source)
         self.assertIn("0 = HWID limit отключён", source)
 
     def test_plan_and_reconcile_do_not_manage_hwid_limit(self):
