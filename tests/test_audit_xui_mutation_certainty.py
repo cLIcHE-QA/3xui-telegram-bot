@@ -94,9 +94,9 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
 
         root = Path(__file__).resolve().parents[1]
         cases = (
-            ("advanced_users.py", "async def admin_del", "await xui.clients_list()", "user.delete.unknown"),
-            ("inbound_admin.py", "async def inbound_delete", "await xui.inbounds_list(slim=True)", "inbound.delete.unknown"),
-            ("advanced_nodes.py", "async def node_delete_run", "await xui.nodes_list()", "node.delete.unknown"),
+            ("advanced_users.py", "async def admin_del(call: CallbackQuery):", "await xui.clients_list()", "user.delete.unknown"),
+            ("inbound_admin.py", "async def inbound_delete(call: CallbackQuery):", "await xui.inbounds_list(slim=True)", "inbound.delete.unknown"),
+            ("advanced_nodes.py", "async def node_delete_run(call: CallbackQuery):", "await xui.nodes_list()", "node.delete.unknown"),
         )
         for filename, function_name, readback, audit_action in cases:
             with self.subTest(filename=filename):
