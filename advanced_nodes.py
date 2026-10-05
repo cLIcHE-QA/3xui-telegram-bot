@@ -139,25 +139,63 @@ async def node_maintenance(call: CallbackQuery):
     try:
         node = await xui.node_get(node_id)
         new_enable = not node.enable
-        await xui.node_set_enable(node_id, new_enable)
+        try:
+            await xui.node_set_enable(node_id, new_enable)
+            evidence = "direct"
+        except XUIMutationError as exc:
+            if not exc.uncertain:
+                raise
+            try:
+                readback = await xui.node_get(node_id)
+            except XUIError as read_exc:
+                await audit_from_call(
+                    db, call, "node.maintenance.unknown", target_type="node", target_id=node_id,
+                    details=(
+                        f"code={exc.code}; mutation_not_retried=true; "
+                        f"readback=unavailable:{type(read_exc).__name__}"
+                    ),
+                    success=False,
+                )
+                await call.answer("Итог изменения режима неизвестен", show_alert=True)
+                await render_callback(
+                    call,
+                    "🟡 Ответ 3x-ui потерян, read-back недоступен. Mutation не повторялась.",
+                    reply_markup=_back(node_id),
+                )
+                return
+            if bool(readback.enable) != new_enable:
+                await audit_from_call(
+                    db, call, "node.maintenance.unknown", target_type="node", target_id=node_id,
+                    details=f"code={exc.code}; mutation_not_retried=true; readback=mismatch",
+                    success=False,
+                )
+                await call.answer("Итог изменения режима неизвестен", show_alert=True)
+                await render_callback(
+                    call,
+                    "🟡 Read-back не подтвердил новый режим. Mutation не повторялась.",
+                    reply_markup=_back(node_id),
+                )
+                return
+            evidence = "readback=match; uncertain_resolved=success"
         try:
             await xui.node_probe(node_id)
         except XUIError:
             pass
         await audit_from_call(
             db, call, "node.maintenance", target_type="node", target_id=node_id,
-            details=f"name={node.name}; enabled={new_enable}",
+            details=f"name={node.name}; enabled={new_enable}; {evidence}",
         )
     except XUIError as exc:
         await audit_from_call(
             db, call, "node.maintenance", target_type="node", target_id=node_id,
-            details=str(exc), success=False,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await call.answer("Не удалось изменить режим", show_alert=True)
         await render_callback(call, f"🔴 3x-ui: {exc}", reply_markup=_back(node_id))
         return
     await call.answer("Нода включена" if new_enable else "Обслуживание включено")
-    await render_callback(call, 
+    await render_callback(
+        call,
         "✅ Нода возвращена в работу." if new_enable else
         "🛠 Обслуживание включено. Master временно не использует ноду для синхронизации/управления.",
         reply_markup=_back(node_id),
