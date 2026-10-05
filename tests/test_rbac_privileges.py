@@ -44,7 +44,7 @@ class RBACPrivilegesTests(unittest.TestCase):
             "admin:u:audgrouptoggle:123:7:0": "support",
             "admin:usergroupadd:start": "admin",
             "admin:usergroup:deleteask:7": "admin",
-            "admin:backup:full": "admin",
+            "admin:backup:create": "admin",
             "admin:node:7": "read_only",
             "admin:nodectl:7:backup": "admin",
             "admin:inbound:7": "read_only",
@@ -99,6 +99,10 @@ class RBACPrivilegesTests(unittest.TestCase):
     def test_unknown_admin_callback_is_fail_closed(self):
         self.assertIsNone(privilege_for_callback("admin:new-dangerous-mutation"))
         self.assertIsNone(required_role_for_callback("admin:new-dangerous-mutation"))
+        self.assertIsNone(privilege_for_callback("admin:backup:botdb"))
+        self.assertIsNone(required_role_for_callback("admin:backup:botdb"))
+        self.assertIsNone(privilege_for_callback("admin:backup:full"))
+        self.assertIsNone(required_role_for_callback("admin:backup:full"))
 
     def test_literal_admin_routes_are_declared_in_catalog(self):
         root = Path(__file__).resolve().parents[1]
