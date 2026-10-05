@@ -3272,8 +3272,29 @@ async def admin_del(call: CallbackQuery):
     except XUIMutationError as exc:
         if exc.uncertain:
             try:
-                await xui.get_client(rec.email)
-            except XUIError:
+                clients = await xui.clients_list()
+            except XUIError as read_exc:
+                await audit_from_call(
+                    db, call, "user.delete.unknown", target_type="user", target_id=rec.email,
+                    details=(
+                        f"code={exc.code}; mutation_not_retried=true; "
+                        f"readback=unavailable:{type(read_exc).__name__}"
+                    ),
+                    success=False,
+                )
+                await render_callback(
+                    call,
+                    "🟡 Итог удаления неизвестен, а read-back недоступен. Mutation не повторялась. "
+                    "Локальная запись сохранена. Проверь 3x-ui после восстановления связи перед любым повтором.",
+                    reply_markup=back_user(tg_id),
+                )
+                await call.answer()
+                return
+            present = any(
+                isinstance(item, dict) and str(item.get("email") or "") == rec.email
+                for item in clients
+            )
+            if not present:
                 await db.delete(tg_id)
                 await audit_from_call(
                     db, call, "user.delete", target_type="user", target_id=rec.email,
