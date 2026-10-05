@@ -99,9 +99,9 @@ Closure: disable or sanitize raw access logs for the secret-bearing route, defin
 
 ### A-003 — inconsistent mutation safety
 
-Evidence: the client contains a hardened one-shot mutation primitive, but legacy state-changing node/inbound/client/import methods still use the generic request path.
+Evidence: the client contains a hardened one-shot mutation primitive, but legacy state-changing node/inbound/client/import methods still use the generic request path. The generic path does not currently contain a retry loop, but it does not preserve explicit outcome certainty and follows normal HTTP redirect behavior.
 
-Impact: a lost response can be shown as safe failure even when the remote mutation was applied, enabling duplicate/repeated operations and state divergence.
+Impact: a lost response can be shown as ordinary failure even when the remote mutation was applied, enabling manual duplicate/repeated operations and state divergence.
 
 Closure: inventory all state-changing calls, move them to no-retry mutation handling and implement read-back/post-condition reconciliation where practical. Tests must simulate lost response after remote commit.
 
