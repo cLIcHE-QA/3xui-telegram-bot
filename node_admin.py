@@ -367,6 +367,50 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
         return
     payload = node_mutation_payload(data)
     await call.answer("Добавляю ноду…")
+    expected_name = str(payload.get("name") or "").strip().casefold()
+    expected_endpoint = (
+        str(payload.get("scheme") or "").lower(),
+        str(payload.get("address") or "").lower(),
+        int(payload.get("port") or 0),
+        str(payload.get("basePath") or "/"),
+    )
+    try:
+        before_nodes = await xui.nodes_list()
+    except XUIError as exc:
+        await render_callback(
+            call,
+            "🔴 Нельзя безопасно добавить ноду: не удалось проверить существующие Nodes.\n\n"
+            f"3x-ui: {str(exc)[:300]}",
+            reply_markup=add_node_review_keyboard(
+                str(data.get("tlsVerifyMode") or "verify")
+            ),
+        )
+        return
+    name_matches = [
+        item for item in before_nodes
+        if not item.transitive and item.name.strip().casefold() == expected_name
+    ]
+    endpoint_matches = [
+        item for item in before_nodes
+        if not item.transitive
+        and (
+            str(item.scheme).lower(),
+            str(item.address).lower(),
+            int(item.port),
+            str(item.base_path or "/"),
+        ) == expected_endpoint
+    ]
+    if name_matches or endpoint_matches:
+        await render_callback(
+            call,
+            "🔴 Нода с таким именем или endpoint уже существует. "
+            "Добавление не запускалось; проверь список Nodes.",
+            reply_markup=add_node_review_keyboard(
+                str(data.get("tlsVerifyMode") or "verify")
+            ),
+        )
+        return
+    before_ids = {int(item.id) for item in before_nodes}
     evidence = "direct"
     try:
         try:
@@ -398,16 +442,10 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
                     ),
                 )
                 return
-            expected_name = str(payload.get("name") or "").strip().casefold()
-            expected_endpoint = (
-                str(payload.get("scheme") or "").lower(),
-                str(payload.get("address") or "").lower(),
-                int(payload.get("port") or 0),
-                str(payload.get("basePath") or "/"),
-            )
             matches = [
                 item for item in nodes
                 if not item.transitive
+                and int(item.id) not in before_ids
                 and item.name.strip().casefold() == expected_name
                 and (
                     str(item.scheme).lower(),
