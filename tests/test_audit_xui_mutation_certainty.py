@@ -213,7 +213,7 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
 
         user_reset = users[
             users.index("async def user_reset_run(call: CallbackQuery):"):
-            users.index("async def user_plan_view", users.index("async def user_reset_run(call: CallbackQuery):"))
+            users.index("async def user_sub_rotate_ask", users.index("async def user_reset_run(call: CallbackQuery):"))
         ]
         self.assertIn("user.traffic.reset.unknown", user_reset)
         self.assertIn("readback=not_provable", user_reset)
