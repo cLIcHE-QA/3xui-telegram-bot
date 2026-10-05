@@ -125,5 +125,58 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Не запускай restore повторно вслепую", block)
 
 
+
+    def test_field_update_handlers_read_back_uncertain_outcomes_without_replay(self) -> None:
+        cases = (
+            (
+                "advanced_nodes.py",
+                "async def node_rename_finish(message: Message, state: FSMContext):",
+                "await xui.node_update(",
+                "await xui.node_get_raw(node_id)",
+                "node.rename.unknown",
+            ),
+            (
+                "inbound_admin.py",
+                "async def inbound_toggle(call: CallbackQuery):",
+                "await xui.inbound_set_enable(iid, enabled)",
+                "await xui.inbound_get(iid)",
+                "readback=mismatch",
+            ),
+            (
+                "advanced_users.py",
+                "async def user_expiry_save(message: Message, state: FSMContext):",
+                "await xui.update_client(rec.email, expiryTime=new_expiry)",
+                "await xui.get_client(rec.email)",
+                "user.expiry.set.unknown",
+            ),
+            (
+                "advanced_users.py",
+                "async def user_traffic_save(message: Message, state: FSMContext):",
+                "await xui.update_client(rec.email, totalGB=total_bytes)",
+                "await xui.get_client(rec.email)",
+                "user.traffic_limit.set.unknown",
+            ),
+            (
+                "advanced_users.py",
+                "async def user_flow_sync_run(call: CallbackQuery):",
+                "await xui.bulk_adjust_clients([rec.email], flow=settings.vless_flow)",
+                "await xui.get_client(rec.email)",
+                "user.flow.sync.unknown",
+            ),
+        )
+        for filename, signature, mutation_call, readback_call, unknown_marker in cases:
+            with self.subTest(filename=filename, signature=signature):
+                source = (ROOT / filename).read_text(encoding="utf-8")
+                start = source.index(signature)
+                next_handler = source.find("\n@", start)
+                block = source[start:] if next_handler < 0 else source[start:next_handler]
+                self.assertIn("except XUIMutationError as exc:", block)
+                self.assertIn("if not exc.uncertain:", block)
+                self.assertIn(readback_call, block)
+                self.assertIn("mutation_not_retried=true", block)
+                self.assertIn("readback=unavailable", block)
+                self.assertIn(unknown_marker, block)
+                self.assertEqual(block.count(mutation_call), 1)
+
 if __name__ == "__main__":
     unittest.main()
