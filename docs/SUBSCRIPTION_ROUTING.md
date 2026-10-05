@@ -222,6 +222,21 @@ Production acceptance выполнен на контролируемой test su
 
 Результат: **Happ routing через `/compat/{sub_id}` production-accepted**. Это acceptance только для Happ contract и не означает автоматический acceptance Incy routing.
 
+## Production acceptance: Incy routing
+
+Статус: **PASS, 2026-10-05**.
+
+Production acceptance выполнен на контролируемой test subscription через текущий production subscription path:
+
+- per-user `HWID limit` оставался включённым со значением `15`; для acceptance HWID enforcement не отключался;
+- после обычного refresh subscription в Incy client-side routing rules подтянулись;
+- deterministic `DIRECT` route работает ожидаемо;
+- deterministic `PROXY` route работает ожидаемо;
+- server entries после refresh остались доступны;
+- обычное VPN-подключение работает.
+
+Результат: **Incy routing production-accepted при штатном HWID enforcement**. Incy использует собственную body/deeplink semantics и не зависит от Happ `Routing` / `Routing-Enable` headers.
+
 ## Проверка после настройки
 
 Acceptance выполняется на отдельном test user/subscription, а не только по состоянию toggle в UI.
@@ -281,4 +296,4 @@ Acceptance выполняется на отдельном test user/subscription
 10. реальный Happ refresh применяет profile после compat subscription update;
 11. отключение client routing возвращает прежнее subscription behavior без rotation `sub_id`.
 
-Happ support через compat proxy production-accepted 2026-10-05. Incy остаётся отдельным client contract и требует собственного independent acceptance.
+Happ support через compat proxy и Incy client routing независимо production-accepted 2026-10-05. Shadowrocket module остаётся отдельным client-side contract со своим acceptance.
