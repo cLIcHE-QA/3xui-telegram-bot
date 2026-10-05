@@ -274,7 +274,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ✅ выполнено и принято в production в линии `v4.24.x`; smoke `v4.24.0` выявил targeted findings, закрытые и повторно проверенные в `v4.24.1`.
 19. целостный User Management и follow-up линия `v4.25.x` — ✅ выполнено; релизы `v4.25.0–v4.25.8` опубликованы, развёрнуты и приняты в production, Streisand при активном HWID limit остаётся зафиксированным expected limitation.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ✅ `v4.26.0` опубликован и развёрнут; navigation fix #211 выполнен и принят в production в `v4.26.1`; controlled state-changing production acceptance на безопасной test node/user cohort завершён 2026-10-01, issue #208 закрыт как `completed`.
-21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — ⬜ запланировано; переход к `v5.0.0` блокируется до его закрытия.
+21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — 🟡 выполняется с 2026-10-05; baseline report: [`docs/audits/v4-final-audit-2026-10-05.md`](audits/v4-final-audit-2026-10-05.md), findings #234–#246 открыты; переход к `v5.0.0` и финальный v4 release блокируются до закрытия gate.
 22. исправление неверного ввода Inbound/шаблонов — ✅ выполнено, опубликовано и принято в production в `v4.25.7`; targeted smoke и final health — PASS.
 23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server возвращает в исходный Inbound) — ✅ выполнено и принято в production в `v4.25.8`; issue #202 закрыт как `completed`.
 24. защита DB-backed Owner от случайного self-demotion одним нажатием — ✅ выполнено и принято в production в `v4.25.8`; issue #204 закрыт как `completed`.
@@ -2790,7 +2790,9 @@ Implementation evidence перед release:
 
 ##### Финальный v4 Repository / Public-Release Audit
 
-**Статус: ⬜ Обязательный gate после final v4 feature freeze и до последнего v4.x release.**
+**Статус: 🟡 Выполняется с 2026-10-05. Baseline audit зафиксирован для freeze commit `fe34f9dc97f0a6441dde9fcfe865e34ad8696c32`; final release/publication gate НЕ пройден.**
+
+Текущий versioned report: [`docs/audits/v4-final-audit-2026-10-05.md`](audits/v4-final-audit-2026-10-05.md). На baseline открыты findings #234–#246: Critical — 0 identified so far, High — 6 open, Medium — 7 open. Отдельно остаются обязательными full-history secret/private-data scan, reproducible dependency/license scan, container/SBOM scan и clean-room acceptance; current-tree/source review не подменяет эти проверки.
 
 Цель — не очередной поверхностный source review, а воспроизводимый release-readiness audit всего репозитория и deployment surface. После начала этого gate новый feature scope в v4.x запрещён; findings закрываются отдельными fix PR/patch releases, после чего затронутые части аудита повторяются.
 
