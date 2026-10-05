@@ -72,6 +72,7 @@ def backup_status_text() -> str:
     lines.append(f"{'🟢' if settings.backup_enabled else '⚪'} Автоматически: {'включено' if settings.backup_enabled else 'выключено'}")
     if settings.backup_enabled:
         lines.append(f"🗓 Ежедневно: {backup_schedule_text(settings.backup_hour_utc)}")
+    lines.append("🔐 Передача файлов в Telegram: отключена")
     if settings.offsite_backup_enabled:
         lines.append(f"☁️ Внешняя копия: включена · шифрование · хранить {settings.offsite_backup_keep}")
     else:
