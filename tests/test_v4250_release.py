@@ -251,7 +251,26 @@ class V4264ReleaseTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("Текущий runtime-релиз `v4.26.4` исправляет production finding #226", readme)
         self.assertIn("Controlled Node Drain production acceptance #208 завершён 2026-10-01", readme)
-        self.assertIn("Единственный оставшийся обязательный pre-freeze gate — encrypted off-site backup/restore drill", readme)
+
+    def test_final_v4_feature_freeze_is_recorded(self):
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        for needle in (
+            "off-site recovery drill завершён 2026-10-05",
+            "`backup.offsite` завершился `success`",
+            "`OFFSITE_RECOVERY_OK`",
+            "`manifest.version=4.26.4`",
+            "**final v4 feature freeze объявлен 2026-10-05**",
+            "**Активный gate:** провести полный финальный repository/public-release audit",
+            "Final v4 feature freeze действует с 2026-10-05",
+        ):
+            self.assertIn(needle, roadmap)
+        self.assertNotIn("Единственный оставшийся обязательный pre-freeze gate", roadmap)
+
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("Encrypted off-site backup/restore production drill завершён 2026-10-05", readme)
+        self.assertIn("**Final v4 feature freeze объявлен 2026-10-05**", readme)
+        self.assertIn("активный следующий gate — полный repository/public-release audit", readme)
+        self.assertNotIn("Единственный оставшийся обязательный pre-freeze gate", readme)
 
     def test_data_plane_hardening_219_is_closed(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
