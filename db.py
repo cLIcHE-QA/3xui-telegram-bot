@@ -13,6 +13,7 @@ def _prepare_private_database(path: str) -> None:
         return
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
+    os.chmod(target.parent, 0o700)
     fd = os.open(target, os.O_WRONLY | os.O_CREAT, 0o600)
     os.close(fd)
     os.chmod(target, 0o600)
