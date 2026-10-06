@@ -349,9 +349,9 @@ stat -c '%a %u:%g %n' .env
 getfacl -cp .env | sed -n '1,12p'
 ~~~
 
-`.env` остаётся host-owned и mode-0600; доступ container UID предоставляется отдельным ACL entry. Для backup/log source trees ACL нужен, потому что non-root container больше не обходит host Unix permissions как UID 0.
+`.env` остаётся host-owned и mode-0600; доступ container UID предоставляется отдельным ACL entry. Для backup/log source trees helper также ставит default ACL на directories, чтобы новые SQLite WAL/SHM, rotated nginx logs и новые config files наследовали read access для runtime UID. ACL нужен, потому что non-root container больше не обходит host Unix permissions как UID 0.
 
-При изменении `BACKUP_XUI_DIR_HOST_PATH`, `BACKUP_NGINX_CONF_HOST_PATH` или `NGINX_LOG_HOST_PATH` повторно запусти permission helper до recreate bot container.
+При изменении `BACKUP_XUI_DIR_HOST_PATH`, `BACKUP_NGINX_CONF_HOST_PATH` или `NGINX_LOG_HOST_PATH` повторно запусти permission helper до recreate bot container. Root-owned Safe Bot Self-Update вызывает helper автоматически после checkout target release и до recreate. Ручной non-root deployment fail-closed просит выполнить helper через `sudo` заранее.
 
 ## 6. Firewall Master для panel access из bot container
 

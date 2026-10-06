@@ -40,6 +40,11 @@ class ContainerLeastPrivilegeContractTests(unittest.TestCase):
         self.assertIn('install -d -o "${BOT_UID}" -g "${BOT_GID}" -m 0700 "${DATA_DIR}"', text)
         self.assertIn('find "${DATA_DIR}" -xdev -exec chown', text)
         self.assertIn('find "${target}" -xdev -type f -exec setfacl', text)
+        self.assertIn('setfacl -m "d:u:${BOT_UID}:r-x"', text)
+        deploy = (ROOT / "scripts" / "deploy-release.sh").read_text(encoding="utf-8")
+        self.assertIn("prepare_container_permissions()", deploy)
+        self.assertIn("prepare_container_permissions", deploy)
+        self.assertIn("target release requires least-privilege host permissions", deploy)
         self.assertNotIn("chmod -R 777", text)
         self.assertNotIn("chown -R root", text)
 
