@@ -74,6 +74,16 @@ Disposition:
 - no evidence of SQLite/3x-ui regression is inferred from downstream `failed` values because the process never reached bootstrap/runtime initialization;
 - remediation must normalize application-tree ownership/modes inside the image independently of host checkout umask and add a restrictive-build-context regression smoke.
 
+Remediation status:
+
+- fix PR #279 merged as `6ebdd5e5bb67e741ce643de853c50c90889a45f3`;
+- application tree remains root-owned but is normalized inside the image with `u=rwX,go=rX`;
+- PR #279 `Python checks` run `37522004615` — PASS, including restrictive-`0600` container smoke;
+- PR #279 `Supply-chain audit` run `37522004528` — PASS;
+- post-merge `main` `Python checks` run `37522213218` — PASS;
+- post-merge `main` `Supply-chain audit` run `37522213135` — PASS;
+- production retest must use published hotfix `v4.26.8`; successful CI does not close A-011.
+
 Required acceptance evidence:
 
 - health = ok
