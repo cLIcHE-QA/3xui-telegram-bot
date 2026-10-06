@@ -157,4 +157,40 @@ Acceptance A-010/#243 выполнен:
 - все candidates получили безопасный disposition;
 - **unresolved real secrets = 0**.
 
-A-010 может быть закрыт. Перед фактическим изменением repository visibility остаётся обязательным финальный повторный current-tree/history scan согласно общему public-release gate.
+A-010 закрыт. Требуемый финальный повтор непосредственно перед изменением repository visibility также выполнен; evidence зафиксировано ниже.
+
+## 6. Final pre-public repeat — PASS
+
+Непосредственно перед переводом repository в public сканы были повторены на frozen pre-public `main`:
+
+- exact SHA: `c6066c1ab77e019970a70ebfa7242a66a41ba8a3`;
+- push `Python checks` run `37537988957` — PASS.
+
+History/current-tree:
+
+- workflow: `History secret audit`;
+- run ID: `37538268098` — PASS;
+- artifact ID: `11448040442`;
+- artifact digest: `sha256:a31fda7f10f2e7d6cd98557ff250839f9cdbdd87c1c78d06193211fb06d46ab0`;
+- reachable refs: **364**;
+- sanitized Gitleaks candidates: **6**, тот же ранее dispositioned false-positive set;
+- sensitive metadata records: **147**;
+- новых unique metadata fingerprints относительно принятого A-010 baseline не появилось;
+- unresolved real secrets: **0**.
+
+Retained GitHub Actions storage:
+
+- workflow: `Actions storage secret audit`;
+- run ID: `37538533256` — PASS;
+- artifact ID: `11447327296`;
+- artifact digest: `sha256:d3cd21c28d828e92d518fb90d51e62d1e41ef56b6816d6f314ae4ae46eabdcf7`;
+- completed non-skipped runs considered: **1621**;
+- retained log archives scanned: **1603**;
+- older completed runs whose logs GitHub no longer retained: **18**;
+- retained artifacts scanned: **15/15**;
+- coverage issues: **0**;
+- finding groups: **14**, без нового detector/fingerprint pair;
+- current/historical workflow refs `secrets.*`: **0**;
+- current/historical workflow refs `vars.*`: **0**.
+
+Repository visibility была изменена на public только после этих PASS результатов. Final public-release secret/private-data gate: **PASS**.
