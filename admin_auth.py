@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from aiogram.types import CallbackQuery
+from aiogram.enums import ChatType
+from aiogram.types import CallbackQuery, Message
 
 from admin_privileges import (
     ROLE_LABELS,
@@ -10,6 +11,12 @@ from admin_privileges import (
 )
 from config import Settings
 from db import Database
+
+
+def is_private_admin_event(event: CallbackQuery | Message) -> bool:
+    """Return True only for Telegram events bound to a private chat."""
+    message = event.message if isinstance(event, CallbackQuery) else event
+    return isinstance(message, Message) and message.chat.type == ChatType.PRIVATE
 
 
 async def get_admin_role(db: Database, settings: Settings, telegram_id: int) -> str | None:
@@ -50,6 +57,13 @@ async def authorize_callback(
     *,
     minimum: str | None = None,
 ) -> tuple[bool, str | None]:
+    if not is_private_admin_event(call):
+        if call.from_user:
+            await call.answer(
+                "Панель администратора доступна только в личном чате с ботом.",
+                show_alert=True,
+            )
+        return False, None
     if not call.from_user:
         return False, None
     role = await get_admin_role(db, settings, call.from_user.id)
