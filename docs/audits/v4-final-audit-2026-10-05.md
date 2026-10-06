@@ -240,12 +240,13 @@ Closure remaining: непосредственно перед public publication 
 
 Следующие обязательные области roadmap остаются открытыми, даже если все source findings выше исправлены:
 
-1. **Full callback/command inventory** относительно RBAC/private-chat/ownership после изменений A-001/A-004.
-2. **Mutation inventory** и lost-response tests после A-003.
-3. **Clean-room acceptance** после исправлений: документированный fresh install, representative migration, verified restore, controlled failure/restart scenarios и финальный production smoke.
-4. **Повторный source/network/log review** каждой изменённой security boundary после fix PRs.
-5. **Финальный current-tree + history scan непосредственно перед изменением repository visibility**.
-6. **Финальная ревизия аудита**: каждый High закрыт, каждый security/data-integrity Medium закрыт, для любого оставшегося non-security Medium указан explicit disposition.
+Завершены: full callback/command inventory, mutation/lost-response inventory, повторный source/network/log review и clean-room acceptance. Evidence: `docs/audits/v4-cross-cutting-pre-public-2026-10-06.md`.
+
+Остаются:
+
+1. **Финальный current-tree + history + retained Actions storage scan непосредственно перед изменением repository visibility**.
+2. **A-013 public PVR enablement/smoke** после visibility change.
+3. **Финальная ревизия аудита**: каждый High закрыт, каждый security/data-integrity Medium закрыт, для любого оставшегося non-security Medium указан explicit disposition.
 
 ## Текущий disposition
 
@@ -253,10 +254,9 @@ Closure remaining: непосредственно перед public publication 
 
 Публикация финального v4 release и изменение видимости репозитория всё ещё заблокированы оставшимися audit findings и общими audit gates. A-007 больше не является blocker: residual risk принят владельцем и зафиксирован отдельным audit artifact. Текущий обязательный порядок:
 
-1. завершить pre-public cross-cutting work и clean-room acceptance;
-2. выполнить финальный current-tree/history/retained-Actions secret scan непосредственно перед visibility change;
-3. перевести repository в public и сразу выполнить A-013 Private Vulnerability Reporting enablement/smoke;
-4. финальная audit revision и production release acceptance.
+1. выполнить финальный current-tree/history/retained-Actions secret scan непосредственно перед visibility change;
+2. перевести repository в public и сразу выполнить A-013 Private Vulnerability Reporting enablement/smoke;
+3. финальная audit revision и production release acceptance.
 
 Каждая remediation — narrowly scoped v4 fix в рамках активного feature freeze. Findings не считаются закрытыми только за счёт source changes: должны быть зафиксированы regression/CI и требуемый production/operational acceptance.
 
@@ -289,3 +289,5 @@ Closure remaining: непосредственно перед public publication 
 - **2026-10-06 · A-009 / #242:** owner выбрал Apache-2.0; PR #275 merged, canonical `LICENSE` и compatibility review находятся в `main`, #242 закрыт. **Статус: Closed**.
 
 - **2026-10-06 · Cross-cutting pre-public source gates:** exact main `77da78a1…`, Python checks run `37530118941` PASS. Full admin command/callback RBAC/private-chat inventory, 3x-ui mutation/lost-response inventory и повторный security/network/log boundary review завершены без нового blocker. Evidence: `docs/audits/v4-cross-cutting-pre-public-2026-10-06.md`. Общий audit остаётся NOT PASS до clean-room acceptance, финального pre-public secret scan и A-013.
+
+- **2026-10-07 · Clean-room acceptance:** exact release `v4.26.8` / `e096bf43…` exported into isolated `/tmp`, image rebuilt without production data, migration suite 10/10 PASS, restore suite 5/5 PASS, Deploy restart/recovery suite 20/20 PASS after exact-tag host scripts were mounted read-only, Host Control/Fleet recovery suites PASS, and fresh runtime smoke confirmed UID/GID `10001:10001`, readable entrypoint, schema v5 and SQLite quick-check on read-only rootfs. A transient SSH stall during the first Docker build produced no reboot/OOM/kernel crash evidence and production remained `RestartCount=0`, Health/DB/3x-ui=`ok`. Evidence: `docs/audits/v4-cross-cutting-pre-public-2026-10-06.md`. **Статус: PASS**.
