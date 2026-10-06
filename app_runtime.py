@@ -154,6 +154,7 @@ async def _recover_deploy_after_health() -> None:
 
 async def main():
     configure_logging()
+    await asyncio.to_thread(backup_manager._ensure_dir)
     await db.init()
     recovered_deploy = await reconcile_deploy_jobs(wait_seconds=0)
     if recovered_deploy:
