@@ -28,6 +28,32 @@ class V4266ReleaseTests(unittest.TestCase):
             sqlite_doc,
         )
 
+    def test_release_notes_cover_v4266_scope(self):
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertEqual(
+            changelog.count(
+                "## v4.26.6 — Final v4 audit remediation: admin boundary, redirects и file modes"
+            ),
+            1,
+        )
+        section = changelog.split(
+            "## v4.26.6 — Final v4 audit remediation: admin boundary, redirects и file modes",
+            1,
+        )[1].split("\n## ", 1)[0]
+        for needle in (
+            "A-004/#237",
+            "private Telegram chat",
+            "A-005/#238",
+            "cross-origin",
+            "HTTPS downgrade",
+            "A-006/#239",
+            "0700/0600",
+            "SQLite schema остаётся v5",
+            "OpenAPI contract остаётся v3.8.5",
+            "targeted production acceptance",
+        ):
+            self.assertIn(needle, section)
+
     def test_release_notes_cover_v4261_scope(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertEqual(changelog.count("## v4.26.1 — Node Drain Cancel navigation"), 1)
