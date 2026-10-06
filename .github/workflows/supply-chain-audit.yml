@@ -40,7 +40,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           version="0.75.0"
-          archive="trivy_${version}_Linux-64bit.tar.gz"
+          archive="trivy_0.75.0_Linux-64bit.tar.gz"
           url="https://github.com/aquasecurity/trivy/releases/download/v${version}/${archive}"
           expected="c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f"
 
