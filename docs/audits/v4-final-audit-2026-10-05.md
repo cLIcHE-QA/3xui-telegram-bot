@@ -65,7 +65,7 @@
 | A-007 | **High** | #240 | Repository / Release | Open | `main` не защищён; direct push может обойти документированный PR/required-CI contract и попасть в release workflow. |
 | A-008 | **Medium / security** | #241 | Supply chain | Open | Python deps, Docker base и third-party Actions не закреплены в воспроизводимый immutable dependency graph. |
 | A-009 | **High** | #242 | Legal / Public release | Open | Project `LICENSE`/terms file отсутствует; права публичного распространения не определены до решения owner/legal. |
-| A-010 | **High** | #243 | Git history / Secrets | Open | Обязательный full-history scan secrets/private data ещё не выполнен; поиска по current tree недостаточно. |
+| A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
 | A-011 | **Medium / security** | #244 | Container | Open | Bot container не имеет явного non-root/no-new-privileges/capability hardening, требуемого audit least-privilege gate. |
 | A-012 | **Medium / reliability** | #245 | Public compat proxy | Open | Proxy не имеет явного воспроизводимого concurrency/rate/upstream-body resource bound. |
 | A-013 | **Medium / public readiness** | #246 | Security process | Open | SECURITY.md не содержит конкретного private vulnerability-reporting path и supported-version policy. |
@@ -154,9 +154,11 @@ Closure требует явного licensing decision со стороны owner
 
 ### A-010 — full-history scan
 
-Evidence: connector/current-tree search не является history scanner и не может доказать чистоту deleted blobs/old commits.
+Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`.
 
-Closure: trusted full clone + history-aware secret scan плюс targeted review private hostname/IP/identifier/artifact. Любой реально утёкший secret должен быть rotated до возможной history sanitization.
+History-aware scan выполнен на exact SHA `c8a15362d82bfae812dc93758568602a1475febd`: Gitleaks v8.30.1 + repository metadata scanner проверили 343 reachable refs. Все 6 Gitleaks candidates и 135 metadata candidates получили безопасный disposition; unresolved real secrets = 0.
+
+Отдельный retained GitHub Actions storage audit выполнен на exact SHA `f5b30900e8c53e47bb27b3e30d145b9feff81d20`: 1485 retained log archives и 1 retained artifact проверены, coverage issues = 0, high-confidence credential findings = 0. Current и historical workflow history не содержат repository `secrets.*` / `vars.*` references. A-010 закрыт.
 
 ### A-011 — least privilege для bot container
 
@@ -180,16 +182,15 @@ Closure: настроить/документировать private reporting pat
 
 Следующие обязательные области roadmap остаются открытыми, даже если все source findings выше исправлены:
 
-1. **Full Git-history secret/private-data scan** с версиями/командами scanners и evidence — tracked by A-010.
-2. **Dependency vulnerability + license scan** по финальному exact lock — A-008.
-3. **Container/base-image scan + SBOM** release image — A-008.
-4. **Third-party license compatibility review** после решения по project license — A-009.
-5. **Full callback/command inventory** относительно RBAC/private-chat/ownership после изменений A-001/A-004.
-6. **Mutation inventory** и lost-response tests после A-003.
-7. **Clean-room acceptance** после исправлений: документированный fresh install, representative migration, verified restore, controlled failure/restart scenarios и финальный production smoke.
-8. **Повторный source/network/log review** каждой изменённой security boundary после fix PRs.
-9. **Финальный current-tree + history scan непосредственно перед изменением repository visibility**.
-10. **Финальная ревизия аудита**: каждый High закрыт, каждый security/data-integrity Medium закрыт, для любого оставшегося non-security Medium указан explicit disposition.
+1. **Dependency vulnerability + license scan** по финальному exact lock — A-008.
+2. **Container/base-image scan + SBOM** release image — A-008.
+3. **Third-party license compatibility review** после решения по project license — A-009.
+4. **Full callback/command inventory** относительно RBAC/private-chat/ownership после изменений A-001/A-004.
+5. **Mutation inventory** и lost-response tests после A-003.
+6. **Clean-room acceptance** после исправлений: документированный fresh install, representative migration, verified restore, controlled failure/restart scenarios и финальный production smoke.
+7. **Повторный source/network/log review** каждой изменённой security boundary после fix PRs.
+8. **Финальный current-tree + history scan непосредственно перед изменением repository visibility**.
+9. **Финальная ревизия аудита**: каждый High закрыт, каждый security/data-integrity Medium закрыт, для любого оставшегося non-security Medium указан explicit disposition.
 
 ## Текущий disposition
 
@@ -219,3 +220,6 @@ Closure: настроить/документировать private reporting pat
 - **2026-10-06 · A-001/A-002/A-003 / #234/#235/#236:** `v4.26.5` опубликован и развёрнут; targeted production acceptance завершён. A-001: Full Backup создан локально, off-site upload/verification успешен, Telegram получил только status; A-002: fresh compat request не раскрыл credential в container/new bot/nginx logs, test credential после проверки ротирован; A-003: disable/enable mutation smoke прошёл с read-back и восстановлением исходного состояния. Findings закрыты как completed.
 
 - **2026-10-06 · A-004/A-005/A-006 / #237/#238/#239:** implementation PR #260 merged (`a15ff4beaeae2ec249b729e53b2aeaadf6c349ef`) с зелёными `PR conventions` и `Python checks`. Private-chat admin boundary, cross-origin redirect header stripping/TLS downgrade rejection и owner-only sensitive file modes закреплены regression coverage и SECURITY/UI contracts. Findings остаются **Open / acceptance pending** до публикации/deploy `v4.26.6`, targeted production smoke и повторного health/status-check.
+
+
+- **2026-10-06 · A-010 / #243:** full Git-history scan и retained GitHub Actions storage audit завершены. Gitleaks v8.30.1 + metadata scanner проверили 343 reachable refs; отдельный Actions audit проверил 1485 retained log archives и 1 retained artifact без coverage gaps. Все candidates получили safe disposition, high-confidence credential findings отсутствуют, unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`.
