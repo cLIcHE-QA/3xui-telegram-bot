@@ -2,14 +2,14 @@
 
 ## Идентификация аудита
 
-- **Статус:** 🟡 IN PROGRESS / NOT PASS
+- **Статус:** ✅ PASS
 - **Проверенный freeze commit:** `fe34f9dc97f0a6441dde9fcfe865e34ad8696c32`
-- **Версия приложения:** `4.26.4`
+- **Версия приложения:** `4.26.8`
 - **Аудит начат:** 2026-10-05
 - **Контракт scope:** `docs/ROADMAP.md` → «Финальный v4 Repository / Public-Release Audit»
-- **Решение gate на этой ревизии:** финальный релиз v4 и публикация репозитория остаются заблокированными.
+- **Решение gate на этой ревизии:** PASS — финальный v4 public-release audit завершён; repository опубликован, A-001–A-013 закрыты либо имеют accepted-risk disposition.
 
-Этот отчёт — версионируемый audit artifact, требуемый roadmap. Он фиксирует evidence и findings относительно замороженного baseline v4. Документ намеренно **не** утверждает, что аудит завершён: обязательные history-aware scanners, container/SBOM work и clean-room acceptance всё ещё не выполнены, а все release-blocking findings ниже должны быть закрыты либо получить допустимый по roadmap disposition.
+Этот отчёт — версионируемый audit artifact, требуемый roadmap. Он фиксирует baseline findings, remediation, production acceptance, clean-room acceptance и public-publication evidence. Финальный gate завершён PASS: unresolved Critical/High/security/data-integrity Medium blockers отсутствуют; A-007 сохранён как явный owner-accepted residual risk.
 
 ## Evidence базовой ревизии
 
@@ -68,16 +68,16 @@
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
 | A-011 | **Medium / security** | #244 | Container | Closed | `v4.26.8` production retest PASS: non-root runtime, read-only rootfs, zero capabilities, inherited ACL, backup/DR/client smoke и финальный status с `RestartCount=0`. |
 | A-012 | **Medium / reliability** | #245 | Public compat proxy | Closed | `v4.26.8` production/load acceptance PASS: nginx `limit_conn=4`, `5r/s` burst 10, bounded 503 under burst/saturation, 8 MiB rejection, health during load и `RestartCount=0`. |
-| A-013 | **Medium / public readiness** | #246 | Security process | Acceptance pending | SECURITY.md и issue UX подготовлены для GitHub Private Vulnerability Reporting: supported versions, response expectations, custom private report form и redirect из public issue forms. GitHub-side PVR можно включить только после перехода repository в public; фактический `Report a vulnerability` flow ещё не проверен. |
+| A-013 | **Medium / public readiness** | #246 | Security process | Closed | Repository опубликован; GitHub Private Vulnerability Reporting включён, custom report form активен, внешний incognito smoke подтвердил `Report a vulnerability`; #246 закрыт completed. |
 
 ### Количество findings по severity
 
 - Critical: **0 выявлено на текущем этапе**
 - High: **0 open / 1 accepted risk**
-- Medium: **1 open**
+- Medium: **0 open**
 - Low/Info: на этой ревизии фиксируются только в notes
 
-По audit contract из roadmap это состояние является **release-blocking**.
+По audit contract из roadmap release-blocking findings отсутствуют; A-007 остаётся документированным accepted risk.
 
 ## Evidence findings и условия закрытия
 
@@ -232,33 +232,52 @@ Implementation evidence:
 - `.github/VULNERABILITY_REPORT.yml` задаёт custom private report form с минимизацией secret-bearing material;
 - regression test закрепляет policy/form/issue-template contract.
 
-GitHub platform constraint: Private Vulnerability Reporting доступен для public repositories. Пока repository остаётся private в рамках final v4 audit, GitHub-side enablement выполнить нельзя.
+Closure evidence:
 
-Closure remaining: непосредственно перед public publication включить **Settings → Security and quality → Advanced Security → Private vulnerability reporting** и с внешней/public-user perspective подтвердить доступность **Report a vulnerability** без создания public issue.
+- repository переведён в public только после финальных secret/private-data scans на frozen SHA `c6066c1ab77e019970a70ebfa7242a66a41ba8a3`;
+- GitHub Private Vulnerability Reporting включён владельцем;
+- external incognito/unauthenticated smoke подтвердил доступность **Security → Advisories → Report a vulnerability**;
+- custom `.github/VULNERABILITY_REPORT.yml` остаётся активной structured form;
+- smoke не создавал реальный vulnerability report;
+- #246 закрыт как completed.
 
-## Обязательные audit work, которые ещё не завершены
+A-013: **Closed**.
 
-Следующие обязательные области roadmap остаются открытыми, даже если все source findings выше исправлены:
+## Final cross-cutting / publication evidence
 
-Завершены: full callback/command inventory, mutation/lost-response inventory, повторный source/network/log review и clean-room acceptance. Evidence: `docs/audits/v4-cross-cutting-pre-public-2026-10-06.md`.
+Все обязательные roadmap gates завершены:
 
-Остаются:
+1. full callback/command RBAC/private-chat inventory — PASS;
+2. mutation inventory / lost-response semantics — PASS;
+3. changed security/network/log boundary review — PASS;
+4. clean-room fresh install / migration / restore / restart recovery — PASS;
+5. финальный current-tree + full-history scan непосредственно перед visibility change — PASS;
+6. retained GitHub Actions storage audit — PASS с coverage issues = 0;
+7. post-nginx fresh Full Backup, off-site verification и DR preflight — PASS;
+8. repository visibility → public после сканов — PASS;
+9. A-013 Private Vulnerability Reporting enablement и внешний `Report a vulnerability` smoke — PASS.
 
-1. **Финальный current-tree + history + retained Actions storage scan непосредственно перед изменением repository visibility**.
-2. **A-013 public PVR enablement/smoke** после visibility change.
-3. **Финальная ревизия аудита**: каждый High закрыт, каждый security/data-integrity Medium закрыт, для любого оставшегося non-security Medium указан explicit disposition.
+Final pre-public scan evidence на frozen SHA `c6066c1ab77e019970a70ebfa7242a66a41ba8a3`:
+
+- `Python checks` run `37537988957` — PASS;
+- History secret audit run `37538268098` — PASS, artifact `11448040442`, digest `sha256:a31fda7f10f2e7d6cd98557ff250839f9cdbdd87c1c78d06193211fb06d46ab0`, 6 unchanged Gitleaks candidates, 147 metadata records / 364 refs, no new unique metadata fingerprints, unresolved real secrets = 0;
+- Actions storage secret audit run `37538533256` — PASS, artifact `11447327296`, digest `sha256:d3cd21c28d828e92d518fb90d51e62d1e41ef56b6816d6f314ae4ae46eabdcf7`, 1603 retained logs and 15/15 retained artifacts scanned, coverage issues = 0, 14 unchanged finding groups, current/historical `secrets.*` / `vars.*` refs = 0.
+
+Recovery evidence immediately before publication:
+
+- `3xui-bot-backup-20261006-221647.tar.gz`, 103.3 KB;
+- off-site upload/verification — PASS;
+- DR preflight — valid archive, manifest `4.26.8`, bot DB, Master x-ui DB, bot env, nginx bundle and Finland node DB present.
 
 ## Текущий disposition
 
-**NOT PASS.**
+**PASS.**
 
-Публикация финального v4 release и изменение видимости репозитория всё ещё заблокированы оставшимися audit findings и общими audit gates. A-007 больше не является blocker: residual risk принят владельцем и зафиксирован отдельным audit artifact. Текущий обязательный порядок:
+Финальный v4 Repository / Public-Release Audit завершён. Все High findings закрыты либо имеют explicit accepted-risk disposition; security/data-integrity Medium findings закрыты; unresolved real secrets не обнаружены; clean-room и production/recovery acceptance пройдены; repository опубликован; private vulnerability reporting доступен внешним пользователям.
 
-1. выполнить финальный current-tree/history/retained-Actions secret scan непосредственно перед visibility change;
-2. перевести repository в public и сразу выполнить A-013 Private Vulnerability Reporting enablement/smoke;
-3. финальная audit revision и production release acceptance.
+A-007 остаётся единственным явным residual risk: GitHub-side branch/tag enforcement не включён в рамках принятого owner disposition. Он не считается технически исправленным и должен быть пересмотрен при появлении доступного GitHub-side enforcement.
 
-Каждая remediation — narrowly scoped v4 fix в рамках активного feature freeze. Findings не считаются закрытыми только за счёт source changes: должны быть зафиксированы regression/CI и требуемый production/operational acceptance.
+Post-audit изменения должны снова проходить обычные CI/security/release gates; этот PASS относится к проверенной v4.26.8 public-release линии и зафиксированному evidence выше.
 
 ## Журнал remediation
 
@@ -282,12 +301,14 @@ Closure remaining: непосредственно перед public publication 
 
 - **2026-10-06 · A-012 / #245:** implementation merged в PR #270 (`8485346f…`): hard bounds 32 concurrent upstream fetch, 1s slot wait→503, ≤8 MiB response с chunked read; canonical `/compat/` nginx policy — per-client `limit_conn=4`, `5r/s`, burst 10, без access log bearer-like URI. Production/load acceptance на `v4.26.8` PASS: nginx policy validated/reloaded, real refresh PASS, controlled bursts дали bounded 503, 32-slot saturation вернула `503 + Retry-After: 1`, >8 MiB response отклонён, health сохранился под нагрузкой, финальный `RestartCount=0`. **Статус: Closed**.
 
-- **2026-10-06 · A-013 / #246:** repository-side private security reporting contract подготовлен: supported versions/response expectations в SECURITY.md, custom `.github/VULNERABILITY_REPORT.yml`, public issue forms redirect security reports в private advisory flow. **Статус: acceptance pending** — GitHub PVR можно включить только после перехода repository в public; enablement и внешний `Report a vulnerability` smoke остаются public-release gate.
+- **2026-10-07 · A-013 / #246:** repository переведён в public после финального pre-public scan; GitHub Private Vulnerability Reporting включён, а внешний incognito/unauthenticated smoke подтвердил `Security → Advisories → Report a vulnerability`. Custom `.github/VULNERABILITY_REPORT.yml` доступна как private report form; реальный report во время smoke не создавался. #246 закрыт completed. **Статус: Closed / PASS**.
 
 - **2026-10-06 · A-008 / #241:** reproducible baseline merged и подтверждён exact-main Supply-chain audit run `37507349749` на `80a989d0…`; artifact `11432761040`, digest `sha256:32bffc6e…`; actionable HIGH/CRITICAL = 0, SBOM/license evidence сохранены. **Статус: Closed**.
 
 - **2026-10-06 · A-009 / #242:** owner выбрал Apache-2.0; PR #275 merged, canonical `LICENSE` и compatibility review находятся в `main`, #242 закрыт. **Статус: Closed**.
 
-- **2026-10-06 · Cross-cutting pre-public source gates:** exact main `77da78a1…`, Python checks run `37530118941` PASS. Full admin command/callback RBAC/private-chat inventory, 3x-ui mutation/lost-response inventory и повторный security/network/log boundary review завершены без нового blocker. Evidence: `docs/audits/v4-cross-cutting-pre-public-2026-10-06.md`. Общий audit остаётся NOT PASS до clean-room acceptance, финального pre-public secret scan и A-013.
+- **2026-10-06 · Cross-cutting pre-public source gates:** exact main `77da78a1…`, Python checks run `37530118941` PASS. Full admin command/callback RBAC/private-chat inventory, 3x-ui mutation/lost-response inventory и повторный security/network/log boundary review завершены без нового blocker. Evidence: `docs/audits/v4-cross-cutting-pre-public-2026-10-06.md`. Последующие clean-room, final pre-public scan и A-013 gates также завершены PASS.
 
 - **2026-10-07 · Clean-room acceptance:** exact release `v4.26.8` / `e096bf43…` exported into isolated `/tmp`, image rebuilt without production data, migration suite 10/10 PASS, restore suite 5/5 PASS, Deploy restart/recovery suite 20/20 PASS after exact-tag host scripts were mounted read-only, Host Control/Fleet recovery suites PASS, and fresh runtime smoke confirmed UID/GID `10001:10001`, readable entrypoint, schema v5 and SQLite quick-check on read-only rootfs. A transient SSH stall during the first Docker build produced no reboot/OOM/kernel crash evidence and production remained `RestartCount=0`, Health/DB/3x-ui=`ok`. Evidence: `docs/audits/v4-cross-cutting-pre-public-2026-10-06.md`. **Статус: PASS**.
+
+- **2026-10-07 · Final pre-public publication gate:** frozen main `c6066c1…` сохранил green `Python checks`; History secret audit run `37538268098` и Actions storage audit run `37538533256` завершились PASS без новых unique fingerprints/coverage gaps. После этого создан и off-site verified свежий post-nginx Full Backup, DR preflight подтвердил manifest `4.26.8`; repository переведён в public, PVR включён и externally verified. **Финальный audit status: PASS**.
