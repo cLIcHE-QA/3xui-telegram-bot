@@ -86,4 +86,63 @@ jobs:
       - run: |
           cp .env.example .env
           docker compose --env-file .env.example config --quiet
+      - name: Container least-privilege smoke
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq acl
+
+          tmp="$(mktemp -d)"
+          sudo install -d -o root -g root -m 0700 "$tmp/xui" "$tmp/nginx" "$tmp/logs"
+          sudo install -o root -g root -m 0600 /dev/null "$tmp/xui/x-ui.db"
+          sudo install -o root -g root -m 0600 /dev/null "$tmp/nginx/nginx.conf"
+          sudo install -o root -g root -m 0600 /dev/null "$tmp/logs/access.log"
+
+          python3 - "$tmp" <<'PY'
+          from pathlib import Path
+          import sys
+
+          tmp = Path(sys.argv[1])
+          path = Path(".env")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace(
+              "BACKUP_XUI_DIR_HOST_PATH=/etc/x-ui",
+              f"BACKUP_XUI_DIR_HOST_PATH={tmp / 'xui'}",
+          )
+          text = text.replace(
+              "BACKUP_NGINX_CONF_HOST_PATH=/opt/mtproxyl-nginx/conf",
+              f"BACKUP_NGINX_CONF_HOST_PATH={tmp / 'nginx'}",
+          )
+          text = text.replace(
+              "NGINX_LOG_HOST_PATH=/var/log/nginx",
+              f"NGINX_LOG_HOST_PATH={tmp / 'logs'}",
+          )
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          sudo bash scripts/prepare-bot-container-permissions.sh
+          docker compose --env-file .env config --quiet
+          docker compose --env-file .env build bot
+
+          docker compose --env-file .env run --rm --no-deps --entrypoint sh bot -c '
+            set -eu
+            test "$(id -u)" = "10001"
+            test "$(id -g)" = "10001"
+            grep -Eq "^CapEff:[[:space:]]+0+$" /proc/self/status
+            grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
+            test ! -w /app
+            test -w /app/data
+            test -w /tmp
+            test -r /app/backup_sources/bot.env
+            test -r /app/backup_sources/x-ui/x-ui.db
+            test -r /app/backup_sources/nginx/nginx.conf
+            test -r /app/log_sources/nginx/access.log
+            touch /app/data/least-privilege-smoke
+            touch /tmp/least-privilege-smoke
+            if touch /app/should-not-write 2>/dev/null; then
+              echo "read-only root filesystem was writable" >&2
+              exit 1
+            fi
+          '
       - run: git diff --check

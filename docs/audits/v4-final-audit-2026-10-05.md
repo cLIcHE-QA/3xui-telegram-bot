@@ -223,3 +223,5 @@ Closure: настроить/документировать private reporting pat
 
 
 - **2026-10-06 · A-010 / #243:** full Git-history scan и retained GitHub Actions storage audit завершены. Gitleaks v8.30.1 + metadata scanner проверили 343 reachable refs; отдельный Actions audit проверил 1485 retained log archives и 1 retained artifact без coverage gaps. Все candidates получили safe disposition, high-confidence credential findings отсутствуют, unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`.
+
+- **2026-10-06 · A-011 / #244:** implementation branch вводит dedicated runtime UID/GID `10001:10001`, read-only container rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp` tmpfs и host permission preflight для единственного persistent writable tree `/app/data` при сохранении read-only backup/log sources. CI clean-container smoke проверяет effective UID/GID, zero effective capabilities, `NoNewPrivs=1`, read-only `/app`, writable `/app/data`/`/tmp` и чтение всех canonical backup/log mounts. Finding остаётся **Open / acceptance pending** до зелёного PR и production/clean-host runtime smoke.
