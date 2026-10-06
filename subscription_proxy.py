@@ -4,7 +4,7 @@ import base64
 import binascii
 import logging
 import re
-from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urljoin, urlsplit, urlunsplit
 
 import aiohttp
 from aiohttp import web
@@ -48,6 +48,50 @@ HWID_UPSTREAM_HEADERS = (
     "X-Device-Model",
 )
 MAX_UPSTREAM_CLIENT_HEADER_LENGTH = 512
+UPSTREAM_REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
+MAX_UPSTREAM_REDIRECTS = 5
+SENSITIVE_REDIRECT_HEADERS = {
+    *(name.lower() for name in HWID_UPSTREAM_HEADERS),
+    "authorization",
+    "cookie",
+    "proxy-authorization",
+}
+
+
+def _url_origin(url: str) -> tuple[str, str, int]:
+    parsed = urlsplit(url)
+    scheme = parsed.scheme.lower()
+    if scheme not in {"http", "https"} or not parsed.hostname:
+        raise aiohttp.ClientError("subscription upstream redirect URL is invalid")
+    if parsed.username is not None or parsed.password is not None:
+        raise aiohttp.ClientError("subscription upstream redirect URL contains credentials")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise aiohttp.ClientError("subscription upstream redirect URL has invalid port") from exc
+    return (
+        scheme,
+        parsed.hostname.rstrip(".").lower(),
+        port or (443 if scheme == "https" else 80),
+    )
+
+
+def _redirect_headers(
+    headers: dict[str, str],
+    current_url: str,
+    next_url: str,
+) -> dict[str, str]:
+    current_origin = _url_origin(current_url)
+    next_origin = _url_origin(next_url)
+    if current_origin[0] == "https" and next_origin[0] != "https":
+        raise aiohttp.ClientError("subscription upstream redirect would downgrade TLS")
+    if current_origin == next_origin:
+        return dict(headers)
+    return {
+        name: value
+        for name, value in headers.items()
+        if name.lower() not in SENSITIVE_REDIRECT_HEADERS
+    }
 
 
 def _vpn_client_headers(request: web.Request) -> dict[str, str]:
@@ -331,15 +375,41 @@ class SubscriptionProxy:
 
     async def _fetch(self, url: str, *, headers: dict[str, str], params=None) -> tuple[int, bytes, dict[str, str]]:
         timeout = aiohttp.ClientTimeout(total=20)
+        current_url = str(url)
+        current_headers = dict(headers)
+        current_params = params
+        _url_origin(current_url)
+
         async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(
-                url,
-                headers=headers,
-                params=params,
-                ssl=None if self.verify_tls else False,
-                allow_redirects=True,
-            ) as resp:
-                return resp.status, await resp.read(), dict(resp.headers)
+            for redirect_count in range(MAX_UPSTREAM_REDIRECTS + 1):
+                async with session.get(
+                    current_url,
+                    headers=current_headers,
+                    params=current_params,
+                    ssl=None if self.verify_tls else False,
+                    allow_redirects=False,
+                ) as resp:
+                    if resp.status not in UPSTREAM_REDIRECT_STATUSES:
+                        return resp.status, await resp.read(), dict(resp.headers)
+
+                    location = (resp.headers.get("Location") or "").strip()
+                    if not location:
+                        raise aiohttp.ClientError("subscription upstream redirect missing Location")
+                    if redirect_count >= MAX_UPSTREAM_REDIRECTS:
+                        raise aiohttp.ClientError("subscription upstream redirect limit exceeded")
+
+                    next_url = urljoin(str(resp.url), location)
+                    current_headers = _redirect_headers(
+                        current_headers,
+                        str(resp.url),
+                        next_url,
+                    )
+                    current_url = next_url
+                    # Query flags are already represented in resp.url. The next
+                    # hop must follow Location exactly rather than append them again.
+                    current_params = None
+
+        raise aiohttp.ClientError("subscription upstream redirect limit exceeded")
 
     def _response_headers(
         self,
