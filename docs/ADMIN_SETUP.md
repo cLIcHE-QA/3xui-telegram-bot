@@ -111,7 +111,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 ~~~bash
 sudo apt update
-sudo apt install -y git curl ca-certificates python3 python3-venv openssl
+sudo apt install -y git curl ca-certificates python3 python3-venv openssl acl
 ~~~
 
 Docker Engine и Compose plugin устанавливай по официальной инструкции:
@@ -324,6 +324,35 @@ test -d /opt/mtproxyl-nginx/conf
 
 Не оставляй заведомо несуществующий nginx path: Docker bind mount может создать пустой directory и скрыть ошибку настройки.
 
+### Least-privilege filesystem preparation
+
+Bot image запускается как dedicated UID/GID `10001:10001`, root filesystem container-а read-only, Linux capabilities полностью dropped, а `no-new-privileges` включён. Writable runtime paths ограничены `/app/data` и tmpfs `/tmp`.
+
+До первого запуска и после переноса существующего installation на этот security baseline подготовь host permissions:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+sudo bash scripts/prepare-bot-container-permissions.sh
+~~~
+
+Helper:
+
+- переводит `./data` под ownership `10001:10001` и private modes;
+- даёт runtime UID только read/traverse ACL к `.env`, 3x-ui backup source, nginx config и nginx logs;
+- не делает source mounts writable;
+- fail-closed, если source directory отсутствует или host не имеет `setfacl`.
+
+После helper проверь, что sensitive host files не стали world-readable:
+
+~~~bash
+stat -c '%a %u:%g %n' .env
+getfacl -cp .env | sed -n '1,12p'
+~~~
+
+`.env` остаётся host-owned и mode-0600; доступ container UID предоставляется отдельным ACL entry. Для backup/log source trees ACL нужен, потому что non-root container больше не обходит host Unix permissions как UID 0.
+
+При изменении `BACKUP_XUI_DIR_HOST_PATH`, `BACKUP_NGINX_CONF_HOST_PATH` или `NGINX_LOG_HOST_PATH` повторно запусти permission helper до recreate bot container.
+
 ## 6. Firewall Master для panel access из bot container
 
 Если PANEL_URL ведёт на публичный адрес панели на том же Master VPS, firewall должен пропускать panel port из BOT_DOCKER_SUBNET.
@@ -350,6 +379,22 @@ docker compose --env-file .env -f docker-compose.yml config --quiet
 ~~~bash
 docker compose --env-file .env -f docker-compose.yml up -d --build
 ~~~
+
+Проверь runtime least privilege:
+
+~~~bash
+cid="$(docker compose --env-file .env -f docker-compose.yml ps -q bot)"
+docker inspect --format '{{.Config.User}}' "$cid"
+docker exec "$cid" sh -c 'id; grep -E "^(CapEff|NoNewPrivs):" /proc/self/status'
+~~~
+
+Ожидается:
+
+- image user: `10001:10001`;
+- effective capabilities: `0000000000000000`;
+- `NoNewPrivs: 1`.
+
+Root filesystem должен быть read-only; writable остаются только `/app/data` и bounded tmpfs `/tmp`.
 
 Проверки:
 
