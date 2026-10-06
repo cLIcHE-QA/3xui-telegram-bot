@@ -74,6 +74,7 @@ find "${DATA_DIR}" -xdev -exec chown "${BOT_UID}:${BOT_GID}" {} +
 find "${DATA_DIR}" -xdev -type d -exec chmod 0700 {} +
 find "${DATA_DIR}" -xdev -type f -exec chmod 0600 {} +
 
+chmod 0600 "${ENV_FILE}"
 grant_file_read "${ENV_FILE}"
 grant_tree_read "${XUI_DIR}"
 grant_tree_read "${NGINX_CONF_DIR}"
