@@ -2794,6 +2794,8 @@ Implementation evidence перед release:
 
 Текущий versioned report: [`docs/audits/v4-final-audit-2026-10-05.md`](audits/v4-final-audit-2026-10-05.md). На baseline открыты findings #234–#246: Critical — 0 identified so far, High — 6 open, Medium — 7 open. Отдельно остаются обязательными full-history secret/private-data scan, reproducible dependency/license scan, container/SBOM scan и clean-room acceptance; current-tree/source review не подменяет эти проверки.
 
+Текущий remediation disposition обновляется в versioned audit report. A-007/#240 закрыт как **Accepted risk by owner decision**: GitHub-side protection для текущего private repository не включена, residual risk сохранён и документирован, а finding снят с release blockers как explicit exception. Closure artifact: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. Остальные findings и cross-cutting gates продолжают следовать обычным audit closure criteria.
+
 Цель — не очередной поверхностный source review, а воспроизводимый release-readiness audit всего репозитория и deployment surface. После начала этого gate новый feature scope в v4.x запрещён; findings закрываются отдельными fix PR/patch releases, после чего затронутые части аудита повторяются.
 
 Audit должен охватывать как минимум:
