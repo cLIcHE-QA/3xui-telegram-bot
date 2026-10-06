@@ -35,7 +35,19 @@ class SubscriptionAccessLogAuditTests(unittest.IsolatedAsyncioTestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         block = readme.split("location /compat/ {", 1)[1].split("}", 1)[0]
         self.assertIn("access_log off;", block)
+        self.assertIn("limit_req zone=sub_compat_rate burst=10 nodelay;", block)
+        self.assertIn("limit_conn sub_compat_conn 4;", block)
+        self.assertIn("proxy_read_timeout 25s;", block)
         self.assertNotIn("access_log main", block)
+
+        self.assertIn(
+            "limit_req_zone $binary_remote_addr zone=sub_compat_rate:10m rate=5r/s;",
+            readme,
+        )
+        self.assertIn(
+            "limit_conn_zone $binary_remote_addr zone=sub_compat_conn:10m;",
+            readme,
+        )
 
     def test_security_contract_treats_sub_id_as_credential(self):
         security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")

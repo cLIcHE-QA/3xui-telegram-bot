@@ -3,13 +3,15 @@ from __future__ import annotations
 import base64
 import unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import aiohttp
 from aiohttp import web
 
 from subscription_proxy import (
+    MAX_UPSTREAM_RESPONSE_BYTES,
     SubscriptionProxy,
+    _read_upstream_body_bounded,
     _try_decode_subscription,
     convert_vpn_to_amneziawg,
     filter_incy_desktop_awg,
@@ -86,6 +88,52 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("fp=", first)
         self.assertIn("sni=example.com", first)
         self.assertIn("fp=chrome", second)
+
+    async def test_upstream_body_limit_rejects_oversized_response(self):
+        class Response:
+            headers = {}
+
+            async def read(self):
+                return b"x" * (MAX_UPSTREAM_RESPONSE_BYTES + 1)
+
+        with self.assertRaises(aiohttp.ClientPayloadError):
+            await _read_upstream_body_bounded(
+                Response(),
+                MAX_UPSTREAM_RESPONSE_BYTES,
+            )
+
+    async def test_upstream_declared_content_length_fails_before_read(self):
+        read = AsyncMock(return_value=b"must-not-read")
+
+        class Response:
+            headers = {"Content-Length": str(MAX_UPSTREAM_RESPONSE_BYTES + 1)}
+
+        response = Response()
+        response.read = read
+        with self.assertRaises(aiohttp.ClientPayloadError):
+            await _read_upstream_body_bounded(
+                response,
+                MAX_UPSTREAM_RESPONSE_BYTES,
+            )
+        read.assert_not_awaited()
+
+    async def test_saturated_upstream_slots_fail_closed_with_503(self):
+        proxy = SubscriptionProxy(
+            None,
+            "https://upstream.example.invalid/sub/{sub_id}",
+        )
+        import asyncio
+        proxy._upstream_slots = asyncio.BoundedSemaphore(1)
+        await proxy._upstream_slots.acquire()
+        with patch("subscription_proxy.UPSTREAM_SLOT_WAIT_SECONDS", 0.001):
+            with self.assertRaises(web.HTTPServiceUnavailable) as ctx:
+                await proxy._fetch(
+                    "https://upstream.example.invalid/sub/test",
+                    headers={"Accept": "text/plain"},
+                )
+        self.assertEqual(ctx.exception.status, 503)
+        self.assertEqual(ctx.exception.headers["Retry-After"], "1")
+        proxy._upstream_slots.release()
 
     async def test_invalid_or_unknown_sub_id_never_reaches_upstream(self):
         db = SimpleNamespace(get_by_sub_id=AsyncMock(return_value=None))

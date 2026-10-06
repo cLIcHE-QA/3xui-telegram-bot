@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import binascii
 import logging
@@ -50,6 +51,10 @@ HWID_UPSTREAM_HEADERS = (
 MAX_UPSTREAM_CLIENT_HEADER_LENGTH = 512
 UPSTREAM_REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 MAX_UPSTREAM_REDIRECTS = 5
+MAX_UPSTREAM_RESPONSE_BYTES = 8 * 1024 * 1024
+MAX_UPSTREAM_CONCURRENCY = 32
+UPSTREAM_SLOT_WAIT_SECONDS = 1.0
+UPSTREAM_READ_CHUNK_BYTES = 64 * 1024
 SENSITIVE_REDIRECT_HEADERS = {
     *(name.lower() for name in HWID_UPSTREAM_HEADERS),
     "authorization",
@@ -345,6 +350,33 @@ def _rewrite_default_page(
     return html
 
 
+async def _read_upstream_body_bounded(resp, max_bytes: int) -> bytes:
+    raw_length = (resp.headers.get("Content-Length") or "").strip()
+    if raw_length:
+        try:
+            declared = int(raw_length)
+        except ValueError:
+            declared = -1
+        if declared > max_bytes:
+            raise aiohttp.ClientPayloadError("subscription upstream response exceeds size limit")
+
+    content = getattr(resp, "content", None)
+    if content is None or not hasattr(content, "iter_chunked"):
+        body = await resp.read()
+        if len(body) > max_bytes:
+            raise aiohttp.ClientPayloadError("subscription upstream response exceeds size limit")
+        return body
+
+    chunks: list[bytes] = []
+    total = 0
+    async for chunk in content.iter_chunked(UPSTREAM_READ_CHUNK_BYTES):
+        total += len(chunk)
+        if total > max_bytes:
+            raise aiohttp.ClientPayloadError("subscription upstream response exceeds size limit")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 class SubscriptionProxy:
     def __init__(
         self,
@@ -362,6 +394,8 @@ class SubscriptionProxy:
         self.host = host
         self.port = port
         self.runner: web.AppRunner | None = None
+        self.max_upstream_response_bytes = MAX_UPSTREAM_RESPONSE_BYTES
+        self._upstream_slots = asyncio.BoundedSemaphore(MAX_UPSTREAM_CONCURRENCY)
 
         sample = upstream_template.format(sub_id="__subid__")
         parts = urlsplit(sample)
@@ -380,34 +414,52 @@ class SubscriptionProxy:
         current_params = params
         _url_origin(current_url)
 
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            for redirect_count in range(MAX_UPSTREAM_REDIRECTS + 1):
-                async with session.get(
-                    current_url,
-                    headers=current_headers,
-                    params=current_params,
-                    ssl=None if self.verify_tls else False,
-                    allow_redirects=False,
-                ) as resp:
-                    if resp.status not in UPSTREAM_REDIRECT_STATUSES:
-                        return resp.status, await resp.read(), dict(resp.headers)
+        try:
+            await asyncio.wait_for(
+                self._upstream_slots.acquire(),
+                timeout=UPSTREAM_SLOT_WAIT_SECONDS,
+            )
+        except TimeoutError:
+            raise web.HTTPServiceUnavailable(
+                text="subscription proxy busy\n",
+                headers={"Retry-After": "1"},
+            )
 
-                    location = (resp.headers.get("Location") or "").strip()
-                    if not location:
-                        raise aiohttp.ClientError("subscription upstream redirect missing Location")
-                    if redirect_count >= MAX_UPSTREAM_REDIRECTS:
-                        raise aiohttp.ClientError("subscription upstream redirect limit exceeded")
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                for redirect_count in range(MAX_UPSTREAM_REDIRECTS + 1):
+                    async with session.get(
+                        current_url,
+                        headers=current_headers,
+                        params=current_params,
+                        ssl=None if self.verify_tls else False,
+                        allow_redirects=False,
+                    ) as resp:
+                        if resp.status not in UPSTREAM_REDIRECT_STATUSES:
+                            body = await _read_upstream_body_bounded(
+                                resp,
+                                self.max_upstream_response_bytes,
+                            )
+                            return resp.status, body, dict(resp.headers)
 
-                    next_url = urljoin(str(resp.url), location)
-                    current_headers = _redirect_headers(
-                        current_headers,
-                        str(resp.url),
-                        next_url,
-                    )
-                    current_url = next_url
-                    # Query flags are already represented in resp.url. The next
-                    # hop must follow Location exactly rather than append them again.
-                    current_params = None
+                        location = (resp.headers.get("Location") or "").strip()
+                        if not location:
+                            raise aiohttp.ClientError("subscription upstream redirect missing Location")
+                        if redirect_count >= MAX_UPSTREAM_REDIRECTS:
+                            raise aiohttp.ClientError("subscription upstream redirect limit exceeded")
+
+                        next_url = urljoin(str(resp.url), location)
+                        current_headers = _redirect_headers(
+                            current_headers,
+                            str(resp.url),
+                            next_url,
+                        )
+                        current_url = next_url
+                        # Query flags are already represented in resp.url. The next
+                        # hop must follow Location exactly rather than append them again.
+                        current_params = None
+        finally:
+            self._upstream_slots.release()
 
         raise aiohttp.ClientError("subscription upstream redirect limit exceeded")
 

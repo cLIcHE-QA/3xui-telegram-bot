@@ -244,15 +244,25 @@ Docker Compose публикует proxy только на loopback Master:
 127.0.0.1:18080 -> container:8080
 ~~~
 
-Пример reverse-proxy route:
+Пример reproducible reverse-proxy policy. Zones задаются один раз в `http {}`, а limits — в публичном `/compat/` location:
 
 ~~~nginx
+# http {}
+limit_req_zone $binary_remote_addr zone=sub_compat_rate:10m rate=5r/s;
+limit_conn_zone $binary_remote_addr zone=sub_compat_conn:10m;
+
 location /compat/ {
     # URI содержит bearer-like sub_id: не сохраняй request URI в access logs.
     access_log off;
 
+    # Per-client front-door bounds. Application дополнительно ограничивает
+    # upstream concurrency глобально и response body размером 8 MiB.
+    limit_req zone=sub_compat_rate burst=10 nodelay;
+    limit_conn sub_compat_conn 4;
+
     proxy_pass http://127.0.0.1:18080;
     proxy_http_version 1.1;
+    proxy_read_timeout 25s;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -265,7 +275,7 @@ location /compat/ {
 curl -fsS http://127.0.0.1:18080/healthz
 ~~~
 
-Не публикуй реальный `sub_id` в issue/PR/chat. Встроенный aiohttp access log для compatibility proxy отключён. На внешнем reverse proxy для `/compat/` также не включай access log с request URI/`$request_uri`: путь содержит bearer-like credential.
+Не публикуй реальный `sub_id` в issue/PR/chat. Runtime proxy допускает максимум 32 одновременных upstream fetch и читает не более 8 MiB одного upstream response; при насыщении очередь ждёт не более 1 секунды и fail-closed возвращает 503. Встроенный aiohttp access log для compatibility proxy отключён. На внешнем reverse proxy для `/compat/` также не включай access log с request URI/`$request_uri`: путь содержит bearer-like credential.
 
 ## Telegram surfaces
 
