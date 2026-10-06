@@ -123,12 +123,19 @@ jobs:
 
           sudo bash scripts/prepare-bot-container-permissions.sh
           docker compose --env-file .env config --quiet
+
+          # Reproduce a restrictive production checkout umask. Docker COPY
+          # preserves these modes unless the image normalizes them explicitly.
+          chmod 0600 restore_bootstrap.py bot.py app_runtime.py
           docker compose --env-file .env build bot
 
           docker compose --env-file .env run --rm --no-deps --entrypoint sh bot -c '
             set -eu
             test "$(id -u)" = "10001"
             test "$(id -g)" = "10001"
+            test -r /app/restore_bootstrap.py
+            test -r /app/bot.py
+            test -r /app/app_runtime.py
             grep -Eq "^CapEff:[[:space:]]+0+$" /proc/self/status
             grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
             test ! -w /app
