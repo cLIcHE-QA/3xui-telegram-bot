@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,12 +11,20 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _load():
-    path = ROOT / "scripts" / "scan-github-actions-storage.py"
-    spec = importlib.util.spec_from_file_location("actions_storage_audit", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    scripts_dir = ROOT / "scripts"
+    path = scripts_dir / "scan-github-actions-storage.py"
+    inserted = str(scripts_dir) not in sys.path
+    if inserted:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        spec = importlib.util.spec_from_file_location("actions_storage_audit", path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        if inserted:
+            sys.path.remove(str(scripts_dir))
 
 
 audit = _load()
