@@ -7,9 +7,9 @@
 - **Версия приложения:** `4.26.8`
 - **Аудит начат:** 2026-10-05
 - **Контракт scope:** `docs/ROADMAP.md` → «Финальный v4 Repository / Public-Release Audit»
-- **Решение gate на этой ревизии:** PASS — финальный v4 public-release audit завершён; repository опубликован, A-001–A-013 закрыты либо имеют accepted-risk disposition.
+- **Решение gate на этой ревизии:** PASS — финальный v4 public-release audit завершён; repository опубликован, A-001–A-013 закрыты, включая post-public техническое закрытие A-007.
 
-Этот отчёт — версионируемый audit artifact, требуемый roadmap. Он фиксирует baseline findings, remediation, production acceptance, clean-room acceptance и public-publication evidence. Финальный gate завершён PASS: unresolved Critical/High/security/data-integrity Medium blockers отсутствуют; A-007 сохранён как явный owner-accepted residual risk.
+Этот отчёт — версионируемый audit artifact, требуемый roadmap. Он фиксирует baseline findings, remediation, production acceptance, clean-room acceptance и public-publication evidence. Финальный gate завершён PASS: unresolved Critical/High/security/data-integrity Medium blockers отсутствуют; исторический owner-accepted A-007 после public transition полностью технически remediated branch/tag rulesets.
 
 ## Evidence базовой ревизии
 
@@ -62,7 +62,7 @@
 | A-004 | **Medium / security** | #237 | Telegram Admin | Closed | `v4.26.6` опубликован и развёрнут; production smoke подтвердил fail-closed `/admin` вне private chat, штатную работу в private chat и финальный Health/DB/3x-ui status PASS. |
 | A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Closed | `v4.26.6` production acceptance подтвердил: same-origin сохраняет разрешённый device header, cross-origin удаляет `X-HWID`/`Authorization`, HTTPS→HTTP downgrade блокируется; финальный status PASS. |
 | A-006 | **Medium / security** | #239 | Filesystem / Backup | Closed | `v4.26.6` production acceptance подтвердил owner-only modes `0700/0600` для bot DB, logs, Full Backup и node backup artifacts; повторный Health/DB/3x-ui status PASS. |
-| A-007 | **High** | #240 | Repository / Release | Accepted risk, narrowed | После public transition `main` защищён active ruleset: PR-only, squash-only, strict required checks `test`/`title`, no delete/non-fast-forward, no bypass. Остаточный accepted risk сужен до отсутствия отдельного `v*` tag ruleset. Evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. |
+| A-007 | **High** | #240 | Repository / Release | Closed / remediated | `main` защищён active PR/CI/squash ruleset, а `refs/tags/v*` — active tag ruleset с update/delete/non-fast-forward restrictions; bypass отсутствует. Evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. |
 | A-008 | **Medium / security** | #241 | Supply chain | Closed | Reproducible baseline merged и подтверждён exact-main Supply-chain audit: hashed `requirements.lock`, digest-pinned base, full-SHA Actions, vulnerability/license reports, CycloneDX SBOM; actionable HIGH/CRITICAL = 0. Closure evidence: `docs/audits/v4-a008-supply-chain-audit-2026-10-06.md`. |
 | A-009 | **High** | #242 | Legal / Public release | Closed | Owner выбрал Apache-2.0; canonical `LICENSE`, README license section и compatibility review merged. Third-party obligations документированы; #242 закрыт. |
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
@@ -73,11 +73,11 @@
 ### Количество findings по severity
 
 - Critical: **0 выявлено на текущем этапе**
-- High: **0 open / 1 accepted risk**
+- High: **0 open**
 - Medium: **0 open**
 - Low/Info: на этой ревизии фиксируются только в notes
 
-По audit contract из roadmap release-blocking findings отсутствуют; A-007 остаётся документированным accepted risk.
+По audit contract из roadmap release-blocking findings отсутствуют; A-007 post-public hardening полностью remediated.
 
 ## Evidence findings и условия закрытия
 
@@ -148,7 +148,7 @@ Disposition at audit closure: **Accepted risk by owner decision**.
 
 Post-public revalidation: `main` теперь GitHub-side protected active ruleset `Protect main release path` (ID `24575428`). Ruleset требует PR, разрешает только squash merge, требует strict checks `test` и `title`, запрещает deletion/non-fast-forward, требует linear history и не имеет bypass actors.
 
-Таким образом исходный branch-side риск технически remediated после public transition. Отдельного tag ruleset не обнаружено, поэтому residual accepted risk сужен до immutability опубликованных `v*` release refs. Existing release workflow/provenance controls остаются defense-in-depth.
+После public transition исходный branch-side риск был remediated ruleset `Protect main release path`; затем включён tag ruleset `Protect release tags` (ID `24615100`) для `refs/tags/v*`, запрещающий update/delete/non-fast-forward без bypass. Existing release workflow/provenance controls остаются defense-in-depth.
 
 Closure/revalidation evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`.
 
@@ -279,7 +279,7 @@ Recovery evidence immediately before publication:
 
 Финальный v4 Repository / Public-Release Audit завершён. Все High findings закрыты либо имеют explicit accepted-risk disposition; security/data-integrity Medium findings закрыты; unresolved real secrets не обнаружены; clean-room и production/recovery acceptance пройдены; repository опубликован; private vulnerability reporting доступен внешним пользователям.
 
-A-007 остаётся единственным явным residual risk, но после public transition он существенно сужен: `main` уже защищён enforced GitHub ruleset без bypass; не закрыта только отдельная GitHub-side immutability policy для опубликованных `v*` tags.
+A-007 больше не является residual risk: branch и `v*` release-tag paths защищены enforced GitHub rulesets без bypass.
 
 Post-audit изменения должны снова проходить обычные CI/security/release gates; этот PASS относится к проверенной v4.26.8 public-release линии и зафиксированному evidence выше.
 
@@ -318,3 +318,5 @@ Post-audit изменения должны снова проходить обы�
 - **2026-10-07 · Final pre-public publication gate:** frozen main `c6066c1…` сохранил green `Python checks`; History secret audit run `37538268098` и Actions storage audit run `37538533256` завершились PASS без новых unique fingerprints/coverage gaps. После этого создан и off-site verified свежий post-nginx Full Backup, DR preflight подтвердил manifest `4.26.8`; repository переведён в public, PVR включён и externally verified. **Финальный audit status: PASS**.
 
 - **2026-10-07 · A-007 post-public revalidation:** GitHub API подтвердил `main.protected=true` через active ruleset `Protect main release path` (ID `24575428`): PR-only, squash-only, strict required checks `test`/`title`, deletion/non-fast-forward blocked, linear history, bypass actors absent. Tag-target rulesets отсутствуют; residual accepted risk сужен до release tag refs. **Branch-side control: remediated; tag-side hardening: recommended**.
+
+- **2026-10-07 · A-007 tag hardening:** создан active ruleset `Protect release tags` (ID `24615100`) для `refs/tags/v*`; update/delete/non-fast-forward запрещены, bypass отсутствует, creation новых release tags разрешена. `v4.26.8` сохранил SHA `e096bf436425ea037399e290a5a54f54c729b352`. **A-007: fully remediated / Closed**.
