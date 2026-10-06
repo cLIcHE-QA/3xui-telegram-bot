@@ -27,6 +27,12 @@
 
 Если технический термин требуется объяснить пользователю, предпочтителен русский контекст вокруг неизменённого термина, например `Fingerprint клиента`, `Версия Xray`, `API недоступен`.
 
+## Граница private chat для Admin Control Plane
+
+Административный Telegram UI существует только в личном чате оператора с ботом. Даже валидный Owner/Administrator/Support/Read-only ID не открывает и не продолжает admin session в group, supergroup или channel context.
+
+`/admin`, admin callbacks и FSM text input должны блокироваться до rendering/business logic вне private chat. Это fail-closed security boundary; перенос admin panel в общий чат не является поддерживаемым режимом. Client-facing flow остаётся отдельным navigation/authorization контуром.
+
 ## Канонический словарь v4
 
 Для основных разделов и повторяющихся действий используется единый display vocabulary:
