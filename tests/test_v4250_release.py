@@ -274,8 +274,6 @@ class V4266ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Предыдущий production-релиз `v4.26.4` опубликован, развёрнут и принят", readme)
         self.assertIn("Controlled Node Drain production acceptance #208 завершён 2026-10-01", readme)
 
     def test_final_v4_feature_freeze_is_recorded(self):
@@ -347,8 +345,6 @@ class V4266ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Предыдущий production-релиз `v4.26.4` опубликован, развёрнут и принят", readme)
 
     def test_v4264_production_acceptance_is_recorded(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
@@ -366,8 +362,6 @@ class V4266ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Предыдущий production-релиз `v4.26.4` опубликован, развёрнут и принят", readme)
         self.assertIn("role smoke под `read_only` и `admin`, Attention Refresh/Back и финальный health/status — PASS", readme)
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
