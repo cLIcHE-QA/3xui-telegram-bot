@@ -30,11 +30,20 @@ jobs:
           python -m pip install --disable-pip-version-check pip-tools==7.6.1
           python -m piptools compile             --resolver=backtracking             --generate-hashes             --strip-extras             --output-file requirements.lock             requirements.txt
           python -m pip install --require-hashes -r requirements.lock
-      - name: Commit generated lock
+      - name: Resolve immutable Python base digest
         shell: bash
         run: |
           set -Eeuo pipefail
-          git add requirements.lock
+          mkdir -p supply-chain
+          digest="$(docker buildx imagetools inspect python:3.12-slim | sed -n 's/^Digest:[[:space:]]*//p' | head -n 1)"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          printf 'python:3.12-slim@%s\n' "$digest" > supply-chain/base-image.txt
+
+      - name: Commit generated lock and base digest
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add requirements.lock supply-chain/base-image.txt
           if git diff --cached --quiet; then
             exit 0
           fi
