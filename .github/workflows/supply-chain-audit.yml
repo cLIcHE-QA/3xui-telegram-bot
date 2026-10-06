@@ -60,8 +60,6 @@ jobs:
 
           "$RUNNER_TEMP/trivy" fs             --scanners license             --format json             --output "$RUNNER_TEMP/supply-chain-audit/python-licenses.json"             .
 
-          "$RUNNER_TEMP/trivy" fs             --scanners vuln             --severity HIGH,CRITICAL             --exit-code 1             --quiet             .
-
       - name: Build audited container image
         shell: bash
         run: |
@@ -79,8 +77,6 @@ jobs:
           "$RUNNER_TEMP/trivy" image             --scanners license             --format json             --output "$RUNNER_TEMP/supply-chain-audit/container-licenses.json"             "$image"
 
           "$RUNNER_TEMP/trivy" image             --format cyclonedx             --output "$RUNNER_TEMP/supply-chain-audit/container-sbom.cdx.json"             "$image"
-
-          "$RUNNER_TEMP/trivy" image             --scanners vuln             --severity HIGH,CRITICAL             --exit-code 1             --quiet             "$image"
 
       - name: Write audit metadata
         shell: bash
@@ -117,6 +113,27 @@ jobs:
               encoding="utf-8",
           )
           PY
+
+      - name: Gate actionable HIGH/CRITICAL vulnerabilities
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          "$RUNNER_TEMP/trivy" fs \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            --quiet \
+            .
+
+          "$RUNNER_TEMP/trivy" image \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            --quiet \
+            "3xui-telegram-bot:audit-${GITHUB_SHA}"
 
       - name: Upload supply-chain audit evidence
         if: ${{ always() }}
