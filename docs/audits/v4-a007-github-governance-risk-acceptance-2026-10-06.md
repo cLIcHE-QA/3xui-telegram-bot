@@ -1,6 +1,6 @@
 # A-007 / #240 — GitHub governance risk acceptance — 2026-10-06
 
-Статус: **ACCEPTED RISK / Closed by owner decision; post-public branch enforcement enabled**.
+Статус: **CLOSED / FULLY REMEDIATED after post-public GitHub enforcement**.
 
 ## Finding
 
@@ -42,7 +42,24 @@ Current evidence:
 
 Проверка rulesets для target `tag` на момент revalidation вернула пустой набор. Следовательно, GitHub-side immutability для опубликованных `v*` tags всё ещё не доказана platform enforcement-ом.
 
-Текущий residual risk A-007 теперь **сужен до release tag refs**. Existing release workflow/provenance contract остаётся compensating control, но отдельный tag ruleset для `v*` остаётся рекомендуемым post-public hardening.
+Промежуточный residual risk release tag refs закрыт active tag ruleset `Protect release tags`. Текущий residual risk A-007: **none identified within the original finding scope**.
+
+## Post-public tag enforcement — fully remediated
+
+2026-10-07 создан и проверен active repository tag ruleset **Protect release tags**:
+
+- ruleset ID: `24615100`;
+- target: `tag`;
+- include condition: `refs/tags/v*`;
+- enforcement: `active`;
+- rules: `deletion`, `non_fast_forward`, `update`;
+- bypass actors: none;
+- `current_user_can_bypass=never`;
+- tag creation не запрещена.
+
+Existing release tag `v4.26.8` после включения ruleset остался на SHA `e096bf436425ea037399e290a5a54f54c729b352`.
+
+Вместе с branch ruleset **Protect main release path** (ID `24575428`) это закрывает исходный A-007 closure criterion: default branch и опубликованные release refs защищены GitHub-side enforcement.
 
 ## Compensating controls
 
@@ -73,7 +90,7 @@ Repository-side defense-in-depth уже реализован:
 
 ## Residual risk
 
-Для `main` GitHub-side enforcement теперь включён. Residual risk остаётся только там, где отдельный GitHub-side control ещё не подтверждён: опубликованные `v*` tag refs.
+Для `main` и опубликованных `v*` tag refs GitHub-side enforcement теперь включён. Residual risk в рамках исходного A-007 closure criterion не остаётся.
 
 Operational contract поэтому остаётся строгим:
 
@@ -85,6 +102,4 @@ Operational contract поэтому остаётся строгим:
 
 ## Closure decision
 
-A-007/#240 остаётся закрытым по исходному owner disposition, но post-public состояние улучшилось: branch-side control теперь **remediated by enforced ruleset**, а residual risk сужен до отсутствия отдельной GitHub-side защиты опубликованных `v*` tag refs.
-
-Это не требует переоткрывать завершённый v4 audit. Рекомендуемый следующий governance hardening — добавить tag ruleset, запрещающий update/delete опубликованных release tags.
+A-007/#240 теперь **fully remediated**: branch-side и tag-side controls обеспечиваются enforced GitHub rulesets без bypass. Исходный owner-accepted risk сохранён в документе как исторический audit disposition, но больше не является текущим residual risk.

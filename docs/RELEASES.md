@@ -212,16 +212,15 @@ Repository-side workflow checks не заменяют GitHub rulesets. Теку�
 - bypass actors отсутствуют;
 - release workflow имеет `contents: write` только в отдельном publish job после read-only provenance validation.
 
-A-007/#240 первоначально был закрыт как owner-accepted risk на private-repository state. После перевода repository в public branch-side часть finding технически remediated этим enforced ruleset.
+A-007/#240 первоначально был закрыт как owner-accepted risk на private-repository state. После перевода repository в public finding технически закрыт полностью двумя enforced rulesets:
 
-Отдельного tag-target ruleset пока нет. Поэтому опубликованные `v*` tags остаются **операционно immutable** по release contract и workflow provenance, но GitHub-side запрет update/delete ещё должен быть включён отдельным коротким post-public hardening.
+- branch ruleset **Protect main release path** (ID `24575428`) защищает default branch;
+- tag ruleset **Protect release tags** (ID `24615100`) применяется к `refs/tags/v*`;
+- tag ruleset active и запрещает `update`, `deletion` и `non_fast_forward`;
+- bypass actors отсутствуют; `current_user_can_bypass=never`;
+- creation новых `v*` tags не запрещена, поэтому штатный release workflow продолжает создавать новые release refs.
 
-До его включения:
-
-- существующие release tags нельзя вручную перемещать или удалять;
-- новые tags/releases публикует только штатный release workflow;
-- manual tag/release creation не используется как fallback;
-- любые расхождения tag/SHA считаются release-integrity incident.
+Опубликованные release tags теперь immutable и по operational contract, и GitHub-side enforcement. Existing `v4.26.8` после включения ruleset остался на SHA `e096bf436425ea037399e290a5a54f54c729b352`.
 
 Полный historical/post-public disposition: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`.
 

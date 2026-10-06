@@ -122,7 +122,7 @@ Force-push/rebase общей PR-ветки без необходимости н�
 
 Это GitHub-side enforcement канонического workflow, а не замена правилам этого документа.
 
-Для `v*` release tags отдельный tag ruleset пока не включён. До post-public hardening опубликованные tags считаются immutable по operational contract: их не перемещают/не удаляют, а новые tag/Release создаёт только штатный release workflow.
+Для `v*` release tags включён active ruleset **Protect release tags** (ID `24615100`) с pattern `refs/tags/v*`: update/delete/non-fast-forward запрещены, bypass actors отсутствуют (`current_user_can_bypass=never`). Создание новых release tags разрешено и остаётся обязанностью штатного release workflow.
 
 ### Issues
 
