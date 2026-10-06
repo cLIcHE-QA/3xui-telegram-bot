@@ -40,8 +40,8 @@ Workflow `.github/workflows/history-secret-audit.yml` запускается в�
 
 Он:
 
-1. checkout с `fetch-depth: 0`;
-2. fetch всех remote branches и tags;
+1. выполняет `actions/checkout` с `fetch-depth: 0`, который получает полную reachable history, remote branches и tags;
+2. после checkout не выполняет повторный authenticated fetch: `persist-credentials: false` удаляет GitHub token из локальной Git-конфигурации;
 3. запускает canonical runner;
 4. публикует только sanitized reports.
 
