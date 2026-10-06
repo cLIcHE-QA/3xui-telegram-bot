@@ -274,7 +274,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 18. PackBot-compatible website monitoring и diagnostics, нативно встроенные в текущую архитектуру — ✅ выполнено и принято в production в линии `v4.24.x`; smoke `v4.24.0` выявил targeted findings, закрытые и повторно проверенные в `v4.24.1`.
 19. целостный User Management и follow-up линия `v4.25.x` — ✅ выполнено; релизы `v4.25.0–v4.25.8` опубликованы, развёрнуты и приняты в production, Streisand при активном HWID limit остаётся зафиксированным expected limitation.
 20. graceful Node Drain / вывод direct-ноды из пользовательского трафика без смешения с maintenance или destructive Stop Xray — ✅ `v4.26.0` опубликован и развёрнут; navigation fix #211 выполнен и принят в production в `v4.26.1`; controlled state-changing production acceptance на безопасной test node/user cohort завершён 2026-10-01, issue #208 закрыт как `completed`.
-21. финальный repository/public-release audit после feature freeze и до последнего v4.x release — 🟡 выполняется с 2026-10-05; baseline report: [`docs/audits/v4-final-audit-2026-10-05.md`](audits/v4-final-audit-2026-10-05.md), findings #234–#246 открыты; переход к `v5.0.0` и финальный v4 release блокируются до закрытия gate.
+21. финальный repository/public-release audit после feature freeze — ✅ завершён PASS 2026-10-07; final report: [`docs/audits/v4-final-audit-2026-10-05.md`](audits/v4-final-audit-2026-10-05.md). A-001–A-013 закрыты либо имеют documented disposition, repository опубликован, PVR включён, final secret/history/Actions-storage gates пройдены; `v4.26.8` является финальной audited v4 baseline для перехода к `v5.0.0`.
 22. исправление неверного ввода Inbound/шаблонов — ✅ выполнено, опубликовано и принято в production в `v4.25.7`; targeted smoke и final health — PASS.
 23. исправление навигации Clone Inbound (`✖ Отмена` на выборе target server возвращает в исходный Inbound) — ✅ выполнено и принято в production в `v4.25.8`; issue #202 закрыт как `completed`.
 24. защита DB-backed Owner от случайного self-demotion одним нажатием — ✅ выполнено и принято в production в `v4.25.8`; issue #204 закрыт как `completed`.
@@ -287,15 +287,16 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Зафиксированный порядок финального закрытия v4.x:
 
-**Текущий активный остаток после off-site acceptance и объявления freeze (2026-10-05):**
+**Текущий статус после off-site acceptance, freeze и public-release audit:**
 
 1. ✅ production drill encrypted off-site backup/restore завершён 2026-10-05;
 2. ✅ **final v4 feature freeze объявлен 2026-10-05**; после этой точки новые функции в v4.x не добавляются;
-3. **Активный gate:** провести полный финальный repository/public-release audit;
-4. findings закрывать только narrowly-scoped fix PR/patch releases с повторным regression/production acceptance;
-5. после закрытия audit gate опубликовать/принять финальный v4.x release и только затем открыть реализацию `v5.0.0`.
+3. ✅ **Активный gate:** провести полный финальный repository/public-release audit — завершён PASS 2026-10-07;
+4. ✅ audit findings A-001–A-013 закрыты либо получили documented disposition; required regression/production acceptance завершён;
+5. ✅ `v4.26.8` опубликован, развёрнут и принят как финальная audited v4 baseline; repository public, PVR active;
+6. ▶ **Следующий product track:** `v5.0.0 — Client Portal`.
 
-Все обязательные pre-freeze gates закрыты. Final v4 feature freeze действует с 2026-10-05: в v4.x разрешены только исправления audit/security/reliability/data-integrity/regression findings, необходимые tests/docs и production acceptance. Новый product scope, новые feature tracks и отложенные compatibility improvements в v4.x не возвращаются; любое исключение требует явного изменения этого roadmap до реализации.
+Все обязательные v4 gates закрыты. Final v4 feature freeze действует с 2026-10-05 как historical boundary: новый product scope в v4.x не возвращается. После PASS public-release audit новые customer-facing функции реализуются только в v5.x; v4.x остаётся только для действительно необходимых security/reliability/data-integrity hotfixes.
 
 Ниже сохранён исторический порядок уже выполненных и оставшихся этапов:
 
@@ -321,9 +322,9 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 20. data-plane address hardening #219 — ✅ закрыт 2026-10-01: для v4.x зафиксирован operator-managed per-Inbound contract `shareAddrStrategy=custom` + явный `shareAddr`; отдельная node-level `data_plane_address` metadata до freeze не вводится, automatic DNS→IP persistence запрещён;
 21. ✅ production drill encrypted off-site backup/restore завершён 2026-10-05;
 22. ✅ **final v4 feature freeze объявлен 2026-10-05**: после этой точки новые функции в v4.x не добавляются;
-23. **активно:** после feature freeze провести полный финальный repository/public-release audit по всему продукту;
-24. исправления findings выполнять только narrowly-scoped fix PR/patch releases v4.x с обязательным regression/production acceptance; номер последнего v4.x patch заранее не фиксируется;
-25. только после закрытия audit gate опубликовать/принять финальный v4.x release и открыть реализацию `v5.0.0`.
+23. ✅ **активно:** после feature freeze провести полный финальный repository/public-release audit по всему продукту — завершено PASS 2026-10-07;
+24. ✅ findings A-001–A-013 закрыты/приняты по documented disposition с regression/production evidence; финальная audited baseline — `v4.26.8`;
+25. ✅ audit gate закрыт, repository опубликован; реализация `v5.0.0` теперь открыта как следующий product track.
 
 Feature freeze означает запрет на новый product scope, а не запрет исправлений. Security/reliability/data-integrity findings, найденные финальным аудитом, должны быть закрыты до финального v4 release; необходимые regression tests, docs и production acceptance остаются разрешены.
 
@@ -3959,7 +3960,49 @@ Security / operational boundary:
 
 Этот пункт считается отдельной infrastructure-задачей средней сложности. Сам probe runtime лёгкий, но production-ready fleet требует broker/TLS/auth, нескольких независимых точек наблюдения, credential lifecycle, monitoring и runbook'ов.
 
+### Post-public governance hardening
+
+**Статус: ⬜ Запланировано как короткий hardening перед/параллельно старту v5; не блокирует уже завершённый v4 audit.**
+
+После перевода repository в public GitHub-side защита `main` была перепроверена:
+
+- active ruleset `Protect main release path` (ID `24575428`);
+- PR обязателен;
+- merge только `squash`;
+- strict required checks `test` и `title`;
+- deletion и non-fast-forward запрещены;
+- linear history обязательна;
+- bypass actors отсутствуют.
+
+Это закрывает branch-side часть бывшего A-007 residual risk. Отдельного tag-target ruleset пока нет.
+
+Следующий governance hardening:
+
+1. добавить GitHub ruleset для опубликованных `v*` tags;
+2. запретить update/delete существующих release tags вне разрешённого release path;
+3. проверить невозможность переместить уже опубликованный `v4.26.8`;
+4. сохранить release workflow единственным штатным способом публикации новых tag/release refs.
+
+После этого A-007 residual risk можно считать технически закрытым полностью, а не только принятым owner disposition.
+
 ### v5.0.0 — Client Portal
+
+**Статус: ⬜ Следующий активный product track. Реализация ещё не начата; v4 public-release gate закрыт.**
+
+Рекомендуемый порядок первой реализации:
+
+1. customer ownership/auth boundary + feature flag/allowlist без публичного открытия;
+2. persistent Order / Payment / Entitlement states и migration contract;
+3. provider-neutral customer/subscription service boundary поверх текущего 3x-ui provisioning;
+4. read-only Client Portal skeleton: Профиль / Моя подписка / Трафик / Устройства / Помощь;
+5. commerce flow + authenticated/idempotent payment webhook journal;
+6. entitlement → provisioning/reconcile с no-replay/unknown semantics;
+7. onboarding/deep-link/QR UX и self-service diagnostics;
+8. отдельный v5 launch audit;
+9. controlled canary rollout по описанному ниже gate;
+10. только после canary — расширение публичного доступа.
+
+Отложенные tracks **не блокируют** базовый v5.0.0: multi-format subscriptions, Remnawave/provider-neutral multi-provider expansion и Cheburcheck Probe fleet могут идти отдельными subsequent tracks после стабилизации core Client Portal. При этом верхний customer/domain слой v5 сразу проектируется так, чтобы не зависеть напрямую от `XUIClient`.
 
 `v5.0.0` открывает следующий продуктовый этап: `/start` становится основным пользовательским входом для клиентов.
 
