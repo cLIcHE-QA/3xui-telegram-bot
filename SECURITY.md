@@ -23,6 +23,15 @@
 3. Очистить Git history специализированным инструментом (`git filter-repo`/аналог) и force-push только после согласования.
 4. Проверить forks, CI logs, artifacts и GitHub Actions secrets.
 
+## Telegram Admin Control Plane
+
+Admin Control Plane работает только в личном чате оператора с ботом. Это отдельная trust boundary, а не UX-предпочтение:
+
+- `/admin`, admin callbacks и admin FSM input принимаются только при `chat.type=private`;
+- group, supergroup и channel context fail closed до выполнения handler и не получают admin rendering;
+- проверка private-chat context дополняет RBAC по Telegram ID/role и не заменяет его;
+- client-facing router остаётся отдельным контуром и не получает это ограничение автоматически.
+
 ## Subscription credentials и access logs
 
 `sub_id` и полный subscription URL считаются bearer-like credentials. Compatibility path `/compat/{sub_id}` поэтому не должен попадать в raw HTTP access logs:
@@ -30,6 +39,7 @@
 - встроенный aiohttp access logger compatibility proxy отключён;
 - reverse proxy для `/compat/` должен использовать `access_log off` либо доказанно sanitized формат без request URI/`$request_uri`;
 - HWID/device headers и subscription identifiers не выводятся в application/audit diagnostics;
+- upstream redirects обрабатываются вручную: HWID/device headers сохраняются только на same-origin hop, при первом cross-origin hop удаляются и не восстанавливаются дальше по chain; HTTPS downgrade отклоняется;
 - если действующий `sub_id` попал в raw logs/chat/issue, его следует ротировать как скомпрометированный credential.
 
 ## Host Control Agent
@@ -65,7 +75,7 @@ State-changing 3x-ui API calls используют отдельную one-shot 
 
 Полные backup-архивы, `bot.sqlite3`, direct-node snapshots и exports вроде `bot.env` являются secret-bearing artifacts. Telegram используется только как control UI: такие файлы не прикладываются к сообщениям и не рассылаются администраторам. Получение выполняется только через защищённый host-side/off-site recovery path.
 
-Полные backup-архивы содержат секреты и должны храниться вне публичных артефактов репозитория. Restore-операции следует выполнять только после preflight/dry-run и наличия rescue-копии текущего состояния.
+Полные backup-архивы содержат секреты и должны храниться вне публичных артефактов репозитория. Backup/runtime directories для этих данных имеют mode `0700`; Full Backup, bot/node snapshots, bot SQLite и local bot log files — `0600`. Startup/creation path ужимает существующие permissive modes и не полагается на host umask. Restore-операции следует выполнять только после preflight/dry-run и наличия rescue-копии текущего состояния.
 
 Direct-node snapshot собирается из двух раздельных privilege domains: `x-ui.db` приходит через dedicated `NODE_BACKUP_*` direct-admin token, а nginx configuration — через fixed read-only Host Control snapshot source. Telegram/Master не передаёт filesystem path на node. `node.json` и `manifest.json` не должны содержать API/Host Control tokens; manifest фиксирует checksums и явно отмечает missing/degraded components.
 

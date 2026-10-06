@@ -31,7 +31,7 @@ from logging_setup import configure_logging
 from disaster_recovery import disaster_recovery_router, send_boot_restore_notice
 from restore_manager import RestoreManager
 from offsite_backup import replicate_with_job, service_from_settings
-from admin_ui import AdminPanelSessionMiddleware
+from admin_ui import AdminPanelSessionMiddleware, AdminPrivateChatMiddleware
 from node_admin import node_admin_router
 from system_admin import system_admin_router
 from storage_admin import storage_admin_router
@@ -44,6 +44,29 @@ backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.b
 system_backup = SystemBackupService(backup_manager, settings.node_backup_targets, settings.host_control_targets)
 offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
 offsite_backup = service_from_settings(settings, offsite_restore_manager)
+
+ADMIN_ROUTERS = (
+    admin_shell_router,
+    node_admin_router,
+    system_admin_router,
+    storage_admin_router,
+    versions_router,
+    bot_updates_router,
+    user_groups_router,
+    advanced_users_router,
+    advanced_nodes_router,
+    host_control_router,
+    fleet_router,
+    inbound_admin_router,
+    catalog_router,
+    observability_router,
+    logs_alerts_router,
+    cheburcheck_router,
+    website_monitoring_router,
+    website_diagnostics_router,
+    disaster_recovery_router,
+    business_router,
+)
 
 
 async def _seconds_until_backup_hour() -> float:
@@ -131,6 +154,7 @@ async def _recover_deploy_after_health() -> None:
 
 async def main():
     configure_logging()
+    await asyncio.to_thread(backup_manager._ensure_dir)
     await db.init()
     recovered_deploy = await reconcile_deploy_jobs(wait_seconds=0)
     if recovered_deploy:
@@ -169,6 +193,9 @@ async def main():
     await send_boot_restore_notice(bot)
     dp = Dispatcher()
     dp.callback_query.outer_middleware(AdminPanelSessionMiddleware())
+    for router in ADMIN_ROUTERS:
+        router.message.outer_middleware(AdminPrivateChatMiddleware())
+        router.callback_query.outer_middleware(AdminPrivateChatMiddleware())
     dp.include_router(admin_shell_router)
     dp.include_router(client_access_router)
     dp.include_router(node_admin_router)

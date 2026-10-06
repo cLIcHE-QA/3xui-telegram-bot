@@ -7,7 +7,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from admin_auth import authorize_callback, get_admin_role
+from admin_auth import authorize_callback, get_admin_role, is_private_admin_event
 from admin_navigation import admin_menu, attention_menu, dashboard_menu, infrastructure_menu, monitoring_menu, system_menu
 from admin_ui import register_panel_message, render_callback
 from backup_manager import BackupManager
@@ -135,6 +135,8 @@ def _attention_detail_lines(items: tuple[AttentionItem, ...]) -> list[str]:
 
 @admin_shell_router.message(Command("admin"))
 async def admin(message: Message):
+    if not is_private_admin_event(message):
+        return
     if not message.from_user:
         return
     role = await get_admin_role(db, settings, message.from_user.id)
