@@ -1,5 +1,60 @@
 # Security
 
+## Supported versions
+
+Security fixes are provided for the latest published v4 release line only.
+
+| Version | Supported |
+| --- | --- |
+| Latest published v4.x | ✅ |
+| Older v4 releases | ❌ |
+| Unreleased development branches | Best effort; not a supported production release |
+
+Before reporting, reproduce against the latest published v4 release when safely possible. Do not publish a proof of concept, exploit details, credentials, subscription identifiers, private hostnames/IPs, database content, backup artifacts, or secret-bearing logs in a public issue.
+
+## Reporting a vulnerability
+
+For public releases, the canonical reporting channel is **GitHub Private Vulnerability Reporting**:
+
+1. Open the repository's **Security** tab.
+2. Open **Advisories**.
+3. Click **Report a vulnerability**.
+4. Submit the report privately.
+
+Do **not** open a normal public issue for a vulnerability or suspected secret exposure.
+
+Private Vulnerability Reporting can only be enabled by GitHub for a public repository. While this repository remains private during the final v4 audit, external public reporting is not active. Before changing repository visibility to public, maintainers must enable **Settings → Security and quality → Advanced Security → Private vulnerability reporting** and verify that the **Report a vulnerability** flow is available.
+
+If the report itself contains an active credential, rotate/revoke it first when you control that credential, then include only the minimum information needed to identify the affected boundary. Never attach production databases, backups, private keys, full subscription URLs, or raw secrets.
+
+### What to include
+
+Include:
+
+- affected version/tag and commit SHA when known;
+- affected component and attack surface;
+- minimal reproduction steps;
+- impact and required attacker prerequisites;
+- sanitized logs or fingerprints where useful;
+- whether an active credential may already be exposed.
+
+Do not include unnecessary personal data or unrelated production material.
+
+### Response expectations
+
+This is a maintainer-operated project, not a staffed security operations service. Reports are handled on a best-effort basis.
+
+Maintainers should:
+
+- acknowledge a valid private report as soon as practical;
+- keep security-sensitive discussion private until a fix/mitigation is available;
+- prioritize active credential exposure, remote compromise, privilege-boundary bypass, destructive data-integrity issues, and unauthenticated public attack paths;
+- coordinate disclosure timing with the reporter when practical;
+- publish a security advisory when public disclosure is appropriate.
+
+No fixed SLA is promised. If immediate containment is required, rotate/revoke exposed credentials and disable the affected public path before waiting for a code fix.
+
+
 Репозиторий предназначен для управления VPN-инфраструктурой и может работать с административными токенами, subscription identifiers, базами 3x-ui и другими чувствительными данными.
 
 ## Не коммитить
