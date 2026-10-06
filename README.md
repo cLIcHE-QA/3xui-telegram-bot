@@ -318,7 +318,8 @@ git diff --check
 - public-readiness contract: нейтральные deployment-примеры и актуальные русские UI-paths в README/runbook'ах;
 - provisioning/user mutation ordering;
 - backup/restore/off-site integrity semantics;
-- release/Git workflow conventions.
+- release/Git workflow conventions;
+- Living Docs diff/semantic contract и current repository-state expectations.
 
 ## Карта документации
 
@@ -327,6 +328,7 @@ git diff --check
 | Установка Admin Control Plane | [docs/ADMIN_SETUP.md](docs/ADMIN_SETUP.md) |
 | Release/tag/deployment contract | [docs/RELEASES.md](docs/RELEASES.md) |
 | Git/PR/issue conventions | [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) |
+| Living docs / drift contract | [docs/LIVING_DOCS.md](docs/LIVING_DOCS.md) |
 | Product roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
 | UI style | [docs/UI_STYLE.md](docs/UI_STYLE.md) |
 | Direct-node onboarding | [docs/NODE_ONBOARDING.md](docs/NODE_ONBOARDING.md) |
