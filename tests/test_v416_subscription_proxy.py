@@ -122,6 +122,8 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
             None,
             "https://upstream.example.invalid/sub/{sub_id}",
         )
+        import asyncio
+        proxy._upstream_slots = asyncio.BoundedSemaphore(1)
         await proxy._upstream_slots.acquire()
         with patch("subscription_proxy.UPSTREAM_SLOT_WAIT_SECONDS", 0.001):
             with self.assertRaises(web.HTTPServiceUnavailable) as ctx:
