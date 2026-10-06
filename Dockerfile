@@ -13,6 +13,11 @@ WORKDIR /app
 COPY requirements.lock .
 RUN pip install --no-cache-dir --require-hashes -r requirements.lock
 COPY . .
+# Build context modes depend on the checkout umask. Keep application code
+# root-owned but normalize it to be readable/traversable by the non-root runtime.
+RUN set -eux; \
+    chown -R 0:0 /app; \
+    chmod -R u=rwX,go=rX /app
 
 USER 10001:10001
 ENTRYPOINT ["python", "restore_bootstrap.py"]
