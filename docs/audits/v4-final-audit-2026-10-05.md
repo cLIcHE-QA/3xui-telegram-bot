@@ -64,7 +64,7 @@
 | A-006 | **Medium / security** | #239 | Filesystem / Backup | Acceptance pending | PR #260 merged: sensitive dirs/files enforce `0700/0600`, existing artifacts tighten, permissive-umask regression зелёный; `v4.26.6` production acceptance ещё требуется. |
 | A-007 | **High** | #240 | Repository / Release | Open | `main` не защищён; direct push может обойти документированный PR/required-CI contract и попасть в release workflow. |
 | A-008 | **Medium / security** | #241 | Supply chain | Implementation pending audit run | Hashed `requirements.lock`, digest-pinned `python:3.12-slim`, full-SHA pinned GitHub Actions и read-only Trivy supply-chain audit workflow подготовлены. Closure требует зелёный scanner run на exact source SHA, сохранённые artifacts и disposition findings/license inventory. |
-| A-009 | **High** | #242 | Legal / Public release | Open | Project `LICENSE`/terms file отсутствует; права публичного распространения не определены до решения owner/legal. |
+| A-009 | **High** | #242 | Legal / Public release | Ready for closure on merge | Owner выбрал Apache-2.0; canonical `LICENSE`, README license section и compatibility review добавлены. Third-party BSD/MIT notices сохранены; Python dependency inventory разобран, включая MPL-2.0 `certifi` и scanner UNKNOWN metadata. |
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
 | A-011 | **Medium / security** | #244 | Container | Acceptance pending | Runtime hardening merged: dedicated UID/GID `10001:10001`, root-owned app tree, read-only rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp`, writable `/app/data` only, inherited host ACL rollout. CI clean-container smoke PASS; production runtime smoke ещё не зафиксирован. |
 | A-012 | **Medium / reliability** | #245 | Public compat proxy | Acceptance pending | Resource bounds merged: global upstream concurrency 32, slot wait 1s→503, upstream body ≤8 MiB chunked; canonical nginx per-client `limit_conn=4`, `5r/s`, burst 10. Regression CI PASS; production/load smoke ещё не зафиксирован. |
@@ -155,9 +155,18 @@ Closure remaining: выполнить зелёный Supply-chain audit на fin
 
 ### A-009 — project license
 
-Evidence: project LICENSE/COPYING terms отсутствуют; third-party notices не определяют права на сам проект.
+Owner decision: **Apache License 2.0**.
 
-Closure требует явного licensing decision со стороны owner/legal. Audit не должен придумывать это решение.
+Implementation evidence:
+
+- canonical project terms: `LICENSE`;
+- README содержит отдельный license section;
+- `THIRD_PARTY_NOTICES.md` отделяет project-authored Apache-2.0 code от third-party BSD/MIT material;
+- compatibility review: `docs/audits/v4-a009-license-review-2026-10-06.md`;
+- Python runtime license inventory review покрывает permissive/notice licenses, PSF-2.0, MPL-2.0 `certifi` и scanner UNKNOWN classifications;
+- текущий release process не публикует prebuilt container image; если это изменится, нужен отдельный review GPL/LGPL obligations Debian base packages.
+
+Closure: после merge license change A-009/#242 может быть закрыт. Это engineering compliance review, не юридическая консультация.
 
 ### A-010 — full-history scan
 
@@ -269,3 +278,5 @@ Closure remaining: непосредственно перед public publication 
 - **2026-10-06 · A-013 / #246:** repository-side private security reporting contract подготовлен: supported versions/response expectations в SECURITY.md, custom `.github/VULNERABILITY_REPORT.yml`, public issue forms redirect security reports в private advisory flow. **Статус: acceptance pending** — GitHub PVR можно включить только после перехода repository в public; enablement и внешний `Report a vulnerability` smoke остаются public-release gate.
 
 - **2026-10-06 · A-008 / #241:** reproducible baseline implementation подготовлена: hashed `requirements.lock`, digest-pinned Python base, full-SHA GitHub Actions pins, pinned/checksummed Trivy v0.75.0, vulnerability/license reports и CycloneDX SBOM workflow. **Статус: implementation pending audit run** — closure только после зелёного scanner artifact на exact source SHA и disposition findings; license compatibility зависит от A-009/#242.
+
+- **2026-10-06 · A-009 / #242:** owner выбрал Apache-2.0. Добавлены canonical `LICENSE`, README license section, project-vs-third-party clarification и отдельный compatibility review. **Статус: ready for closure on merge**.

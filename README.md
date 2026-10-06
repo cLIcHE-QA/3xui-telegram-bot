@@ -351,6 +351,12 @@ Read-only проверка блокировок использует API open-so
 
 Website monitoring и web diagnostics `v4.24.0` используют [PackBot](https://github.com/vladpak1/packbot) как reviewed behavior/reference implementation на revision `3c4a5bb29626f8b3e28056bd52cd94fdce9f3c1a`. Production runtime не встраивает PHP/MySQL/webhook stack PackBot; реализация нативная Python/aiogram/SQLite. MIT attribution и copyright сохранены в [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+## Лицензия
+
+Исходный код этого проекта распространяется по **Apache License 2.0**. Полный текст: [LICENSE](LICENSE).
+
+Third-party компоненты, зависимости, upstream references и адаптированные материалы сохраняют собственные лицензии и attribution requirements; см. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) и supply-chain license inventory.
+
 ## История проекта
 
 Release history не поддерживается второй копией внутри README.

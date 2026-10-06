@@ -1,5 +1,8 @@
 # Third-Party Notices
 
+Project-authored code is licensed under the Apache License 2.0 as stated in `LICENSE`.
+The entries below retain their own upstream copyright/license terms; the project license does not replace or relicense third-party material.
+
 This file records third-party projects whose code, behavior, API contract, assets, or documentation materially informed this repository.
 
 ## Cheburcheck
