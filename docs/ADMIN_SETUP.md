@@ -37,7 +37,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v4.26.5. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v4.26.6. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -103,7 +103,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v4.26.5` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
+Для bot release `v4.26.6` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
 
 ## 2. Базовая подготовка Master VPS
 
@@ -139,7 +139,7 @@ git clone git@github.com:cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v4.26.5
+git checkout --detach v4.26.6
 ~~~
 
 Проверка release:
@@ -154,7 +154,7 @@ PY
 Ожидается:
 
 ~~~text
-4.26.5
+4.26.6
 ~~~
 
 ## 4. Создай local admin venv
@@ -526,15 +526,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v4.26.5.tar.gz
+  /root/3xui-host-control-bundle-v4.26.6.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v4.26.5.tar.gz \
-  /root/3xui-host-control-bundle-v4.26.5.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v4.26.6.tar.gz \
+  /root/3xui-host-control-bundle-v4.26.6.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -544,7 +544,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v4.26.5.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v4.26.6.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -553,7 +553,7 @@ sha256sum -c 3xui-host-control-bundle-v4.26.5.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v4.26.5.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v4.26.6.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
@@ -994,10 +994,10 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v4.26.5
+Git tag: v4.26.6
 Container: running
 RestartCount=0
-Bot version: 4.26.5
+Bot version: 4.26.6
 Health: ok
 DB: ok
 3x-ui connectivity: ok
