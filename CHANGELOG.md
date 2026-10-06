@@ -9,6 +9,13 @@
 
 
 
+## v4.26.8 — A-011 non-root startup hotfix
+- Исправлен production blocker `v4.26.7`: после перехода container runtime на UID/GID `10001:10001` restrictive host checkout modes могли сохраниться через Docker `COPY . .`, из-за чего Python не мог прочитать `/app/restore_bootstrap.py` и container уходил в restart loop.
+- Application tree внутри image теперь после copy принудительно остаётся root-owned, но получает `u=rwX,go=rX`; runtime user может читать/обходить source tree, но не получает write-доступ, а read-only rootfs, `cap_drop: ALL` и `no-new-privileges` сохраняются.
+- CI least-privilege smoke теперь перед build выставляет ключевым source files mode `0600` и проверяет их читаемость из container под UID/GID `10001:10001`; fix также прошёл Supply-chain audit.
+- Production acceptance A-011/#244 и A-012/#245 остаётся обязательным после deployment `v4.26.8`; A-012 load-smoke не запускается до успешного A-011 startup/runtime gate.
+- SQLite schema остаётся v5, pinned 3x-ui OpenAPI contract остаётся v3.8.5; новых migrations и 3x-ui routes нет.
+
 ## v4.26.7 — Final v4 audit hardening: container, proxy и supply chain
 - A-011/#244: bot container переведён на dedicated UID/GID `10001:10001`, read-only root filesystem, `no-new-privileges`, `cap_drop: ALL`, bounded tmpfs `/tmp` и единственный persistent writable tree `/app/data`; permission helper/ACL сохраняют read-only доступ к backup/config/log mounts и устойчивость к новым WAL/SHM/rotated log files.
 - A-012/#245: Subscription Compatibility Proxy получил hard resource bounds — максимум 32 concurrent upstream fetch, ожидание slot не более 1 секунды с fail-closed HTTP 503 + `Retry-After: 1`, upstream response не более 8 MiB с chunk-bounded read; canonical Nginx policy ограничивает одного клиента `limit_conn=4`, `5r/s`, burst 10.
