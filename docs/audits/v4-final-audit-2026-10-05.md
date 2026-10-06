@@ -66,15 +66,15 @@
 | A-008 | **Medium / security** | #241 | Supply chain | Closed | Reproducible baseline merged и подтверждён exact-main Supply-chain audit: hashed `requirements.lock`, digest-pinned base, full-SHA Actions, vulnerability/license reports, CycloneDX SBOM; actionable HIGH/CRITICAL = 0. Closure evidence: `docs/audits/v4-a008-supply-chain-audit-2026-10-06.md`. |
 | A-009 | **High** | #242 | Legal / Public release | Closed | Owner выбрал Apache-2.0; canonical `LICENSE`, README license section и compatibility review merged. Third-party obligations документированы; #242 закрыт. |
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
-| A-011 | **Medium / security** | #244 | Container | Acceptance pending | Runtime hardening merged: dedicated UID/GID `10001:10001`, root-owned app tree, read-only rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp`, writable `/app/data` only, inherited host ACL rollout. CI clean-container smoke PASS; production runtime smoke ещё не зафиксирован. |
-| A-012 | **Medium / reliability** | #245 | Public compat proxy | Acceptance pending | Resource bounds merged: global upstream concurrency 32, slot wait 1s→503, upstream body ≤8 MiB chunked; canonical nginx per-client `limit_conn=4`, `5r/s`, burst 10. Regression CI PASS; production/load smoke ещё не зафиксирован. |
+| A-011 | **Medium / security** | #244 | Container | Closed | `v4.26.8` production retest PASS: non-root runtime, read-only rootfs, zero capabilities, inherited ACL, backup/DR/client smoke и финальный status с `RestartCount=0`. |
+| A-012 | **Medium / reliability** | #245 | Public compat proxy | Closed | `v4.26.8` production/load acceptance PASS: nginx `limit_conn=4`, `5r/s` burst 10, bounded 503 under burst/saturation, 8 MiB rejection, health during load и `RestartCount=0`. |
 | A-013 | **Medium / public readiness** | #246 | Security process | Acceptance pending | SECURITY.md и issue UX подготовлены для GitHub Private Vulnerability Reporting: supported versions, response expectations, custom private report form и redirect из public issue forms. GitHub-side PVR можно включить только после перехода repository в public; фактический `Report a vulnerability` flow ещё не проверен. |
 
 ### Количество findings по severity
 
 - Critical: **0 выявлено на текущем этапе**
 - High: **0 open / 1 accepted risk**
-- Medium: **3 open**
+- Medium: **1 open**
 - Low/Info: на этой ревизии фиксируются только в notes
 
 По audit contract из roadmap это состояние является **release-blocking**.
@@ -205,7 +205,7 @@ Implementation evidence:
 
 CI evidence: PR #268 `Python checks` run `37474609300` PASS; PR #269 `Python checks` run `37483324260` PASS. Clean-container smoke checks UID/GID, zero `CapEff`, `NoNewPrivs=1`, read-only `/app`, writable `/app/data` and `/tmp`, plus read access to canonical backup/log mounts.
 
-Closure remaining: targeted production/runtime acceptance on the actual Master host — health, SQLite, backup/recovery preflight, representative client/admin flows and no restart loop. Evidence template: `docs/audits/v4-a011-a012-production-acceptance-2026-10-06.md`.
+Closure evidence: `v4.26.8` production retest PASS — runtime UID/GID `10001:10001`, zero effective capabilities, read-only rootfs, bounded `/tmp`, writable `/app/data` only, inherited ACL read access, Full Backup/off-site verification, DR preflight, representative client/admin flows and final `RestartCount=0` with Health/DB/3x-ui `ok`. Evidence: `docs/audits/v4-a011-a012-production-acceptance-2026-10-06.md`. A-011/#244: **Closed**.
 
 ### A-012 — resource bounds compat proxy
 
@@ -221,7 +221,7 @@ Implementation evidence:
 
 CI evidence: PR #270 `Python checks` run `37488293491` PASS. Regression coverage includes oversized `Content-Length`, oversized body, saturated application semaphore and canonical nginx rate/connection contract.
 
-Closure remaining: targeted production/load acceptance on the deployed release — normal subscription refresh, burst/parallel requests, bounded 503 behavior under saturation, no process memory/restart anomaly and final health/status. Evidence template: `docs/audits/v4-a011-a012-production-acceptance-2026-10-06.md`.
+Closure evidence: `v4.26.8` production/load acceptance PASS — canonical nginx limits loaded after successful `nginx -t`, normal real refresh PASS, 40-request front-door burst produced `13×404 / 27×503`, isolated 32-slot saturation returned `503 + Retry-After: 1`, >8 MiB loopback response was rejected with 64 KiB chunked reads, health stayed responsive during an 80-request burst (`26×404 / 54×503`), and final status remained `RestartCount=0`, Health/DB/3x-ui `ok`. Evidence: `docs/audits/v4-a011-a012-production-acceptance-2026-10-06.md`. A-012/#245: **Closed**.
 
 ### A-013 — private security reporting
 
@@ -253,11 +253,9 @@ Closure remaining: непосредственно перед public publication 
 
 Публикация финального v4 release и изменение видимости репозитория всё ещё заблокированы оставшимися audit findings и общими audit gates. A-007 больше не является blocker: residual risk принят владельцем и зафиксирован отдельным audit artifact. Текущий обязательный порядок:
 
-1. production acceptance container hardening: A-011;
-2. production/load acceptance compat proxy: A-012;
-3. public security-reporting enablement/smoke: A-013;
-4. оставшиеся cross-cutting audit work, повторные scanners и clean-room acceptance;
-5. финальная audit revision и production release acceptance.
+1. public security-reporting enablement/smoke: A-013;
+2. оставшиеся cross-cutting audit work, повторные scanners и clean-room acceptance;
+3. финальная audit revision и production release acceptance.
 
 Каждая remediation — narrowly scoped v4 fix в рамках активного feature freeze. Findings не считаются закрытыми только за счёт source changes: должны быть зафиксированы regression/CI и требуемый production/operational acceptance.
 
@@ -279,9 +277,9 @@ Closure remaining: непосредственно перед public publication 
 
 - **2026-10-06 · A-010 / #243:** full Git-history scan и retained GitHub Actions storage audit завершены. Gitleaks v8.30.1 + metadata scanner проверили 343 reachable refs; отдельный Actions audit проверил 1485 retained log archives и 1 retained artifact без coverage gaps. Все candidates получили safe disposition, high-confidence credential findings отсутствуют, unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`.
 
-- **2026-10-06 · A-011 / #244:** implementation merged в PR #268 (`a9ab0c02…`) и rollout fix PR #269 (`d3f06110…`). Dedicated UID/GID `10001:10001`, read-only rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp`, writable `/app/data` only, read-only source mounts и inherited host ACL закреплены CI clean-container smoke. **Статус: acceptance pending** — остался production runtime smoke.
+- **2026-10-06 · A-011 / #244:** implementation merged в PR #268 (`a9ab0c02…`) и rollout fix PR #269 (`d3f06110…`); hotfix `v4.26.8` устранил restrictive-build-context startup regression. Production retest подтвердил non-root runtime, read-only rootfs, zero capabilities, inherited ACL, Full Backup/off-site, DR preflight, representative client/admin flows и финальный `RestartCount=0`, Health/DB/3x-ui=`ok`. **Статус: Closed**.
 
-- **2026-10-06 · A-012 / #245:** implementation merged в PR #270 (`8485346f…`): hard bounds 32 concurrent upstream fetch, 1s slot wait→503, ≤8 MiB response с chunked read; canonical `/compat/` nginx policy — per-client `limit_conn=4`, `5r/s`, burst 10, без access log bearer-like URI. Regression CI PASS. **Статус: acceptance pending** — остался production/load smoke.
+- **2026-10-06 · A-012 / #245:** implementation merged в PR #270 (`8485346f…`): hard bounds 32 concurrent upstream fetch, 1s slot wait→503, ≤8 MiB response с chunked read; canonical `/compat/` nginx policy — per-client `limit_conn=4`, `5r/s`, burst 10, без access log bearer-like URI. Production/load acceptance на `v4.26.8` PASS: nginx policy validated/reloaded, real refresh PASS, controlled bursts дали bounded 503, 32-slot saturation вернула `503 + Retry-After: 1`, >8 MiB response отклонён, health сохранился под нагрузкой, финальный `RestartCount=0`. **Статус: Closed**.
 
 - **2026-10-06 · A-013 / #246:** repository-side private security reporting contract подготовлен: supported versions/response expectations в SECURITY.md, custom `.github/VULNERABILITY_REPORT.yml`, public issue forms redirect security reports в private advisory flow. **Статус: acceptance pending** — GitHub PVR можно включить только после перехода repository в public; enablement и внешний `Report a vulnerability` smoke остаются public-release gate.
 
