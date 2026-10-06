@@ -68,6 +68,59 @@ Feature/fix изменения сначала сливаются в `main`.
 4. version-specific tests обновляются до новой версии;
 5. runtime-функциональность не добавляется без отдельной причины.
 
+### GitHub platform health gate
+
+Перед merge release-prep PR в `main` обязательно проверь доступность GitHub как внешней dependency. Проверка выполняется **после зелёного PR CI и непосредственно перед merge**, потому что после merge release flow зависит от push-triggered `Python checks` и последующего `Publish release`.
+
+Критичные для этого проекта компоненты GitHub Status:
+
+- `Actions`;
+- `Git Operations`;
+- `API Requests`;
+- `Pull Requests`.
+
+Официальный preflight:
+
+~~~bash
+curl -fsS https://www.githubstatus.com/api/v2/summary.json \
+  | jq -r '
+      .components[]
+      | select(
+          .name == "Actions"
+          or .name == "Git Operations"
+          or .name == "API Requests"
+          or .name == "Pull Requests"
+        )
+      | "\(.name): \(.status)"
+    '
+~~~
+
+Нормальный результат для release path — все четыре компонента имеют status `operational`.
+
+Дополнительно проверь unresolved incidents:
+
+~~~bash
+curl -fsS https://www.githubstatus.com/api/v2/incidents/unresolved.json \
+  | jq -r '
+      if (.incidents | length) == 0 then
+        "GitHub incidents: none"
+      else
+        .incidents[]
+        | "GitHub incident: \(.name) — \(.status) — impact=\(.impact)"
+      end
+    '
+~~~
+
+Если любой критичный компонент имеет `degraded_performance`, `partial_outage` или `major_outage`, либо GitHub Actions/API явно не отвечает штатно:
+
+- release-prep PR в `main` не сливается до восстановления GitHub;
+- required CI не обходится ручным запуском локальных checks «вместо» GitHub Actions;
+- tag и GitHub Release вручную не создаются;
+- timeout/queued/no-run не трактуется автоматически как дефект repository code;
+- incident фиксируется как внешняя dependency degradation, после восстановления affected workflow запускается/перепроверяется штатным GitHub flow.
+
+Если Status API недоступен, это означает `health unknown`, а не доказательство `operational`. Перед release merge нужно подтвердить GitHub health через status page/UI и фактическое состояние PR/Actions.
+
 После зелёного CI release-prep PR сливается в `main`.
 
 Дальше tag и GitHub Release вручную не создаются.
