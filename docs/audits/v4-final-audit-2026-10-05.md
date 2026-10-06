@@ -63,7 +63,7 @@
 | A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Acceptance pending | PR #260 merged: redirects manual/bounded, cross-origin strips device/auth-like headers, TLS downgrade blocked; `v4.26.6` production acceptance ещё требуется. |
 | A-006 | **Medium / security** | #239 | Filesystem / Backup | Acceptance pending | PR #260 merged: sensitive dirs/files enforce `0700/0600`, existing artifacts tighten, permissive-umask regression зелёный; `v4.26.6` production acceptance ещё требуется. |
 | A-007 | **High** | #240 | Repository / Release | Open | `main` не защищён; direct push может обойти документированный PR/required-CI contract и попасть в release workflow. |
-| A-008 | **Medium / security** | #241 | Supply chain | Open | Python deps, Docker base и third-party Actions не закреплены в воспроизводимый immutable dependency graph. |
+| A-008 | **Medium / security** | #241 | Supply chain | Implementation pending audit run | Hashed `requirements.lock`, digest-pinned `python:3.12-slim`, full-SHA pinned GitHub Actions и read-only Trivy supply-chain audit workflow подготовлены. Closure требует зелёный scanner run на exact source SHA, сохранённые artifacts и disposition findings/license inventory. |
 | A-009 | **High** | #242 | Legal / Public release | Open | Project `LICENSE`/terms file отсутствует; права публичного распространения не определены до решения owner/legal. |
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
 | A-011 | **Medium / security** | #244 | Container | Acceptance pending | Runtime hardening merged: dedicated UID/GID `10001:10001`, root-owned app tree, read-only rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp`, writable `/app/data` only, inherited host ACL rollout. CI clean-container smoke PASS; production runtime smoke ещё не зафиксирован. |
@@ -145,6 +145,21 @@ Evidence: requirements заданы version ranges, Python base image — mutabl
 CI на точном audited SHA на момент проверки установил, среди прочего, `aiogram 3.31.0`, `aiohttp 3.14.4`, `boto3 1.43.108`, `cryptography 46.0.7`, `Pillow 12.3.0` и `urllib3 2.8.0`; это не делает будущие rebuilds deterministic.
 
 Closure: reviewed exact dependency lock/hash mechanism, base-image digest, Actions commit pins, vulnerability/license scan, SBOM/container scan и документированный update process.
+
+### A-008 — supply chain
+
+Implementation evidence:
+
+- `requirements.lock` содержит полный Python 3.12 dependency graph с exact versions и SHA-256 hashes;
+- CI и Docker build устанавливают Python dependencies через `pip --require-hashes`;
+- Docker base закреплён как `python:3.12-slim@sha256:05cda9777409a9c3ffddd94a4c476b79f0769a0b4857f0c7ed9226b6800b0d6f`;
+- все repository `actions/*` refs переведены на reviewed 40-character commit SHA;
+- canonical scanner — Trivy v0.75.0, Linux x86_64 release asset SHA-256 `c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f`;
+- `.github/workflows/supply-chain-audit.yml` read-only, сохраняет Python/container vulnerability reports, license inventories, CycloneDX SBOM и metadata exact source SHA;
+- HIGH/CRITICAL vulnerability findings блокируют audit job;
+- `docs/SUPPLY_CHAIN.md` фиксирует dependency/base-image/Action upgrade workflow.
+
+Closure remaining: выполнить зелёный Supply-chain audit на final audited source SHA, сохранить run/artifact IDs + artifact digest, disposition всех scanner findings и затем выполнить third-party license compatibility review после решения A-009/#242.
 
 ### A-009 — project license
 
@@ -260,3 +275,5 @@ Closure remaining: непосредственно перед public publication 
 - **2026-10-06 · A-012 / #245:** implementation merged в PR #270 (`8485346f…`): hard bounds 32 concurrent upstream fetch, 1s slot wait→503, ≤8 MiB response с chunked read; canonical `/compat/` nginx policy — per-client `limit_conn=4`, `5r/s`, burst 10, без access log bearer-like URI. Regression CI PASS. **Статус: acceptance pending** — остался production/load smoke.
 
 - **2026-10-06 · A-013 / #246:** repository-side private security reporting contract подготовлен: supported versions/response expectations в SECURITY.md, custom `.github/VULNERABILITY_REPORT.yml`, public issue forms redirect security reports в private advisory flow. **Статус: acceptance pending** — GitHub PVR можно включить только после перехода repository в public; enablement и внешний `Report a vulnerability` smoke остаются public-release gate.
+
+- **2026-10-06 · A-008 / #241:** reproducible baseline implementation подготовлена: hashed `requirements.lock`, digest-pinned Python base, full-SHA GitHub Actions pins, pinned/checksummed Trivy v0.75.0, vulnerability/license reports и CycloneDX SBOM workflow. **Статус: implementation pending audit run** — closure только после зелёного scanner artifact на exact source SHA и disposition findings; license compatibility зависит от A-009/#242.
