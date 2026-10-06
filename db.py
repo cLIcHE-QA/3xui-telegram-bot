@@ -1,3 +1,4 @@
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -5,6 +6,16 @@ from pathlib import Path
 import aiosqlite
 
 from db_migrations import run_migrations
+
+
+def _prepare_private_database(path: str) -> None:
+    if path == ":memory:":
+        return
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT, 0o600)
+    os.close(fd)
+    os.chmod(target, 0o600)
 
 
 @dataclass
@@ -185,10 +196,13 @@ class Database:
             self.migration_backup_dir = str(Path(path).parent / "migration-backups")
 
     async def init(self):
+        _prepare_private_database(self.path)
         await run_migrations(
             self.path,
             backup_dir=self.migration_backup_dir,
         )
+        if self.path != ":memory:":
+            os.chmod(self.path, 0o600)
     async def get(self, telegram_id: int) -> UserRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
