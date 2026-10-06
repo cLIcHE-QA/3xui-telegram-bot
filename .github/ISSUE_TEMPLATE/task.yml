@@ -2,6 +2,11 @@ name: Task
 description: Operational, maintenance или documentation задача
 title: "task: "
 body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security vulnerability? Do not use this public issue form.**
+        Open the repository Security policy and use **Security → Advisories → Report a vulnerability** when private vulnerability reporting is enabled. Never paste credentials, private keys, subscription URLs/IDs, production DBs/backups, or exploit details here.
   - type: textarea
     id: outcome
     attributes:
