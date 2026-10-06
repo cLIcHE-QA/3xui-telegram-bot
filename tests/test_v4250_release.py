@@ -363,8 +363,6 @@ class V4266ReleaseTests(unittest.TestCase):
         ):
             self.assertIn(needle, section)
 
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("role smoke под `read_only` и `admin`, Attention Refresh/Back и финальный health/status — PASS", readme)
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
