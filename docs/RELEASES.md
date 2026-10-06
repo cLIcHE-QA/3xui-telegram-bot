@@ -199,11 +199,9 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Дальнейшая команда выдаётся только после проверки результата предыдущего шага.
 
 
-## Обязательная GitHub-side защита release path
+## GitHub-side защита release path
 
-Repository-side workflow checks не заменяют GitHub branch/tag protection. Для закрытия audit finding A-007/#240 GitHub должен фактически блокировать обход release path на уровне repository settings.
-
-Минимальный обязательный baseline:
+Repository-side workflow checks не заменяют GitHub branch/tag protection. Целевой hardening baseline остаётся прежним:
 
 - `main` защищён от direct push;
 - изменения `main` проходят только через Pull Request;
@@ -213,7 +211,13 @@ Repository-side workflow checks не заменяют GitHub branch/tag protecti
 - опубликованные `v*` refs/tags защищены от перемещения и удаления;
 - release workflow имеет `contents: write` только в отдельном publish job после read-only provenance validation.
 
-После настройки repository settings acceptance проверяется фактической попыткой обхода: direct push в `main` и изменение опубликованного `v*` ref должны отклоняться GitHub. До этой проверки A-007 не считается закрытым.
+Для A-007/#240 действует явное audit exception: владелец не переходит на платный GitHub plan только ради GitHub-side protection текущего private repository и принимает residual risk отсутствия enforcement.
+
+Поэтому A-007 закрыт как **Accepted risk**, а не как технически исправленный finding. Canonical operational path при этом не ослабляется: изменения идут через PR/CI, release tags/releases публикует штатный workflow, опубликованные refs не перемещаются и CI не обходится вручную.
+
+Полный risk disposition: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`.
+
+Если GitHub-side branch/tag protection станет доступна в используемой конфигурации repository/plan, её следует включить как hardening. После включения acceptance по-прежнему проверяется фактическим отклонением direct push в `main` и изменения опубликованного `v*` ref.
 
 
 ## Для новых чатов/сессий

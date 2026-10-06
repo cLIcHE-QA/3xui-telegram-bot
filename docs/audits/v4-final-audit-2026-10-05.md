@@ -62,7 +62,7 @@
 | A-004 | **Medium / security** | #237 | Telegram Admin | Closed | `v4.26.6` опубликован и развёрнут; production smoke подтвердил fail-closed `/admin` вне private chat, штатную работу в private chat и финальный Health/DB/3x-ui status PASS. |
 | A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Closed | `v4.26.6` production acceptance подтвердил: same-origin сохраняет разрешённый device header, cross-origin удаляет `X-HWID`/`Authorization`, HTTPS→HTTP downgrade блокируется; финальный status PASS. |
 | A-006 | **Medium / security** | #239 | Filesystem / Backup | Closed | `v4.26.6` production acceptance подтвердил owner-only modes `0700/0600` для bot DB, logs, Full Backup и node backup artifacts; повторный Health/DB/3x-ui status PASS. |
-| A-007 | **High** | #240 | Repository / Release | Open | `main` не защищён; direct push может обойти документированный PR/required-CI contract и попасть в release workflow. |
+| A-007 | **High** | #240 | Repository / Release | Accepted risk | `main` остаётся без GitHub-side protection; owner явно принимает residual risk при текущем plan/configuration. Repository-side provenance/CI controls сохраняются. Evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. |
 | A-008 | **Medium / security** | #241 | Supply chain | Closed | Reproducible baseline merged и подтверждён exact-main Supply-chain audit: hashed `requirements.lock`, digest-pinned base, full-SHA Actions, vulnerability/license reports, CycloneDX SBOM; actionable HIGH/CRITICAL = 0. Closure evidence: `docs/audits/v4-a008-supply-chain-audit-2026-10-06.md`. |
 | A-009 | **High** | #242 | Legal / Public release | Closed | Owner выбрал Apache-2.0; canonical `LICENSE`, README license section и compatibility review merged. Third-party obligations документированы; #242 закрыт. |
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
@@ -73,7 +73,7 @@
 ### Количество findings по severity
 
 - Critical: **0 выявлено на текущем этапе**
-- High: **1 open**
+- High: **0 open / 1 accepted risk**
 - Medium: **3 open**
 - Low/Info: на этой ревизии фиксируются только в notes
 
@@ -142,7 +142,11 @@ Closure evidence: PR #260 merged; `v4.26.6` production smoke подтверди�
 
 Evidence: GitHub сообщает `main.protected=false`; следовательно, required checks не enforced на уровне repository. Release workflow имеет `contents: write` после успешного main CI.
 
-Closure: GitHub-side branch protection/ruleset equivalent должен блокировать direct push/force-delete и требовать документированный PR/CI path; опубликованные release refs должны оставаться immutable. Если текущий feature set private plan этого не поддерживает, enforcement должен быть решён до public visibility/final release.
+Исходный closure criterion: GitHub-side branch protection/ruleset equivalent должен блокировать direct push/force-delete и требовать документированный PR/CI path; опубликованные release refs должны оставаться immutable.
+
+Disposition: **Accepted risk by owner decision**. Для текущей конфигурации private repository владелец не переходит на платный GitHub plan только ради этого enforcement. Finding не считается технически исправленным: `main.protected=false` и отсутствие required GitHub-side checks остаются residual risk. Repository-side compensating controls (PR/CI path, provenance validation и отдельный publish job) сохраняются, но не объявляются эквивалентом branch/tag protection.
+
+Closure evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. A-007/#240 снимается с release blockers как explicit audit exception. При появлении доступного GitHub-side enforcement protection/rulesets следует включить как hardening.
 
 ### A-008 — supply chain
 
@@ -247,14 +251,13 @@ Closure remaining: непосредственно перед public publication 
 
 **NOT PASS.**
 
-Публикация финального v4 release и изменение видимости репозитория заблокированы оставшимися audit findings и общими audit gates. Текущий обязательный порядок:
+Публикация финального v4 release и изменение видимости репозитория всё ещё заблокированы оставшимися audit findings и общими audit gates. A-007 больше не является blocker: residual risk принят владельцем и зафиксирован отдельным audit artifact. Текущий обязательный порядок:
 
-1. repository/public-release governance: A-007;
-2. production acceptance container hardening: A-011;
-3. production/load acceptance compat proxy: A-012;
-4. public security-reporting enablement/smoke: A-013;
-5. оставшиеся cross-cutting audit work, повторные scanners и clean-room acceptance;
-6. финальная audit revision и production release acceptance.
+1. production acceptance container hardening: A-011;
+2. production/load acceptance compat proxy: A-012;
+3. public security-reporting enablement/smoke: A-013;
+4. оставшиеся cross-cutting audit work, повторные scanners и clean-room acceptance;
+5. финальная audit revision и production release acceptance.
 
 Каждая remediation — narrowly scoped v4 fix в рамках активного feature freeze. Findings не считаются закрытыми только за счёт source changes: должны быть зафиксированы regression/CI и требуемый production/operational acceptance.
 
@@ -271,6 +274,8 @@ Closure remaining: непосредственно перед public publication 
 
 - **2026-10-06 · A-004/A-005/A-006 / #237/#238/#239:** implementation PR #260 merged (`a15ff4beaeae2ec249b729e53b2aeaadf6c349ef`); `v4.26.6` / `e04834e9c2d6200fa84896e7c135f476f56bc78e` опубликован и развёрнут. Targeted production acceptance PASS: private-chat boundary подтверждён; cross-origin device/auth header stripping и TLS downgrade rejection подтверждены synthetic runtime smoke; sensitive runtime/backup modes `0700/0600` подтверждены на production. Повторный status-check: `RestartCount=0`, Health/DB/3x-ui connectivity=`ok`. **Статус: Closed**.
 
+
+- **2026-10-06 · A-007 / #240:** GitHub-side branch/tag protection для текущего private repository не включена (`main.protected=false`, required checks enforcement off). Owner принял residual risk и решил не переходить на платный GitHub plan только ради этого control. Repository-side provenance/CI defense-in-depth сохраняется, но не считается эквивалентом protection. Closure evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. **Статус: Accepted risk / Closed by owner decision**.
 
 - **2026-10-06 · A-010 / #243:** full Git-history scan и retained GitHub Actions storage audit завершены. Gitleaks v8.30.1 + metadata scanner проверили 343 reachable refs; отдельный Actions audit проверил 1485 retained log archives и 1 retained artifact без coverage gaps. Все candidates получили safe disposition, high-confidence credential findings отсутствуют, unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`.
 
