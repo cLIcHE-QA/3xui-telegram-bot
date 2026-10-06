@@ -47,6 +47,8 @@ class SupplyChainBaselineTests(unittest.TestCase):
         self.assertIn("--require-hashes -r requirements.lock", text)
         self.assertIn("--format cyclonedx", text)
         self.assertIn("--severity HIGH,CRITICAL", text)
+        self.assertIn("--ignore-unfixed", text)
+        self.assertIn("Gate actionable HIGH/CRITICAL vulnerabilities", text)
         self.assertNotIn("contents: write", text)
 
     def test_base_digest_file_matches_dockerfile(self):
