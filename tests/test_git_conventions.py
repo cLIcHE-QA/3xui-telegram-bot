@@ -52,9 +52,11 @@ class GitConventionTests(unittest.TestCase):
             "## Зачем",
             "## Проверки",
             "## Совместимость и security",
+            "## Documentation impact",
             "## Rollout / rollback",
             "PR title соответствует",
             "CHANGELOG.md",
+            "docs/LIVING_DOCS.md",
         ]:
             self.assertIn(needle, template)
 
