@@ -11,6 +11,8 @@ class ContainerLeastPrivilegeContractTests(unittest.TestCase):
         self.assertIn("USER 10001:10001", text)
         self.assertIn("COPY . .", text)
         self.assertNotIn("COPY --chown=10001:10001", text)
+        self.assertIn("chown -R 0:0 /app", text)
+        self.assertIn("chmod -R u=rwX,go=rX /app", text)
         self.assertIn("PYTHONDONTWRITEBYTECODE=1", text)
         self.assertIn("HOME=/tmp", text)
         self.assertNotIn("USER root", text)
