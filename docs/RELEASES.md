@@ -201,23 +201,29 @@ cd /opt/3xui-bot/3xui-telegram-bot
 
 ## GitHub-side защита release path
 
-Repository-side workflow checks не заменяют GitHub branch/tag protection. Целевой hardening baseline остаётся прежним:
+Repository-side workflow checks не заменяют GitHub rulesets. Текущее public-repository состояние:
 
-- `main` защищён от direct push;
+- `main` защищён active ruleset **Protect main release path** (ID `24575428`);
 - изменения `main` проходят только через Pull Request;
-- required status checks включают `Python checks / test` и `PR conventions / title`;
-- запрещены force push и удаление `main`;
-- разрешён только canonical `Squash and merge` для обычных изменений;
-- опубликованные `v*` refs/tags защищены от перемещения и удаления;
+- required status checks: `test` и `title` с strict policy;
+- deletion и non-fast-forward для `main` запрещены;
+- разрешён только canonical `Squash and merge`;
+- linear history обязательна;
+- bypass actors отсутствуют;
 - release workflow имеет `contents: write` только в отдельном publish job после read-only provenance validation.
 
-Для A-007/#240 действует явное audit exception: владелец не переходит на платный GitHub plan только ради GitHub-side protection текущего private repository и принимает residual risk отсутствия enforcement.
+A-007/#240 первоначально был закрыт как owner-accepted risk на private-repository state. После перевода repository в public branch-side часть finding технически remediated этим enforced ruleset.
 
-Поэтому A-007 закрыт как **Accepted risk**, а не как технически исправленный finding. Canonical operational path при этом не ослабляется: изменения идут через PR/CI, release tags/releases публикует штатный workflow, опубликованные refs не перемещаются и CI не обходится вручную.
+Отдельного tag-target ruleset пока нет. Поэтому опубликованные `v*` tags остаются **операционно immutable** по release contract и workflow provenance, но GitHub-side запрет update/delete ещё должен быть включён отдельным коротким post-public hardening.
 
-Полный risk disposition: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`.
+До его включения:
 
-Если GitHub-side branch/tag protection станет доступна в используемой конфигурации repository/plan, её следует включить как hardening. После включения acceptance по-прежнему проверяется фактическим отклонением direct push в `main` и изменения опубликованного `v*` ref.
+- существующие release tags нельзя вручную перемещать или удалять;
+- новые tags/releases публикует только штатный release workflow;
+- manual tag/release creation не используется как fallback;
+- любые расхождения tag/SHA считаются release-integrity incident.
+
+Полный historical/post-public disposition: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`.
 
 
 ## Для новых чатов/сессий
