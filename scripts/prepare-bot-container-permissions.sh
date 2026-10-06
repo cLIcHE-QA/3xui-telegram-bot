@@ -65,8 +65,15 @@ grant_tree_read() {
     exit 2
   fi
   grant_parent_traverse "${target}"
+  # Existing entries: directories need traverse/read, regular files read only.
   find "${target}" -xdev -type d -exec setfacl -m "u:${BOT_UID}:r-x" {} +
   find "${target}" -xdev -type f -exec setfacl -m "u:${BOT_UID}:r--" {} +
+
+  # Future files such as SQLite WAL/SHM and rotated nginx logs must remain
+  # readable after the initial rollout. Default ACLs propagate through new
+  # subdirectories. The bind mounts are read-only inside the container, so
+  # inherited execute permission on a regular source file does not grant write.
+  find "${target}" -xdev -type d -exec setfacl -m "d:u:${BOT_UID}:r-x" {} +
 }
 
 install -d -o "${BOT_UID}" -g "${BOT_GID}" -m 0700 "${DATA_DIR}"
