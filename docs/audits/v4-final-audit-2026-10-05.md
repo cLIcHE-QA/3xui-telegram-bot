@@ -253,9 +253,10 @@ Closure remaining: непосредственно перед public publication 
 
 Публикация финального v4 release и изменение видимости репозитория всё ещё заблокированы оставшимися audit findings и общими audit gates. A-007 больше не является blocker: residual risk принят владельцем и зафиксирован отдельным audit artifact. Текущий обязательный порядок:
 
-1. public security-reporting enablement/smoke: A-013;
-2. оставшиеся cross-cutting audit work, повторные scanners и clean-room acceptance;
-3. финальная audit revision и production release acceptance.
+1. завершить pre-public cross-cutting work и clean-room acceptance;
+2. выполнить финальный current-tree/history/retained-Actions secret scan непосредственно перед visibility change;
+3. перевести repository в public и сразу выполнить A-013 Private Vulnerability Reporting enablement/smoke;
+4. финальная audit revision и production release acceptance.
 
 Каждая remediation — narrowly scoped v4 fix в рамках активного feature freeze. Findings не считаются закрытыми только за счёт source changes: должны быть зафиксированы regression/CI и требуемый production/operational acceptance.
 
@@ -286,3 +287,5 @@ Closure remaining: непосредственно перед public publication 
 - **2026-10-06 · A-008 / #241:** reproducible baseline merged и подтверждён exact-main Supply-chain audit run `37507349749` на `80a989d0…`; artifact `11432761040`, digest `sha256:32bffc6e…`; actionable HIGH/CRITICAL = 0, SBOM/license evidence сохранены. **Статус: Closed**.
 
 - **2026-10-06 · A-009 / #242:** owner выбрал Apache-2.0; PR #275 merged, canonical `LICENSE` и compatibility review находятся в `main`, #242 закрыт. **Статус: Closed**.
+
+- **2026-10-06 · Cross-cutting pre-public source gates:** exact main `77da78a1…`, Python checks run `37530118941` PASS. Full admin command/callback RBAC/private-chat inventory, 3x-ui mutation/lost-response inventory и повторный security/network/log boundary review завершены без нового blocker. Evidence: `docs/audits/v4-cross-cutting-pre-public-2026-10-06.md`. Общий audit остаётся NOT PASS до clean-room acceptance, финального pre-public secret scan и A-013.
