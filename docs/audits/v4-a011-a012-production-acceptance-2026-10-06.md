@@ -42,6 +42,38 @@ docker exec "$cid" sh -c 'id; grep -E "^(CapEff|NoNewPrivs):" /proc/self/status'
 ./scripts/deploy-release.sh --status
 ~~~
 
+## Production attempt v4.26.7 — FAIL
+
+Release under test:
+
+- tag: `v4.26.7`;
+- SHA: `70acd009a3d1546c96c0852544b99c5569541a88`.
+
+Observed status immediately after deployment:
+
+- Container: running/restarting;
+- `RestartCount=10`;
+- Bot version: `unknown`;
+- Health: `failed`;
+- DB: `failed`;
+- Docker subnet: `172.19.0.0/16`;
+- 3x-ui connectivity: `failed`.
+
+Primary container log:
+
+~~~text
+python: can't open file '/app/restore_bootstrap.py': [Errno 13] Permission denied
+~~~
+
+Root cause: Docker `COPY . .` preserved restrictive source modes from the production checkout/build context, while the image switched runtime to UID/GID `10001:10001`. The application tree therefore remained root-owned but was not guaranteed readable/traversable by the non-root runtime.
+
+Disposition:
+
+- A-011 acceptance: **FAIL / remediation required**;
+- A-012 production/load acceptance: **not started**, because the runtime startup gate failed first;
+- no evidence of SQLite/3x-ui regression is inferred from downstream `failed` values because the process never reached bootstrap/runtime initialization;
+- remediation must normalize application-tree ownership/modes inside the image independently of host checkout umask and add a restrictive-build-context regression smoke.
+
 Required acceptance evidence:
 
 - health = ok
