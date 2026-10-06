@@ -1,6 +1,6 @@
 # v4 pre-public cross-cutting audit — 2026-10-06
 
-Статус: **SOURCE GATES PASS; CLEAN-ROOM PASS; FINAL SECRET SCAN / A-013 PENDING**.
+Статус: **ALL PRE-PUBLIC GATES PASS; A-013 PUBLIC ACCEPTANCE PASS**.
 
 Exact reviewed main:
 
@@ -9,7 +9,7 @@ Exact reviewed main:
 - freeze baseline: `fe34f9dc97f0a6441dde9fcfe865e34ad8696c32`;
 - delta from freeze to reviewed main: 36 commits.
 
-Этот artifact закрывает source-level cross-cutting gates после A-001…A-012 remediation и clean-room acceptance. Он намеренно не объявляет общий audit PASS до финального current-tree/history/retained-Actions scan непосредственно перед visibility change и A-013 public PVR smoke.
+Этот artifact закрывает source-level cross-cutting gates после A-001…A-012 remediation и clean-room acceptance. Финальный current-tree/history/retained-Actions scan был выполнен непосредственно перед visibility change, после чего public PVR smoke A-013 также завершился PASS.
 
 ## 1. Full command/callback authorization inventory — PASS
 
@@ -172,16 +172,50 @@ Operational note:
 
 Result: clean-room acceptance gate — **PASS**.
 
-## 5. Gates still pending
+## 5. Final pre-public / public gates — PASS
 
-До visibility change остаются обязательны:
+Frozen pre-public main:
 
-1. финальный current-tree + full-history + retained Actions storage secret/private-data scan на exact pre-public main;
-2. при необходимости повторный exact-main supply-chain run, если security-sensitive dependency/base/workflow inputs изменятся;
-3. только после зелёных pre-public gates — repository visibility → public;
-4. сразу после visibility change — enable GitHub Private Vulnerability Reporting и внешний `Report a vulnerability` smoke (A-013/#246);
-5. финальная revision `docs/audits/v4-final-audit-2026-10-05.md` → PASS при отсутствии новых blockers.
+- SHA: `c6066c1ab77e019970a70ebfa7242a66a41ba8a3`;
+- push `Python checks` run `37537988957` — PASS.
+
+Final Git-history/current-tree scan:
+
+- workflow run `37538268098` — PASS on the exact frozen SHA;
+- artifact ID `11448040442`;
+- artifact digest `sha256:a31fda7f10f2e7d6cd98557ff250839f9cdbdd87c1c78d06193211fb06d46ab0`;
+- Gitleaks v8.30.1 candidates: **6**, identical to the previously dispositioned false positives;
+- repository metadata candidates: **147** across **364** reachable refs;
+- unique metadata fingerprint set did not grow versus the prior accepted A-010 scan;
+- unresolved real secrets: **0**.
+
+Final retained Actions storage scan:
+
+- workflow run `37538533256` — PASS on the same frozen SHA;
+- artifact ID `11447327296`;
+- artifact digest `sha256:d3cd21c28d828e92d518fb90d51e62d1e41ef56b6816d6f314ae4ae46eabdcf7`;
+- completed non-skipped runs considered: **1621**;
+- retained log archives scanned: **1603**; GitHub no longer retained **18** older log archives;
+- retained artifacts scanned: **15/15**;
+- coverage issues: **0**;
+- finding groups: **14**, with no new detector/fingerprint pair versus the prior accepted A-010 storage scan;
+- current/historical repository workflow references to `secrets.*` and `vars.*`: **0**.
+
+Recovery safety immediately before publication:
+
+- Full Backup `3xui-bot-backup-20261006-221647.tar.gz` created after the A-012 nginx policy change;
+- off-site copy uploaded and verified;
+- DR preflight: archive valid, manifest version `4.26.8`, bot DB, Master x-ui DB, bot env, nginx bundle and Finland node DB present.
+
+Publication / A-013:
+
+- repository visibility changed from private to public only after the final scans;
+- `main` still pointed to the frozen pre-public SHA at the moment of visibility verification;
+- GitHub Private Vulnerability Reporting enabled;
+- external incognito/unauthenticated smoke confirmed **Security → Advisories → Report a vulnerability** is visible;
+- no vulnerability report was submitted during the smoke;
+- issue #246 closed as completed.
 
 ## Safety ordering
 
-Repository **не переводится в public до финального secret/private-data scan**. Это уточняет operational ordering: требование выполнить final scan непосредственно перед visibility change имеет приоритет над ранним A-013 enablement, которое технически возможно только после public visibility.
+The required ordering was preserved: final secret/private-data scans completed on the frozen SHA before public visibility, then PVR was enabled and externally verified.
