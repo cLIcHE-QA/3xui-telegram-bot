@@ -216,6 +216,8 @@ Security-sensitive change требует reasoning/review фактическог
 
 Перед PR проверь `docs/LIVING_DOCS.md` и `docs/live-docs.json`.
 
+PR diff автоматически проверяет `scripts/check-living-docs.py` внутри required `Python checks`.
+
 Если изменён trigger из machine-readable contract:
 
 - `require_all` требует обновить все перечисленные living docs в том же PR;
