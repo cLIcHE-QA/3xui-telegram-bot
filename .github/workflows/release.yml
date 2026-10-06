@@ -6,21 +6,34 @@ on:
     types: [completed]
 
 permissions:
-  contents: write
+  contents: read
+  pull-requests: read
 
 concurrency:
   group: publish-release
   cancel-in-progress: false
 
 jobs:
-  publish:
+  prepare:
     if: >-
-      github.event.workflow_run.conclusion == 'success' &&
+      ${{ github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.head_repository.full_name == github.repository }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      commit: ${{ steps.release.outputs.commit }}
+      title_b64: ${{ steps.notes.outputs.title_b64 }}
+      body_b64: ${{ steps.notes.outputs.body_b64 }}
+      repair_v4101: ${{ steps.repair.outputs.repair_v4101 }}
+      repair_title_b64: ${{ steps.repair.outputs.repair_title_b64 }}
+      repair_body_b64: ${{ steps.repair.outputs.repair_body_b64 }}
     env:
       GH_TOKEN: ${{ github.token }}
       REPOSITORY: ${{ github.repository }}
@@ -35,6 +48,29 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      - name: Verify tested main commit came from merged PR
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          pulls="$(gh api -H 'Accept: application/vnd.github+json' "repos/$REPOSITORY/commits/$TESTED_SHA/pulls")"
+          count="$(
+            jq --arg sha "$TESTED_SHA" '
+              [.[] | select(
+                .merged_at != null and
+                .merge_commit_sha == $sha and
+                .base.ref == "main"
+              )] | length
+            ' <<<"$pulls"
+          )"
+          [[ "$count" == "1" ]] || {
+            echo "Tested main commit $TESTED_SHA is not the unique merge commit of a merged PR into main. Refusing publication." >&2
+            exit 1
+          }
+          jq -r --arg sha "$TESTED_SHA" '
+            .[] | select(.merge_commit_sha == $sha and .base.ref == "main") |
+            "Tested main provenance: PR #\(.number) \(.title)"
+          ' <<<"$pulls"
 
       - name: Resolve release version and commit
         id: release
@@ -53,16 +89,95 @@ jobs:
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
           echo "commit=$release_commit" >> "$GITHUB_OUTPUT"
 
-      - name: Render canonical release notes
+      - name: Verify release commit came from release-prep PR
+        shell: bash
         run: |
-          python3 scripts/render-release-notes.py --version "${{ steps.release.outputs.version }}" --commit "${{ steps.release.outputs.commit }}" --title-out /tmp/release-title.txt --body-out /tmp/release-body.md
+          set -Eeuo pipefail
+          version="${{ steps.release.outputs.version }}"
+          release_commit="${{ steps.release.outputs.commit }}"
+          expected_title="release: v$version"
+          pulls="$(gh api -H 'Accept: application/vnd.github+json' "repos/$REPOSITORY/commits/$release_commit/pulls")"
+          count="$(
+            jq --arg sha "$release_commit" --arg title "$expected_title" '
+              [.[] | select(
+                .merged_at != null and
+                .merge_commit_sha == $sha and
+                .base.ref == "main" and
+                .title == $title
+              )] | length
+            ' <<<"$pulls"
+          )"
+          [[ "$count" == "1" ]] || {
+            echo "Release commit $release_commit is not the unique merge commit of '$expected_title' into main. Refusing publication." >&2
+            exit 1
+          }
+          jq -r --arg sha "$release_commit" --arg title "$expected_title" '
+            .[] | select(.merge_commit_sha == $sha and .base.ref == "main" and .title == $title) |
+            "Release provenance: PR #\(.number) \(.title)"
+          ' <<<"$pulls"
+
+      - name: Render canonical release notes
+        id: notes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/render-release-notes.py             --version "${{ steps.release.outputs.version }}"             --commit "${{ steps.release.outputs.commit }}"             --title-out /tmp/release-title.txt             --body-out /tmp/release-body.md
+          echo "title_b64=$(base64 -w0 /tmp/release-title.txt)" >> "$GITHUB_OUTPUT"
+          echo "body_b64=$(base64 -w0 /tmp/release-body.md)" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare v4.10.1 metadata repair if needed
+        id: repair
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo "repair_v4101=false" >> "$GITHUB_OUTPUT"
+          echo "repair_title_b64=" >> "$GITHUB_OUTPUT"
+          echo "repair_body_b64=" >> "$GITHUB_OUTPUT"
+
+          if ! gh release view v4.10.1 --repo "$REPOSITORY" >/dev/null 2>&1; then
+            exit 0
+          fi
+          name="$(gh release view v4.10.1 --repo "$REPOSITORY" --json name --jq '.name // ""')"
+          body="$(gh release view v4.10.1 --repo "$REPOSITORY" --json body --jq '.body // ""')"
+          [[ -z "$name" || -z "$body" ]] || exit 0
+
+          commit="$(git rev-parse 'v4.10.1^{commit}')"
+          python3 scripts/render-release-notes.py             --version 4.10.1             --commit "$commit"             --title-out /tmp/v4101-title.txt             --body-out /tmp/v4101-body.md
+          echo "repair_v4101=true" >> "$GITHUB_OUTPUT"
+          echo "repair_title_b64=$(base64 -w0 /tmp/v4101-title.txt)" >> "$GITHUB_OUTPUT"
+          echo "repair_body_b64=$(base64 -w0 /tmp/v4101-body.md)" >> "$GITHUB_OUTPUT"
+
+  publish:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+    steps:
+      - name: Restore validated release metadata
+        shell: bash
+        env:
+          TITLE_B64: ${{ needs.prepare.outputs.title_b64 }}
+          BODY_B64: ${{ needs.prepare.outputs.body_b64 }}
+        run: |
+          set -Eeuo pipefail
+          printf '%s' "$TITLE_B64" | base64 -d > /tmp/release-title.txt
+          printf '%s' "$BODY_B64" | base64 -d > /tmp/release-body.md
+          [[ -s /tmp/release-title.txt ]]
+          [[ -s /tmp/release-body.md ]]
 
       - name: Verify or create release tag
         shell: bash
         run: |
           set -Eeuo pipefail
-          tag="${{ steps.release.outputs.tag }}"
-          commit="${{ steps.release.outputs.commit }}"
+          tag="$RELEASE_TAG"
+          commit="$RELEASE_COMMIT"
           if existing="$(gh api "repos/$REPOSITORY/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null)"; then
             [[ "$existing" == "$commit" ]] || { echo "Tag $tag already points to $existing, expected $commit. Refusing to move it." >&2; exit 1; }
           else
@@ -74,22 +189,21 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          tag="${{ steps.release.outputs.tag }}"
           title="$(cat /tmp/release-title.txt)"
-          if gh release view "$tag" --repo "$REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "$tag" --repo "$REPOSITORY" --title "$title" --notes-file /tmp/release-body.md
+          if gh release view "$RELEASE_TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --repo "$REPOSITORY" --title "$title" --notes-file /tmp/release-body.md
           else
-            gh release create "$tag" --repo "$REPOSITORY" --verify-tag --title "$title" --notes-file /tmp/release-body.md
+            gh release create "$RELEASE_TAG" --repo "$REPOSITORY" --verify-tag --title "$title" --notes-file /tmp/release-body.md
           fi
 
       - name: Repair v4.10.1 blank metadata if needed
+        if: ${{ needs.prepare.outputs.repair_v4101 == 'true' }}
         shell: bash
+        env:
+          REPAIR_TITLE_B64: ${{ needs.prepare.outputs.repair_title_b64 }}
+          REPAIR_BODY_B64: ${{ needs.prepare.outputs.repair_body_b64 }}
         run: |
           set -Eeuo pipefail
-          if ! gh release view v4.10.1 --repo "$REPOSITORY" >/dev/null 2>&1; then exit 0; fi
-          name="$(gh release view v4.10.1 --repo "$REPOSITORY" --json name --jq '.name // ""')"
-          body="$(gh release view v4.10.1 --repo "$REPOSITORY" --json body --jq '.body // ""')"
-          [[ -z "$name" || -z "$body" ]] || exit 0
-          commit="$(gh api "repos/$REPOSITORY/git/ref/tags/v4.10.1" --jq '.object.sha')"
-          python3 scripts/render-release-notes.py --version 4.10.1 --commit "$commit" --title-out /tmp/v4101-title.txt --body-out /tmp/v4101-body.md
-          gh release edit v4.10.1 --repo "$REPOSITORY" --title "$(cat /tmp/v4101-title.txt)" --notes-file /tmp/v4101-body.md
+          printf '%s' "$REPAIR_TITLE_B64" | base64 -d > /tmp/v4101-title.txt
+          printf '%s' "$REPAIR_BODY_B64" | base64 -d > /tmp/v4101-body.md
+          gh release edit v4.10.1             --repo "$REPOSITORY"             --title "$(cat /tmp/v4101-title.txt)"             --notes-file /tmp/v4101-body.md

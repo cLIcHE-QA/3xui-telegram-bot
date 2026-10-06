@@ -198,6 +198,24 @@ cd /opt/3xui-bot/3xui-telegram-bot
 
 Дальнейшая команда выдаётся только после проверки результата предыдущего шага.
 
+
+## Обязательная GitHub-side защита release path
+
+Repository-side workflow checks не заменяют GitHub branch/tag protection. Для закрытия audit finding A-007/#240 GitHub должен фактически блокировать обход release path на уровне repository settings.
+
+Минимальный обязательный baseline:
+
+- `main` защищён от direct push;
+- изменения `main` проходят только через Pull Request;
+- required status checks включают `Python checks / test` и `PR conventions / title`;
+- запрещены force push и удаление `main`;
+- разрешён только canonical `Squash and merge` для обычных изменений;
+- опубликованные `v*` refs/tags защищены от перемещения и удаления;
+- release workflow имеет `contents: write` только в отдельном publish job после read-only provenance validation.
+
+После настройки repository settings acceptance проверяется фактической попыткой обхода: direct push в `main` и изменение опубликованного `v*` ref должны отклоняться GitHub. До этой проверки A-007 не считается закрытым.
+
+
 ## Для новых чатов/сессий
 
 Не полагайся на память о том, какие connector actions были доступны раньше.

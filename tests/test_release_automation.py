@@ -73,9 +73,14 @@ class ReleaseNotesTests(unittest.TestCase):
 
     def test_release_workflow_is_fail_closed(self):
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
-        self.assertIn("permissions:\n  contents: write", workflow)
+        self.assertIn("permissions:\n  contents: read\n  pull-requests: read", workflow)
         self.assertIn("workflow_run.head_branch == 'main'", workflow)
         self.assertIn("workflow_run.conclusion == 'success'", workflow)
+        self.assertIn("Verify tested main commit came from merged PR", workflow)
+        self.assertIn("Verify release commit came from release-prep PR", workflow)
+        self.assertIn("Release provenance:", workflow)
+        self.assertIn("permissions:\n      contents: write", workflow)
+        self.assertIn("needs: prepare", workflow)
         self.assertIn("Refusing to move it.", workflow)
         self.assertIn('if existing="$(gh api', workflow)
         self.assertNotIn("git/ref/tags/$tag\" --jq '.object.sha' 2>/dev/null || true", workflow)
