@@ -1,214 +1,213 @@
-# Final v4 Repository / Public-Release Audit — baseline 2026-10-05
+# Финальный аудит v4 перед публикацией репозитория и релиза — базовая ревизия 2026-10-05
 
-## Audit identity
+## Идентификация аудита
 
-- **Status:** 🟡 IN PROGRESS / NOT PASS
-- **Audited freeze commit:** `fe34f9dc97f0a6441dde9fcfe865e34ad8696c32`
-- **Application version:** `4.26.4`
-- **Audit started:** 2026-10-05
-- **Scope contract:** `docs/ROADMAP.md` → «Финальный v4 Repository / Public-Release Audit»
-- **Gate decision at this revision:** final v4 release and public repository publication remain blocked.
+- **Статус:** 🟡 IN PROGRESS / NOT PASS
+- **Проверенный freeze commit:** `fe34f9dc97f0a6441dde9fcfe865e34ad8696c32`
+- **Версия приложения:** `4.26.4`
+- **Аудит начат:** 2026-10-05
+- **Контракт scope:** `docs/ROADMAP.md` → «Финальный v4 Repository / Public-Release Audit»
+- **Решение gate на этой ревизии:** финальный релиз v4 и публикация репозитория остаются заблокированными.
 
-This report is the versioned audit artifact required by the roadmap. It records evidence and findings against the frozen v4 baseline. It is intentionally **not** a statement that the audit is complete: required history-aware scanners, container/SBOM work and clean-room acceptance remain open, and all release-blocking findings below must be closed or receive the disposition allowed by the roadmap.
+Этот отчёт — версионируемый audit artifact, требуемый roadmap. Он фиксирует evidence и findings относительно замороженного baseline v4. Документ намеренно **не** утверждает, что аудит завершён: обязательные history-aware scanners, container/SBOM work и clean-room acceptance всё ещё не выполнены, а все release-blocking findings ниже должны быть закрыты либо получить допустимый по roadmap disposition.
 
-## Baseline evidence
+## Evidence базовой ревизии
 
-### Repository / CI
+### Репозиторий / CI
 
-- GitHub repository visibility at audit start: private.
-- `main` at the audited SHA is not branch-protected according to the GitHub branch API.
-- Push workflow `Python checks` for the exact audited SHA completed successfully.
-- Exact audited SHA CI: **651 tests OK**.
-- Pinned 3x-ui OpenAPI contract check: **v3.8.5 · 54 endpoints · blob `d1f9b499e43d4370d68fdf9ca6045e1d967b42ad`**.
-- Compile, release/deploy helper checks, Compose config and `git diff --check` were part of the successful workflow.
-- Current-tree pattern review did not reveal an obvious committed production credential. This does **not** replace the required full-history secret scan.
+- Видимость GitHub-репозитория на момент начала аудита: private.
+- `main` на проверяемом SHA не защищён branch protection согласно GitHub branch API.
+- Push workflow `Python checks` для точного проверяемого SHA завершился успешно.
+- CI точного проверяемого SHA: **651 tests OK**.
+- Проверка pinned 3x-ui OpenAPI contract: **v3.8.5 · 54 endpoints · blob `d1f9b499e43d4370d68fdf9ca6045e1d967b42ad`**.
+- Compile, проверки release/deploy helpers, Compose config и `git diff --check` входили в успешный workflow.
+- Pattern review текущего tree не выявил очевидного committed production credential. Это **не** заменяет обязательный full-history secret scan.
 
 ### Production / recovery evidence
 
-Before freeze, encrypted off-site recovery acceptance was completed:
+До freeze был завершён acceptance encrypted off-site recovery:
 
 - `backup.offsite=success`;
-- encrypted remote round-trip validation completed;
-- isolated recovery host returned `OFFSITE_RECOVERY_OK`;
-- recovered manifest version matched `4.26.4`;
-- bootstrap smoke restored bot env/database and reached Health/DB `ok`;
-- production Master was returned to Health/DB/3x-ui connectivity `ok`.
+- завершена проверка encrypted remote round-trip;
+- изолированный recovery host вернул `OFFSITE_RECOVERY_OK`;
+- версия восстановленного manifest совпала с `4.26.4`;
+- bootstrap smoke восстановил bot env/database и достиг Health/DB `ok`;
+- production Master возвращён в состояние Health/DB/3x-ui connectivity `ok`.
 
-No secret values from that acceptance are recorded in this report.
+Значения secrets из этого acceptance в отчёте не фиксируются.
 
-### Positive security controls confirmed by source review
+### Положительные security controls, подтверждённые source review
 
-The following are positive controls, not substitutes for closing findings:
+Следующие пункты являются положительными controls, но не заменяют закрытие findings:
 
-- central callback privilege catalog fails closed for unknown admin callbacks;
-- immutable environment Owners remain a separate break-glass boundary;
-- Host Control and Deploy Agent do not expose a generic shell/command API and use dedicated tokens;
-- Docker socket is not mounted into the bot container;
-- Host Control/Deploy Agent request bodies and listeners are bounded/restricted;
-- Node Drain and Fleet journals use private file modes and no automatic mutation replay;
-- critical Node Drain/Host Control/Deploy paths distinguish uncertain outcomes and use reconciliation/read-back;
-- restore tooling validates archive paths/types/sizes and SQLite before replacement;
-- off-site Full Backup uses client-side AES-256-GCM and verified remote round trip;
-- website monitoring implements a custom public-only resolver, redirect revalidation, response bounds and concurrency limits;
-- `.gitignore` / `.dockerignore` exclude common env/database/backup/key artifacts from normal source/build context.
+- central callback privilege catalog fail closed для неизвестных admin callbacks;
+- immutable environment Owners остаются отдельной break-glass boundary;
+- Host Control и Deploy Agent не предоставляют generic shell/command API и используют отдельные tokens;
+- Docker socket не монтируется в bot container;
+- request bodies и listeners Host Control/Deploy Agent имеют bounds/restrictions;
+- журналы Node Drain и Fleet используют private file modes и не выполняют automatic mutation replay;
+- критические paths Node Drain/Host Control/Deploy различают uncertain outcomes и используют reconciliation/read-back;
+- restore tooling валидирует archive paths/types/sizes и SQLite перед заменой;
+- off-site Full Backup использует client-side AES-256-GCM и проверенный remote round trip;
+- website monitoring реализует custom public-only resolver, повторную валидацию redirects, response bounds и concurrency limits;
+- `.gitignore` / `.dockerignore` исключают распространённые env/database/backup/key artifacts из обычного source/build context.
 
 ## Findings
 
 | ID | Severity | Tracking | Component | Status | Summary |
 | --- | --- | --- | --- | --- | --- |
-| A-001 | **High** | #234 | RBAC / Backups | Open | Administrator can request a secret-bearing Full Backup containing `bot.env`; this can cross privilege domains. |
-| A-002 | **High** | #235 | Subscription Proxy / Logs | Open | Standard aiohttp access logging records `/compat/{sub_id}`, exposing bearer-like subscription credentials in raw logs. |
-| A-003 | **High** | #236 | 3x-ui mutations | Open | Multiple state-changing API methods still use generic retry/failure semantics instead of no-retry uncertain-outcome handling. |
-| A-004 | **Medium / security** | #237 | Telegram Admin | Open | Admin authorization checks sender role but does not fail closed outside private chats. |
-| A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Open | Raw proxy forwards device headers while automatic redirects are enabled; cross-origin header isolation requires explicit enforcement/tests. |
-| A-006 | **Medium / security** | #239 | Filesystem / Backup | Open | Secret-bearing local backup artifacts do not enforce private modes independent of process umask. |
-| A-007 | **High** | #240 | Repository / Release | Open | `main` is not protected; direct push can bypass the documented PR/required-CI contract and feed the release workflow. |
-| A-008 | **Medium / security** | #241 | Supply chain | Open | Python deps, Docker base and third-party Actions are not pinned to a reproducible immutable dependency graph. |
-| A-009 | **High** | #242 | Legal / Public release | Open | No project `LICENSE`/terms file exists; public distribution rights are undefined until owner/legal decision. |
-| A-010 | **High** | #243 | Git history / Secrets | Open | Required full-history secret/private-data scan has not yet been performed; current-tree search is insufficient. |
-| A-011 | **Medium / security** | #244 | Container | Open | Bot container lacks explicit non-root/no-new-privileges/capability hardening required by the audit least-privilege gate. |
-| A-012 | **Medium / reliability** | #245 | Public compat proxy | Open | Proxy lacks an explicit reproducible concurrency/rate/upstream-body resource bound. |
-| A-013 | **Medium / public readiness** | #246 | Security process | Open | SECURITY.md lacks a concrete private vulnerability-reporting path and supported-version policy. |
+| A-001 | **High** | #234 | RBAC / Backups | Open | Administrator может запросить secret-bearing Full Backup, содержащий `bot.env`; это может пересечь privilege domains. |
+| A-002 | **High** | #235 | Subscription Proxy / Logs | Open | Стандартный aiohttp access logging записывает `/compat/{sub_id}`, раскрывая bearer-like subscription credentials в raw logs. |
+| A-003 | **High** | #236 | 3x-ui mutations | Open | Несколько state-changing API methods всё ещё используют generic retry/failure semantics вместо no-retry uncertain-outcome handling. |
+| A-004 | **Medium / security** | #237 | Telegram Admin | Open | Admin authorization проверяет роль sender, но не fail closed вне private chats. |
+| A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Open | Raw proxy пересылает device headers при включённых automatic redirects; cross-origin isolation headers требует явного enforcement/tests. |
+| A-006 | **Medium / security** | #239 | Filesystem / Backup | Open | Secret-bearing local backup artifacts не обеспечивают private modes независимо от process umask. |
+| A-007 | **High** | #240 | Repository / Release | Open | `main` не защищён; direct push может обойти документированный PR/required-CI contract и попасть в release workflow. |
+| A-008 | **Medium / security** | #241 | Supply chain | Open | Python deps, Docker base и third-party Actions не закреплены в воспроизводимый immutable dependency graph. |
+| A-009 | **High** | #242 | Legal / Public release | Open | Project `LICENSE`/terms file отсутствует; права публичного распространения не определены до решения owner/legal. |
+| A-010 | **High** | #243 | Git history / Secrets | Open | Обязательный full-history scan secrets/private data ещё не выполнен; поиска по current tree недостаточно. |
+| A-011 | **Medium / security** | #244 | Container | Open | Bot container не имеет явного non-root/no-new-privileges/capability hardening, требуемого audit least-privilege gate. |
+| A-012 | **Medium / reliability** | #245 | Public compat proxy | Open | Proxy не имеет явного воспроизводимого concurrency/rate/upstream-body resource bound. |
+| A-013 | **Medium / public readiness** | #246 | Security process | Open | SECURITY.md не содержит конкретного private vulnerability-reporting path и supported-version policy. |
 
-### Severity count
+### Количество findings по severity
 
-- Critical: **0 identified so far**
+- Critical: **0 выявлено на текущем этапе**
 - High: **6 open**
 - Medium: **7 open**
-- Low/Info: tracked in notes only at this revision
+- Low/Info: на этой ревизии фиксируются только в notes
 
-Under the roadmap audit contract, this state is **release-blocking**.
+По audit contract из roadmap это состояние является **release-blocking**.
 
-## Finding evidence and required closure
+## Evidence findings и условия закрытия
 
-### A-001 — secret-bearing backup export
+### A-001 — экспорт secret-bearing backup
 
-Evidence: `backups.manage` permits Administrator; `admin:backup:full` uses that privilege; the handler sends the created Full Backup as a Telegram document; Full Backup includes `bot.env`.
+Evidence: `backups.manage` разрешён Administrator; `admin:backup:full` использует эту privilege; handler отправляет созданный Full Backup как Telegram document; Full Backup включает `bot.env`.
 
-Impact: an Administrator can obtain credentials whose authority exceeds Telegram RBAC.
+Impact: Administrator может получить credentials, authority которых превышает Telegram RBAC.
 
-Closure: make secret-bearing export Owner-only or remove Full Backup delivery through Telegram in favor of host/off-site retrieval. Add direct-callback tampering and role-matrix regression coverage. Production acceptance must prove Admin cannot obtain the archive.
+Closure: сделать secret-bearing export Owner-only либо убрать доставку Full Backup через Telegram в пользу host/off-site retrieval. Добавить regression coverage для direct-callback tampering и role matrix. Production acceptance должен доказать, что Admin не может получить archive.
 
-### A-002 — subscription credential in raw logs
+### A-002 — subscription credential в raw logs
 
-Evidence: `SubscriptionProxy.start()` enables aiohttp access logging on a route whose path contains `sub_id`. UI log rendering redacts the path, but raw stdout/file access logs are created before that redaction.
+Evidence: `SubscriptionProxy.start()` включает aiohttp access logging на route, path которого содержит `sub_id`. UI rendering logs редактирует path, но raw stdout/file access logs создаются до этой redaction.
 
-Impact: log access can become subscription credential access.
+Impact: доступ к logs может превратиться в доступ к subscription credential.
 
-Closure: disable or sanitize raw access logs for the secret-bearing route, define safe reverse-proxy logging, add raw-log regression coverage, and perform targeted production acceptance. Any known credential exposed during testing/operations is rotated without recording it in GitHub.
+Closure: отключить либо sanitize raw access logs для secret-bearing route, определить безопасный reverse-proxy logging, добавить raw-log regression coverage и выполнить targeted production acceptance. Любой известный credential, раскрытый во время testing/operations, должен быть rotated без фиксации его значения в GitHub.
 
-### A-003 — inconsistent mutation safety
+### A-003 — несогласованная mutation safety
 
-Evidence: the client contains a hardened one-shot mutation primitive, but legacy state-changing node/inbound/client/import methods still use the generic request path. The generic path does not currently contain a retry loop, but it does not preserve explicit outcome certainty and follows normal HTTP redirect behavior.
+Evidence: client содержит hardened one-shot mutation primitive, но legacy state-changing node/inbound/client/import methods всё ещё используют generic request path. Generic path сейчас не содержит retry loop, но не сохраняет явную outcome certainty и следует обычному HTTP redirect behavior.
 
-Impact: a lost response can be shown as ordinary failure even when the remote mutation was applied, enabling manual duplicate/repeated operations and state divergence.
+Impact: потерянный response может быть показан как обычный failure, даже если remote mutation была применена, что допускает manual duplicate/repeated operations и state divergence.
 
-Closure: inventory all state-changing calls, move them to no-retry mutation handling and implement read-back/post-condition reconciliation where practical. Tests must simulate lost response after remote commit.
+Closure: инвентаризировать все state-changing calls, перевести их на no-retry mutation handling и реализовать read-back/post-condition reconciliation там, где это практически возможно. Tests должны моделировать lost response после remote commit.
 
 Progress evidence:
-- transport phase #250 moved the state-changing 3x-ui surface to the explicit one-shot mutation boundary;
-- destructive phase #252 added fail-closed absence read-back for user/inbound/node delete without replay;
-- phase 3 (#253) covers deterministic field updates: node rename, inbound enable/disable and user expiry/traffic/flow only resolve uncertain success when a read-only post-condition matches; unavailable/mismatched read-back remains `unknown` with `mutation_not_retried=true`;
-- phase 4 covers the remaining handler/service classes: provisioning attach/detach/limits/flow, bulk enable/disable/extend/reset, plan/apply/extend/IP/HWID/subscription mutations, manual inbound membership, node/inbound/client create, inbound full updates/sync and maintenance. Create/update success after a lost response requires an exact or unique read-only post-condition; traffic reset remains `unknown` because a live counter cannot provide a stable proof of reset.
-- A-003 remains open until phase-4 CI/merge, patch release and targeted production acceptance are completed.
+- transport phase #250 перевела state-changing 3x-ui surface на explicit one-shot mutation boundary;
+- destructive phase #252 добавила fail-closed absence read-back для user/inbound/node delete без replay;
+- phase 3 (#253) покрывает deterministic field updates: node rename, inbound enable/disable и user expiry/traffic/flow разрешают uncertain success только когда read-only post-condition совпадает; недоступный/несовпадающий read-back остаётся `unknown` с `mutation_not_retried=true`;
+- phase 4 покрывает оставшиеся handler/service classes: provisioning attach/detach/limits/flow, bulk enable/disable/extend/reset, plan/apply/extend/IP/HWID/subscription mutations, manual inbound membership, node/inbound/client create, inbound full updates/sync и maintenance. Create/update success после lost response требует exact либо unique read-only post-condition; traffic reset остаётся `unknown`, потому что live counter не даёт стабильного доказательства reset.
+- A-003 остаётся open до завершения phase-4 CI/merge, patch release и targeted production acceptance.
 
 ### A-004 — admin chat boundary
 
-Evidence: command/callback/FSM authorization is based on the Telegram sender role; a central private-chat requirement is absent.
+Evidence: authorization command/callback/FSM основана на роли Telegram sender; central private-chat requirement отсутствует.
 
-Impact: authorized operators can accidentally expose control-plane data in group/supergroup context.
+Impact: авторизованные операторы могут случайно раскрыть control-plane data в group/supergroup context.
 
-Closure: enforce private chat centrally for `/admin`, callbacks and admin FSM input, with regression coverage and security documentation.
+Closure: централизованно enforce private chat для `/admin`, callbacks и admin FSM input, с regression coverage и security documentation.
 
-### A-005 — device headers and redirects
+### A-005 — device headers и redirects
 
-Evidence: raw compat requests forward reviewed HWID/device headers while the HTTP helper follows redirects automatically. The documented routing contract explicitly requires no device/secret header leak to another origin.
+Evidence: raw compat requests пересылают reviewed HWID/device headers, в то время как HTTP helper автоматически следует redirects. Документированный routing contract явно требует не допускать утечку device/secret headers на другой origin.
 
-Closure: manual redirect policy with same-origin enforcement or header stripping/rejection on cross-origin hops; regression tests must prove the cross-origin target never receives sensitive client headers.
+Closure: manual redirect policy с same-origin enforcement либо stripping/rejection headers на cross-origin hops; regression tests должны доказать, что cross-origin target никогда не получает sensitive client headers.
 
 ### A-006 — private file modes
 
-Evidence: security-sensitive journals/recovery artifacts explicitly set `0700/0600`, while normal backup creation relies on default directory/file creation modes.
+Evidence: security-sensitive journals/recovery artifacts явно задают `0700/0600`, тогда как обычное создание backup полагается на default directory/file creation modes.
 
-Closure: explicitly enforce private directory/file modes for Full Backup/snapshots and review bot DB/local logs. Tests must set a permissive umask and still observe private modes.
+Closure: явно enforce private directory/file modes для Full Backup/snapshots и проверить bot DB/local logs. Tests должны установить permissive umask и всё равно наблюдать private modes.
 
 ### A-007 — GitHub governance
 
-Evidence: GitHub reports `main.protected=false`; required checks therefore are not repository-enforced. The release workflow has `contents: write` after successful main CI.
+Evidence: GitHub сообщает `main.protected=false`; следовательно, required checks не enforced на уровне repository. Release workflow имеет `contents: write` после успешного main CI.
 
-Closure: GitHub-side protection/ruleset equivalent must block direct push/force-delete and require the documented PR/CI path; published release refs must remain immutable. If the current private-plan feature set cannot provide this, enforcement must be solved before public visibility/final release.
+Closure: GitHub-side branch protection/ruleset equivalent должен блокировать direct push/force-delete и требовать документированный PR/CI path; опубликованные release refs должны оставаться immutable. Если текущий feature set private plan этого не поддерживает, enforcement должен быть решён до public visibility/final release.
 
-### A-008 — reproducible supply chain
+### A-008 — воспроизводимый supply chain
 
-Evidence: requirements are version ranges, the Python base image is a mutable tag, and Actions use mutable major refs.
+Evidence: requirements заданы version ranges, Python base image — mutable tag, Actions используют mutable major refs.
 
-The exact audited-sha CI resolver happened to install recent packages, including `aiogram 3.31.0`, `aiohttp 3.14.4`, `boto3 1.43.108`, `cryptography 46.0.7`, `Pillow 12.3.0` and `urllib3 2.8.0`; this does not make future rebuilds deterministic.
+CI на точном audited SHA на момент проверки установил, среди прочего, `aiogram 3.31.0`, `aiohttp 3.14.4`, `boto3 1.43.108`, `cryptography 46.0.7`, `Pillow 12.3.0` и `urllib3 2.8.0`; это не делает будущие rebuilds deterministic.
 
-Closure: reviewed exact dependency lock/hash mechanism, base-image digest, Actions commit pins, vulnerability/license scan, SBOM/container scan and documented update process.
+Closure: reviewed exact dependency lock/hash mechanism, base-image digest, Actions commit pins, vulnerability/license scan, SBOM/container scan и документированный update process.
 
 ### A-009 — project license
 
-Evidence: no project LICENSE/COPYING terms exist; third-party notices do not define rights for the project itself.
+Evidence: project LICENSE/COPYING terms отсутствуют; third-party notices не определяют права на сам проект.
 
-Closure requires an explicit owner/legal licensing decision. The audit must not invent that decision.
+Closure требует явного licensing decision со стороны owner/legal. Audit не должен придумывать это решение.
 
 ### A-010 — full-history scan
 
-Evidence: connector/current-tree search is not a history scanner and cannot prove deleted blobs/old commits are clean.
+Evidence: connector/current-tree search не является history scanner и не может доказать чистоту deleted blobs/old commits.
 
-Closure: trusted full clone + history-aware secret scan plus targeted private hostname/IP/identifier/artifact review. Any real leaked secret is rotated before possible history sanitization.
+Closure: trusted full clone + history-aware secret scan плюс targeted review private hostname/IP/identifier/artifact. Любой реально утёкший secret должен быть rotated до возможной history sanitization.
 
-### A-011 — bot container least privilege
+### A-011 — least privilege для bot container
 
-Evidence: no dedicated image `USER`, `cap_drop`, `no-new-privileges` or read-only root-filesystem policy is currently defined. Positive boundary: no Docker socket is mounted and backup/log source mounts are read-only where expected.
+Evidence: отдельный image `USER`, `cap_drop`, `no-new-privileges` или read-only root-filesystem policy сейчас не заданы. Положительная boundary: Docker socket не монтируется, а backup/log source mounts имеют read-only режим там, где это ожидается.
 
-Closure: implement the least-privilege subset compatible with backup/recovery/runtime behavior and prove it on a clean host.
+Closure: реализовать совместимый с backup/recovery/runtime поведением набор least-privilege controls и доказать его работу на clean host.
 
-### A-012 — compat proxy resource bounds
+### A-012 — resource bounds compat proxy
 
-Evidence: per request the proxy creates a client session, reads upstream response fully, and has no local global concurrency/rate/response-size contract.
+Evidence: на каждый request proxy создаёт client session, полностью читает upstream response и не имеет local global concurrency/rate/response-size contract.
 
-Closure: explicit bounded concurrency and upstream response size plus reproducible front-door rate policy or equivalent; load/resource tests required.
+Closure: явная bounded concurrency и ограничение upstream response size плюс воспроизводимая front-door rate policy либо эквивалент; обязательны load/resource tests.
 
 ### A-013 — private security reporting
 
-Evidence: SECURITY.md defines trust boundaries and leak response but not a concrete private vulnerability reporting channel/supported versions.
+Evidence: SECURITY.md определяет trust boundaries и leak response, но не конкретный private vulnerability reporting channel/supported versions.
 
-Closure: configure/document a private reporting path and supported-version expectations before public publication.
+Closure: настроить/документировать private reporting path и supported-version expectations до public publication.
 
-## Required audit work not yet complete
+## Обязательные audit work, которые ещё не завершены
 
-The following required roadmap areas are still open even if all source findings above are fixed:
+Следующие обязательные области roadmap остаются открытыми, даже если все source findings выше исправлены:
 
-1. **Full Git-history secret/private-data scan** with scanner versions/commands and evidence — tracked by A-010.
-2. **Dependency vulnerability + license scan** from the final exact lock — A-008.
-3. **Container/base-image scan + SBOM** for the release image — A-008.
-4. **Third-party license compatibility review** after project license decision — A-009.
-5. **Full callback/command inventory** against RBAC/private-chat/ownership after A-001/A-004 changes.
-6. **Mutation inventory** and lost-response tests after A-003.
-7. **Clean-room acceptance** after fixes: documented fresh install, representative migration, verified restore, controlled failure/restart scenarios and final production smoke.
-8. **Repeat source/network/log review** of every changed security boundary after fix PRs.
-9. **Final current-tree + history scan immediately before changing repository visibility**.
-10. **Final audit revision** with every High closed, every security/data-integrity Medium closed, and explicit disposition for any remaining non-security Medium.
+1. **Full Git-history secret/private-data scan** с версиями/командами scanners и evidence — tracked by A-010.
+2. **Dependency vulnerability + license scan** по финальному exact lock — A-008.
+3. **Container/base-image scan + SBOM** release image — A-008.
+4. **Third-party license compatibility review** после решения по project license — A-009.
+5. **Full callback/command inventory** относительно RBAC/private-chat/ownership после изменений A-001/A-004.
+6. **Mutation inventory** и lost-response tests после A-003.
+7. **Clean-room acceptance** после исправлений: документированный fresh install, representative migration, verified restore, controlled failure/restart scenarios и финальный production smoke.
+8. **Повторный source/network/log review** каждой изменённой security boundary после fix PRs.
+9. **Финальный current-tree + history scan непосредственно перед изменением repository visibility**.
+10. **Финальная ревизия аудита**: каждый High закрыт, каждый security/data-integrity Medium закрыт, для любого оставшегося non-security Medium указан explicit disposition.
 
-## Current disposition
+## Текущий disposition
 
 **NOT PASS.**
 
-Final v4 release publication and repository visibility change are blocked by open audit findings. The required remediation order is:
+Публикация финального v4 release и изменение видимости репозитория заблокированы открытыми audit findings. Требуемый порядок remediation:
 
 1. secret/privilege boundaries: A-001, A-002, A-004, A-005, A-006;
 2. mutation/data integrity: A-003;
 3. repository/public-release gates: A-007, A-009, A-010;
 4. supply-chain/container hardening: A-008, A-011;
 5. resource/disclosure readiness: A-012, A-013;
-6. repeat scanners + clean-room acceptance;
-7. final audit revision and production release acceptance.
+6. повторные scanners + clean-room acceptance;
+7. финальная audit revision и production release acceptance.
 
-Each remediation is a narrowly scoped v4 fix under the active feature freeze. Findings are not considered closed by source changes alone: regression/CI and the required production/operational acceptance must be recorded.
+Каждая remediation — narrowly scoped v4 fix в рамках активного feature freeze. Findings не считаются закрытыми только за счёт source changes: должны быть зафиксированы regression/CI и требуемый production/operational acceptance.
 
-
-## Remediation log
+## Журнал remediation
 
 - **2026-10-05 · A-001 / #234:** implementation PR #248 открыт. Secret-bearing Full Backup/DB/node/DR artifacts переводятся на host-side/off-site only; Telegram document delivery и `BACKUP_SEND_TO_ADMINS` удаляются. Finding остаётся **Open / acceptance pending** до публикации patch release, deployment, targeted production smoke и финального health check.
 
