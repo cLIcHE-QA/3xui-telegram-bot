@@ -1,15 +1,15 @@
 # v4 pre-public cross-cutting audit — 2026-10-06
 
-Статус: **SOURCE GATES PASS; CLEAN-ROOM / FINAL SECRET SCAN / A-013 PENDING**.
+Статус: **SOURCE GATES PASS; CLEAN-ROOM PASS; FINAL SECRET SCAN / A-013 PENDING**.
 
 Exact reviewed main:
 
-- SHA: `77da78a1e2b72d9402291bda319160639a1739bf`;
-- main `Python checks` run `37530118941` — PASS;
+- SHA: `825d93b9698168cdefe0ad6b6fb37c70601659af`;
+- main `Python checks` run `37531345406` — PASS;
 - freeze baseline: `fe34f9dc97f0a6441dde9fcfe865e34ad8696c32`;
-- delta from freeze to reviewed main: 35 commits.
+- delta from freeze to reviewed main: 36 commits.
 
-Этот artifact закрывает source-level cross-cutting gates после A-001…A-012 remediation. Он намеренно не объявляет общий audit PASS до clean-room acceptance, финального current-tree/history scan непосредственно перед visibility change и A-013 public PVR smoke.
+Этот artifact закрывает source-level cross-cutting gates после A-001…A-012 remediation и clean-room acceptance. Он намеренно не объявляет общий audit PASS до финального current-tree/history/retained-Actions scan непосредственно перед visibility change и A-013 public PVR smoke.
 
 ## 1. Full command/callback authorization inventory — PASS
 
@@ -110,16 +110,77 @@ A-012 production evidence on `v4.26.8` confirmed:
 
 Результат: повторный source/network/log review не выявил нового release-blocking finding.
 
-## 4. Gates still pending
+## 4. Clean-room acceptance — PASS
+
+Exact release artifact under test:
+
+- tag: `v4.26.8`;
+- SHA: `e096bf436425ea037399e290a5a54f54c729b352`;
+- source exported with `git archive v4.26.8` into isolated `/tmp` directory;
+- production `.env`, DB, nginx configuration, runtime volumes and credentials were not mounted into clean-room containers.
+
+Image build:
+
+- clean-room image: `3xui-bot-cleanroom:v4.26.8`;
+- digest-pinned Python base resolved successfully;
+- `requirements.lock` installed with `--require-hashes`;
+- final image normalized the root-owned application tree and retained non-root runtime identity.
+
+SQLite fresh install / representative migration:
+
+- exact-tag migration suite: **10 tests PASS**;
+- fresh DB reached current schema v5 and `PRAGMA quick_check=ok`;
+- representative legacy schemas upgraded through the real `Database.init()` path;
+- legacy user/profile data remained intact;
+- interrupted/failed migration journal blocks replay;
+- recovery-copy semantics remained fail closed.
+
+Verified restore:
+
+- exact-tag restore suite: **5 tests PASS**;
+- malformed/traversal archive rejected;
+- invalid staged DB did not create pending restore;
+- good restore remained atomic and retained a rescue copy;
+- tampered staged DB failed SHA-256 validation without replacing live DB;
+- failed restore was not replayed.
+
+Controlled restart / failure semantics:
+
+- Host Control and Fleet restart/recovery suites completed successfully before the Deploy suite;
+- initial Deploy suite harness lacked `/app/scripts` because `.dockerignore` intentionally excludes host-side scripts from the runtime image;
+- re-run mounted the exact-tag `scripts/` tree read-only and the full `test_v419_bot_self_update.py` suite completed **20/20 PASS**;
+- restart recovery remains read-only / no automatic mutation replay.
+
+Fresh runtime artifact smoke:
+
+~~~text
+UID_GID=10001:10001
+ENTRYPOINT_READABLE=ok
+FRESH_RUNTIME_DB=ok
+CLEANROOM_RUNTIME=ok
+~~~
+
+The smoke used `--network none`, read-only rootfs, dropped capabilities, `no-new-privileges`, bounded tmpfs and an isolated writable `/app/data`.
+
+Operational note:
+
+- during the first Docker build the SSH session experienced a transient stall;
+- host uptime showed no reboot since 2026-09-29 22:17:13;
+- kernel journal for the event window contained no OOM, killed-process, hung-task, watchdog, lockup or segfault evidence;
+- production bot status after the event remained `running`, `RestartCount=0`, Health/DB/3x-ui `ok`;
+- subsequent clean-room tests were capped at 256 MiB RAM, 0.5 CPU and 64 PIDs.
+
+Result: clean-room acceptance gate — **PASS**.
+
+## 5. Gates still pending
 
 До visibility change остаются обязательны:
 
-1. clean-room acceptance: fresh install, representative migration, verified restore, controlled service/restart failures и final smoke;
-2. финальный current-tree + full-history + retained Actions storage secret/private-data scan на exact pre-public main;
-3. при необходимости повторный exact-main supply-chain run, если security-sensitive dependency/base/workflow inputs изменятся;
-4. только после зелёных pre-public gates — repository visibility → public;
-5. сразу после visibility change — enable GitHub Private Vulnerability Reporting и внешний `Report a vulnerability` smoke (A-013/#246);
-6. финальная revision `docs/audits/v4-final-audit-2026-10-05.md` → PASS при отсутствии новых blockers.
+1. финальный current-tree + full-history + retained Actions storage secret/private-data scan на exact pre-public main;
+2. при необходимости повторный exact-main supply-chain run, если security-sensitive dependency/base/workflow inputs изменятся;
+3. только после зелёных pre-public gates — repository visibility → public;
+4. сразу после visibility change — enable GitHub Private Vulnerability Reporting и внешний `Report a vulnerability` smoke (A-013/#246);
+5. финальная revision `docs/audits/v4-final-audit-2026-10-05.md` → PASS при отсутствии новых blockers.
 
 ## Safety ordering
 
