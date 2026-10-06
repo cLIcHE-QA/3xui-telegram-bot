@@ -59,12 +59,12 @@
 | A-001 | **High** | #234 | RBAC / Backups | Closed | `v4.26.5` удалил Telegram transport secret-bearing backup; production Full Backup/off-site smoke и финальный health/status прошли. |
 | A-002 | **High** | #235 | Subscription Proxy / Logs | Closed | `v4.26.5` отключил raw compat access logging; targeted container/bot/nginx log smoke прошёл, использованный test credential ротирован. |
 | A-003 | **High** | #236 | 3x-ui mutations | Closed | `v4.26.5` унифицировал mutation certainty/read-back; production disable/enable smoke прошёл с восстановлением исходного состояния. |
-| A-004 | **Medium / security** | #237 | Telegram Admin | Acceptance pending | PR #260 merged: все admin routers fail closed вне private chat; regression/CI зелёные, `v4.26.6` production smoke ещё требуется. |
-| A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Acceptance pending | PR #260 merged: redirects manual/bounded, cross-origin strips device/auth-like headers, TLS downgrade blocked; `v4.26.6` production acceptance ещё требуется. |
-| A-006 | **Medium / security** | #239 | Filesystem / Backup | Acceptance pending | PR #260 merged: sensitive dirs/files enforce `0700/0600`, existing artifacts tighten, permissive-umask regression зелёный; `v4.26.6` production acceptance ещё требуется. |
+| A-004 | **Medium / security** | #237 | Telegram Admin | Closed | `v4.26.6` опубликован и развёрнут; production smoke подтвердил fail-closed `/admin` вне private chat, штатную работу в private chat и финальный Health/DB/3x-ui status PASS. |
+| A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Closed | `v4.26.6` production acceptance подтвердил: same-origin сохраняет разрешённый device header, cross-origin удаляет `X-HWID`/`Authorization`, HTTPS→HTTP downgrade блокируется; финальный status PASS. |
+| A-006 | **Medium / security** | #239 | Filesystem / Backup | Closed | `v4.26.6` production acceptance подтвердил owner-only modes `0700/0600` для bot DB, logs, Full Backup и node backup artifacts; повторный Health/DB/3x-ui status PASS. |
 | A-007 | **High** | #240 | Repository / Release | Open | `main` не защищён; direct push может обойти документированный PR/required-CI contract и попасть в release workflow. |
-| A-008 | **Medium / security** | #241 | Supply chain | Implementation pending audit run | Hashed `requirements.lock`, digest-pinned `python:3.12-slim`, full-SHA pinned GitHub Actions и read-only Trivy supply-chain audit workflow подготовлены. Closure требует зелёный scanner run на exact source SHA, сохранённые artifacts и disposition findings/license inventory. |
-| A-009 | **High** | #242 | Legal / Public release | Ready for closure on merge | Owner выбрал Apache-2.0; canonical `LICENSE`, README license section и compatibility review добавлены. Third-party BSD/MIT notices сохранены; Python dependency inventory разобран, включая MPL-2.0 `certifi` и scanner UNKNOWN metadata. |
+| A-008 | **Medium / security** | #241 | Supply chain | Closed | Reproducible baseline merged и подтверждён exact-main Supply-chain audit: hashed `requirements.lock`, digest-pinned base, full-SHA Actions, vulnerability/license reports, CycloneDX SBOM; actionable HIGH/CRITICAL = 0. Closure evidence: `docs/audits/v4-a008-supply-chain-audit-2026-10-06.md`. |
+| A-009 | **High** | #242 | Legal / Public release | Closed | Owner выбрал Apache-2.0; canonical `LICENSE`, README license section и compatibility review merged. Third-party obligations документированы; #242 закрыт. |
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
 | A-011 | **Medium / security** | #244 | Container | Acceptance pending | Runtime hardening merged: dedicated UID/GID `10001:10001`, root-owned app tree, read-only rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp`, writable `/app/data` only, inherited host ACL rollout. CI clean-container smoke PASS; production runtime smoke ещё не зафиксирован. |
 | A-012 | **Medium / reliability** | #245 | Public compat proxy | Acceptance pending | Resource bounds merged: global upstream concurrency 32, slot wait 1s→503, upstream body ≤8 MiB chunked; canonical nginx per-client `limit_conn=4`, `5r/s`, burst 10. Regression CI PASS; production/load smoke ещё не зафиксирован. |
@@ -73,8 +73,8 @@
 ### Количество findings по severity
 
 - Critical: **0 выявлено на текущем этапе**
-- High: **3 open**
-- Medium: **7 open**
+- High: **1 open**
+- Medium: **3 open**
 - Low/Info: на этой ревизии фиксируются только в notes
 
 По audit contract из roadmap это состояние является **release-blocking**.
@@ -120,17 +120,23 @@ Impact: авторизованные операторы могут случай�
 
 Closure: централизованно enforce private chat для `/admin`, callbacks и admin FSM input, с regression coverage и security documentation.
 
+Closure evidence: PR #260 merged; release `v4.26.6` / commit `e04834e9c2d6200fa84896e7c135f476f56bc78e` опубликован и развёрнут. Production smoke подтвердил, что `/admin` в group/supergroup не открывает admin UI и не раскрывает control-plane data, а private chat работает штатно. Финальный status-check: container running, `RestartCount=0`, Bot version `4.26.6`, Health/DB/3x-ui connectivity — `ok`. A-004/#237: **Closed**.
+
 ### A-005 — device headers и redirects
 
 Evidence: raw compat requests пересылают reviewed HWID/device headers, в то время как HTTP helper автоматически следует redirects. Документированный routing contract явно требует не допускать утечку device/secret headers на другой origin.
 
 Closure: manual redirect policy с same-origin enforcement либо stripping/rejection headers на cross-origin hops; regression tests должны доказать, что cross-origin target никогда не получает sensitive client headers.
 
+Closure evidence: PR #260 merged; `v4.26.6` production smoke в running container подтвердил synthetic redirect policy без реальных credentials: same-origin сохраняет `X-HWID`, cross-origin удаляет `X-HWID` и `Authorization`, безопасный `User-Agent` сохраняется, HTTPS→HTTP downgrade отклоняется. Финальный Health/DB/3x-ui status-check — PASS. A-005/#238: **Closed**.
+
 ### A-006 — private file modes
 
 Evidence: security-sensitive journals/recovery artifacts явно задают `0700/0600`, тогда как обычное создание backup полагается на default directory/file creation modes.
 
 Closure: явно enforce private directory/file modes для Full Backup/snapshots и проверить bot DB/local logs. Tests должны установить permissive umask и всё равно наблюдать private modes.
+
+Closure evidence: PR #260 merged; `v4.26.6` production smoke подтвердил `data/bot.sqlite3=0600`, `data/logs=0700`, `data/logs/bot.log=0600`, `data/backups=0700`, Full Backup archive=`0600`, node backup directories=`0700` и node snapshot archive=`0600`. Финальный Health/DB/3x-ui status-check — PASS. A-006/#239: **Closed**.
 
 ### A-007 — GitHub governance
 
@@ -140,18 +146,19 @@ Closure: GitHub-side branch protection/ruleset equivalent должен блок�
 
 ### A-008 — supply chain
 
-Implementation evidence:
+Closure evidence: `docs/audits/v4-a008-supply-chain-audit-2026-10-06.md`.
 
-- `requirements.lock` содержит полный Python 3.12 dependency graph с exact versions и SHA-256 hashes;
-- CI и Docker build устанавливают Python dependencies через `pip --require-hashes`;
-- Docker base закреплён как `python:3.12-slim@sha256:05cda9777409a9c3ffddd94a4c476b79f0769a0b4857f0c7ed9226b6800b0d6f`;
-- все repository `actions/*` refs переведены на reviewed 40-character commit SHA;
-- canonical scanner — Trivy v0.75.0, Linux x86_64 release asset SHA-256 `c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f`;
-- `.github/workflows/supply-chain-audit.yml` read-only, сохраняет Python/container vulnerability reports, license inventories, CycloneDX SBOM и metadata exact source SHA;
-- HIGH/CRITICAL vulnerability findings блокируют audit job;
-- `docs/SUPPLY_CHAIN.md` фиксирует dependency/base-image/Action upgrade workflow.
+- exact-main audit SHA: `80a989d0342ffcbb097caf3184d7d5d118ed68b4`;
+- Supply-chain audit run `37507349749`: PASS;
+- artifact ID `11432761040`;
+- artifact digest `sha256:32bffc6ef9bd08d035a044ea7bcd6151276c407a5f455a0e0f4d1289805a2d86`;
+- Python actionable HIGH/CRITICAL after remediation: 0;
+- container actionable HIGH/CRITICAL with available fix: 0;
+- full vendor-unfixed Debian findings remain preserved in JSON evidence;
+- dependency/license inventory and CycloneDX SBOM are retained as audit artifacts;
+- subsequent Apache-2.0 PR changed only license/docs/tests and did not alter audited supply-chain inputs.
 
-Closure remaining: выполнить зелёный Supply-chain audit на final audited source SHA, сохранить run/artifact IDs + artifact digest, disposition всех scanner findings и затем выполнить third-party license compatibility review после решения A-009/#242.
+A-008/#241: **Closed**.
 
 ### A-009 — project license
 
@@ -166,7 +173,7 @@ Implementation evidence:
 - Python runtime license inventory review покрывает permissive/notice licenses, PSF-2.0, MPL-2.0 `certifi` и scanner UNKNOWN classifications;
 - текущий release process не публикует prebuilt container image; если это изменится, нужен отдельный review GPL/LGPL obligations Debian base packages.
 
-Closure: после merge license change A-009/#242 может быть закрыт. Это engineering compliance review, не юридическая консультация.
+Closure evidence: Apache-2.0 change merged в PR #275; #242 закрыт. Compatibility review: `docs/audits/v4-a009-license-review-2026-10-06.md`. A-009: **Closed**. Это engineering compliance review, не юридическая консультация.
 
 ### A-010 — full-history scan
 
@@ -229,29 +236,25 @@ Closure remaining: непосредственно перед public publication 
 
 Следующие обязательные области roadmap остаются открытыми, даже если все source findings выше исправлены:
 
-1. **Dependency vulnerability + license scan** по финальному exact lock — A-008.
-2. **Container/base-image scan + SBOM** release image — A-008.
-3. **Third-party license compatibility review** после решения по project license — A-009.
-4. **Full callback/command inventory** относительно RBAC/private-chat/ownership после изменений A-001/A-004.
-5. **Mutation inventory** и lost-response tests после A-003.
-6. **Clean-room acceptance** после исправлений: документированный fresh install, representative migration, verified restore, controlled failure/restart scenarios и финальный production smoke.
-7. **Повторный source/network/log review** каждой изменённой security boundary после fix PRs.
-8. **Финальный current-tree + history scan непосредственно перед изменением repository visibility**.
-9. **Финальная ревизия аудита**: каждый High закрыт, каждый security/data-integrity Medium закрыт, для любого оставшегося non-security Medium указан explicit disposition.
+1. **Full callback/command inventory** относительно RBAC/private-chat/ownership после изменений A-001/A-004.
+2. **Mutation inventory** и lost-response tests после A-003.
+3. **Clean-room acceptance** после исправлений: документированный fresh install, representative migration, verified restore, controlled failure/restart scenarios и финальный production smoke.
+4. **Повторный source/network/log review** каждой изменённой security boundary после fix PRs.
+5. **Финальный current-tree + history scan непосредственно перед изменением repository visibility**.
+6. **Финальная ревизия аудита**: каждый High закрыт, каждый security/data-integrity Medium закрыт, для любого оставшегося non-security Medium указан explicit disposition.
 
 ## Текущий disposition
 
 **NOT PASS.**
 
-Публикация финального v4 release и изменение видимости репозитория заблокированы открытыми audit findings. Требуемый порядок remediation:
+Публикация финального v4 release и изменение видимости репозитория заблокированы оставшимися audit findings и общими audit gates. Текущий обязательный порядок:
 
-1. secret/privilege boundaries: A-001, A-002, A-004, A-005, A-006;
-2. mutation/data integrity: A-003;
-3. repository/public-release gates: A-007, A-009, A-010;
-4. supply-chain/container hardening: A-008, A-011;
-5. resource/disclosure readiness: A-012, A-013;
-6. повторные scanners + clean-room acceptance;
-7. финальная audit revision и production release acceptance.
+1. repository/public-release governance: A-007;
+2. production acceptance container hardening: A-011;
+3. production/load acceptance compat proxy: A-012;
+4. public security-reporting enablement/smoke: A-013;
+5. оставшиеся cross-cutting audit work, повторные scanners и clean-room acceptance;
+6. финальная audit revision и production release acceptance.
 
 Каждая remediation — narrowly scoped v4 fix в рамках активного feature freeze. Findings не считаются закрытыми только за счёт source changes: должны быть зафиксированы regression/CI и требуемый production/operational acceptance.
 
@@ -266,7 +269,7 @@ Closure remaining: непосредственно перед public publication 
 
 - **2026-10-06 · A-001/A-002/A-003 / #234/#235/#236:** `v4.26.5` опубликован и развёрнут; targeted production acceptance завершён. A-001: Full Backup создан локально, off-site upload/verification успешен, Telegram получил только status; A-002: fresh compat request не раскрыл credential в container/new bot/nginx logs, test credential после проверки ротирован; A-003: disable/enable mutation smoke прошёл с read-back и восстановлением исходного состояния. Findings закрыты как completed.
 
-- **2026-10-06 · A-004/A-005/A-006 / #237/#238/#239:** implementation PR #260 merged (`a15ff4beaeae2ec249b729e53b2aeaadf6c349ef`) с зелёными `PR conventions` и `Python checks`. Private-chat admin boundary, cross-origin redirect header stripping/TLS downgrade rejection и owner-only sensitive file modes закреплены regression coverage и SECURITY/UI contracts. Findings остаются **Open / acceptance pending** до публикации/deploy `v4.26.6`, targeted production smoke и повторного health/status-check.
+- **2026-10-06 · A-004/A-005/A-006 / #237/#238/#239:** implementation PR #260 merged (`a15ff4beaeae2ec249b729e53b2aeaadf6c349ef`); `v4.26.6` / `e04834e9c2d6200fa84896e7c135f476f56bc78e` опубликован и развёрнут. Targeted production acceptance PASS: private-chat boundary подтверждён; cross-origin device/auth header stripping и TLS downgrade rejection подтверждены synthetic runtime smoke; sensitive runtime/backup modes `0700/0600` подтверждены на production. Повторный status-check: `RestartCount=0`, Health/DB/3x-ui connectivity=`ok`. **Статус: Closed**.
 
 
 - **2026-10-06 · A-010 / #243:** full Git-history scan и retained GitHub Actions storage audit завершены. Gitleaks v8.30.1 + metadata scanner проверили 343 reachable refs; отдельный Actions audit проверил 1485 retained log archives и 1 retained artifact без coverage gaps. Все candidates получили safe disposition, high-confidence credential findings отсутствуют, unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`.
@@ -277,6 +280,6 @@ Closure remaining: непосредственно перед public publication 
 
 - **2026-10-06 · A-013 / #246:** repository-side private security reporting contract подготовлен: supported versions/response expectations в SECURITY.md, custom `.github/VULNERABILITY_REPORT.yml`, public issue forms redirect security reports в private advisory flow. **Статус: acceptance pending** — GitHub PVR можно включить только после перехода repository в public; enablement и внешний `Report a vulnerability` smoke остаются public-release gate.
 
-- **2026-10-06 · A-008 / #241:** reproducible baseline implementation подготовлена: hashed `requirements.lock`, digest-pinned Python base, full-SHA GitHub Actions pins, pinned/checksummed Trivy v0.75.0, vulnerability/license reports и CycloneDX SBOM workflow. **Статус: implementation pending audit run** — closure только после зелёного scanner artifact на exact source SHA и disposition findings; license compatibility зависит от A-009/#242.
+- **2026-10-06 · A-008 / #241:** reproducible baseline merged и подтверждён exact-main Supply-chain audit run `37507349749` на `80a989d0…`; artifact `11432761040`, digest `sha256:32bffc6e…`; actionable HIGH/CRITICAL = 0, SBOM/license evidence сохранены. **Статус: Closed**.
 
-- **2026-10-06 · A-009 / #242:** owner выбрал Apache-2.0. Добавлены canonical `LICENSE`, README license section, project-vs-third-party clarification и отдельный compatibility review. **Статус: ready for closure on merge**.
+- **2026-10-06 · A-009 / #242:** owner выбрал Apache-2.0; PR #275 merged, canonical `LICENSE` и compatibility review находятся в `main`, #242 закрыт. **Статус: Closed**.
