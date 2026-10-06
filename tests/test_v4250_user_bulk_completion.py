@@ -102,8 +102,10 @@ class V4250UserBulkCompletionTests(unittest.TestCase):
         result = source.split("async def _bulk_result", 1)[1].split(
             "async def bulk_run_plan", 1
         )[0]
-        self.assertIn('target_id=str(ok + len(failed))', result)
+        self.assertIn('target_id=str(ok + len(failed) + len(unknown))', result)
         self.assertIn('details=details', result)
+        self.assertIn('unknown={len(unknown)}', result)
+        self.assertIn('Неизвестно: {len(unknown)}', result)
         self.assertNotIn("email", result.lower())
 
 

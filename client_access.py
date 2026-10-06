@@ -13,7 +13,7 @@ from db import Database, UserRecord
 from inbound_policy import is_managed_inbound
 from provisioning import ProvisioningEngine
 from version import APP_VERSION
-from xui import XUIClient, XUIError
+from xui import XUIClient, XUIError, XUIMutationError
 
 
 settings = load_settings()
@@ -210,25 +210,76 @@ async def create_user(tg_id: int, message: Message):
         email = f"tg_{username}" if username else f"tg_{tg_id}"
         sid = secrets.token_urlsafe(18)
 
-        await xui.create_client(
-            email=email,
-            telegram_id=tg_id,
-            sub_id=sid,
-            inbound_ids=inbound_ids,
-            total_bytes=traffic_gb * 1024**3,
-            expiry_time_ms=expiry,
-            limit_ip=ip_limit,
-            comment=(
-                f"Создано Telegram-ботом v{APP_VERSION} · "
-                f"{provisioning_note}"
-            ),
-            flow=settings.vless_flow,
-        )
-        if settings.vless_flow:
-            await xui.bulk_adjust_clients(
-                [email],
+        try:
+            await xui.create_client(
+                email=email,
+                telegram_id=tg_id,
+                sub_id=sid,
+                inbound_ids=inbound_ids,
+                total_bytes=traffic_gb * 1024**3,
+                expiry_time_ms=expiry,
+                limit_ip=ip_limit,
+                comment=(
+                    f"Создано Telegram-ботом v{APP_VERSION} · "
+                    f"{provisioning_note}"
+                ),
                 flow=settings.vless_flow,
             )
+        except XUIMutationError as exc:
+            if not exc.uncertain:
+                raise
+            try:
+                readback_matches = await xui.get_client_by_tg_id(tg_id)
+            except XUIError:
+                await message.answer(
+                    "🟡 Итог создания доступа неизвестен. Mutation не повторялась, "
+                    "а read-back недоступен. Попробуй открыть создание позже: "
+                    "бот сначала проверит существующий доступ."
+                )
+                return
+            exact = []
+            for item in readback_matches:
+                client = item.get("client", item) if isinstance(item, dict) else {}
+                if (
+                    isinstance(client, dict)
+                    and str(client.get("email") or "") == email
+                    and str(client.get("subId") or "") == sid
+                ):
+                    exact.append(client)
+            if len(exact) != 1:
+                await message.answer(
+                    "🟡 Итог создания доступа неизвестен. Mutation не повторялась, "
+                    "а read-back не подтвердил exact identity. Не запускай создание повторно вслепую."
+                )
+                return
+
+        if settings.vless_flow:
+            try:
+                await xui.bulk_adjust_clients(
+                    [email],
+                    flow=settings.vless_flow,
+                )
+            except XUIMutationError as exc:
+                if not exc.uncertain:
+                    raise
+                try:
+                    readback = await xui.get_client(email)
+                except XUIError:
+                    await message.answer(
+                        "🟡 Доступ создан, но итог синхронизации Flow неизвестен. "
+                        "Mutation не повторялась; повторный create не требуется."
+                    )
+                    return
+                client = readback.get("client", readback)
+                if (
+                    not isinstance(client, dict)
+                    or str(client.get("flow") or "") != settings.vless_flow
+                ):
+                    await message.answer(
+                        "🟡 Доступ создан, но read-back не подтвердил Flow. "
+                        "Mutation не повторялась; попроси администратора проверить параметры доступа."
+                    )
+                    return
 
         await db.put(UserRecord(tg_id, email, sid, expiry, now))
 

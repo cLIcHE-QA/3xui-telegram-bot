@@ -22,13 +22,98 @@ from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
 from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
-from provisioning import ProvisioningEngine
+from provisioning import ProvisioningEngine, ProvisioningUnknown
 
 settings = load_settings()
 db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 advanced_users_router = Router(name="advanced_users")
 provisioner = ProvisioningEngine(db, xui, settings)
+
+
+def _client_field_matches(actual: object, expected: object) -> bool:
+    if isinstance(expected, bool):
+        if isinstance(actual, str):
+            normalized = actual.strip().lower()
+            return normalized in {"1", "true", "yes", "on"} if expected else normalized in {"0", "false", "no", "off", ""}
+        return bool(actual) is expected
+    if isinstance(expected, int):
+        try:
+            return int(actual or 0) == expected
+        except (TypeError, ValueError):
+            return False
+    return str(actual or "") == str(expected)
+
+
+async def _update_client_with_readback(email: str, **changes: object) -> tuple[bool, str]:
+    try:
+        await xui.update_client(email, **changes)
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            readback = await xui.get_client(email)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        client = readback.get("client", readback)
+        if not isinstance(client, dict) or any(
+            not _client_field_matches(client.get(key), value)
+            for key, value in changes.items()
+        ):
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=match; uncertain_resolved=success"
+
+
+async def _membership_with_readback(
+    email: str,
+    inbound_id: int,
+    *,
+    present: bool,
+) -> tuple[bool, str]:
+    try:
+        if present:
+            await xui.attach_client(email, [inbound_id])
+        else:
+            await xui.detach_client(email, [inbound_id])
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            readback = await xui.get_client(email)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        ids = {int(x) for x in (readback.get("inboundIds") or [])}
+        if (inbound_id in ids) is not present:
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=match; uncertain_resolved=success"
+
+
+async def _flow_with_readback(email: str, flow: str) -> tuple[bool, str]:
+    try:
+        await xui.bulk_adjust_clients([email], flow=flow)
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            readback = await xui.get_client(email)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        client = readback.get("client", readback)
+        if not isinstance(client, dict) or str(client.get("flow") or "") != flow:
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=match; uncertain_resolved=success"
 
 
 class EditUserStates(StatesGroup):
@@ -1692,13 +1777,25 @@ async def user_ip_save(message: Message, state: FSMContext):
             raise ValueError
         if not rec:
             raise XUIError("Пользователь не найден")
-        await xui.update_client(rec.email, limitIp=limit)
+        confirmed, evidence = await _update_client_with_readback(rec.email, limitIp=limit)
+        if not confirmed:
+            await audit_from_message(
+                db, message, "user.ip_limit.set.unknown", target_type="user", target_id=rec.email,
+                details=evidence, success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог изменения IP limit неизвестен. Mutation не повторялась; проверь пользователя перед повтором.",
+                reply_markup=back_access_config(tg_id),
+            )
+            return
         await audit_from_message(
             db, message, "user.ip_limit.set", target_type="user", target_id=rec.email,
-            details=f"limitIp={limit}",
+            details=f"limitIp={limit}; {evidence}",
         )
         await state.clear()
-        await render_input(message, 
+        await render_input(
+            message,
             f"✅ Лимит IP: {limit}" if limit else "✅ Лимит IP: без лимита",
             reply_markup=back_access_config(tg_id),
         )
@@ -1737,10 +1834,21 @@ async def user_hwid_limit_save(message: Message, state: FSMContext):
             raise ValueError
         if not rec:
             raise XUIError("Пользователь не найден")
-        await xui.update_client(rec.email, limitHwid=limit)
+        confirmed, evidence = await _update_client_with_readback(rec.email, limitHwid=limit)
+        if not confirmed:
+            await audit_from_message(
+                db, message, "user.hwid_limit.set.unknown", target_type="user", target_id=rec.email,
+                details=evidence, success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог изменения HWID limit неизвестен. Mutation не повторялась; проверь пользователя перед повтором.",
+                reply_markup=back_access_config(tg_id),
+            )
+            return
         await audit_from_message(
             db, message, "user.hwid_limit.set", target_type="user", target_id=rec.email,
-            details=f"limitHwid={limit}",
+            details=f"limitHwid={limit}; {evidence}",
         )
         await state.clear()
         await render_input(
@@ -1934,13 +2042,26 @@ async def user_plan_apply_run(call: CallbackQuery):
         await call.answer("Тариф не найден.", show_alert=True)
         return
     expiry = int((time.time() + max(0, plan.duration_days) * 86400) * 1000) if plan.duration_days else 0
+    changes = {
+        "expiryTime": expiry,
+        "totalGB": max(0, plan.traffic_gb) * 1024**3,
+        "limitIp": max(0, plan.ip_limit),
+    }
     try:
-        await xui.update_client(
-            rec.email,
-            expiryTime=expiry,
-            totalGB=max(0, plan.traffic_gb) * 1024**3,
-            limitIp=max(0, plan.ip_limit),
-        )
+        confirmed, evidence = await _update_client_with_readback(rec.email, **changes)
+        if not confirmed:
+            await audit_from_call(
+                db, call, "user.plan.apply.unknown", target_type="user", target_id=rec.email,
+                details=f"plan_id={plan.id}; {evidence}", success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог применения лимитов неизвестен. Mutation не повторялась; "
+                "локальные значения не изменены.",
+                reply_markup=back_plan(tg_id),
+            )
+            await call.answer()
+            return
         await db.update_expiry(tg_id, expiry)
         if plan.server_group_id:
             await db.set_user_server_group(tg_id, plan.server_group_id)
@@ -1948,16 +2069,18 @@ async def user_plan_apply_run(call: CallbackQuery):
             db, call, "user.plan.apply", target_type="user", target_id=rec.email,
             details=(
                 f"plan_id={plan.id}; expiry={expiry}; traffic_gb={plan.traffic_gb}; "
-                f"limit_ip={plan.ip_limit}; server_group_id={plan.server_group_id}"
+                f"limit_ip={plan.ip_limit}; server_group_id={plan.server_group_id}; {evidence}"
             ),
         )
-        await render_callback(call, 
-            f"✅ Тариф «{plan.name}» применён к лимитам 3x-ui.", reply_markup=back_plan(tg_id)
+        await render_callback(
+            call,
+            f"✅ Тариф «{plan.name}» применён к лимитам 3x-ui.",
+            reply_markup=back_plan(tg_id),
         )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.plan.apply", target_type="user", target_id=rec.email,
-            details=f"error={exc}", success=False,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_plan(tg_id))
     await call.answer()
@@ -2117,8 +2240,23 @@ async def user_provisioning_run(call: CallbackQuery):
                 InlineKeyboardButton(text="⬅ Согласование", callback_data=f"admin:u:prov:{tg_id}")
             ]]),
         )
+    except ProvisioningUnknown as exc:
+        await audit_from_call(
+            db, call, f"user.provision.{mode}.unknown", target_type="user", target_id=rec.email,
+            details=str(exc)[:500], success=False,
+        )
+        await render_callback(
+            call,
+            "🟡 Итог согласования неизвестен. Mutation не повторялась; выполни новый preflight перед следующим запуском.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Согласование", callback_data=f"admin:u:prov:{tg_id}")
+            ]]),
+        )
     except Exception as exc:
-        await audit_from_call(db, call, f"user.provision.{mode}", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
+        await audit_from_call(
+            db, call, f"user.provision.{mode}", target_type="user", target_id=rec.email,
+            details=f"error={type(exc).__name__}: {exc}", success=False,
+        )
         await render_callback(
             call,
             f"🔴 Ошибка согласования: {type(exc).__name__}: {exc}",
@@ -2165,13 +2303,32 @@ async def user_plan_provision_run(call: CallbackQuery):
             db, call, "user.plan.provision", target_type="user", target_id=rec.email,
             details=f"plan={result.policy.plan.id if result.policy.plan else None}; attached={result.attached_ids}; remaining={result.remaining_missing_ids}",
         )
-        await render_callback(call, 
+        await render_callback(
+            call,
             f"✅ Тариф + согласование завершены.\nДобавлены: {result.attached_ids or 'нет'}\nОстались отсутствующими: {result.remaining_missing_ids or 'нет'}",
             reply_markup=back_plan(tg_id),
         )
+    except ProvisioningUnknown as exc:
+        await audit_from_call(
+            db, call, "user.plan.provision.unknown", target_type="user", target_id=rec.email,
+            details=str(exc)[:500], success=False,
+        )
+        await render_callback(
+            call,
+            "🟡 Итог применения тарифа/согласования неизвестен. Mutation не повторялась; "
+            "локальные plan limits обновляются только после подтверждённого read-back.",
+            reply_markup=back_plan(tg_id),
+        )
     except Exception as exc:
-        await audit_from_call(db, call, "user.plan.provision", target_type="user", target_id=rec.email, details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Тариф + согласование: {type(exc).__name__}: {exc}", reply_markup=back_plan(tg_id))
+        await audit_from_call(
+            db, call, "user.plan.provision", target_type="user", target_id=rec.email,
+            details=f"error={type(exc).__name__}: {exc}", success=False,
+        )
+        await render_callback(
+            call,
+            f"🔴 Тариф + согласование: {type(exc).__name__}: {exc}",
+            reply_markup=back_plan(tg_id),
+        )
     await call.answer()
 
 
@@ -2233,22 +2390,56 @@ async def user_inbound_toggle(call: CallbackQuery):
             if inbound_id in managed_current and len(managed_current) <= 1:
                 await call.answer("Нельзя отключить последний управляемый Inbound.", show_alert=True)
                 return
-            await xui.detach_client(rec.email, [inbound_id])
             action = "detach"
+            confirmed, evidence = await _membership_with_readback(
+                rec.email, inbound_id, present=False
+            )
         else:
             if inbound_id not in allowed:
                 await call.answer("Inbound не разрешён настройками бота.", show_alert=True)
                 return
-            await xui.attach_client(rec.email, [inbound_id])
-            if settings.vless_flow:
-                await xui.bulk_adjust_clients([rec.email], flow=settings.vless_flow)
             action = "attach"
+            confirmed, evidence = await _membership_with_readback(
+                rec.email, inbound_id, present=True
+            )
+        if not confirmed:
+            await audit_from_call(
+                db, call, f"user.inbound.{action}.unknown", target_type="user", target_id=rec.email,
+                details=f"inbound_id={inbound_id}; {evidence}", success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог изменения Inbound неизвестен. Mutation не повторялась; обнови состояние перед повтором.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")
+                ]]),
+            )
+            await call.answer()
+            return
+        if action == "attach" and settings.vless_flow:
+            flow_ok, flow_evidence = await _flow_with_readback(rec.email, settings.vless_flow)
+            if not flow_ok:
+                await audit_from_call(
+                    db, call, "user.inbound.attach.unknown", target_type="user", target_id=rec.email,
+                    details=f"inbound_id={inbound_id}; membership={evidence}; flow={flow_evidence}",
+                    success=False,
+                )
+                await render_callback(
+                    call,
+                    "🟡 Inbound подключён, но итог синхронизации Flow неизвестен. "
+                    "Mutation не повторялась; проверь параметры доступа.",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                        InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")
+                    ]]),
+                )
+                await call.answer()
+                return
+            evidence = f"{evidence}; flow={flow_evidence}"
         await audit_from_call(
             db, call, f"user.inbound.{action}", target_type="user", target_id=rec.email,
-            details=f"inbound_id={inbound_id}",
+            details=f"inbound_id={inbound_id}; {evidence}",
         )
         await call.answer("Обновлено.")
-        # Re-render the list as a new message so Telegram callback state stays simple.
         all_inbounds = choose_inbounds(await xui.inbound_options())
         updated = await xui.get_client(rec.email)
         now_ids = {int(x) for x in (updated.get("inboundIds") or [])}
@@ -2266,7 +2457,7 @@ async def user_inbound_toggle(call: CallbackQuery):
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.inbound.toggle", target_type="user", target_id=rec.email,
-            details=f"inbound_id={inbound_id}; error={exc}", success=False,
+            details=f"inbound_id={inbound_id}; error={type(exc).__name__}", success=False,
         )
         await render_callback(
             call,
@@ -2312,11 +2503,34 @@ async def user_reset_run(call: CallbackQuery):
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
             details=f"affected={affected}",
         )
-        await render_callback(call, f"✅ Трафик сброшен. Затронуто записей: {affected}", reply_markup=back_traffic(tg_id))
+        await render_callback(
+            call,
+            f"✅ Трафик сброшен. Затронуто записей: {affected}",
+            reply_markup=back_traffic(tg_id),
+        )
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
+                details=f"code={exc.code}; certainty=failed", success=False,
+            )
+            await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_traffic(tg_id))
+        else:
+            await audit_from_call(
+                db, call, "user.traffic.reset.unknown", target_type="user", target_id=rec.email,
+                details=f"code={exc.code}; mutation_not_retried=true; readback=not_provable",
+                success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог сброса трафика неизвестен. Счётчик может измениться сразу после reset, "
+                "поэтому read-back не считается доказательством. Mutation не повторялась.",
+                reply_markup=back_traffic(tg_id),
+            )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.traffic.reset", target_type="user", target_id=rec.email,
-            details=f"error={exc}", success=False,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_traffic(tg_id))
     await call.answer()
@@ -2362,28 +2576,37 @@ async def user_sub_rotate_run(call: CallbackQuery):
         await call.answer("Не удалось сгенерировать уникальный subId.", show_alert=True)
         return
     try:
-        await xui.update_client(rec.email, subId=new_sid)
+        confirmed, evidence = await _update_client_with_readback(rec.email, subId=new_sid)
+        if not confirmed:
+            await audit_from_call(
+                db, call, "user.subscription.rotate.unknown", target_type="user", target_id=rec.email,
+                details=evidence, success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог смены ID подписки неизвестен. Mutation не повторялась, локальный subId не изменён. "
+                "Проверь remote state перед новым запуском.",
+                reply_markup=back_subscription(tg_id),
+            )
+            await call.answer()
+            return
         await db.update_sub_id(tg_id, new_sid)
         await audit_from_call(
             db, call, "user.subscription.rotate", target_type="user", target_id=rec.email,
-            details="subId rotated",
+            details=f"subId rotated; {evidence}",
         )
-        await render_callback(call, 
+        await render_callback(
+            call,
             f"✅ Новый URL подписки для {await _display_label(rec)}:\n{sub_url(new_sid)}",
             reply_markup=back_subscription(tg_id),
         )
     except XUIError as exc:
         await audit_from_call(
             db, call, "user.subscription.rotate", target_type="user", target_id=rec.email,
-            details=f"error={exc}", success=False,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_subscription(tg_id))
     await call.answer()
-
-
-# ---------------------------------------------------------------------
-# Admin users overview / bulk orchestration
-# ---------------------------------------------------------------------
 
 
 async def _users_page_view(page: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
@@ -2404,10 +2627,7 @@ async def _users_page_view(page: int, role: str | None) -> tuple[str, InlineKeyb
         nav: list[InlineKeyboardButton] = []
         if page > 0:
             nav.append(InlineKeyboardButton(text="◀️", callback_data=f"admin:users:page:{page - 1}"))
-        nav.append(InlineKeyboardButton(
-            text=f"{page + 1}/{pages}",
-            callback_data="admin:users:noop",
-        ))
+        nav.append(InlineKeyboardButton(text=f"{page + 1}/{pages}", callback_data="admin:users:noop"))
         if page + 1 < pages:
             nav.append(InlineKeyboardButton(text="▶️", callback_data=f"admin:users:page:{page + 1}"))
         rows.append(nav)
@@ -3080,35 +3300,61 @@ async def admin_provision_all_run(call: CallbackQuery):
         summary = await provisioner.provision_many([u.telegram_id for u in users], strict=False)
         duration_ms = int((time.monotonic() - started) * 1000)
         failed = summary.get("failed") or {}
-        status = "success" if not failed else "partial"
+        unknown = summary.get("unknown") or {}
+        if not failed and not unknown:
+            status = "success"
+        elif unknown and not failed and not summary.get("ok"):
+            status = "unknown"
+        else:
+            status = "partial"
+        details = (
+            f"ok={summary.get('ok')}; failed={len(failed)}; unknown={len(unknown)}; "
+            f"attached={summary.get('attached')}"
+        )
         await db.finish_job_run(
-            run_id, status=status, duration_ms=duration_ms,
-            details=f"ok={summary.get('ok')}; failed={len(failed)}; attached={summary.get('attached')}",
+            run_id, status=status, duration_ms=duration_ms, details=details,
         )
         await audit_from_call(
             db, call, "users.provision_all", target_type="users", target_id=str(len(users)),
-            details=f"ok={summary.get('ok')}; failed={len(failed)}; attached={summary.get('attached')}",
-            success=not bool(failed),
+            details=details, success=not bool(failed or unknown),
         )
         lines = [
-            "✅ Согласование завершено." if not failed else "⚠️ Согласование завершено частично.",
+            "✅ Согласование завершено." if not failed and not unknown else "⚠️ Согласование завершено частично.",
             "",
             f"Пользователей: {len(users)}",
             f"Успешно: {summary.get('ok')}",
             f"Добавлено связей Inbounds: {summary.get('attached')}",
             f"Ошибок: {len(failed)}",
+            f"Неизвестно: {len(unknown)}",
             f"Время: {duration_ms / 1000:.1f}s",
         ]
+        if unknown:
+            lines += ["", "Неопределённый outcome: mutation не повторялась."]
         if failed:
             lines += ["", "Первые ошибки:"]
             for tg_id, err in list(failed.items())[:8]:
                 lines.append(f"• TG {tg_id}: {err[:140]}")
-        await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")]]))
+        await render_callback(
+            call, "\n".join(lines),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")
+            ]]),
+        )
     except Exception as exc:
         duration_ms = int((time.monotonic() - started) * 1000)
-        await db.finish_job_run(run_id, status="failed", duration_ms=duration_ms, details=f"{type(exc).__name__}: {exc}")
-        await audit_from_call(db, call, "users.provision_all", target_type="users", details=f"error={type(exc).__name__}: {exc}", success=False)
-        await render_callback(call, f"🔴 Задание согласования завершилось ошибкой: {type(exc).__name__}: {exc}", reply_markup=users_back())
+        await db.finish_job_run(
+            run_id, status="failed", duration_ms=duration_ms,
+            details=f"{type(exc).__name__}: {exc}",
+        )
+        await audit_from_call(
+            db, call, "users.provision_all", target_type="users",
+            details=f"error={type(exc).__name__}: {exc}", success=False,
+        )
+        await render_callback(
+            call,
+            f"🔴 Задание согласования завершилось ошибкой: {type(exc).__name__}: {exc}",
+            reply_markup=users_back(),
+        )
 
 
 @advanced_users_router.callback_query(F.data == "admin:syncall:ask")
@@ -3229,7 +3475,22 @@ async def admin_extend(call: CallbackQuery):
         now_ms = int(time.time() * 1000)
         base = max(current, now_ms)
         new_expiry = base + 30 * 86400 * 1000
-        await xui.update_client(rec.email, expiryTime=new_expiry, enable=True)
+        confirmed, evidence = await _update_client_with_readback(
+            rec.email, expiryTime=new_expiry, enable=True
+        )
+        if not confirmed:
+            await audit_from_call(
+                db, call, "user.extend.unknown", target_type="user", target_id=rec.email,
+                details=evidence, success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог продления неизвестен. Mutation не повторялась; "
+                "локальный срок не изменён.",
+                reply_markup=back_expiry(tg_id),
+            )
+            await call.answer()
+            return
         await db.update_expiry(tg_id, new_expiry)
         await audit_from_call(
             db,
@@ -3237,7 +3498,7 @@ async def admin_extend(call: CallbackQuery):
             "user.extend",
             target_type="user",
             target_id=rec.email,
-            details=f"+30 days; expiry={new_expiry}",
+            details=f"+30 days; expiry={new_expiry}; {evidence}",
         )
         await render_callback(
             call,
@@ -3251,7 +3512,7 @@ async def admin_extend(call: CallbackQuery):
             "user.extend",
             target_type="user",
             target_id=rec.email,
-            details=f"3x-ui error: {exc}",
+            details=f"error={type(exc).__name__}",
             success=False,
         )
         await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=back_expiry(tg_id))
@@ -3289,28 +3550,31 @@ async def admin_disable_run(call: CallbackQuery):
         await call.answer("Пользователь не найден.", show_alert=True)
         return
     try:
-        await xui.update_client(rec.email, enable=False)
-        await audit_from_call(
-            db,
-            call,
-            "user.disable",
-            target_type="user",
-            target_id=rec.email,
-        )
-        await render_callback(
-            call,
-            f"⛔ {await _display_label(rec)} отключён.",
-            reply_markup=back_user(tg_id),
-        )
+        confirmed, evidence = await _update_client_with_readback(rec.email, enable=False)
+        if not confirmed:
+            await audit_from_call(
+                db, call, "user.disable.unknown", target_type="user", target_id=rec.email,
+                details=evidence, success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог отключения неизвестен. Mutation не повторялась; обнови карточку перед повтором.",
+                reply_markup=back_user(tg_id),
+            )
+        else:
+            await audit_from_call(
+                db, call, "user.disable", target_type="user", target_id=rec.email,
+                details=evidence,
+            )
+            await render_callback(
+                call,
+                f"⛔ {await _display_label(rec)} отключён.",
+                reply_markup=back_user(tg_id),
+            )
     except XUIError as exc:
         await audit_from_call(
-            db,
-            call,
-            "user.disable",
-            target_type="user",
-            target_id=rec.email,
-            details=f"error={type(exc).__name__}",
-            success=False,
+            db, call, "user.disable", target_type="user", target_id=rec.email,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await render_callback(call, f"Ошибка: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
@@ -3346,28 +3610,31 @@ async def admin_enable_run(call: CallbackQuery):
         await call.answer("Пользователь не найден.", show_alert=True)
         return
     try:
-        await xui.update_client(rec.email, enable=True)
-        await audit_from_call(
-            db,
-            call,
-            "user.enable",
-            target_type="user",
-            target_id=rec.email,
-        )
-        await render_callback(
-            call,
-            f"✅ {await _display_label(rec)} включён.",
-            reply_markup=back_user(tg_id),
-        )
+        confirmed, evidence = await _update_client_with_readback(rec.email, enable=True)
+        if not confirmed:
+            await audit_from_call(
+                db, call, "user.enable.unknown", target_type="user", target_id=rec.email,
+                details=evidence, success=False,
+            )
+            await render_callback(
+                call,
+                "🟡 Итог включения неизвестен. Mutation не повторялась; обнови карточку перед повтором.",
+                reply_markup=back_user(tg_id),
+            )
+        else:
+            await audit_from_call(
+                db, call, "user.enable", target_type="user", target_id=rec.email,
+                details=evidence,
+            )
+            await render_callback(
+                call,
+                f"✅ {await _display_label(rec)} включён.",
+                reply_markup=back_user(tg_id),
+            )
     except XUIError as exc:
         await audit_from_call(
-            db,
-            call,
-            "user.enable",
-            target_type="user",
-            target_id=rec.email,
-            details=f"error={type(exc).__name__}",
-            success=False,
+            db, call, "user.enable", target_type="user", target_id=rec.email,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await render_callback(call, f"Ошибка: {exc}", reply_markup=back_user(tg_id))
     await call.answer()
@@ -3894,21 +4161,23 @@ async def _bulk_result(
     ok: int,
     failed: dict[int, str],
     summary: str,
+    unknown: dict[int, str] | None = None,
 ) -> None:
-    details = f"ok={ok}; failed={len(failed)}"
+    unknown = unknown or {}
+    details = f"ok={ok}; failed={len(failed)}; unknown={len(unknown)}"
     await audit_from_call(
         db,
         call,
         f"users.bulk.{action}",
         target_type="users",
-        target_id=str(ok + len(failed)),
+        target_id=str(ok + len(failed) + len(unknown)),
         details=details,
-        success=not failed,
+        success=not failed and not unknown,
     )
-    status = "✅" if not failed else "⚠️"
+    status = "✅" if not failed and not unknown else "⚠️"
     await render_callback(
         call,
-        f"{status} {summary}\n\nУспешно: {ok}\nОшибок: {len(failed)}",
+        f"{status} {summary}\n\nУспешно: {ok}\nОшибок: {len(failed)}\nНеизвестно: {len(unknown)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
             [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
@@ -3987,9 +4256,13 @@ async def bulk_run_expiry(call: CallbackQuery, state: FSMContext):
     expiry = int(value)
     ok = 0
     failed: dict[int, str] = {}
+    unknown: dict[int, str] = {}
     for rec in records:
         try:
-            await xui.update_client(rec.email, expiryTime=expiry)
+            confirmed, evidence = await _update_client_with_readback(rec.email, expiryTime=expiry)
+            if not confirmed:
+                unknown[rec.telegram_id] = evidence
+                continue
             await db.update_expiry(rec.telegram_id, expiry)
             ok += 1
         except Exception as exc:
@@ -4001,6 +4274,7 @@ async def bulk_run_expiry(call: CallbackQuery, state: FSMContext):
         action="expiry",
         ok=ok,
         failed=failed,
+        unknown=unknown,
         summary=f"Срок установлен: {fmt_date(expiry)}.",
     )
     await call.answer()
@@ -4019,9 +4293,13 @@ async def bulk_run_traffic(call: CallbackQuery, state: FSMContext):
     total_bytes = int(value)
     ok = 0
     failed: dict[int, str] = {}
+    unknown: dict[int, str] = {}
     for rec in records:
         try:
-            await xui.update_client(rec.email, totalGB=total_bytes)
+            confirmed, evidence = await _update_client_with_readback(rec.email, totalGB=total_bytes)
+            if not confirmed:
+                unknown[rec.telegram_id] = evidence
+                continue
             ok += 1
         except Exception as exc:
             failed[rec.telegram_id] = type(exc).__name__
@@ -4033,6 +4311,7 @@ async def bulk_run_traffic(call: CallbackQuery, state: FSMContext):
         action="traffic",
         ok=ok,
         failed=failed,
+        unknown=unknown,
         summary=f"Лимит трафика установлен: {label}.",
     )
     await call.answer()
@@ -4056,13 +4335,18 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
         return
     try:
         details = ""
+        failed: dict[int, str] = {}
+        unknown: dict[int, str] = {}
         if action == "extend30":
             result = await xui.bulk_adjust_clients(emails, add_days=30)
             for rec in records:
                 try:
                     obj = await xui.get_client(rec.email)
                     client = obj.get("client", obj)
-                    await db.update_expiry(rec.telegram_id, int(client.get("expiryTime") or rec.expiry_time))
+                    await db.update_expiry(
+                        rec.telegram_id,
+                        int(client.get("expiryTime") or rec.expiry_time),
+                    )
                 except XUIError:
                     pass
             details = str(result.get("obj") or {})[:1000]
@@ -4085,13 +4369,14 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
                 strict=False,
             )
             failed = summary.get("failed") or {}
+            unknown = summary.get("unknown") or {}
             details = (
                 f"ok={summary.get('ok')}; failed={len(failed)}; "
-                f"attached={summary.get('attached')}"
+                f"unknown={len(unknown)}; attached={summary.get('attached')}"
             )
             message = (
                 "✅ Безопасное согласование выполнено."
-                if not failed else
+                if not failed and not unknown else
                 "⚠️ Безопасное согласование выполнено частично."
             )
         elif action == "sync":
@@ -4110,20 +4395,124 @@ async def bulk_run(call: CallbackQuery, state: FSMContext):
             await call.answer("Неизвестное действие.", show_alert=True)
             return
         await audit_from_call(
-            db, call, f"users.bulk.{action}", target_type="users", target_id=str(len(emails)),
-            details=f"users={len(records)}; {details}",
+            db,
+            call,
+            f"users.bulk.{action}",
+            target_type="users",
+            target_id=str(len(emails)),
+            details=f"users={len(records)}; {details}; unknown={len(unknown)}",
+            success=not failed and not unknown,
         )
-        await render_callback(call, f"{message}\nПользователей: {len(emails)}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
-            [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
-        ]))
+        suffix = f"\nНеизвестно: {len(unknown)}" if unknown else ""
+        await render_callback(
+            call,
+            f"{message}\nПользователей: {len(emails)}{suffix}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+            ]),
+        )
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db,
+                call,
+                f"users.bulk.{action}",
+                target_type="users",
+                target_id=str(len(emails)),
+                details=f"code={exc.code}; certainty=failed",
+                success=False,
+            )
+            await render_callback(
+                call,
+                f"Ошибка 3x-ui: {exc}",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                    [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+                ]),
+            )
+        else:
+            readback = "not_provable"
+            resolved = False
+            if action in {"enable", "disable"}:
+                expected = action == "enable"
+                try:
+                    matches: list[bool] = []
+                    for email in emails:
+                        obj = await xui.get_client(email)
+                        client = obj.get("client", obj)
+                        matches.append(
+                            isinstance(client, dict)
+                            and _client_field_matches(client.get("enable"), expected)
+                        )
+                    resolved = bool(matches) and all(matches)
+                    readback = "match" if resolved else "mismatch"
+                except XUIError as read_exc:
+                    readback = f"unavailable:{type(read_exc).__name__}"
+            if resolved:
+                await audit_from_call(
+                    db,
+                    call,
+                    f"users.bulk.{action}",
+                    target_type="users",
+                    target_id=str(len(emails)),
+                    details=(
+                        f"users={len(records)}; readback=match; "
+                        "uncertain_resolved=success"
+                    ),
+                )
+                message = (
+                    "✅ Пользователи включены."
+                    if action == "enable"
+                    else "✅ Пользователи отключены."
+                )
+                await render_callback(
+                    call,
+                    f"{message}\nПользователей: {len(emails)}",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+                    ]),
+                )
+            else:
+                await audit_from_call(
+                    db,
+                    call,
+                    f"users.bulk.{action}.unknown",
+                    target_type="users",
+                    target_id=str(len(emails)),
+                    details=(
+                        f"users={len(records)}; code={exc.code}; "
+                        f"mutation_not_retried=true; readback={readback}"
+                    ),
+                    success=False,
+                )
+                await render_callback(
+                    call,
+                    "🟡 Итог массовой операции неизвестен. Mutation не повторялась. "
+                    "Перед любым повтором обнови состояние пользователей.",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+                    ]),
+                )
     except Exception as exc:
         await audit_from_call(
-            db, call, f"users.bulk.{action}", target_type="users", target_id=str(len(emails)),
-            details=f"error={exc}", success=False,
+            db,
+            call,
+            f"users.bulk.{action}",
+            target_type="users",
+            target_id=str(len(emails)),
+            details=f"error={type(exc).__name__}",
+            success=False,
         )
-        await render_callback(call, f"Ошибка 3x-ui: {exc}", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
-            [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
-        ]))
+        await render_callback(
+            call,
+            f"Ошибка 3x-ui: {exc}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
+                [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:bulk:close")],
+            ]),
+        )
     await call.answer()
+

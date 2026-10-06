@@ -208,6 +208,67 @@ async def _port_free(target_node_id: int, port: int, *, exclude_inbound_id: int 
     return True
 
 
+async def _inbound_update_with_readback(
+    inbound_id: int,
+    payload: dict[str, Any],
+) -> tuple[bool, str]:
+    try:
+        await xui.inbound_update(inbound_id, payload)
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            readback = await xui.inbound_get(inbound_id)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        if _update_payload(readback) != payload:
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=match; uncertain_resolved=success"
+
+
+async def _inbound_add_with_readback(payload: dict[str, Any]) -> tuple[bool, str]:
+    try:
+        await xui.inbound_add(payload)
+        return True, "direct"
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            raise
+        try:
+            inbounds = await xui.inbounds_list(slim=True)
+        except XUIError as read_exc:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            )
+        expected_node = _node_key(payload.get("nodeId"))
+        expected_port = int(payload.get("port") or 0)
+        candidates = [
+            item for item in inbounds
+            if isinstance(item, dict)
+            and _node_key(item.get("nodeId")) == expected_node
+            and int(item.get("port") or 0) == expected_port
+        ]
+        if len(candidates) != 1:
+            return False, (
+                f"code={exc.code}; mutation_not_retried=true; "
+                f"readback={'ambiguous' if len(candidates) > 1 else 'absent'}"
+            )
+        candidate = candidates[0]
+        expected_protocol = str(payload.get("protocol") or "")
+        expected_remark = str(payload.get("remark") or "")
+        if (
+            str(candidate.get("protocol") or "") != expected_protocol
+            or str(candidate.get("remark") or "") != expected_remark
+            or bool(candidate.get("enable", True)) != bool(payload.get("enable", True))
+        ):
+            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
+        return True, "readback=unique_match; uncertain_resolved=success"
+
+
 def _visible(inbound: dict[str, Any]) -> bool:
     protocol = str(inbound.get("protocol") or "").lower()
     tag = str(inbound.get("tag") or "").lower()
@@ -550,14 +611,32 @@ async def inbound_set_fingerprint(call: CallbackQuery):
         except ValueError:
             await call.answer("Этот Inbound не использует Reality.", show_alert=True)
             return
-        await xui.inbound_update(iid, _update_payload(ib))
+        confirmed, evidence = await _inbound_update_with_readback(iid, _update_payload(ib))
+        if not confirmed:
+            await audit_from_call(
+                db,
+                call,
+                "inbound.update.unknown",
+                target_type="inbound",
+                target_id=str(iid),
+                details=f"field=reality.fingerprint; {evidence}",
+                success=False,
+            )
+            await call.answer(
+                "Итог изменения fingerprint неизвестен; mutation не повторялась.",
+                show_alert=True,
+            )
+            return
         await audit_from_call(
             db,
             call,
             "inbound.update",
             target_type="inbound",
             target_id=str(iid),
-            details=f"field=reality.fingerprint; old={old[:120]}; new={fingerprint}",
+            details=(
+                f"field=reality.fingerprint; old={old[:120]}; "
+                f"new={fingerprint}; {evidence}"
+            ),
         )
         await call.answer("Сохранено.")
         text, kb = await _inbound_card(iid)
@@ -578,18 +657,30 @@ async def inbound_edit_mode(call: CallbackQuery):
     await call.answer()
 
 
-async def _apply_mode(call: CallbackQuery, iid: int, mode: str) -> None:
+async def _apply_mode(call: CallbackQuery, iid: int, mode: str) -> bool:
     ib = await xui.inbound_get(iid)
     stream = _stream(ib)
     xhttp = _json_obj(stream.get("xhttpSettings"))
     xhttp["mode"] = mode
     stream["xhttpSettings"] = xhttp
     ib["streamSettings"] = stream
-    await xui.inbound_update(iid, _update_payload(ib))
+    confirmed, evidence = await _inbound_update_with_readback(iid, _update_payload(ib))
+    if not confirmed:
+        await audit_from_call(
+            db,
+            call,
+            "inbound.update.unknown",
+            target_type="inbound",
+            target_id=str(iid),
+            details=f"field=xhttp.mode; value={mode}; {evidence}",
+            success=False,
+        )
+        return False
     await audit_from_call(
         db, call, "inbound.update", target_type="inbound", target_id=str(iid),
-        details=f"field=xhttp.mode; value={mode}",
+        details=f"field=xhttp.mode; value={mode}; {evidence}",
     )
+    return True
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:setmode:"))
@@ -603,7 +694,13 @@ async def inbound_set_mode(call: CallbackQuery):
         await call.answer("Некорректный режим.", show_alert=True)
         return
     try:
-        await _apply_mode(call, iid, mode)
+        confirmed = await _apply_mode(call, iid, mode)
+        if not confirmed:
+            await call.answer(
+                "Итог изменения режима неизвестен; mutation не повторялась.",
+                show_alert=True,
+            )
+            return
         await call.answer("Сохранено.")
         text, kb = await _inbound_card(iid)
         await render_callback(call, text, reply_markup=kb)
@@ -688,10 +785,26 @@ async def inbound_edit_save(message: Message, state: FSMContext):
             await render_input(message, "Поле не поддерживается.", reply_markup=inbound_back_keyboard(iid))
             await state.clear()
             return
-        await xui.inbound_update(iid, _update_payload(ib))
+        confirmed, evidence = await _inbound_update_with_readback(iid, _update_payload(ib))
+        if not confirmed:
+            await state.clear()
+            await audit_from_message(
+                db, message, "inbound.update.unknown", target_type="inbound", target_id=str(iid),
+                details=f"field={field}; {evidence}", success=False,
+            )
+            await render_input(
+                message,
+                "🟡 Итог изменения Inbound неизвестен. Mutation не повторялась; "
+                "обнови карточку перед повтором.",
+                reply_markup=inbound_back_keyboard(iid),
+            )
+            return
         await audit_from_message(
             db, message, "inbound.update", target_type="inbound", target_id=str(iid),
-            details=f"field={field}; old={old_display[:120]}; new={new_display[:120]}",
+            details=(
+                f"field={field}; old={old_display[:120]}; "
+                f"new={new_display[:120]}; {evidence}"
+            ),
         )
         await state.clear()
         text, kb = await _inbound_card(iid)
@@ -787,6 +900,9 @@ async def inbound_sync_run(call: CallbackQuery):
     iid = int(call.data.rsplit(":", 1)[-1])
     users = await db.list_users()
     emails = [u.email for u in users]
+    if not emails:
+        await call.answer("Нет пользователей для синхронизации.", show_alert=True)
+        return
     try:
         result = await xui.bulk_attach_clients(emails, [iid])
         obj = result.get("obj") if isinstance(result, dict) else {}
@@ -794,17 +910,63 @@ async def inbound_sync_run(call: CallbackQuery):
             db, call, "inbound.sync_users", target_type="inbound", target_id=str(iid),
             details=f"users={len(emails)}; result={str(obj)[:800]}",
         )
-        await render_callback(call, 
+        await render_callback(
+            call,
             f"✅ Синхронизация завершена для Inbound #{iid}.\nПользователей обработано: {len(emails)}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")
             ]]),
         )
         await call.answer()
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db, call, "inbound.sync_users", target_type="inbound", target_id=str(iid),
+                details=f"code={exc.code}; certainty=failed", success=False,
+            )
+            await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
+            return
+        readback = "match"
+        try:
+            for email in emails:
+                obj = await xui.get_client(email)
+                ids = {int(x) for x in (obj.get("inboundIds") or [])}
+                if iid not in ids:
+                    readback = "mismatch"
+                    break
+        except XUIError as read_exc:
+            readback = f"unavailable:{type(read_exc).__name__}"
+        if readback == "match":
+            await audit_from_call(
+                db, call, "inbound.sync_users", target_type="inbound", target_id=str(iid),
+                details=(
+                    f"users={len(emails)}; readback=match; "
+                    "uncertain_resolved=success"
+                ),
+            )
+            await render_callback(
+                call,
+                f"✅ Синхронизация подтверждена read-back для Inbound #{iid}.\n"
+                f"Пользователей: {len(emails)}",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="⬅ Inbound", callback_data=f"admin:inbound:{iid}")
+                ]]),
+            )
+            await call.answer()
+            return
+        await audit_from_call(
+            db, call, "inbound.sync_users.unknown", target_type="inbound", target_id=str(iid),
+            details=(
+                f"users={len(emails)}; code={exc.code}; "
+                f"mutation_not_retried=true; readback={readback}"
+            ),
+            success=False,
+        )
+        await call.answer("Итог синхронизации неизвестен; mutation не повторялась.", show_alert=True)
     except XUIError as exc:
         await audit_from_call(
             db, call, "inbound.sync_users", target_type="inbound", target_id=str(iid),
-            details=str(exc)[:500], success=False,
+            details=f"error={type(exc).__name__}", success=False,
         )
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
@@ -831,10 +993,29 @@ async def inbound_reset_run(call: CallbackQuery):
     iid = int(call.data.rsplit(":", 1)[-1])
     try:
         await xui.inbound_reset_traffic(iid)
-        await audit_from_call(db, call, "inbound.reset_traffic", target_type="inbound", target_id=str(iid))
+        await audit_from_call(
+            db, call, "inbound.reset_traffic", target_type="inbound", target_id=str(iid)
+        )
         await call.answer("Трафик обнулён.")
         text, kb = await _inbound_card(iid)
         await render_callback(call, text, reply_markup=kb)
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            await audit_from_call(
+                db, call, "inbound.reset_traffic", target_type="inbound", target_id=str(iid),
+                details=f"code={exc.code}; certainty=failed", success=False,
+            )
+            await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
+            return
+        await audit_from_call(
+            db, call, "inbound.reset_traffic.unknown", target_type="inbound", target_id=str(iid),
+            details=f"code={exc.code}; mutation_not_retried=true; readback=not_provable",
+            success=False,
+        )
+        await call.answer(
+            "Итог сброса трафика неизвестен; mutation не повторялась.",
+            show_alert=True,
+        )
     except XUIError as exc:
         await call.answer(f"3x-ui: {str(exc)[:160]}", show_alert=True)
 
@@ -876,14 +1057,26 @@ async def inbound_clone_start(call: CallbackQuery):
     await call.answer()
 
 
-async def _create_clone(call: CallbackQuery, iid: int, target_node: int, port: int) -> None:
+async def _create_clone(
+    call: CallbackQuery,
+    iid: int,
+    target_node: int,
+    port: int,
+) -> bool:
     ib = await xui.inbound_get(iid)
     payload = _clone_payload(ib, port=port, node_id=(target_node or None))
-    await xui.inbound_add(payload)
+    confirmed, evidence = await _inbound_add_with_readback(payload)
+    if not confirmed:
+        await audit_from_call(
+            db, call, "inbound.clone.unknown", target_type="inbound", target_id=str(iid),
+            details=f"target_node={target_node}; port={port}; {evidence}", success=False,
+        )
+        return False
     await audit_from_call(
         db, call, "inbound.clone", target_type="inbound", target_id=str(iid),
-        details=f"target_node={target_node}; port={port}",
+        details=f"target_node={target_node}; port={port}; {evidence}",
     )
+    return True
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inbound:clonetarget:"))
@@ -897,7 +1090,13 @@ async def inbound_clone_target(call: CallbackQuery, state: FSMContext):
         ib = await xui.inbound_get(iid)
         source_port = int(ib.get("port") or 0)
         if await _port_free(target_node, source_port):
-            await _create_clone(call, iid, target_node, source_port)
+            confirmed = await _create_clone(call, iid, target_node, source_port)
+            if not confirmed:
+                await call.answer(
+                    "Итог создания клона неизвестен; mutation не повторялась. Проверь список Inbounds.",
+                    show_alert=True,
+                )
+                return
             await call.answer("Клон создан отключённым.")
             text, kb = await inbound_list_view()
             await render_callback(call, text, reply_markup=kb)
@@ -933,15 +1132,31 @@ async def inbound_clone_port(message: Message, state: FSMContext):
         await render_input(message, "Этот порт уже занят на выбранном сервере.", reply_markup=inbound_cancel_keyboard(iid))
         return
     try:
-        # This path has no CallbackQuery for audit, so record the mutation directly.
         ib = await xui.inbound_get(iid)
-        await xui.inbound_add(_clone_payload(ib, port=port, node_id=(target_node or None)))
+        payload = _clone_payload(ib, port=port, node_id=(target_node or None))
+        confirmed, evidence = await _inbound_add_with_readback(payload)
+        if not confirmed:
+            await audit_from_message(
+                db, message, "inbound.clone.unknown", target_type="inbound", target_id=str(iid),
+                details=f"target_node={target_node}; port={port}; {evidence}", success=False,
+            )
+            await state.clear()
+            await render_input(
+                message,
+                "🟡 Итог создания клона неизвестен. Mutation не повторялась; "
+                "проверь список Inbounds перед новым запуском.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
+                ]]),
+            )
+            return
         await audit_from_message(
             db, message, "inbound.clone", target_type="inbound", target_id=str(iid),
-            details=f"target_node={target_node}; port={port}",
+            details=f"target_node={target_node}; port={port}; {evidence}",
         )
         await state.clear()
-        await render_input(message, 
+        await render_input(
+            message,
             "✅ Клон создан отключённым.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
@@ -1077,14 +1292,15 @@ async def template_deploy_start(call: CallbackQuery):
     await call.answer()
 
 
-async def _deploy_template(tid: int, target_node: int, port: int) -> None:
+async def _deploy_template(tid: int, target_node: int, port: int) -> tuple[bool, str]:
     t = await db.get_inbound_template(tid)
     if not t:
         raise ValueError("Шаблон не найден")
     payload = json.loads(t.payload_json)
     if not isinstance(payload, dict):
         raise ValueError("Некорректные данные шаблона")
-    await xui.inbound_add(_deploy_payload(payload, port=port, node_id=(target_node or None)))
+    mutation_payload = _deploy_payload(payload, port=port, node_id=(target_node or None))
+    return await _inbound_add_with_readback(mutation_payload)
 
 
 @inbound_admin_router.callback_query(F.data.startswith("admin:inboundtemplate:target:"))
@@ -1106,10 +1322,22 @@ async def template_deploy_target(call: CallbackQuery, state: FSMContext):
         return
     try:
         if port and await _port_free(target_node, port):
-            await _deploy_template(tid, target_node, port)
+            confirmed, evidence = await _deploy_template(tid, target_node, port)
+            if not confirmed:
+                await audit_from_call(
+                    db, call, "inbound_template.deploy.unknown",
+                    target_type="inbound_template", target_id=str(tid),
+                    details=f"target_node={target_node}; port={port}; {evidence}",
+                    success=False,
+                )
+                await call.answer(
+                    "Итог развёртывания неизвестен; mutation не повторялась. Проверь список Inbounds.",
+                    show_alert=True,
+                )
+                return
             await audit_from_call(
                 db, call, "inbound_template.deploy", target_type="inbound_template",
-                target_id=str(tid), details=f"target_node={target_node}; port={port}",
+                target_id=str(tid), details=f"target_node={target_node}; port={port}; {evidence}",
             )
             await call.answer("Развёртывание завершено. Inbound отключён.")
             text, kb = await inbound_list_view()
@@ -1146,13 +1374,30 @@ async def template_deploy_port(message: Message, state: FSMContext):
         await render_input(message, "Этот порт уже занят на выбранном сервере.", reply_markup=template_cancel_keyboard(tid))
         return
     try:
-        await _deploy_template(tid, target_node, port)
+        confirmed, evidence = await _deploy_template(tid, target_node, port)
+        if not confirmed:
+            await audit_from_message(
+                db, message, "inbound_template.deploy.unknown",
+                target_type="inbound_template", target_id=str(tid),
+                details=f"target_node={target_node}; port={port}; {evidence}", success=False,
+            )
+            await state.clear()
+            await render_input(
+                message,
+                "🟡 Итог развёртывания неизвестен. Mutation не повторялась; "
+                "проверь список Inbounds перед новым запуском.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                    InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")
+                ]]),
+            )
+            return
         await audit_from_message(
             db, message, "inbound_template.deploy", target_type="inbound_template",
-            target_id=str(tid), details=f"target_node={target_node}; port={port}",
+            target_id=str(tid), details=f"target_node={target_node}; port={port}; {evidence}",
         )
         await state.clear()
-        await render_input(message, 
+        await render_input(
+            message,
             "✅ Развёртывание завершено. Новый Inbound отключён.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(text="📡 Inbounds", callback_data="admin:infra:inbounds")

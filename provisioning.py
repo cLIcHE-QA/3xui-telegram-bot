@@ -5,11 +5,15 @@ from dataclasses import dataclass, field
 
 from config import Settings
 from db import Database, PlanRecord, ServerGroupRecord, UserRecord
-from xui import InboundOption, NodeInfo, XUIClient, XUIError
+from xui import InboundOption, NodeInfo, XUIClient, XUIError, XUIMutationError
 
 
 class ProvisioningError(RuntimeError):
     pass
+
+
+class ProvisioningUnknown(ProvisioningError):
+    """A mutation may have committed, but read-back could not prove the outcome."""
 
 
 @dataclass
@@ -217,6 +221,24 @@ class ProvisioningEngine:
             source = "legacy-all-managed"
         return await self.resolve_group(group_id, plan=plan, source=source)
 
+    async def _mutation_readback(self, email: str, exc: XUIMutationError, *, operation: str) -> dict[str, object]:
+        try:
+            return await self.xui.get_client(email)
+        except XUIError as read_exc:
+            raise ProvisioningUnknown(
+                f"{operation}: outcome=unknown; mutation_not_retried=true; "
+                f"readback=unavailable:{type(read_exc).__name__}"
+            ) from exc
+
+    @staticmethod
+    def _client_ids(obj: dict[str, object]) -> set[int]:
+        return {int(x) for x in (obj.get("inboundIds") or [])}
+
+    @staticmethod
+    def _client_payload(obj: dict[str, object]) -> dict[str, object]:
+        client = obj.get("client", obj)
+        return client if isinstance(client, dict) else {}
+
     async def sync_user(
         self,
         telegram_id: int,
@@ -235,25 +257,51 @@ class ProvisioningEngine:
             )
         else:
             policy = await self.policy_for_user(telegram_id)
+
         obj = await self.xui.get_client(rec.email)
-        client = obj.get("client", obj)
-        current = {int(x) for x in (obj.get("inboundIds") or [])}
+        current = self._client_ids(obj)
         desired = set(policy.desired_inbound_ids)
         actionable = set(policy.actionable_inbound_ids)
         missing = sorted(actionable - current)
+
         if missing:
-            await self.xui.attach_client(rec.email, missing)
+            try:
+                await self.xui.attach_client(rec.email, missing)
+            except XUIMutationError as exc:
+                if not exc.uncertain:
+                    raise
+                readback = await self._mutation_readback(rec.email, exc, operation="attach")
+                read_ids = self._client_ids(readback)
+                if not set(missing).issubset(read_ids):
+                    raise ProvisioningUnknown(
+                        "attach: outcome=unknown; mutation_not_retried=true; readback=mismatch"
+                    ) from exc
+                current = read_ids
+            else:
+                current.update(missing)
 
         detached: list[int] = []
         if strict:
             managed_pool = set(policy.managed_inbound_ids)
             detached = sorted((current & managed_pool) - desired)
             if detached:
-                # Never leave a client without any inbound attachment.
-                after = (current | set(missing)) - set(detached)
+                after = current - set(detached)
                 if not after:
                     raise ProvisioningError("Строгое согласование оставило бы клиента без Inbounds")
-                await self.xui.detach_client(rec.email, detached)
+                try:
+                    await self.xui.detach_client(rec.email, detached)
+                except XUIMutationError as exc:
+                    if not exc.uncertain:
+                        raise
+                    readback = await self._mutation_readback(rec.email, exc, operation="detach")
+                    read_ids = self._client_ids(readback)
+                    if set(detached) & read_ids:
+                        raise ProvisioningUnknown(
+                            "detach: outcome=unknown; mutation_not_retried=true; readback=mismatch"
+                        ) from exc
+                    current = read_ids
+                else:
+                    current.difference_update(detached)
 
         limits_applied = False
         if apply_plan_limits and policy.plan:
@@ -262,22 +310,42 @@ class ProvisioningEngine:
                 int((time.time() + max(0, plan.duration_days) * 86400) * 1000)
                 if plan.duration_days else 0
             )
-            await self.xui.update_client(
-                rec.email,
-                expiryTime=expiry,
-                totalGB=max(0, plan.traffic_gb) * 1024**3,
-                limitIp=max(0, plan.ip_limit),
-            )
+            expected_limits = {
+                "expiryTime": expiry,
+                "totalGB": max(0, plan.traffic_gb) * 1024**3,
+                "limitIp": max(0, plan.ip_limit),
+            }
+            try:
+                await self.xui.update_client(rec.email, **expected_limits)
+            except XUIMutationError as exc:
+                if not exc.uncertain:
+                    raise
+                readback = await self._mutation_readback(rec.email, exc, operation="plan_limits")
+                client = self._client_payload(readback)
+                if any(int(client.get(key) or 0) != int(value) for key, value in expected_limits.items()):
+                    raise ProvisioningUnknown(
+                        "plan_limits: outcome=unknown; mutation_not_retried=true; readback=mismatch"
+                    ) from exc
             await self.db.update_expiry(telegram_id, expiry)
             if plan.server_group_id:
                 await self.db.set_user_server_group(telegram_id, plan.server_group_id)
             limits_applied = True
 
         if self.settings.vless_flow:
-            await self.xui.bulk_adjust_clients([rec.email], flow=self.settings.vless_flow)
+            try:
+                await self.xui.bulk_adjust_clients([rec.email], flow=self.settings.vless_flow)
+            except XUIMutationError as exc:
+                if not exc.uncertain:
+                    raise
+                readback = await self._mutation_readback(rec.email, exc, operation="flow")
+                client = self._client_payload(readback)
+                if str(client.get("flow") or "") != self.settings.vless_flow:
+                    raise ProvisioningUnknown(
+                        "flow: outcome=unknown; mutation_not_retried=true; readback=mismatch"
+                    ) from exc
 
         updated = await self.xui.get_client(rec.email)
-        updated_ids = {int(x) for x in (updated.get("inboundIds") or [])}
+        updated_ids = self._client_ids(updated)
         return ProvisioningResult(
             policy=policy,
             current_ids=sorted(updated_ids),
@@ -291,6 +359,7 @@ class ProvisioningEngine:
     async def provision_many(self, telegram_ids: list[int], *, strict: bool = False) -> dict[str, object]:
         ok = 0
         failed: dict[int, str] = {}
+        unknown: dict[int, str] = {}
         attached = 0
         detached = 0
         for tg_id in telegram_ids:
@@ -299,11 +368,14 @@ class ProvisioningEngine:
                 ok += 1
                 attached += len(result.attached_ids)
                 detached += len(result.detached_ids)
+            except ProvisioningUnknown as exc:
+                unknown[int(tg_id)] = str(exc)
             except Exception as exc:  # one broken user must not stop a batch
                 failed[int(tg_id)] = f"{type(exc).__name__}: {exc}"
         return {
             "ok": ok,
             "failed": failed,
+            "unknown": unknown,
             "attached": attached,
             "detached": detached,
         }

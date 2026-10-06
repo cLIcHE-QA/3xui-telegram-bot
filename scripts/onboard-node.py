@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from xui import XUIClient, XUIError
+from xui import XUIClient, XUIError, XUIMutationError
 
 
 INPUT_KEYS = {
@@ -178,11 +178,32 @@ async def run(args: argparse.Namespace) -> int:
 
     try:
         node = await client.node_add(payload)
+    except XUIMutationError as exc:
+        if not exc.uncertain:
+            fail(f"node add failed: {type(exc).__name__}")
+        try:
+            readback_nodes = await client.nodes_list()
+        except XUIError as read_exc:
+            fail(
+                "node add outcome is unknown; mutation was not retried and read-back "
+                f"is unavailable ({type(read_exc).__name__}). Inspect Nodes before any retry."
+            )
+        matches = [
+            item
+            for item in readback_nodes
+            if not item.transitive
+            and item.name.strip().casefold() == name.casefold()
+            and endpoint_key(item) == desired_endpoint
+        ]
+        if len(matches) != 1:
+            fail(
+                "node add outcome is unknown; mutation was not retried and read-back "
+                "did not prove one exact node. Inspect Nodes before any retry."
+            )
+        node = matches[0]
+        print("Node add lost its response; exact read-back confirmed success.")
     except XUIError as exc:
-        fail(
-            "node add did not return confirmed success; mutation was not retried. "
-            f"Inspect Nodes before any retry ({type(exc).__name__})."
-        )
+        fail(f"node add failed: {type(exc).__name__}")
     print(f"Node registered. NODE_ID={node.id}")
     return 0
 

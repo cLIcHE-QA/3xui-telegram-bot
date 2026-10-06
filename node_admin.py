@@ -29,7 +29,7 @@ from node_ui import (
     nodes_menu as nodes_menu_view,
 )
 from system_backup import SystemBackupService
-from xui import NodeInfo, XUIClient, XUIError
+from xui import NodeInfo, XUIClient, XUIError, XUIMutationError
 
 
 settings = load_settings()
@@ -367,8 +367,117 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
         return
     payload = node_mutation_payload(data)
     await call.answer("Добавляю ноду…")
+    expected_name = str(payload.get("name") or "").strip().casefold()
+    expected_endpoint = (
+        str(payload.get("scheme") or "").lower(),
+        str(payload.get("address") or "").lower(),
+        int(payload.get("port") or 0),
+        str(payload.get("basePath") or "/"),
+    )
     try:
-        node = await xui.node_add(payload)
+        before_nodes = await xui.nodes_list()
+    except XUIError as exc:
+        await render_callback(
+            call,
+            "🔴 Нельзя безопасно добавить ноду: не удалось проверить существующие Nodes.\n\n"
+            f"3x-ui: {str(exc)[:300]}",
+            reply_markup=add_node_review_keyboard(
+                str(data.get("tlsVerifyMode") or "verify")
+            ),
+        )
+        return
+    name_matches = [
+        item for item in before_nodes
+        if not item.transitive and item.name.strip().casefold() == expected_name
+    ]
+    endpoint_matches = [
+        item for item in before_nodes
+        if not item.transitive
+        and (
+            str(item.scheme).lower(),
+            str(item.address).lower(),
+            int(item.port),
+            str(item.base_path or "/"),
+        ) == expected_endpoint
+    ]
+    if name_matches or endpoint_matches:
+        await render_callback(
+            call,
+            "🔴 Нода с таким именем или endpoint уже существует. "
+            "Добавление не запускалось; проверь список Nodes.",
+            reply_markup=add_node_review_keyboard(
+                str(data.get("tlsVerifyMode") or "verify")
+            ),
+        )
+        return
+    before_ids = {int(item.id) for item in before_nodes}
+    evidence = "direct"
+    try:
+        try:
+            node = await xui.node_add(payload)
+        except XUIMutationError as exc:
+            if not exc.uncertain:
+                raise
+            try:
+                nodes = await xui.nodes_list()
+            except XUIError as read_exc:
+                await audit_from_call(
+                    db,
+                    call,
+                    "node.add.unknown",
+                    target_type="node",
+                    target_id=str(data.get("name") or ""),
+                    details=(
+                        f"code={exc.code}; mutation_not_retried=true; "
+                        f"readback=unavailable:{type(read_exc).__name__}"
+                    ),
+                    success=False,
+                )
+                await render_callback(
+                    call,
+                    "🟡 Итог добавления ноды неизвестен. Mutation не повторялась, "
+                    "а read-back недоступен. Проверь список нод перед новым запуском.",
+                    reply_markup=add_node_review_keyboard(
+                        str(data.get("tlsVerifyMode") or "verify")
+                    ),
+                )
+                return
+            matches = [
+                item for item in nodes
+                if not item.transitive
+                and int(item.id) not in before_ids
+                and item.name.strip().casefold() == expected_name
+                and (
+                    str(item.scheme).lower(),
+                    str(item.address).lower(),
+                    int(item.port),
+                    str(item.base_path or "/"),
+                ) == expected_endpoint
+            ]
+            if len(matches) != 1:
+                await audit_from_call(
+                    db,
+                    call,
+                    "node.add.unknown",
+                    target_type="node",
+                    target_id=str(data.get("name") or ""),
+                    details=(
+                        f"code={exc.code}; mutation_not_retried=true; "
+                        f"readback={'ambiguous' if len(matches) > 1 else 'absent'}"
+                    ),
+                    success=False,
+                )
+                await render_callback(
+                    call,
+                    "🟡 Итог добавления ноды неизвестен. Mutation не повторялась. "
+                    "Проверь список нод и endpoint перед новым запуском.",
+                    reply_markup=add_node_review_keyboard(
+                        str(data.get("tlsVerifyMode") or "verify")
+                    ),
+                )
+                return
+            node = matches[0]
+            evidence = "readback=unique_match; uncertain_resolved=success"
         try:
             probed = await xui.node_probe(node.id)
             if probed is not None:
@@ -382,7 +491,7 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
             "node.add",
             target_type="node",
             target_id=str(data.get("name") or ""),
-            details=f"3x-ui error: {exc}",
+            details=f"error={type(exc).__name__}",
             success=False,
         )
         await render_callback(
@@ -401,7 +510,7 @@ async def admin_node_add_save(call: CallbackQuery, state: FSMContext):
         "node.add",
         target_type="node",
         target_id=str(node.id),
-        details=f"name={node.name}; status={node.status}",
+        details=f"name={node.name}; status={node.status}; {evidence}",
     )
     await state.clear()
     await render_callback(

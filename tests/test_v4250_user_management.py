@@ -65,7 +65,7 @@ class V4250UserManagementFoundationTests(unittest.TestCase):
     def test_bulk_audit_does_not_dump_user_emails(self):
         source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
         self.assertNotIn("emails={','.join(emails[:20])}", source)
-        self.assertIn('details=f"users={len(records)}; {details}"', source)
+        self.assertIn('details=f"users={len(records)}; {details}; unknown={len(unknown)}"', source)
 
 
 if __name__ == "__main__":

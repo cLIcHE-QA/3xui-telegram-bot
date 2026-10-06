@@ -87,7 +87,7 @@ class V4250UserSafetySubscriptionTests(unittest.TestCase):
             '@advanced_users_router.callback_query(F.data.startswith("adminenable:"))',
             1,
         )[0]
-        self.assertEqual(disable_run.count("update_client("), 1)
+        self.assertEqual(disable_run.count("_update_client_with_readback("), 1)
 
         enable_ask = source.split(
             '@advanced_users_router.callback_query(F.data.startswith("adminenable:"))',
@@ -106,7 +106,7 @@ class V4250UserSafetySubscriptionTests(unittest.TestCase):
             '@advanced_users_router.callback_query(F.data.startswith("admindelask:"))',
             1,
         )[0]
-        self.assertEqual(enable_run.count("update_client("), 1)
+        self.assertEqual(enable_run.count("_update_client_with_readback("), 1)
 
 
 if __name__ == "__main__":

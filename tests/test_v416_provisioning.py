@@ -5,8 +5,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-from provisioning import ProvisioningEngine, ProvisioningError
-from xui import InboundOption, XUIError
+from provisioning import ProvisioningEngine, ProvisioningError, ProvisioningUnknown
+from xui import InboundOption, XUIError, XUIMutationError
 
 
 class FakeProvisioningDB:
@@ -74,6 +74,10 @@ class FakeProvisioningXUI:
         self.update_calls = []
         self.flow_calls = []
         self.fail_for = set()
+        self.client_fields = {email: {} for email in self.client_ids}
+        self.uncertain_attach_after_commit = set()
+        self.uncertain_attach_before_commit = set()
+        self.uncertain_update_after_commit = set()
 
     async def inbound_options(self):
         return list(self._inbounds)
@@ -84,11 +88,18 @@ class FakeProvisioningXUI:
     async def get_client(self, email):
         if email in self.fail_for:
             raise XUIError("synthetic client failure")
-        return {"client": {"email": email}, "inboundIds": sorted(self.client_ids.get(email, set()))}
+        return {
+            "client": {"email": email, **self.client_fields.get(email, {})},
+            "inboundIds": sorted(self.client_ids.get(email, set())),
+        }
 
     async def attach_client(self, email, inbound_ids):
         self.attach_calls.append((email, list(inbound_ids)))
+        if email in self.uncertain_attach_before_commit:
+            raise XUIMutationError("lost response", code="lost_response", uncertain=True)
         self.client_ids.setdefault(email, set()).update(map(int, inbound_ids))
+        if email in self.uncertain_attach_after_commit:
+            raise XUIMutationError("lost response", code="lost_response", uncertain=True)
 
     async def detach_client(self, email, inbound_ids):
         self.detach_calls.append((email, list(inbound_ids)))
@@ -96,6 +107,9 @@ class FakeProvisioningXUI:
 
     async def update_client(self, email, **fields):
         self.update_calls.append((email, dict(fields)))
+        self.client_fields.setdefault(email, {}).update(fields)
+        if email in self.uncertain_update_after_commit:
+            raise XUIMutationError("lost response", code="lost_response", uncertain=True)
 
     async def bulk_adjust_clients(self, emails, **fields):
         self.flow_calls.append((list(emails), dict(fields)))
@@ -271,6 +285,83 @@ class ProvisioningRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["attached"], 2)
         self.assertEqual(xui.client_ids["one@example.test"], {10})
         self.assertEqual(xui.client_ids["three@example.test"], {10})
+
+    async def test_uncertain_attach_after_commit_is_resolved_by_readback_without_replay(self):
+        db = FakeProvisioningDB()
+        xui = FakeProvisioningXUI(
+            [self.inbound(10)],
+            client_ids={"one@example.test": set()},
+        )
+        xui.uncertain_attach_after_commit.add("one@example.test")
+        engine = ProvisioningEngine(db, xui, settings())
+
+        result = await engine.sync_user(1)
+
+        self.assertEqual(result.attached_ids, [10])
+        self.assertEqual(xui.client_ids["one@example.test"], {10})
+        self.assertEqual(xui.attach_calls, [("one@example.test", [10])])
+
+    async def test_uncertain_attach_without_commit_stays_unknown_and_is_not_replayed(self):
+        db = FakeProvisioningDB()
+        xui = FakeProvisioningXUI(
+            [self.inbound(10)],
+            client_ids={"one@example.test": set()},
+        )
+        xui.uncertain_attach_before_commit.add("one@example.test")
+        engine = ProvisioningEngine(db, xui, settings())
+
+        with self.assertRaisesRegex(ProvisioningUnknown, "mutation_not_retried=true"):
+            await engine.sync_user(1)
+
+        self.assertEqual(xui.client_ids["one@example.test"], set())
+        self.assertEqual(xui.attach_calls, [("one@example.test", [10])])
+
+    async def test_provision_many_separates_unknown_from_failed(self):
+        db = FakeProvisioningDB()
+        xui = FakeProvisioningXUI(
+            [self.inbound(10)],
+            client_ids={
+                "one@example.test": set(),
+                "two@example.test": set(),
+                "three@example.test": set(),
+            },
+        )
+        xui.uncertain_attach_before_commit.add("two@example.test")
+        xui.fail_for.add("three@example.test")
+        engine = ProvisioningEngine(db, xui, settings())
+
+        result = await engine.provision_many([1, 2, 3])
+
+        self.assertEqual(result["ok"], 1)
+        self.assertEqual(set(result["unknown"]), {2})
+        self.assertEqual(set(result["failed"]), {3})
+        self.assertIn("mutation_not_retried=true", result["unknown"][2])
+
+    async def test_uncertain_plan_limits_after_commit_update_local_state_once(self):
+        db = FakeProvisioningDB()
+        plan = SimpleNamespace(
+            id=5,
+            name="Premium",
+            duration_days=30,
+            traffic_gb=100,
+            ip_limit=2,
+            server_group_id=None,
+            active=1,
+        )
+        db.plans[5] = plan
+        db.profiles[1] = SimpleNamespace(telegram_id=1, plan_id=5, server_group_id=None)
+        xui = FakeProvisioningXUI(
+            [self.inbound(10)],
+            client_ids={"one@example.test": {10}},
+        )
+        xui.uncertain_update_after_commit.add("one@example.test")
+        engine = ProvisioningEngine(db, xui, settings())
+
+        result = await engine.sync_user(1, apply_plan_limits=True)
+
+        self.assertTrue(result.limits_applied)
+        self.assertEqual(len(xui.update_calls), 1)
+        self.assertEqual(len(db.expiry_updates), 1)
 
     async def test_managed_filter_respects_protocol_port_id_and_api_tag_boundaries(self):
         xui = FakeProvisioningXUI(
