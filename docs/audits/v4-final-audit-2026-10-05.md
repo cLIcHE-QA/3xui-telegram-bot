@@ -66,8 +66,8 @@
 | A-008 | **Medium / security** | #241 | Supply chain | Open | Python deps, Docker base и third-party Actions не закреплены в воспроизводимый immutable dependency graph. |
 | A-009 | **High** | #242 | Legal / Public release | Open | Project `LICENSE`/terms file отсутствует; права публичного распространения не определены до решения owner/legal. |
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
-| A-011 | **Medium / security** | #244 | Container | Open | Bot container не имеет явного non-root/no-new-privileges/capability hardening, требуемого audit least-privilege gate. |
-| A-012 | **Medium / reliability** | #245 | Public compat proxy | Open | Proxy не имеет явного воспроизводимого concurrency/rate/upstream-body resource bound. |
+| A-011 | **Medium / security** | #244 | Container | Acceptance pending | Runtime hardening merged: dedicated UID/GID `10001:10001`, root-owned app tree, read-only rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp`, writable `/app/data` only, inherited host ACL rollout. CI clean-container smoke PASS; production runtime smoke ещё не зафиксирован. |
+| A-012 | **Medium / reliability** | #245 | Public compat proxy | Acceptance pending | Resource bounds merged: global upstream concurrency 32, slot wait 1s→503, upstream body ≤8 MiB chunked; canonical nginx per-client `limit_conn=4`, `5r/s`, burst 10. Regression CI PASS; production/load smoke ещё не зафиксирован. |
 | A-013 | **Medium / public readiness** | #246 | Security process | Open | SECURITY.md не содержит конкретного private vulnerability-reporting path и supported-version policy. |
 
 ### Количество findings по severity
@@ -162,15 +162,39 @@ History-aware scan выполнен на exact SHA `c8a15362d82bfae812dc93758568
 
 ### A-011 — least privilege для bot container
 
-Evidence: отдельный image `USER`, `cap_drop`, `no-new-privileges` или read-only root-filesystem policy сейчас не заданы. Положительная boundary: Docker socket не монтируется, а backup/log source mounts имеют read-only режим там, где это ожидается.
+Implementation evidence:
 
-Closure: реализовать совместимый с backup/recovery/runtime поведением набор least-privilege controls и доказать его работу на clean host.
+- PR #268 merged as `a9ab0c02b019bbaa086d72bd02749543bca9e796`;
+- follow-up rollout fix PR #269 merged as `d3f0611060292e0609a10128e1351bcfdbabe18f`;
+- runtime UID/GID: `10001:10001`;
+- root filesystem: read-only;
+- effective Linux capabilities: dropped via `cap_drop: ALL`;
+- `no-new-privileges`: enabled;
+- persistent writable tree: `/app/data`;
+- temporary writable tree: bounded tmpfs `/tmp`;
+- backup/config/log host mounts remain read-only inside container;
+- host permission helper adds current + inherited default ACL so new SQLite WAL/SHM and rotated nginx logs remain readable by the non-root runtime;
+- root-owned release deployment runs the permission helper before container recreate.
+
+CI evidence: PR #268 `Python checks` run `37474609300` PASS; PR #269 `Python checks` run `37483324260` PASS. Clean-container smoke checks UID/GID, zero `CapEff`, `NoNewPrivs=1`, read-only `/app`, writable `/app/data` and `/tmp`, plus read access to canonical backup/log mounts.
+
+Closure remaining: targeted production/runtime acceptance on the actual Master host — health, SQLite, backup/recovery preflight, representative client/admin flows and no restart loop. Evidence template: `docs/audits/v4-a011-a012-production-acceptance-2026-10-06.md`.
 
 ### A-012 — resource bounds compat proxy
 
-Evidence: на каждый request proxy создаёт client session, полностью читает upstream response и не имеет local global concurrency/rate/response-size contract.
+Implementation evidence:
 
-Closure: явная bounded concurrency и ограничение upstream response size плюс воспроизводимая front-door rate policy либо эквивалент; обязательны load/resource tests.
+- PR #270 merged as `8485346f0fbe99732a7e4b3d69f9ca28f96ac1af`;
+- global upstream concurrency: **32**;
+- wait for an upstream slot: **1 second**, then fail-closed HTTP 503 + `Retry-After: 1`;
+- maximum upstream response body: **8 MiB**;
+- response body is read in bounded chunks rather than unbounded `resp.read()`;
+- canonical public nginx policy: per-client `limit_conn 4`, `limit_req 5r/s`, burst 10, `proxy_read_timeout 25s`;
+- bearer-like `sub_id` URI remains excluded from access logging.
+
+CI evidence: PR #270 `Python checks` run `37488293491` PASS. Regression coverage includes oversized `Content-Length`, oversized body, saturated application semaphore and canonical nginx rate/connection contract.
+
+Closure remaining: targeted production/load acceptance on the deployed release — normal subscription refresh, burst/parallel requests, bounded 503 behavior under saturation, no process memory/restart anomaly and final health/status. Evidence template: `docs/audits/v4-a011-a012-production-acceptance-2026-10-06.md`.
 
 ### A-013 — private security reporting
 
@@ -224,6 +248,6 @@ Closure: настроить/документировать private reporting pat
 
 - **2026-10-06 · A-010 / #243:** full Git-history scan и retained GitHub Actions storage audit завершены. Gitleaks v8.30.1 + metadata scanner проверили 343 reachable refs; отдельный Actions audit проверил 1485 retained log archives и 1 retained artifact без coverage gaps. Все candidates получили safe disposition, high-confidence credential findings отсутствуют, unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`.
 
-- **2026-10-06 · A-011 / #244:** implementation branch вводит dedicated runtime UID/GID `10001:10001`, read-only container rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp` tmpfs и host permission preflight для единственного persistent writable tree `/app/data` при сохранении read-only backup/log sources. CI clean-container smoke проверяет effective UID/GID, zero effective capabilities, `NoNewPrivs=1`, read-only `/app`, writable `/app/data`/`/tmp` и чтение всех canonical backup/log mounts. Finding остаётся **Open / acceptance pending** до зелёного PR и production/clean-host runtime smoke.
+- **2026-10-06 · A-011 / #244:** implementation merged в PR #268 (`a9ab0c02…`) и rollout fix PR #269 (`d3f06110…`). Dedicated UID/GID `10001:10001`, read-only rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp`, writable `/app/data` only, read-only source mounts и inherited host ACL закреплены CI clean-container smoke. **Статус: acceptance pending** — остался production runtime smoke.
 
-- **2026-10-06 · A-012 / #245:** implementation branch добавляет hard upstream bounds: максимум 32 одновременных upstream fetch, не более 1 секунды ожидания slot, максимум 8 MiB одного upstream response и bounded chunked read. Canonical `/compat/` reverse-proxy policy фиксирует per-client `limit_conn=4` и `limit_req=5r/s` с burst 10, без access log bearer-like URI. Regression tests покрывают oversized response, saturated upstream slots и nginx rate/connection contract. Finding остаётся **Open** до зелёного PR и production/load acceptance.
+- **2026-10-06 · A-012 / #245:** implementation merged в PR #270 (`8485346f…`): hard bounds 32 concurrent upstream fetch, 1s slot wait→503, ≤8 MiB response с chunked read; canonical `/compat/` nginx policy — per-client `limit_conn=4`, `5r/s`, burst 10, без access log bearer-like URI. Regression CI PASS. **Статус: acceptance pending** — остался production/load smoke.
