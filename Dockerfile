@@ -12,7 +12,7 @@ RUN set -eux; \
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY --chown=10001:10001 . .
+COPY . .
 
 USER 10001:10001
 ENTRYPOINT ["python", "restore_bootstrap.py"]
