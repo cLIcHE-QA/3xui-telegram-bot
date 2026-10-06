@@ -195,6 +195,24 @@ version_from_tag() {
         | head -n 1
 }
 
+prepare_container_permissions() {
+    local helper="$ROOT/scripts/prepare-bot-container-permissions.sh"
+
+    # Old releases do not have the least-privilege helper.
+    [[ -f "$helper" ]] || return 0
+
+    if [[ "${EUID}" -ne 0 ]]; then
+        die "target release requires least-privilege host permissions; run 'sudo bash scripts/prepare-bot-container-permissions.sh' before deployment or use the root-owned Deploy Agent"
+    fi
+
+    need_cmd setfacl
+    printf 'Preparing least-privilege bot filesystem permissions...\n'
+    (
+        cd "$ROOT"
+        ENV_FILE="$ROOT/.env" DATA_DIR="$ROOT/data" bash "$helper"
+    )
+}
+
 backup_current_state() {
     local cid="$1"
     local release="$2"
@@ -331,6 +349,7 @@ main() {
     [[ "$(git rev-parse HEAD)" == "$tag_sha" ]] || die "checkout did not land on release commit"
 
     compose config --quiet
+    prepare_container_permissions
 
     expected_subnet="$(read_env_value BOT_DOCKER_SUBNET)"
     expected_subnet="${expected_subnet:-$DEFAULT_SUBNET}"
