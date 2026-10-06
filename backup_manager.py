@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import sqlite3
 import tarfile
@@ -13,6 +14,31 @@ from version import APP_VERSION
 
 
 BACKUP_MANIFEST_SCHEMA = 2
+
+
+def _ensure_private_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    os.chmod(path, 0o700)
+
+
+def _prepare_private_file(path: Path) -> None:
+    _ensure_private_dir(path.parent)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT, 0o600)
+    os.close(fd)
+    os.chmod(path, 0o600)
+
+
+def _tighten_private_tree(root: Path) -> None:
+    for path in root.rglob("*"):
+        if path.is_symlink():
+            continue
+        try:
+            if path.is_dir():
+                os.chmod(path, 0o700)
+            elif path.is_file():
+                os.chmod(path, 0o600)
+        except OSError:
+            continue
 
 
 def _sha256_path(path: Path) -> str:
@@ -61,15 +87,17 @@ class BackupManager:
         self.sources_root = Path("/app/backup_sources")
 
     def _ensure_dir(self) -> None:
-        self.backup_dir.mkdir(parents=True, exist_ok=True)
+        _ensure_private_dir(self.backup_dir)
+        _tighten_private_tree(self.backup_dir)
 
     @staticmethod
     def _sqlite_backup(source: Path, destination: Path) -> None:
-        destination.parent.mkdir(parents=True, exist_ok=True)
+        _prepare_private_file(destination)
         src_uri = f"file:{source.resolve()}?mode=ro"
         with sqlite3.connect(src_uri, uri=True, timeout=15) as src:
             with sqlite3.connect(destination) as dst:
                 src.backup(dst)
+        os.chmod(destination, 0o600)
 
     @staticmethod
     def _copy_file(source: Path, destination: Path) -> None:
@@ -100,6 +128,7 @@ class BackupManager:
         self._ensure_dir()
         stamp = self._timestamp()
         archive_path = self.backup_dir / f"3xui-bot-backup-{stamp}.tar.gz"
+        _prepare_private_file(archive_path)
         included: list[str] = []
         missing: list[str] = []
 
@@ -202,6 +231,7 @@ class BackupManager:
             with tarfile.open(archive_path, "w:gz") as tar:
                 for item in sorted(stage.iterdir(), key=lambda p: p.name):
                     tar.add(item, arcname=item.name, recursive=True)
+            os.chmod(archive_path, 0o600)
 
         self.prune()
         stat = archive_path.stat()
