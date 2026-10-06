@@ -9,6 +9,13 @@
 
 
 
+## v4.26.7 — Final v4 audit hardening: container, proxy и supply chain
+- A-011/#244: bot container переведён на dedicated UID/GID `10001:10001`, read-only root filesystem, `no-new-privileges`, `cap_drop: ALL`, bounded tmpfs `/tmp` и единственный persistent writable tree `/app/data`; permission helper/ACL сохраняют read-only доступ к backup/config/log mounts и устойчивость к новым WAL/SHM/rotated log files.
+- A-012/#245: Subscription Compatibility Proxy получил hard resource bounds — максимум 32 concurrent upstream fetch, ожидание slot не более 1 секунды с fail-closed HTTP 503 + `Retry-After: 1`, upstream response не более 8 MiB с chunk-bounded read; canonical Nginx policy ограничивает одного клиента `limit_conn=4`, `5r/s`, burst 10.
+- Release/repository hardening после v4.26.6 включает hashed `requirements.lock`, digest-pinned Python base image, full-SHA GitHub Actions, pinned Trivy supply-chain audit/SBOM, history/retained-Actions secret audits, Apache-2.0 project license и private vulnerability reporting contract; A-007 зафиксирован отдельно как owner-accepted residual risk.
+- Для production rollout требуется актуальный `docs/ADMIN_SETUP.md`: пакет `acl`, `scripts/prepare-bot-container-permissions.sh`, затем deployment только опубликованного tag и targeted smoke A-011/A-012. Findings не считаются закрытыми до production acceptance.
+- SQLite schema остаётся v5, pinned 3x-ui OpenAPI contract остаётся v3.8.5; новых migrations и новых 3x-ui routes нет.
+
 ## v4.26.6 — Final v4 audit remediation: admin boundary, redirects и file modes
 - A-004/#237: Admin Control Plane теперь fail-closed работает только в private Telegram chat; общий middleware блокирует /admin, admin callbacks и admin FSM input вне личного чата до rendering/business logic, при этом client-facing router остаётся отдельным контуром.
 - A-005/#238: subscription upstream redirects обрабатываются вручную; automatic redirects отключены, HWID/device и auth-like headers удаляются при первом cross-origin hop и не восстанавливаются дальше по chain, HTTPS downgrade и malformed redirect target отклоняются, число redirect hops ограничено.
