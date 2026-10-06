@@ -160,13 +160,30 @@ issue обновляется фактическими результатами �
 Для новых чатов/сессий сначала читаются:
 
 1. `docs/GIT_WORKFLOW.md` — branches, commits, PR, merge, issues и правила ведения roadmap;
-2. `docs/RELEASES.md` — tags и GitHub Releases;
-3. `docs/ROADMAP.md` — текущие продуктовые этапы, acceptance scope и фактические статусы выполнения;
-4. `CHANGELOG.md` — пользовательские/операционные изменения опубликованных и подготавливаемых релизов.
+2. `docs/LIVING_DOCS.md` — current-state documentation contract и правила drift-check;
+3. `docs/RELEASES.md` — tags и GitHub Releases;
+4. `docs/ROADMAP.md` — текущие продуктовые этапы, acceptance scope и фактические статусы выполнения;
+5. `CHANGELOG.md` — пользовательские/операционные изменения опубликованных и подготавливаемых релизов.
 
 Для задач, меняющих установку, инфраструктуру или operational-настройку Admin Control Plane, дополнительно читается `docs/ADMIN_SETUP.md`.
 
 Новые локальные соглашения не вводятся молча: если нужен другой стиль, сначала меняется этот контракт отдельным PR.
+
+## Living Docs Contract
+
+Часто обновляемая current-state документация управляется контрактом:
+
+- human-readable policy: `docs/LIVING_DOCS.md`;
+- machine-readable triggers/state expectations: `docs/live-docs.json`;
+- PR checker: `scripts/check-living-docs.py`;
+- semantic invariants: `tests/test_living_docs.py`;
+- GitHub Settings drift: weekly/manual workflow **Repository state audit**.
+
+Перед PR оцени documentation impact по contract. Для `require_all` trigger все перечисленные docs должны обновляться в том же PR. Для `review` trigger допустим либо реальный doc update, либо точный waiver из `docs/live-docs.json` после фактического review.
+
+Waiver не используется для обхода известного drift. Если setup/release/schema/current-state contract изменился, living document обновляется в том же change.
+
+Historical `docs/audits/**` не переписываются как current manual: старые факты сохраняются, а новое состояние добавляется closure/revalidation evidence.
 
 ## Обязательное сопровождение Admin Setup
 

@@ -30,6 +30,10 @@
    - `docs/GIT_WORKFLOW.md`;
    - при необходимости `docs/RELEASES.md`.
 
+6. Перед изменением current-state contract/setup/version/schema/CI оцени documentation impact по:
+   - `docs/LIVING_DOCS.md`;
+   - `docs/live-docs.json`.
+
 Не восстанавливай статус задачи по старой переписке, если его можно проверить по коду, Git history, roadmap, changelog, tests или опубликованным releases.
 
 Если информация в чате противоречит фактическому состоянию репозитория, сначала укажи на расхождение. Не подгоняй код или документацию под устаревший контекст молча.
@@ -42,6 +46,7 @@
 - `docs/ROADMAP.md` — product stages, acceptance scope и фактические статусы;
 - `CHANGELOG.md` — пользовательские и операционные изменения по версиям;
 - `docs/GIT_WORKFLOW.md` — branches, commits, PR, merge, issues и roadmap workflow;
+- `docs/LIVING_DOCS.md` — living/historical docs boundary, diff triggers, waivers и external repository-state drift contract;
 - `docs/RELEASES.md` — tags, GitHub Releases и release contract;
 - `SECURITY.md` — общие security boundaries;
 - `docs/UI_STYLE.md` — Telegram UI, терминология и navigation contract;
@@ -207,6 +212,20 @@ Security-sensitive change требует reasoning/review фактическог
 
 Обновляй существующий source of truth.
 
+### Living Docs
+
+Перед PR проверь `docs/LIVING_DOCS.md` и `docs/live-docs.json`.
+
+PR diff автоматически проверяет `scripts/check-living-docs.py` внутри required `Python checks`.
+
+Если изменён trigger из machine-readable contract:
+
+- `require_all` требует обновить все перечисленные living docs в том же PR;
+- `review` требует doc update либо точный PR-body waiver после фактического review;
+- не добавляй waiver автоматически только ради прохождения CI;
+- новые постоянные current-state invariants добавляй в `tests/test_living_docs.py`;
+- historical audit evidence сохраняй как историю, добавляя closure/revalidation вместо стирания старого состояния.
+
 ### CHANGELOG
 
 Обновляй `CHANGELOG.md`, если change заметен пользователю или оператору либо должен войти в release notes.
@@ -266,6 +285,7 @@ Security-sensitive change требует reasoning/review фактическог
 - security/privilege boundaries сохранены;
 - добавлены или обновлены tests при изменении behavior;
 - стандартные repository checks пройдены либо явно перечислены непроведённые проверки;
+- documentation impact проверен по `docs/LIVING_DOCS.md` / `docs/live-docs.json`;
 - документация обновлена там, где изменился соответствующий contract;
 - `CHANGELOG.md` обновлён для release-visible change;
 - `docs/ROADMAP.md` изменён только если изменилось его фактическое состояние;
