@@ -108,6 +108,22 @@ fix: проверка отсутствующего release tag (#20)
 
 Force-push/rebase общей PR-ветки без необходимости не используется.
 
+### GitHub-side enforcement
+
+После public transition текущий `main` дополнительно защищён repository ruleset **Protect main release path** (ID `24575428`):
+
+- Pull Request обязателен;
+- разрешён только squash merge;
+- required checks: `test` и `title`;
+- checks strict/up-to-date policy включена;
+- deletion и non-fast-forward запрещены;
+- linear history обязательна;
+- bypass actors отсутствуют.
+
+Это GitHub-side enforcement канонического workflow, а не замена правилам этого документа.
+
+Для `v*` release tags отдельный tag ruleset пока не включён. До post-public hardening опубликованные tags считаются immutable по operational contract: их не перемещают/не удаляют, а новые tag/Release создаёт только штатный release workflow.
+
 ### Issues
 
 Issues используются для работы, которая требует отдельного tracking/discussion. Мелкая очевидная правка может идти сразу через PR.

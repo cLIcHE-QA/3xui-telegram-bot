@@ -13,7 +13,7 @@
 - Исправлен production blocker `v4.26.7`: после перехода container runtime на UID/GID `10001:10001` restrictive host checkout modes могли сохраниться через Docker `COPY . .`, из-за чего Python не мог прочитать `/app/restore_bootstrap.py` и container уходил в restart loop.
 - Application tree внутри image теперь после copy принудительно остаётся root-owned, но получает `u=rwX,go=rX`; runtime user может читать/обходить source tree, но не получает write-доступ, а read-only rootfs, `cap_drop: ALL` и `no-new-privileges` сохраняются.
 - CI least-privilege smoke теперь перед build выставляет ключевым source files mode `0600` и проверяет их читаемость из container под UID/GID `10001:10001`; fix также прошёл Supply-chain audit.
-- Production acceptance A-011/#244 и A-012/#245 остаётся обязательным после deployment `v4.26.8`; A-012 load-smoke не запускается до успешного A-011 startup/runtime gate.
+- Последующий production acceptance A-011/#244 и A-012/#245 завершён PASS на `v4.26.8`: non-root runtime/backup/DR/client smoke, nginx/resource bounds, controlled load и финальный Health/DB/3x-ui status подтверждены; оба findings закрыты.
 - SQLite schema остаётся v5, pinned 3x-ui OpenAPI contract остаётся v3.8.5; новых migrations и 3x-ui routes нет.
 
 ## v4.26.7 — Final v4 audit hardening: container, proxy и supply chain

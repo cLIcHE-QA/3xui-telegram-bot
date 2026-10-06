@@ -2791,13 +2791,15 @@ Implementation evidence перед release:
 
 ##### Финальный v4 Repository / Public-Release Audit
 
-**Статус: 🟡 Выполняется с 2026-10-05. Baseline audit зафиксирован для freeze commit `fe34f9dc97f0a6441dde9fcfe865e34ad8696c32`; final release/publication gate НЕ пройден.**
+**Статус: ✅ PASS. Audit начат 2026-10-05 на freeze commit `fe34f9dc97f0a6441dde9fcfe865e34ad8696c32` и завершён 2026-10-07 после remediation, clean-room acceptance, финальных pre-public scans и public/PVR acceptance.**
 
-Текущий versioned report: [`docs/audits/v4-final-audit-2026-10-05.md`](audits/v4-final-audit-2026-10-05.md). На baseline открыты findings #234–#246: Critical — 0 identified so far, High — 6 open, Medium — 7 open. Отдельно остаются обязательными full-history secret/private-data scan, reproducible dependency/license scan, container/SBOM scan и clean-room acceptance; current-tree/source review не подменяет эти проверки.
+Канонический versioned report: [`docs/audits/v4-final-audit-2026-10-05.md`](audits/v4-final-audit-2026-10-05.md). Findings #234–#246 закрыты либо получили documented disposition; unresolved Critical/High/security/data-integrity Medium blockers отсутствуют. Final pre-public history/current-tree и retained-Actions scans завершены PASS на frozen SHA `c6066c1ab77e019970a70ebfa7242a66a41ba8a3`, после чего repository переведён в public и Private Vulnerability Reporting проверен с внешней стороны.
 
-Текущий remediation disposition обновляется в versioned audit report. A-007/#240 закрыт как **Accepted risk by owner decision**: GitHub-side protection для текущего private repository не включена, residual risk сохранён и документирован, а finding снят с release blockers как explicit exception. Closure artifact: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. Остальные findings и cross-cutting gates продолжают следовать обычным audit closure criteria.
+A-007/#240 на момент private baseline был принят как owner residual risk. После public transition `main` защищён active GitHub ruleset **Protect main release path** (PR-only, squash-only, strict checks `test`/`title`, no delete/non-fast-forward, no bypass). Остаточный post-public hardening сужен до отдельной защиты `v*` release tags.
 
-Цель — не очередной поверхностный source review, а воспроизводимый release-readiness audit всего репозитория и deployment surface. После начала этого gate новый feature scope в v4.x запрещён; findings закрываются отдельными fix PR/patch releases, после чего затронутые части аудита повторяются.
+Историческая freeze-запись сохраняется для audit trail: **Активный gate:** провести полный финальный repository/public-release audit — этот gate теперь закрыт PASS.
+
+Цель этого gate была не в поверхностном source review, а в воспроизводимом release-readiness audit всего repository/deployment surface. После его закрытия новый product scope переносится в v5.x; v4.x остаётся только для действительно необходимых security/reliability/data-integrity hotfixes.
 
 Audit должен охватывать как минимум:
 
