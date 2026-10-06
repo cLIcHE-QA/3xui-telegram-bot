@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "living_documents": [
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "docs/LIVING_DOCS.md",
+    "docs/ROADMAP.md",
+    "docs/RELEASES.md",
+    "docs/GIT_WORKFLOW.md",
+    "docs/ADMIN_SETUP.md",
+    "docs/BOT_SELF_UPDATE.md",
+    "docs/VPS_RECOVERY.md",
+    "docs/OFFSITE_BACKUP.md",
+    "docs/SQLITE_MIGRATIONS.md",
+    "docs/3XUI_OPENAPI_CONTRACT.md",
+    "docs/UI_STYLE.md"
+  ],
+  "rules": [
+    {
+      "id": "release-version",
+      "mode": "require_all",
+      "triggers": ["version.py"],
+      "documents": [
+        "README.md",
+        "CHANGELOG.md",
+        "docs/ADMIN_SETUP.md",
+        "docs/SQLITE_MIGRATIONS.md"
+      ]
+    },
+    {
+      "id": "operator-setup",
+      "mode": "review",
+      "triggers": [
+        ".env.example",
+        "Dockerfile",
+        "docker-compose.yml",
+        "deploy/**",
+        "scripts/install-*.sh",
+        "scripts/setup-*.sh",
+        "scripts/onboard-*.py",
+        "scripts/onboard-*.sh",
+        "scripts/prepare-*.sh",
+        "scripts/bootstrap-bot-from-backup.sh",
+        "scripts/fetch-offsite-backup.py"
+      ],
+      "documents": ["docs/ADMIN_SETUP.md"],
+      "waiver": "Admin Setup: изменений не требуется"
+    },
+    {
+      "id": "release-process",
+      "mode": "review",
+      "triggers": [
+        ".github/workflows/release.yml",
+        ".github/workflows/pr-conventions.yml",
+        "scripts/deploy-release.sh",
+        "scripts/render-release-notes.py"
+      ],
+      "documents": ["docs/RELEASES.md", "docs/GIT_WORKFLOW.md"],
+      "waiver": "Living Docs: release-process — изменений не требуется"
+    },
+    {
+      "id": "ci-governance",
+      "mode": "review",
+      "triggers": [
+        ".github/workflows/tests.yml",
+        ".github/workflows/repository-state-audit.yml",
+        "scripts/check-living-docs.py",
+        "scripts/check-repository-state.py",
+        "docs/live-docs.json"
+      ],
+      "documents": ["docs/LIVING_DOCS.md", "docs/GIT_WORKFLOW.md"],
+      "waiver": "Living Docs: ci-governance — изменений не требуется"
+    },
+    {
+      "id": "database-schema",
+      "mode": "review",
+      "triggers": ["db_migrations.py", "database.py"],
+      "documents": ["docs/SQLITE_MIGRATIONS.md"],
+      "waiver": "Living Docs: database-schema — изменений не требуется"
+    },
+    {
+      "id": "security-reporting",
+      "mode": "review",
+      "triggers": [
+        "SECURITY.md",
+        ".github/VULNERABILITY_REPORT.yml",
+        ".github/ISSUE_TEMPLATE/**"
+      ],
+      "documents": ["SECURITY.md"],
+      "waiver": "Living Docs: security-reporting — изменений не требуется"
+    }
+  ],
+  "repository_state": {
+    "visibility": "public",
+    "branch_ruleset": {
+      "name": "Protect main release path",
+      "target": "branch",
+      "include": ["~DEFAULT_BRANCH"],
+      "enforcement": "active",
+      "required_rules": [
+        "deletion",
+        "non_fast_forward",
+        "pull_request",
+        "required_status_checks",
+        "required_linear_history"
+      ],
+      "allowed_merge_methods": ["squash"],
+      "required_status_checks": ["test", "title"],
+      "strict_status_checks": true,
+      "no_bypass": true
+    },
+    "tag_ruleset": {
+      "name": "Protect release tags",
+      "target": "tag",
+      "include": ["refs/tags/v*"],
+      "enforcement": "active",
+      "required_rules": ["deletion", "non_fast_forward", "update"],
+      "forbidden_rules": ["creation"],
+      "no_bypass": true
+    }
+  }
+}
