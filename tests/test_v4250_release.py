@@ -268,8 +268,8 @@ class V4265ReleaseTests(unittest.TestCase):
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("Encrypted off-site backup/restore drill завершён 2026-10-05", readme)
-        self.assertIn("**Final v4 feature freeze объявлен 2026-10-05**", readme)
-        self.assertIn("активный следующий gate — полный repository/public-release audit", readme)
+        self.assertIn("**Final v4 feature freeze действует с 2026-10-05**", readme)
+        self.assertIn("до закрытия repository/public-release audit", readme)
         self.assertNotIn("Единственный оставшийся обязательный pre-freeze gate", readme)
 
     def test_data_plane_hardening_219_is_closed(self):
