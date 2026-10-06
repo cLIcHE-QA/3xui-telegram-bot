@@ -9,6 +9,14 @@
 
 
 
+## v4.26.5 — Final v4 audit remediation: backup, logs и mutation certainty
+- A-001/#234: secret-bearing Full Backup/DB/node/DR artifacts больше не передаются через Telegram; recovery transport остаётся только host-side/off-site, без ослабления encrypted off-site/DR flow.
+- A-002/#235: встроенный aiohttp access log для secret-bearing `/compat/{sub_id}` отключён, а canonical Nginx `/compat/` route не пишет access log; regression coverage проверяет raw-log boundary.
+- A-003/#236: все инвентаризированные state-changing 3x-ui calls используют one-shot/no-redirect mutation boundary с explicit uncertain outcome и без автоматического replay.
+- Для destructive и deterministic field mutations, provisioning, bulk, user/node/inbound/create paths добавлен fail-closed read-back: uncertain success признаётся только при доказанном post-condition; иначе состояние остаётся `unknown` с `mutation_not_retried=true`.
+- Traffic reset намеренно не объявляется успешным после lost response по нестабильным live counters; локальная SQLite state меняется только после обычного success либо доказанного remote post-condition там, где состояния связаны.
+- Patch остаётся в рамках final v4 feature freeze; SQLite schema и pinned 3x-ui OpenAPI v3.8.5 не меняются. После публикации обязательны targeted production acceptance A-001/A-002/A-003 и повторный базовый health/status-check. Admin Setup: изменений не требуется.
+
 ## v4.26.4 — Permission-aware admin navigation
 - Исправлен production finding #226: admin keyboards теперь могут фильтровать callback buttons по effective role через существующий RBAC callback catalog; неизвестные admin callbacks скрываются fail-closed.
 - Role-aware rendering подключён к смешанным экранам `Задания`, `Резервные копии`, `Оповещения`, `Операции с нодами`, а также к core admin/system navigation.
