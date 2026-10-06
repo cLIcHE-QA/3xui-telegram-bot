@@ -56,12 +56,12 @@
 
 | ID | Severity | Tracking | Component | Status | Summary |
 | --- | --- | --- | --- | --- | --- |
-| A-001 | **High** | #234 | RBAC / Backups | Open | Administrator может запросить secret-bearing Full Backup, содержащий `bot.env`; это может пересечь privilege domains. |
-| A-002 | **High** | #235 | Subscription Proxy / Logs | Open | Стандартный aiohttp access logging записывает `/compat/{sub_id}`, раскрывая bearer-like subscription credentials в raw logs. |
-| A-003 | **High** | #236 | 3x-ui mutations | Open | Несколько state-changing API methods всё ещё используют generic retry/failure semantics вместо no-retry uncertain-outcome handling. |
-| A-004 | **Medium / security** | #237 | Telegram Admin | Open | Admin authorization проверяет роль sender, но не fail closed вне private chats. |
-| A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Open | Raw proxy пересылает device headers при включённых automatic redirects; cross-origin isolation headers требует явного enforcement/tests. |
-| A-006 | **Medium / security** | #239 | Filesystem / Backup | Open | Secret-bearing local backup artifacts не обеспечивают private modes независимо от process umask. |
+| A-001 | **High** | #234 | RBAC / Backups | Closed | `v4.26.5` удалил Telegram transport secret-bearing backup; production Full Backup/off-site smoke и финальный health/status прошли. |
+| A-002 | **High** | #235 | Subscription Proxy / Logs | Closed | `v4.26.5` отключил raw compat access logging; targeted container/bot/nginx log smoke прошёл, использованный test credential ротирован. |
+| A-003 | **High** | #236 | 3x-ui mutations | Closed | `v4.26.5` унифицировал mutation certainty/read-back; production disable/enable smoke прошёл с восстановлением исходного состояния. |
+| A-004 | **Medium / security** | #237 | Telegram Admin | Acceptance pending | PR #260 merged: все admin routers fail closed вне private chat; regression/CI зелёные, `v4.26.6` production smoke ещё требуется. |
+| A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Acceptance pending | PR #260 merged: redirects manual/bounded, cross-origin strips device/auth-like headers, TLS downgrade blocked; `v4.26.6` production acceptance ещё требуется. |
+| A-006 | **Medium / security** | #239 | Filesystem / Backup | Acceptance pending | PR #260 merged: sensitive dirs/files enforce `0700/0600`, existing artifacts tighten, permissive-umask regression зелёный; `v4.26.6` production acceptance ещё требуется. |
 | A-007 | **High** | #240 | Repository / Release | Open | `main` не защищён; direct push может обойти документированный PR/required-CI contract и попасть в release workflow. |
 | A-008 | **Medium / security** | #241 | Supply chain | Open | Python deps, Docker base и third-party Actions не закреплены в воспроизводимый immutable dependency graph. |
 | A-009 | **High** | #242 | Legal / Public release | Open | Project `LICENSE`/terms file отсутствует; права публичного распространения не определены до решения owner/legal. |
@@ -73,7 +73,7 @@
 ### Количество findings по severity
 
 - Critical: **0 выявлено на текущем этапе**
-- High: **6 open**
+- High: **3 open**
 - Medium: **7 open**
 - Low/Info: на этой ревизии фиксируются только в notes
 
@@ -110,7 +110,7 @@ Progress evidence:
 - destructive phase #252 добавила fail-closed absence read-back для user/inbound/node delete без replay;
 - phase 3 (#253) покрывает deterministic field updates: node rename, inbound enable/disable и user expiry/traffic/flow разрешают uncertain success только когда read-only post-condition совпадает; недоступный/несовпадающий read-back остаётся `unknown` с `mutation_not_retried=true`;
 - phase 4 покрывает оставшиеся handler/service classes: provisioning attach/detach/limits/flow, bulk enable/disable/extend/reset, plan/apply/extend/IP/HWID/subscription mutations, manual inbound membership, node/inbound/client create, inbound full updates/sync и maintenance. Create/update success после lost response требует exact либо unique read-only post-condition; traffic reset остаётся `unknown`, потому что live counter не даёт стабильного доказательства reset.
-- A-003 остаётся open до завершения phase-4 CI/merge, patch release и targeted production acceptance.
+- A-003 закрыт после merge phase-4, публикации/deploy `v4.26.5` и targeted production disable/enable acceptance с подтверждённым read-back и восстановленным исходным состоянием.
 
 ### A-004 — admin chat boundary
 
@@ -214,3 +214,8 @@ Closure: настроить/документировать private reporting pat
 - **2026-10-05 · A-002 / #235:** implementation PR #249 открыт. Built-in aiohttp access log для `/compat/{sub_id}` отключается, canonical Nginx `/compat/` route получает `access_log off`, logging contract закрепляется regression test. Finding остаётся **Open / acceptance pending** до patch release, deployment, targeted raw-log smoke и rotation известных exposed test credentials.
 
 - **2026-10-05 · A-003 / #236:** phase-1 PR #250 merged (`d4178af779e344f757ee4bed27cc43c675c32794`): все инвентаризированные state-changing node/inbound/client/importDB calls используют единый one-shot no-redirect mutation boundary, Disaster Recovery сохраняет uncertain importDB как `unknown` без replay. Phase-2 PR #252 добавил fail-closed read-back для destructive user/inbound/node delete; phase-3 PR #253 — post-condition для deterministic field updates. Phase-4 implementation расширяет ту же semantics на provisioning, bulk, create/reset, manual membership и оставшиеся node/inbound/client handlers; нестабильные traffic-reset post-conditions намеренно не объявляются success. Finding остаётся **Open** до зелёного phase-4 PR, patch release и targeted production acceptance.
+
+
+- **2026-10-06 · A-001/A-002/A-003 / #234/#235/#236:** `v4.26.5` опубликован и развёрнут; targeted production acceptance завершён. A-001: Full Backup создан локально, off-site upload/verification успешен, Telegram получил только status; A-002: fresh compat request не раскрыл credential в container/new bot/nginx logs, test credential после проверки ротирован; A-003: disable/enable mutation smoke прошёл с read-back и восстановлением исходного состояния. Findings закрыты как completed.
+
+- **2026-10-06 · A-004/A-005/A-006 / #237/#238/#239:** implementation PR #260 merged (`a15ff4beaeae2ec249b729e53b2aeaadf6c349ef`) с зелёными `PR conventions` и `Python checks`. Private-chat admin boundary, cross-origin redirect header stripping/TLS downgrade rejection и owner-only sensitive file modes закреплены regression coverage и SECURITY/UI contracts. Findings остаются **Open / acceptance pending** до публикации/deploy `v4.26.6`, targeted production smoke и повторного health/status-check.
