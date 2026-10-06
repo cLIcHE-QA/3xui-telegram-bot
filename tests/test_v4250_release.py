@@ -1,4 +1,4 @@
-"""Release contracts through v4.26.4 permission-aware navigation fix."""
+"""Release contracts through v4.26.5 final-v4 audit remediation patch."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,21 +10,21 @@ from version import APP_VERSION
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class V4264ReleaseTests(unittest.TestCase):
-    def test_release_version_is_4264(self):
-        self.assertEqual(APP_VERSION, "4.26.4")
+class V4265ReleaseTests(unittest.TestCase):
+    def test_release_version_is_4265(self):
+        self.assertEqual(APP_VERSION, "4.26.5")
 
-    def test_current_docs_reference_release_4264(self):
+    def test_current_docs_reference_release_4265(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         sqlite_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
 
-        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.26.4"))
-        self.assertIn("Guide ориентирован на release v4.26.4.", admin_setup)
-        self.assertIn("git checkout --detach v4.26.4", admin_setup)
-        self.assertIn("Bot version: 4.26.4", admin_setup)
+        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.26.5"))
+        self.assertIn("Guide ориентирован на release v4.26.5.", admin_setup)
+        self.assertIn("git checkout --detach v4.26.5", admin_setup)
+        self.assertIn("Bot version: 4.26.5", admin_setup)
         self.assertIn(
-            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3` и `v4.26.4` текущая bot schema version — **5**",
+            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3`, `v4.26.4` и `v4.26.5` текущая bot schema version — **5**",
             sqlite_doc,
         )
 
@@ -249,7 +249,7 @@ class V4264ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Текущий runtime-релиз `v4.26.4` исправляет production finding #226", readme)
+        self.assertIn("Предыдущий production-релиз `v4.26.4` опубликован, развёрнут и принят", readme)
         self.assertIn("Controlled Node Drain production acceptance #208 завершён 2026-10-01", readme)
 
     def test_final_v4_feature_freeze_is_recorded(self):
@@ -267,9 +267,9 @@ class V4264ReleaseTests(unittest.TestCase):
         self.assertNotIn("Единственный оставшийся обязательный pre-freeze gate", roadmap)
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("Encrypted off-site backup/restore production drill завершён 2026-10-05", readme)
-        self.assertIn("**Final v4 feature freeze объявлен 2026-10-05**", readme)
-        self.assertIn("активный следующий gate — полный repository/public-release audit", readme)
+        self.assertIn("Encrypted off-site backup/restore drill завершён 2026-10-05", readme)
+        self.assertIn("**Final v4 feature freeze действует с 2026-10-05**", readme)
+        self.assertIn("до закрытия repository/public-release audit", readme)
         self.assertNotIn("Единственный оставшийся обязательный pre-freeze gate", readme)
 
     def test_data_plane_hardening_219_is_closed(self):
@@ -322,7 +322,7 @@ class V4264ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("`v4.26.2` опубликован, развёрнут и принят в production", readme)
+        self.assertIn("Предыдущий production-релиз `v4.26.4` опубликован, развёрнут и принят", readme)
 
     def test_v4264_production_acceptance_is_recorded(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
@@ -341,13 +341,13 @@ class V4264ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn("`v4.26.4` опубликован, развёрнут и принят в production", readme)
-        self.assertIn("finding #226 и production acceptance Attention Center #217 закрыты", readme)
+        self.assertIn("Предыдущий production-релиз `v4.26.4` опубликован, развёрнут и принят", readme)
+        self.assertIn("role smoke под `read_only` и `admin`, Attention Refresh/Back и финальный health/status — PASS", readme)
 
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "Для bot release `v4.26.4` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
+            "Для bot release `v4.26.5` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
             admin_setup,
         )
 
