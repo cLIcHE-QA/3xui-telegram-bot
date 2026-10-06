@@ -958,6 +958,32 @@ Master nginx в Full Backup берётся через BACKUP_NGINX_CONF_HOST_PAT
 
 Full Backup, `bot.sqlite3`, direct-node snapshot, `bot.env` и nginx recovery bundle через Telegram **не отправляются**. Telegram UI только создаёт backup/host-side export. Забирай secret-bearing artifacts с Master по защищённому host-side каналу либо используй encrypted off-site recovery flow. DR exports, подготовленные из UI, находятся в `data/restore/exports/` и должны оставаться mode `0600` внутри private directory.
 
+### Как получить созданный Full Backup
+
+При стандартной конфигурации `BACKUP_DIR=/app/data/backups`, а Compose монтирует host directory `./data` в `/app/data`. Поэтому при каноническом checkout на Master локальные Full Backup находятся в:
+
+~~~text
+/opt/3xui-bot/3xui-telegram-bot/data/backups/
+~~~
+
+После `/admin → Система → Резервные копии → Создать сейчас` проверь созданные archives на Master:
+
+~~~bash
+cd /opt/3xui-bot/3xui-telegram-bot
+ls -lh data/backups/3xui-bot-backup-*.tar.gz
+
+LATEST="$(ls -1t data/backups/3xui-bot-backup-*.tar.gz 2>/dev/null | head -1)"
+test -n "$LATEST"
+printf 'Latest Full Backup: %s\n' "$LATEST"
+stat "$LATEST"
+~~~
+
+Canonical имя имеет формат `3xui-bot-backup-YYYYMMDD-HHMMSS.tar.gz`.
+
+Для переноса archive на доверенную operator workstation используй уже настроенный защищённый SSH/SFTP канал к Master. Не публикуй archive через Telegram, email, issue/PR attachments или публичный HTTP endpoint.
+
+Если локальная копия на Master недоступна и настроен encrypted off-site backup, используй host-side recovery flow из [Encrypted off-site Full Backup](OFFSITE_BACKUP.md). Он получает latest canonical object из configured prefix, проверяет integrity и сохраняет verified archive с mode `0600`.
+
 ## 21. Финальный health check Master
 
 ~~~bash
