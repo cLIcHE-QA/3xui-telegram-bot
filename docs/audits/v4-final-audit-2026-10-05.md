@@ -138,14 +138,6 @@ Evidence: GitHub сообщает `main.protected=false`; следователь
 
 Closure: GitHub-side branch protection/ruleset equivalent должен блокировать direct push/force-delete и требовать документированный PR/CI path; опубликованные release refs должны оставаться immutable. Если текущий feature set private plan этого не поддерживает, enforcement должен быть решён до public visibility/final release.
 
-### A-008 — воспроизводимый supply chain
-
-Evidence: requirements заданы version ranges, Python base image — mutable tag, Actions используют mutable major refs.
-
-CI на точном audited SHA на момент проверки установил, среди прочего, `aiogram 3.31.0`, `aiohttp 3.14.4`, `boto3 1.43.108`, `cryptography 46.0.7`, `Pillow 12.3.0` и `urllib3 2.8.0`; это не делает будущие rebuilds deterministic.
-
-Closure: reviewed exact dependency lock/hash mechanism, base-image digest, Actions commit pins, vulnerability/license scan, SBOM/container scan и документированный update process.
-
 ### A-008 — supply chain
 
 Implementation evidence:
