@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import hashlib
 import io
 import json
+import os
 import re
 import tarfile
 import tempfile
@@ -372,8 +373,13 @@ class SystemBackupService:
 
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         safe_node = _safe_segment(target.node_name)
-        out_dir = self.manager.backup_dir / "nodes" / safe_node
+        await asyncio.to_thread(self.manager._ensure_dir)
+        nodes_root = self.manager.backup_dir / "nodes"
+        await asyncio.to_thread(nodes_root.mkdir, parents=True, exist_ok=True)
+        await asyncio.to_thread(os.chmod, nodes_root, 0o700)
+        out_dir = nodes_root / safe_node
         await asyncio.to_thread(out_dir.mkdir, parents=True, exist_ok=True)
+        await asyncio.to_thread(os.chmod, out_dir, 0o700)
         path = out_dir / f"node-snapshot-{stamp}.tar.gz"
 
         with tempfile.TemporaryDirectory(prefix="node-snapshot-stage-") as tmp:
@@ -405,8 +411,12 @@ class SystemBackupService:
 
     @staticmethod
     def _write_node_archive(path: Path, node_dir: Path, safe_node: str) -> None:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT, 0o600)
+        os.close(fd)
+        os.chmod(path, 0o600)
         with tarfile.open(path, "w:gz") as archive:
             archive.add(node_dir, arcname=f"nodes/{safe_node}", recursive=True)
+        os.chmod(path, 0o600)
 
     def direct_client_for(self, node_name: str, node_id: int | None = None) -> XUIClient | None:
         target = self.target_for(node_name, node_id)
