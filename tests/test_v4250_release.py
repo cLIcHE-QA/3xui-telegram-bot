@@ -24,7 +24,7 @@ class V4266ReleaseTests(unittest.TestCase):
         self.assertIn("git checkout --detach v4.26.6", admin_setup)
         self.assertIn("Bot version: 4.26.6", admin_setup)
         self.assertIn(
-            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3`, `v4.26.4` и `v4.26.6` текущая bot schema version — **5**",
+            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3`, `v4.26.4`, `v4.26.5` и `v4.26.6` текущая bot schema version — **5**",
             sqlite_doc,
         )
 
