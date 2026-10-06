@@ -6,6 +6,7 @@ from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
+from admin_auth import is_private_admin_event
 from admin_privileges import ROLE_RANK, required_role_for_callback
 
 
@@ -21,13 +22,17 @@ def _key(chat_id: int, user_id: int) -> tuple[int, int]:
 
 
 def register_panel_message(user_id: int, message: Message) -> None:
-    if not message.chat:
+    if not is_private_admin_event(message):
         return
     _ACTIVE_PANELS[_key(message.chat.id, user_id)] = message
 
 
 def register_panel_from_callback(call: CallbackQuery) -> None:
-    if not call.from_user or not isinstance(call.message, Message):
+    if (
+        not call.from_user
+        or not is_private_admin_event(call)
+        or not isinstance(call.message, Message)
+    ):
         return
     register_panel_message(call.from_user.id, call.message)
 
@@ -65,6 +70,20 @@ def filter_keyboard_for_role(reply_markup, role: str | None):
         if allowed:
             rows.append(allowed)
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+class AdminPrivateChatMiddleware(BaseMiddleware):
+    """Fail closed before Admin Control Plane handlers outside private chat."""
+
+    async def __call__(
+        self,
+        handler: Callable[[Any, dict[str, Any]], Awaitable[Any]],
+        event: Any,
+        data: dict[str, Any],
+    ) -> Any:
+        if isinstance(event, (Message, CallbackQuery)) and not is_private_admin_event(event):
+            return None
+        return await handler(event, data)
 
 
 class AdminPanelSessionMiddleware(BaseMiddleware):
