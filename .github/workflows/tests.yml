@@ -125,10 +125,6 @@ jobs:
           docker compose --env-file .env config --quiet
           docker compose --env-file .env build bot
 
-          image="$(docker compose --env-file .env images -q bot)"
-          test -n "$image"
-          test "$(docker inspect --format '{{.Config.User}}' "$image")" = "10001:10001"
-
           docker compose --env-file .env run --rm --no-deps --entrypoint sh bot -c '
             set -eu
             test "$(id -u)" = "10001"
