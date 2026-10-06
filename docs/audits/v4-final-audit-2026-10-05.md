@@ -68,7 +68,7 @@
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
 | A-011 | **Medium / security** | #244 | Container | Acceptance pending | Runtime hardening merged: dedicated UID/GID `10001:10001`, root-owned app tree, read-only rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp`, writable `/app/data` only, inherited host ACL rollout. CI clean-container smoke PASS; production runtime smoke ещё не зафиксирован. |
 | A-012 | **Medium / reliability** | #245 | Public compat proxy | Acceptance pending | Resource bounds merged: global upstream concurrency 32, slot wait 1s→503, upstream body ≤8 MiB chunked; canonical nginx per-client `limit_conn=4`, `5r/s`, burst 10. Regression CI PASS; production/load smoke ещё не зафиксирован. |
-| A-013 | **Medium / public readiness** | #246 | Security process | Open | SECURITY.md не содержит конкретного private vulnerability-reporting path и supported-version policy. |
+| A-013 | **Medium / public readiness** | #246 | Security process | Acceptance pending | SECURITY.md и issue UX подготовлены для GitHub Private Vulnerability Reporting: supported versions, response expectations, custom private report form и redirect из public issue forms. GitHub-side PVR можно включить только после перехода repository в public; фактический `Report a vulnerability` flow ещё не проверен. |
 
 ### Количество findings по severity
 
@@ -198,9 +198,16 @@ Closure remaining: targeted production/load acceptance on the deployed release �
 
 ### A-013 — private security reporting
 
-Evidence: SECURITY.md определяет trust boundaries и leak response, но не конкретный private vulnerability reporting channel/supported versions.
+Implementation evidence:
 
-Closure: настроить/документировать private reporting path и supported-version expectations до public publication.
+- `SECURITY.md` определяет supported versions, canonical private reporting path, reporter guidance и maintainer response expectations;
+- public bug/feature/task forms явно запрещают security-sensitive disclosure и направляют в Security → Advisories → Report a vulnerability;
+- `.github/VULNERABILITY_REPORT.yml` задаёт custom private report form с минимизацией secret-bearing material;
+- regression test закрепляет policy/form/issue-template contract.
+
+GitHub platform constraint: Private Vulnerability Reporting доступен для public repositories. Пока repository остаётся private в рамках final v4 audit, GitHub-side enablement выполнить нельзя.
+
+Closure remaining: непосредственно перед public publication включить **Settings → Security and quality → Advanced Security → Private vulnerability reporting** и с внешней/public-user perspective подтвердить доступность **Report a vulnerability** без создания public issue.
 
 ## Обязательные audit work, которые ещё не завершены
 
@@ -251,3 +258,5 @@ Closure: настроить/документировать private reporting pat
 - **2026-10-06 · A-011 / #244:** implementation merged в PR #268 (`a9ab0c02…`) и rollout fix PR #269 (`d3f06110…`). Dedicated UID/GID `10001:10001`, read-only rootfs, `no-new-privileges`, `cap_drop: ALL`, bounded `/tmp`, writable `/app/data` only, read-only source mounts и inherited host ACL закреплены CI clean-container smoke. **Статус: acceptance pending** — остался production runtime smoke.
 
 - **2026-10-06 · A-012 / #245:** implementation merged в PR #270 (`8485346f…`): hard bounds 32 concurrent upstream fetch, 1s slot wait→503, ≤8 MiB response с chunked read; canonical `/compat/` nginx policy — per-client `limit_conn=4`, `5r/s`, burst 10, без access log bearer-like URI. Regression CI PASS. **Статус: acceptance pending** — остался production/load smoke.
+
+- **2026-10-06 · A-013 / #246:** repository-side private security reporting contract подготовлен: supported versions/response expectations в SECURITY.md, custom `.github/VULNERABILITY_REPORT.yml`, public issue forms redirect security reports в private advisory flow. **Статус: acceptance pending** — GitHub PVR можно включить только после перехода repository в public; enablement и внешний `Report a vulnerability` smoke остаются public-release gate.
