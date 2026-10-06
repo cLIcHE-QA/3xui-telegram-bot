@@ -62,7 +62,7 @@
 | A-004 | **Medium / security** | #237 | Telegram Admin | Closed | `v4.26.6` опубликован и развёрнут; production smoke подтвердил fail-closed `/admin` вне private chat, штатную работу в private chat и финальный Health/DB/3x-ui status PASS. |
 | A-005 | **Medium / security** | #238 | Subscription Proxy / Redirects | Closed | `v4.26.6` production acceptance подтвердил: same-origin сохраняет разрешённый device header, cross-origin удаляет `X-HWID`/`Authorization`, HTTPS→HTTP downgrade блокируется; финальный status PASS. |
 | A-006 | **Medium / security** | #239 | Filesystem / Backup | Closed | `v4.26.6` production acceptance подтвердил owner-only modes `0700/0600` для bot DB, logs, Full Backup и node backup artifacts; повторный Health/DB/3x-ui status PASS. |
-| A-007 | **High** | #240 | Repository / Release | Accepted risk | `main` остаётся без GitHub-side protection; owner явно принимает residual risk при текущем plan/configuration. Repository-side provenance/CI controls сохраняются. Evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. |
+| A-007 | **High** | #240 | Repository / Release | Accepted risk, narrowed | После public transition `main` защищён active ruleset: PR-only, squash-only, strict required checks `test`/`title`, no delete/non-fast-forward, no bypass. Остаточный accepted risk сужен до отсутствия отдельного `v*` tag ruleset. Evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. |
 | A-008 | **Medium / security** | #241 | Supply chain | Closed | Reproducible baseline merged и подтверждён exact-main Supply-chain audit: hashed `requirements.lock`, digest-pinned base, full-SHA Actions, vulnerability/license reports, CycloneDX SBOM; actionable HIGH/CRITICAL = 0. Closure evidence: `docs/audits/v4-a008-supply-chain-audit-2026-10-06.md`. |
 | A-009 | **High** | #242 | Legal / Public release | Closed | Owner выбрал Apache-2.0; canonical `LICENSE`, README license section и compatibility review merged. Third-party obligations документированы; #242 закрыт. |
 | A-010 | **High** | #243 | Git history / Secrets | Closed | Full Git-history + retained GitHub Actions storage audit завершены; unresolved real secrets = 0. Closure evidence: `docs/audits/v4-a010-git-history-secret-audit-2026-10-06.md`. |
@@ -144,9 +144,13 @@ Evidence: GitHub сообщает `main.protected=false`; следователь
 
 Исходный closure criterion: GitHub-side branch protection/ruleset equivalent должен блокировать direct push/force-delete и требовать документированный PR/CI path; опубликованные release refs должны оставаться immutable.
 
-Disposition: **Accepted risk by owner decision**. Для текущей конфигурации private repository владелец не переходит на платный GitHub plan только ради этого enforcement. Finding не считается технически исправленным: `main.protected=false` и отсутствие required GitHub-side checks остаются residual risk. Repository-side compensating controls (PR/CI path, provenance validation и отдельный publish job) сохраняются, но не объявляются эквивалентом branch/tag protection.
+Disposition at audit closure: **Accepted risk by owner decision**.
 
-Closure evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`. A-007/#240 снимается с release blockers как explicit audit exception. При появлении доступного GitHub-side enforcement protection/rulesets следует включить как hardening.
+Post-public revalidation: `main` теперь GitHub-side protected active ruleset `Protect main release path` (ID `24575428`). Ruleset требует PR, разрешает только squash merge, требует strict checks `test` и `title`, запрещает deletion/non-fast-forward, требует linear history и не имеет bypass actors.
+
+Таким образом исходный branch-side риск технически remediated после public transition. Отдельного tag ruleset не обнаружено, поэтому residual accepted risk сужен до immutability опубликованных `v*` release refs. Existing release workflow/provenance controls остаются defense-in-depth.
+
+Closure/revalidation evidence: `docs/audits/v4-a007-github-governance-risk-acceptance-2026-10-06.md`.
 
 ### A-008 — supply chain
 
@@ -275,7 +279,7 @@ Recovery evidence immediately before publication:
 
 Финальный v4 Repository / Public-Release Audit завершён. Все High findings закрыты либо имеют explicit accepted-risk disposition; security/data-integrity Medium findings закрыты; unresolved real secrets не обнаружены; clean-room и production/recovery acceptance пройдены; repository опубликован; private vulnerability reporting доступен внешним пользователям.
 
-A-007 остаётся единственным явным residual risk: GitHub-side branch/tag enforcement не включён в рамках принятого owner disposition. Он не считается технически исправленным и должен быть пересмотрен при появлении доступного GitHub-side enforcement.
+A-007 остаётся единственным явным residual risk, но после public transition он существенно сужен: `main` уже защищён enforced GitHub ruleset без bypass; не закрыта только отдельная GitHub-side immutability policy для опубликованных `v*` tags.
 
 Post-audit изменения должны снова проходить обычные CI/security/release gates; этот PASS относится к проверенной v4.26.8 public-release линии и зафиксированному evidence выше.
 
@@ -312,3 +316,5 @@ Post-audit изменения должны снова проходить обы�
 - **2026-10-07 · Clean-room acceptance:** exact release `v4.26.8` / `e096bf43…` exported into isolated `/tmp`, image rebuilt without production data, migration suite 10/10 PASS, restore suite 5/5 PASS, Deploy restart/recovery suite 20/20 PASS after exact-tag host scripts were mounted read-only, Host Control/Fleet recovery suites PASS, and fresh runtime smoke confirmed UID/GID `10001:10001`, readable entrypoint, schema v5 and SQLite quick-check on read-only rootfs. A transient SSH stall during the first Docker build produced no reboot/OOM/kernel crash evidence and production remained `RestartCount=0`, Health/DB/3x-ui=`ok`. Evidence: `docs/audits/v4-cross-cutting-pre-public-2026-10-06.md`. **Статус: PASS**.
 
 - **2026-10-07 · Final pre-public publication gate:** frozen main `c6066c1…` сохранил green `Python checks`; History secret audit run `37538268098` и Actions storage audit run `37538533256` завершились PASS без новых unique fingerprints/coverage gaps. После этого создан и off-site verified свежий post-nginx Full Backup, DR preflight подтвердил manifest `4.26.8`; repository переведён в public, PVR включён и externally verified. **Финальный audit status: PASS**.
+
+- **2026-10-07 · A-007 post-public revalidation:** GitHub API подтвердил `main.protected=true` через active ruleset `Protect main release path` (ID `24575428`): PR-only, squash-only, strict required checks `test`/`title`, deletion/non-fast-forward blocked, linear history, bypass actors absent. Tag-target rulesets отсутствуют; residual accepted risk сужен до release tag refs. **Branch-side control: remediated; tag-side hardening: recommended**.
