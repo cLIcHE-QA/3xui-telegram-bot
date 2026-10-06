@@ -9,7 +9,8 @@ class ContainerLeastPrivilegeContractTests(unittest.TestCase):
     def test_image_uses_dedicated_non_root_identity(self):
         text = (ROOT / "Dockerfile").read_text(encoding="utf-8")
         self.assertIn("USER 10001:10001", text)
-        self.assertIn("COPY --chown=10001:10001 . .", text)
+        self.assertIn("COPY . .", text)
+        self.assertNotIn("COPY --chown=10001:10001", text)
         self.assertIn("PYTHONDONTWRITEBYTECODE=1", text)
         self.assertIn("HOME=/tmp", text)
         self.assertNotIn("USER root", text)
