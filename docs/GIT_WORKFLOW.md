@@ -192,6 +192,50 @@ Feature не считается полностью документирован�
 - при переносе обязательного pre-v5 пункта за границу v5 сначала явно меняется roadmap с объяснением решения.
 
 Таким образом новый агент не должен восстанавливать прогресс по переписке: перед продолжением работы он сверяет `docs/ROADMAP.md`, `CHANGELOG.md` и опубликованные releases.
+## Диагностика GitHub / Actions как внешней dependency
+
+Если CI/PR ведёт себя аномально — workflow не появился, долго остаётся `queued`, runner не назначается, GitHub API/PR UI возвращает ошибки или release workflow не стартует после зелёного `Python checks` — сначала исключи деградацию самой платформы GitHub.
+
+Проверь официальный GitHub Status:
+
+~~~bash
+curl -fsS https://www.githubstatus.com/api/v2/summary.json \
+  | jq -r '
+      .components[]
+      | select(
+          .name == "Actions"
+          or .name == "Git Operations"
+          or .name == "API Requests"
+          or .name == "Pull Requests"
+        )
+      | "\(.name): \(.status)"
+    '
+~~~
+
+И unresolved incidents:
+
+~~~bash
+curl -fsS https://www.githubstatus.com/api/v2/incidents/unresolved.json \
+  | jq -r '
+      if (.incidents | length) == 0 then
+        "GitHub incidents: none"
+      else
+        .incidents[]
+        | "GitHub incident: \(.name) — \(.status) — impact=\(.impact)"
+      end
+    '
+~~~
+
+Правила fail-closed:
+
+- при подтверждённой деградации GitHub Actions/API/Git Operations не начинай менять repository code только потому, что workflow завис/не стартовал;
+- не обходи required checks ручным merge/tag/release;
+- не создавай tag/GitHub Release вручную вместо штатного release workflow;
+- после восстановления GitHub повторно проверь affected workflow на том же актуальном head;
+- недоступный Status API трактуется как `health unknown`: подтвердить состояние нужно через status page/UI и фактическое состояние GitHub PR/Actions, прежде чем делать вывод о repository failure.
+
+Для обычного feature/fix PR отдельный status preflight перед каждым действием не требуется. Он обязателен перед merge release-prep PR согласно [Release workflow](RELEASES.md) и используется как первый diagnostic step при признаках проблем GitHub.
+
 ## Типовой цикл
 
 1. Создать ветку от актуального `main`.
