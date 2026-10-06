@@ -23,7 +23,7 @@ For public releases, the canonical reporting channel is **GitHub Private Vulnera
 
 Do **not** open a normal public issue for a vulnerability or suspected secret exposure.
 
-Private Vulnerability Reporting can only be enabled by GitHub for a public repository. While this repository remains private during the final v4 audit, external public reporting is not active. Before changing repository visibility to public, maintainers must enable **Settings → Security and quality → Advanced Security → Private vulnerability reporting** and verify that the **Report a vulnerability** flow is available.
+GitHub Private Vulnerability Reporting is enabled for this public repository. The **Security → Advisories → Report a vulnerability** flow is the active private reporting path and was verified from an external, unauthenticated/incognito perspective during the final v4 public-release audit.
 
 If the report itself contains an active credential, rotate/revoke it first when you control that credential, then include only the minimum information needed to identify the affected boundary. Never attach production databases, backups, private keys, full subscription URLs, or raw secrets.
 
