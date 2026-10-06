@@ -1,8 +1,8 @@
 # A-011 / A-012 production acceptance — 2026-10-06
 
-Статус: **A-011 PASS; A-012 PENDING production/load acceptance**.
+Статус: **A-011 PASS; A-012 PASS**.
 
-A-011 production retest успешно завершён на опубликованном `v4.26.8`. A-012 остаётся отдельным gate и начинается только после успешного runtime acceptance A-011.
+A-011 production retest и A-012 production/load acceptance успешно завершены на опубликованном `v4.26.8`.
 
 ## A-011 / #244 — least-privilege bot container
 
@@ -174,7 +174,7 @@ Disposition:
 - A-011 production/runtime acceptance: **PASS**;
 - regression from `v4.26.7` is remediated and verified on production;
 - #244 may close once this evidence change lands on `main`;
-- A-012 production/load acceptance is now unblocked but remains **PENDING**.
+- A-012 production/load acceptance was unblocked by A-011 and is documented below as **PASS**.
 
 ## A-012 / #245 — subscription proxy resource bounds
 
@@ -210,6 +210,88 @@ Required production/load acceptance:
 
 Do not put a real `sub_id` into terminal history copied to issues/chat. Use a controlled test subscription and redact credentials in evidence.
 
+## A-012 production/load acceptance v4.26.8 — PASS
+
+Release/runtime under test:
+
+- tag: `v4.26.8`;
+- SHA: `e096bf436425ea037399e290a5a54f54c729b352`;
+- bot container remained `running` throughout acceptance.
+
+Nginx front-door rollout:
+
+- pre-change backup: `/opt/mtproxyl-nginx/conf/nginx.conf.a012-pre-20261006-203213`;
+- only the canonical `http {}` rate/connection zones and existing `/compat/` location were changed;
+- loaded policy:
+  - `limit_req_zone $binary_remote_addr zone=sub_compat_rate:10m rate=5r/s;`
+  - `limit_conn_zone $binary_remote_addr zone=sub_compat_conn:10m;`
+  - `access_log off;`
+  - `limit_req zone=sub_compat_rate burst=10 nodelay;`
+  - `limit_conn sub_compat_conn 4;`
+  - `proxy_read_timeout 25s;`
+- `nginx -t` — PASS before reload;
+- graceful reload — PASS;
+- `nginx -T` confirmed the required directives in the active configuration.
+
+Normal request:
+
+- public `/healthz` after reload returned `ok`;
+- representative real subscription refresh through `/compat/{sub_id}` — PASS;
+- profile/list loaded normally with no empty/error response;
+- real `sub_id` was not copied into the audit evidence.
+
+Front-door burst bound:
+
+- controlled synthetic path `/compat/a012-load-probe`;
+- 40 parallel requests from one source;
+- result: `13 × 404`, `27 × 503`;
+- interpretation: bounded requests reached the application and the excess burst was rejected at the nginx front door.
+
+Application saturation bound:
+
+- runtime smoke executed against the deployed `subscription_proxy.py` inside the running bot container;
+- all 32 upstream slots were occupied in an isolated test object;
+- next fetch failed closed with `HTTP 503`;
+- `Retry-After: 1`;
+- result: `APP_SATURATION=ok`.
+
+Oversized upstream response bound:
+
+- isolated loopback HTTP upstream was started only inside the running bot container;
+- no production upstream/config/database was changed;
+- deployed limit: `8388608` bytes (8 MiB);
+- read chunk: `65536` bytes;
+- response larger than the limit was rejected;
+- result: `OVERSIZED_RESPONSE=rejected`, `BODY_BOUND=ok`.
+
+Health under concurrent load:
+
+- 80 parallel requests used only synthetic path `/compat/a012-health-load-probe`;
+- five public `/healthz` checks during the burst all returned `ok`;
+- result: `HEALTH_DURING_LOAD=ok`;
+- load result: `26 × 404`, `54 × 503`.
+
+Final status after all A-012 smoke:
+
+~~~text
+Git tag: v4.26.8
+Git SHA: e096bf436425ea037399e290a5a54f54c729b352
+Container: running
+RestartCount=0
+Bot version: 4.26.8
+Health: ok
+DB: ok
+Docker subnet: 172.19.0.0/16
+3x-ui connectivity: ok
+~~~
+
+Disposition:
+
+- all seven required production/load acceptance points passed;
+- no unexpected bot restart occurred;
+- front-door and application saturation behavior remained bounded;
+- A-012 / #245: **PASS / Closed once this evidence lands on `main`**.
+
 ## Closure
 
-A-011 and A-012 move to Closed only after the production evidence above is captured in this document/issue comments.
+A-011 and A-012 production acceptance are both **PASS**. Their tracking issues may remain closed once this evidence is present on `main`.
