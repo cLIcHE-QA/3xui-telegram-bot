@@ -1,4 +1,4 @@
-"""Release contracts through v4.26.5 final-v4 audit remediation patch."""
+"""Release contracts through v4.26.6 final-v4 audit remediation patch."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,21 +10,21 @@ from version import APP_VERSION
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class V4265ReleaseTests(unittest.TestCase):
-    def test_release_version_is_4265(self):
-        self.assertEqual(APP_VERSION, "4.26.5")
+class V4266ReleaseTests(unittest.TestCase):
+    def test_release_version_is_4266(self):
+        self.assertEqual(APP_VERSION, "4.26.6")
 
-    def test_current_docs_reference_release_4265(self):
+    def test_current_docs_reference_release_4266(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         sqlite_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
 
-        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.26.5"))
-        self.assertIn("Guide ориентирован на release v4.26.5.", admin_setup)
-        self.assertIn("git checkout --detach v4.26.5", admin_setup)
-        self.assertIn("Bot version: 4.26.5", admin_setup)
+        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.26.6"))
+        self.assertIn("Guide ориентирован на release v4.26.6.", admin_setup)
+        self.assertIn("git checkout --detach v4.26.6", admin_setup)
+        self.assertIn("Bot version: 4.26.6", admin_setup)
         self.assertIn(
-            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3`, `v4.26.4` и `v4.26.5` текущая bot schema version — **5**",
+            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3`, `v4.26.4` и `v4.26.6` текущая bot schema version — **5**",
             sqlite_doc,
         )
 
@@ -347,7 +347,7 @@ class V4265ReleaseTests(unittest.TestCase):
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "Для bot release `v4.26.5` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
+            "Для bot release `v4.26.6` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
             admin_setup,
         )
 
