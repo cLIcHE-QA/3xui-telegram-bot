@@ -9,6 +9,13 @@
 
 
 
+## v4.26.6 — Final v4 audit remediation: admin boundary, redirects и file modes
+- A-004/#237: Admin Control Plane теперь fail-closed работает только в private Telegram chat; общий middleware блокирует /admin, admin callbacks и admin FSM input вне личного чата до rendering/business logic, при этом client-facing router остаётся отдельным контуром.
+- A-005/#238: subscription upstream redirects обрабатываются вручную; automatic redirects отключены, HWID/device и auth-like headers удаляются при первом cross-origin hop и не восстанавливаются дальше по chain, HTTPS downgrade и malformed redirect target отклоняются, число redirect hops ограничено.
+- A-006/#239: backup/runtime directories и sensitive local artifacts получают явные owner-only modes независимо от host umask; existing backup/log artifacts ужимаются, Full Backup, bot/node snapshots, bot SQLite и local bot logs создаются с private permissions.
+- SECURITY/UI contracts и regression coverage обновлены; новый security suite проверяет private-chat boundary, same-origin/cross-origin/TLS-downgrade redirect semantics и file modes под permissive umask.
+- SQLite schema остаётся v5, pinned 3x-ui OpenAPI contract остаётся v3.8.5. После публикации обязательны targeted production acceptance A-004/A-005/A-006 и повторный базовый health/status-check.
+
 ## v4.26.5 — Final v4 audit remediation: backup, logs и mutation certainty
 - A-001/#234: secret-bearing Full Backup/DB/node/DR artifacts больше не передаются через Telegram; recovery transport остаётся только host-side/off-site, без ослабления encrypted off-site/DR flow.
 - A-002/#235: встроенный aiohttp access log для secret-bearing `/compat/{sub_id}` отключён, а canonical Nginx `/compat/` route не пишет access log; regression coverage проверяет raw-log boundary.
