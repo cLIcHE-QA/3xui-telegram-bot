@@ -197,6 +197,12 @@ VERIFY_TLS=true
 SUBSCRIPTION_URL_TEMPLATE=https://subscription.example.com/sub/{sub_id}
 COMPAT_SUBSCRIPTION_URL_TEMPLATE=
 
+# v5 payment webhook ingress remains disabled until a provider secret and
+# verified-HTTPS reverse-proxy route are prepared.
+PAYMENT_WEBHOOK_ENABLED=false
+PAYMENT_WEBHOOK_PROVIDER=generic_hmac
+PAYMENT_WEBHOOK_SECRET=
+
 ALLOWED_TELEGRAM_IDS=<your-telegram-id>
 ADMIN_TELEGRAM_IDS=<your-telegram-id>
 
@@ -239,6 +245,21 @@ NODE_BACKUP_TARGETS=
 ~~~
 
 ADMIN_TELEGRAM_IDS — break-glass Owners. Не добавляй туда случайных пользователей.
+
+
+### Optional v5 payment webhook ingress
+
+Первый provider-facing contract v5 использует тот же HTTP listener, что и compatibility subscription proxy, но отдельный route:
+
+~~~text
+POST /webhooks/payments/{provider}
+~~~
+
+До настройки payment provider держи `PAYMENT_WEBHOOK_ENABLED=false`. При включении route должен публиковаться наружу только через verified HTTPS reverse proxy. `PAYMENT_WEBHOOK_SECRET` — отдельный secret минимум 32 bytes; его нельзя переиспользовать как Telegram token, 3x-ui API token, deploy/host-control token или любой другой credential.
+
+Текущий provider-neutral adapter `generic_hmac` принимает bounded JSON body (до 64 KiB) с `event_id`, `type`, `payment_id` и optional `metadata`. Подпись передаётся в `X-Payment-Signature` как raw hex SHA-256 или `sha256=<hex>` и вычисляется HMAC-SHA256 по exact raw request body. В finance lifecycle применяется только `payment.confirmed`; unsupported event types journaled/ignored и не меняют payment/order/entitlement. Invalid signature также journaled как auth failure и никогда не меняет финансовое состояние.
+
+HTTP access log для встроенного listener отключён, поэтому bearer-like subscription IDs и webhook paths не должны попадать в aiohttp access log. Raw payment payload не сохраняется в DB: commerce journal хранит только SHA-256 и bounded safe metadata.
 
 ### Optional Cheburcheck diagnostics
 
