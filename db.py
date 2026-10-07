@@ -1158,6 +1158,34 @@ class Database:
             await db.commit()
             return int(row[0]), created
 
+    async def finalize_payment_webhook_event(
+        self, event_id: int, *, processing_status: str, result_code: str,
+    ) -> PaymentWebhookEventRecord:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute(
+                """
+                UPDATE payment_webhook_events
+                SET processing_status = ?, result_code = ?, applied_at = ?
+                WHERE id = ?
+                """,
+                (
+                    str(processing_status)[:32], str(result_code)[:64],
+                    now, int(event_id),
+                ),
+            )
+            cur = await db.execute(
+                "SELECT * FROM payment_webhook_events WHERE id = ?",
+                (int(event_id),),
+            )
+            row = await cur.fetchone()
+            if row is None:
+                await db.rollback()
+                raise RuntimeError("Webhook event does not exist.")
+            await db.commit()
+            return PaymentWebhookEventRecord(**dict(row))
+
     async def apply_confirmed_payment_event(
         self, *, provider: str, provider_event_id: str, event_type: str,
         signature_valid: bool, payload_sha256: str, metadata_json: str,
