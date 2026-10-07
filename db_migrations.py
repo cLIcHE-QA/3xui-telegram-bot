@@ -491,6 +491,7 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
                 "idx_commerce_orders_status_created",
                 "idx_commerce_payments_order",
                 "idx_commerce_payments_provider_identity",
+                "idx_commerce_payments_provider_idempotency",
                 "idx_payment_webhook_provider_event",
                 "idx_payment_webhook_processing",
                 "idx_entitlements_user_status",
