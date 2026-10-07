@@ -11,8 +11,10 @@ from versions_updates import versions_router
 from bot_updates import bot_updates_router, reconcile_deploy_jobs
 from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
-from commerce import CommerceService
+from commerce import CommerceService, EntitlementProvisioningService
 from payment_webhook import PaymentWebhookGateway
+from provisioning import ProvisioningEngine
+from xui import XUIClient
 from catalog_admin import catalog_router
 from admin_observability import observability_router
 from business_admin import business_router
@@ -47,6 +49,12 @@ system_backup = SystemBackupService(backup_manager, settings.node_backup_targets
 offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
 offsite_backup = service_from_settings(settings, offsite_restore_manager)
 commerce_service = CommerceService(db)
+commerce_xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
+commerce_provisioner = ProvisioningEngine(db, commerce_xui, settings)
+entitlement_provisioning_service = EntitlementProvisioningService(
+    db,
+    commerce_provisioner,
+)
 payment_webhook_gateway = PaymentWebhookGateway(
     commerce_service,
     enabled=settings.payment_webhook_enabled,
@@ -152,6 +160,25 @@ async def automatic_backup_loop(bot: Bot):
             logging.exception("Automatic backup failed")
 
 
+async def entitlement_fulfillment_loop() -> None:
+    while True:
+        try:
+            result = await entitlement_provisioning_service.reconcile_pending(limit=100)
+            if result["checked"]:
+                logging.warning(
+                    "Entitlement fulfillment checked=%d active=%d failed=%d unknown=%d",
+                    result["checked"],
+                    result["active"],
+                    result["failed"],
+                    result["unknown"],
+                )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logging.exception("Entitlement fulfillment iteration failed")
+        await asyncio.sleep(30)
+
+
 async def _recover_deploy_after_health() -> None:
     recovered = await reconcile_deploy_jobs(wait_seconds=60)
     if recovered:
@@ -242,6 +269,7 @@ async def main():
     )
     alert_task = asyncio.create_task(alert_monitor_loop(bot))
     website_monitoring_task = asyncio.create_task(website_monitoring_loop(bot))
+    entitlement_fulfillment_task = asyncio.create_task(entitlement_fulfillment_loop())
     try:
         await dp.start_polling(bot)
     finally:
@@ -249,6 +277,7 @@ async def main():
             backup_task,
             alert_task,
             website_monitoring_task,
+            entitlement_fulfillment_task,
             deploy_recovery_task,
         ):
             if task:
@@ -257,6 +286,7 @@ async def main():
             backup_task,
             alert_task,
             website_monitoring_task,
+            entitlement_fulfillment_task,
             deploy_recovery_task,
         ):
             if task:
