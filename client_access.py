@@ -570,7 +570,8 @@ async def help_cb(call: CallbackQuery):
         call,
         "🆘 Помощь\n\n"
         "Выберите сценарий. Диагностика только читает состояние и не запускает "
-        "provisioning/reconcile автоматически.",
+        "provisioning/reconcile автоматически.\n\n"
+        "Не отправляйте публично ссылку подписки: она является секретом доступа.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📱 Как подключиться", callback_data="client:onboard")],
             [InlineKeyboardButton(text="🛠 Проверить подписку", callback_data="client:diagnostics")],
