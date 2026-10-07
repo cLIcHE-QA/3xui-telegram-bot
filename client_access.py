@@ -148,6 +148,21 @@ async def start(message: Message):
     )
 
 
+@client_access_router.message(Command("paysupport"))
+async def pay_support(message: Message):
+    if not await guard_message(message):
+        return
+    await message.answer(
+        "🆘 Поддержка по платежам\n\n"
+        "Если платёж Telegram Stars прошёл, но доступ не появился, либо нужен возврат, "
+        "отправьте в поддержку Telegram ID и примерное время покупки. "
+        "Не пересылайте токены, subscription URL или другие секреты.\n\n"
+        "Возврат Stars выполняется оператором через журнал платежей и не повторяется "
+        "автоматически при неизвестном исходе.",
+        reply_markup=portal_menu(),
+    )
+
+
 @client_access_router.callback_query(F.data == "client:home")
 async def home_cb(call: CallbackQuery):
     if not await guard_callback(call):
