@@ -30,7 +30,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (6, "client_portal_commerce_foundation_v5_0_0", "success"))
+                self.assertEqual(row, (7, "payment_event_reconciliation_v5_0_0", "success"))
                 columns = [
                     item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
                 ]
@@ -114,6 +114,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (4, "website_monitoring_v4_24_0", "success"),
                         (5, "website_watcher_lifecycle_v4_24_0", "success"),
                         (6, "client_portal_commerce_foundation_v5_0_0", "success"),
+                        (7, "payment_event_reconciliation_v5_0_0", "success"),
                     ],
                 )
 
@@ -157,6 +158,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (4, "website_monitoring_v4_24_0", "success"),
                         (5, "website_watcher_lifecycle_v4_24_0", "success"),
                         (6, "client_portal_commerce_foundation_v5_0_0", "success"),
+                        (7, "payment_event_reconciliation_v5_0_0", "success"),
                     ],
                 )
 
@@ -198,7 +200,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (6, "client_portal_commerce_foundation_v5_0_0", "success"),
+                    (7, "payment_event_reconciliation_v5_0_0", "success"),
                 )
 
     async def test_schema_v4_upgrades_watcher_lifecycle_without_data_loss(self):
@@ -253,7 +255,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (6, "client_portal_commerce_foundation_v5_0_0", "success"),
+                    (7, "payment_event_reconciliation_v5_0_0", "success"),
                 )
 
     async def test_schema_v5_upgrades_to_commerce_foundation_without_legacy_payment_changes(self):
@@ -294,7 +296,53 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (6, "client_portal_commerce_foundation_v5_0_0", "success"),
+                    (7, "payment_event_reconciliation_v5_0_0", "success"),
+                )
+
+    async def test_schema_v6_adds_reconciliation_reference_without_losing_webhook_journal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bot.sqlite3"
+            await run_migrations(str(path), migrations=MIGRATIONS[:6])
+            with sqlite3.connect(path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO payment_webhook_events(
+                        provider, provider_event_id, event_type, signature_valid,
+                        payload_sha256, metadata_json, processing_status,
+                        order_id, payment_id, received_at, applied_at, result_code
+                    ) VALUES (
+                        'generic_hmac', 'evt-v6', 'payment.confirmed', 1,
+                        'abc', '{}', 'failed', NULL, NULL, 1, 2, 'payment_not_found'
+                    )
+                    """
+                )
+                conn.commit()
+
+            await Database(str(path)).init()
+
+            with sqlite3.connect(path) as conn:
+                columns = [
+                    row[1]
+                    for row in conn.execute(
+                        'PRAGMA table_info("payment_webhook_events")'
+                    ).fetchall()
+                ]
+                self.assertIn("provider_payment_id", columns)
+                self.assertEqual(
+                    conn.execute(
+                        """
+                        SELECT provider_event_id, processing_status, result_code,
+                               provider_payment_id
+                        FROM payment_webhook_events WHERE provider_event_id = 'evt-v6'
+                        """
+                    ).fetchone(),
+                    ("evt-v6", "failed", "payment_not_found", ""),
+                )
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
+                    ).fetchone(),
+                    (7, "payment_event_reconciliation_v5_0_0", "success"),
                 )
 
     async def test_newer_schema_version_blocks_startup(self):
