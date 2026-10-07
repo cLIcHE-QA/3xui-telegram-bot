@@ -5,7 +5,7 @@ from typing import Protocol
 
 from checkout_service import CheckoutService, CheckoutSession
 from commerce import CommerceService
-from db import Database, PlanRecord
+from db import CommerceOrderRecord, Database, PlanRecord
 
 
 class CustomerProviderUnavailable(RuntimeError):
@@ -102,7 +102,7 @@ class CustomerPortalService:
 
     async def checkout_for_plan(
         self, *, telegram_id: int, plan: PlanRecord,
-    ) -> tuple[object, bool, CheckoutSession | None]:
+    ) -> tuple[CommerceOrderRecord, bool, CheckoutSession | None]:
         order, created = await self.get_or_create_order(
             telegram_id=telegram_id,
             plan=plan,
