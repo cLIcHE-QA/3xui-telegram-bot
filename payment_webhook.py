@@ -130,8 +130,23 @@ class PaymentWebhookGateway:
         )
 
         if event.event_type != "payment.confirmed":
-            # Keep the first provider-facing slice deliberately narrow: unsupported
-            # event types cannot mutate finance state.
+            journal, _ = await self.service.record_event(
+                provider=self.provider,
+                provider_event_id=event.event_id,
+                event_type=event.event_type,
+                signature_valid=signature_valid,
+                raw_payload=raw_payload,
+                metadata={**event.metadata, "reason": "unsupported_event_type"},
+            )
+            await self.service.db.finalize_payment_webhook_event(
+                journal.id,
+                processing_status="ignored",
+                result_code=(
+                    "unsupported_event_type" if signature_valid else "invalid_signature"
+                ),
+            )
+            if not signature_valid:
+                raise web.HTTPUnauthorized(text="invalid signature\n")
             raise web.HTTPUnprocessableEntity(text="unsupported event type\n")
 
         webhook, payment, order, entitlement, created = (
@@ -156,7 +171,7 @@ class PaymentWebhookGateway:
                     "status": webhook.processing_status,
                     "result": webhook.result_code,
                 },
-                status=404 if webhook.result_code == "payment_not_found" else 409,
+                status=409,
             )
 
         return web.json_response(
