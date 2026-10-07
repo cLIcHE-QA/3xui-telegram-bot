@@ -386,6 +386,7 @@ class SubscriptionProxy:
         verify_tls: bool = True,
         host: str = "0.0.0.0",
         port: int = 8080,
+        payment_webhook_gateway=None,
     ):
         self.db = db
         self.upstream_template = upstream_template
@@ -394,6 +395,7 @@ class SubscriptionProxy:
         self.host = host
         self.port = port
         self.runner: web.AppRunner | None = None
+        self.payment_webhook_gateway = payment_webhook_gateway
         self.max_upstream_response_bytes = MAX_UPSTREAM_RESPONSE_BYTES
         self._upstream_slots = asyncio.BoundedSemaphore(MAX_UPSTREAM_CONCURRENCY)
 
@@ -632,6 +634,11 @@ class SubscriptionProxy:
     async def start(self) -> None:
         app = web.Application()
         app.router.add_get("/healthz", self.health)
+        if self.payment_webhook_gateway is not None:
+            app.router.add_post(
+                "/webhooks/payments/{provider}",
+                self.payment_webhook_gateway.handle,
+            )
         # Register assets before /compat/{sub_id}.
         app.router.add_get("/compat/assets/{tail:.*}", self.asset)
         app.router.add_get("/compat/{sub_id}", self.subscription)
