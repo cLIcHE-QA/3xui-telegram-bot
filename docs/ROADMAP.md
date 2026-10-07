@@ -4009,9 +4009,9 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 9. ⬜ controlled canary rollout по описанному ниже gate;
 10. ⬜ только после canary — расширение публичного доступа.
 
-Фактическая foundation-линия в `main` на 2026-10-07:
+Фактическая v5 foundation-линия на 2026-10-07: #290–#303 уже в `main`, а #304 остаётся открытым draft PR.
 
-После #302 core backend path уже собран сквозным каркасом: `Plan/Order → checkout boundary → Payment → authenticated webhook → Entitlement → Provisioning`. До production commerce остаётся не перестройка state machine, а интеграция конкретного PSP/backend, operator secrets/config, provider-specific validation и controlled payment acceptance.
+После #302 core backend path уже собран сквозным каркасом: `Plan/Order → checkout boundary → Payment → authenticated webhook → Entitlement → Provisioning`. Для цифровой подписки внутри Telegram #304 переводит customer payment entrypoint на native Telegram Stars вместо внешнего PSP checkout. После merge production commerce блокируют уже не выбор PSP, а Stars acceptance: test/prod payment smoke, Terms acceptance UX, `/paysupport`, refund/dispute workflow через Telegram Bot API и controlled canary.
 
 - #290 — commerce foundation;
 - #291 — atomic `payment.confirmed → order paid → entitlement`;
@@ -4026,7 +4026,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 - #302 — provider-neutral checkout foundation, schema v8, durable checkout URL/idempotency и Telegram payment button.
 - #304 (текущий срез) — native Telegram Stars для цифровой подписки: schema v9, независимая Stars-цена тарифа, XTR invoice/pre-checkout/successful-payment lifecycle.
 
-До перехода к public launch основными implementation-блокерами остаются production acceptance Telegram Stars (включая refund/support path), customer onboarding/self-service diagnostics, затем launch audit + controlled canary.
+До перехода к public launch основными implementation-блокерами остаются production acceptance Telegram Stars (Terms acceptance, `/paysupport`, refund/dispute path и test/prod smoke), customer onboarding/self-service diagnostics, затем launch audit + controlled canary.
 
 Отложенные tracks **не блокируют** базовый v5.0.0: multi-format subscriptions, Remnawave/provider-neutral multi-provider expansion и Cheburcheck Probe fleet могут идти отдельными subsequent tracks после стабилизации core Client Portal. При этом верхний customer/domain слой v5 сразу проектируется так, чтобы не зависеть напрямую от `XUIClient`.
 
