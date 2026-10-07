@@ -265,7 +265,7 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     "server_group_inbounds": ("group_id", "inbound_id"),
     "plans": (
         "id", "name", "duration_days", "traffic_gb", "ip_limit", "price_minor",
-        "currency", "server_group_id", "active", "created_at",
+        "currency", "server_group_id", "active", "created_at", "stars_price",
     ),
     "hosts": ("id", "label", "hostname", "role", "enabled", "created_at"),
     "audit_log": (
