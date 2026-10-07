@@ -4005,7 +4005,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 5. 🟡 commerce flow + authenticated/idempotent payment event journal — backend journal/state machine и provider-neutral checkout foundation готовы; следующий production path использует native Telegram Stars (`XTR`) для цифровой подписки внутри бота: отдельная Stars-цена тарифа, pre-checkout ownership/amount validation и atomic `successful_payment → Payment confirmed → Order paid → Entitlement` реализуются; после #305 Terms acceptance, `/paysupport` и one-shot refund journal/операторский flow реализованы; остаются test/prod payment smoke и production acceptance;
 6. ✅ entitlement → provisioning/reconcile с no-replay/unknown semantics — PR #292/#295; durable pending worker не replay'ит `provisioning` с uncertain outcome;
 7. 🟡 onboarding/QR UX и self-service diagnostics реализуются в #306: platform selection, local/private QR и read-only entitlement/provider diagnostics; client-specific deep-link остаётся отложен до стабильного безопасного import contract;
-8. 🟡 v5 launch-readiness: #307 добавляет независимые Client Portal/payment kill-switches и per-user customer rate limit; после merge выполняется отдельный v5 launch audit;
+8. 🟡 отдельный v5 launch audit выполняется в #308: repository-verifiable ownership/payment/secret/rollback controls закреплены regression gate; production Stars acceptance, failure/restart canary, load/soak и retention-policy disposition остаются release blockers;
 9. ⬜ controlled canary rollout по описанному ниже gate;
 10. ⬜ только после canary — расширение публичного доступа.
 
