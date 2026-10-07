@@ -1149,14 +1149,47 @@ class Database:
             created = cur.rowcount == 1
             cur = await db.execute(
                 """
-                SELECT id FROM payment_webhook_events
+                SELECT * FROM payment_webhook_events
                 WHERE provider = ? AND provider_event_id = ?
                 """,
                 (str(provider)[:32], str(provider_event_id)[:160]),
             )
             row = await cur.fetchone()
+            if row is None:
+                await db.rollback()
+                raise RuntimeError("Webhook event disappeared after insert.")
+
+            existing_signature_valid = int(row["signature_valid"]) == 1
+            incoming_signature_valid = bool(signature_valid)
+            incoming_type = str(event_type)[:64]
+            incoming_digest = str(payload_sha256)[:64]
+            if not existing_signature_valid and incoming_signature_valid:
+                await db.execute(
+                    """
+                    UPDATE payment_webhook_events
+                    SET event_type = ?, signature_valid = 1, payload_sha256 = ?,
+                        metadata_json = ?, processing_status = 'received',
+                        order_id = NULL, payment_id = NULL, received_at = ?,
+                        applied_at = 0, result_code = ''
+                    WHERE id = ?
+                    """,
+                    (
+                        incoming_type, incoming_digest, str(metadata_json)[:2000],
+                        now, int(row["id"]),
+                    ),
+                )
+                created = True
+            elif existing_signature_valid and incoming_signature_valid:
+                if (
+                    str(row["event_type"]) != incoming_type
+                    or str(row["payload_sha256"]) != incoming_digest
+                ):
+                    await db.rollback()
+                    raise RuntimeError(
+                        "Webhook event identity was reused with different content."
+                    )
             await db.commit()
-            return int(row[0]), created
+            return int(row["id"]), created
 
     async def finalize_payment_webhook_event(
         self, event_id: int, *, processing_status: str, result_code: str,
