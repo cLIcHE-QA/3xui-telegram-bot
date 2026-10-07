@@ -419,7 +419,7 @@ class V4269ReleaseTests(unittest.TestCase):
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "Для bot release `v5.0.0-rc.1` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
+            "Для bot release `v5.0.0-rc.2` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
             admin_setup,
         )
 
