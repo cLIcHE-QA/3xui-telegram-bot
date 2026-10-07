@@ -7,7 +7,7 @@ from pathlib import Path
 
 from commerce import CommerceService
 from customer_service import CustomerPortalService
-from db import Database
+from db import Database, UserRecord
 
 
 class _NoopCustomerProvider:
@@ -31,11 +31,14 @@ class TelegramStarsCommerceTests(unittest.IsolatedAsyncioTestCase):
             _NoopCustomerProvider(),
             subscription_url_template="https://sub.example/{sub_id}",
         )
-        await self.db.upsert(
-            telegram_id=7001,
-            email="stars@example.invalid",
-            sub_id="stars-sub",
-            expiry_time=0,
+        await self.db.put(
+            UserRecord(
+                telegram_id=7001,
+                email="stars@example.invalid",
+                sub_id="stars-sub",
+                expiry_time=0,
+                created_at=1,
+            )
         )
         self.plan_id = await self.db.create_plan(
             name="Stars plan",
