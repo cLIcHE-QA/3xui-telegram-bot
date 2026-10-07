@@ -4328,14 +4328,15 @@ Public launch блокируется до закрытия release-blocking find
 - 🔴 production acceptance `v5.0.0-rc.1` остановлен как **FAIL** после двух release-blocking findings до фактического Stars payment:
   - **V5-A-005 — expired customer access lifecycle:** существующий customer profile после прошедшего `users.expiry_time` отображался как `Подписка: активна`; durable entitlement в `active/suspended` не имел фонового перехода в `expired` после `expires_at`. Fix вычисляет effective customer status по expiry и локально истекает due entitlement без remote mutation/blind retry;
   - **V5-A-006 — Telegram Stars admin ledger runtime crash:** `Платежи → Telegram Stars` падал с `NameError: name 'aiosqlite' is not defined`, потому что handler использовал `aiosqlite.connect(...)` и `aiosqlite.Row` без runtime import. Fix добавляет явный import и regression contract Stars ledger;
-- 🟡 оба finding закрываются canary-fix PR #312; после зелёного CI и merge требуется новый immutable **`v5.0.0-rc.2`**;
+- ✅ canary-fix PR #312 слит в `main`: repository fixes и regression coverage для V5-A-005/V5-A-006 входят в новый baseline;
+- 🟡 release-prep `v5.0.0-rc.2` подготовлен отдельной веткой/PR; после merge штатный release workflow должен опубликовать новый immutable GitHub prerelease;
 - ⬜ acceptance на `rc.1` **не продолжается**; реальный Stars payment до нового baseline не выполняется;
 - ⬜ после deployment `rc.2` сначала повторяются V5-A-005 и V5-A-006: просроченная подписка обязана отображаться как истёкшая, а `Платежи → Telegram Stars` обязана открываться без exception;
 - ⬜ только после PASS targeted retest продолжается полный `docs/V5_PRODUCTION_ACCEPTANCE.md`: Stars happy path → duplicate/idempotency → refund → failure/restart/reconciliation → ownership/isolation → abuse/load/soak → rollback → финальная ledger reconciliation;
 - ⬜ stable `v5.0.0` публикуется только после PASS acceptance без unresolved Critical/High и без необъяснимых payment/entitlement/provisioning inconsistencies;
 - ⬜ broad public access / снятие pilot allowlist выполняется только после успешного controlled rollout; stable tag сам по себе allowlist не снимает.
 
-Актуальная release sequence: **`v5.0.0-rc.1` published/deployed → canary FAIL (V5-A-005, V5-A-006) → PR #312 → `v5.0.0-rc.2` → targeted retest обоих findings → полный controlled production acceptance → при необходимости `rc.3+` → PASS → `v5.0.0` → постепенное расширение cohort**.
+Актуальная release sequence: **`v5.0.0-rc.1` published/deployed → canary FAIL (V5-A-005, V5-A-006) → PR #312 merged → release-prep/publish/deploy `v5.0.0-rc.2` → targeted retest обоих findings → полный controlled production acceptance → при необходимости `rc.3+` → PASS → `v5.0.0` → постепенное расширение cohort**.
 
 ## Gate контролируемого запуска v5.0
 
