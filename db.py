@@ -1132,6 +1132,7 @@ class Database:
     ) -> tuple[int, bool]:
         now = int(time.time())
         async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
             cur = await db.execute(
                 """
                 INSERT OR IGNORE INTO payment_webhook_events(
@@ -1149,14 +1150,75 @@ class Database:
             created = cur.rowcount == 1
             cur = await db.execute(
                 """
-                SELECT id FROM payment_webhook_events
+                SELECT * FROM payment_webhook_events
                 WHERE provider = ? AND provider_event_id = ?
                 """,
                 (str(provider)[:32], str(provider_event_id)[:160]),
             )
             row = await cur.fetchone()
+            if row is None:
+                await db.rollback()
+                raise RuntimeError("Webhook event disappeared after insert.")
+
+            existing_signature_valid = int(row["signature_valid"]) == 1
+            incoming_signature_valid = bool(signature_valid)
+            incoming_type = str(event_type)[:64]
+            incoming_digest = str(payload_sha256)[:64]
+            if not existing_signature_valid and incoming_signature_valid:
+                await db.execute(
+                    """
+                    UPDATE payment_webhook_events
+                    SET event_type = ?, signature_valid = 1, payload_sha256 = ?,
+                        metadata_json = ?, processing_status = 'received',
+                        order_id = NULL, payment_id = NULL, received_at = ?,
+                        applied_at = 0, result_code = ''
+                    WHERE id = ?
+                    """,
+                    (
+                        incoming_type, incoming_digest, str(metadata_json)[:2000],
+                        now, int(row["id"]),
+                    ),
+                )
+                created = True
+            elif existing_signature_valid and incoming_signature_valid:
+                if (
+                    str(row["event_type"]) != incoming_type
+                    or str(row["payload_sha256"]) != incoming_digest
+                ):
+                    await db.rollback()
+                    raise RuntimeError(
+                        "Webhook event identity was reused with different content."
+                    )
             await db.commit()
-            return int(row[0]), created
+            return int(row["id"]), created
+
+    async def finalize_payment_webhook_event(
+        self, event_id: int, *, processing_status: str, result_code: str,
+    ) -> PaymentWebhookEventRecord:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute(
+                """
+                UPDATE payment_webhook_events
+                SET processing_status = ?, result_code = ?, applied_at = ?
+                WHERE id = ?
+                """,
+                (
+                    str(processing_status)[:32], str(result_code)[:64],
+                    now, int(event_id),
+                ),
+            )
+            cur = await db.execute(
+                "SELECT * FROM payment_webhook_events WHERE id = ?",
+                (int(event_id),),
+            )
+            row = await cur.fetchone()
+            if row is None:
+                await db.rollback()
+                raise RuntimeError("Webhook event does not exist.")
+            await db.commit()
+            return PaymentWebhookEventRecord(**dict(row))
 
     async def apply_confirmed_payment_event(
         self, *, provider: str, provider_event_id: str, event_type: str,
@@ -1201,9 +1263,63 @@ class Database:
                 if event_row is None:
                     raise RuntimeError("Webhook event disappeared inside transaction.")
 
+                existing_signature_valid = int(event_row["signature_valid"]) == 1
+                if not existing_signature_valid and signature_valid:
+                    # An unauthenticated request must never poison the provider's
+                    # canonical event identity. A later authenticated delivery may
+                    # replace the untrusted envelope and continue normally.
+                    await db.execute(
+                        """
+                        UPDATE payment_webhook_events
+                        SET event_type = ?, signature_valid = 1, payload_sha256 = ?,
+                            metadata_json = ?, processing_status = 'received',
+                            order_id = NULL, payment_id = NULL, received_at = ?,
+                            applied_at = 0, result_code = ''
+                        WHERE id = ?
+                        """,
+                        (
+                            event_type_value, digest, metadata_value, now,
+                            int(event_row["id"]),
+                        ),
+                    )
+                    cur = await db.execute(
+                        "SELECT * FROM payment_webhook_events WHERE id = ?",
+                        (int(event_row["id"]),),
+                    )
+                    event_row = await cur.fetchone()
+                    created = True
+                    existing_signature_valid = True
+                elif existing_signature_valid and not signature_valid:
+                    # Do not let an invalid replay alter or re-drive a previously
+                    # authenticated provider event.
+                    await db.commit()
+                    return (
+                        PaymentWebhookEventRecord(**dict(event_row)),
+                        None, None, None, False,
+                    )
+                elif not existing_signature_valid and not signature_valid:
+                    await db.execute(
+                        """
+                        UPDATE payment_webhook_events
+                        SET processing_status = 'ignored', applied_at = ?,
+                            result_code = 'invalid_signature'
+                        WHERE id = ?
+                        """,
+                        (now, int(event_row["id"])),
+                    )
+                    cur = await db.execute(
+                        "SELECT * FROM payment_webhook_events WHERE id = ?",
+                        (int(event_row["id"]),),
+                    )
+                    event_row = await cur.fetchone()
+                    await db.commit()
+                    return (
+                        PaymentWebhookEventRecord(**dict(event_row)),
+                        None, None, None, created,
+                    )
+
                 if (
                     str(event_row["event_type"]) != event_type_value
-                    or int(event_row["signature_valid"]) != (1 if signature_valid else 0)
                     or str(event_row["payload_sha256"]) != digest
                 ):
                     raise RuntimeError("Webhook event identity was reused with different content.")

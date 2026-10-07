@@ -205,6 +205,9 @@ class Settings:
     compat_subscription_url_template: str
     subscription_proxy_host: str
     subscription_proxy_port: int
+    payment_webhook_enabled: bool
+    payment_webhook_provider: str
+    payment_webhook_secret: str
     allowed_telegram_ids: tuple[int, ...]
     admin_telegram_ids: tuple[int, ...]
     allowed_ports: tuple[int, ...]
@@ -262,6 +265,19 @@ def load_settings() -> Settings:
         raise RuntimeError("ADMIN_TELEGRAM_IDS must not be empty.")
     if "{sub_id}" not in required["SUBSCRIPTION_URL_TEMPLATE"]:
         raise RuntimeError("SUBSCRIPTION_URL_TEMPLATE must contain {sub_id}")
+
+    payment_webhook_enabled = env_bool(os.getenv("PAYMENT_WEBHOOK_ENABLED"), False)
+    payment_webhook_provider = os.getenv("PAYMENT_WEBHOOK_PROVIDER", "generic_hmac").strip().lower()
+    payment_webhook_secret = os.getenv("PAYMENT_WEBHOOK_SECRET", "")
+    if payment_webhook_enabled:
+        if not payment_webhook_provider or len(payment_webhook_provider) > 32:
+            raise RuntimeError("PAYMENT_WEBHOOK_PROVIDER must contain 1-32 characters.")
+        if not payment_webhook_provider.replace("_", "").replace("-", "").isalnum():
+            raise RuntimeError("PAYMENT_WEBHOOK_PROVIDER must contain only letters, digits, '_' or '-'.")
+        if len(payment_webhook_secret.encode("utf-8")) < 32:
+            raise RuntimeError(
+                "PAYMENT_WEBHOOK_SECRET must contain at least 32 bytes when payment webhooks are enabled."
+            )
 
     compat_template = os.getenv("COMPAT_SUBSCRIPTION_URL_TEMPLATE", "").strip()
     if compat_template and "{sub_id}" not in compat_template:
@@ -364,6 +380,9 @@ def load_settings() -> Settings:
         compat_subscription_url_template=compat_template,
         subscription_proxy_host=os.getenv("SUBSCRIPTION_PROXY_HOST", "0.0.0.0"),
         subscription_proxy_port=int(os.getenv("SUBSCRIPTION_PROXY_PORT", "8080")),
+        payment_webhook_enabled=payment_webhook_enabled,
+        payment_webhook_provider=payment_webhook_provider,
+        payment_webhook_secret=payment_webhook_secret,
         allowed_telegram_ids=allowed_ids,
         admin_telegram_ids=admin_ids,
         allowed_ports=csv_ints(os.getenv("ALLOWED_PORTS", "2053,2083,443")),
