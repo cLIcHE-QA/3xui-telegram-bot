@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from checkout_provider import CheckoutRequest, CheckoutResult, CheckoutUnavailable
 from checkout_service import CheckoutService
 from commerce import CommerceService
+from config import load_settings
 from db import Database
 
 
@@ -25,6 +28,49 @@ class _FakeProvider:
             provider_payment_id=f"pay-{request.order_id}",
             checkout_url=f"https://pay.example/checkout/{request.order_id}",
         )
+
+
+class CheckoutConfigTests(unittest.TestCase):
+    def base_env(self) -> dict[str, str]:
+        return {
+            "BOT_TOKEN": "123456789:offline-test-token",
+            "PANEL_URL": "https://panel.example.invalid/base",
+            "PANEL_API_TOKEN": "offline-panel-token",
+            "SUBSCRIPTION_URL_TEMPLATE": "https://sub.example.invalid/{sub_id}",
+            "ALLOWED_TELEGRAM_IDS": "1",
+            "ADMIN_TELEGRAM_IDS": "1",
+            "NODE_BACKUP_TARGETS": "",
+            "HOST_CONTROL_TARGETS": "",
+        }
+
+    def test_checkout_is_disabled_by_default(self):
+        with patch.dict(os.environ, self.base_env(), clear=True):
+            settings = load_settings()
+        self.assertFalse(settings.payment_checkout_enabled)
+        self.assertEqual(settings.payment_checkout_provider, "generic_hmac")
+
+    def test_enabled_checkout_requires_fixed_https_endpoint_and_strong_secret(self):
+        env = self.base_env()
+        env.update({
+            "PAYMENT_CHECKOUT_ENABLED": "true",
+            "PAYMENT_CHECKOUT_ENDPOINT": "https://pay.example/create?bad=query",
+            "PAYMENT_CHECKOUT_SECRET": "x" * 48,
+        })
+        with patch.dict(os.environ, env, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "HTTPS URL"):
+                load_settings()
+
+        env["PAYMENT_CHECKOUT_ENDPOINT"] = "https://pay.example/create"
+        env["PAYMENT_CHECKOUT_SECRET"] = "short"
+        with patch.dict(os.environ, env, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "at least 32 bytes"):
+                load_settings()
+
+        env["PAYMENT_CHECKOUT_SECRET"] = "x" * 48
+        with patch.dict(os.environ, env, clear=True):
+            settings = load_settings()
+        self.assertTrue(settings.payment_checkout_enabled)
+        self.assertEqual(settings.payment_checkout_endpoint, "https://pay.example/create")
 
 
 class CheckoutServiceTests(unittest.IsolatedAsyncioTestCase):
