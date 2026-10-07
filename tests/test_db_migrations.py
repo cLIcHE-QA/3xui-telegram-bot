@@ -30,7 +30,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (7, "payment_event_reconciliation_v5_0_0", "success"))
+                self.assertEqual(row, (8, "checkout_reference_v5_0_0", "success"))
                 columns = [
                     item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
                 ]
@@ -115,6 +115,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (5, "website_watcher_lifecycle_v4_24_0", "success"),
                         (6, "client_portal_commerce_foundation_v5_0_0", "success"),
                         (7, "payment_event_reconciliation_v5_0_0", "success"),
+                        (8, "checkout_reference_v5_0_0", "success"),
                     ],
                 )
 
@@ -200,7 +201,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (7, "payment_event_reconciliation_v5_0_0", "success"),
+                    (8, "checkout_reference_v5_0_0", "success"),
                 )
 
     async def test_schema_v4_upgrades_watcher_lifecycle_without_data_loss(self):
@@ -343,6 +344,56 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
                     (7, "payment_event_reconciliation_v5_0_0", "success"),
+                )
+
+    async def test_schema_v7_adds_checkout_reference_without_losing_payment_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bot.sqlite3"
+            await run_migrations(str(path), migrations=MIGRATIONS[:7])
+            with sqlite3.connect(path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO commerce_orders(
+                        telegram_id, plan_id, promo_code_id, amount_minor, currency,
+                        status, created_at, updated_at, paid_at
+                    ) VALUES (1, 2, NULL, 9900, 'RUB', 'awaiting_payment', 1, 1, 0)
+                    """
+                )
+                order_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+                conn.execute(
+                    """
+                    INSERT INTO commerce_payments(
+                        order_id, provider, provider_payment_id, amount_minor, currency,
+                        status, created_at, updated_at, confirmed_at
+                    ) VALUES (?, 'generic_hmac', 'pay-v7', 9900, 'RUB', 'created', 1, 1, 0)
+                    """,
+                    (order_id,),
+                )
+                conn.commit()
+
+            await Database(str(path)).init()
+
+            with sqlite3.connect(path) as conn:
+                columns = [
+                    row[1]
+                    for row in conn.execute('PRAGMA table_info("commerce_payments")').fetchall()
+                ]
+                self.assertIn("checkout_url", columns)
+                self.assertIn("idempotency_key", columns)
+                self.assertEqual(
+                    conn.execute(
+                        """
+                        SELECT provider_payment_id, checkout_url, idempotency_key
+                        FROM commerce_payments WHERE provider_payment_id = 'pay-v7'
+                        """
+                    ).fetchone(),
+                    ("pay-v7", "", ""),
+                )
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
+                    ).fetchone(),
+                    (8, "checkout_reference_v5_0_0", "success"),
                 )
 
     async def test_newer_schema_version_blocks_startup(self):
