@@ -523,6 +523,7 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
                 "idx_payment_webhook_processing",
                 "idx_entitlements_user_status",
                 "idx_entitlements_order",
+                "idx_stars_refund_status_created",
             }
         ) - actual_indexes
     )
