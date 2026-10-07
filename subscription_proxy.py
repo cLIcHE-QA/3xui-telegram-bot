@@ -337,6 +337,16 @@ def _rewrite_default_page(
         html = html.replace(upstream_url, public_url)
         html = html.replace(upstream_url.replace("/", "\\/"), public_url.replace("/", "\\/"))
 
+    # Vite's generated JS resolves runtime/lazy chunks through
+    # window.X_UI_BASE_PATH. Leaving the upstream subscription path here makes
+    # browsers request /<upstream-sub-path>/assets/* from the public compat host.
+    html = re.sub(
+        r"""window\.X_UI_BASE_PATH=(["'])[^"']*\1""",
+        'window.X_UI_BASE_PATH="/compat/"',
+        html,
+        count=1,
+    )
+
     # Rewrite the real 3x-ui subscription asset prefix first.
     if upstream_asset_path:
         source = upstream_asset_path.rstrip("/") + "/"
