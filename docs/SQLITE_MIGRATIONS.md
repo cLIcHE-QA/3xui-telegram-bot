@@ -40,7 +40,7 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3`, `v4.26.4`, `v4.26.5`, `v4.26.6`, `v4.26.7` и `v4.26.8` текущая bot schema version — **5**.
 
-Для ветки подготовки Client Portal после применения первой v5 migration текущая bot schema version — **6**:
+Для ветки подготовки Client Portal текущая bot schema version — **7**:
 
 1. `v1 baseline_v4_14_2` — исходная каноническая схема v4.14.2;
 2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`;
@@ -48,12 +48,15 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 4. `v4 website_monitoring_v4_24_0` — additive persistence foundation для website monitoring: canonical monitor targets, many-to-many admin watchers, incidents и idempotent notification journal;
 5. `v5 website_watcher_lifecycle_v4_24_0` — additive `monitoring_enabled INTEGER NOT NULL DEFAULT 1` для watcher-scoped pause/resume без глобального выключения target.
 6. `v6 client_portal_commerce_foundation_v5_0_0` — additive commerce foundation: отдельные `commerce_orders`, `commerce_payments`, immutable/minimally-mutable `payment_webhook_events` и `entitlements`. Существующая административная таблица `payments` не меняется и не становится источником истины для customer commerce.
+7. `v7 payment_event_reconciliation_v5_0_0` — additive `provider_payment_id TEXT NOT NULL DEFAULT ''` в `payment_webhook_events` для безопасного restart/reconciliation уже аутентифицированных provider events без хранения raw payload.
 
 Commerce write contract поверх schema v6: authenticated `payment.confirmed` применяется одной SQLite transaction (`BEGIN IMMEDIATE`). В одной commit boundary фиксируются `commerce_payments.status=confirmed`, `commerce_orders.status=paid`, exactly-one `entitlements` row и `payment_webhook_events.processing_status=applied`. Исключение до commit откатывает весь набор изменений; повтор того же provider event с тем же payload безопасно возвращает уже применённый результат, а повтор event id с другим payload fail-closed.
 
 Entitlement provisioning contract: после подтверждённой оплаты entitlement согласуется через существующий `ProvisioningEngine`, а не прямыми вызовами 3x-ui. Локальный lifecycle — `pending → provisioning → active`; определённая ошибка переводит entitlement в `failed`, но не откатывает `payment=confirmed`/`order=paid`. `ProvisioningUnknown` сохраняет статус `provisioning`, потому что remote outcome неизвестен и должен разрешаться безопасным read-back/reconcile, без слепого повтора mutation.
 
-Migration v2–v6 имеют `requires_backup=False`: они additive, не переписывают существующие пользовательские записи и проверяют postcondition соответствующей версии schema внутри migration transaction до записи `success`. Для v3 membership хранится по стабильному `telegram_id`; сама migration не назначает пользователей в группы. Для v4 существующие rows не создаются и monitoring начинается только после явного add/subscribe action. Migration v5 сохраняет все существующие subscriptions активными по умолчанию и не меняет notification preferences. Migration v6 только создаёт новые commerce-таблицы и индексы; существующие users, plans, promo codes и legacy admin payments не переписываются.
+Payment-event recovery contract: только journaled events с `signature_valid=1`, `event_type=payment.confirmed`, `processing_status=failed`, `result_code=payment_not_found` и непустым `provider_payment_id` могут автоматически согласовываться после restart. Reconciliation использует сохранённый payload hash и authenticated journal identity; raw provider payload и webhook secret для replay не требуются. Повтор event ID с другим payment reference считается identity conflict и fail-closed.
+
+Migration v2–v7 имеют `requires_backup=False`: они additive, не переписывают существующие пользовательские записи и проверяют postcondition соответствующей версии schema внутри migration transaction до записи `success`. Для v3 membership хранится по стабильному `telegram_id`; сама migration не назначает пользователей в группы. Для v4 существующие rows не создаются и monitoring начинается только после явного add/subscribe action. Migration v5 сохраняет все существующие subscriptions активными по умолчанию и не меняет notification preferences. Migration v6 только создаёт новые commerce-таблицы и индексы; существующие users, plans, promo codes и legacy admin payments не переписываются. Migration v7 только добавляет безопасный provider payment reference в webhook journal; существующие rows получают пустое значение и не считаются автоматически replayable без нового доверенного provider delivery.
 
 После успешного применения более новой schema старый application release, который её не знает, обязан остановиться как `DatabaseSchemaTooNewError`. Поэтому downgrade приложения через обычную смену tag без восстановления совместимой pre-migration DB не поддерживается.
 

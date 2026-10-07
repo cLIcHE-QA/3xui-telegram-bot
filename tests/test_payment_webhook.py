@@ -241,6 +241,33 @@ class PaymentWebhookGatewayTests(unittest.IsolatedAsyncioTestCase):
             ).fetchone()
         self.assertEqual(row, (1, "applied", "confirmed"))
 
+    async def test_same_event_id_cannot_be_rebound_to_different_payment_reference(self):
+        _, payment = await self._payment("bind-a")
+        body = json.dumps({
+            "event_id": "evt-bind",
+            "type": "payment.confirmed",
+            "payment_id": payment.provider_payment_id,
+        }, separators=(",", ":")).encode()
+        await self.gateway.handle(
+            _FakeRequest(body, signature=_signature(self.secret, body))
+        )
+
+        other_body = json.dumps({
+            "event_id": "evt-bind",
+            "type": "payment.confirmed",
+            "payment_id": "pay-bind-b",
+        }, separators=(",", ":")).encode()
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "different (content|payment reference)",
+        ):
+            await self.gateway.handle(
+                _FakeRequest(
+                    other_body,
+                    signature=_signature(self.secret, other_body),
+                )
+            )
+
     async def test_unsupported_signed_event_is_journaled_and_ignored(self):
         body = json.dumps({
             "event_id": "evt-refund",
