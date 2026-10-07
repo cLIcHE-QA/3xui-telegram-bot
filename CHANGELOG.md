@@ -6,9 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Unreleased — v5 canary fixes
+## v5.0.0-rc.2 — Client Portal canary fixes
+- Новый immutable release candidate после остановленного canary `v5.0.0-rc.1`: pilot allowlist сохраняется, публичный signup не открывается, а production acceptance продолжается только на новом baseline.
 - Stars admin ledger больше не падает с `NameError`: `business_admin.py` явно импортирует `aiosqlite`; добавлен regression contract для `Платежи → Telegram Stars`.
 - Исправлен acceptance finding: просроченный customer access больше не отображается как активный; diagnostics учитывает effective expiry, а runtime локально переводит due active/suspended entitlements в `expired` без remote mutation.
+- После deployment `v5.0.0-rc.2` сначала повторяются V5-A-005 и V5-A-006; только после targeted PASS продолжается полный controlled production acceptance по `docs/V5_PRODUCTION_ACCEPTANCE.md`.
+- SQLite schema остаётся v10; pinned 3x-ui OpenAPI contract обновлён до `v3.9.0` по immutable upstream tag/blob. Используемый bot API surface остаётся прежним: 54 endpoint, contract gate не выявил route/method/body/auth/response drift.
 
 ## v5.0.0-rc.1 — Client Portal controlled canary
 - Первый immutable release candidate Client Portal для controlled production acceptance; pilot allowlist сохраняется, публичный signup не открывается.

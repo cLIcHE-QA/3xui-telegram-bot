@@ -47,10 +47,10 @@ SQLite-копии проходят `PRAGMA quick_check`. Для PostgreSQL `.dum
 
 ## Контракты API и ограничения
 
-Поддерживаемый panel API теперь фиксируется машинно через pinned OpenAPI contract 3x-ui `v3.8.5`:
+Поддерживаемый panel API фиксируется машинно через pinned OpenAPI contract 3x-ui `v3.9.0`:
 
 - manifest: `contracts/3xui/contract.json`;
-- vendored schema: `contracts/3xui/v3.8.5/openapi.json`;
+- vendored schema: `contracts/3xui/v3.9.0/openapi.json`;
 - checker: `python3 scripts/check-3xui-openapi-contract.py`;
 - подробный upgrade/exception contract: `docs/3XUI_OPENAPI_CONTRACT.md`.
 

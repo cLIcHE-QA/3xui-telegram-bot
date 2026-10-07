@@ -58,6 +58,29 @@ class LivingDocsSemanticTests(unittest.TestCase):
             migration_doc,
         )
 
+    def test_current_3xui_contract_is_reflected_in_living_docs(self):
+        manifest = json.loads(
+            (ROOT / "contracts" / "3xui" / "contract.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        version = manifest["supported_3xui_version"]
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(
+            encoding="utf-8"
+        )
+        contract_doc = (ROOT / "docs" / "3XUI_OPENAPI_CONTRACT.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(f"- 3x-ui: `v{version}`;", readme)
+        self.assertIn(f"pinned к 3x-ui `v{version}`", admin_setup)
+        self.assertIn(f"- 3x-ui: `v{version}`;", contract_doc)
+        self.assertIn(
+            f"contracts/3xui/v{version}/openapi.json",
+            manifest["vendored_schema"],
+        )
+
     def test_public_security_reporting_is_current(self):
         security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
         self.assertIn("Private Vulnerability Reporting is enabled", security)
