@@ -89,6 +89,14 @@ class CommerceService:
             promo_code_id=promo_code_id,
         )
 
+    async def mark_order_awaiting_payment(
+        self, order_id: int,
+    ) -> CommerceOrderRecord:
+        return await self.db.mark_commerce_order_awaiting_payment(order_id)
+
+    async def get_order(self, order_id: int) -> CommerceOrderRecord | None:
+        return await self.db.get_commerce_order(order_id)
+
     async def create_payment(self, *, order_id: int, provider: str,
                              provider_payment_id: str) -> CommercePaymentRecord:
         order = await self.db.get_commerce_order(order_id)
@@ -102,6 +110,18 @@ class CommerceService:
         if payment is None:
             raise CommerceIntegrityError("Created payment cannot be read back.")
         return payment
+
+    async def confirm_telegram_stars_payment(
+        self, *, order_id: int, telegram_id: int, charge_id: str,
+        amount: int, raw_payload: bytes,
+    ) -> tuple[CommercePaymentRecord, CommerceOrderRecord, EntitlementRecord, bool]:
+        return await self.db.confirm_telegram_stars_payment(
+            order_id=order_id,
+            telegram_id=telegram_id,
+            charge_id=charge_id,
+            amount=amount,
+            payload_sha256=payload_sha256(raw_payload),
+        )
 
     async def find_checkout_payment(
         self, *, provider: str, idempotency_key: str,

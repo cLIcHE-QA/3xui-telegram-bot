@@ -265,7 +265,7 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     "server_group_inbounds": ("group_id", "inbound_id"),
     "plans": (
         "id", "name", "duration_days", "traffic_gb", "ip_limit", "price_minor",
-        "currency", "server_group_id", "active", "created_at",
+        "currency", "server_group_id", "active", "created_at", "stars_price",
     ),
     "hosts": ("id", "label", "hostname", "role", "enabled", "created_at"),
     "audit_log": (
@@ -375,6 +375,7 @@ async def _validate_current_schema(
     include_commerce: bool = True,
     include_payment_event_reference: bool = True,
     include_checkout_reference: bool = True,
+    include_plan_stars_price: bool = True,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -408,6 +409,10 @@ async def _validate_current_schema(
             expected = tuple(
                 column for column in expected
                 if column not in {"checkout_url", "idempotency_key"}
+            )
+        if table == "plans" and not include_plan_stars_price:
+            expected = tuple(
+                column for column in expected if column != "stars_price"
             )
         cursor = await db.execute(f'PRAGMA table_info("{table}")')
         rows = await cursor.fetchall()
@@ -461,11 +466,14 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
             "commerce_orders", "commerce_payments", "payment_webhook_events", "entitlements",
         }:
             continue
-        expected = (
-            ("telegram_id", "plan_id", "server_group_id", "note", "updated_at")
-            if table == "user_profiles"
-            else expected_current
-        )
+        if table == "user_profiles":
+            expected = ("telegram_id", "plan_id", "server_group_id", "note", "updated_at")
+        elif table == "plans":
+            expected = tuple(
+                column for column in expected_current if column != "stars_price"
+            )
+        else:
+            expected = expected_current
         cursor = await db.execute(f'PRAGMA table_info("{table}")')
         rows = await cursor.fetchall()
         actual = tuple(str(row[1]) for row in rows)
@@ -538,6 +546,7 @@ async def _migration_0002_user_display_name(db: aiosqlite.Connection) -> None:
         include_user_groups=False,
         include_website_monitoring=False,
         include_commerce=False,
+        include_plan_stars_price=False,
     )
 
 
@@ -573,6 +582,7 @@ async def _migration_0003_user_audience_groups(db: aiosqlite.Connection) -> None
         db,
         include_website_monitoring=False,
         include_commerce=False,
+        include_plan_stars_price=False,
     )
 
 
@@ -666,6 +676,7 @@ async def _migration_0004_website_monitoring_v4_24_0(
         db,
         include_website_watcher_lifecycle=False,
         include_commerce=False,
+        include_plan_stars_price=False,
     )
 
 
@@ -680,7 +691,9 @@ async def _migration_0005_website_watcher_lifecycle_v4_24_0(
             "ADD COLUMN monitoring_enabled INTEGER NOT NULL DEFAULT 1 "
             "CHECK(monitoring_enabled IN (0, 1))"
         )
-    await _validate_current_schema(db, include_commerce=False)
+    await _validate_current_schema(
+        db, include_commerce=False, include_plan_stars_price=False
+    )
 
 
 async def _migration_0006_client_portal_commerce_foundation(
@@ -792,6 +805,7 @@ async def _migration_0006_client_portal_commerce_foundation(
         db,
         include_payment_event_reference=False,
         include_checkout_reference=False,
+        include_plan_stars_price=False,
     )
 
 
@@ -805,7 +819,11 @@ async def _migration_0007_payment_event_reconciliation_v5_0_0(
             "ALTER TABLE payment_webhook_events "
             "ADD COLUMN provider_payment_id TEXT NOT NULL DEFAULT ''"
         )
-    await _validate_current_schema(db, include_checkout_reference=False)
+    await _validate_current_schema(
+        db,
+        include_checkout_reference=False,
+        include_plan_stars_price=False,
+    )
 
 
 async def _migration_0008_checkout_reference_v5_0_0(
@@ -828,6 +846,20 @@ async def _migration_0008_checkout_reference_v5_0_0(
         "ON commerce_payments(provider, idempotency_key) "
         "WHERE idempotency_key <> ''"
     )
+    await _validate_current_schema(db, include_plan_stars_price=False)
+
+
+async def _migration_0009_telegram_stars_price_v5_0_0(
+    db: aiosqlite.Connection,
+) -> None:
+    cursor = await db.execute('PRAGMA table_info("plans")')
+    columns = {str(row[1]) for row in await cursor.fetchall()}
+    if "stars_price" not in columns:
+        await db.execute(
+            "ALTER TABLE plans "
+            "ADD COLUMN stars_price INTEGER NOT NULL DEFAULT 0 "
+            "CHECK(stars_price >= 0)"
+        )
     await _validate_current_schema(db)
 
 
@@ -878,6 +910,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=8,
         name="checkout_reference_v5_0_0",
         apply=_migration_0008_checkout_reference_v5_0_0,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=9,
+        name="telegram_stars_price_v5_0_0",
+        apply=_migration_0009_telegram_stars_price_v5_0_0,
         requires_backup=False,
     ),
 )

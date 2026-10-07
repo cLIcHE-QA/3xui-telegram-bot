@@ -29,9 +29,9 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         self.tmp.cleanup()
 
-    async def test_schema_v8_contains_checkout_references(self):
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 8)
-        self.assertEqual(await current_schema_version(str(self.path)), 8)
+    async def test_schema_v9_contains_stars_pricing(self):
+        self.assertEqual(CURRENT_SCHEMA_VERSION, 9)
+        self.assertEqual(await current_schema_version(str(self.path)), 9)
         with sqlite3.connect(self.path) as conn:
             tables = {row[0] for row in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
@@ -48,6 +48,11 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
             ]
         self.assertIn("checkout_url", payment_columns)
         self.assertIn("idempotency_key", payment_columns)
+        with sqlite3.connect(self.path) as conn:
+            plan_columns = [
+                row[1] for row in conn.execute('PRAGMA table_info("plans")').fetchall()
+            ]
+        self.assertIn("stars_price", plan_columns)
 
     async def test_legacy_admin_payments_table_is_unchanged(self):
         with sqlite3.connect(self.path) as conn:

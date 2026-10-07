@@ -38,6 +38,10 @@ class AddPlanStates(StatesGroup):
     review = State()
 
 
+class PlanStarsStates(StatesGroup):
+    price = State()
+
+
 class AddServerGroupStates(StatesGroup):
     name = State()
     description = State()
@@ -251,6 +255,7 @@ async def plan_detail(call: CallbackQuery):
         f"Трафик: {traffic}\n"
         f"Лимит IP: {ip_limit}\n"
         f"Цена: {_money(plan)}\n"
+        f"Telegram Stars: {plan.stars_price if plan.stars_price else 'не настроено'}\n"
         f"Группа серверов: {group_name}\n"
         f"Цели согласования: {target_text}"
         f"{policy_warn}"
@@ -258,6 +263,7 @@ async def plan_detail(call: CallbackQuery):
     toggle_text = "⛔ Отключить" if plan.active else "✅ Включить"
     default_text = "⭐ Убрать тариф по умолчанию" if is_default else "⭐ Сделать тарифом по умолчанию для новых пользователей"
     kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⭐ Цена в Telegram Stars", callback_data=f"admin:plan:stars:{plan.id}")],
         [InlineKeyboardButton(text="🗂 Выбрать группу серверов", callback_data=f"admin:plan:groups:{plan.id}")],
         [InlineKeyboardButton(text="🚀 Предпросмотр согласования", callback_data=f"admin:plan:preview:{plan.id}")],
         [InlineKeyboardButton(text=default_text, callback_data=f"admin:plan:default:{plan.id}")],
@@ -448,6 +454,75 @@ async def plan_add_cancel(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await render_callback(call, "Создание тарифа отменено.", reply_markup=plans_back())
     await call.answer()
+
+
+@catalog_router.callback_query(F.data.startswith("admin:plan:stars:"))
+async def plan_stars_price_start(call: CallbackQuery, state: FSMContext):
+    if not await guard_call(call):
+        return
+    plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
+    if not plan:
+        await call.answer("Тариф не найден.", show_alert=True)
+        return
+    await state.clear()
+    await state.update_data(plan_id=plan_id)
+    await state.set_state(PlanStarsStates.price)
+    await render_callback(
+        call,
+        f"⭐ Цена в Telegram Stars · {plan.name}\n\n"
+        f"Сейчас: {plan.stars_price if plan.stars_price else 'не настроено'}\n\n"
+        "Введите целое число Stars. 0 = отключить продажу этого тарифа через Stars.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:plan:{plan_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@catalog_router.message(PlanStarsStates.price)
+async def plan_stars_price_save(message: Message, state: FSMContext):
+    if not await guard_message(message, state):
+        return
+    data = await state.get_data()
+    plan_id = int(data.get("plan_id") or 0)
+    plan = await db.get_plan(plan_id)
+    if not plan:
+        await state.clear()
+        await render_input(
+            message,
+            "Тариф не найден.",
+            reply_markup=plans_back(),
+        )
+        return
+    try:
+        value = int((message.text or "").strip())
+        if not 0 <= value <= 10_000_000:
+            raise ValueError
+    except ValueError:
+        await render_input(
+            message,
+            "Введите целое число от 0 до 10000000.",
+            reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"),
+        )
+        return
+    await db.set_plan_stars_price(plan_id, value)
+    await audit_from_message(
+        db,
+        message,
+        "plan.stars_price",
+        target_type="plan",
+        target_id=str(plan_id),
+        details=f"stars_price={value}",
+    )
+    await state.clear()
+    await render_input(
+        message,
+        f"✅ Цена в Telegram Stars: {value if value else 'отключена'}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")],
+        ]),
+    )
 
 
 @catalog_router.callback_query(F.data.startswith("admin:plan:toggle:"))

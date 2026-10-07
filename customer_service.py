@@ -100,6 +100,48 @@ class CustomerPortalService:
         plan = await self.db.get_plan(plan_id)
         return plan if plan is not None and plan.active else None
 
+    async def get_or_create_stars_order(
+        self, *, telegram_id: int, plan: PlanRecord,
+    ):
+        if int(plan.stars_price or 0) <= 0:
+            raise ValueError("plan has no Telegram Stars price")
+        profile = await self.profile(telegram_id)
+        if not profile.exists:
+            raise ValueError("customer account does not exist")
+        order, created = await self.commerce.get_or_create_order(
+            telegram_id=telegram_id,
+            plan_id=plan.id,
+            amount_minor=int(plan.stars_price),
+            currency="XTR",
+        )
+        order = await self.commerce.mark_order_awaiting_payment(order.id)
+        return order, created
+
+    async def validate_stars_precheckout(
+        self, *, telegram_id: int, order_id: int, amount: int,
+    ) -> bool:
+        order = await self.commerce.get_order(order_id)
+        if order is None:
+            return False
+        return (
+            int(order.telegram_id) == int(telegram_id)
+            and str(order.currency) == "XTR"
+            and int(order.amount_minor) == int(amount)
+            and str(order.status) in {"created", "awaiting_payment"}
+        )
+
+    async def confirm_stars_payment(
+        self, *, telegram_id: int, order_id: int, charge_id: str,
+        amount: int, raw_payload: bytes,
+    ):
+        return await self.commerce.confirm_telegram_stars_payment(
+            order_id=order_id,
+            telegram_id=telegram_id,
+            charge_id=charge_id,
+            amount=amount,
+            raw_payload=raw_payload,
+        )
+
     async def checkout_for_plan(
         self, *, telegram_id: int, plan: PlanRecord,
     ) -> tuple[CommerceOrderRecord, bool, CheckoutSession | None]:

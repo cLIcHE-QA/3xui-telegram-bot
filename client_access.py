@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    LabeledPrice,
+    Message,
+    PreCheckoutQuery,
+)
 
 from admin_ui import render_callback
-from checkout_provider import CheckoutError, CheckoutUnavailable
 from config import load_settings
 from customer_service import CustomerPortalService, CustomerProviderUnavailable
 from ui_time import format_timestamp
@@ -52,6 +58,21 @@ def money_text(amount_minor: int, currency: str) -> str:
     whole, minor = divmod(amount, 100)
     value = f"{whole}" if minor == 0 else f"{whole}.{minor:02d}"
     return f"{value} {(currency or '').upper()}".strip()
+
+
+def stars_payload(*, order_id: int, telegram_id: int) -> str:
+    return f"stars:v1:{int(order_id)}:{int(telegram_id)}"
+
+
+def parse_stars_payload(value: str) -> tuple[int, int]:
+    parts = str(value or "").split(":")
+    if len(parts) != 4 or parts[:2] != ["stars", "v1"]:
+        raise ValueError("invalid Stars invoice payload")
+    order_id = int(parts[2])
+    telegram_id = int(parts[3])
+    if order_id <= 0 or telegram_id <= 0:
+        raise ValueError("invalid Stars invoice identity")
+    return order_id, telegram_id
 
 
 def portal_menu() -> InlineKeyboardMarkup:
@@ -259,7 +280,11 @@ async def buy_cb(call: CallbackQuery):
 
     rows = [
         [InlineKeyboardButton(
-            text=f"{plan.name} · {money_text(plan.price_minor, plan.currency)}",
+            text=(
+                f"{plan.name} · ⭐ {plan.stars_price}"
+                if int(plan.stars_price or 0) > 0
+                else f"{plan.name} · Stars не настроены"
+            ),
             callback_data=f"client:plan:{plan.id}",
         )]
         for plan in plans[:20]
@@ -291,64 +316,142 @@ async def plan_cb(call: CallbackQuery):
         await call.answer("Тариф недоступен.", show_alert=True)
         return
 
-    try:
-        order, created, checkout = await _service().checkout_for_plan(
-            telegram_id=call.from_user.id,
-            plan=plan,
-        )
-    except CheckoutUnavailable:
+    if int(plan.stars_price or 0) <= 0:
         await render_callback(
             call,
             "💳 Заказ\n\n"
-            "Платёжный провайдер временно недоступен. "
-            "Повторите попытку позже: повтор использует тот же idempotency key "
-            "и не должен создавать второй платёж.",
-            reply_markup=back_menu(),
-        )
-        await call.answer()
-        return
-    except CheckoutError:
-        await render_callback(
-            call,
-            "💳 Заказ\n\nНе удалось подготовить оплату. Попробуйте позже.",
+            "Цена этого тарифа в Telegram Stars ещё не настроена.",
             reply_markup=back_menu(),
         )
         await call.answer()
         return
 
+    order, created = await _service().get_or_create_stars_order(
+        telegram_id=call.from_user.id,
+        plan=plan,
+    )
+    payload = stars_payload(order_id=order.id, telegram_id=call.from_user.id)
+    await call.bot.send_invoice(
+        chat_id=call.from_user.id,
+        title=plan.name[:32],
+        description=(
+            f"VPN-подписка: {plan.name}, срок {plan.duration_days} дней."
+        )[:255],
+        payload=payload,
+        currency="XTR",
+        prices=[
+            LabeledPrice(
+                label=plan.name[:32],
+                amount=int(plan.stars_price),
+            )
+        ],
+        provider_token="",
+    )
     state = "создан" if created else "уже существует"
-    if checkout is None:
-        markup = back_menu()
-        payment_text = (
-            "Оплата пока не подключена. Заказ сохранён, но доступ не изменится "
-            "до подтверждённого события платёжного провайдера."
-        )
-    else:
-        markup = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text="💳 Перейти к оплате",
-                url=checkout.payment.checkout_url,
-            )],
-            [InlineKeyboardButton(
-                text="⬅ Личный кабинет",
-                callback_data="client:home",
-            )],
-        ])
-        payment_text = (
-            "Платёж подготовлен. Доступ изменится только после подтверждённого "
-            "webhook события провайдера."
-        )
-
     await render_callback(
         call,
         "💳 Заказ\n\n"
         f"Тариф: {plan.name}\n"
-        f"Сумма: {money_text(order.amount_minor, order.currency)}\n"
+        f"Сумма: ⭐ {plan.stars_price}\n"
         f"Заказ: #{order.id} · {state}\n\n"
-        + payment_text,
-        reply_markup=markup,
+        "Invoice Telegram Stars отправлен отдельным сообщением. "
+        "Доступ изменится только после успешного платежа Telegram.",
+        reply_markup=back_menu(),
     )
     await call.answer()
+
+
+@client_access_router.pre_checkout_query()
+async def stars_pre_checkout(query: PreCheckoutQuery):
+    if not is_allowed(query.from_user.id):
+        await query.answer(
+            ok=False,
+            error_message="Покупка сейчас недоступна для этого аккаунта.",
+        )
+        return
+    try:
+        order_id, telegram_id = parse_stars_payload(query.invoice_payload)
+    except (TypeError, ValueError):
+        await query.answer(ok=False, error_message="Некорректный платёжный запрос.")
+        return
+    if telegram_id != query.from_user.id or query.currency != "XTR":
+        await query.answer(ok=False, error_message="Платёж не прошёл проверку владельца.")
+        return
+    valid = await _service().validate_stars_precheckout(
+        telegram_id=query.from_user.id,
+        order_id=order_id,
+        amount=query.total_amount,
+    )
+    if not valid:
+        await query.answer(
+            ok=False,
+            error_message="Заказ изменился или больше недоступен. Создайте оплату заново.",
+        )
+        return
+    await query.answer(ok=True)
+
+
+@client_access_router.message(F.successful_payment)
+async def stars_successful_payment(message: Message):
+    if not message.from_user or not message.successful_payment:
+        return
+    payment = message.successful_payment
+    if payment.currency != "XTR":
+        return
+    try:
+        order_id, telegram_id = parse_stars_payload(payment.invoice_payload)
+    except (TypeError, ValueError):
+        await message.answer(
+            "⚠️ Платёж получен, но invoice payload не распознан. Обратитесь в поддержку."
+        )
+        return
+    if telegram_id != message.from_user.id:
+        await message.answer(
+            "⚠️ Платёж получен, но владелец заказа не совпадает. Обратитесь в поддержку."
+        )
+        return
+
+    raw_payload = (
+        f"{payment.invoice_payload}|{payment.currency}|{payment.total_amount}|"
+        f"{payment.telegram_payment_charge_id}"
+    ).encode("utf-8")
+    try:
+        _, order, entitlement, created = await _service().confirm_stars_payment(
+            telegram_id=message.from_user.id,
+            order_id=order_id,
+            charge_id=payment.telegram_payment_charge_id,
+            amount=payment.total_amount,
+            raw_payload=raw_payload,
+        )
+    except Exception:
+        await message.answer(
+            "⚠️ Telegram подтвердил платёж, но локальная фиксация не завершилась. "
+            "Не оплачивайте повторно и обратитесь в поддержку."
+        )
+        raise
+
+    await message.answer(
+        "✅ Оплата Telegram Stars подтверждена.\n\n"
+        f"Заказ: #{order.id}\n"
+        f"Entitlement: #{entitlement.id}\n"
+        + (
+            "Доступ поставлен в очередь на активацию."
+            if created
+            else "Платёж уже был учтён ранее; повторного продления не произошло."
+        ),
+        reply_markup=portal_menu(),
+    )
+
+
+@client_access_router.message(Command("paysupport"))
+async def payment_support(message: Message):
+    if not message.from_user:
+        return
+    await message.answer(
+        "Поддержка по оплате Telegram Stars:\n"
+        "отправьте администратору ваш Telegram ID и время платежа. "
+        "Не публикуйте subscription URL или другие секреты доступа."
+    )
 
 
 @client_access_router.callback_query(F.data == "client:help")
