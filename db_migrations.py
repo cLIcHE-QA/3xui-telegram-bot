@@ -334,7 +334,7 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     "payment_webhook_events": (
         "id", "provider", "provider_event_id", "event_type", "signature_valid",
         "payload_sha256", "metadata_json", "processing_status", "order_id", "payment_id",
-        "received_at", "applied_at", "result_code",
+        "received_at", "applied_at", "result_code", "provider_payment_id",
     ),
     "entitlements": (
         "id", "telegram_id", "order_id", "plan_id", "status", "starts_at",
@@ -371,6 +371,7 @@ async def _validate_current_schema(
     include_website_monitoring: bool = True,
     include_website_watcher_lifecycle: bool = True,
     include_commerce: bool = True,
+    include_payment_event_reference: bool = True,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -395,6 +396,10 @@ async def _validate_current_schema(
         if table == "website_monitor_watchers" and not include_website_watcher_lifecycle:
             expected = tuple(
                 column for column in expected if column != "monitoring_enabled"
+            )
+        if table == "payment_webhook_events" and not include_payment_event_reference:
+            expected = tuple(
+                column for column in expected if column != "provider_payment_id"
             )
         cursor = await db.execute(f'PRAGMA table_info("{table}")')
         rows = await cursor.fetchall()
@@ -771,6 +776,19 @@ async def _migration_0006_client_portal_commerce_foundation(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_entitlements_order "
         "ON entitlements(order_id)"
     )
+    await _validate_current_schema(db, include_payment_event_reference=False)
+
+
+async def _migration_0007_payment_event_reconciliation_v5_0_0(
+    db: aiosqlite.Connection,
+) -> None:
+    cursor = await db.execute('PRAGMA table_info("payment_webhook_events")')
+    columns = {str(row[1]) for row in await cursor.fetchall()}
+    if "provider_payment_id" not in columns:
+        await db.execute(
+            "ALTER TABLE payment_webhook_events "
+            "ADD COLUMN provider_payment_id TEXT NOT NULL DEFAULT ''"
+        )
     await _validate_current_schema(db)
 
 
@@ -809,6 +827,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=6,
         name="client_portal_commerce_foundation_v5_0_0",
         apply=_migration_0006_client_portal_commerce_foundation,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=7,
+        name="payment_event_reconciliation_v5_0_0",
+        apply=_migration_0007_payment_event_reconciliation_v5_0_0,
         requires_backup=False,
     ),
 )
