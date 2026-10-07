@@ -36,6 +36,15 @@ class CustomerProfile:
     sub_id: str = ""
 
 
+@dataclass(frozen=True)
+class CustomerDiagnostics:
+    account_exists: bool
+    entitlement_status: str = ""
+    subscription_available: bool = False
+    provider_reachable: bool | None = None
+    note: str = ""
+
+
 class CustomerAccessProvider(Protocol):
     async def traffic(self, email: str) -> CustomerTraffic: ...
 
@@ -92,6 +101,33 @@ class CustomerPortalService:
         if not profile.exists:
             return None
         return await self.provider.devices(profile.email)
+
+    async def diagnostics(self, telegram_id: int) -> CustomerDiagnostics:
+        profile = await self.profile(telegram_id)
+        if not profile.exists:
+            return CustomerDiagnostics(
+                account_exists=False,
+                note="Клиентский аккаунт ещё не оформлен.",
+            )
+        entitlement = await self.db.get_latest_entitlement_for_user(telegram_id)
+        entitlement_status = entitlement.status if entitlement else "legacy"
+        provider_reachable: bool | None = None
+        try:
+            await self.provider.traffic(profile.email)
+            provider_reachable = True
+        except CustomerProviderUnavailable:
+            provider_reachable = False
+        return CustomerDiagnostics(
+            account_exists=True,
+            entitlement_status=entitlement_status,
+            subscription_available=bool(profile.sub_id),
+            provider_reachable=provider_reachable,
+            note=(
+                "Для legacy-доступа entitlement journal может отсутствовать."
+                if entitlement is None
+                else ""
+            ),
+        )
 
     async def active_plans(self) -> list[PlanRecord]:
         return [plan for plan in await self.db.list_plans() if plan.active]

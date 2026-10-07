@@ -2004,6 +2004,23 @@ class Database:
             rows = await cur.fetchall()
             return [EntitlementRecord(**dict(row)) for row in rows]
 
+    async def get_latest_entitlement_for_user(
+        self, telegram_id: int,
+    ) -> EntitlementRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM entitlements
+                WHERE telegram_id = ?
+                ORDER BY updated_at DESC, id DESC
+                LIMIT 1
+                """,
+                (int(telegram_id),),
+            )
+            row = await cur.fetchone()
+            return EntitlementRecord(**dict(row)) if row else None
+
     async def get_entitlement(self, entitlement_id: int) -> EntitlementRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
