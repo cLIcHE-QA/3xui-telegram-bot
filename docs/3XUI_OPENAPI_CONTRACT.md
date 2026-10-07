@@ -6,16 +6,16 @@
 
 Текущий pinned contract:
 
-- 3x-ui: `v3.8.5`;
+- 3x-ui: `v3.9.0`;
 - upstream repository: `MHSanaei/3x-ui`;
-- upstream schema: `frontend/public/openapi.json` из тега `v3.8.5`;
-- upstream Git blob SHA: `d1f9b499e43d4370d68fdf9ca6045e1d967b42ad`;
-- vendored copy: `contracts/3xui/v3.8.5/openapi.json`;
+- upstream schema: `frontend/public/openapi.json` из тега `v3.9.0`;
+- upstream Git blob SHA: `298f96690c012a7fd80822aab9a91934c7dc4f79`;
+- vendored copy: `contracts/3xui/v3.9.0/openapi.json`;
 - manifest используемого bot API surface: `contracts/3xui/contract.json`.
 
 Schema берётся из immutable release tag, а не из upstream `main`. CI не скачивает OpenAPI из сети и поэтому не меняет compatibility contract самопроизвольно.
 
-Начиная с `v4.25.0` bot API surface на той же pinned schema `v3.8.5` расширен reviewed client-connections routes: `POST /panel/api/clients/ips/{email}`, `POST /panel/api/clients/hwids/{email}` и `DELETE /panel/api/clients/hwids/{email}/{id}`. Текущий manifest содержит **54** endpoint; изменение не означает смену поддерживаемой версии 3x-ui или schema blob.
+Начиная с `v4.25.0` bot API surface включает reviewed client-connections routes: `POST /panel/api/clients/ips/{email}`, `POST /panel/api/clients/hwids/{email}` и `DELETE /panel/api/clients/hwids/{email}/{id}`. Текущий manifest содержит **54** endpoint. При переходе `v3.8.5 → v3.9.0` этот используемый surface сохранил route/method, Bearer auth, request body/media/mandatory fields и проверяемый JSON response envelope; runtime client changes для contract parity не потребовались.
 
 ## Что проверяет CI
 
@@ -45,7 +45,7 @@ Vendored OpenAPI не используется runtime-кодом для авт�
 
 ## Исключение: `GET /panel/api/server/getDb`
 
-В OpenAPI 3x-ui v3.8.5 этот endpoint описан generic JSON response envelope, тогда как фактический endpoint выдаёт database backup как binary attachment.
+В OpenAPI 3x-ui v3.9.0 этот endpoint по-прежнему описан generic JSON response envelope, тогда как фактический endpoint выдаёт database backup как binary attachment.
 
 Поэтому для `GET /panel/api/server/getDb` OpenAPI gate проверяет route, HTTP method и Bearer auth, но не применяет общий JSON-response-envelope check. Binary download semantics отдельно покрываются runtime regression tests `XUIClient.download_database()`.
 
