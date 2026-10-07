@@ -41,6 +41,7 @@ class PlanRecord:
     server_group_id: int | None
     active: int
     created_at: int
+    stars_price: int
 
 
 @dataclass
@@ -480,23 +481,34 @@ class Database:
         price_minor: int,
         currency: str,
         server_group_id: int | None = None,
+        stars_price: int = 0,
     ) -> int:
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
                 """
                 INSERT INTO plans(
                     name, duration_days, traffic_gb, ip_limit,
-                    price_minor, currency, server_group_id, active, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+                    price_minor, currency, server_group_id, active, created_at,
+                    stars_price
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
                 """,
                 (
                     name.strip(), int(duration_days), int(traffic_gb), int(ip_limit),
                     int(price_minor), currency.strip().upper(), server_group_id,
-                    int(time.time()),
+                    int(time.time()), max(0, int(stars_price)),
                 ),
             )
             await db.commit()
             return int(cur.lastrowid)
+
+    async def set_plan_stars_price(self, plan_id: int, stars_price: int) -> None:
+        value = max(0, int(stars_price))
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "UPDATE plans SET stars_price = ? WHERE id = ?",
+                (value, int(plan_id)),
+            )
+            await db.commit()
 
     async def set_plan_active(self, plan_id: int, active: bool):
         async with aiosqlite.connect(self.path) as db:
@@ -1295,6 +1307,152 @@ class Database:
             )
             row = await cur.fetchone()
             return CommercePaymentRecord(**dict(row)) if row else None
+
+    async def confirm_telegram_stars_payment(
+        self, *, order_id: int, telegram_id: int, charge_id: str,
+        amount: int, payload_sha256: str,
+    ) -> tuple[CommercePaymentRecord, CommerceOrderRecord, EntitlementRecord, bool]:
+        now = int(time.time())
+        provider = "telegram_stars"
+        charge = str(charge_id)[:160]
+        digest = str(payload_sha256)[:64]
+        if not charge:
+            raise RuntimeError("Telegram Stars charge id must not be empty.")
+
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (int(order_id),),
+                )
+                order = await cur.fetchone()
+                if order is None:
+                    raise RuntimeError("Stars order does not exist.")
+                if int(order["telegram_id"]) != int(telegram_id):
+                    raise RuntimeError("Stars order ownership mismatch.")
+                if str(order["currency"]) != "XTR" or int(order["amount_minor"]) != int(amount):
+                    raise RuntimeError("Stars payment amount/currency does not match order.")
+                if str(order["status"]) not in {"created", "awaiting_payment", "paid"}:
+                    raise RuntimeError(
+                        f"Order status {order['status']!r} cannot accept Stars payment."
+                    )
+
+                cur = await db.execute(
+                    """
+                    SELECT * FROM commerce_payments
+                    WHERE provider = ? AND provider_payment_id = ?
+                    """,
+                    (provider, charge),
+                )
+                payment = await cur.fetchone()
+                created = payment is None
+                if payment is None:
+                    cur = await db.execute(
+                        """
+                        INSERT INTO commerce_payments(
+                            order_id, provider, provider_payment_id, amount_minor, currency,
+                            status, created_at, updated_at, confirmed_at, checkout_url,
+                            idempotency_key
+                        ) VALUES (?, ?, ?, ?, 'XTR', 'confirmed', ?, ?, ?, '', ?)
+                        """,
+                        (
+                            int(order_id), provider, charge, int(amount),
+                            now, now, now, f"stars:{charge}"[:160],
+                        ),
+                    )
+                    payment_id = int(cur.lastrowid)
+                else:
+                    if (
+                        int(payment["order_id"]) != int(order_id)
+                        or int(payment["amount_minor"]) != int(amount)
+                        or str(payment["currency"]) != "XTR"
+                    ):
+                        raise RuntimeError(
+                            "Telegram Stars charge id is already bound to different payment data."
+                        )
+                    payment_id = int(payment["id"])
+                    if str(payment["status"]) != "confirmed":
+                        await db.execute(
+                            """
+                            UPDATE commerce_payments
+                            SET status = 'confirmed', updated_at = ?,
+                                confirmed_at = CASE WHEN confirmed_at = 0 THEN ? ELSE confirmed_at END
+                            WHERE id = ?
+                            """,
+                            (now, now, payment_id),
+                        )
+
+                await db.execute(
+                    """
+                    INSERT OR IGNORE INTO payment_webhook_events(
+                        provider, provider_event_id, event_type, signature_valid,
+                        payload_sha256, metadata_json, processing_status,
+                        order_id, payment_id, received_at, applied_at, result_code,
+                        provider_payment_id
+                    ) VALUES (
+                        ?, ?, 'payment.confirmed', 1, ?, '{}', 'applied',
+                        ?, ?, ?, ?, 'confirmed', ?
+                    )
+                    """,
+                    (
+                        provider, charge, digest, int(order_id), payment_id,
+                        now, now, charge,
+                    ),
+                )
+
+                if str(order["status"]) != "paid":
+                    await db.execute(
+                        """
+                        UPDATE commerce_orders
+                        SET status = 'paid', updated_at = ?,
+                            paid_at = CASE WHEN paid_at = 0 THEN ? ELSE paid_at END
+                        WHERE id = ?
+                        """,
+                        (now, now, int(order_id)),
+                    )
+
+                await db.execute(
+                    """
+                    INSERT OR IGNORE INTO entitlements(
+                        telegram_id, order_id, plan_id, status, starts_at,
+                        expires_at, created_at, updated_at
+                    ) VALUES (?, ?, ?, 'pending', 0, 0, ?, ?)
+                    """,
+                    (
+                        int(telegram_id), int(order_id), int(order["plan_id"]),
+                        now, now,
+                    ),
+                )
+
+                cur = await db.execute(
+                    "SELECT * FROM commerce_payments WHERE id = ?",
+                    (payment_id,),
+                )
+                payment = await cur.fetchone()
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (int(order_id),),
+                )
+                order = await cur.fetchone()
+                cur = await db.execute(
+                    "SELECT * FROM entitlements WHERE order_id = ?",
+                    (int(order_id),),
+                )
+                entitlement = await cur.fetchone()
+                if payment is None or order is None or entitlement is None:
+                    raise RuntimeError("Stars confirmation postcondition failed.")
+                await db.commit()
+                return (
+                    CommercePaymentRecord(**dict(payment)),
+                    CommerceOrderRecord(**dict(order)),
+                    EntitlementRecord(**dict(entitlement)),
+                    created,
+                )
+            except Exception:
+                await db.rollback()
+                raise
 
     async def record_payment_webhook_event(
         self, *, provider: str, provider_event_id: str, event_type: str,
