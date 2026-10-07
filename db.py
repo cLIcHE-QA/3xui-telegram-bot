@@ -1598,6 +1598,24 @@ class Database:
             await db.commit()
             return EntitlementRecord(**dict(row)), True
 
+    async def list_pending_entitlements(
+        self, *, limit: int = 100,
+    ) -> list[EntitlementRecord]:
+        safe_limit = max(1, min(500, int(limit)))
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM entitlements
+                WHERE status = 'pending'
+                ORDER BY created_at ASC, id ASC
+                LIMIT ?
+                """,
+                (safe_limit,),
+            )
+            rows = await cur.fetchall()
+            return [EntitlementRecord(**dict(row)) for row in rows]
+
     async def get_entitlement(self, entitlement_id: int) -> EntitlementRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
