@@ -6,9 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Unreleased — v5 release candidate path
-- Release automation и deploy tooling поддерживают immutable `vX.Y.Z-rc.N`; GitHub публикует такой tag как prerelease для controlled production canary.
-- Финальный `v5.0.0` остаётся заблокирован до PASS production acceptance; canary не требует deployment произвольного `main`.
+## v5.0.0-rc.1 — Client Portal controlled canary
+- Первый immutable release candidate Client Portal для controlled production acceptance; pilot allowlist сохраняется, публичный signup не открывается.
+- Client Portal включает provider-neutral customer boundary, профиль/подписку/трафик/устройства, Telegram Stars purchase/renewal с Terms acceptance, idempotent payment/order/entitlement journal и provisioning worker.
+- Добавлены onboarding для iOS/Android/Windows/macOS/Linux, локальный private-chat QR subscription URL и read-only self-service diagnostics без provisioning/reconcile mutations.
+- Stars production hardening включает строгую pre-checkout/owner/amount/currency validation, refund/support flow, отдельный payment kill-switch и обработку уже подтверждённого successful_payment даже при остановке новых платежей.
+- Launch safety включает независимый Client Portal kill-switch, per-user rate limit, v5 launch audit regression gate, data-retention policy и production acceptance/canary runbook.
+- Release/deploy tooling поддерживает immutable `vX.Y.Z-rc.N` GitHub prerelease; финальный `v5.0.0` остаётся заблокирован до PASS acceptance по `docs/V5_PRODUCTION_ACCEPTANCE.md`.
+- Текущий SQLite schema level включает v10 Stars production hardening; pinned 3x-ui OpenAPI contract остаётся v3.8.5.
 
 
 
