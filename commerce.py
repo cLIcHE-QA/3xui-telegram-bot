@@ -110,6 +110,75 @@ class CommerceService:
             raise CommerceIntegrityError("Webhook event cannot be read back.")
         return event, created
 
+    async def reconcile_confirmed_payment_event(
+        self, event_id: int,
+    ) -> tuple[
+        PaymentWebhookEventRecord,
+        CommercePaymentRecord | None,
+        CommerceOrderRecord | None,
+        EntitlementRecord | None,
+        bool,
+    ]:
+        event = await self.db.get_payment_webhook_event(event_id)
+        if event is None:
+            raise CommerceIntegrityError("Webhook event does not exist.")
+        if not event.signature_valid:
+            raise CommerceIntegrityError("Unauthenticated webhook event cannot be reconciled.")
+        if event.event_type != "payment.confirmed":
+            raise CommerceIntegrityError("Only payment.confirmed events are reconcilable.")
+        if not event.provider_payment_id:
+            raise CommerceIntegrityError("Webhook event has no persisted provider payment reference.")
+        if event.processing_status == "applied":
+            return await self.db.apply_confirmed_payment_event(
+                provider=event.provider,
+                provider_event_id=event.provider_event_id,
+                event_type=event.event_type,
+                signature_valid=True,
+                payload_sha256=event.payload_sha256,
+                metadata_json=event.metadata_json,
+                provider_payment_id=event.provider_payment_id,
+            )
+        if not (
+            event.processing_status == "failed"
+            and event.result_code == "payment_not_found"
+        ):
+            raise CommerceStateError(
+                f"Webhook event #{event.id} is not in a recoverable state."
+            )
+        return await self.db.apply_confirmed_payment_event(
+            provider=event.provider,
+            provider_event_id=event.provider_event_id,
+            event_type=event.event_type,
+            signature_valid=True,
+            payload_sha256=event.payload_sha256,
+            metadata_json=event.metadata_json,
+            provider_payment_id=event.provider_payment_id,
+        )
+
+    async def reconcile_recoverable_payment_events(
+        self, *, limit: int = 100,
+    ) -> dict[str, int]:
+        events = await self.db.list_recoverable_payment_webhook_events(limit=limit)
+        applied = 0
+        still_missing = 0
+        failed = 0
+        for event in events:
+            try:
+                result = await self.reconcile_confirmed_payment_event(event.id)
+            except Exception:
+                failed += 1
+                continue
+            if result[0].processing_status == "applied":
+                applied += 1
+            else:
+                still_missing += 1
+        return {
+            "checked": len(events),
+            "applied": applied,
+            "still_missing": still_missing,
+            "failed": failed,
+        }
+
     async def apply_confirmed_payment_event(
         self, *, provider: str, provider_event_id: str, provider_payment_id: str,
         raw_payload: bytes, signature_valid: bool,
