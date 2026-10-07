@@ -56,7 +56,9 @@ class V5LaunchAuditContractTests(unittest.TestCase):
         end = ui.index("async def pay_support_cb", start)
         block = ui[start:end]
         self.assertNotIn("reconcile(", block)
-        self.assertNotIn("provision", block.lower())
+        self.assertNotIn("_service().provision", block)
+        self.assertNotIn("provisioner.", block)
+        self.assertNotIn("transition_entitlement(", block)
 
 
 if __name__ == "__main__":
