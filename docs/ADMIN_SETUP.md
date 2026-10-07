@@ -247,6 +247,31 @@ NODE_BACKUP_TARGETS=
 ADMIN_TELEGRAM_IDS — break-glass Owners. Не добавляй туда случайных пользователей.
 
 
+### Subscription compatibility proxy: отдельные limits для browser assets
+
+Если публичный `COMPAT_SUBSCRIPTION_URL_TEMPLATE` включён через nginx, не применяй customer-профиль `5r/s + burst=10 + conn=4` к `/compat/assets/`. 3x-ui subscription SPA использует Vite `modulepreload`; Safari/WebKit может одновременно запросить десятки JS/CSS resources. При общем строгом `location /compat/` nginx начинает отвечать `503` части bundles, и Safari остаётся на белой странице, даже если Chrome/Firefox работают.
+
+В `http {}` используй отдельные bounded zones для assets:
+
+~~~nginx
+limit_req_zone $binary_remote_addr zone=sub_compat_rate:10m rate=5r/s;
+limit_conn_zone $binary_remote_addr zone=sub_compat_conn:10m;
+
+limit_req_zone $binary_remote_addr zone=sub_compat_assets_rate:10m rate=40r/s;
+limit_conn_zone $binary_remote_addr zone=sub_compat_assets_conn:10m;
+~~~
+
+В public `server {}` более специфичный `location ^~ /compat/assets/` должен идти отдельно от `location ^~ /compat/` и использовать `sub_compat_assets_rate burst=80` + `sub_compat_assets_conn 32`. Customer subscription route сохраняет прежние `sub_compat_rate burst=10` + `sub_compat_conn 4`. Для обоих routes оставляй `access_log off`, `proxy_buffering off`, `proxy_request_buffering off`, `proxy_max_temp_file_size 0` и существующие timeout/header settings.
+
+Это не снимает общий application bound: `subscription_proxy.py` по-прежнему ограничивает upstream до 32 concurrent fetch и 8 MiB на response. После изменения обязательно:
+
+~~~bash
+sudo nginx -t
+sudo systemctl reload nginx
+~~~
+
+Targeted smoke: открыть subscription page в приватном окне Safari/WebKit и убедиться, что `/compat/assets/*.js|css` не получают HTTP 503.
+
 ### Optional v5 payment webhook ingress
 
 Первый provider-facing contract v5 использует тот же HTTP listener, что и compatibility subscription proxy, но отдельный route:

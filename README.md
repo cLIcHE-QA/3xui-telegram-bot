@@ -248,35 +248,72 @@ Docker Compose публикует proxy только на loopback Master:
 127.0.0.1:18080 -> container:8080
 ~~~
 
-Пример reproducible reverse-proxy policy. Zones задаются один раз в `http {}`, а limits — в публичном `/compat/` location:
+Пример reproducible reverse-proxy policy. Zones задаются один раз в `http {}`. Customer subscription requests и browser assets используют разные front-door limits: subscription URL остаётся строгим, а Vite assets получают отдельный bounded burst для browser `modulepreload`.
 
 ~~~nginx
 # http {}
 limit_req_zone $binary_remote_addr zone=sub_compat_rate:10m rate=5r/s;
 limit_conn_zone $binary_remote_addr zone=sub_compat_conn:10m;
 
-location /compat/ {
+# Subscription SPA загружает около нескольких десятков JS/CSS resources одним
+# burst. Отдельная zone не ослабляет customer subscription endpoint.
+limit_req_zone $binary_remote_addr zone=sub_compat_assets_rate:10m rate=40r/s;
+limit_conn_zone $binary_remote_addr zone=sub_compat_assets_conn:10m;
+
+location ^~ /compat/assets/ {
+    access_log off;
+
+    # Browser-safe, но bounded asset fan-out. Application всё равно сохраняет
+    # глобальный MAX_UPSTREAM_CONCURRENCY=32 и 8 MiB response bound.
+    limit_req zone=sub_compat_assets_rate burst=80 nodelay;
+    limit_conn sub_compat_assets_conn 32;
+
+    proxy_pass http://127.0.0.1:18080;
+    proxy_http_version 1.1;
+
+    proxy_connect_timeout 5s;
+    proxy_send_timeout 30s;
+    proxy_read_timeout 25s;
+
+    proxy_buffering off;
+    proxy_request_buffering off;
+    proxy_max_temp_file_size 0;
+    proxy_redirect off;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+}
+
+location ^~ /compat/ {
     # URI содержит bearer-like sub_id: не сохраняй request URI в access logs.
     access_log off;
 
-    # Per-client front-door bounds. Application дополнительно ограничивает
-    # upstream concurrency глобально и response body размером 8 MiB.
+    # Customer subscription endpoint остаётся строго ограниченным.
     limit_req zone=sub_compat_rate burst=10 nodelay;
     limit_conn sub_compat_conn 4;
 
     proxy_pass http://127.0.0.1:18080;
     proxy_http_version 1.1;
+
+    proxy_connect_timeout 5s;
+    proxy_send_timeout 30s;
     proxy_read_timeout 25s;
 
-    # Не буферизовать крупные Vite JS/CSS bundles subscription SPA во временные
-    # файлы nginx. Иначе часть браузеров может получать белую страницу при
-    # первой загрузке assets за reverse proxy.
+    proxy_buffering off;
+    proxy_request_buffering off;
     proxy_max_temp_file_size 0;
+    proxy_redirect off;
+
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
 }
 ~~~
+
+Safari/WebKit может агрессивно запускать все `<link rel="modulepreload">` и stylesheet requests параллельно. Нельзя применять к `/compat/assets/` customer-профиль `5r/s + burst=10 + conn=4`: nginx тогда отвечает `503` части JS/CSS и SPA остаётся белой. Отдельный asset profile выше сохраняет bounded front-door policy, а общий application upstream cap остаётся 32.
 
 Локальная health-проверка:
 
