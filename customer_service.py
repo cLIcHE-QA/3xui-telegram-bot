@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 from typing import Protocol
 
 from checkout_service import CheckoutService, CheckoutSession
@@ -34,6 +35,7 @@ class CustomerProfile:
     plan_name: str = ""
     expiry_time: int = 0
     sub_id: str = ""
+    access_status: str = "missing"
 
 
 @dataclass(frozen=True)
@@ -75,13 +77,21 @@ class CustomerPortalService:
             return CustomerProfile(exists=False)
         profile = await self.db.get_user_profile(telegram_id)
         plan = await self.db.get_plan(profile.plan_id) if profile and profile.plan_id else None
+        expiry_time = int(rec.expiry_time or 0)
+        now_ms = int(time.time() * 1000)
+        access_status = (
+            "expired"
+            if expiry_time > 0 and expiry_time <= now_ms
+            else "active"
+        )
         return CustomerProfile(
             exists=True,
             email=rec.email,
             display_name=getattr(profile, "display_name", "") or "",
             plan_name=plan.name if plan else "",
-            expiry_time=int(rec.expiry_time or 0),
+            expiry_time=expiry_time,
             sub_id=rec.sub_id,
+            access_status=access_status,
         )
 
     async def subscription_url(self, telegram_id: int) -> str | None:
@@ -110,7 +120,19 @@ class CustomerPortalService:
                 note="Клиентский аккаунт ещё не оформлен.",
             )
         entitlement = await self.db.get_latest_entitlement_for_user(telegram_id)
-        entitlement_status = entitlement.status if entitlement else "legacy"
+        now = int(time.time())
+        if entitlement is not None:
+            entitlement_status = entitlement.status
+            if (
+                entitlement_status in {"active", "suspended"}
+                and int(entitlement.expires_at or 0) > 0
+                and int(entitlement.expires_at) <= now
+            ):
+                entitlement_status = "expired"
+        else:
+            entitlement_status = (
+                "expired" if profile.access_status == "expired" else "legacy"
+            )
         provider_reachable: bool | None = None
         try:
             await self.provider.traffic(profile.email)
