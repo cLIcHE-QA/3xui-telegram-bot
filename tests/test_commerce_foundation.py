@@ -87,6 +87,133 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("411111", first.metadata_json)
         self.assertNotIn("drop-me", first.metadata_json)
 
+    async def test_confirmed_event_atomically_pays_order_and_creates_one_entitlement(self):
+        order = await self.service.create_order(
+            telegram_id=1002, plan_id=8, amount_minor=59900, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-confirm-1",
+        )
+        waiting = await self.db.get_commerce_order(order.id)
+        self.assertEqual(waiting.status, "awaiting_payment")
+
+        event, confirmed, paid, entitlement, created = (
+            await self.service.apply_confirmed_payment_event(
+                provider="test", provider_event_id="evt-confirm-1",
+                provider_payment_id="pay-confirm-1",
+                raw_payload=b'{"status":"confirmed"}', signature_valid=True,
+            )
+        )
+        self.assertTrue(created)
+        self.assertEqual(event.processing_status, "applied")
+        self.assertEqual(confirmed.id, payment.id)
+        self.assertEqual(confirmed.status, "confirmed")
+        self.assertEqual(paid.status, "paid")
+        self.assertEqual(entitlement.order_id, order.id)
+        self.assertEqual(entitlement.status, "pending")
+
+        duplicate = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-confirm-1",
+            provider_payment_id="pay-confirm-1",
+            raw_payload=b'{"status":"confirmed"}', signature_valid=True,
+        )
+        self.assertFalse(duplicate[4])
+        self.assertEqual(duplicate[3].id, entitlement.id)
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(
+                conn.execute(
+                    "SELECT COUNT(*) FROM entitlements WHERE order_id = ?",
+                    (order.id,),
+                ).fetchone()[0],
+                1,
+            )
+
+    async def test_invalid_signature_is_journaled_but_never_changes_financial_state(self):
+        order = await self.service.create_order(
+            telegram_id=1003, plan_id=9, amount_minor=69900, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-invalid-signature",
+        )
+        event, changed_payment, changed_order, entitlement, _ = (
+            await self.service.apply_confirmed_payment_event(
+                provider="test", provider_event_id="evt-invalid-signature",
+                provider_payment_id="pay-invalid-signature",
+                raw_payload=b"invalid", signature_valid=False,
+            )
+        )
+        self.assertEqual(event.processing_status, "ignored")
+        self.assertEqual(event.result_code, "invalid_signature")
+        self.assertIsNone(changed_payment)
+        self.assertIsNone(changed_order)
+        self.assertIsNone(entitlement)
+        self.assertEqual((await self.db.get_commerce_payment(payment.id)).status, "created")
+        self.assertEqual((await self.db.get_commerce_order(order.id)).status, "awaiting_payment")
+
+    async def test_transaction_rolls_back_crash_between_payment_and_entitlement(self):
+        order = await self.service.create_order(
+            telegram_id=1004, plan_id=10, amount_minor=79900, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-crash",
+        )
+        with self.assertRaisesRegex(RuntimeError, "synthetic failure"):
+            await self.service.apply_confirmed_payment_event(
+                provider="test", provider_event_id="evt-crash",
+                provider_payment_id="pay-crash", raw_payload=b"confirmed",
+                signature_valid=True, fail_after_payment_update=True,
+            )
+
+        self.assertEqual((await self.db.get_commerce_payment(payment.id)).status, "created")
+        self.assertEqual((await self.db.get_commerce_order(order.id)).status, "awaiting_payment")
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(
+                conn.execute(
+                    "SELECT COUNT(*) FROM payment_webhook_events WHERE provider_event_id = 'evt-crash'"
+                ).fetchone()[0],
+                0,
+            )
+            self.assertEqual(
+                conn.execute(
+                    "SELECT COUNT(*) FROM entitlements WHERE order_id = ?",
+                    (order.id,),
+                ).fetchone()[0],
+                0,
+            )
+
+        restarted = CommerceService(Database(str(self.path)))
+        event, confirmed, paid, entitlement, created = (
+            await restarted.apply_confirmed_payment_event(
+                provider="test", provider_event_id="evt-crash",
+                provider_payment_id="pay-crash", raw_payload=b"confirmed",
+                signature_valid=True,
+            )
+        )
+        self.assertTrue(created)
+        self.assertEqual(event.processing_status, "applied")
+        self.assertEqual(confirmed.status, "confirmed")
+        self.assertEqual(paid.status, "paid")
+        self.assertIsNotNone(entitlement)
+
+    async def test_duplicate_event_id_with_different_payload_fails_closed(self):
+        order = await self.service.create_order(
+            telegram_id=1005, plan_id=11, amount_minor=89900, currency="RUB",
+        )
+        await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-reuse",
+        )
+        await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-reuse",
+            provider_payment_id="pay-reuse", raw_payload=b"first",
+            signature_valid=True,
+        )
+        with self.assertRaisesRegex(RuntimeError, "reused with different content"):
+            await self.service.apply_confirmed_payment_event(
+                provider="test", provider_event_id="evt-reuse",
+                provider_payment_id="pay-reuse", raw_payload=b"second",
+                signature_valid=True,
+            )
+
     async def test_state_machine_rejects_unsafe_transitions(self):
         validate_transition("created", "awaiting_payment", ORDER_TRANSITIONS, kind="order")
         validate_transition("unknown", "confirmed", PAYMENT_TRANSITIONS, kind="payment")

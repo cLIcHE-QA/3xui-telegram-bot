@@ -1073,20 +1073,46 @@ class Database:
     ) -> int:
         now = int(time.time())
         async with aiosqlite.connect(self.path) as db:
-            cur = await db.execute(
-                """
-                INSERT INTO commerce_payments(
-                    order_id, provider, provider_payment_id, amount_minor, currency,
-                    status, created_at, updated_at, confirmed_at
-                ) VALUES (?, ?, ?, ?, ?, 'created', ?, ?, 0)
-                """,
-                (
-                    int(order_id), str(provider)[:32], str(provider_payment_id)[:160],
-                    max(0, int(amount_minor)), str(currency).upper(), now, now,
-                ),
-            )
-            await db.commit()
-            return int(cur.lastrowid)
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (int(order_id),),
+                )
+                order = await cur.fetchone()
+                if order is None:
+                    raise RuntimeError("Order does not exist.")
+                if str(order["status"]) not in {"created", "awaiting_payment"}:
+                    raise RuntimeError(
+                        f"Order status {order['status']!r} cannot accept a new payment."
+                    )
+                cur = await db.execute(
+                    """
+                    INSERT INTO commerce_payments(
+                        order_id, provider, provider_payment_id, amount_minor, currency,
+                        status, created_at, updated_at, confirmed_at
+                    ) VALUES (?, ?, ?, ?, ?, 'created', ?, ?, 0)
+                    """,
+                    (
+                        int(order_id), str(provider)[:32], str(provider_payment_id)[:160],
+                        max(0, int(amount_minor)), str(currency).upper(), now, now,
+                    ),
+                )
+                if str(order["status"]) == "created":
+                    await db.execute(
+                        """
+                        UPDATE commerce_orders
+                        SET status = 'awaiting_payment', updated_at = ?
+                        WHERE id = ?
+                        """,
+                        (now, int(order_id)),
+                    )
+                await db.commit()
+                return int(cur.lastrowid)
+            except Exception:
+                await db.rollback()
+                raise
 
     async def get_commerce_payment(
         self, payment_id: int,
@@ -1131,6 +1157,240 @@ class Database:
             row = await cur.fetchone()
             await db.commit()
             return int(row[0]), created
+
+    async def apply_confirmed_payment_event(
+        self, *, provider: str, provider_event_id: str, event_type: str,
+        signature_valid: bool, payload_sha256: str, metadata_json: str,
+        provider_payment_id: str,
+        fail_after_payment_update: bool = False,
+    ) -> tuple[PaymentWebhookEventRecord, CommercePaymentRecord | None, CommerceOrderRecord | None, EntitlementRecord | None, bool]:
+        now = int(time.time())
+        provider_value = str(provider)[:32]
+        event_value = str(provider_event_id)[:160]
+        payment_ref = str(provider_payment_id)[:160]
+        digest = str(payload_sha256)[:64]
+        event_type_value = str(event_type)[:64]
+        metadata_value = str(metadata_json)[:2000]
+
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    """
+                    INSERT OR IGNORE INTO payment_webhook_events(
+                        provider, provider_event_id, event_type, signature_valid,
+                        payload_sha256, metadata_json, processing_status,
+                        order_id, payment_id, received_at, applied_at, result_code
+                    ) VALUES (?, ?, ?, ?, ?, ?, 'received', NULL, NULL, ?, 0, '')
+                    """,
+                    (
+                        provider_value, event_value, event_type_value,
+                        1 if signature_valid else 0, digest, metadata_value, now,
+                    ),
+                )
+                created = cur.rowcount == 1
+                cur = await db.execute(
+                    """
+                    SELECT * FROM payment_webhook_events
+                    WHERE provider = ? AND provider_event_id = ?
+                    """,
+                    (provider_value, event_value),
+                )
+                event_row = await cur.fetchone()
+                if event_row is None:
+                    raise RuntimeError("Webhook event disappeared inside transaction.")
+
+                if (
+                    str(event_row["event_type"]) != event_type_value
+                    or int(event_row["signature_valid"]) != (1 if signature_valid else 0)
+                    or str(event_row["payload_sha256"]) != digest
+                ):
+                    raise RuntimeError("Webhook event identity was reused with different content.")
+
+                if str(event_row["processing_status"]) == "applied":
+                    payment = None
+                    order = None
+                    entitlement = None
+                    if event_row["payment_id"] is not None:
+                        cur = await db.execute(
+                            "SELECT * FROM commerce_payments WHERE id = ?",
+                            (int(event_row["payment_id"]),),
+                        )
+                        row = await cur.fetchone()
+                        payment = CommercePaymentRecord(**dict(row)) if row else None
+                    if event_row["order_id"] is not None:
+                        cur = await db.execute(
+                            "SELECT * FROM commerce_orders WHERE id = ?",
+                            (int(event_row["order_id"]),),
+                        )
+                        row = await cur.fetchone()
+                        order = CommerceOrderRecord(**dict(row)) if row else None
+                        cur = await db.execute(
+                            "SELECT * FROM entitlements WHERE order_id = ?",
+                            (int(event_row["order_id"]),),
+                        )
+                        row = await cur.fetchone()
+                        entitlement = EntitlementRecord(**dict(row)) if row else None
+                    await db.commit()
+                    return (
+                        PaymentWebhookEventRecord(**dict(event_row)),
+                        payment, order, entitlement, created,
+                    )
+
+                if not signature_valid:
+                    await db.execute(
+                        """
+                        UPDATE payment_webhook_events
+                        SET processing_status = 'ignored', applied_at = ?, result_code = 'invalid_signature'
+                        WHERE id = ?
+                        """,
+                        (now, int(event_row["id"])),
+                    )
+                    cur = await db.execute(
+                        "SELECT * FROM payment_webhook_events WHERE id = ?",
+                        (int(event_row["id"]),),
+                    )
+                    event_row = await cur.fetchone()
+                    await db.commit()
+                    return (
+                        PaymentWebhookEventRecord(**dict(event_row)),
+                        None, None, None, created,
+                    )
+
+                cur = await db.execute(
+                    """
+                    SELECT * FROM commerce_payments
+                    WHERE provider = ? AND provider_payment_id = ?
+                    """,
+                    (provider_value, payment_ref),
+                )
+                payment_row = await cur.fetchone()
+                if payment_row is None:
+                    await db.execute(
+                        """
+                        UPDATE payment_webhook_events
+                        SET processing_status = 'failed', applied_at = ?, result_code = 'payment_not_found'
+                        WHERE id = ?
+                        """,
+                        (now, int(event_row["id"])),
+                    )
+                    cur = await db.execute(
+                        "SELECT * FROM payment_webhook_events WHERE id = ?",
+                        (int(event_row["id"]),),
+                    )
+                    event_row = await cur.fetchone()
+                    await db.commit()
+                    return (
+                        PaymentWebhookEventRecord(**dict(event_row)),
+                        None, None, None, created,
+                    )
+
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (int(payment_row["order_id"]),),
+                )
+                order_row = await cur.fetchone()
+                if order_row is None:
+                    raise RuntimeError("Payment references a missing order.")
+                if (
+                    int(payment_row["amount_minor"]) != int(order_row["amount_minor"])
+                    or str(payment_row["currency"]) != str(order_row["currency"])
+                ):
+                    raise RuntimeError("Payment amount/currency does not match order.")
+                if str(payment_row["status"]) not in {"created", "pending", "unknown", "confirmed"}:
+                    raise RuntimeError(
+                        f"Payment status {payment_row['status']!r} cannot be confirmed."
+                    )
+                if str(order_row["status"]) not in {"created", "awaiting_payment", "paid"}:
+                    raise RuntimeError(
+                        f"Order status {order_row['status']!r} cannot be paid."
+                    )
+
+                if str(payment_row["status"]) != "confirmed":
+                    await db.execute(
+                        """
+                        UPDATE commerce_payments
+                        SET status = 'confirmed', updated_at = ?,
+                            confirmed_at = CASE WHEN confirmed_at = 0 THEN ? ELSE confirmed_at END
+                        WHERE id = ?
+                        """,
+                        (now, now, int(payment_row["id"])),
+                    )
+
+                if fail_after_payment_update:
+                    raise RuntimeError("synthetic failure after payment update")
+
+                if str(order_row["status"]) != "paid":
+                    await db.execute(
+                        """
+                        UPDATE commerce_orders
+                        SET status = 'paid', updated_at = ?,
+                            paid_at = CASE WHEN paid_at = 0 THEN ? ELSE paid_at END
+                        WHERE id = ?
+                        """,
+                        (now, now, int(order_row["id"])),
+                    )
+
+                await db.execute(
+                    """
+                    INSERT OR IGNORE INTO entitlements(
+                        telegram_id, order_id, plan_id, status, starts_at,
+                        expires_at, created_at, updated_at
+                    ) VALUES (?, ?, ?, 'pending', 0, 0, ?, ?)
+                    """,
+                    (
+                        int(order_row["telegram_id"]), int(order_row["id"]),
+                        int(order_row["plan_id"]), now, now,
+                    ),
+                )
+                cur = await db.execute(
+                    "SELECT * FROM entitlements WHERE order_id = ?",
+                    (int(order_row["id"]),),
+                )
+                entitlement_row = await cur.fetchone()
+                if entitlement_row is None:
+                    raise RuntimeError("Entitlement was not created.")
+
+                await db.execute(
+                    """
+                    UPDATE payment_webhook_events
+                    SET processing_status = 'applied', order_id = ?, payment_id = ?,
+                        applied_at = ?, result_code = 'confirmed'
+                    WHERE id = ?
+                    """,
+                    (
+                        int(order_row["id"]), int(payment_row["id"]), now,
+                        int(event_row["id"]),
+                    ),
+                )
+
+                cur = await db.execute(
+                    "SELECT * FROM payment_webhook_events WHERE id = ?",
+                    (int(event_row["id"]),),
+                )
+                event_row = await cur.fetchone()
+                cur = await db.execute(
+                    "SELECT * FROM commerce_payments WHERE id = ?",
+                    (int(payment_row["id"]),),
+                )
+                payment_row = await cur.fetchone()
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (int(order_row["id"]),),
+                )
+                order_row = await cur.fetchone()
+                await db.commit()
+                return (
+                    PaymentWebhookEventRecord(**dict(event_row)),
+                    CommercePaymentRecord(**dict(payment_row)),
+                    CommerceOrderRecord(**dict(order_row)),
+                    EntitlementRecord(**dict(entitlement_row)),
+                    created,
+                )
+            except Exception:
+                await db.rollback()
+                raise
 
     async def get_payment_webhook_event(
         self, event_id: int,

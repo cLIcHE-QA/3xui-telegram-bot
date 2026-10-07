@@ -107,3 +107,26 @@ class CommerceService:
         if event is None:
             raise CommerceIntegrityError("Webhook event cannot be read back.")
         return event, created
+
+    async def apply_confirmed_payment_event(
+        self, *, provider: str, provider_event_id: str, provider_payment_id: str,
+        raw_payload: bytes, signature_valid: bool,
+        metadata: dict[str, object] | None = None,
+        fail_after_payment_update: bool = False,
+    ) -> tuple[
+        PaymentWebhookEventRecord,
+        CommercePaymentRecord | None,
+        CommerceOrderRecord | None,
+        EntitlementRecord | None,
+        bool,
+    ]:
+        return await self.db.apply_confirmed_payment_event(
+            provider=provider,
+            provider_event_id=provider_event_id,
+            event_type="payment.confirmed",
+            signature_valid=signature_valid,
+            payload_sha256=payload_sha256(raw_payload),
+            metadata_json=safe_event_metadata(metadata),
+            provider_payment_id=provider_payment_id,
+            fail_after_payment_update=fail_after_payment_update,
+        )
