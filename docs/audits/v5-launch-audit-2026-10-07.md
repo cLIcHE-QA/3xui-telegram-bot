@@ -108,3 +108,16 @@ Do not remove the customer allowlist or broaden the cohort based only on CI succ
 На `v5.0.0-rc.1` существующий customer profile отображался как `Подписка: активна` независимо от прошедшего `users.expiry_time`; durable active entitlement также не имел фонового expiry transition. Исправление должно вычислять effective customer status по expiry и локально переводить due active/suspended entitlement в `expired` без remote mutation.
 
 **Status:** Fix in progress; требуется новый RC и повторный canary.
+
+
+## Canary finding V5-A-006 — Telegram Stars admin ledger runtime crash
+
+**Severity:** High / release-blocking operability finding.
+
+На production canary `v5.0.0-rc.1` переход `Платежи → Telegram Stars` завершался необработанным `NameError: name 'aiosqlite' is not defined`. Stars ledger handler использует `aiosqlite.connect(db.path)` и `aiosqlite.Row`, но `business_admin.py` не импортировал runtime dependency.
+
+**Fix:** явный `import aiosqlite` в `business_admin.py` и regression contract, подтверждающий наличие dependency и Stars ledger handler path.
+
+**Acceptance:** `rc.1` считается failed canary и дальше не тестируется. После публикации `v5.0.0-rc.2` оператор обязан сначала открыть `Платежи → Telegram Stars` и подтвердить отсутствие exception; только вместе с PASS V5-A-005 разрешается продолжить Stars payment acceptance.
+
+**Status:** Fix in PR #312; требуется новый RC и targeted retest.
