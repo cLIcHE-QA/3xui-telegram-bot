@@ -323,6 +323,23 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     "website_incident_notifications": (
         "incident_id", "telegram_id", "kind", "sequence", "sent_at",
     ),
+    "commerce_orders": (
+        "id", "telegram_id", "plan_id", "promo_code_id", "amount_minor", "currency",
+        "status", "created_at", "updated_at", "paid_at",
+    ),
+    "commerce_payments": (
+        "id", "order_id", "provider", "provider_payment_id", "amount_minor", "currency",
+        "status", "created_at", "updated_at", "confirmed_at",
+    ),
+    "payment_webhook_events": (
+        "id", "provider", "provider_event_id", "event_type", "signature_valid",
+        "payload_sha256", "metadata_json", "processing_status", "order_id", "payment_id",
+        "received_at", "applied_at", "result_code",
+    ),
+    "entitlements": (
+        "id", "telegram_id", "order_id", "plan_id", "status", "starts_at",
+        "expires_at", "created_at", "updated_at",
+    ),
 }
 
 _EXPECTED_INDEXES = {
@@ -336,6 +353,14 @@ _EXPECTED_INDEXES = {
     "idx_website_watchers_user",
     "idx_website_incidents_monitor_open",
     "idx_website_notifications_recipient",
+    "idx_commerce_orders_user_created",
+    "idx_commerce_orders_status_created",
+    "idx_commerce_payments_order",
+    "idx_commerce_payments_provider_identity",
+    "idx_payment_webhook_provider_event",
+    "idx_payment_webhook_processing",
+    "idx_entitlements_user_status",
+    "idx_entitlements_order",
 }
 
 
@@ -345,6 +370,7 @@ async def _validate_current_schema(
     include_user_groups: bool = True,
     include_website_monitoring: bool = True,
     include_website_watcher_lifecycle: bool = True,
+    include_commerce: bool = True,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -355,6 +381,13 @@ async def _validate_current_schema(
             "website_monitor_watchers",
             "website_incidents",
             "website_incident_notifications",
+        })
+    if not include_commerce:
+        skipped_tables.update({
+            "commerce_orders",
+            "commerce_payments",
+            "payment_webhook_events",
+            "entitlements",
         })
     for table, expected in _EXPECTED_COLUMNS.items():
         if table in skipped_tables:
@@ -385,6 +418,17 @@ async def _validate_current_schema(
             "idx_website_incidents_monitor_open",
             "idx_website_notifications_recipient",
         }
+    if not include_commerce:
+        expected_indexes -= {
+            "idx_commerce_orders_user_created",
+            "idx_commerce_orders_status_created",
+            "idx_commerce_payments_order",
+            "idx_commerce_payments_provider_identity",
+            "idx_payment_webhook_provider_event",
+            "idx_payment_webhook_processing",
+            "idx_entitlements_user_status",
+            "idx_entitlements_order",
+        }
     missing_indexes = sorted(expected_indexes - actual_indexes)
     if missing_indexes:
         raise DatabaseMigrationError(
@@ -398,6 +442,7 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
             "user_groups", "user_group_members",
             "website_monitors", "website_monitor_watchers",
             "website_incidents", "website_incident_notifications",
+            "commerce_orders", "commerce_payments", "payment_webhook_events", "entitlements",
         }:
             continue
         expected = (
@@ -426,6 +471,14 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
                 "idx_website_watchers_user",
                 "idx_website_incidents_monitor_open",
                 "idx_website_notifications_recipient",
+                "idx_commerce_orders_user_created",
+                "idx_commerce_orders_status_created",
+                "idx_commerce_payments_order",
+                "idx_commerce_payments_provider_identity",
+                "idx_payment_webhook_provider_event",
+                "idx_payment_webhook_processing",
+                "idx_entitlements_user_status",
+                "idx_entitlements_order",
             }
         ) - actual_indexes
     )
@@ -467,6 +520,7 @@ async def _migration_0002_user_display_name(db: aiosqlite.Connection) -> None:
         db,
         include_user_groups=False,
         include_website_monitoring=False,
+        include_commerce=False,
     )
 
 
@@ -498,7 +552,11 @@ async def _migration_0003_user_audience_groups(db: aiosqlite.Connection) -> None
         ON user_group_members(telegram_id, group_id)
         """
     )
-    await _validate_current_schema(db, include_website_monitoring=False)
+    await _validate_current_schema(
+        db,
+        include_website_monitoring=False,
+        include_commerce=False,
+    )
 
 
 async def _migration_0004_website_monitoring_v4_24_0(
@@ -590,6 +648,7 @@ async def _migration_0004_website_monitoring_v4_24_0(
     await _validate_current_schema(
         db,
         include_website_watcher_lifecycle=False,
+        include_commerce=False,
     )
 
 
@@ -604,6 +663,114 @@ async def _migration_0005_website_watcher_lifecycle_v4_24_0(
             "ADD COLUMN monitoring_enabled INTEGER NOT NULL DEFAULT 1 "
             "CHECK(monitoring_enabled IN (0, 1))"
         )
+    await _validate_current_schema(db, include_commerce=False)
+
+
+async def _migration_0006_client_portal_commerce_foundation(
+    db: aiosqlite.Connection,
+) -> None:
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS commerce_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER NOT NULL,
+            plan_id INTEGER NOT NULL,
+            promo_code_id INTEGER,
+            amount_minor INTEGER NOT NULL CHECK(amount_minor >= 0),
+            currency TEXT NOT NULL,
+            status TEXT NOT NULL
+                CHECK(status IN ('created', 'awaiting_payment', 'paid', 'cancelled', 'expired')),
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            paid_at INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS commerce_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            provider TEXT NOT NULL,
+            provider_payment_id TEXT NOT NULL,
+            amount_minor INTEGER NOT NULL CHECK(amount_minor >= 0),
+            currency TEXT NOT NULL,
+            status TEXT NOT NULL
+                CHECK(status IN ('created', 'pending', 'confirmed', 'failed', 'refunded', 'unknown')),
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            confirmed_at INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS payment_webhook_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            provider TEXT NOT NULL,
+            provider_event_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            signature_valid INTEGER NOT NULL CHECK(signature_valid IN (0, 1)),
+            payload_sha256 TEXT NOT NULL,
+            metadata_json TEXT NOT NULL DEFAULT '{}',
+            processing_status TEXT NOT NULL
+                CHECK(processing_status IN ('received', 'applied', 'ignored', 'failed')),
+            order_id INTEGER,
+            payment_id INTEGER,
+            received_at INTEGER NOT NULL,
+            applied_at INTEGER NOT NULL DEFAULT 0,
+            result_code TEXT NOT NULL DEFAULT ''
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS entitlements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER NOT NULL,
+            order_id INTEGER NOT NULL,
+            plan_id INTEGER NOT NULL,
+            status TEXT NOT NULL
+                CHECK(status IN ('pending', 'provisioning', 'active', 'suspended', 'expired', 'failed')),
+            starts_at INTEGER NOT NULL DEFAULT 0,
+            expires_at INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )
+        """
+    )
+    await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_commerce_orders_user_created "
+        "ON commerce_orders(telegram_id, created_at DESC)"
+    )
+    await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_commerce_orders_status_created "
+        "ON commerce_orders(status, created_at DESC)"
+    )
+    await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_commerce_payments_order "
+        "ON commerce_payments(order_id, created_at DESC)"
+    )
+    await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_commerce_payments_provider_identity "
+        "ON commerce_payments(provider, provider_payment_id)"
+    )
+    await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_webhook_provider_event "
+        "ON payment_webhook_events(provider, provider_event_id)"
+    )
+    await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_payment_webhook_processing "
+        "ON payment_webhook_events(processing_status, received_at)"
+    )
+    await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_entitlements_user_status "
+        "ON entitlements(telegram_id, status, updated_at DESC)"
+    )
+    await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_entitlements_order "
+        "ON entitlements(order_id)"
+    )
     await _validate_current_schema(db)
 
 
@@ -636,6 +803,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=5,
         name="website_watcher_lifecycle_v4_24_0",
         apply=_migration_0005_website_watcher_lifecycle_v4_24_0,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=6,
+        name="client_portal_commerce_foundation_v5_0_0",
+        apply=_migration_0006_client_portal_commerce_foundation,
         requires_backup=False,
     ),
 )
