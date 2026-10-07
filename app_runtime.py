@@ -11,6 +11,8 @@ from versions_updates import versions_router
 from bot_updates import bot_updates_router, reconcile_deploy_jobs
 from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
+from commerce import CommerceService
+from payment_webhook import PaymentWebhookGateway
 from catalog_admin import catalog_router
 from admin_observability import observability_router
 from business_admin import business_router
@@ -44,6 +46,13 @@ backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.b
 system_backup = SystemBackupService(backup_manager, settings.node_backup_targets, settings.host_control_targets)
 offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
 offsite_backup = service_from_settings(settings, offsite_restore_manager)
+commerce_service = CommerceService(db)
+payment_webhook_gateway = PaymentWebhookGateway(
+    commerce_service,
+    enabled=settings.payment_webhook_enabled,
+    provider=settings.payment_webhook_provider,
+    secret=settings.payment_webhook_secret,
+)
 
 ADMIN_ROUTERS = (
     admin_shell_router,
@@ -182,6 +191,7 @@ async def main():
         verify_tls=settings.verify_tls,
         host=settings.subscription_proxy_host,
         port=settings.subscription_proxy_port,
+        payment_webhook_gateway=payment_webhook_gateway,
     )
     await proxy.start()
     deploy_recovery_task = (
