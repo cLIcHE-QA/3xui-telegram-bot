@@ -3,6 +3,7 @@ from __future__ import annotations
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
+    BufferedInputFile,
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -15,6 +16,7 @@ from admin_ui import render_callback
 from config import load_settings
 from customer_service import CustomerPortalService, CustomerProviderUnavailable
 from ui_time import format_timestamp
+from website_diagnostics import qr_png
 from version import APP_VERSION
 
 
@@ -535,6 +537,31 @@ async def payment_support(message: Message):
     )
 
 
+def onboarding_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🍎 iOS", callback_data="client:onboard:ios"),
+            InlineKeyboardButton(text="🤖 Android", callback_data="client:onboard:android"),
+        ],
+        [
+            InlineKeyboardButton(text="🪟 Windows", callback_data="client:onboard:windows"),
+            InlineKeyboardButton(text="🍎 macOS", callback_data="client:onboard:macos"),
+        ],
+        [InlineKeyboardButton(text="🐧 Linux", callback_data="client:onboard:linux")],
+        [InlineKeyboardButton(text="🔳 QR подписки", callback_data="client:onboard:qr")],
+        [InlineKeyboardButton(text="⬅ Помощь", callback_data="client:help")],
+    ])
+
+
+_PLATFORM_GUIDES = {
+    "ios": ("iOS", "Откройте поддерживаемый VPN-клиент → импорт подписки по URL → вставьте ссылку из «Моя подписка»."),
+    "android": ("Android", "Откройте поддерживаемый VPN-клиент → добавьте подписку по URL → вставьте ссылку из «Моя подписка»."),
+    "windows": ("Windows", "В поддерживаемом VPN-клиенте выберите импорт подписки по URL и используйте ссылку из «Моя подписка»."),
+    "macos": ("macOS", "В поддерживаемом VPN-клиенте импортируйте подписку по URL из раздела «Моя подписка»."),
+    "linux": ("Linux", "Импортируйте subscription URL в совместимый клиент. Не передавайте ссылку через shell history или публичные логи."),
+}
+
+
 @client_access_router.callback_query(F.data == "client:help")
 async def help_cb(call: CallbackQuery):
     if not await guard_callback(call):
@@ -542,10 +569,134 @@ async def help_cb(call: CallbackQuery):
     await render_callback(
         call,
         "🆘 Помощь\n\n"
-        "Если подписка не открывается или подключение перестало работать, "
-        "передайте администратору Telegram ID и краткое описание проблемы.\n\n"
-        "Не отправляйте публично ссылку подписки: она является секретом доступа.",
-        reply_markup=back_menu(),
+        "Выберите сценарий. Диагностика только читает состояние и не запускает "
+        "provisioning/reconcile автоматически.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📱 Как подключиться", callback_data="client:onboard")],
+            [InlineKeyboardButton(text="🛠 Проверить подписку", callback_data="client:diagnostics")],
+            [InlineKeyboardButton(text="💳 Поддержка по оплате", callback_data="client:paysupport")],
+            [InlineKeyboardButton(text="⬅ Личный кабинет", callback_data="client:home")],
+        ]),
+    )
+    await call.answer()
+
+
+@client_access_router.callback_query(F.data == "client:onboard")
+async def onboarding_cb(call: CallbackQuery):
+    if not await guard_callback(call):
+        return
+    await render_callback(
+        call,
+        "📱 Как подключиться\n\n"
+        "Выберите платформу. Subscription URL является секретом доступа: "
+        "не публикуйте его и не пересылайте посторонним.",
+        reply_markup=onboarding_menu(),
+    )
+    await call.answer()
+
+
+@client_access_router.callback_query(F.data.startswith("client:onboard:"))
+async def onboarding_platform_cb(call: CallbackQuery):
+    if not await guard_callback(call):
+        return
+    platform = (call.data or "").rsplit(":", 1)[-1]
+    if platform == "qr":
+        url = await _service().subscription_url(call.from_user.id)
+        if not url:
+            await call.answer("Подписка пока не оформлена.", show_alert=True)
+            return
+        if not call.message or call.message.chat.type != "private":
+            await call.answer("QR доступен только в личном чате.", show_alert=True)
+            return
+        image = qr_png(url)
+        await call.bot.send_photo(
+            call.message.chat.id,
+            BufferedInputFile(image, filename="subscription-qr.png"),
+            caption=(
+                "🔳 QR подписки\n\n"
+                "Сканируйте только на своём устройстве. QR содержит секретную "
+                "subscription URL; не публикуйте изображение."
+            ),
+        )
+        await call.answer()
+        return
+    guide = _PLATFORM_GUIDES.get(platform)
+    if guide is None:
+        await call.answer("Неизвестная платформа.", show_alert=True)
+        return
+    name, instructions = guide
+    await render_callback(
+        call,
+        f"📱 Подключение · {name}\n\n{instructions}\n\n"
+        "Автоматический deep-link пока не используется: формат импорта должен "
+        "быть стабилен и безопасен для конкретного клиента.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌐 Моя подписка", callback_data="client:subscription")],
+            [InlineKeyboardButton(text="⬅ Платформы", callback_data="client:onboard")],
+        ]),
+    )
+    await call.answer()
+
+
+@client_access_router.callback_query(F.data == "client:diagnostics")
+async def diagnostics_cb(call: CallbackQuery):
+    if not await guard_callback(call):
+        return
+    result = await _service().diagnostics(call.from_user.id)
+    if not result.account_exists:
+        text = "🛠 Проверить подписку\n\n❌ Клиентский аккаунт ещё не оформлен."
+    else:
+        entitlement_labels = {
+            "active": "🟢 активен",
+            "pending": "🟡 ожидает активации",
+            "provisioning": "🟡 выполняется активация",
+            "suspended": "⛔ приостановлен",
+            "expired": "⌛ истёк",
+            "failed": "❌ ошибка активации",
+            "legacy": "ℹ️ legacy-доступ",
+        }
+        provider = (
+            "🟢 доступен" if result.provider_reachable is True
+            else "⚠️ временно недоступен" if result.provider_reachable is False
+            else "—"
+        )
+        text = (
+            "🛠 Проверить подписку\n\n"
+            f"Аккаунт: 🟢 найден\n"
+            f"Entitlement: {entitlement_labels.get(result.entitlement_status, result.entitlement_status)}\n"
+            f"Subscription URL: {'🟢 сформирована' if result.subscription_available else '❌ отсутствует'}\n"
+            f"Provider read: {provider}\n"
+        )
+        if result.note:
+            text += f"\nℹ️ {result.note}"
+        if result.entitlement_status in {"pending", "provisioning"}:
+            text += "\n\nАктивация ещё не завершена. Диагностика не повторяет provisioning mutation."
+        elif result.entitlement_status == "failed":
+            text += "\n\nАктивация завершилась ошибкой. Обратитесь в поддержку; автоматический retry отсюда не запускается."
+    await render_callback(
+        call,
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔄 Проверить снова", callback_data="client:diagnostics")],
+            [InlineKeyboardButton(text="⬅ Помощь", callback_data="client:help")],
+        ]),
+    )
+    await call.answer()
+
+
+@client_access_router.callback_query(F.data == "client:paysupport")
+async def pay_support_cb(call: CallbackQuery):
+    if not await guard_callback(call):
+        return
+    await render_callback(
+        call,
+        "💳 Поддержка по оплате\n\n"
+        "Если Stars списались, но доступ не появился, используйте /paysupport. "
+        "Не оплачивайте повторно при неизвестном исходе и не отправляйте subscription URL.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🛠 Проверить подписку", callback_data="client:diagnostics")],
+            [InlineKeyboardButton(text="⬅ Помощь", callback_data="client:help")],
+        ]),
     )
     await call.answer()
 
