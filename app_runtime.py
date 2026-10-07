@@ -165,6 +165,15 @@ async def main():
     configure_logging()
     await asyncio.to_thread(backup_manager._ensure_dir)
     await db.init()
+    payment_recovery = await commerce_service.reconcile_recoverable_payment_events(limit=100)
+    if payment_recovery["checked"]:
+        logging.warning(
+            "Payment event reconciliation checked=%d applied=%d still_missing=%d failed=%d",
+            payment_recovery["checked"],
+            payment_recovery["applied"],
+            payment_recovery["still_missing"],
+            payment_recovery["failed"],
+        )
     recovered_deploy = await reconcile_deploy_jobs(wait_seconds=0)
     if recovered_deploy:
         logging.warning(
