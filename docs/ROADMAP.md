@@ -4000,7 +4000,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 
 1. 🟡 customer ownership/auth boundary + feature flag/allowlist без публичного открытия — pilot boundary действует через существующий allowlist/admin policy; public signup, dedicated abuse/rate-limit policy и полный ownership audit ещё не завершены;
 2. ✅ persistent Order / Payment / Entitlement states и migration contract — PR #290–#294, schema v6/v7, atomic payment confirmation, webhook journal и restart reconciliation;
-3. ⬜ provider-neutral customer/subscription service boundary поверх текущего 3x-ui provisioning — ещё требуется: текущий pilot Client Portal всё ещё использует прямые XUI read primitives;
+3. ✅ provider-neutral customer/subscription service boundary поверх текущего 3x-ui provisioning — `client_access.py` работает через `CustomerPortalService`, provider contract задан `CustomerAccessProvider`, а текущие 3x-ui reads изолированы в `customer_provider_xui.py`; Telegram handlers больше не импортируют `XUIClient`, `Database` или `CommerceService` напрямую;
 4. ✅ read-only Client Portal skeleton: Профиль / Моя подписка / Трафик / Устройства / Помощь — PR #296; legacy `/create` / `/inbounds` больше не являются mutation-entrypoints;
 5. 🟡 commerce flow + authenticated/idempotent payment webhook journal — backend journal/state machine готов, но production payment provider/checkout ещё не подключён;
 6. ✅ entitlement → provisioning/reconcile с no-replay/unknown semantics — PR #292/#295; durable pending worker не replay'ит `provisioning` с uncertain outcome;
@@ -4020,7 +4020,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 - #296 — pilot Client Portal shell;
 - #297/#298 — subscription browser compatibility hotfixes, необходимые для корректной customer subscription page.
 
-До перехода к public launch основными implementation-блокерами остаются provider-neutral customer service boundary, production checkout/payment provider, onboarding/self-service diagnostics и затем launch audit + controlled canary.
+До перехода к public launch основными implementation-блокерами остаются production checkout/payment provider, onboarding/self-service diagnostics и затем launch audit + controlled canary.
 
 Отложенные tracks **не блокируют** базовый v5.0.0: multi-format subscriptions, Remnawave/provider-neutral multi-provider expansion и Cheburcheck Probe fleet могут идти отдельными subsequent tracks после стабилизации core Client Portal. При этом верхний customer/domain слой v5 сразу проектируется так, чтобы не зависеть напрямую от `XUIClient`.
 
