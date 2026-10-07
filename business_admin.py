@@ -311,7 +311,7 @@ async def stars_payments_list(call: CallbackQuery):
     await call.answer()
 
 
-@business_router.callback_query(F.data.regexp(r"^admin:starspayment:\\d+$"))
+@business_router.callback_query(F.data.regexp(r"^admin:starspayment:\d+$"))
 async def stars_payment_detail(call: CallbackQuery):
     if not await guard(call):
         return
@@ -343,7 +343,7 @@ async def stars_payment_detail(call: CallbackQuery):
     await call.answer()
 
 
-@business_router.callback_query(F.data.regexp(r"^admin:starsrefund:ask:\\d+$"))
+@business_router.callback_query(F.data.regexp(r"^admin:starsrefund:ask:\d+$"))
 async def stars_refund_ask(call: CallbackQuery):
     if not await guard(call, minimum="admin"):
         return
@@ -387,7 +387,7 @@ async def stars_refund_ask(call: CallbackQuery):
     await call.answer()
 
 
-@business_router.callback_query(F.data.regexp(r"^admin:starsrefund:run:\\d+$"))
+@business_router.callback_query(F.data.regexp(r"^admin:starsrefund:run:\d+$"))
 async def stars_refund_run(call: CallbackQuery):
     if not await guard(call, minimum="admin"):
         return
