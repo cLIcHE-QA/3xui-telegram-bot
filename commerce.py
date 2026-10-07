@@ -89,6 +89,9 @@ class CommerceService:
             promo_code_id=promo_code_id,
         )
 
+    async def get_order(self, order_id: int) -> CommerceOrderRecord | None:
+        return await self.db.get_commerce_order(order_id)
+
     async def create_payment(self, *, order_id: int, provider: str,
                              provider_payment_id: str) -> CommercePaymentRecord:
         order = await self.db.get_commerce_order(order_id)
