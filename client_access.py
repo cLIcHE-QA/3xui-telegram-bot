@@ -5,18 +5,14 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_ui import render_callback
-from commerce import CommerceService
 from config import load_settings
-from db import Database
+from customer_service import CustomerPortalService, CustomerProviderUnavailable
 from ui_time import format_timestamp
 from version import APP_VERSION
-from xui import XUIClient, XUIError
 
 
 settings = load_settings()
-db = Database(settings.db_path)
-xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
-commerce = CommerceService(db)
+customer_service: CustomerPortalService | None = None
 
 client_access_router = Router(name="client_access")
 
@@ -30,12 +26,15 @@ def is_allowed(tg_id: int) -> bool:
     )
 
 
-def sub_url(sub_id: str) -> str:
-    template = (
-        settings.compat_subscription_url_template
-        or settings.subscription_url_template
-    )
-    return template.format(sub_id=sub_id)
+def configure_client_access(service: CustomerPortalService) -> None:
+    global customer_service
+    customer_service = service
+
+
+def _service() -> CustomerPortalService:
+    if customer_service is None:
+        raise RuntimeError("Client Portal service is not configured")
+    return customer_service
 
 
 def human_bytes(value: int) -> str:
@@ -92,19 +91,17 @@ async def guard_callback(call: CallbackQuery) -> bool:
 
 
 async def portal_text(tg_id: int) -> str:
-    rec = await db.get(tg_id)
-    if rec is None:
+    profile = await _service().profile(tg_id)
+    if not profile.exists:
         return (
             f"Личный кабинет · v{APP_VERSION}\n\n"
             "Доступ пока не оформлен. Публичная регистрация ещё закрыта; "
             "обратитесь в поддержку для подключения."
         )
-    profile = await db.get_user_profile(tg_id)
-    plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
     return (
         f"Личный кабинет · v{APP_VERSION}\n\n"
-        f"👤 {getattr(profile, 'display_name', '') or rec.email}\n"
-        f"💎 Тариф: {plan.name if plan else 'не назначен'}\n"
+        f"👤 {profile.display_name or profile.email}\n"
+        f"💎 Тариф: {profile.plan_name or 'не назначен'}\n"
         f"🌐 Подписка: активна"
     )
 
@@ -139,22 +136,20 @@ async def home_cb(call: CallbackQuery):
 async def profile_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    rec = await db.get(call.from_user.id)
-    if rec is None:
+    profile = await _service().profile(call.from_user.id)
+    if not profile.exists:
         text = "👤 Профиль\n\nДоступ пока не оформлен."
     else:
-        profile = await db.get_user_profile(call.from_user.id)
-        plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
         expiry = format_timestamp(
-            int(rec.expiry_time or 0),
+            profile.expiry_time,
             milliseconds=True,
             empty="без срока",
         )
         text = (
             "👤 Профиль\n\n"
-            f"Имя: {getattr(profile, 'display_name', '') or '—'}\n"
-            f"Аккаунт: {rec.email}\n"
-            f"Тариф: {plan.name if plan else 'не назначен'}\n"
+            f"Имя: {profile.display_name or '—'}\n"
+            f"Аккаунт: {profile.email}\n"
+            f"Тариф: {profile.plan_name or 'не назначен'}\n"
             f"Срок: {expiry}"
         )
     await render_callback(call, text, reply_markup=back_menu())
@@ -165,9 +160,9 @@ async def profile_cb(call: CallbackQuery):
 async def subscription_cmd(message: Message):
     if not await guard_message(message):
         return
-    rec = await db.get(message.from_user.id)
+    url = await _service().subscription_url(message.from_user.id)
     await message.answer(
-        sub_url(rec.sub_id) if rec else "Подписка пока не оформлена.",
+        url or "Подписка пока не оформлена.",
         reply_markup=portal_menu(),
     )
 
@@ -176,11 +171,8 @@ async def subscription_cmd(message: Message):
 async def subscription_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    rec = await db.get(call.from_user.id)
-    text = (
-        "🌐 Моя подписка\n\n"
-        + (sub_url(rec.sub_id) if rec else "Подписка пока не оформлена.")
-    )
+    url = await _service().subscription_url(call.from_user.id)
+    text = "🌐 Моя подписка\n\n" + (url or "Подписка пока не оформлена.")
     await render_callback(call, text, reply_markup=back_menu())
     await call.answer()
 
@@ -189,27 +181,21 @@ async def subscription_cb(call: CallbackQuery):
 async def traffic_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    rec = await db.get(call.from_user.id)
-    if rec is None:
-        text = "📊 Трафик\n\nДоступ пока не оформлен."
-    else:
-        try:
-            obj = await xui.get_client(rec.email)
-            client = obj.get("client", obj)
-            traffic = await xui.traffic(rec.email)
-            up = int(traffic.get("up") or traffic.get("uplink") or 0)
-            down = int(traffic.get("down") or traffic.get("downlink") or 0)
-            total = int(client.get("totalGB") or 0)
-            used = up + down
+    try:
+        traffic = await _service().traffic(call.from_user.id)
+        if traffic is None:
+            text = "📊 Трафик\n\nДоступ пока не оформлен."
+        else:
+            used = traffic.up + traffic.down
             text = (
                 "📊 Трафик\n\n"
                 f"Использовано: {human_bytes(used)}\n"
-                f"Лимит: {human_bytes(total) if total else 'без лимита'}\n"
-                f"Отправлено: {human_bytes(up)}\n"
-                f"Получено: {human_bytes(down)}"
+                f"Лимит: {human_bytes(traffic.total) if traffic.total else 'без лимита'}\n"
+                f"Отправлено: {human_bytes(traffic.up)}\n"
+                f"Получено: {human_bytes(traffic.down)}"
             )
-        except XUIError:
-            text = "📊 Трафик\n\n⚠️ Данные 3x-ui временно недоступны."
+    except CustomerProviderUnavailable:
+        text = "📊 Трафик\n\n⚠️ Данные провайдера временно недоступны."
     await render_callback(call, text, reply_markup=back_menu())
     await call.answer()
 
@@ -218,30 +204,28 @@ async def traffic_cb(call: CallbackQuery):
 async def devices_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    rec = await db.get(call.from_user.id)
-    if rec is None:
-        text = "📱 Устройства\n\nДоступ пока не оформлен."
-    else:
-        try:
-            devices = await xui.client_hwids(rec.email)
+    try:
+        devices = await _service().devices(call.from_user.id)
+        if devices is None:
+            text = "📱 Устройства\n\nДоступ пока не оформлен."
+        else:
             lines = ["📱 Устройства", ""]
             if not devices:
                 lines.append("Зарегистрированных HWID-устройств нет.")
             else:
-                for index, item in enumerate(devices[:20], start=1):
-                    model = str(item.get("deviceModel") or "").strip()
-                    os_name = str(item.get("deviceOs") or "").strip()
-                    title = model or os_name or f"Устройство #{index}"
+                for index, item in enumerate(devices, start=1):
                     last_seen = format_timestamp(
-                        int(item.get("lastSeen") or 0),
+                        item.last_seen,
                         milliseconds=True,
                         empty="—",
                     )
-                    lines.append(f"{index}. {title[:60]} · {os_name or 'ОС неизвестна'}")
+                    lines.append(
+                        f"{index}. {item.title[:60]} · {item.os_name or 'ОС неизвестна'}"
+                    )
                     lines.append(f"   Последняя активность: {last_seen}")
             text = "\n".join(lines)
-        except XUIError:
-            text = "📱 Устройства\n\n⚠️ Данные 3x-ui временно недоступны."
+    except CustomerProviderUnavailable:
+        text = "📱 Устройства\n\n⚠️ Данные провайдера временно недоступны."
     await render_callback(call, text, reply_markup=back_menu())
     await call.answer()
 
@@ -250,8 +234,8 @@ async def devices_cb(call: CallbackQuery):
 async def buy_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    rec = await db.get(call.from_user.id)
-    if rec is None:
+    profile = await _service().profile(call.from_user.id)
+    if not profile.exists:
         await render_callback(
             call,
             "💳 Купить / продлить\n\n"
@@ -262,7 +246,7 @@ async def buy_cb(call: CallbackQuery):
         await call.answer()
         return
 
-    plans = [plan for plan in await db.list_plans() if plan.active]
+    plans = await _service().active_plans()
     if not plans:
         await render_callback(
             call,
@@ -292,8 +276,8 @@ async def buy_cb(call: CallbackQuery):
 async def plan_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    rec = await db.get(call.from_user.id)
-    if rec is None:
+    profile = await _service().profile(call.from_user.id)
+    if not profile.exists:
         await call.answer("Аккаунт не оформлен.", show_alert=True)
         return
     try:
@@ -301,16 +285,14 @@ async def plan_cb(call: CallbackQuery):
     except (TypeError, ValueError):
         await call.answer("Некорректный тариф.", show_alert=True)
         return
-    plan = await db.get_plan(plan_id)
-    if plan is None or not plan.active:
+    plan = await _service().active_plan(plan_id)
+    if plan is None:
         await call.answer("Тариф недоступен.", show_alert=True)
         return
 
-    order, created = await commerce.get_or_create_order(
+    order, created = await _service().get_or_create_order(
         telegram_id=call.from_user.id,
-        plan_id=plan.id,
-        amount_minor=plan.price_minor,
-        currency=plan.currency,
+        plan=plan,
     )
     state = "создан" if created else "уже существует"
     await render_callback(
