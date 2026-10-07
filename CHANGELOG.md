@@ -6,6 +6,9 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Unreleased — v5 canary fixes
+- Исправлен acceptance finding: просроченный customer access больше не отображается как активный; diagnostics учитывает effective expiry, а runtime локально переводит due active/suspended entitlements в `expired` без remote mutation.
+
 ## v5.0.0-rc.1 — Client Portal controlled canary
 - Первый immutable release candidate Client Portal для controlled production acceptance; pilot allowlist сохраняется, публичный signup не открывается.
 - Client Portal включает provider-neutral customer boundary, профиль/подписку/трафик/устройства, Telegram Stars purchase/renewal с Terms acceptance, idempotent payment/order/entitlement journal и provisioning worker.
