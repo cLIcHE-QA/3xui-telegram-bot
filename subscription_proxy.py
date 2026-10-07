@@ -115,6 +115,14 @@ def _pad_b64(value: str) -> str:
     return value + "=" * (-len(value) % 4)
 
 
+def _header_value(headers: dict[str, str], name: str, default: str = "") -> str:
+    target = name.lower()
+    for key, value in headers.items():
+        if str(key).lower() == target:
+            return str(value)
+    return default
+
+
 def _try_decode_subscription(body: bytes) -> tuple[str, bool]:
     """Return (plain_text, was_base64_wrapped)."""
     try:
@@ -624,11 +632,21 @@ class SubscriptionProxy:
             raise web.HTTPBadGateway(text="subscription asset upstream error\n")
 
         headers: dict[str, str] = {}
-        if "Content-Type" in upstream_headers:
-            headers["Content-Type"] = upstream_headers["Content-Type"]
-        if "ETag" in upstream_headers:
-            headers["ETag"] = upstream_headers["ETag"]
-        headers["Cache-Control"] = upstream_headers.get("Cache-Control", "public, max-age=3600")
+        content_type = _header_value(upstream_headers, "Content-Type")
+        if content_type:
+            headers["Content-Type"] = content_type
+        etag = _header_value(upstream_headers, "ETag")
+        if etag:
+            headers["ETag"] = etag
+        headers["Cache-Control"] = _header_value(
+            upstream_headers,
+            "Cache-Control",
+            "public, max-age=3600",
+        )
+        # Nginx honours this header for proxied responses unless explicitly
+        # configured to ignore it. Large Vite JS bundles should not spill into
+        # proxy temp files, which has caused browser-only blank subscription pages.
+        headers["X-Accel-Buffering"] = "no"
         return web.Response(body=body, headers=headers)
 
     async def start(self) -> None:
