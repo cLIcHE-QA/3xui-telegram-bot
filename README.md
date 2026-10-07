@@ -263,6 +263,11 @@ location /compat/ {
     proxy_pass http://127.0.0.1:18080;
     proxy_http_version 1.1;
     proxy_read_timeout 25s;
+
+    # Не буферизовать крупные Vite JS/CSS bundles subscription SPA во временные
+    # файлы nginx. Иначе часть браузеров может получать белую страницу при
+    # первой загрузке assets за reverse proxy.
+    proxy_max_temp_file_size 0;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
