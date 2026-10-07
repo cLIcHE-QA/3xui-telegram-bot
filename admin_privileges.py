@@ -251,7 +251,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "exact",
         "admin:planadd:start", "admin:planadd:save", "admin:planadd:cancel",
     )
-    + _rules("plans.manage", "prefix", "admin:planadd:group:", "admin:plan:toggle:", "admin:plan:setgroup:", "admin:plan:default:", "admin:plan:deleteask:", "admin:plan:delete:")
+    + _rules("plans.manage", "prefix", "admin:planadd:group:", "admin:plan:stars:", "admin:plan:toggle:", "admin:plan:setgroup:", "admin:plan:default:", "admin:plan:deleteask:", "admin:plan:delete:")
     + _rules("server_groups.view", "exact", "admin:servergroups")
     + _rules("server_groups.view", "regex", r"^admin:servergroup:\d+$")
     + _rules("server_groups.view", "prefix", "admin:servergroup:inbounds:")
