@@ -11,18 +11,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class V4269ReleaseTests(unittest.TestCase):
-    def test_release_version_is_4269(self):
-        self.assertEqual(APP_VERSION, "4.26.9")
-
-    def test_current_docs_reference_release_4269(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
+    def test_v4269_remains_historical_release_contract(self):
+        self.assertNotEqual(APP_VERSION, "4.26.9")
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         sqlite_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
 
-        self.assertTrue(readme.startswith("# Telegram-бот для 3x-ui v4.26.9"))
-        self.assertIn("Guide ориентирован на release v4.26.9.", admin_setup)
-        self.assertIn("git checkout --detach v4.26.9", admin_setup)
-        self.assertIn("Bot version: 4.26.9", admin_setup)
+        self.assertIn("## v4.26.9 — Subscription browser compatibility hotfix", changelog)
         self.assertIn(
             "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3`, `v4.26.4`, `v4.26.5`, `v4.26.6`, `v4.26.7` и `v4.26.8` текущая bot schema version — **5**",
             sqlite_doc,
@@ -425,7 +419,7 @@ class V4269ReleaseTests(unittest.TestCase):
     def test_admin_setup_keeps_pinned_3xui_contract(self):
         admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "Для bot release `v4.26.9` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
+            "Для bot release `v5.0.0-rc.1` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`",
             admin_setup,
         )
 
