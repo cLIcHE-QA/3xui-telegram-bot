@@ -156,6 +156,7 @@ class PaymentWebhookEventRecord:
     received_at: int
     applied_at: int
     result_code: str
+    provider_payment_id: str
 
 
 @dataclass
@@ -1243,12 +1244,14 @@ class Database:
                     INSERT OR IGNORE INTO payment_webhook_events(
                         provider, provider_event_id, event_type, signature_valid,
                         payload_sha256, metadata_json, processing_status,
-                        order_id, payment_id, received_at, applied_at, result_code
-                    ) VALUES (?, ?, ?, ?, ?, ?, 'received', NULL, NULL, ?, 0, '')
+                        order_id, payment_id, received_at, applied_at, result_code,
+                        provider_payment_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, 'received', NULL, NULL, ?, 0, '', ?)
                     """,
                     (
                         provider_value, event_value, event_type_value,
                         1 if signature_valid else 0, digest, metadata_value, now,
+                        payment_ref,
                     ),
                 )
                 created = cur.rowcount == 1
@@ -1274,12 +1277,12 @@ class Database:
                         SET event_type = ?, signature_valid = 1, payload_sha256 = ?,
                             metadata_json = ?, processing_status = 'received',
                             order_id = NULL, payment_id = NULL, received_at = ?,
-                            applied_at = 0, result_code = ''
+                            applied_at = 0, result_code = '', provider_payment_id = ?
                         WHERE id = ?
                         """,
                         (
                             event_type_value, digest, metadata_value, now,
-                            int(event_row["id"]),
+                            payment_ref, int(event_row["id"]),
                         ),
                     )
                     cur = await db.execute(
@@ -1507,6 +1510,28 @@ class Database:
             except Exception:
                 await db.rollback()
                 raise
+
+    async def list_recoverable_payment_webhook_events(
+        self, *, limit: int = 100,
+    ) -> list[PaymentWebhookEventRecord]:
+        safe_limit = max(1, min(500, int(limit)))
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM payment_webhook_events
+                WHERE signature_valid = 1
+                  AND event_type = 'payment.confirmed'
+                  AND processing_status = 'failed'
+                  AND result_code = 'payment_not_found'
+                  AND provider_payment_id != ''
+                ORDER BY received_at ASC, id ASC
+                LIMIT ?
+                """,
+                (safe_limit,),
+            )
+            rows = await cur.fetchall()
+            return [PaymentWebhookEventRecord(**dict(row)) for row in rows]
 
     async def get_payment_webhook_event(
         self, event_id: int,
