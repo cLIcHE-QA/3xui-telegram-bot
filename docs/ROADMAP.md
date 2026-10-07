@@ -4005,7 +4005,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 5. 🟡 commerce flow + authenticated/idempotent payment event journal — backend journal/state machine и provider-neutral checkout foundation готовы; следующий production path использует native Telegram Stars (`XTR`) для цифровой подписки внутри бота: отдельная Stars-цена тарифа, pre-checkout ownership/amount validation и atomic `successful_payment → Payment confirmed → Order paid → Entitlement` реализуются; после #305 Terms acceptance, `/paysupport` и one-shot refund journal/операторский flow реализованы; остаются test/prod payment smoke и production acceptance;
 6. ✅ entitlement → provisioning/reconcile с no-replay/unknown semantics — PR #292/#295; durable pending worker не replay'ит `provisioning` с uncertain outcome;
 7. 🟡 onboarding/QR UX и self-service diagnostics реализуются в #306: platform selection, local/private QR и read-only entitlement/provider diagnostics; client-specific deep-link остаётся отложен до стабильного безопасного import contract;
-8. 🟡 отдельный v5 launch audit выполняется в #308: repository-verifiable ownership/payment/secret/rollback controls закреплены regression gate; production Stars acceptance, failure/restart canary, load/soak и retention-policy disposition остаются release blockers;
+8. 🟡 отдельный v5 launch audit выполняется в #308: repository-verifiable ownership/payment/secret/rollback controls закреплены regression gate; production Stars acceptance, failure/restart canary и load/soak остаются release blockers; retention-policy disposition закрыт в `docs/DATA_RETENTION.md`;
 9. ⬜ controlled canary rollout по описанному ниже gate;
 10. ⬜ только после canary — расширение публичного доступа.
 
@@ -4343,7 +4343,7 @@ Public launch блокируется до закрытия release-blocking find
 - rollback/disable procedure проверена;
 - только после этого allowlist/feature flag может быть расширен до обычного публичного доступа.
 
-Результат controlled rollout фиксируется отдельным acceptance report с exact release tag/SHA, cohort scope, проверенными сценариями, найденными findings и итоговым решением о расширении доступа.
+Результат controlled rollout фиксируется отдельным acceptance report с exact release tag/SHA, cohort scope, проверенными сценариями, найденными findings и итоговым решением о расширении доступа. Канонический runbook и evidence contract: `docs/V5_PRODUCTION_ACCEPTANCE.md`.
 
 ## Архитектурный принцип
 
