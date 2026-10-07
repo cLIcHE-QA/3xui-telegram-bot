@@ -203,6 +203,13 @@ PAYMENT_WEBHOOK_ENABLED=false
 PAYMENT_WEBHOOK_PROVIDER=generic_hmac
 PAYMENT_WEBHOOK_SECRET=
 
+# Optional customer checkout creation; keep disabled until the verified HTTPS
+# payment backend is prepared.
+PAYMENT_CHECKOUT_ENABLED=false
+PAYMENT_CHECKOUT_PROVIDER=generic_hmac
+PAYMENT_CHECKOUT_ENDPOINT=
+PAYMENT_CHECKOUT_SECRET=
+
 ALLOWED_TELEGRAM_IDS=<your-telegram-id>
 ADMIN_TELEGRAM_IDS=<your-telegram-id>
 
@@ -271,6 +278,14 @@ sudo systemctl reload nginx
 ~~~
 
 Targeted smoke: открыть subscription page в приватном окне Safari/WebKit и убедиться, что `/compat/assets/*.js|css` не получают HTTP 503.
+
+### Optional v5 checkout provider
+
+Customer checkout отключён по умолчанию. При включении `PAYMENT_CHECKOUT_ENABLED=true` требуется fixed verified HTTPS `PAYMENT_CHECKOUT_ENDPOINT` без credentials/query/fragment и отдельный `PAYMENT_CHECKOUT_SECRET` минимум 32 bytes.
+
+Bot отправляет bounded JSON с локальными `order_id`, `amount_minor`, `currency` и deterministic `idempotency_key=order:<id>`; request подписывается HMAC-SHA256 и содержит тот же `Idempotency-Key` header. Endpoint должен вернуть provider identity `payment_id` и HTTPS `checkout_url`.
+
+Timeout/network/HTTP 5xx считаются uncertain outcome. Bot не генерирует новый idempotency key и не создаёт второй локальный payment при retry. Доступ пользователя меняется только после отдельно аутентифицированного `payment.confirmed` webhook; сам checkout response entitlement не создаёт.
 
 ### Optional v5 payment webhook ingress
 
