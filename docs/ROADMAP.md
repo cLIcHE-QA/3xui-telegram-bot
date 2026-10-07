@@ -4330,6 +4330,7 @@ Public launch блокируется до закрытия release-blocking find
   - **V5-A-006 — Telegram Stars admin ledger runtime crash:** `Платежи → Telegram Stars` падал с `NameError: name 'aiosqlite' is not defined`, потому что handler использовал `aiosqlite.connect(...)` и `aiosqlite.Row` без runtime import. Fix добавляет явный import и regression contract Stars ledger;
 - ✅ canary-fix PR #312 слит в `main`: repository fixes и regression coverage для V5-A-005/V5-A-006 входят в новый baseline;
 - 🟡 release-prep `v5.0.0-rc.2` подготовлен отдельной веткой/PR; после merge штатный release workflow должен опубликовать новый immutable GitHub prerelease;
+- 🟡 production 3x-ui уже обновлён до `v3.9.0`; release-prep `rc.2` перепривязывает pinned OpenAPI contract к immutable `v3.9.0` schema без изменения используемого 54-endpoint API surface. До продолжения full canary обязателен integration smoke бота против фактической панели `3.9.0`;
 - ⬜ acceptance на `rc.1` **не продолжается**; реальный Stars payment до нового baseline не выполняется;
 - ⬜ после deployment `rc.2` сначала повторяются V5-A-005 и V5-A-006: просроченная подписка обязана отображаться как истёкшая, а `Платежи → Telegram Stars` обязана открываться без exception;
 - ⬜ только после PASS targeted retest продолжается полный `docs/V5_PRODUCTION_ACCEPTANCE.md`: Stars happy path → duplicate/idempotency → refund → failure/restart/reconciliation → ownership/isolation → abuse/load/soak → rollback → финальная ledger reconciliation;
