@@ -1138,6 +1138,46 @@ class Database:
                 await db.rollback()
                 raise
 
+    async def mark_commerce_order_awaiting_payment(
+        self, order_id: int,
+    ) -> CommerceOrderRecord:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (int(order_id),),
+                )
+                row = await cur.fetchone()
+                if row is None:
+                    raise RuntimeError("Order does not exist.")
+                status = str(row["status"])
+                if status == "created":
+                    await db.execute(
+                        """
+                        UPDATE commerce_orders
+                        SET status = 'awaiting_payment', updated_at = ?
+                        WHERE id = ?
+                        """,
+                        (now, int(order_id)),
+                    )
+                elif status != "awaiting_payment":
+                    raise RuntimeError(
+                        f"Order status {status!r} cannot enter awaiting_payment."
+                    )
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (int(order_id),),
+                )
+                row = await cur.fetchone()
+                await db.commit()
+                return CommerceOrderRecord(**dict(row))
+            except Exception:
+                await db.rollback()
+                raise
+
     async def get_commerce_order(self, order_id: int) -> CommerceOrderRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
