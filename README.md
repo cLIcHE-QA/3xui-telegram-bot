@@ -114,7 +114,7 @@ app_runtime.py
 └─ graceful task cancellation
 
 client_access.py
-└─ /start, /inbounds, /create, /subscription
+└─ v5 Client Portal: /start, профиль, подписка, тарифы/orders, трафик, устройства, помощь
 
 admin_shell.py
 └─ /admin, Обзор, top-level navigation и compatibility redirects
@@ -142,6 +142,8 @@ domain routers
 ~~~
 
 `bot.py` сохраняется как стабильный executable path, в том числе для `restore_bootstrap.py`, но не владеет domain handlers или lifecycle implementation.
+
+Client Portal развивается поверх отдельного commerce lifecycle. Тестовые v4 user actions `/create` и `/inbounds` больше не являются mutation-entrypoint: старые команды/кнопки только перенаправляют в личный кабинет. В pilot-режиме доступ к `/start` всё ещё ограничен существующим allowlist/admin boundary; публичный signup откроется только после отдельного abuse/rate-limit и ownership-аудита. Выбор тарифа создаёт или переиспользует локальный order, но до подключения production payment provider сам по себе не меняет 3x-ui access.
 
 Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована, развёрнута, проверена и закрыта в production. Финальные patch findings закрыты в `v4.25.8`: Clone Inbound сохраняет source parent при `✖ Отмена`, а DB-backed Owner подтверждает self-demotion отдельным fail-closed confirmation flow. Subscription proxy сохраняет принятый контракт `v4.25.3`; временные Streisand workarounds из `v4.25.4–v4.25.5` удалены. Известное ограничение: Streisand не передаёт совместимый `X-HWID`, поэтому при включённом HWID limit 3x-ui отклоняет raw subscription как `hwid_not_supported`.
 
