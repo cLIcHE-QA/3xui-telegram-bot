@@ -71,6 +71,47 @@ class TelegramStarsCommerceTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(created_again)
         self.assertEqual(same.id, order.id)
 
+    async def test_stars_order_does_not_reuse_legacy_fiat_quote(self):
+        fiat_order, fiat_created = await self.commerce.get_or_create_order(
+            telegram_id=7001,
+            plan_id=self.plan_id,
+            amount_minor=49900,
+            currency="RUB",
+        )
+        self.assertTrue(fiat_created)
+
+        plan = await self.db.get_plan(self.plan_id)
+        stars_order, stars_created = await self.customer.get_or_create_stars_order(
+            telegram_id=7001,
+            plan=plan,
+        )
+
+        self.assertTrue(stars_created)
+        self.assertNotEqual(stars_order.id, fiat_order.id)
+        self.assertEqual(stars_order.currency, "XTR")
+        self.assertEqual(stars_order.amount_minor, 250)
+
+    async def test_stars_price_change_creates_new_quote(self):
+        plan = await self.db.get_plan(self.plan_id)
+        first, first_created = await self.customer.get_or_create_stars_order(
+            telegram_id=7001,
+            plan=plan,
+        )
+        self.assertTrue(first_created)
+        self.assertEqual(first.amount_minor, 250)
+
+        await self.db.set_plan_stars_price(self.plan_id, 300)
+        updated_plan = await self.db.get_plan(self.plan_id)
+        second, second_created = await self.customer.get_or_create_stars_order(
+            telegram_id=7001,
+            plan=updated_plan,
+        )
+
+        self.assertTrue(second_created)
+        self.assertNotEqual(second.id, first.id)
+        self.assertEqual(second.currency, "XTR")
+        self.assertEqual(second.amount_minor, 300)
+
     async def test_confirm_stars_payment_is_atomic_and_idempotent(self):
         plan = await self.db.get_plan(self.plan_id)
         order, _ = await self.customer.get_or_create_stars_order(
