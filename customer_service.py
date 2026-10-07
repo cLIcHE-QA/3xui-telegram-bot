@@ -108,12 +108,14 @@ class CustomerPortalService:
         profile = await self.profile(telegram_id)
         if not profile.exists:
             raise ValueError("customer account does not exist")
-        return await self.commerce.get_or_create_order(
+        order, created = await self.commerce.get_or_create_order(
             telegram_id=telegram_id,
             plan_id=plan.id,
             amount_minor=int(plan.stars_price),
             currency="XTR",
         )
+        order = await self.commerce.mark_order_awaiting_payment(order.id)
+        return order, created
 
     async def validate_stars_precheckout(
         self, *, telegram_id: int, order_id: int, amount: int,
