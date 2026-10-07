@@ -212,6 +212,10 @@ class Settings:
     payment_checkout_provider: str
     payment_checkout_endpoint: str
     payment_checkout_secret: str
+    client_portal_enabled: bool
+    client_payment_acceptance_enabled: bool
+    client_rate_limit_count: int
+    client_rate_limit_window_seconds: int
     allowed_telegram_ids: tuple[int, ...]
     admin_telegram_ids: tuple[int, ...]
     allowed_ports: tuple[int, ...]
@@ -310,6 +314,21 @@ def load_settings() -> Settings:
             raise RuntimeError(
                 "PAYMENT_CHECKOUT_SECRET must contain at least 32 bytes when checkout is enabled."
             )
+
+    client_portal_enabled = env_bool(os.getenv("CLIENT_PORTAL_ENABLED"), True)
+    client_payment_acceptance_enabled = env_bool(
+        os.getenv("CLIENT_PAYMENT_ACCEPTANCE_ENABLED"), True
+    )
+    client_rate_limit_count = int(os.getenv("CLIENT_RATE_LIMIT_COUNT", "30"))
+    client_rate_limit_window_seconds = int(
+        os.getenv("CLIENT_RATE_LIMIT_WINDOW_SECONDS", "60")
+    )
+    if not 1 <= client_rate_limit_count <= 1000:
+        raise RuntimeError("CLIENT_RATE_LIMIT_COUNT must be between 1 and 1000.")
+    if not 1 <= client_rate_limit_window_seconds <= 3600:
+        raise RuntimeError(
+            "CLIENT_RATE_LIMIT_WINDOW_SECONDS must be between 1 and 3600."
+        )
 
     compat_template = os.getenv("COMPAT_SUBSCRIPTION_URL_TEMPLATE", "").strip()
     if compat_template and "{sub_id}" not in compat_template:
@@ -419,6 +438,10 @@ def load_settings() -> Settings:
         payment_checkout_provider=payment_checkout_provider,
         payment_checkout_endpoint=payment_checkout_endpoint,
         payment_checkout_secret=payment_checkout_secret,
+        client_portal_enabled=client_portal_enabled,
+        client_payment_acceptance_enabled=client_payment_acceptance_enabled,
+        client_rate_limit_count=client_rate_limit_count,
+        client_rate_limit_window_seconds=client_rate_limit_window_seconds,
         allowed_telegram_ids=allowed_ids,
         admin_telegram_ids=admin_ids,
         allowed_ports=csv_ints(os.getenv("ALLOWED_PORTS", "2053,2083,443")),
