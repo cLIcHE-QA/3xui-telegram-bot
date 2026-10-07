@@ -89,6 +89,34 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("411111", first.metadata_json)
         self.assertNotIn("drop-me", first.metadata_json)
 
+    async def test_client_order_selection_reuses_existing_open_order(self):
+        first, first_created = await self.service.get_or_create_order(
+            telegram_id=9090,
+            plan_id=42,
+            amount_minor=15900,
+            currency="RUB",
+        )
+        second, second_created = await self.service.get_or_create_order(
+            telegram_id=9090,
+            plan_id=42,
+            amount_minor=15900,
+            currency="RUB",
+        )
+        self.assertTrue(first_created)
+        self.assertFalse(second_created)
+        self.assertEqual(first.id, second.id)
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(
+                conn.execute(
+                    """
+                    SELECT COUNT(*) FROM commerce_orders
+                    WHERE telegram_id = 9090 AND plan_id = 42
+                      AND status IN ('created', 'awaiting_payment')
+                    """
+                ).fetchone()[0],
+                1,
+            )
+
     async def test_confirmed_event_atomically_pays_order_and_creates_one_entitlement(self):
         order = await self.service.create_order(
             telegram_id=1002, plan_id=8, amount_minor=59900, currency="RUB",

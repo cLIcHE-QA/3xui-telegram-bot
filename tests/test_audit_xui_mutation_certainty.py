@@ -246,10 +246,10 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(node_add.count("await xui.node_add(payload)"), 1)
 
         client_access = (root / "client_access.py").read_text(encoding="utf-8")
-        create = client_access[client_access.index("async def create_user"):]
-        self.assertIn("except XUIMutationError as exc:", create)
-        self.assertIn("await xui.get_client_by_tg_id(tg_id)", create)
-        self.assertEqual(create.count("await xui.create_client("), 1)
+        self.assertNotIn("await xui.create_client(", client_access)
+        self.assertNotIn("async def create_user", client_access)
+        self.assertIn('F.data.in_({"create", "inbounds", "subscription"})', client_access)
+        self.assertIn("Старый тестовый экран заменён личным кабинетом.", client_access)
 
         provisioning = (root / "provisioning.py").read_text(encoding="utf-8")
         sync = provisioning[
