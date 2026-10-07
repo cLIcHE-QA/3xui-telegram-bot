@@ -3,14 +3,17 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from aiohttp import web
 
 from commerce import CommerceService
+from config import load_settings
 from db import Database
 from payment_webhook import (
     MAX_PAYMENT_WEBHOOK_BYTES,
@@ -49,6 +52,50 @@ class _FakeRequest:
 
 def _signature(secret: str, body: bytes) -> str:
     return hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+
+
+class PaymentWebhookConfigTests(unittest.TestCase):
+    def base_env(self) -> dict[str, str]:
+        return {
+            "BOT_TOKEN": "123456789:offline-test-token",
+            "PANEL_URL": "https://panel.example.invalid/base",
+            "PANEL_API_TOKEN": "offline-panel-token",
+            "SUBSCRIPTION_URL_TEMPLATE": "https://sub.example.invalid/{sub_id}",
+            "ALLOWED_TELEGRAM_IDS": "1",
+            "ADMIN_TELEGRAM_IDS": "1",
+            "NODE_BACKUP_TARGETS": "",
+            "HOST_CONTROL_TARGETS": "",
+        }
+
+    def test_webhook_is_disabled_by_default(self):
+        with patch.dict(os.environ, self.base_env(), clear=True):
+            settings = load_settings()
+        self.assertFalse(settings.payment_webhook_enabled)
+        self.assertEqual(settings.payment_webhook_provider, "generic_hmac")
+        self.assertEqual(settings.payment_webhook_secret, "")
+
+    def test_enabled_webhook_requires_independent_strong_secret(self):
+        env = self.base_env()
+        env.update({
+            "PAYMENT_WEBHOOK_ENABLED": "true",
+            "PAYMENT_WEBHOOK_SECRET": "short",
+        })
+        with patch.dict(os.environ, env, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "at least 32 bytes"):
+                load_settings()
+
+    def test_enabled_webhook_accepts_bounded_provider_name_and_secret(self):
+        env = self.base_env()
+        env.update({
+            "PAYMENT_WEBHOOK_ENABLED": "true",
+            "PAYMENT_WEBHOOK_PROVIDER": "generic_hmac",
+            "PAYMENT_WEBHOOK_SECRET": "w" * 48,
+        })
+        with patch.dict(os.environ, env, clear=True):
+            settings = load_settings()
+        self.assertTrue(settings.payment_webhook_enabled)
+        self.assertEqual(settings.payment_webhook_provider, "generic_hmac")
+        self.assertEqual(settings.payment_webhook_secret, "w" * 48)
 
 
 class PaymentWebhookGatewayTests(unittest.IsolatedAsyncioTestCase):
