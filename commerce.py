@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 
 from db import CommerceOrderRecord, CommercePaymentRecord, Database, EntitlementRecord, PaymentWebhookEventRecord
 from provisioning import ProvisioningEngine, ProvisioningUnknown
@@ -188,7 +189,7 @@ class EntitlementProvisioningService:
             )
             raise
 
-        starts_at = entitlement.starts_at or int(__import__("time").time())
+        starts_at = entitlement.starts_at or int(time.time())
         expires_at = 0
         if plan.duration_days:
             expires_at = starts_at + max(0, int(plan.duration_days)) * 86400
