@@ -29,9 +29,9 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         self.tmp.cleanup()
 
-    async def test_schema_v6_contains_separate_commerce_tables(self):
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 6)
-        self.assertEqual(await current_schema_version(str(self.path)), 6)
+    async def test_schema_v7_contains_separate_commerce_tables(self):
+        self.assertEqual(CURRENT_SCHEMA_VERSION, 7)
+        self.assertEqual(await current_schema_version(str(self.path)), 7)
         with sqlite3.connect(self.path) as conn:
             tables = {row[0] for row in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
@@ -327,6 +327,54 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
             "provisioning",
         )
         self.assertEqual((await self.db.get_commerce_payment(payment.id)).status, "confirmed")
+
+    async def test_authenticated_payment_not_found_recovers_after_restart(self):
+        order = await self.service.create_order(
+            telegram_id=1006, plan_id=12, amount_minor=99900, currency="RUB",
+        )
+        event, payment, changed_order, entitlement, created = (
+            await self.service.apply_confirmed_payment_event(
+                provider="test",
+                provider_event_id="evt-late-payment",
+                provider_payment_id="pay-late",
+                raw_payload=b"confirmed-before-payment-record",
+                signature_valid=True,
+            )
+        )
+        self.assertTrue(created)
+        self.assertEqual(event.processing_status, "failed")
+        self.assertEqual(event.result_code, "payment_not_found")
+        self.assertEqual(event.provider_payment_id, "pay-late")
+        self.assertIsNone(payment)
+        self.assertIsNone(changed_order)
+        self.assertIsNone(entitlement)
+        self.assertEqual((await self.db.get_commerce_order(order.id)).status, "created")
+
+        late_payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-late",
+        )
+        restarted = CommerceService(Database(str(self.path)))
+        summary = await restarted.reconcile_recoverable_payment_events()
+        self.assertEqual(summary["checked"], 1)
+        self.assertEqual(summary["applied"], 1)
+        self.assertEqual(summary["still_missing"], 0)
+        self.assertEqual(summary["failed"], 0)
+
+        recovered_event = await restarted.db.get_payment_webhook_event(event.id)
+        self.assertEqual(recovered_event.processing_status, "applied")
+        self.assertEqual((await restarted.db.get_commerce_payment(late_payment.id)).status, "confirmed")
+        self.assertEqual((await restarted.db.get_commerce_order(order.id)).status, "paid")
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(
+                conn.execute(
+                    "SELECT COUNT(*) FROM entitlements WHERE order_id = ?",
+                    (order.id,),
+                ).fetchone()[0],
+                1,
+            )
+
+        again = await restarted.reconcile_recoverable_payment_events()
+        self.assertEqual(again["checked"], 0)
 
     async def test_state_machine_rejects_unsafe_transitions(self):
         validate_transition("created", "awaiting_payment", ORDER_TRANSITIONS, kind="order")
