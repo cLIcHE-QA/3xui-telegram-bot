@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import re
 import secrets
+import uuid
 import sqlite3
 import time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from aiogram import F, Router
+from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -160,6 +163,42 @@ def utc_text(ts: int) -> str:
     return format_timestamp(ts)
 
 
+async def run_stars_refund(bot, *, payment_id: int, requested_by: int):
+    operation = await db.begin_stars_refund(
+        payment_id=payment_id,
+        requested_by=requested_by,
+        operation_id=str(uuid.uuid4()),
+    )
+    if operation.status != "in_flight":
+        return operation
+    try:
+        await bot.refund_star_payment(
+            user_id=operation.telegram_id,
+            telegram_payment_charge_id=operation.provider_payment_id,
+        )
+    except asyncio.TimeoutError:
+        return await db.finish_stars_refund(
+            operation.operation_id,
+            status="unknown",
+            error="Telegram refund request timed out; mutation was not retried.",
+        )
+    except TelegramAPIError as exc:
+        # Telegram API errors are treated as deterministic rejection when a
+        # response exists. Network/transport ambiguity must never be replayed.
+        return await db.finish_stars_refund(
+            operation.operation_id,
+            status="failed",
+            error=f"{type(exc).__name__}: {exc}",
+        )
+    except Exception as exc:
+        return await db.finish_stars_refund(
+            operation.operation_id,
+            status="unknown",
+            error=f"{type(exc).__name__}: {exc}",
+        )
+    return await db.finish_stars_refund(operation.operation_id, status="success")
+
+
 # ---------------------------------------------------------------------
 # Payments
 # ---------------------------------------------------------------------
@@ -268,6 +307,88 @@ async def payment_status(call: CallbackQuery):
             [InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")],
         ]),
     )
+
+
+@business_router.callback_query(F.data.regexp(r"^admin:starsrefund:ask:\\d+$"))
+async def stars_refund_ask(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    payment_id = int((call.data or "").rsplit(":", 1)[-1])
+    payment = await db.get_commerce_payment(payment_id)
+    if payment is None or payment.provider != "telegram_stars":
+        await call.answer("Stars-платёж не найден.", show_alert=True)
+        return
+    order = await db.get_commerce_order(payment.order_id)
+    if order is None:
+        await call.answer("Заказ платежа не найден.", show_alert=True)
+        return
+    existing = await db.get_stars_refund_for_payment(payment_id)
+    if existing is not None:
+        await render_callback(
+            call,
+            "↩️ Возврат Telegram Stars\n\n"
+            f"Платёж: #{payment.id}\n"
+            f"Статус операции: {existing.status}\n\n"
+            "Повторный refund mutation не выполняется автоматически.",
+            reply_markup=dashboard_back(),
+        )
+        await call.answer()
+        return
+    await render_callback(
+        call,
+        "↩️ Возврат Telegram Stars\n\n"
+        f"Платёж: #{payment.id}\n"
+        f"Пользователь: TG {order.telegram_id}\n"
+        f"Сумма: ⭐ {payment.amount_minor}\n\n"
+        "Возврат необратим. Запрос в Telegram будет отправлен ровно один раз; "
+        "при неизвестном исходе автоматического повтора не будет.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="↩️ Подтвердить возврат",
+                callback_data=f"admin:starsrefund:run:{payment.id}",
+            )],
+            [InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")],
+        ]),
+    )
+    await call.answer()
+
+
+@business_router.callback_query(F.data.regexp(r"^admin:starsrefund:run:\\d+$"))
+async def stars_refund_run(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    payment_id = int((call.data or "").rsplit(":", 1)[-1])
+    try:
+        operation = await run_stars_refund(
+            call.bot,
+            payment_id=payment_id,
+            requested_by=call.from_user.id,
+        )
+    except RuntimeError as exc:
+        await call.answer(str(exc)[:180], show_alert=True)
+        return
+    await audit_from_call(
+        db,
+        call,
+        "payment.stars_refund",
+        target_type="commerce_payment",
+        target_id=payment_id,
+        details=f"operation={operation.operation_id}; status={operation.status}",
+        success=operation.status == "success",
+    )
+    labels = {
+        "success": "✅ Возврат подтверждён Telegram.",
+        "failed": "❌ Telegram отклонил возврат.",
+        "unknown": "⚠️ Исход возврата неизвестен. Не повторяйте mutation вслепую.",
+        "in_flight": "⏳ Возврат уже выполняется.",
+    }
+    await render_callback(
+        call,
+        "↩️ Возврат Telegram Stars\n\n"
+        + labels.get(operation.status, operation.status),
+        reply_markup=dashboard_back(),
+    )
+    await call.answer()
 
 
 @business_router.callback_query(F.data == "admin:paymentadd:start")
