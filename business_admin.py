@@ -6,6 +6,8 @@ import sqlite3
 import time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
+import aiosqlite
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
