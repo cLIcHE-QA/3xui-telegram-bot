@@ -4343,7 +4343,7 @@ Public launch блокируется до закрытия release-blocking find
 - rollback/disable procedure проверена;
 - только после этого allowlist/feature flag может быть расширен до обычного публичного доступа.
 
-Результат controlled rollout фиксируется отдельным acceptance report с exact release tag/SHA, cohort scope, проверенными сценариями, найденными findings и итоговым решением о расширении доступа. Канонический runbook и evidence contract: `docs/V5_PRODUCTION_ACCEPTANCE.md`.
+Controlled rollout выполняется на опубликованном immutable `v5.0.0-rc.N` GitHub prerelease, а не на произвольном `main`. Результат фиксируется отдельным acceptance report с exact release tag/SHA, cohort scope, проверенными сценариями, найденными findings и итоговым решением о расширении доступа. Канонический runbook и evidence contract: `docs/V5_PRODUCTION_ACCEPTANCE.md`.
 
 ## Архитектурный принцип
 
