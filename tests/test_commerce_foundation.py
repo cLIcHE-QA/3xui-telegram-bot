@@ -328,6 +328,91 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual((await self.db.get_commerce_payment(payment.id)).status, "confirmed")
 
+    async def test_pending_entitlement_worker_activates_once_and_skips_unknown_replay(self):
+        plan_id = await self.db.create_plan(
+            name="Worker plan", duration_days=30, traffic_gb=20,
+            ip_limit=1, price_minor=6900, currency="RUB",
+        )
+        await self.db.put(UserRecord(
+            telegram_id=2004, email="tg_2004", sub_id="stable-sub-4",
+            expiry_time=0, created_at=1,
+        ))
+        order = await self.service.create_order(
+            telegram_id=2004, plan_id=plan_id, amount_minor=6900, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-worker",
+        )
+        _, _, _, entitlement, _ = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-worker",
+            provider_payment_id=payment.provider_payment_id,
+            raw_payload=b"confirmed", signature_valid=True,
+        )
+
+        class StubProvisioner:
+            def __init__(self):
+                self.calls = 0
+            async def sync_user(self, *args, **kwargs):
+                self.calls += 1
+                class Result:
+                    remaining_missing_ids = []
+                return Result()
+
+        stub = StubProvisioner()
+        worker = EntitlementProvisioningService(self.db, stub)
+        summary = await worker.reconcile_pending()
+        self.assertEqual(summary, {
+            "checked": 1,
+            "active": 1,
+            "failed": 0,
+            "unknown": 0,
+        })
+        self.assertEqual(stub.calls, 1)
+        self.assertEqual((await self.db.get_entitlement(entitlement.id)).status, "active")
+
+        again = await worker.reconcile_pending()
+        self.assertEqual(again["checked"], 0)
+        self.assertEqual(stub.calls, 1)
+
+        await self.db.put(UserRecord(
+            telegram_id=2005, email="tg_2005", sub_id="stable-sub-5",
+            expiry_time=0, created_at=1,
+        ))
+        unknown_order = await self.service.create_order(
+            telegram_id=2005, plan_id=plan_id, amount_minor=6900, currency="RUB",
+        )
+        unknown_payment = await self.service.create_payment(
+            order_id=unknown_order.id, provider="test",
+            provider_payment_id="pay-worker-unknown",
+        )
+        _, _, _, unknown_entitlement, _ = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-worker-unknown",
+            provider_payment_id=unknown_payment.provider_payment_id,
+            raw_payload=b"confirmed", signature_valid=True,
+        )
+
+        class UnknownProvisioner:
+            def __init__(self):
+                self.calls = 0
+            async def sync_user(self, *args, **kwargs):
+                self.calls += 1
+                raise ProvisioningUnknown("outcome unknown")
+
+        unknown_stub = UnknownProvisioner()
+        unknown_worker = EntitlementProvisioningService(self.db, unknown_stub)
+        first = await unknown_worker.reconcile_pending()
+        self.assertEqual(first["checked"], 1)
+        self.assertEqual(first["unknown"], 1)
+        self.assertEqual(unknown_stub.calls, 1)
+        self.assertEqual(
+            (await self.db.get_entitlement(unknown_entitlement.id)).status,
+            "provisioning",
+        )
+
+        second = await unknown_worker.reconcile_pending()
+        self.assertEqual(second["checked"], 0)
+        self.assertEqual(unknown_stub.calls, 1)
+
     async def test_authenticated_payment_not_found_recovers_after_restart(self):
         order = await self.service.create_order(
             telegram_id=1006, plan_id=12, amount_minor=99900, currency="RUB",
