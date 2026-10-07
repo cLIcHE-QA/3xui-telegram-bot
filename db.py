@@ -1437,6 +1437,68 @@ class Database:
             await db.commit()
             return EntitlementRecord(**dict(row)), True
 
+    async def get_entitlement(self, entitlement_id: int) -> EntitlementRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM entitlements WHERE id = ?",
+                (int(entitlement_id),),
+            )
+            row = await cur.fetchone()
+            return EntitlementRecord(**dict(row)) if row else None
+
+    async def transition_entitlement(
+        self, entitlement_id: int, *, expected_statuses: set[str],
+        target_status: str, starts_at: int | None = None,
+        expires_at: int | None = None,
+    ) -> EntitlementRecord:
+        now = int(time.time())
+        expected = {str(value) for value in expected_statuses}
+        if not expected:
+            raise RuntimeError("At least one expected entitlement status is required.")
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    "SELECT * FROM entitlements WHERE id = ?",
+                    (int(entitlement_id),),
+                )
+                row = await cur.fetchone()
+                if row is None:
+                    raise RuntimeError("Entitlement does not exist.")
+                current = str(row["status"])
+                if current == str(target_status):
+                    await db.commit()
+                    return EntitlementRecord(**dict(row))
+                if current not in expected:
+                    raise RuntimeError(
+                        f"Entitlement status {current!r} cannot transition to {target_status!r}."
+                    )
+                next_starts = int(row["starts_at"]) if starts_at is None else int(starts_at)
+                next_expires = int(row["expires_at"]) if expires_at is None else int(expires_at)
+                await db.execute(
+                    """
+                    UPDATE entitlements
+                    SET status = ?, starts_at = ?, expires_at = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        str(target_status), max(0, next_starts), max(0, next_expires),
+                        now, int(entitlement_id),
+                    ),
+                )
+                cur = await db.execute(
+                    "SELECT * FROM entitlements WHERE id = ?",
+                    (int(entitlement_id),),
+                )
+                updated = await cur.fetchone()
+                await db.commit()
+                return EntitlementRecord(**dict(updated))
+            except Exception:
+                await db.rollback()
+                raise
+
     # --- Promo codes ---------------------------------------------------
 
     async def list_promo_codes(self) -> list[PromoCodeRecord]:
