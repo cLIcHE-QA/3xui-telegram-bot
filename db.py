@@ -114,6 +114,64 @@ class PaymentRecord:
 
 
 @dataclass
+class CommerceOrderRecord:
+    id: int
+    telegram_id: int
+    plan_id: int
+    promo_code_id: int | None
+    amount_minor: int
+    currency: str
+    status: str
+    created_at: int
+    updated_at: int
+    paid_at: int
+
+
+@dataclass
+class CommercePaymentRecord:
+    id: int
+    order_id: int
+    provider: str
+    provider_payment_id: str
+    amount_minor: int
+    currency: str
+    status: str
+    created_at: int
+    updated_at: int
+    confirmed_at: int
+
+
+@dataclass
+class PaymentWebhookEventRecord:
+    id: int
+    provider: str
+    provider_event_id: str
+    event_type: str
+    signature_valid: int
+    payload_sha256: str
+    metadata_json: str
+    processing_status: str
+    order_id: int | None
+    payment_id: int | None
+    received_at: int
+    applied_at: int
+    result_code: str
+
+
+@dataclass
+class EntitlementRecord:
+    id: int
+    telegram_id: int
+    order_id: int
+    plan_id: int
+    status: str
+    starts_at: int
+    expires_at: int
+    created_at: int
+    updated_at: int
+
+
+@dataclass
 class PromoCodeRecord:
     id: int
     code: str
@@ -975,6 +1033,149 @@ class Database:
                 "SELECT currency, COALESCE(SUM(amount_minor), 0) FROM payments WHERE status = 'paid' GROUP BY currency"
             )
             return {str(currency): int(total) for currency, total in await cur.fetchall()}
+
+    # --- Client Portal commerce ---------------------------------------
+
+    async def create_commerce_order(
+        self, *, telegram_id: int, plan_id: int, amount_minor: int,
+        currency: str, promo_code_id: int | None = None,
+    ) -> int:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                INSERT INTO commerce_orders(
+                    telegram_id, plan_id, promo_code_id, amount_minor, currency,
+                    status, created_at, updated_at, paid_at
+                ) VALUES (?, ?, ?, ?, ?, 'created', ?, ?, 0)
+                """,
+                (
+                    int(telegram_id), int(plan_id), promo_code_id,
+                    max(0, int(amount_minor)), str(currency).upper(), now, now,
+                ),
+            )
+            await db.commit()
+            return int(cur.lastrowid)
+
+    async def get_commerce_order(self, order_id: int) -> CommerceOrderRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM commerce_orders WHERE id = ?",
+                (int(order_id),),
+            )
+            row = await cur.fetchone()
+            return CommerceOrderRecord(**dict(row)) if row else None
+
+    async def create_commerce_payment(
+        self, *, order_id: int, provider: str, provider_payment_id: str,
+        amount_minor: int, currency: str,
+    ) -> int:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                INSERT INTO commerce_payments(
+                    order_id, provider, provider_payment_id, amount_minor, currency,
+                    status, created_at, updated_at, confirmed_at
+                ) VALUES (?, ?, ?, ?, ?, 'created', ?, ?, 0)
+                """,
+                (
+                    int(order_id), str(provider)[:32], str(provider_payment_id)[:160],
+                    max(0, int(amount_minor)), str(currency).upper(), now, now,
+                ),
+            )
+            await db.commit()
+            return int(cur.lastrowid)
+
+    async def get_commerce_payment(
+        self, payment_id: int,
+    ) -> CommercePaymentRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM commerce_payments WHERE id = ?",
+                (int(payment_id),),
+            )
+            row = await cur.fetchone()
+            return CommercePaymentRecord(**dict(row)) if row else None
+
+    async def record_payment_webhook_event(
+        self, *, provider: str, provider_event_id: str, event_type: str,
+        signature_valid: bool, payload_sha256: str, metadata_json: str = "{}",
+    ) -> tuple[int, bool]:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                INSERT OR IGNORE INTO payment_webhook_events(
+                    provider, provider_event_id, event_type, signature_valid,
+                    payload_sha256, metadata_json, processing_status,
+                    order_id, payment_id, received_at, applied_at, result_code
+                ) VALUES (?, ?, ?, ?, ?, ?, 'received', NULL, NULL, ?, 0, '')
+                """,
+                (
+                    str(provider)[:32], str(provider_event_id)[:160],
+                    str(event_type)[:64], 1 if signature_valid else 0,
+                    str(payload_sha256)[:64], str(metadata_json)[:2000], now,
+                ),
+            )
+            created = cur.rowcount == 1
+            cur = await db.execute(
+                """
+                SELECT id FROM payment_webhook_events
+                WHERE provider = ? AND provider_event_id = ?
+                """,
+                (str(provider)[:32], str(provider_event_id)[:160]),
+            )
+            row = await cur.fetchone()
+            await db.commit()
+            return int(row[0]), created
+
+    async def get_payment_webhook_event(
+        self, event_id: int,
+    ) -> PaymentWebhookEventRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM payment_webhook_events WHERE id = ?",
+                (int(event_id),),
+            )
+            row = await cur.fetchone()
+            return PaymentWebhookEventRecord(**dict(row)) if row else None
+
+    async def ensure_entitlement_for_order(
+        self, *, telegram_id: int, order_id: int, plan_id: int,
+    ) -> tuple[EntitlementRecord, bool]:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            cur = await db.execute(
+                "SELECT * FROM entitlements WHERE order_id = ?",
+                (int(order_id),),
+            )
+            row = await cur.fetchone()
+            if row:
+                await db.commit()
+                return EntitlementRecord(**dict(row)), False
+            cur = await db.execute(
+                """
+                INSERT INTO entitlements(
+                    telegram_id, order_id, plan_id, status, starts_at,
+                    expires_at, created_at, updated_at
+                ) VALUES (?, ?, ?, 'pending', 0, 0, ?, ?)
+                """,
+                (int(telegram_id), int(order_id), int(plan_id), now, now),
+            )
+            entitlement_id = int(cur.lastrowid)
+            cur = await db.execute(
+                "SELECT * FROM entitlements WHERE id = ?",
+                (entitlement_id,),
+            )
+            row = await cur.fetchone()
+            await db.commit()
+            return EntitlementRecord(**dict(row)), True
 
     # --- Promo codes ---------------------------------------------------
 
