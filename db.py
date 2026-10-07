@@ -1132,6 +1132,7 @@ class Database:
     ) -> tuple[int, bool]:
         now = int(time.time())
         async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
             cur = await db.execute(
                 """
                 INSERT OR IGNORE INTO payment_webhook_events(
