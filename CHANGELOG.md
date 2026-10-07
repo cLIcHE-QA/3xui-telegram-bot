@@ -9,6 +9,14 @@
 
 
 
+## v4.26.9 — Subscription browser compatibility hotfix
+- Исправлена белая страница встроенной subscription SPA за compatibility proxy: статические JS/CSS assets сохраняют корректные MIME/cache headers, а runtime `window.X_UI_BASE_PATH` переписывается на `/compat/`, поэтому Vite lazy/runtime chunks больше не уходят на upstream subscription path вроде `/clichegamesub/assets/*`.
+- Canonical nginx contract для `/compat/` дополнен `proxy_max_temp_file_size 0;`; application asset responses также выставляют `X-Accel-Buffering: no`. При уже настроенном `proxy_buffering off` это defensive hardening, а не замена корректному runtime base-path rewrite.
+- Добавлены browser regression tests для HTML asset rewrite, runtime base path, case-insensitive `Content-Type`/`ETag`/`Cache-Control` passthrough и path-traversal boundary.
+- В этот release также входит уже слитый v5 Client Portal foundation: commerce schema v6/v7, authenticated/idempotent payment webhook journal, payment-event restart reconciliation, entitlement provisioning worker и pilot `/start` с меню Профиль / Моя подписка / Купить или продлить / Трафик / Устройства / Помощь.
+- Client Portal остаётся pilot-only за существующим allowlist/admin boundary; публичный signup не открыт, production payment provider/checkout ещё не подключён, а создание локального order само по себе не изменяет доступ. Legacy admin `payments` остаётся отдельным bookkeeping-контуром.
+- Текущая bot SQLite schema version — **7**; migration v6/v7 additive, а downgrade на старый release без совместимой pre-migration DB не поддерживается. Pinned 3x-ui OpenAPI contract остаётся v3.8.5.
+
 ## v4.26.8 — A-011 non-root startup hotfix
 - Исправлен production blocker `v4.26.7`: после перехода container runtime на UID/GID `10001:10001` restrictive host checkout modes могли сохраниться через Docker `COPY . .`, из-за чего Python не мог прочитать `/app/restore_bootstrap.py` и container уходил в restart loop.
 - Application tree внутри image теперь после copy принудительно остаётся root-owned, но получает `u=rwX,go=rX`; runtime user может читать/обходить source tree, но не получает write-доступ, а read-only rootfs, `cap_drop: ALL` и `no-new-privileges` сохраняются.

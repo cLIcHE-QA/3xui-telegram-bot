@@ -298,6 +298,8 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Все обязательные v4 gates закрыты. Final v4 feature freeze действует с 2026-10-05 как historical boundary: новый product scope в v4.x не возвращается. После PASS public-release audit новые customer-facing функции реализуются только в v5.x; v4.x остаётся только для действительно необходимых security/reliability/data-integrity hotfixes.
 
+`v4.26.9` готовится как narrowly-scoped operational hotfix для восстановления browser subscription links после обнаруженного compatibility defect в `/compat/`. Релизный tag также включает уже слитый v5 pilot foundation из `main`, но не снимает allowlist, не включает production checkout и не считается публичным запуском Client Portal.
+
 Ниже сохранён исторический порядок уже выполненных и оставшихся этапов:
 
 1. закрыть и принять в production `v4.20.5` с финальными UI consistency fixes;
@@ -3992,20 +3994,33 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 
 ### v5.0.0 — Client Portal
 
-**Статус: ⬜ Следующий активный product track. Реализация ещё не начата; v4 public-release gate закрыт.**
+**Статус: 🟡 Реализуется в `main`. Backend foundation и pilot Client Portal уже слиты; публичный launch ещё закрыт allowlist/launch-gates.**
 
-Рекомендуемый порядок первой реализации:
+Рекомендуемый порядок первой реализации и фактический прогресс:
 
-1. customer ownership/auth boundary + feature flag/allowlist без публичного открытия;
-2. persistent Order / Payment / Entitlement states и migration contract;
-3. provider-neutral customer/subscription service boundary поверх текущего 3x-ui provisioning;
-4. read-only Client Portal skeleton: Профиль / Моя подписка / Трафик / Устройства / Помощь;
-5. commerce flow + authenticated/idempotent payment webhook journal;
-6. entitlement → provisioning/reconcile с no-replay/unknown semantics;
-7. onboarding/deep-link/QR UX и self-service diagnostics;
-8. отдельный v5 launch audit;
-9. controlled canary rollout по описанному ниже gate;
-10. только после canary — расширение публичного доступа.
+1. 🟡 customer ownership/auth boundary + feature flag/allowlist без публичного открытия — pilot boundary действует через существующий allowlist/admin policy; public signup, dedicated abuse/rate-limit policy и полный ownership audit ещё не завершены;
+2. ✅ persistent Order / Payment / Entitlement states и migration contract — PR #290–#294, schema v6/v7, atomic payment confirmation, webhook journal и restart reconciliation;
+3. ⬜ provider-neutral customer/subscription service boundary поверх текущего 3x-ui provisioning — ещё требуется: текущий pilot Client Portal всё ещё использует прямые XUI read primitives;
+4. ✅ read-only Client Portal skeleton: Профиль / Моя подписка / Трафик / Устройства / Помощь — PR #296; legacy `/create` / `/inbounds` больше не являются mutation-entrypoints;
+5. 🟡 commerce flow + authenticated/idempotent payment webhook journal — backend journal/state machine готов, но production payment provider/checkout ещё не подключён;
+6. ✅ entitlement → provisioning/reconcile с no-replay/unknown semantics — PR #292/#295; durable pending worker не replay'ит `provisioning` с uncertain outcome;
+7. ⬜ onboarding/deep-link/QR UX и self-service diagnostics;
+8. ⬜ отдельный v5 launch audit;
+9. ⬜ controlled canary rollout по описанному ниже gate;
+10. ⬜ только после canary — расширение публичного доступа.
+
+Фактическая foundation-линия в `main` на 2026-10-07:
+
+- #290 — commerce foundation;
+- #291 — atomic `payment.confirmed → order paid → entitlement`;
+- #292 — entitlement → safe provisioning;
+- #293 — authenticated payment webhook gateway;
+- #294 — payment-event restart reconciliation;
+- #295 — durable entitlement fulfillment worker;
+- #296 — pilot Client Portal shell;
+- #297/#298 — subscription browser compatibility hotfixes, необходимые для корректной customer subscription page.
+
+До перехода к public launch основными implementation-блокерами остаются provider-neutral customer service boundary, production checkout/payment provider, onboarding/self-service diagnostics и затем launch audit + controlled canary.
 
 Отложенные tracks **не блокируют** базовый v5.0.0: multi-format subscriptions, Remnawave/provider-neutral multi-provider expansion и Cheburcheck Probe fleet могут идти отдельными subsequent tracks после стабилизации core Client Portal. При этом верхний customer/domain слой v5 сразу проектируется так, чтобы не зависеть напрямую от `XUIClient`.
 
