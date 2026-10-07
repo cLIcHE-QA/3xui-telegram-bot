@@ -116,7 +116,6 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (6, "client_portal_commerce_foundation_v5_0_0", "success"),
                         (7, "payment_event_reconciliation_v5_0_0", "success"),
                         (8, "checkout_reference_v5_0_0", "success"),
-                        (8, "checkout_reference_v5_0_0", "success"),
                         (9, "telegram_stars_price_v5_0_0", "success"),
                     ],
                 )
