@@ -50,7 +50,7 @@ def render_release_notes(changelog: str, version: str, commit: str) -> tuple[str
     version = version.strip().removeprefix("v")
     commit = commit.strip().lower()
 
-    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+    if not re.fullmatch(VERSION_PATTERN, version):
         fail(f"invalid release version: {version!r}")
     if not COMMIT_RE.fullmatch(commit):
         fail(f"invalid release commit: {commit!r}")
