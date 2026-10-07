@@ -269,3 +269,29 @@ class EntitlementProvisioningService:
             starts_at=starts_at,
             expires_at=expires_at,
         )
+
+
+    async def reconcile_pending(self, *, limit: int = 100) -> dict[str, int]:
+        entitlements = await self.db.list_pending_entitlements(limit=limit)
+        active = 0
+        failed = 0
+        unknown = 0
+        for entitlement in entitlements:
+            try:
+                result = await self.reconcile(entitlement.id)
+            except ProvisioningUnknown:
+                unknown += 1
+                continue
+            except Exception:
+                failed += 1
+                continue
+            if result.status == "active":
+                active += 1
+            else:
+                failed += 1
+        return {
+            "checked": len(entitlements),
+            "active": active,
+            "failed": failed,
+            "unknown": unknown,
+        }
