@@ -4318,6 +4318,19 @@ Roadmap не требует device registration в первой версии. Н
 
 Public launch блокируется до закрытия release-blocking findings этого v5 launch audit.
 
+## Текущий статус v5 Client Portal — 2026-10-07
+
+- 🟡 commerce/payment/entitlement foundation, Telegram Stars, onboarding/self-service diagnostics и launch safety controls уже реализованы в `main`;
+- 🟡 отдельный v5 launch audit выполнен: repository-verifiable controls закреплены regression gate;
+- 🟡 retention/data-minimization policy и production acceptance runbook находятся в `main` после #309;
+- 🟡 #310 реализует immutable `v5.0.0-rc.N` prerelease/deploy path для controlled canary;
+- ⬜ после merge #310 требуется отдельный release-prep `release: v5.0.0-rc.1`;
+- ⬜ на опубликованном RC требуется фактический production acceptance по `docs/V5_PRODUCTION_ACCEPTANCE.md`: Stars happy path/refund, failure/restart/reconciliation, ownership/isolation, abuse/load/soak и rollback;
+- ⬜ stable `v5.0.0` публикуется только после PASS acceptance без unresolved Critical/High и без необъяснимых payment/entitlement/provisioning inconsistencies;
+- ⬜ broad public access / снятие pilot allowlist выполняется только после успешного controlled rollout; публикация stable tag сама по себе allowlist не снимает.
+
+Таким образом, ближайшая release sequence: **#310 → `v5.0.0-rc.1` → controlled production acceptance → при необходимости `rc.2+` → PASS → `v5.0.0` → постепенное расширение cohort**.
+
 ## Gate контролируемого запуска v5.0
 
 После успешного v5 launch audit публичный Client Portal не открывается сразу всему потоку пользователей. Перед широким запуском выполняется отдельный controlled rollout / production acceptance gate.
