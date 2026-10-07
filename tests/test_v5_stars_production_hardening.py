@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock
 
 from business_admin import run_stars_refund
 from commerce import CommerceService
-from db import Database
+from db import Database, UserRecord
 from db_migrations import CURRENT_SCHEMA_VERSION
 
 
@@ -22,10 +22,10 @@ class StarsProductionHardeningTests(unittest.IsolatedAsyncioTestCase):
         plan = (await self.db.list_plans())[0]
         await self.db.set_plan_stars_price(plan.id, 250)
         self.plan = await self.db.get_plan(plan.id)
-        await self.db.create_user(
+        await self.db.put(UserRecord(
             telegram_id=1001, email="u@example", sub_id="sub",
-            expiry_time=0,
-        )
+            expiry_time=0, created_at=1,
+        ))
 
     async def asyncTearDown(self):
         self.tmp.cleanup()
