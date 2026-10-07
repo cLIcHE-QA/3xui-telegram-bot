@@ -35,6 +35,30 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertIn("./scripts/deploy-release.sh --status", body)
         self.assertIn("не выполняет production deployment автоматически", body)
 
+    def test_release_candidate_renders_and_deploys_by_rc_tag(self):
+        changelog = """## v5.0.0-rc.1 — Client Portal canary
+- Canary build.
+"""
+        commit = "f" * 40
+        title, body = release_notes.render_release_notes(
+            changelog, "5.0.0-rc.1", commit
+        )
+        self.assertEqual(title, "v5.0.0-rc.1 — Client Portal canary")
+        self.assertIn("./scripts/deploy-release.sh v5.0.0-rc.1", body)
+
+    def test_release_workflow_marks_rc_as_prerelease(self):
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("prerelease=true", workflow)
+        self.assertIn("--prerelease", workflow)
+        self.assertIn("-rc\\.[0-9]+", workflow)
+
+    def test_deploy_accepts_rc_tag_shape(self):
+        deploy = (ROOT / "scripts" / "deploy-release.sh").read_text(encoding="utf-8")
+        self.assertIn("-rc\\.[0-9]+", deploy)
+        self.assertIn("v5.0.0-rc.1", deploy)
+
     def test_missing_release_section_is_rejected(self):
         with self.assertRaises(SystemExit):
             release_notes.render_release_notes(
