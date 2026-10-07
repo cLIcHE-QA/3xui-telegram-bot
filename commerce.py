@@ -89,6 +89,11 @@ class CommerceService:
             promo_code_id=promo_code_id,
         )
 
+    async def mark_order_awaiting_payment(
+        self, order_id: int,
+    ) -> CommerceOrderRecord:
+        return await self.db.mark_commerce_order_awaiting_payment(order_id)
+
     async def get_order(self, order_id: int) -> CommerceOrderRecord | None:
         return await self.db.get_commerce_order(order_id)
 
