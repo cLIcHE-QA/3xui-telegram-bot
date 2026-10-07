@@ -268,7 +268,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("payments.view", "exact", "admin:payments")
     + _rules("payments.view", "regex", r"^admin:payment:\d+$")
     + _rules("payments.manage", "exact", "admin:paymentadd:start", "admin:paymentadd:save", "admin:paymentadd:cancel")
-    + _rules("payments.manage", "prefix", "admin:payment:status:", "admin:paymentadd:plan:", "admin:paymentadd:status:")
+    + _rules("payments.manage", "prefix", "admin:payment:status:", "admin:paymentadd:plan:", "admin:paymentadd:status:", "admin:starsrefund:ask:", "admin:starsrefund:run:")
     + _rules("promo.view", "exact", "admin:promo")
     + _rules("promo.view", "regex", r"^admin:promo:\d+$")
     + _rules("promo.manage", "exact", "admin:promoadd:start", "admin:promoadd:save", "admin:promoadd:cancel")
