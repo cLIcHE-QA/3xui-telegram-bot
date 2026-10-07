@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
+from checkout_service import CheckoutService, CheckoutSession
 from commerce import CommerceService
 from db import Database, PlanRecord
 
@@ -51,11 +52,13 @@ class CustomerPortalService:
         provider: CustomerAccessProvider,
         *,
         subscription_url_template: str,
+        checkout: CheckoutService | None = None,
     ):
         self.db = db
         self.commerce = commerce
         self.provider = provider
         self.subscription_url_template = subscription_url_template
+        self.checkout = checkout
 
     async def profile(self, telegram_id: int) -> CustomerProfile:
         rec = await self.db.get(telegram_id)
@@ -96,6 +99,18 @@ class CustomerPortalService:
     async def active_plan(self, plan_id: int) -> PlanRecord | None:
         plan = await self.db.get_plan(plan_id)
         return plan if plan is not None and plan.active else None
+
+    async def checkout_for_plan(
+        self, *, telegram_id: int, plan: PlanRecord,
+    ) -> tuple[object, bool, CheckoutSession | None]:
+        order, created = await self.get_or_create_order(
+            telegram_id=telegram_id,
+            plan=plan,
+        )
+        if self.checkout is None:
+            return order, created, None
+        session = await self.checkout.start(order)
+        return order, created, session
 
     async def get_or_create_order(self, *, telegram_id: int, plan: PlanRecord):
         profile = await self.profile(telegram_id)
