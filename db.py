@@ -1298,6 +1298,20 @@ class Database:
                         None, None, None, False,
                     )
                 elif not existing_signature_valid and not signature_valid:
+                    await db.execute(
+                        """
+                        UPDATE payment_webhook_events
+                        SET processing_status = 'ignored', applied_at = ?,
+                            result_code = 'invalid_signature'
+                        WHERE id = ?
+                        """,
+                        (now, int(event_row["id"])),
+                    )
+                    cur = await db.execute(
+                        "SELECT * FROM payment_webhook_events WHERE id = ?",
+                        (int(event_row["id"]),),
+                    )
+                    event_row = await cur.fetchone()
                     await db.commit()
                     return (
                         PaymentWebhookEventRecord(**dict(event_row)),
