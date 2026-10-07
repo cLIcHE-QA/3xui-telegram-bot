@@ -85,15 +85,17 @@ entitlements, Terms acceptance and refund journal. Current implementation minimi
 webhook payload storage, but product/operator retention policy needs an explicit
 disposition before broad public access.
 
-**Status:** Open — owner/operator policy disposition required.
+**Status:** Repository policy disposition completed in `docs/DATA_RETENTION.md`.
+Deployment operator must still confirm applicable business/legal retention obligations
+before broad public launch.
 
 ## Current disposition
 
 **CONDITIONAL / NOT YET PASS.**
 
 No new repository-verifiable Critical/High ownership, payment-integrity or secret
-exposure blocker was identified in this audit slice. However, v5.0.0 remains blocked by
-V5-A-001 through V5-A-004. The first three require production-like/controlled-canary
-evidence; V5-A-004 requires an explicit retention-policy decision.
+exposure blocker was identified in this audit slice. V5-A-004 now has a repository policy disposition in `docs/DATA_RETENTION.md`.
+v5.0.0 remains blocked by V5-A-001 through V5-A-003, which require actual
+production-like/controlled-canary evidence using `docs/V5_PRODUCTION_ACCEPTANCE.md`.
 
 Do not remove the customer allowlist or broaden the cohort based only on CI success.
