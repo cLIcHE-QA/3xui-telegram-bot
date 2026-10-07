@@ -14,7 +14,7 @@ LOCK_FILE="${DEPLOY_LOCK_FILE:-${BACKUP_ROOT}/.${PROJECT}.deploy-release.lock}"
 usage() {
     cat <<'USAGE'
 Usage:
-  ./scripts/deploy-release.sh vX.Y.Z
+  ./scripts/deploy-release.sh vX.Y.Z[-rc.N]
   ./scripts/deploy-release.sh --status
   ./scripts/deploy-release.sh --help
 
@@ -285,7 +285,7 @@ main() {
     esac
 
     local release="$1"
-    [[ "$release" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "release must look like v4.9.2"
+    [[ "$release" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || die "release must look like v4.9.2 or v5.0.0-rc.1"
 
     need_cmd git
     need_cmd docker
@@ -333,7 +333,7 @@ main() {
     [[ -n "$target_version" ]] || die "APP_VERSION not found in $release"
     [[ "v$target_version" == "$release" ]] || die "$release does not match APP_VERSION=$target_version"
 
-    if [[ "$current_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ && "$current_tag" != "$release" ]]; then
+    if [[ "$current_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ && "$current_tag" != "$release" ]]; then
         if [[ "$(printf '%s\n%s\n' "$current_tag" "$release" | sort -V | tail -n 1)" != "$release" ]]; then
             [[ "${DEPLOY_ALLOW_DOWNGRADE:-0}" == 1 ]] || die "downgrade $current_tag -> $release requires DEPLOY_ALLOW_DOWNGRADE=1"
         fi
