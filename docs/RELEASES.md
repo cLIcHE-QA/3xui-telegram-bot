@@ -6,16 +6,18 @@
 
 ## Источник правды
 
-Для релиза `vX.Y.Z` используются три связанных источника:
+Для стабильного релиза `vX.Y.Z` и controlled-canary release candidate
+`vX.Y.Z-rc.N` используются три связанных источника:
 
-1. `version.py` — точная версия приложения: `APP_VERSION = "X.Y.Z"`;
+1. `version.py` — точная версия приложения: `APP_VERSION = "X.Y.Z"` либо
+   `APP_VERSION = "X.Y.Z-rc.N"` для canary RC;
 2. `CHANGELOG.md` — канонический заголовок и список изменений;
 3. merge commit release-prep PR — commit, на который должен указывать tag.
 
 Раздел CHANGELOG обязан иметь вид:
 
 ~~~markdown
-## vX.Y.Z — Краткое название релиза
+## vX.Y.Z[-rc.N] — Краткое название релиза
 - Первое существенное изменение.
 - Второе существенное изменение.
 - Ограничения/совместимость, если они важны.
@@ -55,6 +57,18 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Технические имена, команды, API paths, переменные окружения и названия кнопок сохраняются в исходном виде. Остальной текст пишется на русском языке.
 
 Release не должен иметь пустой `name` или пустой `body`.
+
+## Release candidate для controlled canary
+
+Когда production acceptance является обязательным gate **до** финального stable release,
+используется immutable RC вида `v5.0.0-rc.1`. RC проходит тот же release-prep PR,
+required CI, provenance validation и immutable tag flow, но GitHub Release публикуется
+как **prerelease**. Production deploy разрешён только этим опубликованным RC tag через
+`scripts/deploy-release.sh`.
+
+RC не означает PASS launch audit и не снимает allowlist. После acceptance findings
+исправляются новым RC (`rc.2`, `rc.3`, ...); опубликованный RC tag не перемещается.
+Только после PASS acceptance готовится отдельный `release: v5.0.0`.
 
 ## Стандартный release flow
 
