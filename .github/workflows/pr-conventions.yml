@@ -20,7 +20,7 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          release_re='^release: v[0-9]+\.[0-9]+\.[0-9]+$'
+          release_re='^release: v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
           regular_re='^(feat|fix|security|docs|test|chore|refactor): .+'
 
           if [[ "$PR_TITLE" =~ $release_re ]]; then
@@ -42,6 +42,6 @@ jobs:
             test: <краткое описание>
             chore: <краткое описание>
             refactor: <краткое описание>
-            release: vX.Y.Z
+            release: vX.Y.Z[-rc.N]
           EOF
           exit 1

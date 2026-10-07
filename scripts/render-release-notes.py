@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import NoReturn
 
 
-HEADING_RE = re.compile(r"^## v(?P<version>\d+\.\d+\.\d+) — (?P<title>.+?)\s*$")
+VERSION_PATTERN = r"\d+\.\d+\.\d+(?:-rc\.\d+)?"
+HEADING_RE = re.compile(rf"^## v(?P<version>{VERSION_PATTERN}) — (?P<title>.+?)\s*$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
 
 
@@ -50,7 +51,7 @@ def render_release_notes(changelog: str, version: str, commit: str) -> tuple[str
     version = version.strip().removeprefix("v")
     commit = commit.strip().lower()
 
-    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+    if not re.fullmatch(VERSION_PATTERN, version):
         fail(f"invalid release version: {version!r}")
     if not COMMIT_RE.fullmatch(commit):
         fail(f"invalid release commit: {commit!r}")

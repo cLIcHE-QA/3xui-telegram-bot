@@ -31,6 +31,7 @@ jobs:
       commit: ${{ steps.release.outputs.commit }}
       title_b64: ${{ steps.notes.outputs.title_b64 }}
       body_b64: ${{ steps.notes.outputs.body_b64 }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
       repair_v4101: ${{ steps.repair.outputs.repair_v4101 }}
       repair_title_b64: ${{ steps.repair.outputs.repair_title_b64 }}
       repair_body_b64: ${{ steps.repair.outputs.repair_body_b64 }}
@@ -78,7 +79,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           version="$(python3 -c 'from version import APP_VERSION; print(APP_VERSION)')"
-          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]
           release_commit="$(git log --format='%H' -G "^APP_VERSION = \"$version\"$" -- version.py | head -n 1)"
           [[ "$release_commit" =~ ^[0-9a-f]{40}$ ]] || { echo "Cannot resolve release commit for APP_VERSION=$version" >&2; exit 1; }
           git merge-base --is-ancestor "$release_commit" "$TESTED_SHA"
@@ -88,6 +89,11 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
           echo "commit=$release_commit" >> "$GITHUB_OUTPUT"
+          if [[ "$version" =~ -rc\.[0-9]+$ ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Verify release commit came from release-prep PR
         shell: bash
@@ -159,6 +165,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
       RELEASE_COMMIT: ${{ needs.prepare.outputs.commit }}
+      RELEASE_PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
     steps:
       - name: Restore validated release metadata
         shell: bash
@@ -193,7 +200,11 @@ jobs:
           if gh release view "$RELEASE_TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
             gh release edit "$RELEASE_TAG" --repo "$REPOSITORY" --title "$title" --notes-file /tmp/release-body.md
           else
-            gh release create "$RELEASE_TAG" --repo "$REPOSITORY" --verify-tag --title "$title" --notes-file /tmp/release-body.md
+            if [[ "$RELEASE_PRERELEASE" == true ]]; then
+              gh release create "$RELEASE_TAG" --repo "$REPOSITORY" --verify-tag --prerelease --title "$title" --notes-file /tmp/release-body.md
+            else
+              gh release create "$RELEASE_TAG" --repo "$REPOSITORY" --verify-tag --title "$title" --notes-file /tmp/release-body.md
+            fi
           fi
 
       - name: Repair v4.10.1 blank metadata if needed
