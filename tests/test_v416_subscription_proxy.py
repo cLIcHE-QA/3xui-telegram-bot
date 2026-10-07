@@ -360,6 +360,23 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.body, body)
         self.assertTrue(response.headers["Content-Type"].startswith("application/json"))
 
+    def test_html_rewrite_updates_runtime_base_path_for_lazy_chunks(self):
+        html = (
+            '<html><head>'
+            '<script>window.X_UI_BASE_PATH="/clichegamesub/";'
+            'window.__SUB_PAGE_DATA__={};</script>'
+            '</head><body></body></html>'
+        )
+        rewritten = _rewrite_default_page(
+            html,
+            "https://upstream.example.invalid/clichegamesub/known",
+            "https://public.example.invalid/compat/known",
+            "/clichegamesub/assets",
+            "https://upstream.example.invalid",
+        )
+        self.assertIn('window.X_UI_BASE_PATH="/compat/"', rewritten)
+        self.assertNotIn('window.X_UI_BASE_PATH="/clichegamesub/"', rewritten)
+
     def test_html_rewrite_routes_real_subscription_assets_through_compat(self):
         html = (
             '<html><head>'
