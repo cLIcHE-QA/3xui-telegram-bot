@@ -256,6 +256,47 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     (6, "client_portal_commerce_foundation_v5_0_0", "success"),
                 )
 
+    async def test_schema_v5_upgrades_to_commerce_foundation_without_legacy_payment_changes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bot.sqlite3"
+            await run_migrations(str(path), migrations=MIGRATIONS[:5])
+            with sqlite3.connect(path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO payments(
+                        telegram_id, plan_id, amount_minor, currency, status, provider,
+                        external_id, note, created_by, created_at, updated_at, paid_at
+                    ) VALUES (?, NULL, ?, 'RUB', 'paid', 'manual', ?, '', 1, 2, 3, 4)
+                    """,
+                    (808, 9900, "legacy-payment"),
+                )
+                conn.commit()
+
+            await Database(str(path)).init()
+
+            with sqlite3.connect(path) as conn:
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT telegram_id, amount_minor, status, external_id FROM payments"
+                    ).fetchone(),
+                    (808, 9900, "paid", "legacy-payment"),
+                )
+                tables = {
+                    row[0] for row in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    ).fetchall()
+                }
+                self.assertTrue({
+                    "commerce_orders", "commerce_payments",
+                    "payment_webhook_events", "entitlements",
+                }.issubset(tables))
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
+                    ).fetchone(),
+                    (6, "client_portal_commerce_foundation_v5_0_0", "success"),
+                )
+
     async def test_newer_schema_version_blocks_startup(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "bot.sqlite3"
