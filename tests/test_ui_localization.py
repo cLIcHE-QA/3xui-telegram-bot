@@ -361,15 +361,21 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             self.assertNotIn(old, privileges)
 
         for needle in (
-            '"целевых Inbounds. Попроси администратора проверить "',
-            'provisioning_note = "Политика совместимости пробного доступа"',
-            'f"📡 Inbounds: {\', \'.join(map(str, inbound_ids))}"',
-            '"выполнить согласование позже."',
+            'text="👤 Профиль"',
+            'text="🌐 Моя подписка"',
+            'text="💳 Купить / продлить"',
+            'text="📊 Трафик"',
+            'text="📱 Устройства"',
+            'text="🆘 Помощь"',
+            '"Старый тестовый экран заменён личным кабинетом."',
+            '"Оплата пока не подключена. Заказ сохранён, но доступ не изменится "',
+            '"Не отправляйте публично ссылку подписки: она является секретом доступа."',
         ):
             self.assertIn(needle, client)
         for old in (
-            "target Inbounds",
-            "Legacy-политика пробного доступа",
+            "🧪 Создать тестовый доступ",
+            "🔍 Проверить Inbounds",
+            "Политика совместимости пробного доступа",
             "выполнить reconcile позже",
         ):
             self.assertNotIn(old, client)
