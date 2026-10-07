@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock
 
-from business_admin import run_stars_refund
+from stars_refund import run_stars_refund
 from commerce import CommerceService
 from db import Database, UserRecord
 from db_migrations import CURRENT_SCHEMA_VERSION
@@ -57,7 +57,7 @@ class StarsProductionHardeningTests(unittest.IsolatedAsyncioTestCase):
     async def test_successful_refund_marks_payment_refunded(self):
         payment = await self._confirmed_payment()
         bot = AsyncMock()
-        op = await run_stars_refund(bot, payment_id=payment.id, requested_by=77)
+        op = await run_stars_refund(self.db, bot, payment_id=payment.id, requested_by=77)
         self.assertEqual(op.status, "success")
         bot.refund_star_payment.assert_awaited_once_with(
             user_id=1001,
@@ -70,9 +70,9 @@ class StarsProductionHardeningTests(unittest.IsolatedAsyncioTestCase):
         payment = await self._confirmed_payment()
         bot = AsyncMock()
         bot.refund_star_payment.side_effect = OSError("connection lost")
-        first = await run_stars_refund(bot, payment_id=payment.id, requested_by=77)
+        first = await run_stars_refund(self.db, bot, payment_id=payment.id, requested_by=77)
         self.assertEqual(first.status, "unknown")
-        second = await run_stars_refund(bot, payment_id=payment.id, requested_by=77)
+        second = await run_stars_refund(self.db, bot, payment_id=payment.id, requested_by=77)
         self.assertEqual(second.status, "unknown")
         self.assertEqual(bot.refund_star_payment.await_count, 1)
         updated = await self.db.get_commerce_payment(payment.id)
