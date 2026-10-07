@@ -1,13 +1,13 @@
 {
   "contract_version": 1,
-  "supported_3xui_version": "3.8.5",
+  "supported_3xui_version": "3.9.0",
   "upstream": {
     "repository": "MHSanaei/3x-ui",
-    "ref": "v3.8.5",
+    "ref": "v3.9.0",
     "schema_path": "frontend/public/openapi.json",
-    "schema_blob_sha": "d1f9b499e43d4370d68fdf9ca6045e1d967b42ad"
+    "schema_blob_sha": "298f96690c012a7fd80822aab9a91934c7dc4f79"
   },
-  "vendored_schema": "contracts/3xui/v3.8.5/openapi.json",
+  "vendored_schema": "contracts/3xui/v3.9.0/openapi.json",
   "source_files": [
     "xui.py",
     "version_api.py"
@@ -23,7 +23,7 @@
       "method": "GET",
       "path": "/panel/api/server/getDb",
       "contract": "route_method_auth_only",
-      "reason": "3x-ui v3.8.5 OpenAPI models a generic JSON envelope, while the live endpoint returns the database as a binary attachment; binary response semantics are covered by runtime regression tests."
+      "reason": "3x-ui v3.9.0 OpenAPI models a generic JSON envelope, while the live endpoint returns the database as a binary attachment; binary response semantics are covered by runtime regression tests."
     }
   ],
   "endpoints": [
