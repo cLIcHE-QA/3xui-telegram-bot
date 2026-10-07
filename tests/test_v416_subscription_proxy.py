@@ -16,6 +16,7 @@ from subscription_proxy import (
     convert_vpn_to_amneziawg,
     filter_incy_desktop_awg,
     remove_shadowrocket_xhttp_reality_fp,
+    _rewrite_default_page,
 )
 
 
@@ -358,6 +359,54 @@ class SubscriptionProxyRegressionTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(response.body, body)
         self.assertTrue(response.headers["Content-Type"].startswith("application/json"))
+
+    def test_html_rewrite_routes_real_subscription_assets_through_compat(self):
+        html = (
+            '<html><head>'
+            '<script type="module" src="/clichegamesub/assets/app-ABC.js"></script>'
+            '<link rel="stylesheet" href="/clichegamesub/assets/app-ABC.css">'
+            '</head></html>'
+        )
+        rewritten = _rewrite_default_page(
+            html,
+            "https://upstream.example.invalid/clichegamesub/known",
+            "https://public.example.invalid/compat/known",
+            "/clichegamesub/assets",
+            "https://upstream.example.invalid",
+        )
+        self.assertIn('src="/compat/assets/app-ABC.js"', rewritten)
+        self.assertIn('href="/compat/assets/app-ABC.css"', rewritten)
+        self.assertNotIn("/clichegamesub/assets/", rewritten)
+
+    async def test_asset_preserves_mime_case_insensitively_and_disables_buffering(self):
+        db = SimpleNamespace(get_by_sub_id=AsyncMock())
+        proxy = SubscriptionProxy(
+            db,
+            "https://upstream.example.invalid/clichegamesub/{sub_id}",
+        )
+        proxy._fetch = AsyncMock(return_value=(
+            200,
+            b"console.log('ok')",
+            {
+                "content-type": "application/javascript; charset=utf-8",
+                "etag": '"asset-etag"',
+                "cache-control": "public, max-age=31536000",
+            },
+        ))
+        request = SimpleNamespace(
+            match_info={"tail": "app-ABC.js"},
+            headers={"Accept": "*/*", "User-Agent": "Safari/18"},
+        )
+
+        response = await proxy.asset(request)
+
+        self.assertEqual(
+            response.headers["Content-Type"],
+            "application/javascript; charset=utf-8",
+        )
+        self.assertEqual(response.headers["ETag"], '"asset-etag"')
+        self.assertEqual(response.headers["Cache-Control"], "public, max-age=31536000")
+        self.assertEqual(response.headers["X-Accel-Buffering"], "no")
 
     async def test_asset_path_traversal_is_rejected_without_fetch(self):
         db = SimpleNamespace(get_by_sub_id=AsyncMock())
