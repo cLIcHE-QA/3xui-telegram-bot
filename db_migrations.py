@@ -715,7 +715,10 @@ async def _migration_0005_website_watcher_lifecycle_v4_24_0(
             "CHECK(monitoring_enabled IN (0, 1))"
         )
     await _validate_current_schema(
-        db, include_commerce=False, include_plan_stars_price=False
+        db,
+        include_commerce=False,
+        include_plan_stars_price=False,
+        include_stars_hardening=False,
     )
 
 
