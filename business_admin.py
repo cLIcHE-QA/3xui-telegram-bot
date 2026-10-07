@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import asyncio
 import re
 import secrets
-import uuid
 import sqlite3
 import time
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from aiogram import F, Router
-from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -161,42 +158,6 @@ def parse_money(raw: str, fallback_currency: str) -> tuple[int, str]:
 
 def utc_text(ts: int) -> str:
     return format_timestamp(ts)
-
-
-async def run_stars_refund(bot, *, payment_id: int, requested_by: int):
-    operation = await db.begin_stars_refund(
-        payment_id=payment_id,
-        requested_by=requested_by,
-        operation_id=str(uuid.uuid4()),
-    )
-    if operation.status != "in_flight":
-        return operation
-    try:
-        await bot.refund_star_payment(
-            user_id=operation.telegram_id,
-            telegram_payment_charge_id=operation.provider_payment_id,
-        )
-    except asyncio.TimeoutError:
-        return await db.finish_stars_refund(
-            operation.operation_id,
-            status="unknown",
-            error="Telegram refund request timed out; mutation was not retried.",
-        )
-    except TelegramAPIError as exc:
-        # Telegram API errors are treated as deterministic rejection when a
-        # response exists. Network/transport ambiguity must never be replayed.
-        return await db.finish_stars_refund(
-            operation.operation_id,
-            status="failed",
-            error=f"{type(exc).__name__}: {exc}",
-        )
-    except Exception as exc:
-        return await db.finish_stars_refund(
-            operation.operation_id,
-            status="unknown",
-            error=f"{type(exc).__name__}: {exc}",
-        )
-    return await db.finish_stars_refund(operation.operation_id, status="success")
 
 
 # ---------------------------------------------------------------------
@@ -433,6 +394,7 @@ async def stars_refund_run(call: CallbackQuery):
     payment_id = int((call.data or "").rsplit(":", 1)[-1])
     try:
         operation = await run_stars_refund(
+            db,
             call.bot,
             payment_id=payment_id,
             requested_by=call.from_user.id,
