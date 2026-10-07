@@ -33,12 +33,21 @@ class SubscriptionAccessLogAuditTests(unittest.IsolatedAsyncioTestCase):
 
     def test_canonical_nginx_compat_route_disables_access_log(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        block = readme.split("location /compat/ {", 1)[1].split("}", 1)[0]
-        self.assertIn("access_log off;", block)
-        self.assertIn("limit_req zone=sub_compat_rate burst=10 nodelay;", block)
-        self.assertIn("limit_conn sub_compat_conn 4;", block)
-        self.assertIn("proxy_read_timeout 25s;", block)
-        self.assertNotIn("access_log main", block)
+        customer = readme.split("location ^~ /compat/ {", 1)[1].split("}", 1)[0]
+        assets = readme.split("location ^~ /compat/assets/ {", 1)[1].split("}", 1)[0]
+
+        self.assertIn("access_log off;", customer)
+        self.assertIn("limit_req zone=sub_compat_rate burst=10 nodelay;", customer)
+        self.assertIn("limit_conn sub_compat_conn 4;", customer)
+        self.assertIn("proxy_read_timeout 25s;", customer)
+        self.assertNotIn("access_log main", customer)
+
+        self.assertIn("access_log off;", assets)
+        self.assertIn("limit_req zone=sub_compat_assets_rate burst=80 nodelay;", assets)
+        self.assertIn("limit_conn sub_compat_assets_conn 32;", assets)
+        self.assertIn("proxy_buffering off;", assets)
+        self.assertNotIn("limit_req zone=sub_compat_rate burst=10 nodelay;", assets)
+        self.assertNotIn("limit_conn sub_compat_conn 4;", assets)
 
         self.assertIn(
             "limit_req_zone $binary_remote_addr zone=sub_compat_rate:10m rate=5r/s;",
@@ -46,6 +55,14 @@ class SubscriptionAccessLogAuditTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIn(
             "limit_conn_zone $binary_remote_addr zone=sub_compat_conn:10m;",
+            readme,
+        )
+        self.assertIn(
+            "limit_req_zone $binary_remote_addr zone=sub_compat_assets_rate:10m rate=40r/s;",
+            readme,
+        )
+        self.assertIn(
+            "limit_conn_zone $binary_remote_addr zone=sub_compat_assets_conn:10m;",
             readme,
         )
 
