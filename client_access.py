@@ -23,6 +23,8 @@ customer_service: CustomerPortalService | None = None
 
 client_access_router = Router(name="client_access")
 
+TERMS_VERSION = "v5-stars-2026-10-07"
+
 
 def is_allowed(tg_id: int) -> bool:
     # v5 pilot boundary. Public signup remains closed until abuse/rate-limit
@@ -326,6 +328,26 @@ async def plan_cb(call: CallbackQuery):
         await call.answer()
         return
 
+    if not await _service().has_accepted_terms(call.from_user.id, TERMS_VERSION):
+        await render_callback(
+            call,
+            "📄 Условия покупки\n\n"
+            f"Тариф: {plan.name}\n"
+            f"Сумма: ⭐ {plan.stars_price}\n\n"
+            "Нажимая «Принимаю и оплатить», вы подтверждаете покупку цифровой "
+            "VPN-подписки за Telegram Stars и соглашаетесь обратиться в поддержку "
+            "по вопросам оплаты/возврата.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="✅ Принимаю и оплатить",
+                    callback_data=f"client:terms:{plan.id}",
+                )],
+                [InlineKeyboardButton(text="⬅ Купить / продлить", callback_data="client:buy")],
+            ]),
+        )
+        await call.answer()
+        return
+
     order, created = await _service().get_or_create_stars_order(
         telegram_id=call.from_user.id,
         plan=plan,
@@ -354,6 +376,50 @@ async def plan_cb(call: CallbackQuery):
         f"Тариф: {plan.name}\n"
         f"Сумма: ⭐ {plan.stars_price}\n"
         f"Заказ: #{order.id} · {state}\n\n"
+        "Invoice Telegram Stars отправлен отдельным сообщением. "
+        "Доступ изменится только после успешного платежа Telegram.",
+        reply_markup=back_menu(),
+    )
+    await call.answer()
+
+
+
+@client_access_router.callback_query(F.data.startswith("client:terms:"))
+async def terms_accept_cb(call: CallbackQuery):
+    if not await guard_callback(call):
+        return
+    try:
+        plan_id = int((call.data or "").rsplit(":", 1)[1])
+    except (TypeError, ValueError):
+        await call.answer("Некорректный тариф.", show_alert=True)
+        return
+    plan = await _service().active_plan(plan_id)
+    if plan is None or int(plan.stars_price or 0) <= 0:
+        await call.answer("Тариф недоступен.", show_alert=True)
+        return
+    await _service().accept_terms(call.from_user.id, TERMS_VERSION)
+    order, created = await _service().get_or_create_stars_order(
+        telegram_id=call.from_user.id,
+        plan=plan,
+    )
+    payload = stars_payload(order_id=order.id, telegram_id=call.from_user.id)
+    await call.bot.send_invoice(
+        chat_id=call.from_user.id,
+        title=plan.name[:32],
+        description=f"VPN-подписка: {plan.name}, срок {plan.duration_days} дней."[:255],
+        payload=payload,
+        currency="XTR",
+        prices=[LabeledPrice(label=plan.name[:32], amount=int(plan.stars_price))],
+        provider_token="",
+    )
+    state = "создан" if created else "уже существует"
+    await render_callback(
+        call,
+        "💳 Заказ\n\n"
+        f"Тариф: {plan.name}\n"
+        f"Сумма: ⭐ {plan.stars_price}\n"
+        f"Заказ: #{order.id} · {state}\n"
+        f"Условия: приняты ({TERMS_VERSION})\n\n"
         "Invoice Telegram Stars отправлен отдельным сообщением. "
         "Доступ изменится только после успешного платежа Telegram.",
         reply_markup=back_menu(),
