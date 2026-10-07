@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 
 from db import CommerceOrderRecord, CommercePaymentRecord, Database, EntitlementRecord, PaymentWebhookEventRecord
+from provisioning import ProvisioningEngine, ProvisioningUnknown
 
 
 ORDER_TRANSITIONS = {
@@ -129,4 +131,72 @@ class CommerceService:
             metadata_json=safe_event_metadata(metadata),
             provider_payment_id=provider_payment_id,
             fail_after_payment_update=fail_after_payment_update,
+        )
+
+
+
+class EntitlementProvisioningService:
+    """Bridge paid commerce entitlements into the existing safe provisioning engine."""
+
+    def __init__(self, db: Database, provisioner: ProvisioningEngine):
+        self.db = db
+        self.provisioner = provisioner
+
+    async def reconcile(self, entitlement_id: int) -> EntitlementRecord:
+        entitlement = await self.db.get_entitlement(entitlement_id)
+        if entitlement is None:
+            raise CommerceIntegrityError("Entitlement does not exist.")
+        if entitlement.status == "active":
+            return entitlement
+        validate_transition(
+            entitlement.status, "provisioning",
+            ENTITLEMENT_TRANSITIONS, kind="entitlement",
+        )
+        entitlement = await self.db.transition_entitlement(
+            entitlement.id,
+            expected_statuses={"pending", "failed"},
+            target_status="provisioning",
+        )
+        try:
+            plan = await self.db.get_plan(entitlement.plan_id)
+            if plan is None or not plan.active:
+                raise CommerceIntegrityError("Entitlement plan does not exist or is inactive.")
+            user = await self.db.get(entitlement.telegram_id)
+            if user is None:
+                raise CommerceIntegrityError(
+                    "Customer must have a persistent subscription identity before provisioning."
+                )
+            await self.db.set_user_plan(entitlement.telegram_id, plan.id)
+            result = await self.provisioner.sync_user(
+                entitlement.telegram_id,
+                strict=False,
+                apply_plan_limits=True,
+            )
+            if result.remaining_missing_ids:
+                raise CommerceIntegrityError(
+                    "Provisioning finished with desired inbounds still missing."
+                )
+        except ProvisioningUnknown:
+            # Keep the durable state as provisioning: remote outcome is uncertain.
+            # A later reconcile must read back through ProvisioningEngine rather
+            # than treating the mutation as a definite failure.
+            raise
+        except Exception:
+            await self.db.transition_entitlement(
+                entitlement.id,
+                expected_statuses={"provisioning"},
+                target_status="failed",
+            )
+            raise
+
+        starts_at = entitlement.starts_at or int(time.time())
+        expires_at = 0
+        if plan.duration_days:
+            expires_at = starts_at + max(0, int(plan.duration_days)) * 86400
+        return await self.db.transition_entitlement(
+            entitlement.id,
+            expected_statuses={"provisioning"},
+            target_status="active",
+            starts_at=starts_at,
+            expires_at=expires_at,
         )

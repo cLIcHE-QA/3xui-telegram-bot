@@ -8,12 +8,14 @@ from commerce import (
     ORDER_TRANSITIONS,
     PAYMENT_TRANSITIONS,
     CommerceService,
+    EntitlementProvisioningService,
     CommerceStateError,
     payload_sha256,
     validate_transition,
 )
-from db import Database
+from db import Database, UserRecord
 from db_migrations import CURRENT_SCHEMA_VERSION, current_schema_version
+from provisioning import ProvisioningUnknown
 
 
 class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
@@ -213,6 +215,118 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
                 provider_payment_id="pay-reuse", raw_payload=b"second",
                 signature_valid=True,
             )
+
+    async def test_entitlement_reconcile_activates_through_existing_provisioner(self):
+        plan_id = await self.db.create_plan(
+            name="Commerce plan", duration_days=30, traffic_gb=100,
+            ip_limit=2, price_minor=9900, currency="RUB",
+        )
+        await self.db.put(UserRecord(
+            telegram_id=2001, email="tg_2001", sub_id="stable-sub",
+            expiry_time=0, created_at=1,
+        ))
+        order = await self.service.create_order(
+            telegram_id=2001, plan_id=plan_id, amount_minor=9900, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-provision",
+        )
+        _, _, _, entitlement, _ = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-provision",
+            provider_payment_id=payment.provider_payment_id,
+            raw_payload=b"confirmed", signature_valid=True,
+        )
+
+        class StubProvisioner:
+            def __init__(self):
+                self.calls = 0
+            async def sync_user(self, telegram_id, *, strict=False, apply_plan_limits=False):
+                self.calls += 1
+                self.telegram_id = telegram_id
+                self.strict = strict
+                self.apply_plan_limits = apply_plan_limits
+                class Result:
+                    remaining_missing_ids = []
+                return Result()
+
+        stub = StubProvisioner()
+        bridge = EntitlementProvisioningService(self.db, stub)
+        active = await bridge.reconcile(entitlement.id)
+        self.assertEqual(active.status, "active")
+        self.assertGreater(active.starts_at, 0)
+        self.assertGreater(active.expires_at, active.starts_at)
+        self.assertEqual(stub.calls, 1)
+        self.assertTrue(stub.apply_plan_limits)
+
+        again = await bridge.reconcile(entitlement.id)
+        self.assertEqual(again.id, active.id)
+        self.assertEqual(stub.calls, 1)
+
+    async def test_entitlement_provisioning_failure_does_not_rollback_payment(self):
+        plan_id = await self.db.create_plan(
+            name="Failure plan", duration_days=30, traffic_gb=10,
+            ip_limit=1, price_minor=4900, currency="RUB",
+        )
+        await self.db.put(UserRecord(
+            telegram_id=2002, email="tg_2002", sub_id="stable-sub-2",
+            expiry_time=0, created_at=1,
+        ))
+        order = await self.service.create_order(
+            telegram_id=2002, plan_id=plan_id, amount_minor=4900, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-fail",
+        )
+        _, _, _, entitlement, _ = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-fail",
+            provider_payment_id=payment.provider_payment_id,
+            raw_payload=b"confirmed", signature_valid=True,
+        )
+
+        class FailingProvisioner:
+            async def sync_user(self, *args, **kwargs):
+                raise RuntimeError("remote rejected")
+
+        bridge = EntitlementProvisioningService(self.db, FailingProvisioner())
+        with self.assertRaisesRegex(RuntimeError, "remote rejected"):
+            await bridge.reconcile(entitlement.id)
+        self.assertEqual((await self.db.get_entitlement(entitlement.id)).status, "failed")
+        self.assertEqual((await self.db.get_commerce_payment(payment.id)).status, "confirmed")
+        self.assertEqual((await self.db.get_commerce_order(order.id)).status, "paid")
+
+    async def test_unknown_provisioning_outcome_stays_provisioning_for_readback_recovery(self):
+        plan_id = await self.db.create_plan(
+            name="Unknown plan", duration_days=30, traffic_gb=10,
+            ip_limit=1, price_minor=5900, currency="RUB",
+        )
+        await self.db.put(UserRecord(
+            telegram_id=2003, email="tg_2003", sub_id="stable-sub-3",
+            expiry_time=0, created_at=1,
+        ))
+        order = await self.service.create_order(
+            telegram_id=2003, plan_id=plan_id, amount_minor=5900, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-unknown",
+        )
+        _, _, _, entitlement, _ = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-unknown",
+            provider_payment_id=payment.provider_payment_id,
+            raw_payload=b"confirmed", signature_valid=True,
+        )
+
+        class UnknownProvisioner:
+            async def sync_user(self, *args, **kwargs):
+                raise ProvisioningUnknown("attach: outcome=unknown")
+
+        bridge = EntitlementProvisioningService(self.db, UnknownProvisioner())
+        with self.assertRaises(ProvisioningUnknown):
+            await bridge.reconcile(entitlement.id)
+        self.assertEqual(
+            (await self.db.get_entitlement(entitlement.id)).status,
+            "provisioning",
+        )
+        self.assertEqual((await self.db.get_commerce_payment(payment.id)).status, "confirmed")
 
     async def test_state_machine_rejects_unsafe_transitions(self):
         validate_transition("created", "awaiting_payment", ORDER_TRANSITIONS, kind="order")
