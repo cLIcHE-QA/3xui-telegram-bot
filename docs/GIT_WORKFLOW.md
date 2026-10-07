@@ -25,7 +25,7 @@
 - `chore/<slug>` — инфраструктура, CI, automation, maintenance;
 - `docs/<slug>` — документация;
 - `test/<slug>` — тестовая инфраструктура;
-- `release/vX.Y.Z` — только release-prep.
+- `release/vX.Y.Z` или `release/vX.Y.Z-rc.N` — только release-prep.
 
 Примеры: `feature/node-readiness`, `fix/release-tag-probe`, `chore/git-conventions`, `release/v4.12.0`.
 
@@ -59,7 +59,7 @@ Branch-local commits желательно оформлять тем же спо�
 PR title обязан иметь тот же формат `<type>: <краткое описание>`. Для release-prep используется строго:
 
 ~~~text
-release: vX.Y.Z
+release: vX.Y.Z[-rc.N]
 ~~~
 
 PR body должен кратко фиксировать:
