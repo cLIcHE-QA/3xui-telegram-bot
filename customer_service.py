@@ -123,10 +123,11 @@ class CustomerPortalService:
         now = int(time.time())
         if entitlement is not None:
             entitlement_status = entitlement.status
+            entitlement_expires_at = int(getattr(entitlement, "expires_at", 0) or 0)
             if (
                 entitlement_status in {"active", "suspended"}
-                and int(entitlement.expires_at or 0) > 0
-                and int(entitlement.expires_at) <= now
+                and entitlement_expires_at > 0
+                and entitlement_expires_at <= now
             ):
                 entitlement_status = "expired"
         else:
