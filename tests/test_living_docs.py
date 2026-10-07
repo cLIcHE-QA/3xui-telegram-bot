@@ -81,7 +81,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
     def test_roadmap_has_current_next_product_track(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn(
-            "**Статус: ⬜ Следующий активный product track.",
+            "**Статус: 🟡 Реализуется в `main`.",
             roadmap,
         )
         self.assertIn("### v5.0.0 — Client Portal", roadmap)
