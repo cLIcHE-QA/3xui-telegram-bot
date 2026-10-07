@@ -1229,9 +1229,49 @@ class Database:
                 if event_row is None:
                     raise RuntimeError("Webhook event disappeared inside transaction.")
 
+                existing_signature_valid = int(event_row["signature_valid"]) == 1
+                if not existing_signature_valid and signature_valid:
+                    # An unauthenticated request must never poison the provider's
+                    # canonical event identity. A later authenticated delivery may
+                    # replace the untrusted envelope and continue normally.
+                    await db.execute(
+                        """
+                        UPDATE payment_webhook_events
+                        SET event_type = ?, signature_valid = 1, payload_sha256 = ?,
+                            metadata_json = ?, processing_status = 'received',
+                            order_id = NULL, payment_id = NULL, received_at = ?,
+                            applied_at = 0, result_code = ''
+                        WHERE id = ?
+                        """,
+                        (
+                            event_type_value, digest, metadata_value, now,
+                            int(event_row["id"]),
+                        ),
+                    )
+                    cur = await db.execute(
+                        "SELECT * FROM payment_webhook_events WHERE id = ?",
+                        (int(event_row["id"]),),
+                    )
+                    event_row = await cur.fetchone()
+                    created = True
+                    existing_signature_valid = True
+                elif existing_signature_valid and not signature_valid:
+                    # Do not let an invalid replay alter or re-drive a previously
+                    # authenticated provider event.
+                    await db.commit()
+                    return (
+                        PaymentWebhookEventRecord(**dict(event_row)),
+                        None, None, None, False,
+                    )
+                elif not existing_signature_valid and not signature_valid:
+                    await db.commit()
+                    return (
+                        PaymentWebhookEventRecord(**dict(event_row)),
+                        None, None, None, created,
+                    )
+
                 if (
                     str(event_row["event_type"]) != event_type_value
-                    or int(event_row["signature_valid"]) != (1 if signature_valid else 0)
                     or str(event_row["payload_sha256"]) != digest
                 ):
                     raise RuntimeError("Webhook event identity was reused with different content.")
