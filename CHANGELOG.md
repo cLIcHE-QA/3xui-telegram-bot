@@ -6,6 +6,10 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Unreleased — v5 release candidate path
+- Release automation и deploy tooling поддерживают immutable `vX.Y.Z-rc.N`; GitHub публикует такой tag как prerelease для controlled production canary.
+- Финальный `v5.0.0` остаётся заблокирован до PASS production acceptance; canary не требует deployment произвольного `main`.
+
 
 
 
