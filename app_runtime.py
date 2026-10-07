@@ -11,6 +11,8 @@ from versions_updates import versions_router
 from bot_updates import bot_updates_router, reconcile_deploy_jobs
 from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
+from checkout_provider import GenericHmacCheckoutProvider
+from checkout_service import CheckoutService
 from commerce import CommerceService, EntitlementProvisioningService
 from customer_provider_xui import XuiCustomerProvider
 from customer_service import CustomerPortalService
@@ -52,6 +54,17 @@ offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
 offsite_backup = service_from_settings(settings, offsite_restore_manager)
 commerce_service = CommerceService(db)
 commerce_xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
+checkout_service = (
+    CheckoutService(
+        commerce_service,
+        GenericHmacCheckoutProvider(
+            settings.payment_checkout_endpoint,
+            settings.payment_checkout_secret,
+        ),
+    )
+    if settings.payment_checkout_enabled
+    else None
+)
 customer_portal_service = CustomerPortalService(
     db,
     commerce_service,
@@ -60,6 +73,7 @@ customer_portal_service = CustomerPortalService(
         settings.compat_subscription_url_template
         or settings.subscription_url_template
     ),
+    checkout=checkout_service,
 )
 configure_client_access(customer_portal_service)
 commerce_provisioner = ProvisioningEngine(db, commerce_xui, settings)
