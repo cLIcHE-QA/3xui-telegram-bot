@@ -149,7 +149,7 @@ async def portal_text(tg_id: int) -> str:
         f"Личный кабинет · v{APP_VERSION}\n\n"
         f"👤 {profile.display_name or profile.email}\n"
         f"💎 Тариф: {profile.plan_name or 'не назначен'}\n"
-        f"🌐 Подписка: активна"
+        f"🌐 Подписка: {'активна' if profile.access_status == 'active' else 'истекла'}"
     )
 
 
@@ -212,6 +212,7 @@ async def profile_cb(call: CallbackQuery):
             f"Имя: {profile.display_name or '—'}\n"
             f"Аккаунт: {profile.email}\n"
             f"Тариф: {profile.plan_name or 'не назначен'}\n"
+            f"Статус: {'🟢 активна' if profile.access_status == 'active' else '⌛ истекла'}\n"
             f"Срок: {expiry}"
         )
     await render_callback(call, text, reply_markup=back_menu())
