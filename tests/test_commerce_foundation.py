@@ -15,7 +15,7 @@ from commerce import (
 )
 from db import Database, UserRecord
 from db_migrations import CURRENT_SCHEMA_VERSION, current_schema_version
-from provisioning import ProvisioningResult, ProvisioningUnknown
+from provisioning import ProvisioningUnknown
 
 
 class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
@@ -245,10 +245,9 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
                 self.telegram_id = telegram_id
                 self.strict = strict
                 self.apply_plan_limits = apply_plan_limits
-                return ProvisioningResult(
-                    policy=None, current_ids=[1], attached_ids=[1], detached_ids=[],
-                    remaining_missing_ids=[], extra_ids=[], limits_applied=True,
-                )
+                class Result:
+                    remaining_missing_ids = []
+                return Result()
 
         stub = StubProvisioner()
         bridge = EntitlementProvisioningService(self.db, stub)
