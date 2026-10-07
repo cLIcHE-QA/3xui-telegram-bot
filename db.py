@@ -1327,6 +1327,26 @@ class Database:
                 ):
                     raise RuntimeError("Webhook event identity was reused with different content.")
 
+                stored_payment_ref = str(event_row["provider_payment_id"] or "")
+                if stored_payment_ref and stored_payment_ref != payment_ref:
+                    raise RuntimeError(
+                        "Webhook event identity was reused for a different payment reference."
+                    )
+                if not stored_payment_ref:
+                    await db.execute(
+                        """
+                        UPDATE payment_webhook_events
+                        SET provider_payment_id = ?
+                        WHERE id = ?
+                        """,
+                        (payment_ref, int(event_row["id"])),
+                    )
+                    cur = await db.execute(
+                        "SELECT * FROM payment_webhook_events WHERE id = ?",
+                        (int(event_row["id"]),),
+                    )
+                    event_row = await cur.fetchone()
+
                 if str(event_row["processing_status"]) == "applied":
                     payment = None
                     order = None
