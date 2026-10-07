@@ -103,6 +103,18 @@ class CommerceService:
             raise CommerceIntegrityError("Created payment cannot be read back.")
         return payment
 
+    async def confirm_telegram_stars_payment(
+        self, *, order_id: int, telegram_id: int, charge_id: str,
+        amount: int, raw_payload: bytes,
+    ) -> tuple[CommercePaymentRecord, CommerceOrderRecord, EntitlementRecord, bool]:
+        return await self.db.confirm_telegram_stars_payment(
+            order_id=order_id,
+            telegram_id=telegram_id,
+            charge_id=charge_id,
+            amount=amount,
+            payload_sha256=payload_sha256(raw_payload),
+        )
+
     async def find_checkout_payment(
         self, *, provider: str, idempotency_key: str,
     ) -> CommercePaymentRecord | None:
