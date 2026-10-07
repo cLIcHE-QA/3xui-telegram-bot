@@ -40,7 +40,7 @@ class V4269ReleaseTests(unittest.TestCase):
             "X-Accel-Buffering: no",
             "browser regression tests",
             "Client Portal foundation",
-            "public signup не открыт",
+            "публичный signup не открыт",
             "payment provider/checkout ещё не подключён",
             "SQLite schema version — **7**",
             "OpenAPI contract остаётся v3.8.5",
