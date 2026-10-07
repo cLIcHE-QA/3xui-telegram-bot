@@ -77,6 +77,18 @@ class CommerceService:
             raise CommerceIntegrityError("Created order cannot be read back.")
         return order
 
+    async def get_or_create_order(
+        self, *, telegram_id: int, plan_id: int, amount_minor: int,
+        currency: str, promo_code_id: int | None = None,
+    ) -> tuple[CommerceOrderRecord, bool]:
+        return await self.db.create_or_get_open_commerce_order(
+            telegram_id=telegram_id,
+            plan_id=plan_id,
+            amount_minor=amount_minor,
+            currency=currency,
+            promo_code_id=promo_code_id,
+        )
+
     async def create_payment(self, *, order_id: int, provider: str,
                              provider_payment_id: str) -> CommercePaymentRecord:
         order = await self.db.get_commerce_order(order_id)

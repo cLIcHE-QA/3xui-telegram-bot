@@ -1058,6 +1058,72 @@ class Database:
             await db.commit()
             return int(cur.lastrowid)
 
+    async def find_open_commerce_order(
+        self, *, telegram_id: int, plan_id: int,
+    ) -> CommerceOrderRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM commerce_orders
+                WHERE telegram_id = ? AND plan_id = ?
+                  AND status IN ('created', 'awaiting_payment')
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (int(telegram_id), int(plan_id)),
+            )
+            row = await cur.fetchone()
+            return CommerceOrderRecord(**dict(row)) if row else None
+
+    async def create_or_get_open_commerce_order(
+        self, *, telegram_id: int, plan_id: int, amount_minor: int,
+        currency: str, promo_code_id: int | None = None,
+    ) -> tuple[CommerceOrderRecord, bool]:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    """
+                    SELECT * FROM commerce_orders
+                    WHERE telegram_id = ? AND plan_id = ?
+                      AND status IN ('created', 'awaiting_payment')
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """,
+                    (int(telegram_id), int(plan_id)),
+                )
+                row = await cur.fetchone()
+                if row is not None:
+                    await db.commit()
+                    return CommerceOrderRecord(**dict(row)), False
+
+                cur = await db.execute(
+                    """
+                    INSERT INTO commerce_orders(
+                        telegram_id, plan_id, promo_code_id, amount_minor, currency,
+                        status, created_at, updated_at, paid_at
+                    ) VALUES (?, ?, ?, ?, ?, 'created', ?, ?, 0)
+                    """,
+                    (
+                        int(telegram_id), int(plan_id), promo_code_id,
+                        max(0, int(amount_minor)), str(currency).upper(), now, now,
+                    ),
+                )
+                order_id = int(cur.lastrowid)
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (order_id,),
+                )
+                row = await cur.fetchone()
+                await db.commit()
+                return CommerceOrderRecord(**dict(row)), True
+            except Exception:
+                await db.rollback()
+                raise
+
     async def get_commerce_order(self, order_id: int) -> CommerceOrderRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
