@@ -1314,3 +1314,14 @@ cat /etc/3xui-host-control/nginx-snapshot.env
 Streisand не передаёт совместимый `X-HWID` для raw subscription requests. Если для пользователя включён `HWID limit > 0`, upstream 3x-ui отклоняет такой subscription request как `hwid_not_supported`.
 
 Не используйте synthetic/fallback HWID и не отключайте enforcement на compat proxy. Для HWID-защищённой подписки используйте клиент, который передаёт поддерживаемый HWID header. Импорт отдельных VLESS links в Streisand возможен отдельно, но не является HWID-protected subscription flow.
+
+
+## v5 Client Portal launch controls
+
+Перед canary проверьте customer-only emergency controls:
+
+- `CLIENT_PORTAL_ENABLED=true|false` — выключает customer UI, не затрагивая `/admin`;
+- `CLIENT_PAYMENT_ACCEPTANCE_ENABLED=true|false` — запрещает новые Stars invoice/pre-checkout, но уже подтверждённый Telegram payment продолжает фиксироваться локально;
+- `CLIENT_RATE_LIMIT_COUNT` / `CLIENT_RATE_LIMIT_WINDOW_SECONDS` — per-user sliding-window guard customer commands/callbacks.
+
+Для emergency rollback сначала выключайте payment acceptance, затем при необходимости Client Portal. Не удаляйте подтверждённые orders/payments/entitlements и не исправляйте их прямой правкой БД.
