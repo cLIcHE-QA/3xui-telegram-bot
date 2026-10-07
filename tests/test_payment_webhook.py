@@ -163,6 +163,37 @@ class PaymentWebhookGatewayTests(unittest.IsolatedAsyncioTestCase):
             ).fetchone()
         self.assertEqual(row, ("ignored", "invalid_signature", 0))
 
+    async def test_invalid_delivery_cannot_poison_later_valid_event_identity(self):
+        order, payment = await self._payment("poison")
+        body = json.dumps({
+            "event_id": "evt-poison",
+            "type": "payment.confirmed",
+            "payment_id": payment.provider_payment_id,
+        }, separators=(",", ":")).encode()
+
+        with self.assertRaises(web.HTTPUnauthorized):
+            await self.gateway.handle(
+                _FakeRequest(body, signature="00" * 32)
+            )
+
+        response = await self.gateway.handle(
+            _FakeRequest(body, signature=_signature(self.secret, body))
+        )
+        payload = json.loads(response.text)
+        self.assertEqual(response.status, 200)
+        self.assertFalse(payload["duplicate"])
+        self.assertEqual((await self.db.get_commerce_payment(payment.id)).status, "confirmed")
+        self.assertEqual((await self.db.get_commerce_order(order.id)).status, "paid")
+        with sqlite3.connect(self.path) as conn:
+            row = conn.execute(
+                """
+                SELECT signature_valid, processing_status, result_code
+                FROM payment_webhook_events WHERE provider_event_id = ?
+                """,
+                ("evt-poison",),
+            ).fetchone()
+        self.assertEqual(row, (1, "applied", "confirmed"))
+
     async def test_unsupported_signed_event_is_journaled_and_ignored(self):
         body = json.dumps({
             "event_id": "evt-refund",
