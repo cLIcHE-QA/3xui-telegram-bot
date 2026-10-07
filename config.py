@@ -300,6 +300,7 @@ def load_settings() -> Settings:
             or not parsed_checkout.hostname
             or parsed_checkout.username
             or parsed_checkout.password
+            or parsed_checkout.query
             or parsed_checkout.fragment
         ):
             raise RuntimeError(
