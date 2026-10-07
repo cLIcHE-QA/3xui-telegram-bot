@@ -4004,7 +4004,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 4. ✅ read-only Client Portal skeleton: Профиль / Моя подписка / Трафик / Устройства / Помощь — PR #296; legacy `/create` / `/inbounds` больше не являются mutation-entrypoints;
 5. 🟡 commerce flow + authenticated/idempotent payment event journal — backend journal/state machine и provider-neutral checkout foundation готовы; следующий production path использует native Telegram Stars (`XTR`) для цифровой подписки внутри бота: отдельная Stars-цена тарифа, pre-checkout ownership/amount validation и atomic `successful_payment → Payment confirmed → Order paid → Entitlement` реализуются; после #305 Terms acceptance, `/paysupport` и one-shot refund journal/операторский flow реализованы; остаются test/prod payment smoke и production acceptance;
 6. ✅ entitlement → provisioning/reconcile с no-replay/unknown semantics — PR #292/#295; durable pending worker не replay'ит `provisioning` с uncertain outcome;
-7. ⬜ onboarding/deep-link/QR UX и self-service diagnostics;
+7. 🟡 onboarding/QR UX и self-service diagnostics реализуются в #306: platform selection, local/private QR и read-only entitlement/provider diagnostics; client-specific deep-link остаётся отложен до стабильного безопасного import contract;
 8. ⬜ отдельный v5 launch audit;
 9. ⬜ controlled canary rollout по описанному ниже gate;
 10. ⬜ только после canary — расширение публичного доступа.
@@ -4026,7 +4026,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 - #302 — provider-neutral checkout foundation, schema v8, durable checkout URL/idempotency и Telegram payment button.
 - #304 (текущий срез) — native Telegram Stars для цифровой подписки: schema v9, независимая Stars-цена тарифа, XTR invoice/pre-checkout/successful-payment lifecycle.
 
-До перехода к public launch основными implementation-блокерами остаются production acceptance Telegram Stars (после #305 остаются test/prod smoke и acceptance возвратов), customer onboarding/self-service diagnostics, затем launch audit + controlled canary.
+До перехода к public launch основными implementation-блокерами остаются production acceptance Telegram Stars (после #305 остаются test/prod smoke и acceptance возвратов), после #306 остаются client-specific deep-link при наличии стабильного import contract, production Stars smoke/acceptance, затем launch audit + controlled canary.
 
 Отложенные tracks **не блокируют** базовый v5.0.0: multi-format subscriptions, Remnawave/provider-neutral multi-provider expansion и Cheburcheck Probe fleet могут идти отдельными subsequent tracks после стабилизации core Client Portal. При этом верхний customer/domain слой v5 сразу проектируется так, чтобы не зависеть напрямую от `XUIClient`.
 
