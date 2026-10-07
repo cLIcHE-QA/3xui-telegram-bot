@@ -4331,6 +4331,8 @@ Public launch блокируется до закрытия release-blocking find
 
 Таким образом, ближайшая release sequence: **release-prep `v5.0.0-rc.1` → published immutable RC → controlled production acceptance → при необходимости `rc.2+` → PASS → `v5.0.0` → постепенное расширение cohort**.
 
+> Canary finding после `v5.0.0-rc.1`: обнаружено, что Client Portal безусловно показывал существующий профиль как активную подписку после `expiry_time`, а durable entitlement не истекал фоново. Исправление готовится отдельным PR; после merge требуется `v5.0.0-rc.2` и повтор соответствующего acceptance сценария.
+
 ## Gate контролируемого запуска v5.0
 
 После успешного v5 launch audit публичный Client Portal не открывается сразу всему потоку пользователей. Перед широким запуском выполняется отдельный controlled rollout / production acceptance gate.
