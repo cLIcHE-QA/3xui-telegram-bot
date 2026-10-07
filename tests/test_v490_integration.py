@@ -223,12 +223,16 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         bot_source = inspect.getsource(self.bot)
         for marker in (
             '@client_access_router.message(CommandStart())',
-            '@client_access_router.message(Command("inbounds"))',
-            '@client_access_router.message(Command("create"))',
             '@client_access_router.message(Command("subscription"))',
-            '@client_access_router.callback_query(F.data == "inbounds")',
-            '@client_access_router.callback_query(F.data == "create")',
-            '@client_access_router.callback_query(F.data == "subscription")',
+            '@client_access_router.callback_query(F.data == "client:home")',
+            '@client_access_router.callback_query(F.data == "client:profile")',
+            '@client_access_router.callback_query(F.data == "client:subscription")',
+            '@client_access_router.callback_query(F.data == "client:buy")',
+            '@client_access_router.callback_query(F.data == "client:traffic")',
+            '@client_access_router.callback_query(F.data == "client:devices")',
+            '@client_access_router.callback_query(F.data == "client:help")',
+            '@client_access_router.callback_query(F.data.in_({"create", "inbounds", "subscription"}))',
+            '@client_access_router.message(Command("create", "inbounds"))',
         ):
             self.assertIn(marker, client_source)
         self.assertNotIn('CommandStart()', bot_source)
@@ -236,8 +240,15 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('@router.message(Command("create"))', bot_source)
         self.assertNotIn('@router.message(Command("subscription"))', bot_source)
         self.assertEqual(
-            self.callback_values(self.client.user_menu()),
-            ['inbounds', 'create', 'subscription'],
+            self.callback_values(self.client.portal_menu()),
+            [
+                'client:profile',
+                'client:subscription',
+                'client:buy',
+                'client:traffic',
+                'client:devices',
+                'client:help',
+            ],
         )
 
     def test_legacy_user_callbacks_are_owned_by_advanced_users(self):
@@ -361,8 +372,8 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
     def test_single_source_for_runtime_version(self):
         from version import APP_VERSION
         self.assertEqual(APP_VERSION, '4.26.8')
-        self.assertIn('APP_VERSION', inspect.getsource(self.client.start))
-        self.assertIn('APP_VERSION', inspect.getsource(self.client.create_user))
+        self.assertIn('APP_VERSION', inspect.getsource(self.client.portal_text))
+        self.assertNotIn('async def create_user', inspect.getsource(self.client))
         from system_backup import SystemBackupService
         self.assertIn('version=APP_VERSION', inspect.getsource(SystemBackupService.create_full_backup))
 
