@@ -189,6 +189,9 @@ async def automatic_backup_loop(bot: Bot):
 async def entitlement_fulfillment_loop() -> None:
     while True:
         try:
+            expired = await entitlement_provisioning_service.expire_due(limit=100)
+            if expired:
+                logging.warning("Expired %d due commerce entitlements", expired)
             result = await entitlement_provisioning_service.reconcile_pending(limit=100)
             if result["checked"]:
                 logging.warning(

@@ -4320,16 +4320,22 @@ Public launch блокируется до закрытия release-blocking find
 
 ## Текущий статус v5 Client Portal — 2026-10-07
 
-- 🟡 commerce/payment/entitlement foundation, Telegram Stars, onboarding/self-service diagnostics и launch safety controls уже реализованы в `main`;
-- 🟡 отдельный v5 launch audit выполнен: repository-verifiable controls закреплены regression gate;
+- 🟡 commerce/payment/entitlement foundation, Telegram Stars, onboarding/self-service diagnostics и launch safety controls реализованы;
+- 🟡 отдельный v5 launch audit выполнен; repository-verifiable controls закреплены regression gate;
 - 🟡 retention/data-minimization policy и production acceptance runbook находятся в `main` после #309;
 - ✅ #310 реализовал immutable `v5.0.0-rc.N` prerelease/deploy path для controlled canary;
-- 🟡 release-prep `v5.0.0-rc.1` выполняется отдельным PR; после его merge release workflow должен опубликовать immutable GitHub prerelease;
-- ⬜ на опубликованном RC требуется фактический production acceptance по `docs/V5_PRODUCTION_ACCEPTANCE.md`: Stars happy path/refund, failure/restart/reconciliation, ownership/isolation, abuse/load/soak и rollback;
+- ✅ `v5.0.0-rc.1` опубликован immutable GitHub prerelease и развёрнут на production canary с exact tag/SHA, `RestartCount=0`, Health/DB/3x-ui connectivity `ok`;
+- 🔴 production acceptance `v5.0.0-rc.1` остановлен как **FAIL** после двух release-blocking findings до фактического Stars payment:
+  - **V5-A-005 — expired customer access lifecycle:** существующий customer profile после прошедшего `users.expiry_time` отображался как `Подписка: активна`; durable entitlement в `active/suspended` не имел фонового перехода в `expired` после `expires_at`. Fix вычисляет effective customer status по expiry и локально истекает due entitlement без remote mutation/blind retry;
+  - **V5-A-006 — Telegram Stars admin ledger runtime crash:** `Платежи → Telegram Stars` падал с `NameError: name 'aiosqlite' is not defined`, потому что handler использовал `aiosqlite.connect(...)` и `aiosqlite.Row` без runtime import. Fix добавляет явный import и regression contract Stars ledger;
+- 🟡 оба finding закрываются canary-fix PR #312; после зелёного CI и merge требуется новый immutable **`v5.0.0-rc.2`**;
+- ⬜ acceptance на `rc.1` **не продолжается**; реальный Stars payment до нового baseline не выполняется;
+- ⬜ после deployment `rc.2` сначала повторяются V5-A-005 и V5-A-006: просроченная подписка обязана отображаться как истёкшая, а `Платежи → Telegram Stars` обязана открываться без exception;
+- ⬜ только после PASS targeted retest продолжается полный `docs/V5_PRODUCTION_ACCEPTANCE.md`: Stars happy path → duplicate/idempotency → refund → failure/restart/reconciliation → ownership/isolation → abuse/load/soak → rollback → финальная ledger reconciliation;
 - ⬜ stable `v5.0.0` публикуется только после PASS acceptance без unresolved Critical/High и без необъяснимых payment/entitlement/provisioning inconsistencies;
-- ⬜ broad public access / снятие pilot allowlist выполняется только после успешного controlled rollout; публикация stable tag сама по себе allowlist не снимает.
+- ⬜ broad public access / снятие pilot allowlist выполняется только после успешного controlled rollout; stable tag сам по себе allowlist не снимает.
 
-Таким образом, ближайшая release sequence: **release-prep `v5.0.0-rc.1` → published immutable RC → controlled production acceptance → при необходимости `rc.2+` → PASS → `v5.0.0` → постепенное расширение cohort**.
+Актуальная release sequence: **`v5.0.0-rc.1` published/deployed → canary FAIL (V5-A-005, V5-A-006) → PR #312 → `v5.0.0-rc.2` → targeted retest обоих findings → полный controlled production acceptance → при необходимости `rc.3+` → PASS → `v5.0.0` → постепенное расширение cohort**.
 
 ## Gate контролируемого запуска v5.0
 

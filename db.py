@@ -2004,6 +2004,27 @@ class Database:
             rows = await cur.fetchall()
             return [EntitlementRecord(**dict(row)) for row in rows]
 
+    async def list_expired_active_entitlements(
+        self, *, now: int | None = None, limit: int = 100,
+    ) -> list[EntitlementRecord]:
+        safe_limit = max(1, min(500, int(limit)))
+        cutoff = int(time.time()) if now is None else int(now)
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM entitlements
+                WHERE status IN ('active', 'suspended')
+                  AND expires_at > 0
+                  AND expires_at <= ?
+                ORDER BY expires_at ASC, id ASC
+                LIMIT ?
+                """,
+                (cutoff, safe_limit),
+            )
+            rows = await cur.fetchall()
+            return [EntitlementRecord(**dict(row)) for row in rows]
+
     async def get_latest_entitlement_for_user(
         self, telegram_id: int,
     ) -> EntitlementRecord | None:
