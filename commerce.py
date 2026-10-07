@@ -328,6 +328,21 @@ class EntitlementProvisioningService:
         )
 
 
+    async def expire_due(self, *, limit: int = 100) -> int:
+        due = await self.db.list_expired_active_entitlements(limit=limit)
+        expired = 0
+        for entitlement in due:
+            try:
+                await self.db.transition_entitlement(
+                    entitlement.id,
+                    expected_statuses={"active", "suspended"},
+                    target_status="expired",
+                )
+            except RuntimeError:
+                continue
+            expired += 1
+        return expired
+
     async def reconcile_pending(self, *, limit: int = 100) -> dict[str, int]:
         entitlements = await self.db.list_pending_entitlements(limit=limit)
         active = 0
