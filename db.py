@@ -1058,6 +1058,24 @@ class Database:
             await db.commit()
             return int(cur.lastrowid)
 
+    async def find_open_commerce_order(
+        self, *, telegram_id: int, plan_id: int,
+    ) -> CommerceOrderRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM commerce_orders
+                WHERE telegram_id = ? AND plan_id = ?
+                  AND status IN ('created', 'awaiting_payment')
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (int(telegram_id), int(plan_id)),
+            )
+            row = await cur.fetchone()
+            return CommerceOrderRecord(**dict(row)) if row else None
+
     async def get_commerce_order(self, order_id: int) -> CommerceOrderRecord | None:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
