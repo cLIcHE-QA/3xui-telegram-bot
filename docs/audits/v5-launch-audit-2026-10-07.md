@@ -99,3 +99,12 @@ v5.0.0 remains blocked by V5-A-001 through V5-A-003, which require actual
 production-like/controlled-canary evidence using `docs/V5_PRODUCTION_ACCEPTANCE.md`.
 
 Do not remove the customer allowlist or broaden the cohort based only on CI success.
+
+
+## Canary finding V5-A-005 — expired access presentation/lifecycle
+
+**Severity:** High / release-blocking correctness finding.
+
+На `v5.0.0-rc.1` существующий customer profile отображался как `Подписка: активна` независимо от прошедшего `users.expiry_time`; durable active entitlement также не имел фонового expiry transition. Исправление должно вычислять effective customer status по expiry и локально переводить due active/suspended entitlement в `expired` без remote mutation.
+
+**Status:** Fix in progress; требуется новый RC и повторный canary.
