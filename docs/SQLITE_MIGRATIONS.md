@@ -42,7 +42,7 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 Для `v4.26.9` текущая bot schema version — **7**. Этот release впервые публикует additive Client Portal migrations v6/v7 поверх исторической v4 baseline.
 
-Для `v5.0.0-rc.1` текущая bot schema version — **10**:
+Для `v5.0.0-rc.1` и `v5.0.0-rc.2` текущая bot schema version — **10**:
 
 1. `v1 baseline_v4_14_2` — исходная каноническая схема v4.14.2;
 2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`;
