@@ -30,7 +30,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (5, "website_watcher_lifecycle_v4_24_0", "success"))
+                self.assertEqual(row, (6, "client_portal_commerce_foundation_v5_0_0", "success"))
                 columns = [
                     item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
                 ]
@@ -113,6 +113,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (3, "user_audience_groups_v4_22_0", "success"),
                         (4, "website_monitoring_v4_24_0", "success"),
                         (5, "website_watcher_lifecycle_v4_24_0", "success"),
+                        (6, "client_portal_commerce_foundation_v5_0_0", "success"),
                     ],
                 )
 
@@ -155,6 +156,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (3, "user_audience_groups_v4_22_0", "success"),
                         (4, "website_monitoring_v4_24_0", "success"),
                         (5, "website_watcher_lifecycle_v4_24_0", "success"),
+                        (6, "client_portal_commerce_foundation_v5_0_0", "success"),
                     ],
                 )
 
@@ -196,7 +198,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (5, "website_watcher_lifecycle_v4_24_0", "success"),
+                    (6, "client_portal_commerce_foundation_v5_0_0", "success"),
                 )
 
     async def test_schema_v4_upgrades_watcher_lifecycle_without_data_loss(self):
@@ -251,7 +253,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (5, "website_watcher_lifecycle_v4_24_0", "success"),
+                    (6, "client_portal_commerce_foundation_v5_0_0", "success"),
                 )
 
     async def test_newer_schema_version_blocks_startup(self):
