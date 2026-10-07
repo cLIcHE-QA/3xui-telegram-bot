@@ -183,6 +183,7 @@ async def payments_list(call: CallbackQuery):
             callback_data=f"admin:payment:{item.id}",
         )])
     rows += [
+        [InlineKeyboardButton(text="⭐ Telegram Stars", callback_data="admin:starspayments")],
         [InlineKeyboardButton(text="➕ Добавить платёж", callback_data="admin:paymentadd:start")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ]
@@ -268,6 +269,161 @@ async def payment_status(call: CallbackQuery):
             [InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")],
         ]),
     )
+
+
+@business_router.callback_query(F.data == "admin:starspayments")
+async def stars_payments_list(call: CallbackQuery):
+    if not await guard(call):
+        return
+    async with aiosqlite.connect(db.path) as conn:
+        conn.row_factory = aiosqlite.Row
+        cur = await conn.execute(
+            """
+            SELECT cp.*, co.telegram_id
+            FROM commerce_payments cp
+            JOIN commerce_orders co ON co.id = cp.order_id
+            WHERE cp.provider = 'telegram_stars'
+            ORDER BY cp.created_at DESC, cp.id DESC
+            LIMIT 30
+            """
+        )
+        payments = await cur.fetchall()
+    rows = []
+    for item in payments:
+        label = {
+            "confirmed": "🟢",
+            "refunded": "↩️",
+            "unknown": "⚠️",
+            "failed": "❌",
+            "pending": "🟡",
+            "created": "⚪",
+        }.get(str(item["status"]), "•")
+        rows.append([InlineKeyboardButton(
+            text=f"{label} #{item['id']} · TG {item['telegram_id']} · ⭐ {item['amount_minor']}",
+            callback_data=f"admin:starspayment:{item['id']}",
+        )])
+    rows.append([InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")])
+    await render_callback(
+        call,
+        "⭐ Telegram Stars\n\nПоследние commerce-платежи:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+@business_router.callback_query(F.data.regexp(r"^admin:starspayment:\d+$"))
+async def stars_payment_detail(call: CallbackQuery):
+    if not await guard(call):
+        return
+    payment_id = int((call.data or "").rsplit(":", 1)[-1])
+    payment = await db.get_commerce_payment(payment_id)
+    if payment is None or payment.provider != "telegram_stars":
+        await call.answer("Stars-платёж не найден.", show_alert=True)
+        return
+    order = await db.get_commerce_order(payment.order_id)
+    refund = await db.get_stars_refund_for_payment(payment.id)
+    rows = []
+    if payment.status == "confirmed" and refund is None:
+        rows.append([InlineKeyboardButton(
+            text="↩️ Вернуть Stars",
+            callback_data=f"admin:starsrefund:ask:{payment.id}",
+        )])
+    rows.append([InlineKeyboardButton(text="⬅ Telegram Stars", callback_data="admin:starspayments")])
+    await render_callback(
+        call,
+        "⭐ Telegram Stars\n\n"
+        f"Платёж: #{payment.id}\n"
+        f"Заказ: #{payment.order_id}\n"
+        f"Пользователь: TG {order.telegram_id if order else '—'}\n"
+        f"Сумма: ⭐ {payment.amount_minor}\n"
+        f"Статус: {payment.status}\n"
+        f"Возврат: {refund.status if refund else '—'}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+@business_router.callback_query(F.data.regexp(r"^admin:starsrefund:ask:\d+$"))
+async def stars_refund_ask(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    payment_id = int((call.data or "").rsplit(":", 1)[-1])
+    payment = await db.get_commerce_payment(payment_id)
+    if payment is None or payment.provider != "telegram_stars":
+        await call.answer("Stars-платёж не найден.", show_alert=True)
+        return
+    order = await db.get_commerce_order(payment.order_id)
+    if order is None:
+        await call.answer("Заказ платежа не найден.", show_alert=True)
+        return
+    existing = await db.get_stars_refund_for_payment(payment_id)
+    if existing is not None:
+        await render_callback(
+            call,
+            "↩️ Возврат Telegram Stars\n\n"
+            f"Платёж: #{payment.id}\n"
+            f"Статус операции: {existing.status}\n\n"
+            "Повторный refund mutation не выполняется автоматически.",
+            reply_markup=dashboard_back(),
+        )
+        await call.answer()
+        return
+    await render_callback(
+        call,
+        "↩️ Возврат Telegram Stars\n\n"
+        f"Платёж: #{payment.id}\n"
+        f"Пользователь: TG {order.telegram_id}\n"
+        f"Сумма: ⭐ {payment.amount_minor}\n\n"
+        "Возврат необратим. Запрос в Telegram будет отправлен ровно один раз; "
+        "при неизвестном исходе автоматического повтора не будет.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="↩️ Подтвердить возврат",
+                callback_data=f"admin:starsrefund:run:{payment.id}",
+            )],
+            [InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")],
+        ]),
+    )
+    await call.answer()
+
+
+@business_router.callback_query(F.data.regexp(r"^admin:starsrefund:run:\d+$"))
+async def stars_refund_run(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    payment_id = int((call.data or "").rsplit(":", 1)[-1])
+    try:
+        operation = await run_stars_refund(
+            db,
+            call.bot,
+            payment_id=payment_id,
+            requested_by=call.from_user.id,
+        )
+    except RuntimeError as exc:
+        await call.answer(str(exc)[:180], show_alert=True)
+        return
+    await audit_from_call(
+        db,
+        call,
+        "payment.stars_refund",
+        target_type="commerce_payment",
+        target_id=payment_id,
+        details=f"operation={operation.operation_id}; status={operation.status}",
+        success=operation.status == "success",
+    )
+    labels = {
+        "success": "✅ Возврат подтверждён Telegram.",
+        "failed": "❌ Telegram отклонил возврат.",
+        "unknown": "⚠️ Исход возврата неизвестен. Не повторяйте mutation вслепую.",
+        "in_flight": "⏳ Возврат уже выполняется.",
+    }
+    await render_callback(
+        call,
+        "↩️ Возврат Telegram Stars\n\n"
+        + labels.get(operation.status, operation.status),
+        reply_markup=dashboard_back(),
+    )
+    await call.answer()
 
 
 @business_router.callback_query(F.data == "admin:paymentadd:start")

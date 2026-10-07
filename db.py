@@ -176,6 +176,20 @@ class EntitlementRecord:
 
 
 @dataclass
+class StarsRefundOperationRecord:
+    id: int
+    operation_id: str
+    payment_id: int
+    telegram_id: int
+    provider_payment_id: str
+    status: str
+    requested_by: int
+    created_at: int
+    updated_at: int
+    error: str
+
+
+@dataclass
 class PromoCodeRecord:
     id: int
     code: str
@@ -2051,6 +2065,174 @@ class Database:
             except Exception:
                 await db.rollback()
                 raise
+
+    async def accept_customer_terms(
+        self, *, telegram_id: int, terms_version: str,
+    ) -> None:
+        version = str(terms_version).strip()
+        if not version or len(version) > 64:
+            raise ValueError("Invalid terms version.")
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                INSERT OR IGNORE INTO customer_terms_acceptance(
+                    telegram_id, terms_version, accepted_at
+                ) VALUES (?, ?, ?)
+                """,
+                (int(telegram_id), version, int(time.time())),
+            )
+            await db.commit()
+
+    async def has_customer_accepted_terms(
+        self, *, telegram_id: int, terms_version: str,
+    ) -> bool:
+        async with aiosqlite.connect(self.path) as db:
+            cur = await db.execute(
+                """
+                SELECT 1 FROM customer_terms_acceptance
+                WHERE telegram_id = ? AND terms_version = ?
+                """,
+                (int(telegram_id), str(terms_version).strip()),
+            )
+            return await cur.fetchone() is not None
+
+    async def get_commerce_payment(self, payment_id: int) -> CommercePaymentRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM commerce_payments WHERE id = ?",
+                (int(payment_id),),
+            )
+            row = await cur.fetchone()
+            return CommercePaymentRecord(**dict(row)) if row else None
+
+    async def get_commerce_order(self, order_id: int) -> CommerceOrderRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM commerce_orders WHERE id = ?",
+                (int(order_id),),
+            )
+            row = await cur.fetchone()
+            return CommerceOrderRecord(**dict(row)) if row else None
+
+    async def begin_stars_refund(
+        self, *, payment_id: int, requested_by: int, operation_id: str,
+    ) -> StarsRefundOperationRecord:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    "SELECT * FROM commerce_payments WHERE id = ?",
+                    (int(payment_id),),
+                )
+                payment = await cur.fetchone()
+                if payment is None:
+                    raise RuntimeError("Commerce payment does not exist.")
+                if str(payment["provider"]) != "telegram_stars":
+                    raise RuntimeError("Only Telegram Stars payments can be refunded here.")
+                if str(payment["status"]) != "confirmed":
+                    raise RuntimeError("Only confirmed Telegram Stars payments can be refunded.")
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (int(payment["order_id"]),),
+                )
+                order = await cur.fetchone()
+                if order is None:
+                    raise RuntimeError("Commerce order does not exist.")
+                cur = await db.execute(
+                    "SELECT * FROM stars_refund_operations WHERE payment_id = ?",
+                    (int(payment_id),),
+                )
+                existing = await cur.fetchone()
+                if existing is not None:
+                    await db.commit()
+                    return StarsRefundOperationRecord(**dict(existing))
+                cur = await db.execute(
+                    """
+                    INSERT INTO stars_refund_operations(
+                        operation_id, payment_id, telegram_id, provider_payment_id,
+                        status, requested_by, created_at, updated_at, error
+                    ) VALUES (?, ?, ?, ?, 'in_flight', ?, ?, ?, '')
+                    """,
+                    (
+                        str(operation_id), int(payment_id), int(order["telegram_id"]),
+                        str(payment["provider_payment_id"]), int(requested_by), now, now,
+                    ),
+                )
+                op_id = int(cur.lastrowid)
+                cur = await db.execute(
+                    "SELECT * FROM stars_refund_operations WHERE id = ?",
+                    (op_id,),
+                )
+                row = await cur.fetchone()
+                await db.commit()
+                return StarsRefundOperationRecord(**dict(row))
+            except Exception:
+                await db.rollback()
+                raise
+
+    async def finish_stars_refund(
+        self, operation_id: str, *, status: str, error: str = "",
+    ) -> StarsRefundOperationRecord:
+        if status not in {"success", "failed", "unknown"}:
+            raise ValueError("Invalid Stars refund status.")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    "SELECT * FROM stars_refund_operations WHERE operation_id = ?",
+                    (str(operation_id),),
+                )
+                row = await cur.fetchone()
+                if row is None:
+                    raise RuntimeError("Stars refund operation does not exist.")
+                if str(row["status"]) != "in_flight":
+                    await db.commit()
+                    return StarsRefundOperationRecord(**dict(row))
+                await db.execute(
+                    """
+                    UPDATE stars_refund_operations
+                    SET status = ?, updated_at = ?, error = ?
+                    WHERE operation_id = ?
+                    """,
+                    (status, now, str(error)[:500], str(operation_id)),
+                )
+                if status == "success":
+                    await db.execute(
+                        """
+                        UPDATE commerce_payments
+                        SET status = 'refunded', updated_at = ?
+                        WHERE id = ? AND status = 'confirmed'
+                        """,
+                        (now, int(row["payment_id"])),
+                    )
+                cur = await db.execute(
+                    "SELECT * FROM stars_refund_operations WHERE operation_id = ?",
+                    (str(operation_id),),
+                )
+                updated = await cur.fetchone()
+                await db.commit()
+                return StarsRefundOperationRecord(**dict(updated))
+            except Exception:
+                await db.rollback()
+                raise
+
+    async def get_stars_refund_for_payment(
+        self, payment_id: int,
+    ) -> StarsRefundOperationRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT * FROM stars_refund_operations WHERE payment_id = ?",
+                (int(payment_id),),
+            )
+            row = await cur.fetchone()
+            return StarsRefundOperationRecord(**dict(row)) if row else None
 
     # --- Promo codes ---------------------------------------------------
 

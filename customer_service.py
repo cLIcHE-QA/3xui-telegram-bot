@@ -100,6 +100,18 @@ class CustomerPortalService:
         plan = await self.db.get_plan(plan_id)
         return plan if plan is not None and plan.active else None
 
+    async def has_accepted_terms(self, telegram_id: int, terms_version: str) -> bool:
+        return await self.db.has_customer_accepted_terms(
+            telegram_id=telegram_id,
+            terms_version=terms_version,
+        )
+
+    async def accept_terms(self, telegram_id: int, terms_version: str) -> None:
+        await self.db.accept_customer_terms(
+            telegram_id=telegram_id,
+            terms_version=terms_version,
+        )
+
     async def get_or_create_stars_order(
         self, *, telegram_id: int, plan: PlanRecord,
     ):

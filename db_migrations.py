@@ -341,6 +341,13 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
         "id", "telegram_id", "order_id", "plan_id", "status", "starts_at",
         "expires_at", "created_at", "updated_at",
     ),
+    "customer_terms_acceptance": (
+        "telegram_id", "terms_version", "accepted_at",
+    ),
+    "stars_refund_operations": (
+        "id", "operation_id", "payment_id", "telegram_id", "provider_payment_id",
+        "status", "requested_by", "created_at", "updated_at", "error",
+    ),
 }
 
 _EXPECTED_INDEXES = {
@@ -363,6 +370,7 @@ _EXPECTED_INDEXES = {
     "idx_payment_webhook_processing",
     "idx_entitlements_user_status",
     "idx_entitlements_order",
+    "idx_stars_refund_status_created",
 }
 
 
@@ -376,6 +384,7 @@ async def _validate_current_schema(
     include_payment_event_reference: bool = True,
     include_checkout_reference: bool = True,
     include_plan_stars_price: bool = True,
+    include_stars_hardening: bool = True,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -393,6 +402,13 @@ async def _validate_current_schema(
             "commerce_payments",
             "payment_webhook_events",
             "entitlements",
+            "customer_terms_acceptance",
+            "stars_refund_operations",
+        })
+    elif not include_stars_hardening:
+        skipped_tables.update({
+            "customer_terms_acceptance",
+            "stars_refund_operations",
         })
     for table, expected in _EXPECTED_COLUMNS.items():
         if table in skipped_tables:
@@ -438,6 +454,8 @@ async def _validate_current_schema(
         }
     if not include_checkout_reference:
         expected_indexes.discard("idx_commerce_payments_provider_idempotency")
+    if not include_stars_hardening:
+        expected_indexes.discard("idx_stars_refund_status_created")
     if not include_commerce:
         expected_indexes -= {
             "idx_commerce_orders_user_created",
@@ -464,6 +482,7 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
             "website_monitors", "website_monitor_watchers",
             "website_incidents", "website_incident_notifications",
             "commerce_orders", "commerce_payments", "payment_webhook_events", "entitlements",
+            "customer_terms_acceptance", "stars_refund_operations",
         }:
             continue
         if table == "user_profiles":
@@ -504,6 +523,7 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
                 "idx_payment_webhook_processing",
                 "idx_entitlements_user_status",
                 "idx_entitlements_order",
+                "idx_stars_refund_status_created",
             }
         ) - actual_indexes
     )
@@ -547,6 +567,7 @@ async def _migration_0002_user_display_name(db: aiosqlite.Connection) -> None:
         include_website_monitoring=False,
         include_commerce=False,
         include_plan_stars_price=False,
+        include_stars_hardening=False,
     )
 
 
@@ -583,6 +604,7 @@ async def _migration_0003_user_audience_groups(db: aiosqlite.Connection) -> None
         include_website_monitoring=False,
         include_commerce=False,
         include_plan_stars_price=False,
+        include_stars_hardening=False,
     )
 
 
@@ -677,6 +699,7 @@ async def _migration_0004_website_monitoring_v4_24_0(
         include_website_watcher_lifecycle=False,
         include_commerce=False,
         include_plan_stars_price=False,
+        include_stars_hardening=False,
     )
 
 
@@ -692,7 +715,10 @@ async def _migration_0005_website_watcher_lifecycle_v4_24_0(
             "CHECK(monitoring_enabled IN (0, 1))"
         )
     await _validate_current_schema(
-        db, include_commerce=False, include_plan_stars_price=False
+        db,
+        include_commerce=False,
+        include_plan_stars_price=False,
+        include_stars_hardening=False,
     )
 
 
@@ -806,6 +832,7 @@ async def _migration_0006_client_portal_commerce_foundation(
         include_payment_event_reference=False,
         include_checkout_reference=False,
         include_plan_stars_price=False,
+        include_stars_hardening=False,
     )
 
 
@@ -823,6 +850,7 @@ async def _migration_0007_payment_event_reconciliation_v5_0_0(
         db,
         include_checkout_reference=False,
         include_plan_stars_price=False,
+        include_stars_hardening=False,
     )
 
 
@@ -846,7 +874,7 @@ async def _migration_0008_checkout_reference_v5_0_0(
         "ON commerce_payments(provider, idempotency_key) "
         "WHERE idempotency_key <> ''"
     )
-    await _validate_current_schema(db, include_plan_stars_price=False)
+    await _validate_current_schema(db, include_plan_stars_price=False, include_stars_hardening=False)
 
 
 async def _migration_0009_telegram_stars_price_v5_0_0(
@@ -860,6 +888,45 @@ async def _migration_0009_telegram_stars_price_v5_0_0(
             "ADD COLUMN stars_price INTEGER NOT NULL DEFAULT 0 "
             "CHECK(stars_price >= 0)"
         )
+    await _validate_current_schema(db, include_stars_hardening=False)
+
+
+async def _migration_0010_stars_production_hardening_v5_0_0(
+    db: aiosqlite.Connection,
+) -> None:
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS customer_terms_acceptance (
+            telegram_id INTEGER NOT NULL,
+            terms_version TEXT NOT NULL,
+            accepted_at INTEGER NOT NULL,
+            PRIMARY KEY(telegram_id, terms_version)
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS stars_refund_operations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            operation_id TEXT NOT NULL UNIQUE,
+            payment_id INTEGER NOT NULL UNIQUE,
+            telegram_id INTEGER NOT NULL,
+            provider_payment_id TEXT NOT NULL,
+            status TEXT NOT NULL
+                CHECK(status IN ('in_flight', 'success', 'failed', 'unknown')),
+            requested_by INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            error TEXT NOT NULL DEFAULT ''
+        )
+        """
+    )
+    await db.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_stars_refund_status_created
+        ON stars_refund_operations(status, created_at)
+        """
+    )
     await _validate_current_schema(db)
 
 
@@ -916,6 +983,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=9,
         name="telegram_stars_price_v5_0_0",
         apply=_migration_0009_telegram_stars_price_v5_0_0,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=10,
+        name="stars_production_hardening_v5_0_0",
+        apply=_migration_0010_stars_production_hardening_v5_0_0,
         requires_backup=False,
     ),
 )

@@ -29,9 +29,9 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         self.tmp.cleanup()
 
-    async def test_schema_v9_contains_stars_pricing(self):
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 9)
-        self.assertEqual(await current_schema_version(str(self.path)), 9)
+    async def test_schema_v10_contains_stars_hardening(self):
+        self.assertEqual(CURRENT_SCHEMA_VERSION, 10)
+        self.assertEqual(await current_schema_version(str(self.path)), 10)
         with sqlite3.connect(self.path) as conn:
             tables = {row[0] for row in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
@@ -39,6 +39,7 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue({
             "commerce_orders", "commerce_payments",
             "payment_webhook_events", "entitlements",
+            "customer_terms_acceptance", "stars_refund_operations",
         }.issubset(tables))
         with sqlite3.connect(self.path) as conn:
             payment_columns = [

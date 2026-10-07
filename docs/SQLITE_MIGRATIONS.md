@@ -42,7 +42,7 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 Для `v4.26.9` текущая bot schema version — **7**. Этот release впервые публикует additive Client Portal migrations v6/v7 поверх исторической v4 baseline.
 
-Для ветки подготовки Client Portal текущая bot schema version — **9**:
+Для ветки подготовки Client Portal текущая bot schema version — **10**:
 
 1. `v1 baseline_v4_14_2` — исходная каноническая схема v4.14.2;
 2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`;
@@ -53,6 +53,7 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 7. `v7 payment_event_reconciliation_v5_0_0` — additive `provider_payment_id TEXT NOT NULL DEFAULT ''` в `payment_webhook_events` для безопасного restart/reconciliation уже аутентифицированных provider events без хранения raw payload.
 8. `v8 checkout_reference_v5_0_0` — additive `checkout_url` + `idempotency_key` в `commerce_payments` и partial unique index `provider + idempotency_key` для durable checkout retry без создания второго provider payment.
 9. `v9 telegram_stars_price_v5_0_0` — additive `plans.stars_price INTEGER NOT NULL DEFAULT 0` для независимой цены цифровой подписки в Telegram Stars (`XTR`) без неявной конвертации из fiat price.
+10. `v10 stars_production_hardening_v5_0_0` — versioned Terms acceptance и persistent one-shot Telegram Stars refund journal.
 
 
 Commerce write contract поверх schema v6: authenticated `payment.confirmed` применяется одной SQLite transaction (`BEGIN IMMEDIATE`). В одной commit boundary фиксируются `commerce_payments.status=confirmed`, `commerce_orders.status=paid`, exactly-one `entitlements` row и `payment_webhook_events.processing_status=applied`. Исключение до commit откатывает весь набор изменений; повтор того же provider event с тем же payload безопасно возвращает уже применённый результат, а повтор event id с другим payload fail-closed.
@@ -61,7 +62,7 @@ Entitlement provisioning contract: после подтверждённой оп�
 
 Payment-event recovery contract: только journaled events с `signature_valid=1`, `event_type=payment.confirmed`, `processing_status=failed`, `result_code=payment_not_found` и непустым `provider_payment_id` могут автоматически согласовываться после restart. Reconciliation использует сохранённый payload hash и authenticated journal identity; raw provider payload и webhook secret для replay не требуются. Повтор event ID с другим payment reference считается identity conflict и fail-closed.
 
-Migration v2–v9 имеют `requires_backup=False`: они additive, не переписывают существующие пользовательские записи и проверяют postcondition соответствующей версии schema внутри migration transaction до записи `success`. Для v3 membership хранится по стабильному `telegram_id`; сама migration не назначает пользователей в группы. Для v4 существующие rows не создаются и monitoring начинается только после явного add/subscribe action. Migration v5 сохраняет все существующие subscriptions активными по умолчанию и не меняет notification preferences. Migration v6 только создаёт новые commerce-таблицы и индексы; существующие users, plans, promo codes и legacy admin payments не переписываются. Migration v7 только добавляет безопасный provider payment reference в webhook journal; существующие rows получают пустое значение и не считаются автоматически replayable без нового доверенного provider delivery. Migration v8 только добавляет checkout reference/idempotency columns и partial unique index; существующие payments получают пустые значения и не становятся checkout-retry candidates. Migration v9 только добавляет `stars_price=0`; существующие тарифы не становятся продаваемыми через Stars до явной настройки администратором.
+Migration v2–v10 имеют `requires_backup=False`: они additive, не переписывают существующие пользовательские записи и проверяют postcondition соответствующей версии schema внутри migration transaction до записи `success`. Для v3 membership хранится по стабильному `telegram_id`; сама migration не назначает пользователей в группы. Для v4 существующие rows не создаются и monitoring начинается только после явного add/subscribe action. Migration v5 сохраняет все существующие subscriptions активными по умолчанию и не меняет notification preferences. Migration v6 только создаёт новые commerce-таблицы и индексы; существующие users, plans, promo codes и legacy admin payments не переписываются. Migration v7 только добавляет безопасный provider payment reference в webhook journal; существующие rows получают пустое значение и не считаются автоматически replayable без нового доверенного provider delivery. Migration v8 только добавляет checkout reference/idempotency columns и partial unique index; существующие payments получают пустые значения и не становятся checkout-retry candidates. Migration v9 только добавляет `stars_price=0`; существующие тарифы не становятся продаваемыми через Stars до явной настройки администратором.
 
 После успешного применения более новой schema старый application release, который её не знает, обязан остановиться как `DatabaseSchemaTooNewError`. Поэтому downgrade приложения через обычную смену tag без восстановления совместимой pre-migration DB не поддерживается.
 
@@ -126,3 +127,9 @@ Framework является forward-only: автоматических down migra
 Откат application release после уже применённой более новой DB migration может быть несовместим. Старый код обязан увидеть более новую schema version и остановиться fail-closed, а не пытаться работать с неизвестной схемой.
 
 Для восстановления используется проверенная pre-migration recovery copy или Full Backup по документированному recovery flow. Автоматический restore при migration failure не выполняется.
+
+### v10 — stars_production_hardening_v5_0_0
+
+- сохраняет versioned customer Terms acceptance перед созданием Telegram Stars invoice;
+- добавляет persistent journal one-shot Stars refund operations (`in_flight/success/failed/unknown`);
+- refund с неизвестным исходом не replay'ится автоматически; успешный refund атомарно переводит commerce payment в `refunded`.
