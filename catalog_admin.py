@@ -489,7 +489,11 @@ async def plan_stars_price_save(message: Message, state: FSMContext):
     plan = await db.get_plan(plan_id)
     if not plan:
         await state.clear()
-        await render_input(message, "Тариф не найден.")
+        await render_input(
+            message,
+            "Тариф не найден.",
+            reply_markup=plans_back(),
+        )
         return
     try:
         value = int((message.text or "").strip())
