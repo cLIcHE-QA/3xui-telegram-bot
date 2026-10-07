@@ -12,6 +12,8 @@ from bot_updates import bot_updates_router, reconcile_deploy_jobs
 from system_backup import SystemBackupService
 from subscription_proxy import SubscriptionProxy
 from commerce import CommerceService, EntitlementProvisioningService
+from customer_provider_xui import XuiCustomerProvider
+from customer_service import CustomerPortalService
 from payment_webhook import PaymentWebhookGateway
 from provisioning import ProvisioningEngine
 from xui import XUIClient
@@ -39,7 +41,7 @@ from admin_ui import AdminPanelSessionMiddleware, AdminPrivateChatMiddleware
 from node_admin import node_admin_router
 from system_admin import system_admin_router
 from storage_admin import storage_admin_router
-from client_access import client_access_router
+from client_access import client_access_router, configure_client_access
 from admin_shell import admin_shell_router
 
 settings = load_settings()
@@ -50,6 +52,16 @@ offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
 offsite_backup = service_from_settings(settings, offsite_restore_manager)
 commerce_service = CommerceService(db)
 commerce_xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
+customer_portal_service = CustomerPortalService(
+    db,
+    commerce_service,
+    XuiCustomerProvider(commerce_xui),
+    subscription_url_template=(
+        settings.compat_subscription_url_template
+        or settings.subscription_url_template
+    ),
+)
+configure_client_access(customer_portal_service)
 commerce_provisioner = ProvisioningEngine(db, commerce_xui, settings)
 entitlement_provisioning_service = EntitlementProvisioningService(
     db,
