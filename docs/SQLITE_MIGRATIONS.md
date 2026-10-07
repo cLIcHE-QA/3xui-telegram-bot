@@ -126,3 +126,9 @@ Framework является forward-only: автоматических down migra
 Откат application release после уже применённой более новой DB migration может быть несовместим. Старый код обязан увидеть более новую schema version и остановиться fail-closed, а не пытаться работать с неизвестной схемой.
 
 Для восстановления используется проверенная pre-migration recovery copy или Full Backup по документированному recovery flow. Автоматический restore при migration failure не выполняется.
+
+### v10 — stars_production_hardening_v5_0_0
+
+- сохраняет versioned customer Terms acceptance перед созданием Telegram Stars invoice;
+- добавляет persistent journal one-shot Stars refund operations (`in_flight/success/failed/unknown`);
+- refund с неизвестным исходом не replay'ится автоматически; успешный refund атомарно переводит commerce payment в `refunded`.
