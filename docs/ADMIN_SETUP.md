@@ -103,7 +103,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.2` машинно проверяемый native API contract pinned к 3x-ui `v3.8.5`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
+Для bot release `v5.0.0-rc.2` машинно проверяемый native API contract pinned к 3x-ui `v3.9.0`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
 
 ## 2. Базовая подготовка Master VPS
 
