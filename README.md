@@ -1,6 +1,6 @@
 # Telegram-бот для 3x-ui v4.26.9
 
-Административный Telegram Control Plane для 3x-ui. Текущая production-линия проекта — **v4.x Admin Control Plane**; полноценный client-facing Client Portal запланирован отдельно для v5.x.
+Telegram Control Plane для 3x-ui с защищённым `/admin` и уже начатым pilot Client Portal v5. Публичный customer launch ещё не открыт: `/start` остаётся за allowlist до завершения checkout, ownership/abuse hardening, launch audit и canary.
 
 Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
 
