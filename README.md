@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.1
+# Telegram-бот для 3x-ui v5.0.0-rc.2
 
 Telegram Control Plane для 3x-ui с защищённым `/admin` и уже начатым pilot Client Portal v5. Публичный customer launch ещё не открыт: `/start` остаётся за allowlist до завершения checkout, ownership/abuse hardening, launch audit и canary.
 
@@ -153,7 +153,7 @@ Client Portal развивается поверх отдельного commerce 
 
 Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована, развёрнута, проверена и закрыта в production. Финальные patch findings закрыты в `v4.25.8`: Clone Inbound сохраняет source parent при `✖ Отмена`, а DB-backed Owner подтверждает self-demotion отдельным fail-closed confirmation flow. Subscription proxy сохраняет принятый контракт `v4.25.3`; временные Streisand workarounds из `v4.25.4–v4.25.5` удалены. Известное ограничение: Streisand не передаёт совместимый `X-HWID`, поэтому при включённом HWID limit 3x-ui отклоняет raw subscription как `hwid_not_supported`.
 
-Текущая release-candidate версия — `v5.0.0-rc.1`. Она публикуется как immutable GitHub prerelease для controlled production acceptance Client Portal и не означает broad public launch. Pilot allowlist сохраняется; финальный `v5.0.0` остаётся заблокирован до PASS по `docs/V5_PRODUCTION_ACCEPTANCE.md`. RC включает Telegram Stars commerce, entitlement/provisioning, onboarding/QR/self-service diagnostics, launch safety controls, retention policy и acceptance gate. Bot SQLite schema — **10**; pinned 3x-ui OpenAPI contract остаётся `v3.8.5`. `v4.26.9` остаётся последним стабильным опубликованным v4 release.
+Текущая release-candidate версия — `v5.0.0-rc.2`. Она публикуется как immutable GitHub prerelease для controlled production acceptance Client Portal и не означает broad public launch. Pilot allowlist сохраняется; финальный `v5.0.0` остаётся заблокирован до PASS по `docs/V5_PRODUCTION_ACCEPTANCE.md`. RC включает Telegram Stars commerce, entitlement/provisioning, onboarding/QR/self-service diagnostics, launch safety controls, retention policy и acceptance gate. Bot SQLite schema — **10**; pinned 3x-ui OpenAPI contract остаётся `v3.8.5`. `v4.26.9` остаётся последним стабильным опубликованным v4 release.
 
 Historical v4 acceptance остаётся закрытым и документированным: Controlled Node Drain production acceptance #208 завершён 2026-10-01. Encrypted off-site backup/restore drill завершён 2026-10-05 и подтвердил `OFFSITE_RECOVERY_OK`. **Final v4 feature freeze действует с 2026-10-05**; `v4.26.9` является post-freeze operational hotfix для subscription compatibility и публикации уже слитого pilot v5 foundation, а не новым v4 product scope; до закрытия repository/public-release audit после freeze разрешались только narrowly-scoped security/reliability/data-integrity fixes, regression changes и production acceptance; сам audit теперь закрыт PASS.
 
