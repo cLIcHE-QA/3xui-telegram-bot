@@ -208,6 +208,10 @@ class Settings:
     payment_webhook_enabled: bool
     payment_webhook_provider: str
     payment_webhook_secret: str
+    payment_checkout_enabled: bool
+    payment_checkout_provider: str
+    payment_checkout_endpoint: str
+    payment_checkout_secret: str
     allowed_telegram_ids: tuple[int, ...]
     admin_telegram_ids: tuple[int, ...]
     allowed_ports: tuple[int, ...]
@@ -277,6 +281,34 @@ def load_settings() -> Settings:
         if len(payment_webhook_secret.encode("utf-8")) < 32:
             raise RuntimeError(
                 "PAYMENT_WEBHOOK_SECRET must contain at least 32 bytes when payment webhooks are enabled."
+            )
+
+    payment_checkout_enabled = env_bool(os.getenv("PAYMENT_CHECKOUT_ENABLED"), False)
+    payment_checkout_provider = os.getenv(
+        "PAYMENT_CHECKOUT_PROVIDER", "generic_hmac"
+    ).strip().lower()
+    payment_checkout_endpoint = os.getenv("PAYMENT_CHECKOUT_ENDPOINT", "").strip()
+    payment_checkout_secret = os.getenv("PAYMENT_CHECKOUT_SECRET", "")
+    if payment_checkout_enabled:
+        if payment_checkout_provider != "generic_hmac":
+            raise RuntimeError(
+                "PAYMENT_CHECKOUT_PROVIDER currently supports only generic_hmac."
+            )
+        parsed_checkout = urlsplit(payment_checkout_endpoint)
+        if (
+            parsed_checkout.scheme != "https"
+            or not parsed_checkout.hostname
+            or parsed_checkout.username
+            or parsed_checkout.password
+            or parsed_checkout.query
+            or parsed_checkout.fragment
+        ):
+            raise RuntimeError(
+                "PAYMENT_CHECKOUT_ENDPOINT must be an absolute HTTPS URL without credentials/fragment."
+            )
+        if len(payment_checkout_secret.encode("utf-8")) < 32:
+            raise RuntimeError(
+                "PAYMENT_CHECKOUT_SECRET must contain at least 32 bytes when checkout is enabled."
             )
 
     compat_template = os.getenv("COMPAT_SUBSCRIPTION_URL_TEMPLATE", "").strip()
@@ -383,6 +415,10 @@ def load_settings() -> Settings:
         payment_webhook_enabled=payment_webhook_enabled,
         payment_webhook_provider=payment_webhook_provider,
         payment_webhook_secret=payment_webhook_secret,
+        payment_checkout_enabled=payment_checkout_enabled,
+        payment_checkout_provider=payment_checkout_provider,
+        payment_checkout_endpoint=payment_checkout_endpoint,
+        payment_checkout_secret=payment_checkout_secret,
         allowed_telegram_ids=allowed_ids,
         admin_telegram_ids=admin_ids,
         allowed_ports=csv_ints(os.getenv("ALLOWED_PORTS", "2053,2083,443")),

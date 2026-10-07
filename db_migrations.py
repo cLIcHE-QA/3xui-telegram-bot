@@ -329,7 +329,8 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     ),
     "commerce_payments": (
         "id", "order_id", "provider", "provider_payment_id", "amount_minor", "currency",
-        "status", "created_at", "updated_at", "confirmed_at",
+        "status", "created_at", "updated_at", "confirmed_at", "checkout_url",
+        "idempotency_key",
     ),
     "payment_webhook_events": (
         "id", "provider", "provider_event_id", "event_type", "signature_valid",
@@ -357,6 +358,7 @@ _EXPECTED_INDEXES = {
     "idx_commerce_orders_status_created",
     "idx_commerce_payments_order",
     "idx_commerce_payments_provider_identity",
+    "idx_commerce_payments_provider_idempotency",
     "idx_payment_webhook_provider_event",
     "idx_payment_webhook_processing",
     "idx_entitlements_user_status",
@@ -372,6 +374,7 @@ async def _validate_current_schema(
     include_website_watcher_lifecycle: bool = True,
     include_commerce: bool = True,
     include_payment_event_reference: bool = True,
+    include_checkout_reference: bool = True,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -401,6 +404,11 @@ async def _validate_current_schema(
             expected = tuple(
                 column for column in expected if column != "provider_payment_id"
             )
+        if table == "commerce_payments" and not include_checkout_reference:
+            expected = tuple(
+                column for column in expected
+                if column not in {"checkout_url", "idempotency_key"}
+            )
         cursor = await db.execute(f'PRAGMA table_info("{table}")')
         rows = await cursor.fetchall()
         actual = tuple(str(row[1]) for row in rows)
@@ -423,12 +431,15 @@ async def _validate_current_schema(
             "idx_website_incidents_monitor_open",
             "idx_website_notifications_recipient",
         }
+    if not include_checkout_reference:
+        expected_indexes.discard("idx_commerce_payments_provider_idempotency")
     if not include_commerce:
         expected_indexes -= {
             "idx_commerce_orders_user_created",
             "idx_commerce_orders_status_created",
             "idx_commerce_payments_order",
             "idx_commerce_payments_provider_identity",
+            "idx_commerce_payments_provider_idempotency",
             "idx_payment_webhook_provider_event",
             "idx_payment_webhook_processing",
             "idx_entitlements_user_status",
@@ -480,6 +491,7 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
                 "idx_commerce_orders_status_created",
                 "idx_commerce_payments_order",
                 "idx_commerce_payments_provider_identity",
+                "idx_commerce_payments_provider_idempotency",
                 "idx_payment_webhook_provider_event",
                 "idx_payment_webhook_processing",
                 "idx_entitlements_user_status",
@@ -776,7 +788,11 @@ async def _migration_0006_client_portal_commerce_foundation(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_entitlements_order "
         "ON entitlements(order_id)"
     )
-    await _validate_current_schema(db, include_payment_event_reference=False)
+    await _validate_current_schema(
+        db,
+        include_payment_event_reference=False,
+        include_checkout_reference=False,
+    )
 
 
 async def _migration_0007_payment_event_reconciliation_v5_0_0(
@@ -789,6 +805,29 @@ async def _migration_0007_payment_event_reconciliation_v5_0_0(
             "ALTER TABLE payment_webhook_events "
             "ADD COLUMN provider_payment_id TEXT NOT NULL DEFAULT ''"
         )
+    await _validate_current_schema(db, include_checkout_reference=False)
+
+
+async def _migration_0008_checkout_reference_v5_0_0(
+    db: aiosqlite.Connection,
+) -> None:
+    cursor = await db.execute('PRAGMA table_info("commerce_payments")')
+    columns = {str(row[1]) for row in await cursor.fetchall()}
+    if "checkout_url" not in columns:
+        await db.execute(
+            "ALTER TABLE commerce_payments "
+            "ADD COLUMN checkout_url TEXT NOT NULL DEFAULT ''"
+        )
+    if "idempotency_key" not in columns:
+        await db.execute(
+            "ALTER TABLE commerce_payments "
+            "ADD COLUMN idempotency_key TEXT NOT NULL DEFAULT ''"
+        )
+    await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_commerce_payments_provider_idempotency "
+        "ON commerce_payments(provider, idempotency_key) "
+        "WHERE idempotency_key <> ''"
+    )
     await _validate_current_schema(db)
 
 
@@ -833,6 +872,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=7,
         name="payment_event_reconciliation_v5_0_0",
         apply=_migration_0007_payment_event_reconciliation_v5_0_0,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=8,
+        name="checkout_reference_v5_0_0",
+        apply=_migration_0008_checkout_reference_v5_0_0,
         requires_backup=False,
     ),
 )

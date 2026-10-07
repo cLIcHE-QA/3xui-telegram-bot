@@ -139,6 +139,8 @@ class CommercePaymentRecord:
     created_at: int
     updated_at: int
     confirmed_at: int
+    checkout_url: str
+    idempotency_key: str
 
 
 @dataclass
@@ -1136,7 +1138,8 @@ class Database:
 
     async def create_commerce_payment(
         self, *, order_id: int, provider: str, provider_payment_id: str,
-        amount_minor: int, currency: str,
+        amount_minor: int, currency: str, checkout_url: str = "",
+        idempotency_key: str = "",
     ) -> int:
         now = int(time.time())
         async with aiosqlite.connect(self.path) as db:
@@ -1158,12 +1161,14 @@ class Database:
                     """
                     INSERT INTO commerce_payments(
                         order_id, provider, provider_payment_id, amount_minor, currency,
-                        status, created_at, updated_at, confirmed_at
-                    ) VALUES (?, ?, ?, ?, ?, 'created', ?, ?, 0)
+                        status, created_at, updated_at, confirmed_at, checkout_url,
+                        idempotency_key
+                    ) VALUES (?, ?, ?, ?, ?, 'created', ?, ?, 0, ?, ?)
                     """,
                     (
                         int(order_id), str(provider)[:32], str(provider_payment_id)[:160],
                         max(0, int(amount_minor)), str(currency).upper(), now, now,
+                        str(checkout_url)[:2000], str(idempotency_key)[:160],
                     ),
                 )
                 if str(order["status"]) == "created":
@@ -1177,6 +1182,104 @@ class Database:
                     )
                 await db.commit()
                 return int(cur.lastrowid)
+            except Exception:
+                await db.rollback()
+                raise
+
+    async def get_commerce_payment_by_idempotency(
+        self, *, provider: str, idempotency_key: str,
+    ) -> CommercePaymentRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                """
+                SELECT * FROM commerce_payments
+                WHERE provider = ? AND idempotency_key = ?
+                """,
+                (str(provider)[:32], str(idempotency_key)[:160]),
+            )
+            row = await cur.fetchone()
+            return CommercePaymentRecord(**dict(row)) if row else None
+
+    async def create_or_get_checkout_payment(
+        self, *, order_id: int, provider: str, provider_payment_id: str,
+        amount_minor: int, currency: str, checkout_url: str,
+        idempotency_key: str,
+    ) -> tuple[CommercePaymentRecord, bool]:
+        provider = str(provider)[:32]
+        provider_payment_id = str(provider_payment_id)[:160]
+        idempotency_key = str(idempotency_key)[:160]
+        checkout_url = str(checkout_url)[:2000]
+        currency = str(currency).upper()
+        if not idempotency_key:
+            raise ValueError("checkout idempotency_key must not be empty")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    """
+                    SELECT * FROM commerce_payments
+                    WHERE provider = ? AND idempotency_key = ?
+                    """,
+                    (provider, idempotency_key),
+                )
+                existing = await cur.fetchone()
+                if existing is not None:
+                    if (
+                        int(existing["order_id"]) != int(order_id)
+                        or int(existing["amount_minor"]) != max(0, int(amount_minor))
+                        or str(existing["currency"]).upper() != currency
+                    ):
+                        raise RuntimeError(
+                            "Checkout idempotency key is already bound to different payment data."
+                        )
+                    await db.commit()
+                    return CommercePaymentRecord(**dict(existing)), False
+
+                cur = await db.execute(
+                    "SELECT * FROM commerce_orders WHERE id = ?",
+                    (int(order_id),),
+                )
+                order = await cur.fetchone()
+                if order is None:
+                    raise RuntimeError("Order does not exist.")
+                if str(order["status"]) not in {"created", "awaiting_payment"}:
+                    raise RuntimeError(
+                        f"Order status {order['status']!r} cannot accept a checkout payment."
+                    )
+                cur = await db.execute(
+                    """
+                    INSERT INTO commerce_payments(
+                        order_id, provider, provider_payment_id, amount_minor, currency,
+                        status, created_at, updated_at, confirmed_at, checkout_url,
+                        idempotency_key
+                    ) VALUES (?, ?, ?, ?, ?, 'created', ?, ?, 0, ?, ?)
+                    """,
+                    (
+                        int(order_id), provider, provider_payment_id,
+                        max(0, int(amount_minor)), currency, now, now,
+                        checkout_url, idempotency_key,
+                    ),
+                )
+                payment_id = int(cur.lastrowid)
+                if str(order["status"]) == "created":
+                    await db.execute(
+                        """
+                        UPDATE commerce_orders
+                        SET status = 'awaiting_payment', updated_at = ?
+                        WHERE id = ?
+                        """,
+                        (now, int(order_id)),
+                    )
+                cur = await db.execute(
+                    "SELECT * FROM commerce_payments WHERE id = ?",
+                    (payment_id,),
+                )
+                row = await cur.fetchone()
+                await db.commit()
+                return CommercePaymentRecord(**dict(row)), True
             except Exception:
                 await db.rollback()
                 raise

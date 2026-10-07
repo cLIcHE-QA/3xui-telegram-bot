@@ -5,6 +5,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_ui import render_callback
+from checkout_provider import CheckoutError, CheckoutUnavailable
 from config import load_settings
 from customer_service import CustomerPortalService, CustomerProviderUnavailable
 from ui_time import format_timestamp
@@ -290,20 +291,62 @@ async def plan_cb(call: CallbackQuery):
         await call.answer("Тариф недоступен.", show_alert=True)
         return
 
-    order, created = await _service().get_or_create_order(
-        telegram_id=call.from_user.id,
-        plan=plan,
-    )
+    try:
+        order, created, checkout = await _service().checkout_for_plan(
+            telegram_id=call.from_user.id,
+            plan=plan,
+        )
+    except CheckoutUnavailable:
+        await render_callback(
+            call,
+            "💳 Заказ\n\n"
+            "Платёжный провайдер временно недоступен. "
+            "Повторите попытку позже: повтор использует тот же idempotency key "
+            "и не должен создавать второй платёж.",
+            reply_markup=back_menu(),
+        )
+        await call.answer()
+        return
+    except CheckoutError:
+        await render_callback(
+            call,
+            "💳 Заказ\n\nНе удалось подготовить оплату. Попробуйте позже.",
+            reply_markup=back_menu(),
+        )
+        await call.answer()
+        return
+
     state = "создан" if created else "уже существует"
+    if checkout is None:
+        markup = back_menu()
+        payment_text = (
+            "Оплата пока не подключена. Заказ сохранён, но доступ не изменится "
+            "до подтверждённого события платёжного провайдера."
+        )
+    else:
+        markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="💳 Перейти к оплате",
+                url=checkout.payment.checkout_url,
+            )],
+            [InlineKeyboardButton(
+                text="⬅ Личный кабинет",
+                callback_data="client:home",
+            )],
+        ])
+        payment_text = (
+            "Платёж подготовлен. Доступ изменится только после подтверждённого "
+            "webhook события провайдера."
+        )
+
     await render_callback(
         call,
         "💳 Заказ\n\n"
         f"Тариф: {plan.name}\n"
         f"Сумма: {money_text(order.amount_minor, order.currency)}\n"
         f"Заказ: #{order.id} · {state}\n\n"
-        "Оплата пока не подключена. Заказ сохранён, но доступ не изменится "
-        "до подтверждённого события платёжного провайдера.",
-        reply_markup=back_menu(),
+        + payment_text,
+        reply_markup=markup,
     )
     await call.answer()
 

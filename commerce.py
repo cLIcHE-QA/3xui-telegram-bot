@@ -103,6 +103,31 @@ class CommerceService:
             raise CommerceIntegrityError("Created payment cannot be read back.")
         return payment
 
+    async def find_checkout_payment(
+        self, *, provider: str, idempotency_key: str,
+    ) -> CommercePaymentRecord | None:
+        return await self.db.get_commerce_payment_by_idempotency(
+            provider=provider,
+            idempotency_key=idempotency_key,
+        )
+
+    async def create_or_get_checkout_payment(
+        self, *, order_id: int, provider: str, provider_payment_id: str,
+        checkout_url: str, idempotency_key: str,
+    ) -> tuple[CommercePaymentRecord, bool]:
+        order = await self.db.get_commerce_order(order_id)
+        if order is None:
+            raise CommerceIntegrityError("Order does not exist.")
+        return await self.db.create_or_get_checkout_payment(
+            order_id=order.id,
+            provider=provider,
+            provider_payment_id=provider_payment_id,
+            amount_minor=order.amount_minor,
+            currency=order.currency,
+            checkout_url=checkout_url,
+            idempotency_key=idempotency_key,
+        )
+
     async def ensure_entitlement(self, order: CommerceOrderRecord) -> tuple[EntitlementRecord, bool]:
         return await self.db.ensure_entitlement_for_order(
             telegram_id=order.telegram_id, order_id=order.id, plan_id=order.plan_id,

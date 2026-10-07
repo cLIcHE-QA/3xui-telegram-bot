@@ -3999,10 +3999,10 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 Рекомендуемый порядок первой реализации и фактический прогресс:
 
 1. 🟡 customer ownership/auth boundary + feature flag/allowlist без публичного открытия — pilot boundary действует через существующий allowlist/admin policy; public signup, dedicated abuse/rate-limit policy и полный ownership audit ещё не завершены;
-2. ✅ persistent Order / Payment / Entitlement states и migration contract — PR #290–#294, schema v6/v7, atomic payment confirmation, webhook journal и restart reconciliation;
+2. ✅ persistent Order / Payment / Entitlement states и migration contract — PR #290–#294 + checkout schema v8, atomic payment confirmation, webhook journal, restart reconciliation и durable checkout identity;
 3. ✅ provider-neutral customer/subscription service boundary поверх текущего 3x-ui provisioning — `client_access.py` работает через `CustomerPortalService`, provider contract задан `CustomerAccessProvider`, а текущие 3x-ui reads изолированы в `customer_provider_xui.py`; Telegram handlers больше не импортируют `XUIClient`, `Database` или `CommerceService` напрямую;
 4. ✅ read-only Client Portal skeleton: Профиль / Моя подписка / Трафик / Устройства / Помощь — PR #296; legacy `/create` / `/inbounds` больше не являются mutation-entrypoints;
-5. 🟡 commerce flow + authenticated/idempotent payment webhook journal — backend journal/state machine готов, но production payment provider/checkout ещё не подключён;
+5. 🟡 commerce flow + authenticated/idempotent payment webhook journal — backend journal/state machine готов; provider-neutral HTTPS checkout bridge, durable checkout URL/idempotency и Telegram payment button реализуются, но конкретный production PSP/backend endpoint ещё не подключён;
 6. ✅ entitlement → provisioning/reconcile с no-replay/unknown semantics — PR #292/#295; durable pending worker не replay'ит `provisioning` с uncertain outcome;
 7. ⬜ onboarding/deep-link/QR UX и self-service diagnostics;
 8. ⬜ отдельный v5 launch audit;
