@@ -115,6 +115,19 @@ class CustomerPortalService:
             currency="XTR",
         )
 
+    async def validate_stars_precheckout(
+        self, *, telegram_id: int, order_id: int, amount: int,
+    ) -> bool:
+        order = await self.commerce.get_order(order_id)
+        if order is None:
+            return False
+        return (
+            int(order.telegram_id) == int(telegram_id)
+            and str(order.currency) == "XTR"
+            and int(order.amount_minor) == int(amount)
+            and str(order.status) in {"created", "awaiting_payment"}
+        )
+
     async def confirm_stars_payment(
         self, *, telegram_id: int, order_id: int, charge_id: str,
         amount: int, raw_payload: bytes,
