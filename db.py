@@ -1095,6 +1095,8 @@ class Database:
         currency: str, promo_code_id: int | None = None,
     ) -> tuple[CommerceOrderRecord, bool]:
         now = int(time.time())
+        amount_value = max(0, int(amount_minor))
+        currency_value = str(currency).upper()
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             await db.execute("BEGIN IMMEDIATE")
@@ -1103,11 +1105,16 @@ class Database:
                     """
                     SELECT * FROM commerce_orders
                     WHERE telegram_id = ? AND plan_id = ?
+                      AND amount_minor = ? AND currency = ?
+                      AND promo_code_id IS ?
                       AND status IN ('created', 'awaiting_payment')
                     ORDER BY id DESC
                     LIMIT 1
                     """,
-                    (int(telegram_id), int(plan_id)),
+                    (
+                        int(telegram_id), int(plan_id), amount_value,
+                        currency_value, promo_code_id,
+                    ),
                 )
                 row = await cur.fetchone()
                 if row is not None:
@@ -1123,7 +1130,7 @@ class Database:
                     """,
                     (
                         int(telegram_id), int(plan_id), promo_code_id,
-                        max(0, int(amount_minor)), str(currency).upper(), now, now,
+                        amount_value, currency_value, now, now,
                     ),
                 )
                 order_id = int(cur.lastrowid)
