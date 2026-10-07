@@ -14,6 +14,7 @@ from aiogram.types import (
 
 from admin_ui import render_callback
 from config import load_settings
+from client_rate_limit import SlidingWindowRateLimiter
 from customer_service import CustomerPortalService, CustomerProviderUnavailable
 from ui_time import format_timestamp
 from website_diagnostics import qr_png
@@ -26,15 +27,23 @@ customer_service: CustomerPortalService | None = None
 client_access_router = Router(name="client_access")
 
 TERMS_VERSION = "v5-stars-2026-10-07"
+client_rate_limiter = SlidingWindowRateLimiter(
+    limit=settings.client_rate_limit_count,
+    window_seconds=settings.client_rate_limit_window_seconds,
+)
 
 
 def is_allowed(tg_id: int) -> bool:
-    # v5 pilot boundary. Public signup remains closed until abuse/rate-limit
-    # controls and the full checkout provider flow are ready.
+    # Pilot/public access policy stays explicit; the launch flag is an
+    # independent rollback switch.
     return (
         tg_id in settings.allowed_telegram_ids
         or tg_id in settings.admin_telegram_ids
     )
+
+
+def payment_acceptance_enabled() -> bool:
+    return bool(settings.client_payment_acceptance_enabled)
 
 
 def configure_client_access(service: CustomerPortalService) -> None:
@@ -103,15 +112,27 @@ def back_menu() -> InlineKeyboardMarkup:
 
 
 async def guard_message(message: Message) -> bool:
+    if not settings.client_portal_enabled:
+        await message.answer("Личный кабинет временно отключён.")
+        return False
     if not message.from_user or not is_allowed(message.from_user.id):
         await message.answer("Нет доступа.")
+        return False
+    if not client_rate_limiter.allow(message.from_user.id):
+        await message.answer("Слишком много запросов. Попробуйте немного позже.")
         return False
     return True
 
 
 async def guard_callback(call: CallbackQuery) -> bool:
+    if not settings.client_portal_enabled:
+        await call.answer("Личный кабинет временно отключён.", show_alert=True)
+        return False
     if not call.from_user or not is_allowed(call.from_user.id):
         await call.answer("Нет доступа.", show_alert=True)
+        return False
+    if not client_rate_limiter.allow(call.from_user.id):
+        await call.answer("Слишком много запросов. Попробуйте немного позже.", show_alert=True)
         return False
     return True
 
@@ -275,6 +296,14 @@ async def devices_cb(call: CallbackQuery):
 async def buy_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
+    if not payment_acceptance_enabled():
+        await render_callback(
+            call,
+            "💳 Купить / продлить\n\nПриём новых платежей временно отключён.",
+            reply_markup=back_menu(),
+        )
+        await call.answer()
+        return
     profile = await _service().profile(call.from_user.id)
     if not profile.exists:
         await render_callback(
@@ -320,6 +349,9 @@ async def buy_cb(call: CallbackQuery):
 @client_access_router.callback_query(F.data.startswith("client:plan:"))
 async def plan_cb(call: CallbackQuery):
     if not await guard_callback(call):
+        return
+    if not payment_acceptance_enabled():
+        await call.answer("Приём новых платежей временно отключён.", show_alert=True)
         return
     profile = await _service().profile(call.from_user.id)
     if not profile.exists:
@@ -405,6 +437,9 @@ async def plan_cb(call: CallbackQuery):
 async def terms_accept_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
+    if not payment_acceptance_enabled():
+        await call.answer("Приём новых платежей временно отключён.", show_alert=True)
+        return
     try:
         plan_id = int((call.data or "").rsplit(":", 1)[1])
     except (TypeError, ValueError):
@@ -446,6 +481,12 @@ async def terms_accept_cb(call: CallbackQuery):
 
 @client_access_router.pre_checkout_query()
 async def stars_pre_checkout(query: PreCheckoutQuery):
+    if not payment_acceptance_enabled():
+        await query.answer(
+            ok=False,
+            error_message="Приём новых платежей временно отключён.",
+        )
+        return
     if not is_allowed(query.from_user.id):
         await query.answer(
             ok=False,

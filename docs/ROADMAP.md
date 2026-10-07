@@ -4005,7 +4005,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 5. 🟡 commerce flow + authenticated/idempotent payment event journal — backend journal/state machine и provider-neutral checkout foundation готовы; следующий production path использует native Telegram Stars (`XTR`) для цифровой подписки внутри бота: отдельная Stars-цена тарифа, pre-checkout ownership/amount validation и atomic `successful_payment → Payment confirmed → Order paid → Entitlement` реализуются; после #305 Terms acceptance, `/paysupport` и one-shot refund journal/операторский flow реализованы; остаются test/prod payment smoke и production acceptance;
 6. ✅ entitlement → provisioning/reconcile с no-replay/unknown semantics — PR #292/#295; durable pending worker не replay'ит `provisioning` с uncertain outcome;
 7. 🟡 onboarding/QR UX и self-service diagnostics реализуются в #306: platform selection, local/private QR и read-only entitlement/provider diagnostics; client-specific deep-link остаётся отложен до стабильного безопасного import contract;
-8. ⬜ отдельный v5 launch audit;
+8. 🟡 v5 launch-readiness: #307 добавляет независимые Client Portal/payment kill-switches и per-user customer rate limit; после merge выполняется отдельный v5 launch audit;
 9. ⬜ controlled canary rollout по описанному ниже gate;
 10. ⬜ только после canary — расширение публичного доступа.
 
@@ -4331,7 +4331,7 @@ Public launch блокируется до закрытия release-blocking find
 5. **Ownership/isolation check** — отдельные тестовые аккаунты пытаются открыть чужие callbacks/resources/subscription context; backend должен fail-closed независимо от callback payload.
 6. **Abuse/resource check** — проверяются rate limits, repeated callbacks, command spam, oversized/invalid input, monitoring/diagnostics quotas и отсутствие unbounded jobs/queues.
 7. **Observability/support readiness** — оператор видит payment/provisioning failures, correlation IDs, audit/job history и понятный recovery path; support не требует доступа к shell/DB для типовых случаев.
-8. **Rollback/disable path** — Client Portal и payment acceptance можно быстро выключить feature flag/allowlist policy без отключения Admin Control Plane и без потери уже подтверждённых платежей/entitlements.
+8. **Rollback/disable path** — Client Portal и payment acceptance можно быстро выключить независимыми `CLIENT_PORTAL_ENABLED` / `CLIENT_PAYMENT_ACCEPTANCE_ENABLED` без отключения Admin Control Plane; уже полученный `successful_payment` всё равно фиксируется локально, чтобы не потерять подтверждённую оплату.
 9. **Data/reconciliation check** — после canary выполняется сверка orders, payments, entitlements, provisioning state и 3x-ui clients; нет orphaned/duplicate resources или необъяснимых state mismatches.
 10. **Soak period** — canary работает достаточное время для прохождения scheduled jobs, expiry/renewal/monitoring циклов и хотя бы одного restart/deploy cycle без новых release-blocking findings.
 
