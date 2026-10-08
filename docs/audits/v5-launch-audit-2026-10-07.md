@@ -277,3 +277,18 @@ Customer identifiers, charge identity и subscription URLs в audit не вкл�
 - Оставшиеся gates: V5-A-001 широкая reconciliation/support coverage, V5-A-002 failure/restart/unknown-no-replay, V5-A-003 abuse/load/soak, IDOR/ownership, kill-switch/rollback, отложенный natural expiry V5-A-005, финальный signoff. Pilot allowlist сохраняется; stable/public rollout запрещён до общего PASS.
 
 Customer identifiers, charge reference, subscription URLs и токены не включены.
+
+
+## rc.5 V5-A-002 read-only commerce reconciliation / High follow-up, 2026-10-08
+
+**Baseline:** production immutable `v5.0.0-rc.5` / `14042f6dc9d467dc8d0e999eb493f9e1cfc90611`; операторский SQLite read-only check, **никаких новых платежей, refund requests, прямых правок БД, рестартов или provider mutations**.
+
+1. Aggregate snapshot: `commerce_orders` = 2 `paid`; `commerce_payments` = 1 `confirmed` + 1 `refunded`; `payment_webhook_events` = 2 `applied`; `entitlements` = 2 `active`; quota reset markers = 1 `legacy` + 1 `success`; `stars_refund_operations` = 1 `success`; eligible recoverable payment events = **0**.
+2. Join/integrity read-back: `Order #1 paid → Payment #1 refunded → Entitlement #1 active/legacy` и `Order #2 paid → Payment #2 confirmed → Entitlement #2 active/success`. Orphan payments **0**, orphan entitlements **0**, duplicate entitlements per order **0**, paid orders without entitlement **0**.
+3. **Disposition: read-only preflight + structural Order→Payment→Entitlement integrity — scoped PASS. V5-A-002 overall remains NOT PASS.** `legacy` — исторический quota marker, реальный Stars refund не отзывает entitlement автоматически. Эти агрегаты **не доказывают** provider-side 3x-ui membership/VPN sync, защиту от callback replay, concurrency recovery, restart/fault scenario, unknown/no-blind-replay или full reconciliation.
+4. При code review исходников `rc.5` выявлен V5-A-010 / [#333](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/333): duplicate/delayed `successful_payment` после refund мог перевести локальный payment `refunded → confirmed` (High; **not reproduced in production**). Админский экран `Платежи` также показывал нулевой legacy count при наличии 2 Stars commerce payments — [#334](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/334). Оба исправления + regression tests влиты в `main` через [PR #335](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/335), CI `test/title=success`; **не развёрнуты на `rc.5`**, issue остаются OPEN до scoped production validation.
+5. Release-prep `v5.0.0-rc.6` — [PR #339](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/339), open; первый `test` CI FAIL (2 из 820 — format contract `Guide ориентирован на release v5.0.0-rc.6.` в `docs/ADMIN_SETUP.md`), targeted docs correction pushed в release branch; **подтверждённого повторного PASS / merge / публикации/deploy нет**. Future external PSP/СБП with per-order payment URLs — separate planned issue [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) via docs PR #338; no implementation, Telegram digital-goods compliance gate.
+
+**Next gates:** immutable `rc.6` only after required CI and release workflow, operator-controlled deploy; read-only Stars UI/refund journal smoke first; V5-A-002 controlled replay/restart/failure/unknown-no-retry later in independently approved safe scenarios. Pilot allowlist remains, stable/public v5 launch **NOT PASS**.
+
+No Telegram IDs, charge IDs, subscription links or secrets recorded.
