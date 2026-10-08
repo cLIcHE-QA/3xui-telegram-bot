@@ -63,7 +63,7 @@ class AdminStarsTotalsTests(unittest.IsolatedAsyncioTestCase):
         mixed = await self._render()
         self.assertIn("Всего записей: 1", mixed)
         self.assertIn("Выручка по оплаченным: 10 RUB", mixed)
-        self.assertIn("⭐ Telegram Stars\\nВсего: 0", mixed)
+        self.assertIn("⭐ Telegram Stars\nВсего: 0", mixed)
 
     async def test_confirmed_and_refunded_stars_visible(self):
         commerce = CommerceService(self.db)
