@@ -54,7 +54,7 @@ class AdminStarsTotalsTests(unittest.IsolatedAsyncioTestCase):
         empty = await self._render()
         self.assertIn("Всего записей: 0", empty)
         self.assertIn("⭐ Telegram Stars", empty)
-        self.assertIn("📒 Внутренний журнал", empty)
+        self.assertIn("📒 Ручные платежи (учёт)", empty)
 
         await self.db.create_payment(
             telegram_id=1001, plan_id=None, amount_minor=1000,
@@ -88,7 +88,7 @@ class AdminStarsTotalsTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Всего записей: 2", rendered)
         self.assertIn("🟢 Подтверждено: 1 · ⭐ 1", rendered)
         self.assertIn("↩️ Возвращено: 1 · ⭐ 1", rendered)
-        self.assertIn("📒 Внутренний журнал", rendered)
+        self.assertIn("📒 Ручные платежи (учёт)", rendered)
 
 
 if __name__ == "__main__":
