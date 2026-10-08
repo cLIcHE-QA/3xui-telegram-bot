@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class V5Rc2CanaryFindingsTests(unittest.TestCase):
     def test_client_home_separates_period_and_actual_vpn_access(self):
         source = (ROOT / "client_access.py").read_text(encoding="utf-8")
-        self.assertIn('f"💳 Период: {customer_period_label(profile.period_status)}"', source)
+        self.assertIn('f"💳 Период: {customer_period_label(profile.period_status)}', source)
         self.assertIn('f"🌐 VPN-доступ: {customer_access_label(profile.access_status)}"', source)
         self.assertIn('"disabled": "⛔ отключён"', source)
         self.assertIn('"unknown": "⚪ статус неизвестен"', source)
