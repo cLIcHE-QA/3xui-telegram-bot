@@ -25,6 +25,29 @@ evidence на конкретном release tag/SHA.
 - `CLIENT_PORTAL_ENABLED=true`;
 - cohort остаётся ограничен allowlist.
 
+### Targeted prerequisite после failed RC
+
+Если предыдущий immutable RC остановлен release-blocking finding, полный acceptance не
+продолжается «с середины». Сначала на новом RC повторяется targeted regression самого
+finding и ближайших инвариантов.
+
+Для `v5.0.0-rc.3` после V5-A-007 требуется до нового Stars happy path доказать:
+
+- SQLite schema v11 применена успешно, `PRAGMA quick_check` = ok;
+- finite-traffic test customer имеет известный pre-purchase cumulative traffic > 0;
+- если тестируется active renewal, до покупки зафиксирован оставшийся срок;
+- после одной подтверждённой покупки target expiry равен
+  `max(now, previous_expiry) + plan.duration`;
+- новый finite quota cycle не наследует старые cumulative counters: remaining quota
+  соответствует новому Plan, а customer access не становится inactive сразу после покупки;
+- ровно один quota reset связан с новым entitlement; duplicate payment delivery/reconcile
+  не выполняет второй reset и не добавляет duration повторно;
+- uncertain/lost response traffic reset остаётся `unknown/provisioning` и не replay'ится
+  автоматически;
+- regression V5-A-005, V5-A-006 и customer UI finding #314 остаётся PASS.
+
+Только после targeted PASS продолжается раздел V5-A-001.
+
 ## 1. V5-A-001 — Stars happy path
 
 На dedicated test customer:
@@ -40,10 +63,15 @@ evidence на конкретном release tag/SHA.
    - payment = confirmed;
    - ровно один entitlement для order;
    - entitlement проходит pending/provisioning → active;
+   - finite-traffic Plan завершает quota reset как `success`, unlimited Plan — как
+     `not_required`;
+   - expiry не укорачивает существующий оплаченный остаток;
 8. открыть subscription и реально импортировать/обновить её в клиенте;
-9. проверить traffic/device read;
+9. проверить traffic/device read и для finite Plan подтвердить, что новый quota cycle
+   начинается без старых cumulative counters;
 10. повторно доставить/симулировать duplicate confirmation допустимым тестовым способом и
-    убедиться, что второй payment/entitlement не появляется.
+    убедиться, что второй payment/entitlement не появляется, quota reset не повторяется,
+    а expiry не увеличивается второй раз.
 
 Refund/support subtest:
 
@@ -62,6 +90,7 @@ PASS evidence: timestamps, order/payment/entitlement IDs, provider/test referenc
 - duplicate payment delivery;
 - delayed payment event;
 - temporary provisioning failure;
+- uncertain/lost response во время paid quota reset;
 - недоступная node/provider read;
 - restart бота при pending/provisioning/reconciliation work.
 
@@ -76,6 +105,8 @@ PASS evidence: timestamps, order/payment/entitlement IDs, provider/test referenc
 7. сохранить operator-visible recovery path.
 
 PASS: финальное состояние объяснимо, нет orphan/duplicate ресурсов и нет ручной правки БД.
+Для quota reset отдельно требуется доказать, что `unknown/in_flight` не приводит к
+автоматическому повтору state-changing request после restart/reconcile.
 
 ## 3. V5-A-003 — abuse / load / soak
 
@@ -130,7 +161,7 @@ Backend должен fail-closed независимо от того, как сф
 - `commerce_orders`;
 - `commerce_payments`;
 - `payment_webhook_events`;
-- `entitlements`;
+- `entitlements`, включая quota reset status;
 - Stars refund journal;
 - 3x-ui clients/inbound membership;
 - customer-visible subscription/traffic state.
