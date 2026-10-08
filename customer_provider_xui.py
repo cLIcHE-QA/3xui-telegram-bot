@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+import aiohttp
+
 from customer_service import (
     CustomerDevice,
     CustomerProviderAccess,
@@ -25,7 +28,7 @@ class XuiCustomerProvider:
                 enabled=client["enable"],
                 expiry_time=int(client.get("expiryTime") or 0),
             )
-        except (XUIError, TypeError, ValueError) as exc:
+        except (XUIError, aiohttp.ClientError, asyncio.TimeoutError, OSError, TypeError, ValueError) as exc:
             raise CustomerProviderUnavailable("customer provider unavailable") from exc
 
     async def traffic(self, email: str) -> CustomerTraffic:
