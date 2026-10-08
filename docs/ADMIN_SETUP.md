@@ -37,7 +37,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.6 — targeted canary после #333 (terminal refunded payment) и #334 (Stars read-only сводка). До и после controlled deployment проверь exact tag/SHA, container Health/DB/3x-ui connectivity и неизменность payment/refund journal; затем открой `/admin → Платежи` и проверь раздельные Stars/XTR и ручные totals. Не пересылай повторно реальные `successful_payment`, не делай второй refund и не изменяй данные через SQL ради теста; unknown outcome не replay'ится автоматически. Refund сам не отзывает entitlement/VPN; общий v5 acceptance остаётся NOT PASS. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v5.0.0-rc.6. Этот выпуск — targeted canary после #333 (terminal refunded payment) и #334 (Stars read-only сводка). До и после controlled deployment проверь exact tag/SHA, container Health/DB/3x-ui connectivity и неизменность payment/refund journal; затем открой `/admin → Платежи` и проверь раздельные Stars/XTR и ручные totals. Не пересылай повторно реальные `successful_payment`, не делай второй refund и не изменяй данные через SQL ради теста; unknown outcome не replay'ится автоматически. Refund сам не отзывает entitlement/VPN; общий v5 acceptance остаётся NOT PASS. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
