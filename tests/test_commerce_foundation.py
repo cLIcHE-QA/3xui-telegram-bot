@@ -16,6 +16,7 @@ from commerce import (
 from db import Database, UserRecord
 from db_migrations import CURRENT_SCHEMA_VERSION, current_schema_version
 from provisioning import ProvisioningUnknown
+from xui import XUIMutationError
 
 
 class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
@@ -29,9 +30,9 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         self.tmp.cleanup()
 
-    async def test_schema_v10_contains_stars_hardening(self):
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 10)
-        self.assertEqual(await current_schema_version(str(self.path)), 10)
+    async def test_schema_v11_contains_entitlement_quota_journal(self):
+        self.assertEqual(CURRENT_SCHEMA_VERSION, 11)
+        self.assertEqual(await current_schema_version(str(self.path)), 11)
         with sqlite3.connect(self.path) as conn:
             tables = {row[0] for row in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
@@ -54,6 +55,13 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
                 row[1] for row in conn.execute('PRAGMA table_info("plans")').fetchall()
             ]
         self.assertIn("stars_price", plan_columns)
+        with sqlite3.connect(self.path) as conn:
+            entitlement_columns = [
+                row[1] for row in conn.execute(
+                    'PRAGMA table_info("entitlements")'
+                ).fetchall()
+            ]
+        self.assertIn("quota_reset_status", entitlement_columns)
 
     async def test_legacy_admin_payments_table_is_unchanged(self):
         with sqlite3.connect(self.path) as conn:
@@ -282,14 +290,25 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         class StubProvisioner:
             def __init__(self):
                 self.calls = 0
-            async def sync_user(self, telegram_id, *, strict=False, apply_plan_limits=False):
+                self.reset_calls = 0
+                self.target_expiry_ms = None
+                self.persist_local_expiry = True
+            async def sync_user(
+                self, telegram_id, *, strict=False, apply_plan_limits=False,
+                target_expiry_ms=None, persist_local_expiry=True,
+            ):
                 self.calls += 1
                 self.telegram_id = telegram_id
                 self.strict = strict
                 self.apply_plan_limits = apply_plan_limits
+                self.target_expiry_ms = target_expiry_ms
+                self.persist_local_expiry = persist_local_expiry
                 class Result:
                     remaining_missing_ids = []
                 return Result()
+            async def reset_user_traffic(self, telegram_id):
+                self.reset_calls += 1
+                self.reset_telegram_id = telegram_id
 
         stub = StubProvisioner()
         bridge = EntitlementProvisioningService(self.db, stub)
@@ -299,10 +318,123 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(active.expires_at, active.starts_at)
         self.assertEqual(stub.calls, 1)
         self.assertTrue(stub.apply_plan_limits)
+        self.assertFalse(stub.persist_local_expiry)
+        self.assertEqual(stub.target_expiry_ms, active.expires_at * 1000)
+        self.assertEqual(stub.reset_calls, 1)
+        self.assertEqual(stub.reset_telegram_id, 2001)
+        self.assertEqual(active.quota_reset_status, "success")
 
         again = await bridge.reconcile(entitlement.id)
         self.assertEqual(again.id, active.id)
         self.assertEqual(stub.calls, 1)
+        self.assertEqual(stub.reset_calls, 1)
+
+    async def test_paid_renewal_extends_from_existing_expiry_and_resets_quota_once(self):
+        plan_id = await self.db.create_plan(
+            name="Renewal plan", duration_days=30, traffic_gb=1,
+            ip_limit=1, price_minor=100, currency="RUB",
+        )
+        now = 2_000_000_000
+        existing_expiry_ms = (now + 10 * 86400) * 1000
+        await self.db.put(UserRecord(
+            telegram_id=2010, email="renew@example.test", sub_id="renew-sub",
+            expiry_time=existing_expiry_ms, created_at=1,
+        ))
+        order = await self.service.create_order(
+            telegram_id=2010, plan_id=plan_id, amount_minor=100, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-renew",
+        )
+        _, _, _, entitlement, _ = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-renew",
+            provider_payment_id=payment.provider_payment_id,
+            raw_payload=b"confirmed", signature_valid=True,
+        )
+
+        class StubProvisioner:
+            def __init__(self):
+                self.reset_calls = 0
+                self.target_expiry_ms = None
+            async def sync_user(self, *args, **kwargs):
+                self.target_expiry_ms = kwargs["target_expiry_ms"]
+                self.assert_persist = kwargs["persist_local_expiry"]
+                class Result:
+                    remaining_missing_ids = []
+                return Result()
+            async def reset_user_traffic(self, telegram_id):
+                self.reset_calls += 1
+
+        stub = StubProvisioner()
+        bridge = EntitlementProvisioningService(self.db, stub)
+        original_time = __import__("commerce").time.time
+        try:
+            __import__("commerce").time.time = lambda: now
+            active = await bridge.reconcile(entitlement.id)
+        finally:
+            __import__("commerce").time.time = original_time
+
+        expected_expiry = now + 40 * 86400
+        self.assertEqual(active.expires_at, expected_expiry)
+        self.assertEqual(stub.target_expiry_ms, expected_expiry * 1000)
+        self.assertFalse(stub.assert_persist)
+        self.assertEqual(stub.reset_calls, 1)
+        self.assertEqual((await self.db.get(2010)).expiry_time, expected_expiry * 1000)
+
+        again = await bridge.reconcile(entitlement.id)
+        self.assertEqual(again.id, active.id)
+        self.assertEqual(stub.reset_calls, 1)
+
+    async def test_uncertain_quota_reset_stays_provisioning_and_is_not_replayed(self):
+        plan_id = await self.db.create_plan(
+            name="Quota unknown", duration_days=30, traffic_gb=1,
+            ip_limit=1, price_minor=100, currency="RUB",
+        )
+        await self.db.put(UserRecord(
+            telegram_id=2011, email="unknown-reset@example.test", sub_id="unknown-reset",
+            expiry_time=0, created_at=1,
+        ))
+        order = await self.service.create_order(
+            telegram_id=2011, plan_id=plan_id, amount_minor=100, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-reset-unknown",
+        )
+        _, _, _, entitlement, _ = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-reset-unknown",
+            provider_payment_id=payment.provider_payment_id,
+            raw_payload=b"confirmed", signature_valid=True,
+        )
+
+        class UnknownResetProvisioner:
+            def __init__(self):
+                self.sync_calls = 0
+                self.reset_calls = 0
+            async def sync_user(self, *args, **kwargs):
+                self.sync_calls += 1
+                class Result:
+                    remaining_missing_ids = []
+                return Result()
+            async def reset_user_traffic(self, telegram_id):
+                self.reset_calls += 1
+                raise XUIMutationError(
+                    "lost reset response", code="network_error", uncertain=True
+                )
+
+        stub = UnknownResetProvisioner()
+        bridge = EntitlementProvisioningService(self.db, stub)
+        with self.assertRaisesRegex(ProvisioningUnknown, "mutation_not_retried=true"):
+            await bridge.reconcile(entitlement.id)
+
+        stuck = await self.db.get_entitlement(entitlement.id)
+        self.assertEqual(stuck.status, "provisioning")
+        self.assertEqual(stuck.quota_reset_status, "unknown")
+        self.assertEqual(stub.reset_calls, 1)
+
+        with self.assertRaises(ProvisioningUnknown):
+            await bridge.reconcile(entitlement.id)
+        self.assertEqual(stub.sync_calls, 1)
+        self.assertEqual(stub.reset_calls, 1)
 
     async def test_entitlement_provisioning_failure_does_not_rollback_payment(self):
         plan_id = await self.db.create_plan(
@@ -394,11 +526,14 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         class StubProvisioner:
             def __init__(self):
                 self.calls = 0
+                self.reset_calls = 0
             async def sync_user(self, *args, **kwargs):
                 self.calls += 1
                 class Result:
                     remaining_missing_ids = []
                 return Result()
+            async def reset_user_traffic(self, telegram_id):
+                self.reset_calls += 1
 
         stub = StubProvisioner()
         worker = EntitlementProvisioningService(self.db, stub)
@@ -410,11 +545,13 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
             "unknown": 0,
         })
         self.assertEqual(stub.calls, 1)
+        self.assertEqual(stub.reset_calls, 1)
         self.assertEqual((await self.db.get_entitlement(entitlement.id)).status, "active")
 
         again = await worker.reconcile_pending()
         self.assertEqual(again["checked"], 0)
         self.assertEqual(stub.calls, 1)
+        self.assertEqual(stub.reset_calls, 1)
 
         await self.db.put(UserRecord(
             telegram_id=2005, email="tg_2005", sub_id="stable-sub-5",
