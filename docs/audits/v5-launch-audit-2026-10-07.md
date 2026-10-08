@@ -98,6 +98,8 @@ exposure blocker was identified in this audit slice. V5-A-004 now has a reposito
 v5.0.0 remains blocked by V5-A-001 through V5-A-003, which require actual
 production-like/controlled-canary evidence using `docs/V5_PRODUCTION_ACCEPTANCE.md`.
 
+Targeted V5-A-008 / #324 на immutable `v5.0.0-rc.4` получил **PASS 2026-10-08** по операторскому production retest; подробный scoped evidence добавлен ниже. Это не закрывает V5-A-001…V5-A-003 и не переводит общий launch audit в PASS.
+
 Do not remove the customer allowlist or broaden the cohort based only on CI success.
 
 
@@ -213,3 +215,38 @@ Uncertain/lost-response reset no-replay покрыт repository regression tests
 - PR/CI → новый immutable release candidate → targeted regression enabled/disabled/expired/unknown/drift без повреждения оплаченного entitlement → E2E connection/browser/traffic; только затем возобновить V5-A-001 refund и оставшийся full controlled acceptance.
 
 Subscription URL/QR и user identity намеренно не включены в этот audit.
+
+
+## rc.4 targeted production retest — V5-A-008, 2026-10-08
+
+**Targeted disposition: PASS. Общий v5 production acceptance: NOT YET PASS.**
+
+### Immutable baseline и evidence boundary
+
+- GitHub prerelease: `v5.0.0-rc.4`.
+- Exact release tag / source SHA: `d34b76d694a43d3f1d364cc01d9a88bc2b666ee5`.
+- Scope: контролируемая production-проверка V5-A-008 / issue #324 после fix PR #325. Результаты реального VPN-теста и счётчиков подтверждены оператором 2026-10-08; это не самостоятельный повтор production-теста из CI/репозитория.
+- Customer Telegram ID, subscription URL/QR, `sub_id`, access credentials и raw provider output в audit не публикуются.
+
+### Фактический targeted acceptance
+
+1. Provider-aware Client Portal корректно выявляет отключённый 3x-ui client, не объявляя доступ активным только потому, что Order/Payment/Entitlement и local expiry выглядят действующими.
+2. Расхождение `users.expiry_time`, entitlement `expires_at` и provider `expiryTime` диагностируется явно; не выполняются неявное переписывание оплаченного срока или автоматическая разблокировка клиента.
+3. После контролируемого операторского восстановления доступа и обновления subscription реальный VPN-клиент успешно подключился и получил доступ в интернет.
+4. Read-back счётчика трафика до и после реального подключения подтвердил передачу данных:
+
+   | Измерение | Наблюдаемое значение |
+   | --- | ---: |
+   | Трафик до | 323,1 MB |
+   | Трафик после | 347,6 MB |
+   | Прирост | **+24,5 MB** |
+
+   Значения округлены до десятых MB; это наблюдаемые operator-provided counters, а не точные byte-level telemetry или throughput benchmark.
+
+Итог: V5-A-008 **PASS** в пределах проверенного сценария **disabled detection → expiry-drift diagnostics → controlled restore → subscription refresh → VPN connect → internet access → traffic increase**. Исходная причина `enable=False` на `rc.3` не доказана и не приписывается Stars payment/provisioning. Regression-инварианты unknown/provider unavailable и запрета blind replay остаются repository-covered; production fault injection этих отдельных сценариев данным retest не заявляется.
+
+### Решение и оставшиеся gates
+
+- Issue [#324](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/324) уже находится в `closed/completed`; targeted production evidence подтверждает закрытие finding, повторно закрывать issue не требуется.
+- V5-A-001 остаётся открытым до контролируемого Stars refund/support acceptance; V5-A-002 — до failure/restart/no-replay/reconciliation; V5-A-003 — до abuse/load/soak. Отдельно не завершены ownership/IDOR, rollback и финальная reconciliation.
+- Продолжение только по `docs/V5_PRODUCTION_ACCEPTANCE.md` после актуального health/preflight и явного операторского решения для каждого state-changing теста. Pilot allowlist сохраняется; stable `v5.0.0` и broad public access этим PASS не разрешены.
