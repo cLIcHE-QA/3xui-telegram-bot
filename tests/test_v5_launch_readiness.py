@@ -26,7 +26,7 @@ class ClientLaunchReadinessTests(unittest.TestCase):
     def test_payment_kill_switch_does_not_drop_successful_payment_handler(self):
         source = (ROOT / "client_access.py").read_text(encoding="utf-8")
         start = source.index("async def stars_successful_payment")
-        end = source.index("async def payment_support", start)
+        end = source.index("def onboarding_menu", start)
         handler = source[start:end]
         self.assertNotIn("payment_acceptance_enabled()", handler)
         self.assertIn("confirm_stars_payment", handler)
