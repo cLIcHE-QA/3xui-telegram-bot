@@ -175,6 +175,8 @@ async def payments_list(call: CallbackQuery):
     payments = await db.list_payments(limit=30)
     summary = await db.payment_summary()
     totals = await db.paid_totals_by_currency()
+    stars = await db.stars_payment_summary()
+    legacy_count = await db.count_payments()
     rows: list[list[InlineKeyboardButton]] = []
     for item in payments:
         icon = PAYMENT_STATUSES.get(item.status, item.status).split()[0]
@@ -193,13 +195,21 @@ async def payments_list(call: CallbackQuery):
     paid_text = ", ".join(f"{money(v, c)}" for c, v in sorted(totals.items())) or "—"
     await render_callback(call, 
         "💳 Платежи\n\n"
-        f"Всего: {await db.count_payments()}\n"
+        f"Всего записей: {legacy_count + stars['total']}\n\n"
+        "⭐ Telegram Stars\n"
+        f"Всего: {stars['total']}\n"
+        f"🟢 Подтверждено: {stars.get('confirmed', 0)} · ⭐ {stars['confirmed_amount']}\n"
+        f"↩️ Возвращено: {stars.get('refunded', 0)} · ⭐ {stars['refunded_amount']}\n"
+        f"🟡 Ожидают: {stars.get('created', 0) + stars.get('pending', 0)}\n"
+        f"⚠️ Неизвестно: {stars.get('unknown', 0)}\n"
+        f"❌ Ошибки: {stars.get('failed', 0)}\n\n"
+        "📒 Ручные платежи (учёт)\n"
+        f"Всего: {legacy_count}\n"
         f"🟢 Оплачено: {summary.get('paid', 0)}\n"
         f"🟡 Ожидают: {summary.get('pending', 0)}\n"
         f"↩️ Возвращено: {summary.get('refunded', 0)}\n"
         f"Выручка по оплаченным: {paid_text}\n\n"
-        "Пока это внутренний журнал платежей. Интеграция с платёжным провайдером "
-        "будет подключаться поверх него без изменения истории.",
+        "Суммы Stars и внутреннего журнала учитываются отдельно.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()

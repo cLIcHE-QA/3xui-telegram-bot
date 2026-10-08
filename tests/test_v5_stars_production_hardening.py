@@ -66,6 +66,59 @@ class StarsProductionHardeningTests(unittest.IsolatedAsyncioTestCase):
         updated = await self.db.get_commerce_payment(payment.id)
         self.assertEqual(updated.status, "refunded")
 
+    async def test_refunded_payment_stays_refunded_after_duplicate_delivery(self):
+        payment = await self._confirmed_payment()
+        bot = AsyncMock()
+        op = await run_stars_refund(self.db, bot, payment_id=payment.id, requested_by=77)
+        self.assertEqual(op.status, "success")
+
+        replayed, order, entitlement, created = await self.service.confirm_telegram_stars_payment(
+            order_id=payment.order_id, telegram_id=1001, charge_id="charge-1",
+            amount=250, raw_payload=b"paid",
+        )
+        self.assertFalse(created)
+        self.assertEqual(replayed.id, payment.id)
+        self.assertEqual(replayed.status, "refunded")
+        self.assertEqual(order.status, "paid")
+        self.assertEqual(entitlement.order_id, order.id)
+        refund = await self.db.get_stars_refund_for_payment(payment.id)
+        self.assertEqual(refund.status, "success")
+        bot.refund_star_payment.assert_awaited_once()
+        import sqlite3
+        with sqlite3.connect(self.db.path) as conn:
+            for table, condition in (
+                ("commerce_payments", "provider = 'telegram_stars'"),
+                ("payment_webhook_events", "provider = 'telegram_stars'"),
+                ("entitlements", "order_id = 1"),
+                ("stars_refund_operations", "payment_id = 1"),
+            ):
+                self.assertEqual(
+                    conn.execute(f"SELECT COUNT(*) FROM {table} WHERE {condition}").fetchone()[0],
+                    1, table,
+                )
+
+    async def test_stars_summary_counts_statuses_and_xtr_amounts(self):
+        self.assertEqual((await self.db.stars_payment_summary())["total"], 0)
+        first = await self._confirmed_payment()
+        before = await self.db.stars_payment_summary()
+        self.assertEqual(before["total"], 1)
+        self.assertEqual(before["confirmed"], 1)
+        self.assertEqual(before["confirmed_amount"], 250)
+        await run_stars_refund(self.db, AsyncMock(), payment_id=first.id, requested_by=77)
+        after = await self.db.stars_payment_summary()
+        self.assertEqual(after["total"], 1)
+        self.assertEqual(after.get("confirmed", 0), 0)
+        self.assertEqual(after["refunded"], 1)
+        self.assertEqual(after["refunded_amount"], 250)
+        self.assertEqual(after["confirmed_amount"], 0)
+
+        await self.db.create_payment(
+            telegram_id=1001, plan_id=None, amount_minor=899, currency="RUB",
+            status="paid",
+        )
+        self.assertEqual((await self.db.stars_payment_summary())["total"], 1)
+        self.assertEqual(await self.db.paid_totals_by_currency(), {"RUB": 899})
+
     async def test_unknown_refund_is_not_replayed(self):
         payment = await self._confirmed_payment()
         bot = AsyncMock()
