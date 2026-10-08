@@ -858,6 +858,7 @@ async def _migration_0007_payment_event_reconciliation_v5_0_0(
         include_checkout_reference=False,
         include_plan_stars_price=False,
         include_stars_hardening=False,
+        include_entitlement_quota_cycle=False,
     )
 
 
