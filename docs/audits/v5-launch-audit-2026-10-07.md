@@ -144,9 +144,9 @@ Root cause подтверждён в repository code: `ProvisioningEngine.sync_u
 
 **Required remediation:** durable target expiry; renewal от `max(now, current_expiry)`; отдельный one-shot quota reset с persisted `in_flight/success/failed/unknown`; uncertain reset не replay'ится автоматически; локальный active expiry публикуется только после доказанного reset/skip.
 
-**Status:** Open as #317. `v5.0.0-rc.2` acceptance остановлен как FAIL; требуется новый immutable `v5.0.0-rc.3` и targeted production retest.
+**Status:** Fix merged via PR #318 (`ba4a25980ddb185dd5558d9387a8f4fe9cbed1c8`). `v5.0.0-rc.2` acceptance остаётся FAIL; требуется immutable `v5.0.0-rc.3` и targeted production retest quota/renewal/no-replay.
 
 ### UI finding #314
 
-Low / non-blocking. Client Portal имеет несколько presentation inconsistencies: home теряет status icon, dynamic Stars plan rows не имеют leading emoji, command/callback headings расходятся. Finding включён в rc.3 stabilization, но не является причиной остановки commerce acceptance.
+Low / non-blocking. Client Portal имел несколько presentation inconsistencies: home терял status icon, dynamic Stars plan rows не имели leading emoji, command/callback headings расходились. Fix merged via PR #318; на `v5.0.0-rc.3` требуется короткий UI regression, но finding не является причиной остановки commerce acceptance.
 
