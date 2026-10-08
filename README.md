@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.5
+# Telegram-бот для 3x-ui v5.0.0-rc.6
 
 Telegram Control Plane для 3x-ui с защищённым `/admin` и уже начатым pilot Client Portal v5. Текущий `rc.5` — targeted Stars refund canary после V5-A-009/#328: исправлена связка административного callback с journaled one-shot Telegram refund helper; после публикации/развёртывания требуется отдельный production retest. Исторический V5-A-008 прошёл PASS на `rc.4`, но общий v5 production acceptance остаётся **NOT PASS**. Публичный customer launch ещё не открыт: `/start` остаётся за allowlist до завершения checkout, ownership/abuse hardening, launch audit и canary.
 
