@@ -4335,7 +4335,7 @@ Roadmap не требует device registration в первой версии. Н
 
 Public launch блокируется до закрытия release-blocking findings этого v5 launch audit.
 
-## Текущий статус v5 Client Portal — 2026-10-07
+## Текущий статус v5 Client Portal — 2026-10-08
 
 - 🟡 commerce/payment/entitlement foundation, Telegram Stars, onboarding/self-service diagnostics и launch safety controls реализованы;
 - 🟡 отдельный v5 launch audit выполнен; repository-verifiable controls закреплены regression gate;
@@ -4350,13 +4350,17 @@ Public launch блокируется до закрытия release-blocking find
 - ✅ pinned OpenAPI contract обновлён до 3x-ui `v3.9.0`; production integration smoke прошёл на фактических Master и direct node с `3x-ui 3.9.0` / `Xray 26.9.30`, базовые read-only version/status paths работают;
 - ✅ V5-A-005 targeted retest — **PASS**: expired customer profile и home summary больше не показывают доступ активным; effective expiry отображается как `истекла`; durable expiry fix остаётся без remote mutation/blind retry;
 - ✅ V5-A-006 targeted retest — **PASS**: `/admin → Платежи → Telegram Stars` открывается без runtime exception;
-- 🟡 во время targeted retest найден отдельный Low/non-blocking UI consistency finding #314: Client Portal местами теряет status emoji, dynamic plan buttons не всегда имеют leading emoji, command/callback headings частично расходятся; finding не блокирует acceptance `rc.2` и должен быть закрыт до stable либо в следующем RC, если он понадобится;
-- 🟡 targeted blockers `rc.1` закрыты на `rc.2`; controlled production acceptance продолжается по `docs/V5_PRODUCTION_ACCEPTANCE.md`: Stars happy path → duplicate/idempotency → refund → failure/restart/reconciliation → ownership/isolation → abuse/load/soak → rollback → финальная ledger reconciliation;
+- ✅ V5-A-001 partial real-payment path на `rc.2` доказал `invoice → successful_payment → payment=confirmed → order=paid → entitlement=active → subscription URL/provider read` без manual DB repair;
+- 🔴 **V5-A-007 — paid quota cycle не сбрасывает старый traffic:** после реального Stars payment finite Plan применил новый `totalGB=1 GiB` и новый expiry, но сохранил старые cumulative counters (~11.6 GiB), поэтому subscription сразу показала 100%, 0 B remaining и inactive. Root cause: paid provisioning обновлял `expiryTime/totalGB/limitIp`, но не начинал новый quota cycle; текущий expiry также считался от `now`, а не от `max(now, current_expiry)`. Finding #317 — **High / release-blocking**;
+- 🟡 Low/non-blocking UI consistency finding #314 включён в тот же stabilization scope: единые status emoji, leading emoji у dynamic Stars plan buttons и единый command/callback display contract;
+- 🟡 fix scope для следующего RC ограничен V5-A-007 + #314; Stars Orders/Admin observability остаётся отдельным roadmap item и не расширяет stabilization diff;
+- 🔴 controlled production acceptance `v5.0.0-rc.2` **остановлен как FAIL** на V5-A-007 до refund/failure/load/rollback этапов. Текущее broken-quota состояние сохраняется как evidence; blind/manual traffic reset до фиксации не используется как доказательство PASS;
+- ⬜ после merge fix требуется новый immutable `v5.0.0-rc.3`: schema v11 → deploy/health → targeted V5-A-007 quota/renewal/no-replay retest → короткий regression V5-A-005/V5-A-006/#314 → заново завершить V5-A-001 happy path → далее V5-A-002/V5-A-003/ownership/rollback/reconciliation;
 - ⬜ отдельный non-blocking v5.x roadmap item: добавить в `/admin → Платежи` read-only Stars Orders view для `created/awaiting_payment` orders и корреляции `Order → Payment → Entitlement`; текущий `rc.2` acceptance этим не блокируется;
 - ⬜ stable `v5.0.0` публикуется только после PASS acceptance без unresolved Critical/High и без необъяснимых payment/entitlement/provisioning inconsistencies;
 - ⬜ broad public access / снятие pilot allowlist выполняется только после успешного controlled rollout; stable tag сам по себе allowlist не снимает.
 
-Актуальная release sequence: **`v5.0.0-rc.1` published/deployed → canary FAIL (V5-A-005, V5-A-006) → PR #312 merged → `v5.0.0-rc.2` published/deployed → 3x-ui 3.9.0 integration smoke PASS → targeted V5-A-005/V5-A-006 PASS → полный controlled production acceptance IN PROGRESS → при необходимости `rc.3+` → PASS → `v5.0.0` → постепенное расширение cohort**.
+Актуальная release sequence: **`v5.0.0-rc.1` published/deployed → FAIL (V5-A-005, V5-A-006) → fixes #312 → `v5.0.0-rc.2` published/deployed → 3x-ui 3.9.0 smoke + V5-A-005/V5-A-006 PASS → real Stars path → FAIL V5-A-007 (#317) → stabilization V5-A-007 + #314 → `v5.0.0-rc.3` → targeted retest → полный controlled production acceptance → при необходимости `rc.4+` → PASS → `v5.0.0` → постепенное расширение cohort**.
 
 ## Gate контролируемого запуска v5.0
 

@@ -30,11 +30,16 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (10, "stars_production_hardening_v5_0_0", "success"))
+                self.assertEqual(row, (11, "entitlement_quota_cycle_v5_0_0", "success"))
                 columns = [
                     item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
                 ]
                 self.assertIn("display_name", columns)
+                entitlement_columns = {
+                    item[1]
+                    for item in conn.execute('PRAGMA table_info("entitlements")').fetchall()
+                }
+                self.assertIn("quota_reset_status", entitlement_columns)
                 self.assertEqual(conn.execute("PRAGMA quick_check").fetchone()[0], "ok")
 
     async def test_legacy_database_without_journal_is_upgraded_in_place(self):
@@ -118,6 +123,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (8, "checkout_reference_v5_0_0", "success"),
                         (9, "telegram_stars_price_v5_0_0", "success"),
                         (10, "stars_production_hardening_v5_0_0", "success"),
+                        (11, "entitlement_quota_cycle_v5_0_0", "success"),
                     ],
                 )
 
@@ -165,6 +171,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (8, "checkout_reference_v5_0_0", "success"),
                         (9, "telegram_stars_price_v5_0_0", "success"),
                         (10, "stars_production_hardening_v5_0_0", "success"),
+                        (11, "entitlement_quota_cycle_v5_0_0", "success"),
                     ],
                 )
 
@@ -206,7 +213,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (10, "stars_production_hardening_v5_0_0", "success"),
+                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
                 )
 
     async def test_schema_v4_upgrades_watcher_lifecycle_without_data_loss(self):
@@ -261,7 +268,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (10, "stars_production_hardening_v5_0_0", "success"),
+                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
                 )
 
     async def test_schema_v5_upgrades_to_commerce_foundation_without_legacy_payment_changes(self):
@@ -302,7 +309,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (10, "stars_production_hardening_v5_0_0", "success"),
+                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
                 )
 
     async def test_schema_v6_adds_reconciliation_reference_without_losing_webhook_journal(self):
@@ -348,7 +355,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (10, "stars_production_hardening_v5_0_0", "success"),
+                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
                 )
 
     async def test_schema_v7_adds_checkout_reference_without_losing_payment_identity(self):
@@ -398,7 +405,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (10, "stars_production_hardening_v5_0_0", "success"),
+                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
                 )
 
     async def test_schema_v8_adds_stars_price_without_changing_existing_plan_price(self):
@@ -433,7 +440,46 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (10, "stars_production_hardening_v5_0_0", "success"),
+                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
+                )
+
+    async def test_schema_v10_adds_quota_reset_journal_without_replaying_legacy_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bot.sqlite3"
+            await run_migrations(str(path), migrations=MIGRATIONS[:10])
+            with sqlite3.connect(path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO entitlements(
+                        telegram_id, order_id, plan_id, status, starts_at,
+                        expires_at, created_at, updated_at
+                    ) VALUES (9001, 7001, 501, 'active', 1, 2, 3, 4)
+                    """
+                )
+                conn.commit()
+
+            await Database(str(path)).init()
+
+            with sqlite3.connect(path) as conn:
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT quota_reset_status FROM entitlements WHERE order_id = 7001"
+                    ).fetchone()[0],
+                    "legacy",
+                )
+                conn.execute(
+                    """
+                    INSERT INTO entitlements(
+                        telegram_id, order_id, plan_id, status, starts_at,
+                        expires_at, created_at, updated_at
+                    ) VALUES (9002, 7002, 502, 'pending', 0, 0, 5, 5)
+                    """
+                )
+                self.assertEqual(
+                    conn.execute(
+                        "SELECT quota_reset_status FROM entitlements WHERE order_id = 7002"
+                    ).fetchone()[0],
+                    "pending",
                 )
 
     async def test_newer_schema_version_blocks_startup(self):

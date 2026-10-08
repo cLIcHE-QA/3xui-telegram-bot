@@ -245,6 +245,8 @@ class ProvisioningEngine:
         *,
         strict: bool = False,
         apply_plan_limits: bool = False,
+        target_expiry_ms: int | None = None,
+        persist_local_expiry: bool = True,
     ) -> ProvisioningResult:
         rec = await self.db.get(telegram_id)
         if not rec:
@@ -304,12 +306,17 @@ class ProvisioningEngine:
                     current.difference_update(detached)
 
         limits_applied = False
-        if apply_plan_limits and policy.plan:
-            plan = policy.plan
-            expiry = (
-                int((time.time() + max(0, plan.duration_days) * 86400) * 1000)
-                if plan.duration_days else 0
-            )
+        expected_limits: dict[str, int] | None = None
+        expiry = 0
+        plan = policy.plan
+        if apply_plan_limits and plan:
+            if target_expiry_ms is None:
+                expiry = (
+                    int((time.time() + max(0, plan.duration_days) * 86400) * 1000)
+                    if plan.duration_days else 0
+                )
+            else:
+                expiry = max(0, int(target_expiry_ms))
             expected_limits = {
                 "expiryTime": expiry,
                 "totalGB": max(0, plan.traffic_gb) * 1024**3,
@@ -326,10 +333,6 @@ class ProvisioningEngine:
                     raise ProvisioningUnknown(
                         "plan_limits: outcome=unknown; mutation_not_retried=true; readback=mismatch"
                     ) from exc
-            await self.db.update_expiry(telegram_id, expiry)
-            if plan.server_group_id:
-                await self.db.set_user_server_group(telegram_id, plan.server_group_id)
-            limits_applied = True
 
         if self.settings.vless_flow:
             try:
@@ -346,6 +349,24 @@ class ProvisioningEngine:
 
         updated = await self.xui.get_client(rec.email)
         updated_ids = self._client_ids(updated)
+        updated_client = self._client_payload(updated)
+        if expected_limits and any(
+            int(updated_client.get(key) or 0) != int(value)
+            for key, value in expected_limits.items()
+        ):
+            raise ProvisioningError("plan_limits: readback=mismatch")
+        if self.settings.vless_flow and (
+            str(updated_client.get("flow") or "") != self.settings.vless_flow
+        ):
+            raise ProvisioningError("flow: readback=mismatch")
+
+        if expected_limits and plan:
+            if persist_local_expiry:
+                await self.db.update_expiry(telegram_id, expiry)
+            if plan.server_group_id:
+                await self.db.set_user_server_group(telegram_id, plan.server_group_id)
+            limits_applied = True
+
         return ProvisioningResult(
             policy=policy,
             current_ids=sorted(updated_ids),
@@ -355,6 +376,12 @@ class ProvisioningEngine:
             extra_ids=sorted((updated_ids & set(policy.managed_inbound_ids)) - desired),
             limits_applied=limits_applied,
         )
+
+    async def reset_user_traffic(self, telegram_id: int) -> dict[str, object]:
+        rec = await self.db.get(telegram_id)
+        if not rec:
+            raise ProvisioningError("Пользователь не найден в БД бота")
+        return await self.xui.bulk_reset_traffic([rec.email])
 
     async def provision_many(self, telegram_ids: list[int], *, strict: bool = False) -> dict[str, object]:
         ok = 0

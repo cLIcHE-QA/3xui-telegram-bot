@@ -42,7 +42,9 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 Для `v4.26.9` текущая bot schema version — **7**. Этот release впервые публикует additive Client Portal migrations v6/v7 поверх исторической v4 baseline.
 
-Для `v5.0.0-rc.1` и `v5.0.0-rc.2` текущая bot schema version — **10**:
+Для `v5.0.0-rc.1` и `v5.0.0-rc.2` опубликованная bot schema version — **10**.
+
+В текущем `main` после исправления V5-A-007 текущая bot schema version — **11**. Полный текущий каталог:
 
 1. `v1 baseline_v4_14_2` — исходная каноническая схема v4.14.2;
 2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`;
@@ -54,15 +56,16 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 8. `v8 checkout_reference_v5_0_0` — additive `checkout_url` + `idempotency_key` в `commerce_payments` и partial unique index `provider + idempotency_key` для durable checkout retry без создания второго provider payment.
 9. `v9 telegram_stars_price_v5_0_0` — additive `plans.stars_price INTEGER NOT NULL DEFAULT 0` для независимой цены цифровой подписки в Telegram Stars (`XTR`) без неявной конвертации из fiat price.
 10. `v10 stars_production_hardening_v5_0_0` — versioned Terms acceptance и persistent one-shot Telegram Stars refund journal.
+11. `v11 entitlement_quota_cycle_v5_0_0` — additive `entitlements.quota_reset_status` для durable one-shot quota reset после подтверждённой покупки/продления; существующие entitlement rows маркируются `legacy` и не получают автоматический traffic reset.
 
 
 Commerce write contract поверх schema v6: authenticated `payment.confirmed` применяется одной SQLite transaction (`BEGIN IMMEDIATE`). В одной commit boundary фиксируются `commerce_payments.status=confirmed`, `commerce_orders.status=paid`, exactly-one `entitlements` row и `payment_webhook_events.processing_status=applied`. Исключение до commit откатывает весь набор изменений; повтор того же provider event с тем же payload безопасно возвращает уже применённый результат, а повтор event id с другим payload fail-closed.
 
-Entitlement provisioning contract: после подтверждённой оплаты entitlement согласуется через существующий `ProvisioningEngine`, а не прямыми вызовами 3x-ui. Локальный lifecycle — `pending → provisioning → active`; определённая ошибка переводит entitlement в `failed`, но не откатывает `payment=confirmed`/`order=paid`. `ProvisioningUnknown` сохраняет статус `provisioning`, потому что remote outcome неизвестен и должен разрешаться безопасным read-back/reconcile, без слепого повтора mutation.
+Entitlement provisioning contract: после подтверждённой оплаты entitlement согласуется через существующий `ProvisioningEngine`, а не прямыми вызовами 3x-ui. Локальный lifecycle — `pending → provisioning → active`; определённая ошибка переводит entitlement в `failed`, но не откатывает `payment=confirmed`/`order=paid`. Целевой expiry фиксируется в entitlement до remote mutation и при активном продлении рассчитывается от `max(now, current_expiry)`, поэтому повторный безопасный recovery не начисляет второй срок. Для finite-traffic Plan после успешного apply/read-back параметров выполняется отдельный quota reset; его durable status проходит `pending/failed → in_flight → success|failed|unknown`. `unknown`/зависший `in_flight` не replay'ится автоматически. Только после доказанного quota reset или `not_required` локальный expiry публикуется клиенту и entitlement становится `active`.
 
 Payment-event recovery contract: только journaled events с `signature_valid=1`, `event_type=payment.confirmed`, `processing_status=failed`, `result_code=payment_not_found` и непустым `provider_payment_id` могут автоматически согласовываться после restart. Reconciliation использует сохранённый payload hash и authenticated journal identity; raw provider payload и webhook secret для replay не требуются. Повтор event ID с другим payment reference считается identity conflict и fail-closed.
 
-Migration v2–v10 имеют `requires_backup=False`: они additive, не переписывают существующие пользовательские записи и проверяют postcondition соответствующей версии schema внутри migration transaction до записи `success`. Для v3 membership хранится по стабильному `telegram_id`; сама migration не назначает пользователей в группы. Для v4 существующие rows не создаются и monitoring начинается только после явного add/subscribe action. Migration v5 сохраняет все существующие subscriptions активными по умолчанию и не меняет notification preferences. Migration v6 только создаёт новые commerce-таблицы и индексы; существующие users, plans, promo codes и legacy admin payments не переписываются. Migration v7 только добавляет безопасный provider payment reference в webhook journal; существующие rows получают пустое значение и не считаются автоматически replayable без нового доверенного provider delivery. Migration v8 только добавляет checkout reference/idempotency columns и partial unique index; существующие payments получают пустые значения и не становятся checkout-retry candidates. Migration v9 только добавляет `stars_price=0`; существующие тарифы не становятся продаваемыми через Stars до явной настройки администратором.
+Migration v2–v11 имеют `requires_backup=False`: они additive, не удаляют существующие пользовательские записи и проверяют postcondition соответствующей версии schema внутри migration transaction до записи `success`. Для v3 membership хранится по стабильному `telegram_id`; сама migration не назначает пользователей в группы. Для v4 существующие rows не создаются и monitoring начинается только после явного add/subscribe action. Migration v5 сохраняет все существующие subscriptions активными по умолчанию и не меняет notification preferences. Migration v6 только создаёт новые commerce-таблицы и индексы; существующие users, plans, promo codes и legacy admin payments не переписываются. Migration v7 только добавляет безопасный provider payment reference в webhook journal; существующие rows получают пустое значение и не считаются автоматически replayable без нового доверенного provider delivery. Migration v8 только добавляет checkout reference/idempotency columns и partial unique index; существующие payments получают пустые значения и не становятся checkout-retry candidates. Migration v9 только добавляет `stars_price=0`; существующие тарифы не становятся продаваемыми через Stars до явной настройки администратором. Migration v11 добавляет quota-reset journal column, существующие rows явно переводит в `legacy`, а новые entitlement rows получают `pending`; migration не вызывает 3x-ui и не сбрасывает traffic сама.
 
 После успешного применения более новой schema старый application release, который её не знает, обязан остановиться как `DatabaseSchemaTooNewError`. Поэтому downgrade приложения через обычную смену tag без восстановления совместимой pre-migration DB не поддерживается.
 
@@ -133,3 +136,12 @@ Framework является forward-only: автоматических down migra
 - сохраняет versioned customer Terms acceptance перед созданием Telegram Stars invoice;
 - добавляет persistent journal one-shot Stars refund operations (`in_flight/success/failed/unknown`);
 - refund с неизвестным исходом не replay'ится автоматически; успешный refund атомарно переводит commerce payment в `refunded`.
+
+### v11 — entitlement_quota_cycle_v5_0_0
+
+- добавляет `entitlements.quota_reset_status` со значениями `pending/legacy/not_required/in_flight/success/failed/unknown`;
+- existing rows после upgrade получают `legacy`, чтобы новый release не угадывал, был ли их traffic уже сброшен;
+- новый finite paid entitlement перед reset фиксирует `in_flight`, выполняет ровно один `bulkResetTraffic` и сохраняет `success/failed/unknown`;
+- `unknown` или crash после `in_flight` блокируют автоматический replay reset;
+- target expiry хранится в entitlement до remote provisioning; активное продление добавляет duration к `max(now, current_expiry)`, а не отбрасывает оставшийся срок;
+- schema migration сама не выполняет remote mutations и не требует operator action при обычном startup.
