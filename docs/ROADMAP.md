@@ -4496,6 +4496,26 @@ Plan → Server Group → Nodes → Inbounds
 
 Административный UI использует те же backend primitives для диагностики и управления, но customer flow не вызывает административные callbacks.
 
+## Будущий платёжный канал: внешний шлюз / СБП (после v5.0 acceptance)
+
+**Статус: ⬜ Запланировано; issue [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336). Не входит в текущий `rc.5`/`rc.6` stabilization scope.**
+
+В дополнение к Telegram Stars (XTR) запланирована оплата VPN-подписки в рублях через **сторонний платёжный шлюз с поддержкой СБП**, формирующий **уникальную ссылку на checkout для каждого заказа**. Платёж будет проходить на защищённом сайте PSP. Конкретный провайдер, API, merchant-контракт и требования к чекам пока не выбраны.
+
+Запрошенный UX предусматривает переход пользователя **из Telegram по персональной ссылке**. **Это идея, а не разрешённый production flow**: продажа цифровых услуг внутри ботов и Telegram Mini Apps обязана использовать Telegram Stars; перед любым bot-linked external checkout необходим отдельный review правил Telegram/юридической допустимости. Без подтверждения compliance не добавлять кнопку или прямую оплатную ссылку в Telegram. Допустимый отдельный внешний канал продаж проектировать независимо от Telegram purchase UX. Справка: [Telegram Stars Payments](https://core.telegram.org/bots/payments-stars) и [Telegram Bot Developer Terms](https://telegram.org/tos/bot-developers).
+
+Предварительный контракт для будущего feature PR:
+
+- провайдер-независимый PSP adapter, уникальный checkout reference/URL, TTL, `idempotency_key`, сумма/валюта `RUB` в minor units и жёсткая привязка к заказу;
+- подтверждение только через подписанный и проверенный PSP webhook либо authenticated provider read-back; customer redirect/«оплата успешна» не является платёжным доказательством;
+- атомарный `Order → Payment → Entitlement → ProvisioningEngine` с ownership/amount/currency checks, exactly-once local apply, no duplicate entitlement, expiry extension или quota reset при повторном/delayed/out-of-order событии;
+- durable payment/refund/chargeback/`unknown` journal, отдельная refund/entitlement revocation policy и no blind retry при uncertain outcome;
+- отдельная read-only `RUB` сводка PSP в Admin, не смешивать с Stars/XTR и ручными платежами; безопасные correlation IDs, приватные checkout links, минимизация sensitive logs;
+- provider-specific kill switch, rate limits, short-lived state binding, проверка webhook signing, fail-closed IDOR/ownership, replay protection, restart/reconciliation coverage;
+- перед разработкой: выбрать PSP, изучить API, KYC/фискализацию (если применимо), определить compliance Telegram-linked UX, провести threat-model и отдельный implementation/release/acceptance цикл.
+
+**Пока не создавать** новые ссылки оплаты, кнопки, secrets, миграции или provider mutations. До завершения V5-A-001…A-003, #333, #334 и общего production acceptance эта идея не блокирует текущий canary.
+
 ## Observability и внешние интеграции после стабилизации v5
 
 После стабилизации customer/domain model допускается отдельный этап внешних интеграций:
