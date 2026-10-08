@@ -137,6 +137,18 @@ async def guard_callback(call: CallbackQuery) -> bool:
     return True
 
 
+def customer_period_label(status: str) -> str:
+    return {
+        "active": "🟢 оплачен",
+        "legacy": "ℹ️ оформлен",
+        "pending": "🟡 ожидает оплаты/активации",
+        "provisioning": "🟡 активируется",
+        "suspended": "⛔ приостановлен",
+        "expired": "⌛ истёк",
+        "failed": "❌ ошибка активации",
+    }.get(status, "⚪ статус неизвестен")
+
+
 def customer_access_label(status: str) -> str:
     return {
         "active": "🟢 доступен",
@@ -160,6 +172,7 @@ async def portal_text(tg_id: int) -> str:
         f"Личный кабинет · v{APP_VERSION}\n\n"
         f"👤 {profile.display_name or profile.email}\n"
         f"💎 Тариф: {profile.plan_name or 'не назначен'}\n"
+        f"💳 Период: {customer_period_label(profile.period_status)}\n"
         f"🌐 VPN-доступ: {customer_access_label(profile.access_status)}"
     )
 
@@ -223,6 +236,7 @@ async def profile_cb(call: CallbackQuery):
             f"Имя: {profile.display_name or '—'}\n"
             f"Аккаунт: {profile.email}\n"
             f"Тариф: {profile.plan_name or 'не назначен'}\n"
+            f"Период: {customer_period_label(profile.period_status)}\n"
             f"VPN-доступ: {customer_access_label(profile.access_status)}\n"
             f"Срок: {expiry}" + (
                 "\n⚠️ Сроки доступа различаются; обратитесь в поддержку."
