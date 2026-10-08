@@ -6,6 +6,7 @@ import time
 
 from db import CommerceOrderRecord, CommercePaymentRecord, Database, EntitlementRecord, PaymentWebhookEventRecord
 from provisioning import ProvisioningEngine, ProvisioningUnknown
+from xui import XUIMutationError
 
 
 ORDER_TRANSITIONS = {
@@ -274,38 +275,118 @@ class EntitlementProvisioningService:
             raise CommerceIntegrityError("Entitlement does not exist.")
         if entitlement.status == "active":
             return entitlement
+        if entitlement.status == "provisioning":
+            raise ProvisioningUnknown(
+                "entitlement is already provisioning; automatic mutation replay is blocked"
+            )
         validate_transition(
             entitlement.status, "provisioning",
             ENTITLEMENT_TRANSITIONS, kind="entitlement",
         )
+
+        plan = await self.db.get_plan(entitlement.plan_id)
+        if plan is None or not plan.active:
+            raise CommerceIntegrityError("Entitlement plan does not exist or is inactive.")
+        user = await self.db.get(entitlement.telegram_id)
+        if user is None:
+            raise CommerceIntegrityError(
+                "Customer must have a persistent subscription identity before provisioning."
+            )
+        if entitlement.quota_reset_status in {"legacy", "in_flight", "unknown"}:
+            raise ProvisioningUnknown(
+                "quota reset outcome is not safely replayable; operator review is required"
+            )
+
+        starts_at = int(entitlement.starts_at or 0)
+        expires_at = int(entitlement.expires_at or 0)
+        if starts_at <= 0:
+            now = int(time.time())
+            starts_at = now
+            if plan.duration_days:
+                current_expiry = max(0, int(user.expiry_time or 0) // 1000)
+                expires_at = (
+                    max(now, current_expiry)
+                    + max(0, int(plan.duration_days)) * 86400
+                )
+            else:
+                expires_at = 0
+
         entitlement = await self.db.transition_entitlement(
             entitlement.id,
             expected_statuses={"pending", "failed"},
             target_status="provisioning",
+            starts_at=starts_at,
+            expires_at=expires_at,
         )
         try:
-            plan = await self.db.get_plan(entitlement.plan_id)
-            if plan is None or not plan.active:
-                raise CommerceIntegrityError("Entitlement plan does not exist or is inactive.")
-            user = await self.db.get(entitlement.telegram_id)
-            if user is None:
-                raise CommerceIntegrityError(
-                    "Customer must have a persistent subscription identity before provisioning."
-                )
             await self.db.set_user_plan(entitlement.telegram_id, plan.id)
             result = await self.provisioner.sync_user(
                 entitlement.telegram_id,
                 strict=False,
                 apply_plan_limits=True,
+                target_expiry_ms=(expires_at * 1000 if expires_at else 0),
+                persist_local_expiry=False,
             )
             if result.remaining_missing_ids:
                 raise CommerceIntegrityError(
                     "Provisioning finished with desired inbounds still missing."
                 )
+
+            quota_required = int(plan.traffic_gb or 0) > 0
+            quota_status = entitlement.quota_reset_status
+            if quota_required:
+                if quota_status != "success":
+                    entitlement = await self.db.transition_entitlement_quota_reset(
+                        entitlement.id,
+                        expected_statuses={"pending", "failed", "not_required"},
+                        target_status="in_flight",
+                    )
+                    try:
+                        await self.provisioner.reset_user_traffic(
+                            entitlement.telegram_id
+                        )
+                    except XUIMutationError as exc:
+                        if exc.uncertain:
+                            await self.db.transition_entitlement_quota_reset(
+                                entitlement.id,
+                                expected_statuses={"in_flight"},
+                                target_status="unknown",
+                            )
+                            raise ProvisioningUnknown(
+                                "quota_reset: outcome=unknown; mutation_not_retried=true"
+                            ) from exc
+                        await self.db.transition_entitlement_quota_reset(
+                            entitlement.id,
+                            expected_statuses={"in_flight"},
+                            target_status="failed",
+                        )
+                        raise
+                    except Exception:
+                        await self.db.transition_entitlement_quota_reset(
+                            entitlement.id,
+                            expected_statuses={"in_flight"},
+                            target_status="failed",
+                        )
+                        raise
+                    entitlement = await self.db.transition_entitlement_quota_reset(
+                        entitlement.id,
+                        expected_statuses={"in_flight"},
+                        target_status="success",
+                    )
+            elif quota_status not in {"not_required", "success"}:
+                entitlement = await self.db.transition_entitlement_quota_reset(
+                    entitlement.id,
+                    expected_statuses={"pending", "failed"},
+                    target_status="not_required",
+                )
+
+            await self.db.update_expiry(
+                entitlement.telegram_id,
+                expires_at * 1000 if expires_at else 0,
+            )
         except ProvisioningUnknown:
-            # Keep the durable state as provisioning: remote outcome is uncertain.
-            # A later reconcile must read back through ProvisioningEngine rather
-            # than treating the mutation as a definite failure.
+            # Unknown remote mutation outcomes remain durable provisioning state
+            # and are never picked up by the automatic pending-entitlement worker.
             raise
         except Exception:
             await self.db.transition_entitlement(
@@ -315,10 +396,6 @@ class EntitlementProvisioningService:
             )
             raise
 
-        starts_at = entitlement.starts_at or int(time.time())
-        expires_at = 0
-        if plan.duration_days:
-            expires_at = starts_at + max(0, int(plan.duration_days)) * 86400
         return await self.db.transition_entitlement(
             entitlement.id,
             expected_statuses={"provisioning"},
