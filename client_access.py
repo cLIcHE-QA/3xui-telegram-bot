@@ -149,7 +149,7 @@ async def portal_text(tg_id: int) -> str:
         f"Личный кабинет · v{APP_VERSION}\n\n"
         f"👤 {profile.display_name or profile.email}\n"
         f"💎 Тариф: {profile.plan_name or 'не назначен'}\n"
-        f"🌐 Подписка: {'активна' if profile.access_status == 'active' else 'истекла'}"
+        f"🌐 Подписка: {'🟢 активна' if profile.access_status == 'active' else '⌛ истекла'}"
     )
 
 
@@ -176,7 +176,7 @@ async def pay_support(message: Message):
     if not await guard_message(message):
         return
     await message.answer(
-        "🆘 Поддержка по платежам\n\n"
+        "💳 Поддержка по оплате\n\n"
         "Если платёж Telegram Stars прошёл, но доступ не появился, либо нужен возврат, "
         "отправьте в поддержку Telegram ID и примерное время покупки. "
         "Не пересылайте токены, subscription URL или другие секреты.\n\n"
@@ -225,7 +225,7 @@ async def subscription_cmd(message: Message):
         return
     url = await _service().subscription_url(message.from_user.id)
     await message.answer(
-        url or "Подписка пока не оформлена.",
+        "🌐 Моя подписка\n\n" + (url or "Подписка пока не оформлена."),
         reply_markup=portal_menu(),
     )
 
@@ -330,9 +330,9 @@ async def buy_cb(call: CallbackQuery):
     rows = [
         [InlineKeyboardButton(
             text=(
-                f"{plan.name} · ⭐ {plan.stars_price}"
+                f"💎 {plan.name} · ⭐ {plan.stars_price}"
                 if int(plan.stars_price or 0) > 0
-                else f"{plan.name} · Stars не настроены"
+                else f"💎 {plan.name} · Stars не настроены"
             ),
             callback_data=f"client:plan:{plan.id}",
         )]
@@ -565,17 +565,6 @@ async def stars_successful_payment(message: Message):
             else "Платёж уже был учтён ранее; повторного продления не произошло."
         ),
         reply_markup=portal_menu(),
-    )
-
-
-@client_access_router.message(Command("paysupport"))
-async def payment_support(message: Message):
-    if not message.from_user:
-        return
-    await message.answer(
-        "Поддержка по оплате Telegram Stars:\n"
-        "отправьте администратору ваш Telegram ID и время платежа. "
-        "Не публикуйте subscription URL или другие секреты доступа."
     )
 
 
