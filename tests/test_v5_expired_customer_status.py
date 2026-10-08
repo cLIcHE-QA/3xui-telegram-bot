@@ -24,6 +24,7 @@ class ExpiredCustomerStatusTests(unittest.IsolatedAsyncioTestCase):
             get_user_profile=AsyncMock(return_value=SimpleNamespace(
                 display_name="Expired", plan_id=None,
             )),
+            get_latest_entitlement_for_user=AsyncMock(return_value=None),
         )
         service = CustomerPortalService(
             db,
@@ -47,6 +48,7 @@ class ExpiredCustomerStatusTests(unittest.IsolatedAsyncioTestCase):
                     get_user_profile=AsyncMock(return_value=SimpleNamespace(
                         display_name="Active", plan_id=None,
                     )),
+                    get_latest_entitlement_for_user=AsyncMock(return_value=None),
                 )
                 service = CustomerPortalService(
                     db,
@@ -67,6 +69,7 @@ class ExpiredCustomerStatusTests(unittest.IsolatedAsyncioTestCase):
             get_user_profile=AsyncMock(return_value=SimpleNamespace(
                 display_name="Expired", plan_id=None,
             )),
+            get_latest_entitlement_for_user=AsyncMock(return_value=None),
             get_latest_entitlement_for_user=AsyncMock(return_value=SimpleNamespace(
                 status="active", expires_at=now - 1,
             )),
