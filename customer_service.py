@@ -180,6 +180,8 @@ class CustomerPortalService:
             access_status = "expired"
         elif period_status in {"pending", "provisioning"}:
             access_status = "provisioning"
+        elif period_status == "failed":
+            access_status = "unknown"
         elif period_status == "suspended":
             access_status = "suspended"
         elif provider_access is None or expiry_drift:
