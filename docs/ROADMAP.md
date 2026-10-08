@@ -4183,6 +4183,23 @@ failed
 - `unknown` используется там, где внешний provider мог принять mutation, но итог невозможно доказать;
 - ручная коррекция финансовых состояний доступна только через audit-friendly административный workflow.
 
+### Admin observability: Stars orders / invoice state
+
+Текущий экран `/admin → Платежи → Telegram Stars` показывает локальные `commerce_payments`. При этом отправленный, но ещё не оплаченный Telegram Stars invoice может уже иметь локальный `commerce_order` в `created/awaiting_payment`, но ещё не иметь payment row и поэтому не виден оператору в Stars ledger.
+
+Отдельное non-blocking v5.x improvement — read-only просмотр Stars orders/invoice state из Admin Control Plane:
+
+- bounded/paginated список локальных `commerce_orders` для Stars с состояниями `created`, `awaiting_payment`, `paid`, `cancelled`, `expired`;
+- в строке/детали показывать order ID, customer identity, Plan, сумму `XTR`, время создания/изменения и текущий order status;
+- если payment уже существует, показывать связанную payment ID/status и переход в существующую карточку Stars payment;
+- если payment ещё нет, явно показывать `платёж ещё не подтверждён/не создан`, а не маскировать order как failed payment;
+- различать локальный order/invoice intent и фактическое Telegram invoice message: бот не пытается получать или воспроизводить содержимое уже отправленного provider-side invoice message;
+- экран не выполняет retry, resend, cancel, refund или другие state-changing операции автоматически; первая версия является только observability/support surface;
+- raw invoice payload, provider secrets, subscription credentials и другие secret-like данные в UI не выводятся;
+- support flow должен позволять без shell/ручного SQL проследить цепочку `Order → Payment → Entitlement` и понять, на каком этапе остановился customer purchase.
+
+Эта задача не является release blocker для текущего controlled acceptance `v5.0.0-rc.2`, но повышает support/observability readiness перед широким customer rollout.
+
 ### Payment provider webhook journal
 
 Для каждого внешнего payment event хранится immutable/minimally-mutable journal record.
@@ -4335,6 +4352,7 @@ Public launch блокируется до закрытия release-blocking find
 - ✅ V5-A-006 targeted retest — **PASS**: `/admin → Платежи → Telegram Stars` открывается без runtime exception;
 - 🟡 во время targeted retest найден отдельный Low/non-blocking UI consistency finding #314: Client Portal местами теряет status emoji, dynamic plan buttons не всегда имеют leading emoji, command/callback headings частично расходятся; finding не блокирует acceptance `rc.2` и должен быть закрыт до stable либо в следующем RC, если он понадобится;
 - 🟡 targeted blockers `rc.1` закрыты на `rc.2`; controlled production acceptance продолжается по `docs/V5_PRODUCTION_ACCEPTANCE.md`: Stars happy path → duplicate/idempotency → refund → failure/restart/reconciliation → ownership/isolation → abuse/load/soak → rollback → финальная ledger reconciliation;
+- ⬜ отдельный non-blocking v5.x roadmap item: добавить в `/admin → Платежи` read-only Stars Orders view для `created/awaiting_payment` orders и корреляции `Order → Payment → Entitlement`; текущий `rc.2` acceptance этим не блокируется;
 - ⬜ stable `v5.0.0` публикуется только после PASS acceptance без unresolved Critical/High и без необъяснимых payment/entitlement/provisioning inconsistencies;
 - ⬜ broad public access / снятие pilot allowlist выполняется только после успешного controlled rollout; stable tag сам по себе allowlist не снимает.
 
