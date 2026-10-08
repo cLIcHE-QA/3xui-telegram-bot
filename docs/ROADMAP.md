@@ -4454,6 +4454,31 @@ Public launch блокируется до закрытия release-blocking find
 
 Актуальная release sequence: **`v5.0.0-rc.1` published/deployed → FAIL (V5-A-005/V5-A-006) → fixes #312 → `rc.2` published/deployed → targeted V5-A-005/V5-A-006 PASS → V5-A-007 FAIL (#317) → fix #318 → `rc.3` published/deployed → V5-A-007 targeted PASS → STOP/FAIL V5-A-008 (#324) → fix #325 → immutable `v5.0.0-rc.4` published/deployed → V5-A-008 targeted production retest PASS (2026-10-08) → V5-A-009 Stars refund FAIL на rc.4 (#328) → fix #329 merged / release-prep rc.5 → immutable rc.5 published/deployed / V5-A-009 targeted refund PASS (#328 closed) → read-only V5-A-002 commerce reconciliation PASS на rc.5 → #333/#334 identified, fix PR #335 merged/CI PASS → rc.6 release-prep PR #339 failed/stale head → пересобранный release-prep от актуального main (required CI pending) → оставшиеся V5-A-001/V5-A-002/V5-A-003, ownership/rollback/reconciliation/soak → общий production acceptance PASS → stable `v5.0.0` → постепенное расширение cohort**.
 
+## План: переключатели Client Portal / Stars и ревизия системных настроек (2026-10-08)
+
+**Статус: ⬜ Запланировано.** Tracking: [#342](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/342), отдельная проверка нулевых пробных лимитов [#343](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/343). Реализация не входит в опубликованный `v5.0.0-rc.6`, не подтверждена acceptance и не разрешает расширение pilot allowlist. Приоритет — до широкого customer rollout; решение о включении в текущий v5.0 feature scope принимается отдельно от уже идущего V5-A-001…A-003.
+
+### Два отдельных Owner-only переключателя в /admin → Система → Настройки
+
+1. **👤 Клиентский портал (/start):** оперативно разрешать/запрещать customer UI, сохраняя независимый доступ к `/admin`, существующие entitlements и фактический VPN в 3x-ui.
+2. **⭐ Приём новых Stars-платежей:** оперативно запрещать новые invoices и pre-checkout, включая ранее созданные неоплаченные invoices. `successful_payment`, уже доставленный после оплаты, продолжает проходить аутентифицированный journal/entitlement lifecycle независимо от переключателей. Никаких новых платежных событий/refunds для smoke ранее подтверждённых операций.
+
+Предлагаемая архитектура: проверяемые при каждом relevant customer entrypoint persistent bool overrides в существующем `runtime_settings` (не менять `.env` из Telegram, не перезапускать Docker и не выдавать host shell). **Внешний `.env=false` — неотменяемый emergency veto:** effective enable требует одновременно разрешения `.env`, runtime override и существующего pilot allowlist. `portal=false` также запрещает новые invoices/precheckout независимо от payment override. При DB read error — fail-closed, не показывать неуверенное состояние как `enabled`. Owner/private-chat RBAC + двухшаговое подтверждение, защита от stale callback, отдельный audit event, visibility реального effective status/source/reason и persistence после restart. Проверки включают env/DB precedence, concurrency, double-toggle, access isolation, payment idempotency, отсутствие paid entitlement/provider changes и возможность аварийного возврата через host config. Детальный scope и критерии принятия — issue #342.
+
+### Аудит существующего /admin → Система → Настройки на rc.6
+
+| Текущий пункт | Фактическая область применения | Решение |
+| --- | --- | --- |
+| 🗓 Дней пробного доступа (`trial_days`) | Runtime override при создании пробного пользователя в `advanced_users.py` | Оставить; уточнить, что меняет только новые trial accounts, не продлевает существующих |
+| 📦 Трафик пробного доступа (`trial_traffic_gb`) | Runtime override при создании пробного пользователя | Оставить; проверить документированную семантику `0` и граничных значений (#343), не утверждать дефект без воспроизведения |
+| 📱 Лимит IP пробного доступа (`trial_ip_limit`) | Runtime override при создании пробного пользователя | Оставить; проверить семантику `0`, валидность downstream 3x-ui/доступа (#343) |
+| 💱 Валюта по умолчанию (`default_currency`) | Fallback при ручном добавлении записи `payments` в `business_admin.py`; Stars/XTR независим | Уточнить название UI как «Валюта ручных платежей», исключив двусмысленность с Stars и ценами планов |
+| 💾 Резервные копии, 🔐 Проверка TLS, 🖥 Master-сервер | Read-only отображение конфигурации на экране настроек | Оставить только для просмотра; управление backups — в отдельном защищённом разделе, TLS/secrets/host config не редактировать в Telegram |
+
+Полезные **read-only** сведения рядом с двумя переключателями: число записей pilot allowlist (без раскрытия Telegram IDs), лимит customer запросов и окно, источник и причина текущего effective disabled/enabled состояния, краткая инструкция по emergency rollback. Не добавлять произвольный редактор `.env`/secret values, global TLS toggle, destructive control 3x-ui, увеличение allowlist без отдельного ownership/security workflow или однокнопочные refund/reconcile retries.
+
+Текущая production-валидация `rc.6` от оператора (2026-10-08) — только **scoped evidence**, не общий PASS: exact SHA `b9555d685603e82a330e053e3187ac4368231090`, Health/DB/3x-ui ok и SQLite schema v11; Stars summary отдельно XTR/ручной журнал; по read-only SQLite два paid orders, один confirmed/один refunded Stars payment, два applied events, два active entitlement, quota reset `legacy=1/success=1`, один successful refund. После обычного bot restart и контролируемого короткого `x-ui.service` outage/recovery счётчики неизменны, `/admin` доступен, customer provider outage корректно даёт unknown/temporary unavailable; sandboxed offline regression suite на deployed code — `31 tests ... OK`. Payment kill-switch через `.env=false` и последующий возврат `true` оператором отмечены PASS (без фактического provider-authorized платежа при disabled). Это **не** подтверждает live interrupted paid provisioning, uncertain quota reset/no-blind-replay, полноценный V5-A-002, V5-A-003, ownership/rollback портал/soak или общий v5 production acceptance. Stable `v5.0.0` и снятие pilot allowlist до общего PASS запрещены.
+
 ## Gate контролируемого запуска v5.0
 
 После успешного v5 launch audit публичный Client Portal не открывается сразу всему потоку пользователей. Перед широким запуском выполняется отдельный controlled rollout / production acceptance gate.
