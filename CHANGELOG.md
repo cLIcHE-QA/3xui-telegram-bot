@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.5 — Telegram Stars refund callback stabilization
+- V5-A-009 / #328: production targeted refund на `v5.0.0-rc.4` остановлен как High / release-blocking — `business_admin.stars_refund_run` падал с `NameError: run_stars_refund is not defined` после подтверждения оператором двухшагового возврата; helper не вызывался, Telegram refund request из этого обработчика не отправлялся.
+- Добавлен отсутствующий явный import `run_stars_refund` из `stars_refund.py` в `business_admin.py`; regression contract проверяет runtime wiring admin callback. Existing one-shot Stars refund journal, RBAC, отсутствие blind retry при `unknown`, оплату/entitlement и 3x-ui provider access не меняли.
+- После публикации immutable `v5.0.0-rc.5` требуется controlled production deploy, health/SQLite/3x-ui preflight, read-only проверка платежа и `stars_refund_operations` перед любой новой mutation; только после отдельного operator confirmation разрешён один targeted Stars refund и provider/journal read-back. До targeted PASS V5-A-009 issue #328 и V5-A-001 остаются открытыми.
+- SQLite schema остаётся **v11**, pinned 3x-ui OpenAPI contract — `v3.9.0`; stable `v5.0.0`, снятие customer allowlist и общий production acceptance **не разрешены**.
+
 ## v5.0.0-rc.4 — Customer provider access state stabilization
 - V5-A-008 на production rc.3: paid entitlement active/local expiry в будущем не гарантировали доступ — 3x-ui `enable=False` при customer UI `🟢 активна`; отдельный expiry drift возник после ручной проверки сроков. Полный acceptance остановлен; новые production mutations/автоматическое включение не выполнялись.
 - Client Portal теперь отделяет local entitlement/period state от read-only provider `enable/expiryTime`: `⛔ отключён`, `⌛ истёк`, `🟡 активация`, `⚪ неизвестно` при provider unavailable либо expiry drift; диагностика не выдаёт успешный provider read за реальное право доступа.
