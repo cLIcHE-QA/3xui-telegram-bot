@@ -276,6 +276,21 @@ class EntitlementProvisioningService:
         if entitlement.status == "active":
             return entitlement
         if entitlement.status == "provisioning":
+            if (
+                entitlement.quota_reset_status in {"success", "not_required"}
+                and entitlement.starts_at > 0
+            ):
+                await self.db.update_expiry(
+                    entitlement.telegram_id,
+                    entitlement.expires_at * 1000 if entitlement.expires_at else 0,
+                )
+                return await self.db.transition_entitlement(
+                    entitlement.id,
+                    expected_statuses={"provisioning"},
+                    target_status="active",
+                    starts_at=entitlement.starts_at,
+                    expires_at=entitlement.expires_at,
+                )
             raise ProvisioningUnknown(
                 "entitlement is already provisioning; automatic mutation replay is blocked"
             )
