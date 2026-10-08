@@ -203,7 +203,7 @@ async def payments_list(call: CallbackQuery):
         f"🟡 Ожидают: {stars.get('created', 0) + stars.get('pending', 0)}\n"
         f"⚠️ Неизвестно: {stars.get('unknown', 0)}\n"
         f"❌ Ошибки: {stars.get('failed', 0)}\n\n"
-        "📒 Внутренний журнал (ручные платежи)\n"
+        "📒 Ручные платежи (учёт)\n"
         f"Всего: {legacy_count}\n"
         f"🟢 Оплачено: {summary.get('paid', 0)}\n"
         f"🟡 Ожидают: {summary.get('pending', 0)}\n"
