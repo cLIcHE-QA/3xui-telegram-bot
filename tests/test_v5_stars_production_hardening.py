@@ -42,8 +42,8 @@ class StarsProductionHardeningTests(unittest.IsolatedAsyncioTestCase):
         )
         return payment
 
-    async def test_schema_v10_and_terms_acceptance_are_persistent(self):
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 10)
+    async def test_schema_v11_and_terms_acceptance_are_persistent(self):
+        self.assertEqual(CURRENT_SCHEMA_VERSION, 11)
         self.assertFalse(await self.db.has_customer_accepted_terms(
             telegram_id=1001, terms_version="terms-v1",
         ))
