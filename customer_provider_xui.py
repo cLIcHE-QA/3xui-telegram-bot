@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from customer_service import (
     CustomerDevice,
+    CustomerProviderAccess,
     CustomerProviderUnavailable,
     CustomerTraffic,
 )
@@ -13,6 +14,19 @@ class XuiCustomerProvider:
 
     def __init__(self, xui: XUIClient):
         self.xui = xui
+
+    async def access(self, email: str) -> CustomerProviderAccess:
+        try:
+            obj = await self.xui.get_client(email)
+            client = obj.get("client", obj)
+            if not isinstance(client, dict) or not isinstance(client.get("enable"), bool):
+                raise CustomerProviderUnavailable("customer provider access state unavailable")
+            return CustomerProviderAccess(
+                enabled=client["enable"],
+                expiry_time=int(client.get("expiryTime") or 0),
+            )
+        except (XUIError, TypeError, ValueError) as exc:
+            raise CustomerProviderUnavailable("customer provider unavailable") from exc
 
     async def traffic(self, email: str) -> CustomerTraffic:
         try:
