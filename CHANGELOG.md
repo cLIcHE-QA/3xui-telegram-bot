@@ -6,7 +6,7 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Unreleased — v5 customer access status / V5-A-008
+## v5.0.0-rc.4 — Customer provider access state stabilization
 - V5-A-008 на production rc.3: paid entitlement active/local expiry в будущем не гарантировали доступ — 3x-ui `enable=False` при customer UI `🟢 активна`; отдельный expiry drift возник после ручной проверки сроков. Полный acceptance остановлен; новые production mutations/автоматическое включение не выполнялись.
 - Client Portal теперь отделяет local entitlement/period state от read-only provider `enable/expiryTime`: `⛔ отключён`, `⌛ истёк`, `🟡 активация`, `⚪ неизвестно` при provider unavailable либо expiry drift; диагностика не выдаёт успешный provider read за реальное право доступа.
 - При несовпадении `users.expiry_time`, established entitlement expiry и provider expiry выводится предупреждение; remote `enable`, оплаченный срок, quota и journals автоматически не изменяются. Добавлены regression tests provider-neutral ownership/status и read-only contract; новый immutable RC и targeted production retest обязательны до возобновления payment/refund acceptance.
