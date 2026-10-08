@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.6 — Stars accounting и payment idempotency
+
+- V5-A-010 / #333: повторное `successful_payment` после Stars refund больше не может перевести terminal `commerce_payments.status=refunded` обратно в `confirmed`. Регрессия `оплата → однократный возврат → дубликат payment` сохраняет refund journal и не создаёт лишних entitlement/payment/event.
+- #334: `/admin → Платежи` показывает отдельную read-only сводку `⭐ Telegram Stars` (`confirmed/refunded/pending/unknown/failed` и суммы в XTR) и `📒 Ручные платежи (учёт)` с прежней выручкой по fiat. Звёзды не конвертируются в рубли и не суммируются с внутренним журналом.
+- SQLite schema остаётся **v11**, pinned 3x-ui contract — **v3.9.0**; никакого нового webhook provider/СБП или изменения runtime secrets в этом RC. Будущая внешняя PSP/СБП интеграция зарегистрирована как roadmap #336 (после v5.0 acceptance, отдельный Telegram platform compliance review).
+- После immutable release/pilot deploy нужны targeted read-only Stars totals и payment/refund journal smoke. Live duplicate `successful_payment` на возвращённый платёж **не отправлять**; #333 закрывать только после review CI и контролируемого validation scope. Общий v5 production acceptance пока **NOT PASS**.
+
 ## v5.0.0-rc.5 — Telegram Stars refund callback stabilization
 - V5-A-009 / #328: production targeted refund на `v5.0.0-rc.4` остановлен как High / release-blocking — `business_admin.stars_refund_run` падал с `NameError: run_stars_refund is not defined` после подтверждения оператором двухшагового возврата; helper не вызывался, Telegram refund request из этого обработчика не отправлялся.
 - Добавлен отсутствующий явный import `run_stars_refund` из `stars_refund.py` в `business_admin.py`; regression contract проверяет runtime wiring admin callback. Existing one-shot Stars refund journal, RBAC, отсутствие blind retry при `unknown`, оплату/entitlement и 3x-ui provider access не меняли.
