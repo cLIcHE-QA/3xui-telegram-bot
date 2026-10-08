@@ -173,6 +173,7 @@ class EntitlementRecord:
     expires_at: int
     created_at: int
     updated_at: int
+    quota_reset_status: str
 
 
 @dataclass
@@ -2092,6 +2093,67 @@ class Database:
                         str(target_status), max(0, next_starts), max(0, next_expires),
                         now, int(entitlement_id),
                     ),
+                )
+                cur = await db.execute(
+                    "SELECT * FROM entitlements WHERE id = ?",
+                    (int(entitlement_id),),
+                )
+                updated = await cur.fetchone()
+                await db.commit()
+                return EntitlementRecord(**dict(updated))
+            except Exception:
+                await db.rollback()
+                raise
+
+    async def transition_entitlement_quota_reset(
+        self,
+        entitlement_id: int,
+        *,
+        expected_statuses: set[str],
+        target_status: str,
+    ) -> EntitlementRecord:
+        allowed = {
+            "pending",
+            "legacy",
+            "not_required",
+            "in_flight",
+            "success",
+            "failed",
+            "unknown",
+        }
+        target = str(target_status)
+        if target not in allowed:
+            raise RuntimeError(f"Unsupported quota reset status: {target!r}.")
+        expected = {str(value) for value in expected_statuses}
+        if not expected:
+            raise RuntimeError("At least one expected quota reset status is required.")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await db.execute(
+                    "SELECT * FROM entitlements WHERE id = ?",
+                    (int(entitlement_id),),
+                )
+                row = await cur.fetchone()
+                if row is None:
+                    raise RuntimeError("Entitlement does not exist.")
+                current = str(row["quota_reset_status"])
+                if current == target:
+                    await db.commit()
+                    return EntitlementRecord(**dict(row))
+                if current not in expected:
+                    raise RuntimeError(
+                        f"Quota reset status {current!r} cannot transition to {target!r}."
+                    )
+                await db.execute(
+                    """
+                    UPDATE entitlements
+                    SET quota_reset_status = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (target, now, int(entitlement_id)),
                 )
                 cur = await db.execute(
                     "SELECT * FROM entitlements WHERE id = ?",
