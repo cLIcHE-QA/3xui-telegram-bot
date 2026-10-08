@@ -4479,6 +4479,27 @@ Public launch блокируется до закрытия release-blocking find
 
 Текущая production-валидация `rc.6` от оператора (2026-10-08) — только **scoped evidence**, не общий PASS: exact SHA `b9555d685603e82a330e053e3187ac4368231090`, Health/DB/3x-ui ok и SQLite schema v11; Stars summary отдельно XTR/ручной журнал; по read-only SQLite два paid orders, один confirmed/один refunded Stars payment, два applied events, два active entitlement, quota reset `legacy=1/success=1`, один successful refund. После обычного bot restart и контролируемого короткого `x-ui.service` outage/recovery счётчики неизменны, `/admin` доступен, customer provider outage корректно даёт unknown/temporary unavailable; sandboxed offline regression suite на deployed code — `31 tests ... OK`. Payment kill-switch через `.env=false` и последующий возврат `true` оператором отмечены PASS (без фактического provider-authorized платежа при disabled). Это **не** подтверждает live interrupted paid provisioning, uncertain quota reset/no-blind-replay, полноценный V5-A-002, V5-A-003, ownership/rollback портал/soak или общий v5 production acceptance. Stable `v5.0.0` и снятие pilot allowlist до общего PASS запрещены.
 
+## Запланировано: персональный сброс клиентской сессии (2026-10-08)
+
+**⬜ TODO / не реализовано в rc.6.** Tracking: [#345](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/345). Добавить в `/admin → Пользователи → карточка пользователя` Owner-only действие **«🔄 Сбросить клиентскую сессию»**: целевой in-memory rate-limit bucket, применимый временный customer dialog/FSM state, confirmation + RBAC + audit, без глобального Docker restart. Операция не меняет 3x-ui, подписку, платежи, entitlement, devices, allowlist, не сбрасывает ограничения Telegram transport. Реализация обязана работать в **живом процессе** бота, а не в отдельном `docker compose exec python`. Acceptance: два пользователя из pilot, isolation A/B, ACL/forged callback, audit, отсутствие финансовых/provider mutation. Полный scope — issue #345.
+
+## Фактические результаты rc.6 production smoke (2026-10-08; scoped, НЕ общий PASS)
+
+Release `v5.0.0-rc.6`, SHA `b9555d685603e82a330e053e3187ac4368231090`, Master, pilot allowlist не снят.
+
+| Проверка | Статус | Основание / ограничения |
+| --- | --- | --- |
+| Container restart, короткая управляемая недоступность 3x-ui/recovery | **PASS (scoped)** | Health/DB/3x-ui OK, `RestartCount=0`, финансовые счётчики не изменились; не доказывает interrupted paid provisioning / unknown traffic reset |
+| Offline deterministic regression на развёрнутом коде | **PASS (31/31)** | Отдельный изолированный/no-network процесс; не live payment/load |
+| Stars payment kill switch `.env CLIENT_PAYMENT_ACCEPTANCE_ENABLED=false` | **PASS (UI/config scoped)** | Старт и `/admin` работают, новые покупки блокируются, вернули `true`; ранее созданный invoice precheckout provider-side этим запуском не проверялся |
+| Client Portal kill switch `.env CLIENT_PORTAL_ENABLED=false` при Stars=false | **PASS (UI/config scoped)** | `/start` блокируется, `/admin` работает; восстановлены оба `true/true`; pilot allowlist настроен |
+| Recovery и reconciliation после двух kill switches | **PASS (scoped)** | `Health: ok`, `DB: ok`, 3x-ui connected, SQLite quick_check ok; `Orders paid=2; Payments confirmed=1/refunded=1; Events applied=2; Entitlements active=2; Quota reset legacy=1/success=1; Refund success=1`; `/start`, планы, `/admin` доступны |
+| V5-A-003 customer rate-limit алгоритм | **PASS (offline simulated)** | Фактическая конфигурация `30 requests/60s`; per-user isolation, burst rejection и sliding-window recovery |
+| V5-A-003 live Telegram burst | **BLOCKED / INVESTIGATING, НЕ PASS** | После серии `/start` Telegram-клиенты test user A перестали нормально отправлять/синхронизировать `/start` и `/start diag`; `/paysupport`/customer callback у A и `/start` у B работают. Master healthy; processed updates <=533ms, polling/network/429/timeout/handler exceptions = 0; задержка доставки/ограничение Telegram — гипотеза, точная причина не установлена. Повторный burst остановлен |
+| Ownership/cross-account isolation, invalid callback abuse, canonical proxy concurrency, full V5-A-002 failure matrix, scheduled-jobs soak | **TODO** | Не отмечать PASS без evidence на rc.6 |
+
+На дату записи **общий v5 production acceptance = NOT PASS**, stable `v5.0.0` и расширение allowlist запрещены. Дальше: независимый ownership/isolation тест двух test accounts без платежей и без повторного spam burst; live burst остаётся открытым отдельным наблюдением.
+
 ## Gate контролируемого запуска v5.0
 
 После успешного v5 launch audit публичный Client Portal не открывается сразу всему потоку пользователей. Перед широким запуском выполняется отдельный controlled rollout / production acceptance gate.
