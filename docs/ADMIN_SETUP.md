@@ -37,7 +37,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.2. Этот tag является prerelease для controlled Client Portal canary. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v5.0.0-rc.3. Этот tag является prerelease для controlled Client Portal canary. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -103,7 +103,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.2` машинно проверяемый native API contract pinned к 3x-ui `v3.9.0`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
+Для bot release `v5.0.0-rc.3` машинно проверяемый native API contract pinned к 3x-ui `v3.9.0`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
 
 ## 2. Базовая подготовка Master VPS
 
@@ -139,7 +139,7 @@ git clone git@github.com:cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v5.0.0-rc.2
+git checkout --detach v5.0.0-rc.3
 ~~~
 
 Проверка release:
@@ -154,7 +154,7 @@ PY
 Ожидается:
 
 ~~~text
-5.0.0-rc.2
+5.0.0-rc.3
 ~~~
 
 ## 4. Создай local admin venv
@@ -632,15 +632,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v5.0.0-rc.2.tar.gz
+  /root/3xui-host-control-bundle-v5.0.0-rc.3.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v5.0.0-rc.2.tar.gz \
-  /root/3xui-host-control-bundle-v5.0.0-rc.2.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v5.0.0-rc.3.tar.gz \
+  /root/3xui-host-control-bundle-v5.0.0-rc.3.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -650,7 +650,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.2.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.3.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -659,7 +659,7 @@ sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.2.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.2.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.3.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
@@ -1100,10 +1100,10 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v5.0.0-rc.2
+Git tag: v5.0.0-rc.3
 Container: running
 RestartCount=0
-Bot version: 5.0.0-rc.2
+Bot version: 5.0.0-rc.3
 Health: ok
 DB: ok
 3x-ui connectivity: ok
@@ -1200,6 +1200,8 @@ PY
 ~~~
 
 Для штатного состояния все строки должны иметь `status=success`. Полный developer/recovery contract описан в [Versioned SQLite migrations](SQLITE_MIGRATIONS.md).
+
+`v5.0.0-rc.3` впервые публикует bot schema **v11** (`entitlement_quota_cycle_v5_0_0`). Migration не вызывает 3x-ui и не сбрасывает traffic автоматически: существующие entitlement rows получают безопасный marker `legacy`, новые paid entitlements используют durable quota-reset journal. После deployment проверь наличие успешной строки v11 и обычный `DB: ok`. Если после применения v11 потребуется откат приложения на `rc.2`/schema v10, одного checkout старого tag недостаточно: восстанови совместимую pre-release/pre-migration bot DB по recovery contract.
 
 ### Host Control Agent на direct nodes
 
