@@ -121,3 +121,32 @@ Do not remove the customer allowlist or broaden the cohort based only on CI succ
 **Acceptance:** `rc.1` считается failed canary и дальше не тестируется. После публикации `v5.0.0-rc.2` оператор обязан сначала открыть `Платежи → Telegram Stars` и подтвердить отсутствие exception; только вместе с PASS V5-A-005 разрешается продолжить Stars payment acceptance.
 
 **Status:** Fix in PR #312; требуется новый RC и targeted retest.
+
+## rc.2 production retest — 2026-10-08
+
+Baseline: immutable `v5.0.0-rc.2` / `24272d61f87396d365522b0156dff5c3165c682c`.
+Container running, `RestartCount=0`, Bot `5.0.0-rc.2`, Health/DB/3x-ui connectivity `ok`.
+Фактические Master/direct node работают на 3x-ui `3.9.0` / Xray `26.9.30`; read-only version/status integration smoke — PASS.
+
+Targeted retest:
+
+- **V5-A-005 — PASS:** expired customer access отображается как `истекла`, не как active.
+- **V5-A-006 — PASS:** `/admin → Платежи → Telegram Stars` открывается без runtime exception.
+- Real Stars path дошёл до invoice, фактического списания 1 XTR, `payment #1 = confirmed`, `order #1 = paid`, `entitlement #1 = active`, сформированного subscription URL и доступного provider read.
+
+### V5-A-007 — paid quota cycle сохраняет старый traffic
+
+**Severity:** High / release-blocking correctness finding.
+
+После подтверждённой покупки Plan с `traffic_gb=1` provisioning установил новый срок и `totalGB=1 GiB`, но не сбросил накопительные 3x-ui counters предыдущего периода. Клиент показывал около 10.47 GiB download + 1.14 GiB upload при новом лимите 1 GiB, 100% usage, 0 B remaining и inactive subscription.
+
+Root cause подтверждён в repository code: `ProvisioningEngine.sync_user(..., apply_plan_limits=True)` обновляет `expiryTime`, `totalGB`, `limitIp`, но paid entitlement path не вызывает существующий one-shot `/panel/api/clients/bulkResetTraffic`. Дополнительно expiry рассчитывался как `now + duration`, что для активного renewal могло терять оставшийся оплаченный срок.
+
+**Required remediation:** durable target expiry; renewal от `max(now, current_expiry)`; отдельный one-shot quota reset с persisted `in_flight/success/failed/unknown`; uncertain reset не replay'ится автоматически; локальный active expiry публикуется только после доказанного reset/skip.
+
+**Status:** Open as #317. `v5.0.0-rc.2` acceptance остановлен как FAIL; требуется новый immutable `v5.0.0-rc.3` и targeted production retest.
+
+### UI finding #314
+
+Low / non-blocking. Client Portal имеет несколько presentation inconsistencies: home теряет status icon, dynamic Stars plan rows не имеют leading emoji, command/callback headings расходятся. Finding включён в rc.3 stabilization, но не является причиной остановки commerce acceptance.
+
