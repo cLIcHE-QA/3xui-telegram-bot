@@ -66,6 +66,7 @@ class CustomerServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 currency="EUR",
             )),
             list_plans=AsyncMock(return_value=[]),
+            get_latest_entitlement_for_user=AsyncMock(return_value=None),
         )
         commerce = SimpleNamespace(get_or_create_order=AsyncMock())
         provider = SimpleNamespace(
@@ -108,6 +109,7 @@ class CustomerServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
             get_user_profile=AsyncMock(),
             get_plan=AsyncMock(),
             list_plans=AsyncMock(return_value=[]),
+            get_latest_entitlement_for_user=AsyncMock(return_value=None),
         )
         provider = SimpleNamespace(
             access=AsyncMock(),
