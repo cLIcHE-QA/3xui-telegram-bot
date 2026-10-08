@@ -339,7 +339,7 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     ),
     "entitlements": (
         "id", "telegram_id", "order_id", "plan_id", "status", "starts_at",
-        "expires_at", "created_at", "updated_at",
+        "expires_at", "created_at", "updated_at", "quota_reset_status",
     ),
     "customer_terms_acceptance": (
         "telegram_id", "terms_version", "accepted_at",
@@ -385,6 +385,7 @@ async def _validate_current_schema(
     include_checkout_reference: bool = True,
     include_plan_stars_price: bool = True,
     include_stars_hardening: bool = True,
+    include_entitlement_quota_cycle: bool = True,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -429,6 +430,10 @@ async def _validate_current_schema(
         if table == "plans" and not include_plan_stars_price:
             expected = tuple(
                 column for column in expected if column != "stars_price"
+            )
+        if table == "entitlements" and not include_entitlement_quota_cycle:
+            expected = tuple(
+                column for column in expected if column != "quota_reset_status"
             )
         cursor = await db.execute(f'PRAGMA table_info("{table}")')
         rows = await cursor.fetchall()
@@ -568,6 +573,7 @@ async def _migration_0002_user_display_name(db: aiosqlite.Connection) -> None:
         include_commerce=False,
         include_plan_stars_price=False,
         include_stars_hardening=False,
+        include_entitlement_quota_cycle=False,
     )
 
 
@@ -833,6 +839,7 @@ async def _migration_0006_client_portal_commerce_foundation(
         include_checkout_reference=False,
         include_plan_stars_price=False,
         include_stars_hardening=False,
+        include_entitlement_quota_cycle=False,
     )
 
 
@@ -874,7 +881,12 @@ async def _migration_0008_checkout_reference_v5_0_0(
         "ON commerce_payments(provider, idempotency_key) "
         "WHERE idempotency_key <> ''"
     )
-    await _validate_current_schema(db, include_plan_stars_price=False, include_stars_hardening=False)
+    await _validate_current_schema(
+        db,
+        include_plan_stars_price=False,
+        include_stars_hardening=False,
+        include_entitlement_quota_cycle=False,
+    )
 
 
 async def _migration_0009_telegram_stars_price_v5_0_0(
@@ -888,7 +900,11 @@ async def _migration_0009_telegram_stars_price_v5_0_0(
             "ADD COLUMN stars_price INTEGER NOT NULL DEFAULT 0 "
             "CHECK(stars_price >= 0)"
         )
-    await _validate_current_schema(db, include_stars_hardening=False)
+    await _validate_current_schema(
+        db,
+        include_stars_hardening=False,
+        include_entitlement_quota_cycle=False,
+    )
 
 
 async def _migration_0010_stars_production_hardening_v5_0_0(
@@ -927,6 +943,30 @@ async def _migration_0010_stars_production_hardening_v5_0_0(
         ON stars_refund_operations(status, created_at)
         """
     )
+    await _validate_current_schema(
+        db,
+        include_entitlement_quota_cycle=False,
+    )
+
+
+async def _migration_0011_entitlement_quota_cycle_v5_0_0(
+    db: aiosqlite.Connection,
+) -> None:
+    cursor = await db.execute('PRAGMA table_info("entitlements")')
+    columns = {str(row[1]) for row in await cursor.fetchall()}
+    if "quota_reset_status" not in columns:
+        await db.execute(
+            "ALTER TABLE entitlements "
+            "ADD COLUMN quota_reset_status TEXT NOT NULL DEFAULT 'pending' "
+            "CHECK(quota_reset_status IN "
+            "('pending', 'legacy', 'not_required', 'in_flight', "
+            "'success', 'failed', 'unknown'))"
+        )
+        # Existing entitlements predate the durable quota-reset journal. Do not
+        # infer that their traffic was reset and never mutate them automatically.
+        await db.execute(
+            "UPDATE entitlements SET quota_reset_status = 'legacy'"
+        )
     await _validate_current_schema(db)
 
 
@@ -989,6 +1029,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=10,
         name="stars_production_hardening_v5_0_0",
         apply=_migration_0010_stars_production_hardening_v5_0_0,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=11,
+        name="entitlement_quota_cycle_v5_0_0",
+        apply=_migration_0011_entitlement_quota_cycle_v5_0_0,
         requires_backup=False,
     ),
 )
