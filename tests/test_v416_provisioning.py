@@ -73,6 +73,7 @@ class FakeProvisioningXUI:
         self.detach_calls = []
         self.update_calls = []
         self.flow_calls = []
+        self.reset_calls = []
         self.fail_for = set()
         self.client_fields = {email: {} for email in self.client_ids}
         self.uncertain_attach_after_commit = set()
@@ -113,6 +114,10 @@ class FakeProvisioningXUI:
 
     async def bulk_adjust_clients(self, emails, **fields):
         self.flow_calls.append((list(emails), dict(fields)))
+
+    async def bulk_reset_traffic(self, emails):
+        self.reset_calls.append(list(emails))
+        return {"success": True, "obj": {"affected": len(emails)}}
 
 
 def settings(**overrides):
@@ -263,6 +268,42 @@ class ProvisioningRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(fields["totalGB"], 100 * 1024**3)
         self.assertEqual(fields["limitIp"], 2)
         self.assertGreater(fields["expiryTime"], int(time.time() * 1000))
+
+    async def test_paid_target_expiry_defers_local_commit_and_exposes_one_shot_reset(self):
+        db = FakeProvisioningDB()
+        plan = SimpleNamespace(
+            id=5,
+            name="Premium",
+            duration_days=30,
+            traffic_gb=1,
+            ip_limit=2,
+            server_group_id=None,
+            active=1,
+        )
+        db.plans[5] = plan
+        db.profiles[1] = SimpleNamespace(
+            telegram_id=1, plan_id=5, server_group_id=None
+        )
+        xui = FakeProvisioningXUI(
+            [self.inbound(10)],
+            client_ids={"one@example.test": {10}},
+        )
+        engine = ProvisioningEngine(db, xui, settings())
+        target_expiry_ms = 2_500_000_000_000
+
+        result = await engine.sync_user(
+            1,
+            apply_plan_limits=True,
+            target_expiry_ms=target_expiry_ms,
+            persist_local_expiry=False,
+        )
+
+        self.assertTrue(result.limits_applied)
+        self.assertEqual(db.expiry_updates, [])
+        self.assertEqual(xui.update_calls[0][1]["expiryTime"], target_expiry_ms)
+
+        await engine.reset_user_traffic(1)
+        self.assertEqual(xui.reset_calls, [["one@example.test"]])
 
     async def test_batch_partial_failure_does_not_stop_other_users(self):
         db = FakeProvisioningDB()
