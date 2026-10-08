@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class V4251StabilizationTests(unittest.TestCase):
     def test_current_release_version(self):
-        self.assertEqual(APP_VERSION, "5.0.0-rc.5")
+        self.assertEqual(APP_VERSION, "5.0.0-rc.6")
 
     def test_subscription_show_url_returns_to_subscription_parent(self):
         source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
