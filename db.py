@@ -1064,6 +1064,25 @@ class Database:
             )
             return {str(currency): int(total) for currency, total in await cur.fetchall()}
 
+    async def stars_payment_summary(self) -> dict[str, int]:
+        """Read-only Stars counts and amounts; never mix XTR with fiat."""
+        async with aiosqlite.connect(self.path) as conn:
+            cur = await conn.execute(
+                """
+                SELECT status, COUNT(*), COALESCE(SUM(amount_minor), 0)
+                FROM commerce_payments
+                WHERE provider = 'telegram_stars' AND currency = 'XTR'
+                GROUP BY status
+                """
+            )
+            summary = {"total": 0, "confirmed_amount": 0, "refunded_amount": 0}
+            for status, count, amount in await cur.fetchall():
+                summary["total"] += int(count)
+                summary[str(status)] = int(count)
+                if status in {"confirmed", "refunded"}:
+                    summary[f"{status}_amount"] = int(amount)
+            return summary
+
     # --- Client Portal commerce ---------------------------------------
 
     async def create_commerce_order(
@@ -1435,7 +1454,9 @@ class Database:
                             "Telegram Stars charge id is already bound to different payment data."
                         )
                     payment_id = int(payment["id"])
-                    if str(payment["status"]) != "confirmed":
+                    # A refunded charge is terminal: delayed duplicate confirmation
+                    # must not resurrect its payment or refund accounting.
+                    if str(payment["status"]) not in {"confirmed", "refunded"}:
                         await db.execute(
                             """
                             UPDATE commerce_payments
