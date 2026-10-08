@@ -250,3 +250,16 @@ Subscription URL/QR и user identity намеренно не включены в
 - Issue [#324](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/324) уже находится в `closed/completed`; targeted production evidence подтверждает закрытие finding, повторно закрывать issue не требуется.
 - V5-A-001 остаётся открытым до контролируемого Stars refund/support acceptance; V5-A-002 — до failure/restart/no-replay/reconciliation; V5-A-003 — до abuse/load/soak. Отдельно не завершены ownership/IDOR, rollback и финальная reconciliation.
 - Продолжение только по `docs/V5_PRODUCTION_ACCEPTANCE.md` после актуального health/preflight и явного операторского решения для каждого state-changing теста. Pilot allowlist сохраняется; stable `v5.0.0` и broad public access этим PASS не разрешены.
+
+
+## rc.4 Stars refund production smoke — V5-A-009, 2026-10-08
+
+**High / release-blocking, issue [#328](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/328). Targeted refund: FAIL. Full v5 acceptance: STOP/NOT PASS.**
+
+Baseline: immutable `v5.0.0-rc.4` / `d34b76d694a43d3f1d364cc01d9a88bc2b666ee5`. Health/SQLite v11/3x-ui connectivity перед тестом — PASS. Admin Stars ledger, payment detail и двухэтапный warning/confirm screen — PASS. На подтверждении возврата по контролируемому тестовому 1 XTR payment aiogram зарегистрировал `NameError: name 'run_stars_refund' is not defined` в `business_admin.stars_refund_run`.
+
+Root cause verified against source: `business_admin.py` обращается к `run_stars_refund(...)`, но не импортирует существующую функцию из `stars_refund.py`. Python `NameError` возникает до вызова helper, следовательно **в этом callback не выполнены** `db.begin_stars_refund` и `Bot.refund_star_payment`. Независимый production journal/provider read-back не проводился: возврат/получение средств не объявлять успешным, однако и не приписывать внешнюю mutation упавшему handler.
+
+Required fix: явный import, regression coverage интеграции admin callback с one-shot refund helper, CI → новый immutable RC. Не replay'ить refund при `unknown`, не переписывать rc.4 и не создавать новый реальный платеж ради проверки. После деплоя проверить journal состояния выделенного тестового платежа, получить отдельное согласие на одну новую refund mutation и проверить `payment=refunded` / journal `success` / подтверждение Telegram. Возврат сам по себе не отзывает entitlement/provider access; это отдельная policy.
+
+Customer identifiers, charge identity и subscription URLs в audit не включены.

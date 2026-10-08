@@ -21,6 +21,7 @@ from config import load_settings
 from db import AdministratorRecord, Database, PaymentRecord, PromoCodeRecord
 from ui_time import backup_schedule_text, end_of_day_timestamp, format_timestamp
 from user_ui import user_label
+from stars_refund import run_stars_refund
 
 settings = load_settings()
 db = Database(settings.db_path)
