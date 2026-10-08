@@ -4200,6 +4200,23 @@ failed
 
 Эта задача не является release blocker для текущего controlled acceptance `v5.0.0-rc.2`, но повышает support/observability readiness перед широким customer rollout.
 
+### Customer payment UX: закрытие paid Stars invoice
+
+Во время targeted production retest `v5.0.0-rc.3` подтверждён Low/non-blocking UX finding #320: после успешного `successful_payment` старое native Telegram Stars invoice-сообщение остаётся в customer chat и визуально сохраняет кнопку `Заплатить ⭐…`.
+
+Backend integrity при этом сохраняется: pre-checkout принимает только orders в `created/awaiting_payment`, поэтому уже оплаченный `order=paid` повторно подтвердить нельзя. Проблема — misleading affordance после успешной оплаты.
+
+Желаемый контракт:
+
+- после confirmed payment старый invoice больше не выглядит как payable;
+- cleanup не влияет на уже подтверждённые Payment / Order / Entitlement и не может их откатить;
+- если для cleanup требуется Telegram message mutation, её uncertain outcome не replay'ится слепо;
+- предпочтительно durable связать локальный order/payment с отправленным invoice `message_id`, чтобы после confirmed state удалить/закрыть старое invoice message либо иным Telegram-supported способом показать paid/closed state;
+- ошибка cosmetic cleanup не превращает successful payment в failed/unknown commerce state;
+- regression coverage подтверждает, что старый paid invoice не создаёт misleading повторный purchase path.
+
+Finding #320 не блокирует targeted acceptance `v5.0.0-rc.3`; закрыть до stable/public rollout либо включить в следующий RC, если он потребуется по release-blocking причинам.
+
 ### Payment provider webhook journal
 
 Для каждого внешнего payment event хранится immutable/minimally-mutable journal record.
@@ -4356,6 +4373,7 @@ Public launch блокируется до закрытия release-blocking find
 - ✅ Low UI finding #314 закрыт тем же PR #318: home/profile status emoji синхронизированы, dynamic Stars plan buttons имеют leading `💎`, `/subscription` использует канонический heading, duplicate `/paysupport` renderer удалён;
 - 🔴 controlled production acceptance `v5.0.0-rc.2` остаётся **FAIL** на V5-A-007 до нового immutable baseline; broken-quota state rc.2 сохраняется как historical evidence;
 - 🟡 release-prep `v5.0.0-rc.3` подготовлен отдельной веткой/PR: schema v11 → deploy/health → targeted V5-A-007 quota/renewal/no-replay retest → короткий regression V5-A-005/V5-A-006/#314 → заново завершить V5-A-001 happy path → далее V5-A-002/V5-A-003/ownership/rollback/reconciliation;
+- 🟡 targeted `rc.3` retest уже подтверждает новый finite quota cycle (`11.6 GB` legacy traffic → `0 B` после новой покупки) и renewal expiry до `2026-12-07 03:34 MSK`; параллельно найден Low/non-blocking UX finding #320: paid native Stars invoice остаётся визуально payable, хотя backend pre-checkout для `order=paid` fail-closed;
 - ⬜ отдельный non-blocking v5.x roadmap item: добавить в `/admin → Платежи` read-only Stars Orders view для `created/awaiting_payment` orders и корреляции `Order → Payment → Entitlement`; задача не входит в `rc.3` stabilization и не блокирует targeted retest;
 - ⬜ stable `v5.0.0` публикуется только после PASS acceptance без unresolved Critical/High и без необъяснимых payment/entitlement/provisioning inconsistencies;
 - ⬜ broad public access / снятие pilot allowlist выполняется только после успешного controlled rollout; stable tag сам по себе allowlist не снимает.
