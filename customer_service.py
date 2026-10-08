@@ -21,6 +21,14 @@ class CustomerTraffic:
 
 
 @dataclass(frozen=True)
+class CustomerProviderAccess:
+    """Read-only state returned by the customer access provider."""
+
+    enabled: bool
+    expiry_time: int  # ms; 0 means unlimited
+
+
+@dataclass(frozen=True)
 class CustomerDevice:
     title: str
     os_name: str
@@ -36,6 +44,11 @@ class CustomerProfile:
     expiry_time: int = 0
     sub_id: str = ""
     access_status: str = "missing"
+    period_status: str = "missing"
+    provider_status: str = "unavailable"
+    entitlement_expiry_time: int = 0
+    provider_expiry_time: int = 0
+    expiry_drift: bool = False
 
 
 @dataclass(frozen=True)
@@ -44,10 +57,14 @@ class CustomerDiagnostics:
     entitlement_status: str = ""
     subscription_available: bool = False
     provider_reachable: bool | None = None
+    vpn_access_status: str = "unknown"
+    expiry_drift: bool = False
     note: str = ""
 
 
 class CustomerAccessProvider(Protocol):
+    async def access(self, email: str) -> CustomerProviderAccess: ...
+
     async def traffic(self, email: str) -> CustomerTraffic: ...
 
     async def devices(self, email: str) -> list[CustomerDevice]: ...
@@ -71,43 +88,131 @@ class CustomerPortalService:
         self.subscription_url_template = subscription_url_template
         self.checkout = checkout
 
-    async def profile(self, telegram_id: int) -> CustomerProfile:
+    @staticmethod
+    def _expiry_mismatch(left: int, right: int) -> bool:
+        # 3x-ui milliseconds and entitlement seconds may differ by rounding.
+        # Zero (unlimited) versus a finite expiry is a genuine mismatch.
+        return abs(int(left) - int(right)) > 2000
+
+    async def profile(
+        self, telegram_id: int, *, read_access: bool = True,
+    ) -> CustomerProfile:
         rec = await self.db.get(telegram_id)
         if rec is None:
             return CustomerProfile(exists=False)
-        profile = await self.db.get_user_profile(telegram_id)
-        plan = await self.db.get_plan(profile.plan_id) if profile and profile.plan_id else None
-        expiry_time = int(rec.expiry_time or 0)
-        now_ms = int(time.time() * 1000)
-        access_status = (
-            "expired"
-            if expiry_time > 0 and expiry_time <= now_ms
-            else "active"
+        user_profile = await self.db.get_user_profile(telegram_id)
+        plan = (
+            await self.db.get_plan(user_profile.plan_id)
+            if user_profile and user_profile.plan_id else None
         )
-        return CustomerProfile(
+        local_expiry = int(rec.expiry_time or 0)
+        now_ms = int(time.time() * 1000)
+        local_expired = local_expiry > 0 and local_expiry <= now_ms
+        base = dict(
             exists=True,
             email=rec.email,
-            display_name=getattr(profile, "display_name", "") or "",
+            display_name=getattr(user_profile, "display_name", "") or "",
             plan_name=plan.name if plan else "",
-            expiry_time=expiry_time,
+            expiry_time=local_expiry,
             sub_id=rec.sub_id,
+        )
+        if not read_access:
+            # Payment, subscription URL and inventory need identity, not
+            # an extra provider lookup on their critical path.
+            return CustomerProfile(
+                **base, access_status="expired" if local_expired else "unknown",
+                period_status="expired" if local_expired else "legacy",
+            )
+
+        entitlement = await self.db.get_latest_entitlement_for_user(telegram_id)
+        period_status = (
+            str(entitlement.status) if entitlement is not None
+            else ("expired" if local_expired else "legacy")
+        )
+        entitlement_expiry = (
+            int(getattr(entitlement, "expires_at", 0) or 0) * 1000
+            if entitlement is not None else 0
+        )
+        if (
+            period_status in {"active", "suspended"}
+            and entitlement_expiry > 0
+            and entitlement_expiry <= now_ms
+        ):
+            period_status = "expired"
+
+        provider_status = "unavailable"
+        provider_expiry = 0
+        provider_access: CustomerProviderAccess | None = None
+        try:
+            provider_access = await self.provider.access(rec.email)
+            provider_status = "enabled" if provider_access.enabled else "disabled"
+            provider_expiry = int(provider_access.expiry_time)
+        except CustomerProviderUnavailable:
+            pass
+
+        # Ignore a pending purchase's unset entitlement expiry; only compare
+        # the established lifecycle's expiry to local/provider state.
+        relevant_entitlement = (
+            entitlement is not None
+            and str(entitlement.status) in {"active", "suspended", "expired"}
+        )
+        expiry_drift = (
+            relevant_entitlement
+            and self._expiry_mismatch(local_expiry, entitlement_expiry)
+        )
+        if provider_access is not None:
+            expiry_drift = (
+                expiry_drift
+                or self._expiry_mismatch(local_expiry, provider_expiry)
+                or (
+                    relevant_entitlement
+                    and self._expiry_mismatch(entitlement_expiry, provider_expiry)
+                )
+            )
+
+        if provider_status == "disabled":
+            access_status = "disabled"
+        elif local_expired or period_status == "expired" or (
+            provider_access is not None
+            and provider_expiry > 0
+            and provider_expiry <= now_ms
+        ):
+            access_status = "expired"
+        elif period_status in {"pending", "provisioning"}:
+            access_status = "provisioning"
+        elif period_status == "failed":
+            access_status = "unknown"
+        elif period_status == "suspended":
+            access_status = "suspended"
+        elif provider_access is None or expiry_drift:
+            access_status = "unknown"
+        else:
+            access_status = "active"
+
+        return CustomerProfile(
+            **base,
             access_status=access_status,
+            period_status=period_status,
+            provider_status=provider_status,
+            entitlement_expiry_time=entitlement_expiry,
+            provider_expiry_time=provider_expiry,
+            expiry_drift=bool(expiry_drift),
         )
 
     async def subscription_url(self, telegram_id: int) -> str | None:
-        profile = await self.profile(telegram_id)
+        profile = await self.profile(telegram_id, read_access=False)
         if not profile.exists:
             return None
         return self.subscription_url_template.format(sub_id=profile.sub_id)
 
     async def traffic(self, telegram_id: int) -> CustomerTraffic | None:
-        profile = await self.profile(telegram_id)
+        profile = await self.profile(telegram_id, read_access=False)
         if not profile.exists:
             return None
         return await self.provider.traffic(profile.email)
 
     async def devices(self, telegram_id: int) -> list[CustomerDevice] | None:
-        profile = await self.profile(telegram_id)
+        profile = await self.profile(telegram_id, read_access=False)
         if not profile.exists:
             return None
         return await self.provider.devices(profile.email)
@@ -119,37 +224,26 @@ class CustomerPortalService:
                 account_exists=False,
                 note="Клиентский аккаунт ещё не оформлен.",
             )
-        entitlement = await self.db.get_latest_entitlement_for_user(telegram_id)
-        now = int(time.time())
-        if entitlement is not None:
-            entitlement_status = entitlement.status
-            entitlement_expires_at = int(getattr(entitlement, "expires_at", 0) or 0)
-            if (
-                entitlement_status in {"active", "suspended"}
-                and entitlement_expires_at > 0
-                and entitlement_expires_at <= now
-            ):
-                entitlement_status = "expired"
-        else:
-            entitlement_status = (
-                "expired" if profile.access_status == "expired" else "legacy"
+        notes = []
+        if profile.period_status == "legacy":
+            notes.append("Для legacy-доступа entitlement journal может отсутствовать.")
+        if profile.expiry_drift:
+            notes.append(
+                "Сроки подписки и VPN-доступа не совпадают. "
+                "Обратитесь в поддержку; автоматическое исправление не выполняется."
             )
-        provider_reachable: bool | None = None
-        try:
-            await self.provider.traffic(profile.email)
-            provider_reachable = True
-        except CustomerProviderUnavailable:
-            provider_reachable = False
+        if profile.access_status == "disabled":
+            notes.append(
+                "VPN-доступ отключён в панели. Оплата и срок не включают его автоматически."
+            )
         return CustomerDiagnostics(
             account_exists=True,
-            entitlement_status=entitlement_status,
+            entitlement_status=profile.period_status,
             subscription_available=bool(profile.sub_id),
-            provider_reachable=provider_reachable,
-            note=(
-                "Для legacy-доступа entitlement journal может отсутствовать."
-                if entitlement is None
-                else ""
-            ),
+            provider_reachable=profile.provider_status != "unavailable",
+            vpn_access_status=profile.access_status,
+            expiry_drift=profile.expiry_drift,
+            note="\n".join(notes),
         )
 
     async def active_plans(self) -> list[PlanRecord]:
@@ -176,7 +270,7 @@ class CustomerPortalService:
     ):
         if int(plan.stars_price or 0) <= 0:
             raise ValueError("plan has no Telegram Stars price")
-        profile = await self.profile(telegram_id)
+        profile = await self.profile(telegram_id, read_access=False)
         if not profile.exists:
             raise ValueError("customer account does not exist")
         order, created = await self.commerce.get_or_create_order(
@@ -226,7 +320,7 @@ class CustomerPortalService:
         return order, created, session
 
     async def get_or_create_order(self, *, telegram_id: int, plan: PlanRecord):
-        profile = await self.profile(telegram_id)
+        profile = await self.profile(telegram_id, read_access=False)
         if not profile.exists:
             raise ValueError("customer account does not exist")
         return await self.commerce.get_or_create_order(

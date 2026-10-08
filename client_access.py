@@ -137,6 +137,29 @@ async def guard_callback(call: CallbackQuery) -> bool:
     return True
 
 
+def customer_period_label(status: str) -> str:
+    return {
+        "active": "🟢 оплачен",
+        "legacy": "ℹ️ оформлен",
+        "pending": "🟡 ожидает оплаты/активации",
+        "provisioning": "🟡 активируется",
+        "suspended": "⛔ приостановлен",
+        "expired": "⌛ истёк",
+        "failed": "❌ ошибка активации",
+    }.get(status, "⚪ статус неизвестен")
+
+
+def customer_access_label(status: str) -> str:
+    return {
+        "active": "🟢 доступен",
+        "disabled": "⛔ отключён",
+        "expired": "⌛ истёк",
+        "suspended": "⛔ приостановлен",
+        "provisioning": "🟡 активация",
+        "unknown": "⚪ статус неизвестен",
+    }.get(status, "⚪ статус неизвестен")
+
+
 async def portal_text(tg_id: int) -> str:
     profile = await _service().profile(tg_id)
     if not profile.exists:
@@ -149,7 +172,8 @@ async def portal_text(tg_id: int) -> str:
         f"Личный кабинет · v{APP_VERSION}\n\n"
         f"👤 {profile.display_name or profile.email}\n"
         f"💎 Тариф: {profile.plan_name or 'не назначен'}\n"
-        f"🌐 Подписка: {'🟢 активна' if profile.access_status == 'active' else '⌛ истекла'}"
+        f"💳 Период: {customer_period_label(profile.period_status)}\n"
+        f"🌐 VPN-доступ: {customer_access_label(profile.access_status)}"
     )
 
 
@@ -212,8 +236,12 @@ async def profile_cb(call: CallbackQuery):
             f"Имя: {profile.display_name or '—'}\n"
             f"Аккаунт: {profile.email}\n"
             f"Тариф: {profile.plan_name or 'не назначен'}\n"
-            f"Статус: {'🟢 активна' if profile.access_status == 'active' else '⌛ истекла'}\n"
-            f"Срок: {expiry}"
+            f"Период: {customer_period_label(profile.period_status)}\n"
+            f"VPN-доступ: {customer_access_label(profile.access_status)}\n"
+            f"Срок: {expiry}" + (
+                "\n⚠️ Сроки доступа различаются; обратитесь в поддержку."
+                if profile.expiry_drift else ""
+            )
         )
     await render_callback(call, text, reply_markup=back_menu())
     await call.answer()
@@ -698,6 +726,8 @@ async def diagnostics_cb(call: CallbackQuery):
             f"Entitlement: {entitlement_labels.get(result.entitlement_status, result.entitlement_status)}\n"
             f"Subscription URL: {'🟢 сформирована' if result.subscription_available else '❌ отсутствует'}\n"
             f"Provider read: {provider}\n"
+            f"VPN-доступ: {customer_access_label(result.vpn_access_status)}\n"
+            f"Сроки: {'⚠️ расхождение' if result.expiry_drift else 'согласованы / нет данных'}\n"
         )
         if result.note:
             text += f"\nℹ️ {result.note}"

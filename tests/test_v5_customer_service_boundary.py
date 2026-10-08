@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 from customer_service import (
     CustomerDevice,
+    CustomerProviderAccess,
     CustomerPortalService,
     CustomerTraffic,
 )
@@ -65,9 +66,11 @@ class CustomerServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
                 currency="EUR",
             )),
             list_plans=AsyncMock(return_value=[]),
+            get_latest_entitlement_for_user=AsyncMock(return_value=None),
         )
         commerce = SimpleNamespace(get_or_create_order=AsyncMock())
         provider = SimpleNamespace(
+            access=AsyncMock(return_value=CustomerProviderAccess(enabled=True, expiry_time=1234567890000)),
             traffic=AsyncMock(return_value=CustomerTraffic(up=10, down=20, total=100)),
             devices=AsyncMock(return_value=[
                 CustomerDevice(title="Phone", os_name="iOS", last_seen=123),
@@ -85,6 +88,8 @@ class CustomerServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(profile.email, "tg-42@example.invalid")
         self.assertEqual(profile.display_name, "Test User")
         self.assertEqual(profile.plan_name, "Pilot")
+        self.assertEqual(profile.access_status, "expired")
+        provider.access.assert_awaited_once_with("tg-42@example.invalid")
         self.assertEqual(
             await service.subscription_url(42),
             "https://sub.example/compat/secret-sub-id",
@@ -104,8 +109,10 @@ class CustomerServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
             get_user_profile=AsyncMock(),
             get_plan=AsyncMock(),
             list_plans=AsyncMock(return_value=[]),
+            get_latest_entitlement_for_user=AsyncMock(return_value=None),
         )
         provider = SimpleNamespace(
+            access=AsyncMock(),
             traffic=AsyncMock(),
             devices=AsyncMock(),
         )
@@ -120,6 +127,7 @@ class CustomerServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(await service.subscription_url(99))
         self.assertIsNone(await service.traffic(99))
         self.assertIsNone(await service.devices(99))
+        provider.access.assert_not_awaited()
         provider.traffic.assert_not_awaited()
         provider.devices.assert_not_awaited()
 

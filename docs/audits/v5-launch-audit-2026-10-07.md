@@ -179,3 +179,37 @@ Uncertain/lost-response reset no-replay покрыт repository regression tests
 
 После successful Stars payment native invoice message остаётся визуально с кнопкой оплаты. Backend остаётся fail-closed для `order=paid` через pre-checkout validation, поэтому finding классифицирован Low/non-blocking UX. Issue #320 и roadmap item созданы отдельно; `rc.3` acceptance не останавливается.
 
+## rc.3 production follow-up — V5-A-008, 2026-10-08
+
+**High / release-blocking, issue #324. Full rc.3 acceptance PAUSED.**
+
+### Что уже было проверено
+
+- Exact immutable baseline: `v5.0.0-rc.3` / `a4e1e9f5c28b54b209ce4a81b23e5d85a2c9f73a`, container `running`, `RestartCount=0`, Health/DB/3x-ui connectivity `ok`, SQLite schema 11 / `quick_check=ok`.
+- Новый finite paid quota: old 11.6 GB cumulative counters → 0 B после Stars Order #2; `payment #2=confirmed`, `order #2=paid`, `entitlement #2=active/success`, old `entitlement #1=active/legacy`; expiry до `2026-12-07T00:34:29Z` от предыдущего оплаченного expiry.
+- Повторный `reconcile(2)`: before/result/after `2 active success 1791424988 1796603669`, ненулевой новый traffic остался ненулевым, срок не увеличился второй раз.
+- Повторное локальное Stars confirmation с существующим charge identity и hash: `created=False`, тот же Payment #2/Order #2/Entitlement #2; ровно 1 payment и 1 entitlement, никакого нового Telegram API charge.
+- #314 customer home/profile emoji PASS; V5-A-006 Stars admin ledger PASS; V5-A-005 effective-expiry presentation PASS после ручного изменения пользовательского срока, durable expiry не инжектировали; provider traffic/HWID read PASS.
+- Пользователь первоначально сообщил PASS subscription import/update, VPN connection и internet via VPN. **Это доказательство относится к более раннему состоянию; после ручного изменения сроков полный working-access E2E не доказан.**
+- Refund/support subtest и V5-A-002/V5-A-003/ownership/rollback/load/soak не завершались.
+
+### Новый High finding
+
+После manual expired-state regression пользователь вручную восстановил дату. Read-only provider/status snapshot:
+
+- local bot `users.expiry_time=2026-12-07T20:59:59Z`;
+- established `Entitlement #2.expires_at=2026-12-07T00:34:29Z`, различие **20 ч 25 мин 30 сек**;
+- 3x-ui `expiryTime=2026-12-07T20:59:59Z`, `enable=False`;
+- 3x-ui traffic `enable=False`, `totalGB=1073741824`, `up=3497602`, `down=335255925` (неизрасходованная квота);
+- Client Portal по local expiry показывал `🟢 активна`, Admin показывал `⛔ отключён`, 3x-ui HTML subscription — `Неактивна`.
+
+**Причина `enable=False` не доказана:** его могло вызвать ранее выполненное ручное изменение срока или иная admin/provider policy; не утверждать, что Stars оплатa выключила client. Root cause UI divergence — `CustomerPortalService.profile()` использовал только local expiry, игнорируя provider enable.
+
+### Required fix/gate
+
+- Отдельные состояния оплаченного периода / фактического provider access, read-only provider-neutral status path, unknown при provider read failure/expiry drift и согласованный UI/home/profile/diagnostics.
+- Manual admin disable **не** отменяется оплатой или обычным customer refresh/reconcile; не выполнять automatic enable или expiry rewrite.
+- Проверить explicit expiry source-of-truth/reconciliation policy: local/entitlement/provider mismatch должен быть виден и не скрываться автоматической правкой.
+- PR/CI → новый immutable release candidate → targeted regression enabled/disabled/expired/unknown/drift без повреждения оплаченного entitlement → E2E connection/browser/traffic; только затем возобновить V5-A-001 refund и оставшийся full controlled acceptance.
+
+Subscription URL/QR и user identity намеренно не включены в этот audit.

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+import aiohttp
+
 from customer_service import (
     CustomerDevice,
+    CustomerProviderAccess,
     CustomerProviderUnavailable,
     CustomerTraffic,
 )
@@ -13,6 +17,19 @@ class XuiCustomerProvider:
 
     def __init__(self, xui: XUIClient):
         self.xui = xui
+
+    async def access(self, email: str) -> CustomerProviderAccess:
+        try:
+            obj = await self.xui.get_client(email)
+            client = obj.get("client", obj)
+            if not isinstance(client, dict) or not isinstance(client.get("enable"), bool):
+                raise CustomerProviderUnavailable("customer provider access state unavailable")
+            return CustomerProviderAccess(
+                enabled=client["enable"],
+                expiry_time=int(client.get("expiryTime") or 0),
+            )
+        except (XUIError, aiohttp.ClientError, asyncio.TimeoutError, OSError, TypeError, ValueError) as exc:
+            raise CustomerProviderUnavailable("customer provider unavailable") from exc
 
     async def traffic(self, email: str) -> CustomerTraffic:
         try:
