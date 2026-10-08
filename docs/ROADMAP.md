@@ -4272,24 +4272,75 @@ Finding #320 не блокирует targeted acceptance `v5.0.0-rc.3`; закр
 
 ## 📱 Устройства
 
-На первом этапе раздел должен различать реальные зарегистрированные устройства и наблюдаемые network connections.
+Раздел должен различать реальные зарегистрированные HWID devices и наблюдаемые network connections.
 
-Если backend знает только IP/online connections, UI не должен выдавать их за достоверный список физических устройств.
+Если backend знает только IP/online connections, UI не должен выдавать их за достоверный список физических устройств. Для текущего 3x-ui adapter реальные HWID devices уже доступны через reviewed `client_hwids` API; customer-facing слой получает их только через provider-neutral `CustomerPortalService` / provider capability contract и не импортирует `XUIClient` напрямую.
 
-Базовый вариант:
+### Компактный customer UX
 
-- активные подключения;
-- текущий IP/device limit;
-- наблюдаемые IP/сессии, если данные надёжно доступны;
-- `📱 Как подключить новое устройство`.
+Текущий длинный текстовый список с полной датой для каждого device неудобен при большом количестве исторических HWID. Целевой вариант — компактный bounded list:
 
-Будущее расширение при появлении device registration:
+~~~text
+📱 Устройства · {registered}/{limit_or_—}
+
+1. iPhone · iOS
+   🕒 сегодня, 05:14
+
+2. iPhone 17 Pro · iOS
+   🕒 сегодня, 03:39
+
+3. Windows 11 · Windows
+   🕒 вчера, 15:44
+…
+~~~
+
+Правила:
+
+- в summary показывать `N / HWID limit`, если provider действительно сообщает limit; если limit неизвестен/отключён — не придумывать число;
+- model/platform показываются кратко, без полного fingerprint/HWID;
+- last seen форматируется компактно и локально для пользователя, полный timestamp остаётся допустимым в detail;
+- список bounded/paginated; десятки записей не превращают одно Telegram message в длинный diagnostic dump;
+- каждый реальный HWID device открывается отдельной inline-кнопкой `📱 {device}`;
+- observed IP/session data при необходимости остаются отдельным presentation layer и не смешиваются с HWID inventory.
+
+Карточка конкретного устройства:
+
+~~~text
+📱 {device_model_or_platform}
+
+ОС: {os}
+Последняя активность: {last_seen}
+
+[🗑 Удалить устройство]
+[⬅ Устройства]
+~~~
+
+### Customer self-service: удалить одно собственное устройство
+
+Удаление одного HWID device допускается как customer self-service, чтобы обычная замена телефона/клиента не требовала обращения в поддержку. Это не означает `Удалить все устройства` и не даёт customer административный callback.
+
+Безопасный contract:
+
+- customer callback несёт только stable `device_id`; Telegram ID/email другого пользователя не принимаются из customer-controlled payload;
+- backend заново разрешает текущий authenticated Telegram ID → customer profile/email и перед DELETE повторно проверяет, что `device_id` действительно входит в HWID inventory этого customer;
+- mutation проходит только через provider-neutral service method/capability (`delete_device` / `supports_device_delete`), без прямого `XUIClient` import в `client_access.py`;
+- удаляется ровно одно устройство за операцию;
+- перед DELETE обязателен отдельный confirmation screen; первый callback mutation не выполняет;
+- используется существующая one-shot mutation semantics: timeout/network/5xx → outcome `unknown`, DELETE автоматически не повторяется;
+- после `unknown` UI предлагает только обновить device list/read-back; blind retry не выполняется;
+- deterministic rejection показывается отдельно от `unknown`;
+- success возвращает в обновлённый device list;
+- в обычный audit/support output не пишутся полный HWID/fingerprint, subscription URL или другие secret-like identifiers;
+- customer delete имеет небольшой bounded rate limit/cooldown, чтобы self-service не превращался в churn API;
+- `Удалить все устройства` в базовый customer flow не добавляется.
+
+HWID limit трактуется как ограничение одновременно зарегистрированных устройств: удалив собственный device, пользователь освобождает слот и может зарегистрировать новый, если это допускает текущий provider limit. Это не считается обходом concurrent-device limit. Если продукту понадобится ограничивать частую ротацию устройств между людьми, это отдельная anti-churn policy/cooldown, а не изменение смысла HWID limit.
+
+Будущие расширения:
 
 - пользовательское имя устройства;
-- platform/device type;
-- last seen;
-- revoke/unlink;
-- device-specific onboarding/deep-link.
+- device-specific onboarding/deep-link;
+- явная capability/status presentation: device management supported / HWID enforcement enabled / limit disabled / unsupported client / limit reached / provider error.
 
 ## Client onboarding / connection UX
 
@@ -4378,6 +4429,7 @@ Public launch блокируется до закрытия release-blocking find
 - 🟡 следующий targeted шаг `rc.3`: короткий regression V5-A-005/V5-A-006/#314 → завершить V5-A-001 happy path → далее V5-A-002/V5-A-003/ownership/rollback/reconciliation;
 - 🟡 параллельно найден Low/non-blocking UX finding #320: paid native Stars invoice остаётся визуально payable, хотя backend pre-checkout для `order=paid` fail-closed;
 - ⬜ отдельный non-blocking v5.x roadmap item: добавить в `/admin → Платежи` read-only Stars Orders view для `created/awaiting_payment` orders и корреляции `Order → Payment → Entitlement`; задача не входит в `rc.3` stabilization и не блокирует targeted retest;
+- ⬜ отдельный non-blocking v5.x customer self-service item: сделать `📱 Устройства` компактным (`N/limit`, короткий list/detail UX) и разрешить двухшаговое удаление ровно одного собственного HWID через provider-neutral ownership-checked one-shot flow с no-retry/unknown semantics и bounded anti-churn rate limit; текущий `rc.3` acceptance этим не блокируется;
 - ⬜ stable `v5.0.0` публикуется только после PASS acceptance без unresolved Critical/High и без необъяснимых payment/entitlement/provisioning inconsistencies;
 - ⬜ broad public access / снятие pilot allowlist выполняется только после успешного controlled rollout; stable tag сам по себе allowlist не снимает.
 
