@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock
 
-from customer_service import CustomerPortalService, CustomerProviderUnavailable, CustomerTraffic
+from customer_service import CustomerPortalService, CustomerProviderUnavailable, CustomerTraffic, CustomerProviderAccess
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -17,6 +17,7 @@ class ClientOnboardingDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
             get_latest_entitlement_for_user=AsyncMock(return_value=SimpleNamespace(status="active")),
         )
         provider = SimpleNamespace(
+            access=AsyncMock(return_value=CustomerProviderAccess(enabled=True, expiry_time=0)),
             traffic=AsyncMock(return_value=CustomerTraffic(up=1, down=2, total=10)),
             devices=AsyncMock(),
         )
@@ -29,6 +30,7 @@ class ClientOnboardingDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.entitlement_status, "active")
         self.assertTrue(result.subscription_available)
         self.assertTrue(result.provider_reachable)
+        self.assertEqual(result.vpn_access_status, "active")
         self.assertFalse(hasattr(service, "reconcile"))
 
     async def test_diagnostics_degrades_when_provider_read_is_unavailable(self):
@@ -39,6 +41,7 @@ class ClientOnboardingDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
             get_latest_entitlement_for_user=AsyncMock(return_value=None),
         )
         provider = SimpleNamespace(
+            access=AsyncMock(side_effect=CustomerProviderUnavailable("down")),
             traffic=AsyncMock(side_effect=CustomerProviderUnavailable("down")),
             devices=AsyncMock(),
         )
@@ -49,6 +52,7 @@ class ClientOnboardingDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
         result = await service.diagnostics(42)
         self.assertEqual(result.entitlement_status, "legacy")
         self.assertFalse(result.provider_reachable)
+        self.assertEqual(result.vpn_access_status, "unknown")
 
     def test_client_ui_keeps_qr_local_private_and_diagnostics_non_mutating(self):
         source = (ROOT / "client_access.py").read_text(encoding="utf-8")
