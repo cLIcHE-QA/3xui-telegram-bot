@@ -62,7 +62,7 @@ class AdminStarsTotalsTests(unittest.IsolatedAsyncioTestCase):
         )
         mixed = await self._render()
         self.assertIn("Всего записей: 1", mixed)
-        self.assertIn("Выручка по оплаченным: 10.00 RUB", mixed)
+        self.assertIn("Выручка по оплаченным: 10 RUB", mixed)
         self.assertIn("⭐ Telegram Stars\\nВсего: 0", mixed)
 
     async def test_confirmed_and_refunded_stars_visible(self):
@@ -72,15 +72,11 @@ class AdminStarsTotalsTests(unittest.IsolatedAsyncioTestCase):
             price_minor=1000, currency="RUB", stars_price=1,
         )
         for i in (1, 2):
-            order, _ = await commerce.get_or_create_order(
+            order = await commerce.create_order(
                 telegram_id=1001, plan_id=plan_id,
                 amount_minor=1, currency="XTR",
             )
-            if i == 1:
-                await self.db.mark_commerce_order_awaiting_payment(order.id)
-            else:
-                # Mark first order paid before constructing the next order.
-                await self.db.mark_commerce_order_awaiting_payment(order.id)
+            await self.db.mark_commerce_order_awaiting_payment(order.id)
             payment, _, _, _ = await commerce.confirm_telegram_stars_payment(
                 order_id=order.id, telegram_id=1001,
                 charge_id=f"charge-{i}", amount=1, raw_payload=f"paid-{i}".encode(),
