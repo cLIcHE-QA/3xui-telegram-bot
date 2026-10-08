@@ -632,15 +632,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v5.0.0-rc.4.tar.gz
+  /root/3xui-host-control-bundle-v5.0.0-rc.5.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v5.0.0-rc.4.tar.gz \
-  /root/3xui-host-control-bundle-v5.0.0-rc.4.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v5.0.0-rc.5.tar.gz \
+  /root/3xui-host-control-bundle-v5.0.0-rc.5.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -650,7 +650,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.4.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.5.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -659,7 +659,7 @@ sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.4.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.4.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.5.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
@@ -1100,10 +1100,10 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v5.0.0-rc.4
+Git tag: v5.0.0-rc.5
 Container: running
 RestartCount=0
-Bot version: 5.0.0-rc.4
+Bot version: 5.0.0-rc.5
 Health: ok
 DB: ok
 3x-ui connectivity: ok
