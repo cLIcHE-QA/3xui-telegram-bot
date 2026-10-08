@@ -263,3 +263,17 @@ Root cause verified against source: `business_admin.py` обращается к 
 Required fix: явный import, regression coverage интеграции admin callback с one-shot refund helper, CI → новый immutable RC. Не replay'ить refund при `unknown`, не переписывать rc.4 и не создавать новый реальный платеж ради проверки. После деплоя проверить journal состояния выделенного тестового платежа, получить отдельное согласие на одну новую refund mutation и проверить `payment=refunded` / journal `success` / подтверждение Telegram. Возврат сам по себе не отзывает entitlement/provider access; это отдельная policy.
 
 Customer identifiers, charge identity и subscription URLs в audit не включены.
+
+
+## rc.5 Stars refund targeted production retest — V5-A-009 PASS, 2026-10-08
+
+**Disposition: scoped PASS / issue [#328](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/328) closed as completed. Общий v5 production acceptance: NOT PASS.** Исторический FAIL на `rc.4` выше сохранён без изменений.
+
+- Immutable baseline: `v5.0.0-rc.5` / `14042f6dc9d467dc8d0e999eb493f9e1cfc90611`. Operator post-deploy read-back: `Container=running`, `RestartCount=0`, `Bot version=5.0.0-rc.5`, `Health=ok`, `DB=ok`, `3x-ui connectivity=ok` (TCP connectivity; не подтверждение auth API/VPN data plane).
+- Перед возвратом read-only SQLite: тестовый Stars payment на **1 XTR** был `confirmed`, возвратных операций **0**, нет in-flight/unknown journal.
+- После отдельного явного согласия оператора один вызов двухэтапного UI refund: `✅ Возврат подтверждён Telegram.`; отдельное Telegram-уведомление о возврате **1 ⭐**. Предыдущий `NameError` не повторился.
+- Финальная read-only SQLite проверка: `commerce_payments.status=refunded`, количество `stars_refund_operations` **1**, `status=success`, `Consistent=True`. Без ручного исправления БД или повторной refund mutation.
+- Fix: [PR #329](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/329), отдельный release-prep [PR #330](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/330), стандартный published prerelease. Подтверждена именно happy-path refund API/UI/journal consistency; network timeout/`unknown` live test, защита от повторного запроса в production и entitlement/VPN revocation **не проверялись**. Обычный Stars refund не отзывает автоматически оплаченный период или provider access, такое действие здесь не выполнялось.
+- Оставшиеся gates: V5-A-001 широкая reconciliation/support coverage, V5-A-002 failure/restart/unknown-no-replay, V5-A-003 abuse/load/soak, IDOR/ownership, kill-switch/rollback, отложенный natural expiry V5-A-005, финальный signoff. Pilot allowlist сохраняется; stable/public rollout запрещён до общего PASS.
+
+Customer identifiers, charge reference, subscription URLs и токены не включены.
