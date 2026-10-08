@@ -37,7 +37,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.4. Этот tag является prerelease для controlled Client Portal canary. После `rc.3` High V5-A-008/#324 новый `rc.4` требует сначала targeted provider enable/expired/unknown + expiry-drift retest, а не немедленного возобновления оплаты и возвратов. При admin-disabled client запрещено автоматическое `enable=True` только из-за оплаченного entitlement. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v5.0.0-rc.5. Это prerelease для controlled Client Portal canary после High V5-A-009/#328 (Stars refund callback `NameError` на `rc.4`). До нового refund acceptance проверь published tag/SHA, состояние контейнера/SQLite/3x-ui, затем read-only статус целевого платежа и `stars_refund_operations`. Только после отдельного подтверждения оператора выполняется один refund; если outcome `unknown`, mutation автоматически не повторяется. Refund сам по себе не отзывает entitlement/VPN. V5-A-008 ранее targeted PASS на rc.4; public rollout и stable release по-прежнему заблокированы. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -103,7 +103,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.4` машинно проверяемый native API contract pinned к 3x-ui `v3.9.0`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
+Для bot release `v5.0.0-rc.5` машинно проверяемый native API contract pinned к 3x-ui `v3.9.0`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
 
 ## 2. Базовая подготовка Master VPS
 
@@ -139,7 +139,7 @@ git clone git@github.com:cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v5.0.0-rc.4
+git checkout --detach v5.0.0-rc.5
 ~~~
 
 Проверка release:
@@ -154,7 +154,7 @@ PY
 Ожидается:
 
 ~~~text
-5.0.0-rc.4
+5.0.0-rc.5
 ~~~
 
 ## 4. Создай local admin venv
