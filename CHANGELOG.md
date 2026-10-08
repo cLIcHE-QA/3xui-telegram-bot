@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Unreleased — v5 rc.3 stabilization
+- Production acceptance `v5.0.0-rc.2` остановлен после V5-A-007: реальный Stars payment дошёл до `payment=confirmed`, `entitlement=active` и доступного subscription URL, но старые накопительные 3x-ui traffic counters не были сброшены, поэтому новый finite quota сразу считался исчерпанным.
+- Paid entitlement теперь фиксирует target expiry до remote provisioning; активное продление использует `max(now, current_expiry) + duration`, поэтому оставшийся оплаченный срок не теряется и безопасный recovery не начисляет duration повторно.
+- Для finite-traffic Plan новый quota cycle выполняет durable one-shot `bulkResetTraffic`: `in_flight/success/failed/unknown` хранится в entitlement, uncertain outcome не replay'ится автоматически, а локальный access expiry публикуется только после доказанного reset либо `not_required`.
+- SQLite schema повышена до v11 migration `entitlement_quota_cycle_v5_0_0`; existing entitlement rows маркируются `legacy` и не получают автоматических remote mutations.
+- Закрывается Low UI finding #314: home/profile используют одинаковые status emoji, динамические Stars plan buttons получают leading `💎`, `/subscription` использует канонический заголовок, duplicate `/paysupport` renderer удалён.
+- Stars Orders/Admin observability из roadmap в этот stabilization scope не входит. После merge требуется новый immutable `v5.0.0-rc.3` и targeted production retest до возобновления полного acceptance.
+
 ## v5.0.0-rc.2 — Client Portal canary fixes
 - Новый immutable release candidate после остановленного canary `v5.0.0-rc.1`: pilot allowlist сохраняется, публичный signup не открывается, а production acceptance продолжается только на новом baseline.
 - Stars admin ledger больше не падает с `NameError`: `business_admin.py` явно импортирует `aiosqlite`; добавлен regression contract для `Платежи → Telegram Stars`.
