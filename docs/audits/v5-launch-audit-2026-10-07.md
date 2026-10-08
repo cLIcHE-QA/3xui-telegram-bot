@@ -150,3 +150,32 @@ Root cause подтверждён в repository code: `ProvisioningEngine.sync_u
 
 Low / non-blocking. Client Portal имел несколько presentation inconsistencies: home терял status icon, dynamic Stars plan rows не имели leading emoji, command/callback headings расходились. Fix merged via PR #318; на `v5.0.0-rc.3` требуется короткий UI regression, но finding не является причиной остановки commerce acceptance.
 
+## rc.3 targeted production retest — 2026-10-08
+
+Baseline: immutable `v5.0.0-rc.3` / `a4e1e9f5c28b54b209ce4a81b23e5d85a2c9f73a`.
+Container `running`, `RestartCount=0`, Bot `5.0.0-rc.3`, Health/DB/3x-ui connectivity `ok`.
+SQLite migration v11 применена: `schema_version=11`, `PRAGMA quick_check=ok`, column `entitlements.quota_reset_status` присутствует. Existing entitlement #1 после migration — `active/legacy`, без автоматического remote reset.
+
+### V5-A-007 targeted result
+
+**PASS по production quota/renewal/idempotent reconcile path.**
+
+Перед новой покупкой finite Plan `Смок` имел duration 30 дней, quota 1 GiB, existing expiry `2026-11-07 00:34:29 UTC` и cumulative traffic около 11.6 GiB.
+
+Одна новая Stars-покупка на rc.3 дала:
+
+- order #2 = `paid`;
+- entitlement #2 = `active`;
+- `quota_reset_status=success`;
+- old cumulative traffic `11.6 GB → 0 B`, новый limit 1.0 GB;
+- expiry = `1796603669` = `2026-12-07 00:34:29 UTC`, то есть ровно +30 дней от previous expiry, а не от current wall clock;
+- entitlement #1 сохранился `active/legacy` и не был автоматически переигран.
+
+После генерации нового ненулевого traffic выполнен повторный application-level `EntitlementProvisioningService.reconcile(2)`. Before/result/after совпали: `2 active success 1791424988 1796603669`. Customer traffic остался ненулевым, expiry не изменился. Это подтверждает отсутствие second quota reset и second renewal increment для уже active/success entitlement.
+
+Uncertain/lost-response reset no-replay покрыт repository regression tests и durable v11 state machine; намеренная fault injection в production paid customer flow на этом этапе не выполнялась. Controlled failure/restart evidence остаётся частью V5-A-002.
+
+### Low UX finding #320
+
+После successful Stars payment native invoice message остаётся визуально с кнопкой оплаты. Backend остаётся fail-closed для `order=paid` через pre-checkout validation, поэтому finding классифицирован Low/non-blocking UX. Issue #320 и roadmap item созданы отдельно; `rc.3` acceptance не останавливается.
+
