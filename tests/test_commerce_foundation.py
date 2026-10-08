@@ -436,6 +436,87 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stub.sync_calls, 1)
         self.assertEqual(stub.reset_calls, 1)
 
+    async def test_successful_quota_reset_can_finish_local_activation_without_remote_replay(self):
+        plan_id = await self.db.create_plan(
+            name="Recovered quota", duration_days=30, traffic_gb=1,
+            ip_limit=1, price_minor=100, currency="RUB",
+        )
+        await self.db.put(UserRecord(
+            telegram_id=2012, email="recover@example.test", sub_id="recover-sub",
+            expiry_time=0, created_at=1,
+        ))
+        order = await self.service.create_order(
+            telegram_id=2012, plan_id=plan_id, amount_minor=100, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-recover",
+        )
+        _, _, _, entitlement, _ = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-recover",
+            provider_payment_id=payment.provider_payment_id,
+            raw_payload=b"confirmed", signature_valid=True,
+        )
+        entitlement = await self.db.transition_entitlement(
+            entitlement.id, expected_statuses={"pending"}, target_status="provisioning",
+            starts_at=1000, expires_at=2000,
+        )
+        await self.db.transition_entitlement_quota_reset(
+            entitlement.id, expected_statuses={"pending"}, target_status="in_flight",
+        )
+        await self.db.transition_entitlement_quota_reset(
+            entitlement.id, expected_statuses={"in_flight"}, target_status="success",
+        )
+
+        class MustNotMutateProvisioner:
+            async def sync_user(self, *args, **kwargs):
+                raise AssertionError("remote provisioning must not replay")
+            async def reset_user_traffic(self, *args, **kwargs):
+                raise AssertionError("quota reset must not replay")
+
+        bridge = EntitlementProvisioningService(self.db, MustNotMutateProvisioner())
+        active = await bridge.reconcile(entitlement.id)
+        self.assertEqual(active.status, "active")
+        self.assertEqual(active.quota_reset_status, "success")
+        self.assertEqual(active.starts_at, 1000)
+        self.assertEqual(active.expires_at, 2000)
+        self.assertEqual((await self.db.get(2012)).expiry_time, 2_000_000)
+
+    async def test_legacy_quota_state_fails_closed_without_remote_mutation(self):
+        plan_id = await self.db.create_plan(
+            name="Legacy quota", duration_days=30, traffic_gb=1,
+            ip_limit=1, price_minor=100, currency="RUB",
+        )
+        await self.db.put(UserRecord(
+            telegram_id=2013, email="legacy@example.test", sub_id="legacy-sub",
+            expiry_time=0, created_at=1,
+        ))
+        order = await self.service.create_order(
+            telegram_id=2013, plan_id=plan_id, amount_minor=100, currency="RUB",
+        )
+        payment = await self.service.create_payment(
+            order_id=order.id, provider="test", provider_payment_id="pay-legacy",
+        )
+        _, _, _, entitlement, _ = await self.service.apply_confirmed_payment_event(
+            provider="test", provider_event_id="evt-legacy",
+            provider_payment_id=payment.provider_payment_id,
+            raw_payload=b"confirmed", signature_valid=True,
+        )
+        await self.db.transition_entitlement_quota_reset(
+            entitlement.id, expected_statuses={"pending"}, target_status="legacy",
+        )
+
+        class MustNotMutateProvisioner:
+            async def sync_user(self, *args, **kwargs):
+                raise AssertionError("legacy entitlement must not mutate remote state")
+            async def reset_user_traffic(self, *args, **kwargs):
+                raise AssertionError("legacy entitlement must not reset traffic")
+
+        bridge = EntitlementProvisioningService(self.db, MustNotMutateProvisioner())
+        with self.assertRaisesRegex(ProvisioningUnknown, "operator review"):
+            await bridge.reconcile(entitlement.id)
+        current = await self.db.get_entitlement(entitlement.id)
+        self.assertEqual(current.status, "pending")
+        self.assertEqual(current.quota_reset_status, "legacy")
     async def test_entitlement_provisioning_failure_does_not_rollback_payment(self):
         plan_id = await self.db.create_plan(
             name="Failure plan", duration_days=30, traffic_gb=10,
