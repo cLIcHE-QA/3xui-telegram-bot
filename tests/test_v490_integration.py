@@ -387,6 +387,10 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
                 connection.execute('CREATE TABLE sample(id INTEGER PRIMARY KEY)')
             manager = BackupManager(str(db_path), str(root / 'backups'))
             manager.sources_root = root / 'sources'
+            master = manager.sources_root / 'x-ui' / 'x-ui.db'
+            master.parent.mkdir(parents=True, exist_ok=True)
+            with sqlite3.connect(master) as connection:
+                connection.execute('CREATE TABLE master_sample(id INTEGER PRIMARY KEY)')
             result = manager.create_full_backup()
             with tarfile.open(result.info.path) as archive:
                 manifest = json.load(archive.extractfile('manifest.json'))
