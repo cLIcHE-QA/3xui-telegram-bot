@@ -385,6 +385,40 @@ test -d /opt/mtproxyl-nginx/conf
 
 Не оставляй заведомо несуществующий nginx path: Docker bind mount может создать пустой directory и скрыть ошибку настройки.
 
+### Сбой Master backup после обновления 3x-ui (WAL/ACL)
+
+На `v5.0.0-rc.6` после обновления панели `3x-ui v3.8.5 → v3.9.0` наблюдался `backup.daily=success`, но `backup.offsite=failed` / `x-ui.db: not SQLite3`. В архиве `x-ui.db` был пустым. База на Master работала; ошибка происходила из-за файловых ACL на `x-ui.db`, `x-ui.db-wal`, `x-ui.db-shm`: `user:10001:r--` при `mask::---` означает `#effective:---`. Это не является доказательством повреждения 3x-ui DB.
+
+**Диагностика без изменения production:**
+
+```bash
+sudo getfacl -cp /etc/x-ui/x-ui.db /etc/x-ui/x-ui.db-wal /etc/x-ui/x-ui.db-shm
+sudo stat -c '%a %u:%g %s %n' /etc/x-ui/x-ui.db /etc/x-ui/x-ui.db-wal /etc/x-ui/x-ui.db-shm
+```
+
+На legacy runtime, читающем SQLite через readonly bind mount, временно можно исправить **только существующие** ACL-маски, если назначенные ACL `user:10001:r--` уже присутствуют:
+
+```bash
+sudo setfacl -m 'm::r--' /etc/x-ui/x-ui.db /etc/x-ui/x-ui.db-wal /etc/x-ui/x-ui.db-shm
+```
+
+Проверить чтение из контейнера read-only URI, не изменяя БД:
+
+```bash
+docker compose exec -T bot python - <<'PY'
+import sqlite3
+with sqlite3.connect(
+    "file:/app/backup_sources/x-ui/x-ui.db?mode=ro", uri=True, timeout=10
+) as db:
+    print("journal_mode:", db.execute("PRAGMA journal_mode").fetchone()[0])
+    print("quick_check:", db.execute("PRAGMA quick_check").fetchone()[0])
+PY
+```
+
+Ожидается `wal` и `ok`. Изменение ACL временное: 3x-ui может вновь применить `chmod 0600` на DB/WAL/SHM при обновлении или перезапуске. Не использовать `chmod 777`, `immutable=1` для работающей базы, удаление WAL/SHM или запись в sqlite mount. В production runtime после fix #349 Master Full Backup получает согласованный SQLite export через штатный `GET /panel/api/server/getDb` с существующим `PANEL_API_TOKEN`; filesystem ACL для DB больше не является основным backup path. API failure **не** вызывает filesystem fallback и не считается успешным backup.
+
+После внедрения нового immutable релиза подтвердить отдельно: manual Full Backup deep validation, `backup.daily` scheduled success и `backup.offsite` encrypted upload → download → decrypt → deep validation. Не считать прошлый rc.6 scheduled backup PASS задним числом.
+
 ### Least-privilege filesystem preparation
 
 Bot image запускается как dedicated UID/GID `10001:10001`, root filesystem container-а read-only, Linux capabilities полностью dropped, а `no-new-privileges` включён. Writable runtime paths ограничены `/app/data` и tmpfs `/tmp`.
