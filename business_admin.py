@@ -1370,10 +1370,10 @@ async def client_switches_view(call: CallbackQuery):
     lines = [
         "👤 Клиентский портал и Telegram Stars", "",
         f"Портал: {label(snapshot.portal_enabled)} — {snapshot.reason('portal')}",
-        f"Портал локальная конфигурация: {'разрешает' if snapshot.env_portal else 'запрещает'}",
+        f"Портал локальная конфигурация: {'разрешает' if getattr(snapshot, "env_portal") else 'запрещает'}",
         f"Портал DB: {snapshot.db_portal if snapshot.available else 'неизвестно'}",
         f"Новые Stars: {label(snapshot.stars_enabled)} — {snapshot.reason('stars')}",
-        f"Stars локальная конфигурация: {'разрешает' if snapshot.env_stars else 'запрещает'}",
+        f"Stars локальная конфигурация: {'разрешает' if getattr(snapshot, "env_stars") else 'запрещает'}",
         f"Stars DB: {snapshot.db_stars if snapshot.available else 'неизвестно'}",
         f"Pilot allowlist: {len(set(settings.allowed_telegram_ids) | set(settings.admin_telegram_ids))} аккаунтов",
         f"Rate limit: {settings.client_rate_limit_count} / {settings.client_rate_limit_window_seconds} сек.",
