@@ -51,9 +51,13 @@ async def payment_acceptance_enabled() -> bool:
     return bool(feature_flags and (await feature_flags.snapshot()).stars_enabled)
 
 
-def configure_client_access(service: CustomerPortalService, flags: ClientFeatureFlags | None = None) -> None:
-    global customer_service, feature_flags
+def configure_client_access(service: CustomerPortalService) -> None:
+    global customer_service
     customer_service = service
+
+
+def configure_client_feature_flags(flags: ClientFeatureFlags) -> None:
+    global feature_flags
     feature_flags = flags
 
 
