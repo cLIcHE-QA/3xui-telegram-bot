@@ -9,7 +9,7 @@ import re
 from datetime import datetime, timedelta, timezone
 
 MSK = timezone(timedelta(hours=3))
-RUN = re.compile(r"^Job ID: #(\\d+); ", re.ASCII)
+RUN = re.compile(r"^Job ID: #(\d+); ", re.ASCII)
 
 
 def timestamp_msk(value: int) -> str:
