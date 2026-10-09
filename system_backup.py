@@ -63,10 +63,13 @@ class SystemBackupService:
         manager: BackupManager,
         targets: tuple[NodeBackupTarget, ...],
         host_targets: tuple[HostControlTarget, ...] = (),
+        *,
+        master_client: XUIClient | None = None,
     ):
         self.manager = manager
         self.targets = targets
         self.host_targets = host_targets
+        self.master_client = master_client
 
     def configured_node_names(self) -> tuple[str, ...]:
         return tuple(t.node_name for t in self.targets)
@@ -425,6 +428,13 @@ class SystemBackupService:
         return XUIClient(target.panel_url, target.api_token, target.verify_tls)
 
     async def create_full_backup(self) -> BackupResult:
+        # No filesystem ACL dependency for a configured production Master.
+        # The authenticated API export must succeed; never fall back to another
+        # trust boundary after a failed API response.
+        master_database = None
+        if self.master_client is not None:
+            master_database, _filename = await self.master_client.download_database()
+
         extra_files: dict[str, Path] = {}
         extra_missing: list[str] = []
         node_results: list[dict[str, object]] = []
@@ -475,4 +485,5 @@ class SystemBackupService:
                 extra_missing,
                 version=APP_VERSION,
                 extra_manifest={"nodes": node_results},
+                master_database=master_database,
             )
