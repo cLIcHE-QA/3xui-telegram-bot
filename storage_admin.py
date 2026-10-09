@@ -18,6 +18,7 @@ from offsite_backup import replicate_with_job, service_from_settings
 from restore_manager import RestoreManager
 from runtime_jobs import backup_lock
 from system_backup import SystemBackupService
+from xui import XUIClient
 from ui_time import backup_schedule_text, format_datetime
 
 
