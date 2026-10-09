@@ -11,6 +11,14 @@ ROLE_LABELS = {
     "read_only": "Read-only",
 }
 
+ROLE_ICONS = {
+    "owner": "👑",
+    "admin": "🛡",
+    "support": "🧑‍💻",
+    "read_only": "👁",
+}
+
+
 ROLE_RANK = {
     "read_only": 10,
     "support": 20,
@@ -103,7 +111,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "exact",
         "admin:home", "admin:dashboard", "admin:attention", "admin:stats",
         "admin:section:infrastructure", "admin:section:monitoring", "admin:section:system",
-        "admin:health",
+        "admin:health", "admin:attention:health",
     )
     + _rules("legacy.manage", "prefix", "admin:coming:")
     + _rules(
@@ -208,7 +216,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:usergroup:rename:", "admin:usergroup:description:",
         "admin:usergroup:deleteask:", "admin:usergroup:delete:",
     )
-    + _rules("backups.view", "exact", "admin:backups")
+    + _rules("backups.view", "exact", "admin:backups", "admin:attention:backups")
     + _rules("backups.manage", "exact", "admin:backup:create")
     + _rules(
         "nodes.view",
@@ -287,7 +295,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules(
         "monitoring.view",
         "exact",
-        "admin:traffic", "admin:online", "admin:jobs", "admin:audit", "admin:logs", "admin:logs:nodes",
+        "admin:traffic", "admin:online", "admin:jobs", "admin:attention:jobs", "admin:audit", "admin:logs", "admin:logs:nodes",
         "admin:cheburcheck", "admin:cheburcheck:start", "admin:cheburcheck:cancel",
         "admin:cheburcheck:master", "admin:cheburcheck:target:master",
     )
@@ -349,14 +357,14 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         r"^admin:cheburcheck:(start|cancel):(monitoring|master|node-\d+)$",
     )
     + _rules("jobs.manage", "exact", "admin:jobs:backup")
-    + _rules("alerts.view", "exact", "admin:alerts", "admin:alerts:check")
+    + _rules("alerts.view", "exact", "admin:alerts", "admin:attention:alerts", "admin:alerts:check")
     + _rules("alerts.manage", "regex", r"^admin:alerts:toggle:[a-z_]+$", r"^admin:alerts:disk:(80|85|90|95)$", r"^admin:alerts:backup:(24|36|48|72)$")
     + _rules("restore.manage", "exact", "admin:restore")
     + _rules("restore.manage", "prefix", "admin:restore")
     + _rules("host_control.view", "regex", r"^admin:hostctl:(m|n[1-9][0-9]{0,18})$")
     + _rules("host_control.destructive", "regex", r"^admin:hostctl:(m|n[1-9][0-9]{0,18}):(sp:(ask|run)|stopcancel|xs:(ask|run))$")
     + _rules("host_control.manage", "regex", r"^admin:hostctl:(m|n[1-9][0-9]{0,18}):(ss|sr|pr|xr):(ask|run)$")
-    + _rules("fleet.view", "exact", "admin:fleet", "admin:fleet:health", "admin:fleet:jobs", "admin:fleet:drain")
+    + _rules("fleet.view", "exact", "admin:fleet", "admin:attention:fleet", "admin:fleet:health", "admin:fleet:jobs", "admin:fleet:drain")
     + _rules("fleet.view", "regex", r"^admin:fleet:drain:n[1-9][0-9]{0,18}$")
     + _rules("fleet.manage", "exact", "admin:fleet:rollout")
     + _rules("fleet.manage", "regex", r"^admin:fleet:mt:(e|x)(:n[1-9][0-9]{0,18}|:review|:run)?$", r"^admin:fleet:ro:(p|x)(:n[1-9][0-9]{0,18}|:review)?$", r"^admin:fleet:ro:x:v:[A-Za-z0-9.-]+$", r"^admin:fleet:run:[0-9a-f]{12}:(canary|continue|cancel)$", r"^admin:fleet:drain:n[1-9][0-9]{0,18}:prepare$", r"^admin:fleet:drain:[0-9a-f]{12}:(run|cancel)$")
