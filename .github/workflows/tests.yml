@@ -32,6 +32,7 @@ jobs:
       - run: python -m pip install --require-hashes -r requirements.lock
       - run: python -m compileall -q .
       - run: python -m unittest discover -s tests -v
+      - run: python3 scripts/check-telegram-command-catalog.py
       - run: python3 scripts/check-3xui-openapi-contract.py
       - run: |
           python3 scripts/render-release-notes.py --help >/dev/null

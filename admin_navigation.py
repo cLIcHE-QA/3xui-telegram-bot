@@ -114,6 +114,7 @@ def system_menu(role: str | None = None) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🧾 Журнал аудита", callback_data="admin:audit")],
         [InlineKeyboardButton(text="👮 Администраторы", callback_data="admin:administrators")],
         [InlineKeyboardButton(text="🔧 Настройки", callback_data="admin:settings")],
+        [InlineKeyboardButton(text="📚 Команды бота", callback_data="admin:commands")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ]), role)
 

@@ -20,6 +20,7 @@ from user_ui import user_label
 from inbound_admin import inbound_list_view
 from inbound_policy import is_managed_inbound as inbound_is_managed
 from provisioning import ProvisioningEngine
+from telegram_commands import commands_help_text
 from version import APP_VERSION
 from xui import NodeInfo, XUIClient, XUIError
 
@@ -427,6 +428,21 @@ async def admin_system(call: CallbackQuery):
         call,
         system_section_text(),
         reply_markup=system_menu(role),
+    )
+    await call.answer()
+
+
+@admin_shell_router.callback_query(F.data == "admin:commands")
+async def admin_commands(call: CallbackQuery):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok or role is None:
+        return
+    await render_callback(
+        call,
+        commands_help_text(),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
+        ]),
     )
     await call.answer()
 

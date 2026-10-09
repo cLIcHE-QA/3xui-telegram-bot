@@ -298,3 +298,7 @@ PR diff автоматически проверяет `scripts/check-living-docs
 1. что изменено;
 2. какие tests/checks выполнены;
 3. есть ли оставшиеся риски, manual verification или operational steps.
+
+## Telegram slash-команды (#356)
+
+Любое добавление, удаление, переименование slash-команды, alias, `CommandStart` или route handler обязательно сопровождается одновременным изменением `telegram_commands.py`, `docs/UI_STYLE.md` и regression tests. `scripts/check-telegram-command-catalog.py` сканирует исходные обработчики через AST и выполняется в обязательном CI `Python checks`; появление неизвестной или динамической формы фильтра без review должно блокировать CI. Каталог только справочный: не регистрирует Telegram global commands, не исполняет команды и не даёт доступ в обход клиентских флагов/allowlist и административного RBAC.
