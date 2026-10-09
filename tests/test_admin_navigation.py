@@ -213,10 +213,8 @@ class AdminNavigationTests(unittest.TestCase):
         self.assertNotIn('f"🖥 Master: {settings.master_flag} {settings.master_name}', business)
 
         health = (root / "system_admin.py").read_text(encoding="utf-8")
-        self.assertIn(
-            'InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")',
-            health,
-        )
+        self.assertIn('parent_label = "⬅ Требует внимания" if from_attention else "⬅ Мониторинг"', health)
+        self.assertIn('parent = "admin:attention" if from_attention else "admin:section:monitoring"', health)
         self.assertIn(
             'InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:health")',
             health,
