@@ -19,6 +19,7 @@ from customer_service import CustomerPortalService, CustomerProviderUnavailable
 from ui_time import format_timestamp
 from website_diagnostics import qr_png
 from version import APP_VERSION
+from stars_invoice_ui import stars_invoice_title
 
 
 settings = load_settings()
@@ -433,7 +434,7 @@ async def plan_cb(call: CallbackQuery):
     payload = stars_payload(order_id=order.id, telegram_id=call.from_user.id)
     await call.bot.send_invoice(
         chat_id=call.from_user.id,
-        title=plan.name[:32],
+        title=await stars_invoice_title(call.bot),
         description=(
             f"VPN-подписка: {plan.name}, срок {plan.duration_days} дней."
         )[:255],
@@ -486,7 +487,7 @@ async def terms_accept_cb(call: CallbackQuery):
     payload = stars_payload(order_id=order.id, telegram_id=call.from_user.id)
     await call.bot.send_invoice(
         chat_id=call.from_user.id,
-        title=plan.name[:32],
+        title=await stars_invoice_title(call.bot),
         description=f"VPN-подписка: {plan.name}, срок {plan.duration_days} дней."[:255],
         payload=payload,
         currency="XTR",
