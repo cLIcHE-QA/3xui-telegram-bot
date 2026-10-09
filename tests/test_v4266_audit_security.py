@@ -214,6 +214,8 @@ class SensitiveArtifactModeTests(unittest.IsolatedAsyncioTestCase):
             manager = BackupManager(str(source_db), str(backup_dir), keep=3)
             manager.sources_root = root / "sources"
             manager.sources_root.mkdir(parents=True)
+            master_db = manager.sources_root / "x-ui" / "x-ui.db"
+            _make_sqlite(master_db)
             (manager.sources_root / "bot.env").write_text(
                 "TEST_ONLY=value\n",
                 encoding="utf-8",

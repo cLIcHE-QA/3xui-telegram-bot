@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Unreleased — Master Full Backup reliability
+
+- Full Backup не считается успешным при отсутствующей/недоступной или повреждённой Master `x-ui.db`: создание архива прерывается с ошибкой вместо некорректного `backup.daily=success` и последующего `backup.offsite=failed`.
+- Ошибка создания SQLite snapshot удаляет неполный файл; обязательный Master SQLite проходит `PRAGMA quick_check` до публикации backup. Для устранения причины сброса ACL/WAL предусмотрена отдельная доработка.
+
 ## v5.0.0-rc.6 — Stars accounting и payment idempotency
 
 - V5-A-010 / #333: повторное `successful_payment` после Stars refund больше не может перевести terminal `commerce_payments.status=refunded` обратно в `confirmed`. Регрессия `оплата → однократный возврат → дубликат payment` сохраняет refund journal и не создаёт лишних entitlement/payment/event.
