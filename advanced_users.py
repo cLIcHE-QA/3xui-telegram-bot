@@ -17,6 +17,7 @@ from admin_navigation import confirm_delete_keyboard
 from inbound_policy import is_managed_inbound as inbound_is_managed
 from audit import audit_from_call, audit_from_message
 from config import load_settings
+from trial_settings import parse_trial_setting
 from db import Database, UserRecord
 from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
@@ -319,22 +320,17 @@ async def _email_available(email: str) -> tuple[bool, str]:
 
 
 async def _trial_create_values() -> tuple[int, int, int]:
-    try:
-        days = int(await db.get_runtime_setting("trial_days", str(settings.test_days)) or settings.test_days)
-        traffic = int(
-            await db.get_runtime_setting("trial_traffic_gb", str(settings.test_traffic_gb))
-            or settings.test_traffic_gb
-        )
-        ip_limit = int(
-            await db.get_runtime_setting("trial_ip_limit", str(settings.test_ip_limit))
-            or settings.test_ip_limit
-        )
-    except (TypeError, ValueError):
-        days = settings.test_days
-        traffic = settings.test_traffic_gb
-        ip_limit = settings.test_ip_limit
-    return max(0, days), max(0, traffic), max(0, ip_limit)
-
+    """Read each setting once; an invalid override must not silently create a different trial."""
+    defaults = {
+        "trial_days": settings.test_days,
+        "trial_traffic_gb": settings.test_traffic_gb,
+        "trial_ip_limit": settings.test_ip_limit,
+    }
+    values = {}
+    for key, default in defaults.items():
+        raw = await db.get_runtime_setting(key)
+        values[key] = parse_trial_setting(key, raw, default)
+    return values["trial_days"], values["trial_traffic_gb"], values["trial_ip_limit"]
 
 async def _create_user_context(plan_id: int) -> dict[str, object]:
     if plan_id:
