@@ -276,6 +276,11 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
         "id", "name", "trigger", "actor_id", "status", "started_at",
         "finished_at", "duration_ms", "details",
     ),
+    "bot_update_acknowledgments": (
+        "job_run_id", "actor_id", "actor_username", "reason_code", "evidence_code",
+        "operation_id", "target_release", "agent_state", "target_sha",
+        "current_release", "current_sha", "postcondition", "acknowledged_at",
+    ),
     "payments": (
         "id", "telegram_id", "plan_id", "amount_minor", "currency", "status",
         "provider", "external_id", "note", "created_by", "created_at", "updated_at",
@@ -386,6 +391,7 @@ async def _validate_current_schema(
     include_plan_stars_price: bool = True,
     include_stars_hardening: bool = True,
     include_entitlement_quota_cycle: bool = True,
+    include_bot_update_acknowledgments: bool = False,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -411,6 +417,8 @@ async def _validate_current_schema(
             "customer_terms_acceptance",
             "stars_refund_operations",
         })
+    if not include_bot_update_acknowledgments:
+        skipped_tables.add("bot_update_acknowledgments")
     for table, expected in _EXPECTED_COLUMNS.items():
         if table in skipped_tables:
             continue
@@ -488,6 +496,7 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
             "website_incidents", "website_incident_notifications",
             "commerce_orders", "commerce_payments", "payment_webhook_events", "entitlements",
             "customer_terms_acceptance", "stars_refund_operations",
+            "bot_update_acknowledgments",
         }:
             continue
         if table == "user_profiles":
@@ -971,6 +980,46 @@ async def _migration_0011_entitlement_quota_cycle_v5_0_0(
     await _validate_current_schema(db)
 
 
+
+async def _migration_0012_bot_update_unknown_ack_v5_0_0(
+    db: aiosqlite.Connection,
+) -> None:
+    # Additive evidence only: no job status/history is touched or reclassified.
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS bot_update_acknowledgments (
+            job_run_id INTEGER PRIMARY KEY REFERENCES job_runs(id),
+            actor_id INTEGER NOT NULL,
+            actor_username TEXT NOT NULL DEFAULT '',
+            reason_code TEXT NOT NULL CHECK(
+                reason_code IN ('reviewed', 'recovered', 'insufficient')
+            ),
+            evidence_code TEXT NOT NULL,
+            operation_id TEXT NOT NULL DEFAULT '',
+            target_release TEXT NOT NULL DEFAULT '',
+            agent_state TEXT NOT NULL DEFAULT '',
+            target_sha TEXT NOT NULL DEFAULT '',
+            current_release TEXT NOT NULL DEFAULT '',
+            current_sha TEXT NOT NULL DEFAULT '',
+            postcondition TEXT NOT NULL DEFAULT 'not_proven',
+            acknowledged_at INTEGER NOT NULL
+        )
+        """
+    )
+    for action in ("UPDATE", "DELETE"):
+        await db.execute(
+            f"""
+            CREATE TRIGGER IF NOT EXISTS
+                trg_bot_update_ack_no_{action.lower()}
+            BEFORE {action} ON bot_update_acknowledgments
+            BEGIN
+                SELECT RAISE(ABORT, 'historical acknowledgment is immutable');
+            END
+            """
+        )
+    await _validate_current_schema(db, include_bot_update_acknowledgments=True)
+
+
 MIGRATIONS: tuple[MigrationStep, ...] = (
     MigrationStep(
         version=1,
@@ -1036,6 +1085,12 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=11,
         name="entitlement_quota_cycle_v5_0_0",
         apply=_migration_0011_entitlement_quota_cycle_v5_0_0,
+        requires_backup=False,
+    ),
+    MigrationStep(
+        version=12,
+        name="bot_update_unknown_ack_v5_0_0",
+        apply=_migration_0012_bot_update_unknown_ack_v5_0_0,
         requires_backup=False,
     ),
 )
@@ -1231,7 +1286,7 @@ async def run_migrations(
                 ) from exc
 
         if steps == MIGRATIONS:
-            await _validate_current_schema(db)
+            await _validate_current_schema(db, include_bot_update_acknowledgments=True)
         await _quick_check(db)
         return current_version
 

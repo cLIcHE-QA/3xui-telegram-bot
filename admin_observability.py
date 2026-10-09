@@ -293,6 +293,7 @@ async def jobs_view(call: CallbackQuery):
     offsite = await db.last_job_run("backup.offsite")
     provision = await db.last_job_run("provision.reconcile_all")
     history = await db.list_job_runs(limit=8)
+    acknowledged = await db.list_bot_update_acknowledged_run_ids([run.id for run in history])
     lines = [
         "⚙️ Задания",
         "",
@@ -311,9 +312,10 @@ async def jobs_view(call: CallbackQuery):
     if history:
         for run in history:
             label = job_trigger_text(run.trigger)
+            mark = " · рассмотрено Owner" if run.id in acknowledged else ""
             lines.append(
                 f"{job_status_icon(run.status)} {run.name} · {label} · "
-                f"{utc_text(run.started_at)} · {run.duration_ms / 1000:.1f}s"
+                f"{utc_text(run.started_at)} · {run.duration_ms / 1000:.1f}s{mark}"
             )
     else:
         lines.append("— история пока пуста")

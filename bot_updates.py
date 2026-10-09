@@ -16,6 +16,7 @@ from admin_ui import render_callback, render_input
 from audit import audit_from_call, audit_from_message, audit_system
 from config import load_settings
 from db import Database, JobRunRecord
+from job_update_ack import REASON_LABELS, correlate_deploy
 from deploy_control import (
     DeployControlClient,
     DeployControlError,
@@ -545,6 +546,15 @@ async def _dispatch_message(
         )
 
 
+
+async def _historical_unknown_buttons() -> list[list[tuple[str, str]]]:
+    unknown = await db.list_job_runs(name="bot.update", limit=100)
+    acknowledged = await db.list_bot_update_acknowledged_run_ids([run.id for run in unknown])
+    for run in unknown:
+        if run.status == "unknown" and run.id not in acknowledged:
+            return [[("📋 Разобрать исторический unknown", f"admin:botupd:ack:{run.id}")]]
+    return []
+
 @bot_updates_router.callback_query(F.data == "admin:botupd")
 async def updates_home(call: CallbackQuery, state: FSMContext):
     ok, _ = await authorize_callback(db, settings, call, minimum="owner")
@@ -552,6 +562,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await call.answer()
+    ack_rows = await _historical_unknown_buttons()
     client = _client()
     if client is None:
         await render_callback(
@@ -562,7 +573,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
             "Установи Deploy Agent с ограниченными полномочиями на Master и добавь локальные "
             "DEPLOY_AGENT_URL/DEPLOY_AGENT_TOKEN. Docker socket и Git deploy key "
             "в контейнере бота не требуются.",
-            reply_markup=_keyboard([[("⬅ Система", "admin:section:system")]]),
+            reply_markup=_keyboard(ack_rows + [[("⬅ Система", "admin:section:system")]]),
         )
         return
 
@@ -575,7 +586,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
             "🤖 Обновления бота\n\n"
             f"Текущий бот: {APP_VERSION}\n"
             f"🔴 Deploy Agent недоступен: {exc.code or 'error'}",
-            reply_markup=_system_back(),
+            reply_markup=_keyboard(ack_rows + [[("⬅ Система", "admin:section:system")]]),
         )
         return
 
@@ -597,6 +608,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
     if not status.active_operation:
         rows.append([("📦 Выбрать опубликованный тег", "admin:botupd:choose")])
     rows.append([("📜 История обновлений", "admin:botupd:history")])
+    rows.extend(ack_rows)
     rows.append([("🔄 Обновить", "admin:botupd")])
     rows.append([("⬅ Система", "admin:section:system")])
     await render_callback(call, "\n".join(lines), reply_markup=_keyboard(rows))
@@ -885,3 +897,118 @@ async def update_history(call: CallbackQuery):
         icon = "🟢" if op.state == "success" else "🔴" if op.state == "failed" else "🟡"
         lines.append(f"{icon} {op.release} · {_deploy_state_text(op.state)} · {op.operation_id[:8]}")
     await render_callback(call, "\n".join(lines), reply_markup=_bot_updates_back())
+
+
+async def _ack_job(run_id: int) -> JobRunRecord | None:
+    job = await db.get_job_run(run_id)
+    if job is None or job.name != "bot.update" or job.status != "unknown":
+        return None
+    return job
+
+
+@bot_updates_router.callback_query(F.data.regexp(r"^admin:botupd:ack:\d+$"))
+async def update_ack_review(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="owner")
+    if not ok:
+        return
+    run_id = int((call.data or "").rsplit(":", 1)[-1])
+    job = await _ack_job(run_id)
+    if job is None:
+        await render_callback(call, "Запуск больше не доступен для подтверждения.", reply_markup=_bot_updates_back())
+        await call.answer()
+        return
+    existing = await db.get_bot_update_acknowledgment(run_id)
+    if existing:
+        await render_callback(call, f"Задание #{run_id}: уже рассмотрено Owner. Исход: unknown.", reply_markup=_bot_updates_back())
+        await call.answer()
+        return
+
+    evidence = await correlate_deploy(job, _client())
+    rows = [
+        [(f"📝 {reason}", f"admin:botupd:ack:{run_id}:{code}")]
+        for code, reason in REASON_LABELS.items()
+    ]
+    rows.append([("⬅ Обновления бота", "admin:botupd")])
+    await render_callback(
+        call,
+        "\n".join([
+            f"📋 Историческое задание bot.update #{run_id}",
+            "Исход задания: 🟡 unknown (не изменяется)",
+            "",
+            *evidence.lines(),
+            "",
+            "Выбери основание рассмотрения. Это НЕ повторное обновление.",
+        ]),
+        reply_markup=_keyboard(rows),
+    )
+    await call.answer()
+
+
+@bot_updates_router.callback_query(
+    F.data.regexp(r"^admin:botupd:ack:\d+:(reviewed|recovered|insufficient)$")
+)
+async def update_ack_prepare(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="owner")
+    if not ok:
+        return
+    parts = (call.data or "").split(":")
+    run_id, reason = int(parts[3]), parts[4]
+    job = await _ack_job(run_id)
+    existing = await db.get_bot_update_acknowledgment(run_id)
+    if job is None or existing is not None:
+        await render_callback(call, "Подтверждение недоступно: задание уже рассмотрено или изменилось.", reply_markup=_bot_updates_back())
+        await call.answer()
+        return
+    evidence = await correlate_deploy(job, _client())
+    await render_callback(
+        call,
+        "\n".join([
+            f"⚠️ Подтвердить рассмотрение bot.update #{run_id}?",
+            "",
+            f"Основание: {REASON_LABELS[reason]}",
+            *evidence.lines(),
+            "",
+            "Будет создана необратимая запись с аудитом.",
+            "Исход unknown сохранится; новые ошибки останутся видимы.",
+        ]),
+        reply_markup=_keyboard([
+            [("✅ Признать рассмотренным", f"admin:botupd:ack:{run_id}:{reason}:confirm")],
+            [("✖ Отмена", f"admin:botupd:ack:{run_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@bot_updates_router.callback_query(
+    F.data.regexp(r"^admin:botupd:ack:\d+:(reviewed|recovered|insufficient):confirm$")
+)
+async def update_ack_confirm(call: CallbackQuery):
+    ok, _ = await authorize_callback(db, settings, call, minimum="owner")
+    if not ok or not call.from_user:
+        return
+    parts = (call.data or "").split(":")
+    run_id, reason = int(parts[3]), parts[4]
+    job = await _ack_job(run_id)
+    if job is None:
+        await render_callback(call, "Исходное задание не найдено или уже изменилось.", reply_markup=_bot_updates_back())
+        await call.answer()
+        return
+    # Always re-fetch GET-only evidence at the confirmation boundary.
+    evidence = await correlate_deploy(job, _client())
+    changed = await db.acknowledge_bot_update_unknown(
+        run_id,
+        actor_id=call.from_user.id,
+        actor_username=call.from_user.username or "",
+        reason_code=reason,
+        evidence=evidence,
+    )
+    await render_callback(
+        call,
+        (
+            f"✅ Исторический bot.update #{run_id} рассмотрен Owner."
+            if changed else f"ℹ️ Задание #{run_id} уже подтверждено."
+        ) + "\n\nИсход исходного задания: 🟡 unknown (сохранён).\n"
+        "Новая ошибка с другим run ID продолжит появляться в Attention Center.",
+        reply_markup=_bot_updates_back(),
+    )
+    await call.answer()

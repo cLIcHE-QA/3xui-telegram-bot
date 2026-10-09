@@ -145,7 +145,9 @@ def latest_drain_problem_states(plans: Iterable[Mapping[str, object]]) -> tuple[
     )
 
 
-def latest_job_problem_runs(runs: Iterable[JobLike]) -> tuple[JobLike, ...]:
+def latest_job_problem_runs(
+    runs: Iterable[JobLike], *, acknowledged_run_ids: Iterable[int] = (),
+) -> tuple[JobLike, ...]:
     """Return the latest problematic run for each non-orchestration job name."""
     latest: dict[str, JobLike] = {}
     ordered = sorted(runs, key=lambda run: _int(getattr(run, "id", 0)), reverse=True)
@@ -154,16 +156,21 @@ def latest_job_problem_runs(runs: Iterable[JobLike]) -> tuple[JobLike, ...]:
         if not name or name in latest or name in {"fleet.rollout", "fleet.drain"}:
             continue
         latest[name] = run
+    acknowledged = {int(run_id) for run_id in acknowledged_run_ids}
     return tuple(
         run for run in latest.values()
         if str(getattr(run, "status", "") or "").strip().lower() in _JOB_PROBLEM_STATES
+        and not (str(getattr(run, "name", "")) == "bot.update"
+                 and _int(getattr(run, "id", 0)) in acknowledged)
     )
 
 
-def latest_job_problem_statuses(runs: Iterable[JobLike]) -> tuple[str, ...]:
+def latest_job_problem_statuses(
+    runs: Iterable[JobLike], *, acknowledged_run_ids: Iterable[int] = (),
+) -> tuple[str, ...]:
     return tuple(
         str(getattr(run, "status", "") or "").strip().lower()
-        for run in latest_job_problem_runs(runs)
+        for run in latest_job_problem_runs(runs, acknowledged_run_ids=acknowledged_run_ids)
     )
 
 
@@ -171,6 +178,7 @@ def build_attention_items(
     *,
     active_alerts: Iterable[AlertLike],
     job_runs: Iterable[JobLike],
+    acknowledged_run_ids: Iterable[int] = (),
     infrastructure: Iterable[Mapping[str, object]],
     rollout_plans: Iterable[Mapping[str, object]],
     drain_plans: Iterable[Mapping[str, object]],
@@ -197,7 +205,7 @@ def build_attention_items(
             updated_at=_int(getattr(alert, "last_seen", 0)),
         ))
 
-    for run in latest_job_problem_runs(job_runs):
+    for run in latest_job_problem_runs(job_runs, acknowledged_run_ids=acknowledged_run_ids):
         name = _safe_text(getattr(run, "name", ""), limit=56)
         status = str(getattr(run, "status", "") or "").strip().lower()
         category = "backups" if name.startswith("backup.") else "jobs"

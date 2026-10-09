@@ -231,6 +231,7 @@ async def admin_dashboard(call: CallbackQuery):
     promo_codes = await db.list_promo_codes()
     active_alerts = await db.list_alert_states(active_only=True)
     job_runs = await db.list_job_runs(limit=100)
+    acknowledged_run_ids = await db.list_bot_update_acknowledged_run_ids([run.id for run in job_runs])
     rollout_states, drain_states = fleet_attention_states()
     attention_infrastructure = _attention_infrastructure(
         master_online=master_online,
@@ -243,7 +244,7 @@ async def admin_dashboard(call: CallbackQuery):
     ]
     attention = build_attention_summary(
         active_alerts=len(active_alerts),
-        job_statuses=latest_job_problem_statuses(job_runs),
+        job_statuses=latest_job_problem_statuses(job_runs, acknowledged_run_ids=acknowledged_run_ids),
         infrastructure_states=infrastructure_states,
         rollout_states=rollout_states,
         drain_states=drain_states,
@@ -342,10 +343,12 @@ async def admin_attention(call: CallbackQuery):
 
     active_alerts = await db.list_alert_states(active_only=True)
     job_runs = await db.list_job_runs(limit=100)
+    acknowledged_run_ids = await db.list_bot_update_acknowledged_run_ids([run.id for run in job_runs])
     rollout_plans, drain_plans = fleet_attention_detail_plans()
     items = build_attention_items(
         active_alerts=active_alerts,
         job_runs=job_runs,
+        acknowledged_run_ids=acknowledged_run_ids,
         infrastructure=_attention_infrastructure(
             master_online=master_online,
             nodes=nodes,
