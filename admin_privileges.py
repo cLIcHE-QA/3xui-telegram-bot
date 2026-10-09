@@ -289,6 +289,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "admin:administrator:", "admin:administratoradd:role:", "admin:admsd:run:",
     )
     + _rules("administrators.privileges.view", "exact", "admin:privileges")
+    + _rules("dashboard.view", "exact", "admin:commands")
     + _rules("settings.view", "exact", "admin:settings")
     + _rules("settings.manage", "exact", "admin:settings:cancel")
     + _rules("settings.manage", "prefix", "admin:settings:edit:", "admin:settings:reset:")
