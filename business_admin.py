@@ -14,6 +14,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_ui import render_callback, render_input
+from admin_identity import administrator_label, bounded_admin_button
 from admin_auth import ROLE_LABELS, authorize_callback, authorize_message, get_admin_role
 from admin_privileges import PRIVILEGES
 from audit import audit_from_call, audit_from_message
@@ -952,13 +953,13 @@ async def administrators_list(call: CallbackQuery):
     rows = []
     for tg_id in all_ids:
         if tg_id in settings.admin_telegram_ids:
-            text = f"🟢 👑 TG {tg_id} · Owner · локальная конфигурация"
+            text = f"🟢 👑 {administrator_label(tg_id)} · Owner · локальная конфигурация"
         else:
             rec = db_admins[tg_id]
             status = "🟢" if rec.enabled else "⛔"
             disabled = "" if rec.enabled else " · отключён"
-            text = f"{status} {ROLE_ICONS.get(rec.role, '❓')} TG {tg_id} · {ROLE_LABELS.get(rec.role, rec.role)}{disabled}"
-        rows.append([InlineKeyboardButton(text=text, callback_data=f"admin:administrator:{tg_id}")])
+            text = f"{status} {ROLE_ICONS.get(rec.role, '❓')} {administrator_label(tg_id)} · {ROLE_LABELS.get(rec.role, rec.role)}{disabled}"
+        rows.append([InlineKeyboardButton(text=bounded_admin_button(text), callback_data=f"admin:administrator:{tg_id}")])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить администратора", callback_data="admin:administratoradd:start")],
         [InlineKeyboardButton(text="🔐 Роли и права", callback_data="admin:privileges")],
@@ -1014,7 +1015,7 @@ async def administrator_detail(call: CallbackQuery, state: FSMContext):
     tg_id = int(call.data.rsplit(":", 1)[-1])
     if tg_id in settings.admin_telegram_ids:
         await render_callback(call, 
-            f"👑 TG {tg_id}\n\nРоль: Owner\nИсточник: локальная конфигурация\nСтатус: 🟢 включён\n\n"
+            f"👑 {administrator_label(tg_id)}\nTelegram ID: {tg_id}\n\nРоль: Owner\nИсточник: локальная конфигурация\nСтатус: 🟢 включён\n\n"
             "Этот владелец защищён от изменения через Telegram.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
@@ -1043,7 +1044,7 @@ async def administrator_detail(call: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="⬅ Администраторы", callback_data="admin:administrators")],
     ]
     await render_callback(call, 
-        f"👮 TG {tg_id}\n\n"
+        f"👮 {administrator_label(tg_id)}\nTelegram ID: {tg_id}\n\n"
         f"Роль: {role_button(rec.role)}\n"
         f"Статус: {'🟢 включён' if rec.enabled else '⛔ отключён'}\n"
         f"Добавил: {f'TG {rec.added_by}' if rec.added_by else 'система'}\n"
