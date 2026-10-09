@@ -31,7 +31,7 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         self.tmp.cleanup()
 
     async def test_schema_v11_contains_entitlement_quota_journal(self):
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 11)
+        self.assertEqual(CURRENT_SCHEMA_VERSION, 12)
         self.assertEqual(await current_schema_version(str(self.path)), 11)
         with sqlite3.connect(self.path) as conn:
             tables = {row[0] for row in conn.execute(
