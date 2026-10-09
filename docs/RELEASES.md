@@ -82,6 +82,8 @@ Feature/fix изменения сначала сливаются в `main`.
 4. version-specific tests обновляются до новой версии;
 5. runtime-функциональность не добавляется без отдельной причины.
 
+Перед release-prep обязательный CI сверяет значимые merged `feat/fix/security` PR после предыдущего тега с разделом новой версии CHANGELOG. Номера PR разрешаются через GitHub commit-to-PR API (суффикс `(#N)` не обязателен); для обоснованного исключения укажи `Release scope exclusion: PR #N — причина` в описании release PR. Gate проверяет полноту release notes, не подтверждает deployment или production acceptance.
+
 ### GitHub platform health gate
 
 Перед merge release-prep PR в `main` обязательно проверь доступность GitHub как внешней dependency. Проверка выполняется **после зелёного PR CI и непосредственно перед merge**, потому что после merge release flow зависит от push-triggered `Python checks` и последующего `Publish release`.

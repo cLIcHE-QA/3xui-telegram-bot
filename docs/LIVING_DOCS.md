@@ -15,6 +15,7 @@ Living documents описывают текущее состояние проек
 - `docs/RELEASES.md` — текущий release/tag/deployment contract;
 - `docs/GIT_WORKFLOW.md` — текущий Git/PR/issue workflow;
 - `docs/ADMIN_SETUP.md` — текущая установка и operator setup;
+- `docs/V5_PRODUCTION_ACCEPTANCE.md` — контролируемый v5 canary и обязательный production acceptance;
 - operational runbooks и schema/API/UI contracts, перечисленные в `docs/live-docs.json`.
 
 `docs/audits/**` — historical evidence. Старый факт внутри audit artifact не переписывается только потому, что состояние позже изменилось. Вместо этого добавляется closure/revalidation evidence и актуальный итоговый status.
