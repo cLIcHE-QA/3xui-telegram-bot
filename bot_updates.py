@@ -307,7 +307,6 @@ async def _dispatch(
     *,
     allow_downgrade: bool,
 ) -> None:
-    ack_rows = await _historical_unknown_buttons()
     client = _client()
     if client is None:
         await render_callback(
@@ -563,6 +562,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await call.answer()
+    ack_rows = await _historical_unknown_buttons()
     client = _client()
     if client is None:
         await render_callback(
