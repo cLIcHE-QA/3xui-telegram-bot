@@ -19,6 +19,7 @@ from admin_auth import ROLE_LABELS, authorize_callback, authorize_message, get_a
 from admin_privileges import PRIVILEGES
 from audit import audit_from_call, audit_from_message
 from config import load_settings
+from client_flags import ClientFeatureFlags, FEATURE_KEYS
 from trial_settings import parse_trial_setting, trial_limit_label
 from db import AdministratorRecord, Database, PaymentRecord, PromoCodeRecord
 from ui_time import backup_schedule_text, end_of_day_timestamp, format_timestamp
@@ -53,11 +54,13 @@ PROMO_STATE_LABELS = {
 def promo_state_text(value: str) -> str:
     return PROMO_STATE_LABELS.get(value, value)
 
+client_flags = ClientFeatureFlags(db, settings)
+
 SAFE_SETTING_SPECS = {
     "trial_days": ("🗓 Дней пробного доступа", 1, 3650, "int"),
     "trial_traffic_gb": ("📦 Трафик пробного доступа, GB", 0, 100000, "int"),
     "trial_ip_limit": ("📱 Лимит IP пробного доступа", 0, 1000, "int"),
-    "default_currency": ("💱 Валюта по умолчанию", None, None, "currency"),
+    "default_currency": ("💱 Валюта ручных платежей", None, None, "currency"),
 }
 
 
@@ -495,7 +498,7 @@ async def payment_add_plan(call: CallbackQuery, state: FSMContext):
     currency = await default_currency()
     await render_callback(call, 
         "Шаг 3/5. Отправь сумму.\n\n"
-        f"Например: 299 или 4.99 USD\nВалюта по умолчанию: {currency}",
+        f"Например: 299 или 4.99 USD\nВалюта ручных платежей: {currency}",
         reply_markup=cancel("admin:paymentadd:cancel"),
     )
     await call.answer()
@@ -1356,6 +1359,86 @@ async def effective_setting(key: str) -> str:
         return str(parse_trial_setting(key, raw, defaults[key]))
     return str(defaults[key] if raw is None else raw)
 
+
+@business_router.callback_query(F.data == "admin:settings:client")
+async def client_switches_view(call: CallbackQuery):
+    if not await guard(call):
+        return
+    snapshot = await client_flags.snapshot()
+    def label(value):
+        return "🟢 включено" if value else "⛔ выключено"
+    lines = [
+        "👤 Клиентский портал и Telegram Stars", "",
+        f"Портал: {label(snapshot.portal_enabled)} — {snapshot.reason('portal')}",
+        f"Портал .env: {'разрешает' if snapshot.env_portal else 'запрещает'}",
+        f"Портал DB: {snapshot.db_portal if snapshot.available else 'неизвестно'}",
+        f"Новые Stars: {label(snapshot.stars_enabled)} — {snapshot.reason('stars')}",
+        f"Stars .env: {'разрешает' if snapshot.env_stars else 'запрещает'}",
+        f"Stars DB: {snapshot.db_stars if snapshot.available else 'неизвестно'}",
+        f"Pilot allowlist: {len(set(settings.allowed_telegram_ids) | set(settings.admin_telegram_ids))} аккаунтов",
+        f"Rate limit: {settings.client_rate_limit_count} / {settings.client_rate_limit_window_seconds} сек.",
+        "Операции с уже оплаченными заказами продолжаются. .env=false — безусловный запрет.",
+    ]
+    rows = []
+    if snapshot.available:
+        for flag, override in (("portal", snapshot.db_portal), ("stars", snapshot.db_stars)):
+            new = "off" if override is not False else "on"
+            rows.append([InlineKeyboardButton(
+                text=f"{'👤 Портал' if flag == 'portal' else '⭐ Новые Stars'}: {'отключить' if new == 'off' else 'разрешить'}",
+                callback_data=f"admin:settings:client:{flag}:ask:{new}:{snapshot.revision(flag)}",
+            )])
+    rows += [
+        [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:settings:client")],
+        [InlineKeyboardButton(text="⬅ Настройки", callback_data="admin:settings")],
+    ]
+    await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await call.answer()
+
+
+@business_router.callback_query(F.data.regexp(r"^admin:settings:client:(portal|stars):ask:(on|off):\d+$"))
+async def client_switches_ask(call: CallbackQuery):
+    if not await guard(call, minimum="owner"):
+        return
+    _, _, _, flag, _, choice, rev = (call.data or "").split(":")
+    snapshot = await client_flags.snapshot()
+    current = snapshot.db_portal if flag == "portal" else snapshot.db_stars
+    if not snapshot.available or snapshot.revision(flag) != int(rev) or current is (choice == "on"):
+        await call.answer("Кнопка устарела; обнови состояние.", show_alert=True)
+        return
+    await render_callback(call,
+        f"⚠️ {'Разрешить' if choice == 'on' else 'Запретить'} {flag}?\n"
+        "Этот шаг не меняет .env, подписки и оплаченные заказы.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"admin:settings:client:{flag}:run:{choice}:{rev}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:settings:client")],
+        ]),
+    )
+    await call.answer()
+
+
+@business_router.callback_query(F.data.regexp(r"^admin:settings:client:(portal|stars):run:(on|off):\d+$"))
+async def client_switches_run(call: CallbackQuery):
+    if not await guard(call, minimum="owner"):
+        return
+    _, _, _, flag, _, choice, rev = (call.data or "").split(":")
+    snapshot = await client_flags.snapshot()
+    if not snapshot.available:
+        await call.answer("Состояние неизвестно; изменение запрещено.", show_alert=True)
+        return
+    try:
+        changed = await db.compare_and_set_feature_flag(
+            key=FEATURE_KEYS[flag], expected_revision=int(rev), enabled=(choice == "on"),
+            actor_id=call.from_user.id, actor_username=call.from_user.username or "",
+        )
+    except Exception:
+        await call.answer("Изменение не подтверждено; проверь состояние.", show_alert=True)
+        return
+    if not changed:
+        await call.answer("Кнопка устарела; повторное изменение не выполнялось.", show_alert=True)
+        return
+    await client_switches_view(call)
+
+
 @business_router.callback_query(F.data == "admin:settings")
 async def settings_view(call: CallbackQuery):
     if not await guard(call):
@@ -1365,7 +1448,8 @@ async def settings_view(call: CallbackQuery):
         [InlineKeyboardButton(text=f"🗓 Дней пробного доступа · {values['trial_days']}", callback_data="admin:settings:edit:trial_days")],
         [InlineKeyboardButton(text=f"📦 Трафик пробного доступа · {trial_limit_label('trial_traffic_gb', int(values['trial_traffic_gb']))}", callback_data="admin:settings:edit:trial_traffic_gb")],
         [InlineKeyboardButton(text=f"📱 Лимит IP пробного доступа · {trial_limit_label('trial_ip_limit', int(values['trial_ip_limit']))}", callback_data="admin:settings:edit:trial_ip_limit")],
-        [InlineKeyboardButton(text=f"💱 Валюта по умолчанию · {values['default_currency']}", callback_data="admin:settings:edit:default_currency")],
+        [InlineKeyboardButton(text=f"💱 Валюта ручных платежей · {values['default_currency']}", callback_data="admin:settings:edit:default_currency")],
+        [InlineKeyboardButton(text="👤 Клиентский портал", callback_data="admin:settings:client")],
         [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ]
     await render_callback(call, 
@@ -1374,7 +1458,7 @@ async def settings_view(call: CallbackQuery):
         f"🗓 Дней пробного доступа: {values['trial_days']}\n"
         f"📦 Трафик пробного доступа: {trial_limit_label('trial_traffic_gb', int(values['trial_traffic_gb']))}\n"
         f"📱 Лимит IP пробного доступа: {trial_limit_label('trial_ip_limit', int(values['trial_ip_limit']))}\n"
-        f"💱 Валюта по умолчанию: {values['default_currency']}\n\n"
+        f"💱 Валюта ручных платежей: {values['default_currency']}\n\n"
         "Ноль в лимитах трафика/IP = без ограничений в 3x-ui. "
         "Trial-настройки действуют только при новом создании в режиме совместимости; существующие пользователи не изменяются.\n\n"
         "Окружение (только чтение):\n"
