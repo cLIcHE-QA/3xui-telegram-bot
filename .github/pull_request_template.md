@@ -1,3 +1,5 @@
+> Перед merge **все чекбоксы должны быть [x]**. Неприменимый пункт отмечай после проверки применимости и с причиной `N/A: ...` в соответствующем разделе. Не выдавай непройденную проверку за PASS. Отложенный production acceptance фиксируй текстовым `PENDING` в Roadmap, а не незакрытым чекбоксом PR.
+
 ## Что изменено
 
 Кратко опиши результат изменения.
@@ -8,7 +10,7 @@
 
 ## Проверки
 
-- [ ] CI зелёный.
+- [ ] Применимые code CI-проверки (кроме самого checklist gate) завершились успешно.
 - [ ] Добавлены/обновлены тесты, если изменилось поведение.
 - [ ] Выполнен manual smoke-test, если он нужен.
 
@@ -42,7 +44,7 @@
 
 - [ ] PR title соответствует `<type>: <краткое описание>`.
 - [ ] Тип — один из: `feat`, `fix`, `security`, `docs`, `test`, `chore`, `refactor`, `release`.
-- [ ] Для release-prep title строго `release: vX.Y.Z`.
+- [ ] Для release-prep title строго `release: vX.Y.Z[-rc.N]`, иначе указано N/A.
 - [ ] В PR нет secrets, tokens, private keys, backup/enrollment contents.
 - [ ] `CHANGELOG.md` обновлён, если изменение заметно пользователю или оператору.
 - [ ] Living Docs impact проверен по `docs/LIVING_DOCS.md`.
