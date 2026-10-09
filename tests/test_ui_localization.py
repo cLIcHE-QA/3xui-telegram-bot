@@ -565,7 +565,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
             "Состояние Xray:",
             "Диск:",
             "Статус ноды:",
-            "Статус: {_job_status_text",
+            "job_value(run.id, run.status, run.started_at, run.finished_at)",
             '"all": "Все"',
             '"warning": "Предупреждения"',
             '"error": "Ошибки"',

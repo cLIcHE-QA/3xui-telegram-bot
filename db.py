@@ -2804,10 +2804,15 @@ class Database:
     async def update_alert_state(
         self, *, code: str, target: str, active: bool, value: str = "",
         notified_at: int | None = None,
+        reset_first_seen: bool = False,
     ) -> AlertStateRecord:
         now = int(time.time())
         existing = await self.get_alert_state(code, target)
-        first_seen = now if active and (not existing or not existing.active) else (existing.first_seen if existing else 0)
+        # A newer failed job run is a distinct incident, even when the
+        # previous run is still active. The historical job run remains intact.
+        first_seen = now if active and (
+            reset_first_seen or not existing or not existing.active
+        ) else (existing.first_seen if existing else 0)
         last_notified = existing.last_notified if existing else 0
         if notified_at is not None:
             last_notified = int(notified_at)
