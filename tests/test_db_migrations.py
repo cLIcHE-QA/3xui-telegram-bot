@@ -123,6 +123,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (8, "checkout_reference_v5_0_0", "success"),
                         (9, "telegram_stars_price_v5_0_0", "success"),
                         (10, "stars_production_hardening_v5_0_0", "success"),
+                        (11, "entitlement_quota_cycle_v5_0_0", "success"),
                         (12, "bot_update_unknown_ack_v5_0_0", "success"),
                     ],
                 )
@@ -171,6 +172,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (8, "checkout_reference_v5_0_0", "success"),
                         (9, "telegram_stars_price_v5_0_0", "success"),
                         (10, "stars_production_hardening_v5_0_0", "success"),
+                        (11, "entitlement_quota_cycle_v5_0_0", "success"),
                         (12, "bot_update_unknown_ack_v5_0_0", "success"),
                     ],
                 )
