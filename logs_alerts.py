@@ -5,10 +5,9 @@ import logging
 import re
 import time
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
+from typing import Iterable
 
 from alert_job_incidents import job_incident_changed, job_incident_message, job_value
-from typing import Iterable
 
 from aiogram import Bot, F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
@@ -483,7 +482,8 @@ async def _set_incident(bot: Bot | None, *, code: str, target: str, active: bool
     should_recover = bool(previous and previous.active and not active and previous.last_notified)
     notified_at = now if (should_alert or should_recover) and notify and bot is not None else None
     await db.update_alert_state(
-        code=code, target=target, active=active, value=value, notified_at=notified_at,
+        code=code, target=target, active=active, value=value,
+        notified_at=notified_at, reset_first_seen=bool(new_job_failure),
     )
     transitioned = bool(active and previous is None) or bool(previous and bool(previous.active) != bool(active)) or new_job_failure
     if transitioned:
@@ -503,6 +503,8 @@ async def _set_incident(bot: Bot | None, *, code: str, target: str, active: bool
             kind="new" if should_alert and (not previous or not previous.active or new_job_failure)
             else "reminder" if should_alert else "recovery",
             original_first_seen=previous.first_seen if previous else 0,
+            previous_value=previous.last_value if previous else "",
+
         )
     elif should_alert:
         message = f"🚨 {RULE_LABELS.get(code, code)}\nЦель: {target}\n{value}"

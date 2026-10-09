@@ -35,9 +35,12 @@ def job_incident_changed(previous_value: str, new_value: str) -> bool:
     return bool(new and (not old or old.group(1) != new.group(1)))
 
 
-def job_incident_message(target: str, value: str, *, kind: str, original_first_seen: int = 0) -> str:
+def job_incident_message(
+    target: str, value: str, *, kind: str,
+    original_first_seen: int = 0, previous_value: str = "",
+) -> str:
     # Never interpolate raw job.details/exception text into a Telegram alert.
-    safe_target = str(target)[:96]
+    safe_target = re.sub(r"[^A-Za-z0-9._ -]", "_", str(target))[:96]
     if kind == "new":
         title = "🚨 Новая ошибка фонового задания"
     elif kind == "reminder":
@@ -51,5 +54,8 @@ def job_incident_message(target: str, value: str, *, kind: str, original_first_s
         lines.append(f"Инцидент отслеживается с: {timestamp_msk(original_first_seen)}")
         lines.append("Это напоминание об исходной ошибке, а не новый запуск.")
     if kind == "recovery":
+        original = RUN.match(previous_value or "")
+        if original:
+            lines.append(f"Исходная ошибка: job #{original.group(1)}")
         lines.append("Исторический ошибочный запуск сохранён в журнале.")
     return "\n".join(lines)
