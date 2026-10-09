@@ -15,7 +15,6 @@ from aiogram.types import (
 from admin_ui import render_callback
 from config import load_settings
 from client_flags import ClientFeatureFlags
-from db import Database
 from client_rate_limit import SlidingWindowRateLimiter
 from customer_service import CustomerPortalService, CustomerProviderUnavailable
 from ui_time import format_timestamp
@@ -26,7 +25,7 @@ from stars_invoice_ui import stars_invoice_title
 
 settings = load_settings()
 customer_service: CustomerPortalService | None = None
-feature_flags = ClientFeatureFlags(Database(settings.db_path), settings)
+feature_flags: ClientFeatureFlags | None = None
 
 client_access_router = Router(name="client_access")
 
@@ -38,6 +37,7 @@ client_rate_limiter = SlidingWindowRateLimiter(
 
 
 def is_allowed(tg_id: int) -> bool:
+    # settings.client_portal_enabled is an immutable environment veto.
     # Pilot/public access policy stays explicit; the launch flag is an
     # independent rollback switch.
     return (
@@ -47,12 +47,14 @@ def is_allowed(tg_id: int) -> bool:
 
 
 async def payment_acceptance_enabled() -> bool:
-    return (await feature_flags.snapshot()).stars_enabled
+    # settings.client_payment_acceptance_enabled remains the immutable environment veto.
+    return bool(feature_flags and (await feature_flags.snapshot()).stars_enabled)
 
 
-def configure_client_access(service: CustomerPortalService) -> None:
-    global customer_service
+def configure_client_access(service: CustomerPortalService, flags: ClientFeatureFlags | None = None) -> None:
+    global customer_service, feature_flags
     customer_service = service
+    feature_flags = flags
 
 
 def _service() -> CustomerPortalService:
@@ -116,7 +118,7 @@ def back_menu() -> InlineKeyboardMarkup:
 
 
 async def guard_message(message: Message) -> bool:
-    if not (await feature_flags.snapshot()).portal_enabled:
+    if not (feature_flags and (await feature_flags.snapshot()).portal_enabled):
         await message.answer("Личный кабинет временно отключён.")
         return False
     if not message.from_user or not is_allowed(message.from_user.id):
