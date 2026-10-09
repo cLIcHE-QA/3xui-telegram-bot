@@ -70,6 +70,8 @@ Wrapper:
 
 Wrapper не выполняет `docker compose down`, не запускает generic remote shell/SSH commands, не выводит enrollment contents и не объединяет node-sync/direct-admin/Host Control secrets.
 
+> **Опциональный сетевой эксперимент:** если для новой test node обсуждается Cloudflare WARP, сначала прочитай [Cloudflare WARP для VPS и direct nodes](WARP_SETUP.md). Он не является частью guided onboarding и может нарушить SSH, Host Control source-IP ACL и VPN data plane. На production без отдельного change approval и OOB recovery не устанавливать/подключать.
+
 ## 1. Подготовь remote Host Control endpoint
 
 На новой VPS используй release bundle и `scripts/setup-host-control-endpoint.sh remote` из [Host Control Rollout](HOST_CONTROL_ROLLOUT.md).

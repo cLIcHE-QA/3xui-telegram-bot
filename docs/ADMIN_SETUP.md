@@ -70,6 +70,8 @@ Guide ориентирован на release v5.0.0-rc.7. Этот prerelease а�
 
 Не переиспользуй один token в нескольких domains.
 
+> **Cloudflare WARP — не prerequisite.** Установка, настройка DNS/egress, full/split tunnel и risk/rollback описаны отдельно в [опциональном WARP runbook](WARP_SETUP.md). Не подключай WARP на production Master/direct node в процессе обычного Admin Setup: хостовый VPN способен нарушить SSH, 3x-ui, Host Control, Docker и клиентский data plane. Требуются отдельные change approval и out-of-band console.
+
 ## 1. Сначала подготовь 3x-ui на всех VPS
 
 Этот repository не устанавливает и не обновляет сам 3x-ui при первоначальной установке.

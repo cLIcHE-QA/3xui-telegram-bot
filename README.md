@@ -385,6 +385,7 @@ git diff --check
 | UI style | [docs/UI_STYLE.md](docs/UI_STYLE.md) |
 | Direct-node onboarding | [docs/NODE_ONBOARDING.md](docs/NODE_ONBOARDING.md) |
 | Data-plane address / inbound firewall | [docs/DATA_PLANE_ADDRESSING.md](docs/DATA_PLANE_ADDRESSING.md) |
+| Опциональный Cloudflare WARP на VPS и direct nodes (отдельный сетевой change) | [docs/WARP_SETUP.md](docs/WARP_SETUP.md) |
 | Client-side subscription routing | [docs/SUBSCRIPTION_ROUTING.md](docs/SUBSCRIPTION_ROUTING.md) |
 | Host Control security | [docs/HOST_CONTROL_AGENT.md](docs/HOST_CONTROL_AGENT.md) |
 | Host Control deployment | [docs/HOST_CONTROL_DEPLOY.md](docs/HOST_CONTROL_DEPLOY.md) |
