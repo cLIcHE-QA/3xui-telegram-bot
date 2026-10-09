@@ -385,7 +385,7 @@ async def buy_cb(call: CallbackQuery):
 async def plan_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    if not payment_acceptance_enabled():
+    if not await payment_acceptance_enabled():
         await call.answer("Приём новых платежей временно отключён.", show_alert=True)
         return
     profile = await _service().profile(call.from_user.id)
@@ -475,7 +475,7 @@ async def plan_cb(call: CallbackQuery):
 async def terms_accept_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    if not payment_acceptance_enabled():
+    if not await payment_acceptance_enabled():
         await call.answer("Приём новых платежей временно отключён.", show_alert=True)
         return
     try:
@@ -522,7 +522,7 @@ async def terms_accept_cb(call: CallbackQuery):
 
 @client_access_router.pre_checkout_query()
 async def stars_pre_checkout(query: PreCheckoutQuery):
-    if not payment_acceptance_enabled():
+    if not await payment_acceptance_enabled():
         await query.answer(
             ok=False,
             error_message="Приём новых платежей временно отключён.",
