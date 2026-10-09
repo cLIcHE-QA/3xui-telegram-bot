@@ -307,6 +307,7 @@ async def _dispatch(
     *,
     allow_downgrade: bool,
 ) -> None:
+    ack_rows = await _historical_unknown_buttons()
     client = _client()
     if client is None:
         await render_callback(
@@ -546,6 +547,15 @@ async def _dispatch_message(
         )
 
 
+
+async def _historical_unknown_buttons() -> list[list[tuple[str, str]]]:
+    unknown = await db.list_job_runs(name="bot.update", limit=100)
+    acknowledged = await db.list_bot_update_acknowledged_run_ids([run.id for run in unknown])
+    for run in unknown:
+        if run.status == "unknown" and run.id not in acknowledged:
+            return [[("📋 Разобрать исторический unknown", f"admin:botupd:ack:{run.id}")]]
+    return []
+
 @bot_updates_router.callback_query(F.data == "admin:botupd")
 async def updates_home(call: CallbackQuery, state: FSMContext):
     ok, _ = await authorize_callback(db, settings, call, minimum="owner")
@@ -563,7 +573,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
             "Установи Deploy Agent с ограниченными полномочиями на Master и добавь локальные "
             "DEPLOY_AGENT_URL/DEPLOY_AGENT_TOKEN. Docker socket и Git deploy key "
             "в контейнере бота не требуются.",
-            reply_markup=_keyboard([[("⬅ Система", "admin:section:system")]]),
+            reply_markup=_keyboard(ack_rows + [[("⬅ Система", "admin:section:system")]]),
         )
         return
 
@@ -576,7 +586,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
             "🤖 Обновления бота\n\n"
             f"Текущий бот: {APP_VERSION}\n"
             f"🔴 Deploy Agent недоступен: {exc.code or 'error'}",
-            reply_markup=_system_back(),
+            reply_markup=_keyboard(ack_rows + [[("⬅ Система", "admin:section:system")]]),
         )
         return
 
@@ -598,12 +608,7 @@ async def updates_home(call: CallbackQuery, state: FSMContext):
     if not status.active_operation:
         rows.append([("📦 Выбрать опубликованный тег", "admin:botupd:choose")])
     rows.append([("📜 История обновлений", "admin:botupd:history")])
-    unknown = await db.list_job_runs(name="bot.update", limit=100)
-    acknowledged = await db.list_bot_update_acknowledged_run_ids([run.id for run in unknown])
-    for run in unknown:
-        if run.status == "unknown" and run.id not in acknowledged:
-            rows.append([("📋 Разобрать исторический unknown", f"admin:botupd:ack:{run.id}")])
-            break
+    rows.extend(ack_rows)
     rows.append([("🔄 Обновить", "admin:botupd")])
     rows.append([("⬅ Система", "admin:section:system")])
     await render_callback(call, "\n".join(lines), reply_markup=_keyboard(rows))
