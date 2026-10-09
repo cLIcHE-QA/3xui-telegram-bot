@@ -92,12 +92,20 @@ class BackupManager:
 
     @staticmethod
     def _sqlite_backup(source: Path, destination: Path) -> None:
+        # Do not leave an empty or partial database on failed SQLite backup.
         _prepare_private_file(destination)
-        src_uri = f"file:{source.resolve()}?mode=ro"
-        with sqlite3.connect(src_uri, uri=True, timeout=15) as src:
-            with sqlite3.connect(destination) as dst:
-                src.backup(dst)
-        os.chmod(destination, 0o600)
+        try:
+            src_uri = f"file:{source.resolve()}?mode=ro"
+            with sqlite3.connect(src_uri, uri=True, timeout=15) as src:
+                with sqlite3.connect(destination) as dst:
+                    src.backup(dst)
+            with sqlite3.connect(f"file:{destination.resolve()}?mode=ro", uri=True) as check:
+                if check.execute("PRAGMA quick_check").fetchone() != ("ok",):
+                    raise sqlite3.DatabaseError("Snapshot failed SQLite quick_check")
+            os.chmod(destination, 0o600)
+        except (sqlite3.Error, OSError):
+            destination.unlink(missing_ok=True)
+            raise
 
     @staticmethod
     def _copy_file(source: Path, destination: Path) -> None:
@@ -128,7 +136,6 @@ class BackupManager:
         self._ensure_dir()
         stamp = self._timestamp()
         archive_path = self.backup_dir / f"3xui-bot-backup-{stamp}.tar.gz"
-        _prepare_private_file(archive_path)
         included: list[str] = []
         missing: list[str] = []
 
@@ -142,14 +149,15 @@ class BackupManager:
 
             # 3x-ui SQLite: directory mount lets SQLite see possible -wal/-shm files.
             xui_db = self.sources_root / "x-ui" / "x-ui.db"
-            if xui_db.is_file():
-                try:
-                    self._sqlite_backup(xui_db, stage / "x-ui.db")
-                    included.append("x-ui.db")
-                except sqlite3.Error:
-                    missing.append("x-ui.db (SQLite backup failed)")
-            else:
-                missing.append("x-ui.db")
+            if not xui_db.is_file():
+                raise RuntimeError("Full Backup blocked: required Master x-ui.db is missing")
+            try:
+                self._sqlite_backup(xui_db, stage / "x-ui.db")
+            except (sqlite3.Error, OSError) as exc:
+                raise RuntimeError(
+                    f"Full Backup blocked: Master x-ui.db SQLite snapshot failed ({type(exc).__name__})"
+                ) from exc
+            included.append("x-ui.db")
 
             bot_env = self.sources_root / "bot.env"
             if bot_env.is_file():
