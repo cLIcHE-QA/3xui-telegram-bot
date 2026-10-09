@@ -5,6 +5,9 @@ import logging
 import re
 import time
 from pathlib import Path
+from datetime import datetime, timedelta, timezone
+
+from alert_job_incidents import job_incident_changed, job_incident_message, job_value
 from typing import Iterable
 
 from aiogram import Bot, F, Router
@@ -467,9 +470,14 @@ async def _set_incident(bot: Bot | None, *, code: str, target: str, active: bool
         return
     previous = await db.get_alert_state(code, target)
     now = int(time.time())
+    new_job_failure = (
+        code == "job_failed" and active
+        and job_incident_changed(previous.last_value if previous else "", value)
+    )
     should_alert = active and (
         previous is None
         or not previous.active
+        or new_job_failure
         or now - int(previous.last_notified or 0) >= max(60, int(rule.cooldown_sec or 0))
     )
     should_recover = bool(previous and previous.active and not active and previous.last_notified)
@@ -477,7 +485,7 @@ async def _set_incident(bot: Bot | None, *, code: str, target: str, active: bool
     await db.update_alert_state(
         code=code, target=target, active=active, value=value, notified_at=notified_at,
     )
-    transitioned = bool(active and previous is None) or bool(previous and bool(previous.active) != bool(active))
+    transitioned = bool(active and previous is None) or bool(previous and bool(previous.active) != bool(active)) or new_job_failure
     if transitioned:
         try:
             await audit_system(
@@ -489,7 +497,14 @@ async def _set_incident(bot: Bot | None, *, code: str, target: str, active: bool
             LOG.exception("Could not audit alert transition %s/%s", code, target)
     if not notify or bot is None or not (should_alert or should_recover):
         return
-    if should_alert:
+    if code == "job_failed":
+        message = job_incident_message(
+            target, value,
+            kind="new" if should_alert and (not previous or not previous.active or new_job_failure)
+            else "reminder" if should_alert else "recovery",
+            original_first_seen=previous.first_seen if previous else 0,
+        )
+    elif should_alert:
         message = f"🚨 {RULE_LABELS.get(code, code)}\nЦель: {target}\n{value}"
     else:
         label = RECOVERY_LABELS.get(code, RULE_LABELS.get(code, code))
@@ -584,7 +599,9 @@ async def alert_check_once(bot: Bot | None = None, *, notify: bool = True) -> li
             latest_by_name.setdefault(run.name, run)
         for name, run in latest_by_name.items():
             failed = (run.status or "").lower() == "failed"
-            value = f"Статус: {_job_status_text(run.status)}" + (f"; детали: {run.details[:260]}" if run.details else "")
+            # Persist a stable run identity in alert_state.last_value. Do not
+            # include arbitrary job details or remote object keys in alerts.
+            value = job_value(run.id, run.status, run.started_at, run.finished_at)
             await _set_incident(bot, code="job_failed", target=name, active=failed, value=value, notify=notify)
         results.append(f"✅ Проверено заданий: {len(latest_by_name)}")
     except Exception as exc:
