@@ -320,7 +320,7 @@ Versioned migration framework опубликован в `v4.15.0`: `schema_migra
 
 Roadmap не задаёт искусственный глобальный процент coverage. Критерий завершённости — наличие regression tests на security boundaries, state transitions, idempotency/retry semantics и recovery paths перечисленных модулей.
 
-##### Off-site backup
+##### Внешнее резервное копирование
 
 **Статус: ✅ Выполнено и принято в production; off-site recovery drill завершён 2026-10-05.**
 
@@ -773,7 +773,7 @@ Runtime scope завершён и опубликован: schema v4/v5 website m
 
 Существенно адаптированный/перенесённый код и алгоритмы сопровождаются required MIT notice/source attribution в `THIRD_PARTY_NOTICES.md`, а release notes явно указывают upstream reference. В Telegram result cards постоянная строка `Источник: PackBot` не нужна: данные получаются нашей реализацией, а не внешним PackBot backend.
 
-###### Release boundary
+###### Границы релиза
 
 - scope относится только к `/admin → Мониторинг`; публичный `/start` и Client Portal не расширяются;
 - каноническое display name раздела — `🌐 Мониторинг сайтов`;
@@ -859,7 +859,7 @@ HTTP: 200
 
 Status grammar обязана различать `up`, `suspect`, `down`, `unknown/checker_error` и disabled/paused state; локальная ошибка checker/network safety layer не выдаётся за подтверждённое падение сайта.
 
-###### RBAC contract
+###### Контракт ролей и прав RBAC
 
 Новых ролей не появляется.
 
@@ -882,7 +882,7 @@ PackBot upstream хранит список owners внутри site record. В �
 - global removal target при наличии других watchers требует `website_monitoring.admin` и явного confirmation;
 - alert delivery идёт только текущим watchers, имеющим право получать Telegram notifications; target ownership не используется как security identity для callback lookup.
 
-###### Persistence model
+###### Модель хранения данных
 
 Новые сущности создаются forward-only migration через существующий `schema_migrations` framework.
 
@@ -1260,7 +1260,7 @@ Implementation scope закрыт и опубликован в `v4.25.0`: User l
         └── Delete
 ~~~
 
-###### RBAC contract
+###### Контракт ролей и прав RBAC
 
 Новые экраны не вводят пятую роль и используют существующий каталог privileges.
 
@@ -2082,7 +2082,7 @@ Telegram ID:
 
 Кнопки показываются по текущему status и privilege. `Reset`, rotation и strict reconcile ведут в те же canonical confirmation screens, что тематические разделы; duplicate backend handler не создаётся.
 
-###### Enable / Disable
+###### Включение и отключение
 
 Disable переводится из one-click mutation в confirmation flow:
 
@@ -2206,7 +2206,7 @@ Implementation может сохранить существующие identifier
 - read failure не должен уничтожать доступ к Back;
 - progress screen state-changing operation может временно скрыть action buttons, если повторный click создаёт риск duplicate mutation.
 
-###### Data/API changes
+###### Изменения данных и API
 
 Минимальные backend additions v4.25:
 
@@ -3327,7 +3327,7 @@ Raw path нельзя удалить только потому, что один 
 - provider-specific JSON template не становится источником бизнес-policy entitlement;
 - rollback должен позволять отключить JSON format без изменения raw subscription identity.
 
-##### Security boundary
+##### Граница безопасности
 
 Любой subscription representation остаётся customer secret/credential-bearing artifact.
 
@@ -3728,7 +3728,7 @@ subscription_url
 
 Нельзя вводить synthetic HWID, обходить provider enforcement или скрывать несовместимость клиента под ложным success.
 
-##### Devices / HWID
+##### Устройства и HWID
 
 Общий Client Portal API может предоставлять:
 
@@ -3831,7 +3831,7 @@ contracts/
 - upgrade Remnawave требует отдельного compatibility PR/gate;
 - provider-specific runtime exceptions документируются явно и тестируются.
 
-##### Auth / RBAC
+##### Аутентификация и права RBAC
 
 Telegram RBAC остаётся независимым от Remnawave authorization model.
 
