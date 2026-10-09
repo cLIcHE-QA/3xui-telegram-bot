@@ -15,6 +15,41 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 Статус меняется только по фактическому состоянию репозитория. Merge в `main` не считается опубликованным релизом, а публикация release без завершённого acceptance scope не должна автоматически закрывать пункт.
 
+
+## v5.0.0-rc.6 — постканареечные findings и согласованный follow-up (2026-10-09)
+
+**Статус: ⬜ Запланировано / в Draft PR; общий v5 acceptance = NOT PASS.** Это рабочий backlog после production-canary, а не свидетельство устранения дефектов, merge, публикации RC или production acceptance. Финальный `v5.0.0` и расширение pilot allowlist заблокированы текущими acceptance gates. Для работы сохраняется immutable release flow: каждый fix → PR/review/CI → `main` → новый опубликованный `v5.0.0-rc.N` → отдельный controlled production smoke. Published `rc.6` не перемещать, рабочий VPS не менять при оформлении задач.
+
+### P0 — Full Backup и off-site recovery (блокирует продолжение state-changing acceptance)
+
+1. **[#348](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/348) → [Draft #350](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/350):** Full Backup должен fail-closed блокировать отсутствующую/нечитаемую/повреждённую Master SQLite, не публиковать пустой `x-ui.db` и не записывать ложный `backup.daily=success`. Проверить creation mode `0600` с самого начала, атомарное размещение и отсутствие неполного canonical archive при tar/validation failure. **CI PASS не равен security review/acceptance PASS.**
+2. **[#349](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/349) → [stacked Draft #351](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/351):** Master SQLite snapshot брать через уже существующий authenticated `GET /panel/api/server/getDb`, а не читать живые `x-ui.db{-wal,-shm}` через нестабильные ACL. Для 3x-ui `v3.9.0` upstream `ServerService.GetDb()` вызывает SQLite Online Backup API через `database.BackupSQLite()`; дополнительно проверить response contract и реальную консистентность/round trip на развёрнутом RC. Не использовать privileged fallback, `immutable=1`, `chmod 777` или WAL-delete.
+3. **Incident evidence:** 2026-10-09 05:00 MSK `backup.daily` job #92 сообщил `success` для архива с пустой Master `x-ui.db`; `backup.offsite` job #93 завершился `failed` на deep validation. Содержимое рабочей Master БД структурно корректно (`journal_mode=wal`, `quick_check=ok`) после точечного временного ACL repair. Повторные уведомления о job #93 не означают новый запуск. Старый архив от 2026-10-09 нельзя считать пригодным recovery artifact.
+4. **Release gate:** сначала review/merge #350, затем rebase/retarget и review/merge #351, затем новый immutable RC. На новом RC проверить local manual Full Backup → manifest/SQLite integrity → encrypted off-site upload → download/decrypt/deep validation → DR preflight, а также **реальный следующий scheduled cycle** (не засчитывать ручной запуск вместо `backup.daily`/`backup.offsite`). Все проверки сначала read-only/controlled; обязательный production evidence отдельно.
+
+### P1 — операционная наблюдаемость и навигация (после минимального backup-fix RC)
+
+- **⬜ [#352](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/352):** distinguishing new/repeated `job_failed` notifications: `job_id`, исходные MSK date/time и explicit «Повторное напоминание»; прежние cooldown и safe error context, отсутствие двойного подсчёта инцидентов.
+- **⬜ [#353](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/353):** историческое `job:bot.update:80` (`unknown` после неудачного `v4.26.7`, восстановление `v4.26.8`) не переписывать в success. Только read-only correlation с Deploy Agent + отдельный Owner-only acknowledged/closed finding с аудитом, сохраняющий исходный job outcome и показывающий новые ошибки.
+- **⬜ [#354](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/354):** воспроизвести и исправить parent/Back/Refresh после `Обзор → Требует внимания → Задания/Оповещения/Резервные копии`, не ослабляя RBAC; согласовать `/admin` и `admin:home` на единый role-aware heading: `👑 Owner`, `🛡 Administrator`, `🧑‍💻 Support`, `👁 Read-only`. Historical navigation issue #226 — другой scope (RBAC visibility, closed в v4.26.4).
+
+### P2 — admin UI и поддерживаемый реестр команд
+
+- **⬜ [#355](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/355):** `@username` в списке администраторов при подтверждённом доступном Telegram username, иначе `TG ID`; detail card всегда сохраняет ID, все callbacks/roles/RBAC — только ID. Отсутствие username не является ошибкой.
+- **⬜ [#356](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/356):** `/admin → Система → 📚 Команды бота`; единый catalog реально зарегистрированных slash-handlers + описание, status active/legacy, аудитория/роль, feature flag. CI блокирует drift без обновления реестра. Контракт одновременного обновления в `AGENTS.md` и UI docs; список не исполняет команды и не раскрывает новые привилегии.
+
+### P3 — документация без изменений сети
+
+- **⬜ [#357](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/357):** авторская русскоязычная текстовая инструкция Cloudflare WARP для VPS/direct nodes, адаптация по [AézaWiki (архив)](https://web.archive.org/web/20260408162809/https://wiki.aeza.net/ru/guides/warp/) и официальной upstream документации. Без скриншотов/копирования чужого текста verbatim, с безопасными preflight, routing/SSH/DNS/Host Control рисками, disable/rollback. Docs-only; не устанавливать WARP автоматически.
+
+### Приёмка и порядок
+
+- Каждая новая работа — отдельный issue/feature-or-fix PR с tests, если меняется код, и review living-docs impact. Docs-only WARP не становится runtime prerequisite.
+- Существующий docs-only [#346](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/346) ведёт отдельный scoped rc.6 ownership/callback evidence; не добавлять туда backup/UX runtime changes. Его исторические PASS сохраняют собственный scope.
+- После закрытия backup gates продолжать только **незавершённые** acceptance-сценарии (forged callbacks/IDOR, rollback/pre-checkout, failure/recovery, soak); ранее подтверждённые A/B и payment smoke без причины не повторять.
+- Пройденные локальные CI/gates не означают production PASS. Статусы `⬜` изменять только при merge, release и отдельной проверяемой production acceptance. Стратегия — минимальный backup RC сначала, затем наблюдаемость/UX и документальные улучшения, не смешивая scope.
+
+
 ## Граница v4.x / v5.x
 
 ### Линейка v4.x — финализация Admin Control Plane
