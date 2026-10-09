@@ -1380,7 +1380,8 @@ async def client_switches_view(call: CallbackQuery):
         "Операции с уже оплаченными заказами продолжаются. .env=false — безусловный запрет.",
     ]
     rows = []
-    if snapshot.available:
+    role = await get_admin_role(db, settings, call.from_user.id)
+    if snapshot.available and role == "owner":
         for flag, override in (("portal", snapshot.db_portal), ("stars", snapshot.db_stars)):
             new = "off" if override is not False else "on"
             rows.append([InlineKeyboardButton(
