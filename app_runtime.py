@@ -49,7 +49,7 @@ from admin_shell import admin_shell_router
 settings = load_settings()
 db = Database(settings.db_path)
 backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.backup_keep)
-system_backup = SystemBackupService(backup_manager, settings.node_backup_targets, settings.host_control_targets)
+system_backup = SystemBackupService(backup_manager, settings.node_backup_targets, settings.host_control_targets, master_client=XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls),)
 offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
 offsite_backup = service_from_settings(settings, offsite_restore_manager)
 commerce_service = CommerceService(db)
