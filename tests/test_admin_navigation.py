@@ -215,10 +215,7 @@ class AdminNavigationTests(unittest.TestCase):
         health = (root / "system_admin.py").read_text(encoding="utf-8")
         self.assertIn('parent_label = "⬅ Требует внимания" if from_attention else "⬅ Мониторинг"', health)
         self.assertIn('parent = "admin:attention" if from_attention else "admin:section:monitoring"', health)
-        self.assertIn(
-            'InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:health")',
-            health,
-        )
+        self.assertIn('refresh = "admin:attention:health" if from_attention else "admin:health"', health)
         self.assertNotIn("reply_markup=monitoring_menu()", health)
 
     def test_repo_wide_static_admin_navigation_contract(self):
