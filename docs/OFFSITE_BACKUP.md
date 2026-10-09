@@ -44,6 +44,12 @@ Transport принимает только canonical файлы:
 
 Legacy backup без schema 2 остаётся читаемым обычным DR tooling, но не принимается новым off-site uploader.
 
+## Master database source и fail-closed гарантия
+
+Для новых deployments после fix #349 Master `x-ui.db` берётся через существующий read-only `GET /panel/api/server/getDb` панели с тем же panel-domain API token, что используется в управлении 3x-ui. Полученный binary export проходит SQLite header/quick_check до упаковки. В случае HTTP error/не-SQLite/повреждения Full Backup **не** считается созданным и off-site upload не вызывается; автоматического fallback на прямой read-only mount `/etc/x-ui/x-ui.db{-wal,-shm}` нет. Node DB snapshot по-прежнему использует собственный direct-node panel token. Регрессионные tests блокируют публикацию пустого Master `x-ui.db`.
+
+Случай 2026-10-09 на immutable rc.6: расписание `backup.daily` отметило success несмотря на нулевой Master snapshot, но off-site deep validation остановила загрузку. Это **не** evidence успешного scheduled off-site backup; после выпуска фикса требуются новый full validation round trip и проверка заданий. Подробнее: [runbook Master WAL/ACL](ADMIN_SETUP.md#сбой-master-backup-после-обновления-3x-ui-walacl).
+
 ## Separate outcomes
 
 Локальный backup и off-site replication — разные операции.
