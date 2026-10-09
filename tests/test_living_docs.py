@@ -171,6 +171,22 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("## Checklist", template)
         self.assertIn("Обязательный чек-лист PR перед merge", git_workflow)
 
+    def test_v5_acceptance_and_release_scope_contract(self):
+        rule_by_id = {rule["id"]: rule for rule in self.contract["rules"]}
+        self.assertIn("docs/V5_PRODUCTION_ACCEPTANCE.md", self.contract["living_documents"])
+        self.assertIn("v5-client-acceptance", rule_by_id)
+        self.assertEqual(rule_by_id["v5-client-acceptance"]["mode"], "review")
+
+        workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
+        ui = (ROOT / "docs" / "UI_STYLE.md").read_text(encoding="utf-8")
+        self.assertIn("scripts/check-release-scope.py", workflow)
+        self.assertIn("docs/V5_PRODUCTION_ACCEPTANCE.md", readme)
+        self.assertIn("Client Portal v5 уже реализован", readme)
+        self.assertNotIn("private GitHub repository", admin_setup)
+        self.assertNotIn("будущий `/start`", ui)
+
     def test_living_docs_are_linked_from_readme_and_agent_contract(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
