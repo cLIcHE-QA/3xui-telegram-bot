@@ -15,6 +15,16 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 Статус меняется только по фактическому состоянию репозитория. Merge в `main` не считается опубликованным релизом, а публикация release без завершённого acceptance scope не должна автоматически закрывать пункт.
 
+## v5.0.0-rc.7 — release-prep и резервное копирование (2026-10-09)
+
+**Статус: ⬜ release-prep; P0 исправления реализованы в `main`, production acceptance = NOT PASS.** Выпуск готовится после squash merge [#350](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/350) (`3125559771e0e0cd14a17ab1ab1f8bde3dc9406c`) и [#351](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/351) (`6321a03218368b5807f48ded8d256f3564750eaf`). Отдельный Stars invoice title fix [#347](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/347) уже в `main`. Документы canary [#346](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/346) и backlog [#358](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/358) тоже слиты. Имеющийся production `rc.6` пока содержит исходные дефекты backup, новый release **не развёрнут**.
+
+- **⬜ Release gate:** отдельный `release: v5.0.0-rc.7` PR → required `test`/`title` → GitHub Status preflight → squash merge → штатный `Python checks` на `main` → автоматический immutable tag/GitHub **prerelease**. Не создавать/передвигать tag вручную.
+- **⬜ Production deploy:** только после подтверждённого published tag и отдельного решения оператора через `scripts/deploy-release.sh v5.0.0-rc.7`; сначала и после — `--status`, Health/DB/3x-ui read-back. Расширение pilot allowlist и stable v5 запрещены.
+- **⬜ Targeted backup acceptance:** Master SQLite через authenticated 3x-ui API; manual Full Backup содержит исправную `x-ui.db` (SQLite header/`quick_check`), manifest SHA-256 целостен, готовый архив mode `0600`; encrypted off-site upload → download/decrypt/deep validation и DR preflight; следующий настоящий scheduled `backup.daily`/`backup.offsite` без ложных success. Старый архив 9 октября непригоден.
+- **⬜ Operator findings:** issues [#348](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/348) и [#349](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/349) **не закрывать** до post-release verification. Работы #352–#357 сохраняют приоритеты P1–P3 и не входят в минимальный backup RC; #333/#334 также остаются открыты до собственного scoped acceptance.
+- Все прежние A/B/VPN/Stars/RBAC scoped PASS — исторические результаты на `rc.6`, **не** proof для нового release; Telegram `/start` burst anomaly и оставшиеся v5 failure/IDOR/soak tests остаются незакрытыми.
+
 ## v5.0.0-rc.6 — постканареечные findings и согласованный follow-up (2026-10-09)
 
 **Статус: ⬜ Запланировано / в Draft PR; общий v5 acceptance = NOT PASS.** Это рабочий backlog после production-canary, а не свидетельство устранения дефектов, merge, публикации RC или production acceptance. Финальный `v5.0.0` и расширение pilot allowlist заблокированы текущими acceptance gates. Для работы сохраняется immutable release flow: каждый fix → PR/review/CI → `main` → новый опубликованный `v5.0.0-rc.N` → отдельный controlled production smoke. Published `rc.6` не перемещать, рабочий VPS не менять при оформлении задач.

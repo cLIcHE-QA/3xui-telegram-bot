@@ -6,10 +6,15 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Unreleased — Master Full Backup reliability
+## v5.0.0-rc.7 — Надёжный Master Full Backup и WAL-safe API snapshot
 
-- Full Backup не считается успешным при отсутствующей/недоступной или повреждённой Master `x-ui.db`: создание архива прерывается с ошибкой вместо некорректного `backup.daily=success` и последующего `backup.offsite=failed`.
-- Ошибка создания SQLite snapshot удаляет неполный файл; обязательный Master SQLite проходит `PRAGMA quick_check` до публикации backup. Для устранения причины сброса ACL/WAL предусмотрена отдельная доработка.
+- #348 / PR #350: Full Backup теперь блокирует создание ложного `backup.daily=success`, если обязательная Master `x-ui.db` отсутствует, недоступна или повреждена; частичный SQLite snapshot удаляется, `PRAGMA quick_check` обязателен.
+- Новый Full Backup сначала пишется в приватный временный архив с правами `0600`, проходит deep validation, после чего публикуется атомарно; при tar/validation failure неполный архив не становится доступным для off-site/restore.
+- #349 / PR #351: Master `x-ui.db` получается через authenticated `GET /panel/api/server/getDb` существующего panel-domain API token. В 3x-ui v3.9.0 этот endpoint использует SQLite Online Backup API и не зависит от ACL живых `x-ui.db{-wal,-shm}`; API-failure не разрешает небезопасный fallback на файловый mount.
+- PR #347: заголовок нового Telegram Stars invoice показывает отображаемое имя бота вместо названия тарифа; описание плана, сумма, платежный payload и обработка событий не изменены.
+- PR #346 и #358: зафиксированы scoped A/B, RBAC, rollback/backup findings и дальнейший backlog; прошлые PASS не считаются полным v5 production acceptance.
+- SQLite schema остаётся **v11**, pinned 3x-ui OpenAPI contract — **v3.9.0**. Новых миграций, внешнего платежного шлюза или расширения pilot allowlist в этом RC нет.
+- После публикации immutable prerelease и controlled deployment требуются read-only preflight, manual Full Backup с deep validation, зашифрованный off-site upload → download → decrypt → deep validation, DR preflight и следующий **реальный** scheduled `backup.daily` / `backup.offsite` cycle. До подтверждения этих шагов P0 backup и общий v5 acceptance остаются **NOT PASS**.
 
 ## v5.0.0-rc.6 — Stars accounting и payment idempotency
 
