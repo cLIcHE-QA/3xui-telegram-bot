@@ -15,7 +15,8 @@
     "docs/SQLITE_MIGRATIONS.md",
     "docs/3XUI_OPENAPI_CONTRACT.md",
     "docs/UI_STYLE.md",
-    "docs/V5_PRODUCTION_ACCEPTANCE.md"
+    "docs/V5_PRODUCTION_ACCEPTANCE.md",
+    "docs/CLIENT_SETUP.md"
   ],
   "rules": [
     {
@@ -120,7 +121,8 @@
         "db_migrations.py"
       ],
       "documents": [
-        "docs/V5_PRODUCTION_ACCEPTANCE.md"
+        "docs/V5_PRODUCTION_ACCEPTANCE.md",
+        "docs/CLIENT_SETUP.md"
       ],
       "waiver": "Living Docs: v5-client-acceptance — изменений не требуется"
     }
