@@ -43,7 +43,8 @@ from admin_ui import AdminPanelSessionMiddleware, AdminPrivateChatMiddleware
 from node_admin import node_admin_router
 from system_admin import system_admin_router
 from storage_admin import storage_admin_router
-from client_access import client_access_router, configure_client_access
+from client_access import client_access_router, configure_client_access, configure_client_feature_flags
+from client_flags import ClientFeatureFlags
 from admin_shell import admin_shell_router
 
 settings = load_settings()
@@ -76,6 +77,7 @@ customer_portal_service = CustomerPortalService(
     checkout=checkout_service,
 )
 configure_client_access(customer_portal_service)
+configure_client_feature_flags(ClientFeatureFlags(db, settings))
 commerce_provisioner = ProvisioningEngine(db, commerce_xui, settings)
 entitlement_provisioning_service = EntitlementProvisioningService(
     db,

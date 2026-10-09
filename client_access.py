@@ -14,6 +14,7 @@ from aiogram.types import (
 
 from admin_ui import render_callback
 from config import load_settings
+from client_flags import ClientFeatureFlags
 from client_rate_limit import SlidingWindowRateLimiter
 from customer_service import CustomerPortalService, CustomerProviderUnavailable
 from ui_time import format_timestamp
@@ -24,6 +25,7 @@ from stars_invoice_ui import stars_invoice_title
 
 settings = load_settings()
 customer_service: CustomerPortalService | None = None
+feature_flags: ClientFeatureFlags | None = None
 
 client_access_router = Router(name="client_access")
 
@@ -35,6 +37,7 @@ client_rate_limiter = SlidingWindowRateLimiter(
 
 
 def is_allowed(tg_id: int) -> bool:
+    # settings.client_portal_enabled is an immutable environment veto.
     # Pilot/public access policy stays explicit; the launch flag is an
     # independent rollback switch.
     return (
@@ -43,13 +46,19 @@ def is_allowed(tg_id: int) -> bool:
     )
 
 
-def payment_acceptance_enabled() -> bool:
-    return bool(settings.client_payment_acceptance_enabled)
+async def payment_acceptance_enabled() -> bool:
+    # settings.client_payment_acceptance_enabled remains the immutable environment veto.
+    return bool(feature_flags and (await feature_flags.snapshot()).stars_enabled)
 
 
 def configure_client_access(service: CustomerPortalService) -> None:
     global customer_service
     customer_service = service
+
+
+def configure_client_feature_flags(flags: ClientFeatureFlags) -> None:
+    global feature_flags
+    feature_flags = flags
 
 
 def _service() -> CustomerPortalService:
@@ -113,7 +122,7 @@ def back_menu() -> InlineKeyboardMarkup:
 
 
 async def guard_message(message: Message) -> bool:
-    if not settings.client_portal_enabled:
+    if not (feature_flags and (await feature_flags.snapshot()).portal_enabled):
         await message.answer("Личный кабинет временно отключён.")
         return False
     if not message.from_user or not is_allowed(message.from_user.id):
@@ -326,7 +335,7 @@ async def devices_cb(call: CallbackQuery):
 async def buy_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    if not payment_acceptance_enabled():
+    if not await payment_acceptance_enabled():
         await render_callback(
             call,
             "💳 Купить / продлить\n\nПриём новых платежей временно отключён.",
@@ -380,7 +389,7 @@ async def buy_cb(call: CallbackQuery):
 async def plan_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    if not payment_acceptance_enabled():
+    if not await payment_acceptance_enabled():
         await call.answer("Приём новых платежей временно отключён.", show_alert=True)
         return
     profile = await _service().profile(call.from_user.id)
@@ -432,6 +441,9 @@ async def plan_cb(call: CallbackQuery):
         plan=plan,
     )
     payload = stars_payload(order_id=order.id, telegram_id=call.from_user.id)
+    if not await payment_acceptance_enabled():
+        await call.answer("Приём новых платежей временно отключён.", show_alert=True)
+        return
     await call.bot.send_invoice(
         chat_id=call.from_user.id,
         title=await stars_invoice_title(call.bot),
@@ -467,7 +479,7 @@ async def plan_cb(call: CallbackQuery):
 async def terms_accept_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    if not payment_acceptance_enabled():
+    if not await payment_acceptance_enabled():
         await call.answer("Приём новых платежей временно отключён.", show_alert=True)
         return
     try:
@@ -485,6 +497,9 @@ async def terms_accept_cb(call: CallbackQuery):
         plan=plan,
     )
     payload = stars_payload(order_id=order.id, telegram_id=call.from_user.id)
+    if not await payment_acceptance_enabled():
+        await call.answer("Приём новых платежей временно отключён.", show_alert=True)
+        return
     await call.bot.send_invoice(
         chat_id=call.from_user.id,
         title=await stars_invoice_title(call.bot),
@@ -511,7 +526,7 @@ async def terms_accept_cb(call: CallbackQuery):
 
 @client_access_router.pre_checkout_query()
 async def stars_pre_checkout(query: PreCheckoutQuery):
-    if not payment_acceptance_enabled():
+    if not await payment_acceptance_enabled():
         await query.answer(
             ok=False,
             error_message="Приём новых платежей временно отключён.",
@@ -541,6 +556,10 @@ async def stars_pre_checkout(query: PreCheckoutQuery):
             ok=False,
             error_message="Заказ изменился или больше недоступен. Создайте оплату заново.",
         )
+        return
+    # Recheck after order validation: a switch may change during DB I/O.
+    if not await payment_acceptance_enabled():
+        await query.answer(ok=False, error_message="Приём новых платежей временно отключён.")
         return
     await query.answer(ok=True)
 

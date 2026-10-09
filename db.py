@@ -2506,6 +2506,60 @@ class Database:
             await db.execute("DELETE FROM runtime_settings WHERE key = ?", (key,))
             await db.commit()
 
+    async def get_feature_flag_records(self) -> dict[str, str]:
+        """Single-snapshot, fail-closed read of both flags and revision keys."""
+        keys = (
+            "client_portal_enabled", "client_payment_acceptance_enabled",
+            "client_portal_enabled:revision", "client_payment_acceptance_enabled:revision",
+        )
+        async with aiosqlite.connect(self.path) as connection:
+            cur = await connection.execute(
+                "SELECT key, value FROM runtime_settings WHERE key IN (?, ?, ?, ?)", keys
+            )
+            return {str(key): str(value) for key, value in await cur.fetchall()}
+
+    async def compare_and_set_feature_flag(
+        self, *, key: str, expected_revision: int, enabled: bool,
+        actor_id: int, actor_username: str = "",
+    ) -> bool:
+        """CAS and audit are one SQLite write transaction, never a blind toggle."""
+        from client_flags import FEATURE_KEYS, MAX_REVISION, parse_override, parse_revision
+        if key not in FEATURE_KEYS.values() or type(enabled) is not bool:
+            raise ValueError("Invalid feature update")
+        if actor_id <= 0 or not 0 <= expected_revision < MAX_REVISION:
+            raise ValueError("Invalid feature revision/actor")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as connection:
+            await connection.execute("BEGIN IMMEDIATE")
+            cur = await connection.execute(
+                "SELECT key, value FROM runtime_settings WHERE key IN (?, ?)",
+                (key, key + ":revision"),
+            )
+            values = {str(k): str(v) for k, v in await cur.fetchall()}
+            current = parse_override(values.get(key))
+            revision = parse_revision(values.get(key + ":revision"))
+            if revision != expected_revision or current is enabled:
+                await connection.rollback()
+                return False
+            for setting_key, setting_value in (
+                (key, "true" if enabled else "false"),
+                (key + ":revision", str(revision + 1)),
+            ):
+                await connection.execute(
+                    "INSERT INTO runtime_settings(key, value, updated_by, updated_at) "
+                    "VALUES (?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET "
+                    "value=excluded.value, updated_by=excluded.updated_by, updated_at=excluded.updated_at",
+                    (setting_key, setting_value, actor_id, now),
+                )
+            await connection.execute(
+                "INSERT INTO audit_log(actor_id, actor_username, action, target_type, "
+                "target_id, details, success, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
+                (actor_id, actor_username[:64], "client.feature.toggle", "setting",
+                 key, f"old={current}; new={enabled}; revision={revision + 1}", now),
+            )
+            await connection.commit()
+            return True
+
     # --- Inbound templates ---------------------------------------------
 
     async def list_inbound_templates(self) -> list[InboundTemplateRecord]:

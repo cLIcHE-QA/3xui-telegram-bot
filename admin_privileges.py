@@ -78,6 +78,7 @@ PRIVILEGES: tuple[Privilege, ...] = (
     Privilege("administrators.privileges.view", "Роли и права: просмотр", "owner"),
     Privilege("settings.view", "Настройки: просмотр", "read_only"),
     Privilege("settings.manage", "Настройки: изменения", "admin"),
+    Privilege("settings.client_flags", "Клиентский портал и Stars: управление", "owner"),
     Privilege("monitoring.view", "Мониторинг/Журналы/Аудит/Задания: просмотр", "read_only"),
     Privilege("website_monitoring.view", "Мониторинг сайтов: просмотр", "read_only"),
     Privilege("website_monitoring.manage", "Мониторинг сайтов: подписки и ручные проверки", "support"),
@@ -290,7 +291,8 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     )
     + _rules("administrators.privileges.view", "exact", "admin:privileges")
     + _rules("dashboard.view", "exact", "admin:commands")
-    + _rules("settings.view", "exact", "admin:settings")
+    + _rules("settings.view", "exact", "admin:settings", "admin:settings:client")
+    + _rules("settings.client_flags", "regex", r"^admin:settings:client:(portal|stars):ask:(on|off):\d+$", r"^admin:settings:client:(portal|stars):run:(on|off):\d+$")
     + _rules("settings.manage", "exact", "admin:settings:cancel")
     + _rules("settings.manage", "prefix", "admin:settings:edit:", "admin:settings:reset:")
     + _rules(
