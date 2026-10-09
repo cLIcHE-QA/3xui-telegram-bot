@@ -250,6 +250,7 @@ PR diff автоматически проверяет `scripts/check-living-docs
 
 - рабочая ветка создаётся от актуального `main`;
 - PR title использует установленный `<type>: <краткое описание>`;
+- перед merge заполнены все обязательные чекбоксы PR, есть обоснование `N/A` для неприменимых пунктов и подтверждение CI; будущий production acceptance остаётся `PENDING` в Roadmap;
 - стандартный merge strategy — Squash and merge;
 - release-prep оформляется отдельным release PR;
 - не добавляй secrets в issue/PR/commit;

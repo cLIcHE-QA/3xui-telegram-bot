@@ -153,6 +153,24 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("## Roadmap / Acceptance impact", pr_template)
         self.assertIn("Что останется проверить", pr_template)
 
+    def test_required_pr_checklist_gate_is_wired(self):
+        workflow = (
+            ROOT / ".github" / "workflows" / "pr-conventions.yml"
+        ).read_text(encoding="utf-8")
+        git_workflow = (
+            ROOT / "docs" / "GIT_WORKFLOW.md"
+        ).read_text(encoding="utf-8")
+        template = (
+            ROOT / ".github" / "pull_request_template.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("types: [opened, edited, reopened, synchronize]", workflow)
+        self.assertIn("      - name: Validate PR checklist", workflow)
+        self.assertIn("python3 scripts/check_pr_checklist.py", workflow)
+        self.assertIn("PR_BODY:", workflow)
+        self.assertIn("## Checklist", template)
+        self.assertIn("Обязательный чек-лист PR перед merge", git_workflow)
+
     def test_living_docs_are_linked_from_readme_and_agent_contract(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
