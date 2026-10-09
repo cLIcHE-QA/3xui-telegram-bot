@@ -153,7 +153,7 @@ Client Portal развивается поверх отдельного commerce 
 
 Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована, развёрнута, проверена и закрыта в production. Финальные patch findings закрыты в `v4.25.8`: Clone Inbound сохраняет source parent при `✖ Отмена`, а DB-backed Owner подтверждает self-demotion отдельным fail-closed confirmation flow. Subscription proxy сохраняет принятый контракт `v4.25.3`; временные Streisand workarounds из `v4.25.4–v4.25.5` удалены. Известное ограничение: Streisand не передаёт совместимый `X-HWID`, поэтому при включённом HWID limit 3x-ui отклоняет raw subscription как `hwid_not_supported`.
 
-Текущая release-candidate версия — `v5.0.0-rc.4`. Она предназначена для targeted retest V5-A-008 / #324 после `v5.0.0-rc.3`: Client Portal теперь разделяет оплаченный entitlement/period и фактический 3x-ui `enable/expiryTime`, показывает disabled/expired/unknown без автоматического включения пользователя и выявляет drift срока между локальной БД, entitlement и provider. `v5.0.0-rc.3` остаётся immutable failed/paused acceptance baseline; частные PASS по Stars payment, quota reset, renewal/idempotency и UI сохраняются как evidence, но end-to-end access после ручного изменения expiry не принят. Bot SQLite schema остаётся **11**, pinned 3x-ui OpenAPI contract — `v3.9.0`. Pilot allowlist сохраняется, новые реальные платежи/refund не продолжаются до targeted V5-A-008 PASS и полного controlled acceptance по `docs/V5_PRODUCTION_ACCEPTANCE.md`; `v4.26.9` остаётся последним стабильным опубликованным v4 release.
+Текущий опубликованный prerelease — `v5.0.0-rc.7`: Master Full Backup использует согласованный SQLite export через 3x-ui API и глубокую проверку архива. В опубликованном RC bot SQLite schema — **v11**; изменения после `rc.7`, уже слитые в `main`, включают schema **v12**, но ещё не выпущены и не развёрнуты. Manual Full Backup/off-site и DR preflight получили только scoped PASS; реальный scheduled backup, isolated restore и общий v5 acceptance остаются **PENDING / NOT PASS**. `/start` ограничен pilot allowlist, стабильный `v5.0.0` и широкий клиентский запуск заблокированы до итогового PASS. Фактические результаты и остающиеся проверки — в [Roadmap](docs/ROADMAP.md) и [v5 Production Acceptance](docs/V5_PRODUCTION_ACCEPTANCE.md); исторические RC findings сохраняются там же.
 
 Historical v4 acceptance остаётся закрытым и документированным: Controlled Node Drain production acceptance #208 завершён 2026-10-01. Encrypted off-site backup/restore drill завершён 2026-10-05 и подтвердил `OFFSITE_RECOVERY_OK`. **Final v4 feature freeze действует с 2026-10-05**; `v4.26.9` является post-freeze operational hotfix для subscription compatibility и публикации уже слитого pilot v5 foundation, а не новым v4 product scope; до закрытия repository/public-release audit после freeze разрешались только narrowly-scoped security/reliability/data-integrity fixes, regression changes и production acceptance; сам audit теперь закрыт PASS.
 
@@ -331,14 +331,14 @@ curl -fsS http://127.0.0.1:18080/healthz
 
 ## Telegram surfaces
 
-Текущий v4 содержит два разных UI boundary.
+Текущий опубликованный `rc.7` содержит два отдельных UI/authorization boundary.
 
-Client-access compatibility flow:
+Client Portal (pilot allowlist, `CLIENT_PORTAL_ENABLED`):
 
-- `/start`;
-- `/inbounds`;
-- `/create`;
-- `/subscription`.
+- `/start` — личный кабинет;
+- `/subscription` — подписка клиента;
+- `/paysupport` — помощь по платежам;
+- `/create` и `/inbounds` — legacy-переходы в личный кабинет, а не самостоятельные mutation endpoints.
 
 Admin Control Plane:
 
@@ -348,7 +348,7 @@ Admin Control Plane:
 - Мониторинг: Трафик / В сети / Состояние системы / Проверка блокировок / Мониторинг сайтов / Журналы / Оповещения;
 - Система: Обновления бота / Версии и обновления / Задания / Резервные копии / Журнал аудита / Администраторы / Настройки.
 
-Наличие v4 client-access команд не означает, что v5 Client Portal уже реализован. Новый client-facing product flow должен сохранять отдельную authorization/navigation boundary от `/admin`.
+Client Portal v5 уже реализован в контролируемом pilot scope, но ещё **не прошёл полный production acceptance** и не является общедоступным. Его authorization/navigation boundary остаётся независимой от `/admin`; наличие slash-команды не открывает доступ в обход runtime flags, pilot allowlist и RBAC.
 
 ## CI и regression gates
 
@@ -372,6 +372,7 @@ git diff --check
 - backup/restore/off-site integrity semantics;
 - release/Git workflow conventions;
 - Living Docs diff/semantic contract и current repository-state expectations.
+- PR checklist в обязательном `PR conventions` CI: все пункты шаблона PR должны быть отмечены, N/A — обоснован; stage после release не подменяется PR-галочкой.
 
 ## Карта документации
 
@@ -382,6 +383,7 @@ git diff --check
 | Git/PR/issue conventions | [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) |
 | Living docs / drift contract | [docs/LIVING_DOCS.md](docs/LIVING_DOCS.md) |
 | Product roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
+| v5 Client Portal controlled canary и acceptance | [docs/V5_PRODUCTION_ACCEPTANCE.md](docs/V5_PRODUCTION_ACCEPTANCE.md) |
 | UI style | [docs/UI_STYLE.md](docs/UI_STYLE.md) |
 | Direct-node onboarding | [docs/NODE_ONBOARDING.md](docs/NODE_ONBOARDING.md) |
 | Data-plane address / inbound firewall | [docs/DATA_PLANE_ADDRESSING.md](docs/DATA_PLANE_ADDRESSING.md) |

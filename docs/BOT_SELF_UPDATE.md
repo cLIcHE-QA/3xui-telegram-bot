@@ -31,7 +31,7 @@ Bot container по-прежнему НЕ получает Docker socket, host sh
 
 Deploy Agent API не принимает shell command, argv, executable, script path, arbitrary Git ref/SHA, Docker arguments, filesystem path или environment overrides.
 
-Разрешён только published release tag формата `vX.Y.Z`. Repository, Compose project/service, health URL, backup directory, Git deploy key и SSH known_hosts зафиксированы host-side helper-ом и не управляются из Telegram.
+Через **Owner-only Self-Update / Deploy Agent** разрешён только published **stable** release tag формата `vX.Y.Z`; prerelease `vX.Y.Z-rc.N` этот агент намеренно не принимает (`RELEASE_RE` в `deploy_agent.py`, `deploy_control.py` и helper). Для контролируемого RC используется отдельное ручное host-side развёртывание опубликованного immutable `vX.Y.Z-rc.N` по [Release workflow](RELEASES.md) через `scripts/deploy-release.sh`, который поддерживает оба формата; Telegram Self-Update не является путём RC rollout. Repository, Compose project/service, health URL, backup directory, Git deploy key и SSH known_hosts зафиксированы host-side helper-ом и не управляются из Telegram.
 
 ## API
 
