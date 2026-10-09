@@ -130,7 +130,7 @@ class DashboardAttentionTests(unittest.TestCase):
         )[0]
 
         self.assertIn("build_attention_summary(", dashboard)
-        self.assertIn("latest_job_problem_statuses(job_runs)", dashboard)
+        self.assertIn("latest_job_problem_statuses(job_runs, acknowledged_run_ids=acknowledged_run_ids)", dashboard)
         self.assertIn("fleet_attention_states()", dashboard)
         self.assertIn("*attention.lines", dashboard)
 
