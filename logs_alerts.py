@@ -354,7 +354,7 @@ def _rule_text(rule: AlertRuleRecord) -> str:
     return f"{state} {label}"
 
 
-def _alerts_keyboard(rules: list[AlertRuleRecord]) -> InlineKeyboardMarkup:
+def _alerts_keyboard(rules: list[AlertRuleRecord], *, from_attention: bool = False) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for rule in rules:
         rows.append([InlineKeyboardButton(
@@ -373,9 +373,13 @@ def _alerts_keyboard(rules: list[AlertRuleRecord]) -> InlineKeyboardMarkup:
             InlineKeyboardButton(text=f"💾 {v} ч" + (" ✓" if backup.threshold == v else ""), callback_data=f"admin:alerts:backup:{v}")
             for v in (24, 36, 48, 72)
         ])
+    refresh = "admin:attention:alerts" if from_attention else "admin:alerts"
+    parent = "admin:attention" if from_attention else "admin:section:monitoring"
+    label = "⬅ Требует внимания" if from_attention else "⬅ Мониторинг"
     rows += [
         [InlineKeyboardButton(text="🔍 Проверить сейчас", callback_data="admin:alerts:check")],
-        [InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")],
+        [InlineKeyboardButton(text="🔄 Обновить", callback_data=refresh)],
+        [InlineKeyboardButton(text=label, callback_data=parent)],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -397,10 +401,13 @@ async def _send_alerts_view(call: CallbackQuery) -> None:
     await render_callback(
         call,
         "\n".join(lines),
-        reply_markup=filter_keyboard_for_role(_alerts_keyboard(rules), role),
+        reply_markup=filter_keyboard_for_role(
+            _alerts_keyboard(rules, from_attention=(call.data or "") == "admin:attention:alerts"), role
+        ),
     )
 
 
+@logs_alerts_router.callback_query(F.data == "admin:attention:alerts")
 @logs_alerts_router.callback_query(F.data == "admin:alerts")
 async def alerts_view(call: CallbackQuery):
     if not await guard(call):
