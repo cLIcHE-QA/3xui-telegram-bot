@@ -292,7 +292,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("administrators.privileges.view", "exact", "admin:privileges")
     + _rules("dashboard.view", "exact", "admin:commands")
     + _rules("settings.view", "exact", "admin:settings", "admin:settings:client")
-    + _rules("settings.client_flags", "regex", r"^admin:settings:client:(portal|stars):(ask|run):(on|off):\d+$")
+    + _rules("settings.client_flags", "regex", r"^admin:settings:client:(portal|stars):ask:(on|off):\d+$", r"^admin:settings:client:(portal|stars):run:(on|off):\d+$")
     + _rules("settings.manage", "exact", "admin:settings:cancel")
     + _rules("settings.manage", "prefix", "admin:settings:edit:", "admin:settings:reset:")
     + _rules(
