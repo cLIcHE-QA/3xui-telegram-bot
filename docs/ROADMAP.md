@@ -32,7 +32,8 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 - **⬜ Реальный следующий scheduled cycle:** ожидается **2026-10-10 05:00 MSK (02:00 UTC)** по текущему расписанию, подтвердить **новые** `backup.daily` и `backup.offsite` с `trigger=scheduled`, `status=success`, новыми ID и timestamp на `rc.7`; проверить конкретный созданный scheduled archive на Master SQLite/manifest/deep validation и off-site result. **Ручной job #94/#95 не заменяет этот gate**.
 - **⬜ После scheduled PASS:** задокументировать результат, обновить P0 gate и только затем рассмотреть закрытие [#348](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/348) и [#349](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/349). Полный isolated-restore DR drill и оставшиеся v5 commerce/callback IDOR/failure/soak acceptance-гейты не засчитывались этим smoke и остаются в собственных scopes.
-- **🟡 Кодовый follow-up #353:** разрабатывается отдельный PR immutable acknowledgment и read-only корреляции Deploy Agent. Это не production acceptance и не подтверждение исхода исторической операции.
+- **🟡 Кодовый follow-up #353:** [PR #362](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/362) слит в `main` (`c885bfaa927342a4d2c649557f55a95405dd548e`); операторское подтверждение исторического `bot.update:80` ещё не выполнено и production по-прежнему на rc.7. Исходный `unknown` сохраняется.
+- **🟡 Кодовый follow-up #354:** исправляется контекстная навигация Attention Center и роль в корневом заголовке; отдельный PR/CI, без production mutations.
 - **⬜ Следующая реализация:** P1 [#352](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/352) → [#353](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/353) → [#354](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/354), затем P2 #355/#356 и P3 #357; каждый кодовый fix — отдельный PR/CI/release, без live mutations в процессе разработки.
 
 ## v5.0.0-rc.6 — постканареечные findings и согласованный follow-up (2026-10-09)

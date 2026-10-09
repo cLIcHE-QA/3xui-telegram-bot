@@ -383,8 +383,8 @@ def _plan_state_text(value: str) -> str:
     return PLAN_STATE_LABELS.get(value, value or "неизвестно")
 
 
-def _fleet_home_keyboard(role: str | None = None) -> InlineKeyboardMarkup:
-    markup = _keyboard([
+def _fleet_home_keyboard(role: str | None = None, *, from_attention: bool = False) -> InlineKeyboardMarkup:
+    rows = [
         [("🩺 Состояние нод", "admin:fleet:health")],
         [
             ("🛠 Включить обслуживание", "admin:fleet:mt:e"),
@@ -393,16 +393,24 @@ def _fleet_home_keyboard(role: str | None = None) -> InlineKeyboardMarkup:
         [("🚧 Вывести из трафика", "admin:fleet:drain")],
         [("🚀 Контролируемое обновление", "admin:fleet:rollout")],
         [("🧾 Задания по нодам", "admin:fleet:jobs")],
-        [("⬅ Инфраструктура", "admin:section:infrastructure")],
-    ])
+    ]
+    if from_attention:
+        rows += [
+            [("🔄 Обновить", "admin:attention:fleet")],
+            [("⬅ Требует внимания", "admin:attention")],
+        ]
+    else:
+        rows.append([("⬅ Инфраструктура", "admin:section:infrastructure")])
+    markup = _keyboard(rows)
     return markup if role is None else filter_keyboard_for_role(markup, role)
 
 
 async def _fleet_home_keyboard_for_call(call: CallbackQuery) -> InlineKeyboardMarkup:
     role = await get_admin_role(db, settings, call.from_user.id) if call.from_user else None
-    return _fleet_home_keyboard(role)
+    return _fleet_home_keyboard(role, from_attention=(call.data or "") == "admin:attention:fleet")
 
 
+@fleet_router.callback_query(F.data == "admin:attention:fleet")
 @fleet_router.callback_query(F.data == "admin:fleet")
 async def fleet_home(call: CallbackQuery, state: FSMContext):
     ok, _ = await authorize_callback(db, settings, call, minimum="read_only")

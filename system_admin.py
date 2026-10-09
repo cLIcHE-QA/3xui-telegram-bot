@@ -227,6 +227,7 @@ async def admin_master_detail(call: CallbackQuery):
     )
 
 
+@system_admin_router.callback_query(F.data == "admin:attention:health")
 @system_admin_router.callback_query(F.data == "admin:health")
 async def admin_health(call: CallbackQuery):
     if not await _guard(call):
@@ -384,11 +385,15 @@ async def admin_health(call: CallbackQuery):
     elif nodes:
         lines.append("⚠️ Резервные копии БД нод: не настроены")
 
+    from_attention = (call.data or "") == "admin:attention:health"
+    refresh = "admin:attention:health" if from_attention else "admin:health"
+    parent = "admin:attention" if from_attention else "admin:section:monitoring"
+    parent_label = "⬅ Требует внимания" if from_attention else "⬅ Мониторинг"
     await render_callback(
         call,
         "\n".join(lines),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:health")],
-            [InlineKeyboardButton(text="⬅ Мониторинг", callback_data="admin:section:monitoring")],
+            [InlineKeyboardButton(text="🔄 Обновить", callback_data=refresh)],
+            [InlineKeyboardButton(text=parent_label, callback_data=parent)],
         ]),
     )

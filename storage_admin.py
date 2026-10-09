@@ -46,7 +46,7 @@ async def _guard(call: CallbackQuery) -> bool:
 
 async def _backup_menu_for_call(call: CallbackQuery):
     role = await get_admin_role(db, settings, call.from_user.id) if call.from_user else None
-    return backup_menu(role)
+    return backup_menu(role, from_attention=(call.data or "") == "admin:attention:backups")
 
 
 def human_bytes(value: int) -> str:
@@ -86,6 +86,7 @@ def backup_status_text() -> str:
     return "\n".join(lines)
 
 
+@storage_admin_router.callback_query(F.data == "admin:attention:backups")
 @storage_admin_router.callback_query(F.data == "admin:backups")
 async def admin_backups(call: CallbackQuery):
     if not await _guard(call):

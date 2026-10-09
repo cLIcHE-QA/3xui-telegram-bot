@@ -283,6 +283,7 @@ def job_line(run: JobRunRecord | None) -> str:
     return f"{job_status_icon(run.status)} {job_status_text(run.status)} · {utc_text(run.started_at)} · {duration}"
 
 
+@observability_router.callback_query(F.data == "admin:attention:jobs")
 @observability_router.callback_query(F.data == "admin:jobs")
 async def jobs_view(call: CallbackQuery):
     ok, role = await authorize_callback(db, settings, call)
@@ -319,10 +320,14 @@ async def jobs_view(call: CallbackQuery):
             )
     else:
         lines.append("— история пока пуста")
+    from_attention = (call.data or "") == "admin:attention:jobs"
+    refresh = "admin:attention:jobs" if from_attention else "admin:jobs"
+    parent = "admin:attention" if from_attention else "admin:section:system"
+    parent_label = "⬅ Требует внимания" if from_attention else "⬅ Система"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="▶ Запустить резервное копирование", callback_data="admin:jobs:backup")],
-        [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:jobs")],
-        [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
+        [InlineKeyboardButton(text="🔄 Обновить", callback_data=refresh)],
+        [InlineKeyboardButton(text=parent_label, callback_data=parent)],
     ])
     await render_callback(
         call,

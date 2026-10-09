@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from admin_privileges import ROLE_ICONS, ROLE_LABELS
 from admin_ui import filter_keyboard_for_role
+
+
+def admin_root_heading(role: str) -> str:
+    """Identical role-aware title for /admin and admin:home."""
+    if role not in ROLE_LABELS or role not in ROLE_ICONS:
+        raise ValueError("Неизвестная роль администратора")
+    return f"⚙️ Панель администратора · {ROLE_ICONS[role]} {ROLE_LABELS[role]}"
 
 
 def _for_role(markup: InlineKeyboardMarkup, role: str | None) -> InlineKeyboardMarkup:
@@ -49,15 +57,15 @@ def attention_menu(
     }
     rows: list[list[InlineKeyboardButton]] = []
     if "infrastructure" in active:
-        rows.append([InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:health")])
+        rows.append([InlineKeyboardButton(text="🩺 Состояние системы", callback_data="admin:attention:health")])
     if "jobs" in active:
-        rows.append([InlineKeyboardButton(text="⚙️ Задания", callback_data="admin:jobs")])
+        rows.append([InlineKeyboardButton(text="⚙️ Задания", callback_data="admin:attention:jobs")])
     if "alerts" in active:
-        rows.append([InlineKeyboardButton(text="🚨 Оповещения", callback_data="admin:alerts")])
+        rows.append([InlineKeyboardButton(text="🚨 Оповещения", callback_data="admin:attention:alerts")])
     if "backups" in active:
-        rows.append([InlineKeyboardButton(text="💾 Резервные копии", callback_data="admin:backups")])
+        rows.append([InlineKeyboardButton(text="💾 Резервные копии", callback_data="admin:attention:backups")])
     if "operations" in active:
-        rows.append([InlineKeyboardButton(text="🌐 Операции с нодами", callback_data="admin:fleet")])
+        rows.append([InlineKeyboardButton(text="🌐 Операции с нодами", callback_data="admin:attention:fleet")])
     rows += [
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:attention")],
         [InlineKeyboardButton(text="⬅ Обзор", callback_data="admin:dashboard")],
@@ -124,9 +132,17 @@ def confirm_sync_all_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def backup_menu(role: str | None = None) -> InlineKeyboardMarkup:
-    return _for_role(InlineKeyboardMarkup(inline_keyboard=[
+def backup_menu(role: str | None = None, *, from_attention: bool = False) -> InlineKeyboardMarkup:
+    """Preserve Attention entry context without changing normal backup paths."""
+    rows = [
         [InlineKeyboardButton(text="💾 Создать сейчас", callback_data="admin:backup:create")],
         [InlineKeyboardButton(text="🧯 Восстановление / DR", callback_data="admin:restore")],
-        [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
-    ]), role)
+    ]
+    if from_attention:
+        rows += [
+            [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:attention:backups")],
+            [InlineKeyboardButton(text="⬅ Требует внимания", callback_data="admin:attention")],
+        ]
+    else:
+        rows.append([InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")])
+    return _for_role(InlineKeyboardMarkup(inline_keyboard=rows), role)
