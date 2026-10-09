@@ -8,7 +8,7 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from admin_auth import authorize_callback, get_admin_role, is_private_admin_event
-from admin_navigation import admin_menu, attention_menu, dashboard_menu, infrastructure_menu, monitoring_menu, system_menu
+from admin_navigation import admin_menu, admin_root_heading, attention_menu, dashboard_menu, infrastructure_menu, monitoring_menu, system_menu
 from admin_ui import register_panel_message, render_callback
 from backup_manager import BackupManager
 from config import load_settings
@@ -143,7 +143,7 @@ async def admin(message: Message):
     if role is None:
         await message.answer("Команда доступна только администратору.")
         return
-    panel = await message.answer(f"⚙️ Панель администратора · {role}", reply_markup=admin_menu(role))
+    panel = await message.answer(admin_root_heading(role), reply_markup=admin_menu(role))
     register_panel_message(message.from_user.id, panel)
 
 def _section_header(title: str, subtitle: str) -> str:
@@ -546,5 +546,5 @@ async def admin_home(call: CallbackQuery):
     ok, role = await authorize_callback(db, settings, call)
     if not ok or role is None:
         return
-    await render_callback(call, "⚙️ Панель администратора", reply_markup=admin_menu(role))
+    await render_callback(call, admin_root_heading(role), reply_markup=admin_menu(role))
     await call.answer()
