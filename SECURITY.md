@@ -2,19 +2,30 @@
 
 ## Supported versions
 
-Security fixes are provided for the latest published v4 release line only.
+Security reports are accepted privately for all versions, but **maintenance scope differs by release line**. The latest published stable v4.x remains the supported stable line. The latest **published v5.0.0-rc.N used for a controlled, allowlisted pilot** receives limited prerelease security handling; this is **not** a declaration of stable support, completed production acceptance, or public launch readiness.
 
-| Version | Supported |
+| Version | Security maintenance |
 | --- | --- |
-| Latest published v4.x | ✅ |
-| Older v4 releases | ❌ |
+| Latest published stable v4.x | Supported stable line; security fixes are prioritized according to severity and feasibility |
+| Latest published v5.0.0-rc.N (controlled pilot) | **Limited prerelease security support**: private triage, containment, and a new immutable RC when a fix is necessary and safely releasable |
+| Older published v5 RC tags | No independent backport commitment; coordinate a move to a newer immutable RC after preflight and targeted acceptance |
+| Older stable v4 releases | No separate maintenance commitment; upgrade to a supported release where safely possible |
 | Unreleased development branches | Best effort; not a supported production release |
 
-Before reporting, reproduce against the latest published v4 release when safely possible. Do not publish a proof of concept, exploit details, credentials, subscription identifiers, private hostnames/IPs, database content, backup artifacts, or secret-bearing logs in a public issue.
+For a v5-only finding, reproduce against the **current published v5 RC** in an authorized test/canary environment when safely possible; **do not require reproduction on v4**, where the affected functionality may not exist. For a v4 finding, use the latest published stable v4.x. If safe reproduction could move money, disrupt customers, reveal credentials, or cause destructive mutations, report the evidence privately without performing a risky experiment.
+
+### Limited v5 RC security response
+
+- Privately triage reports affecting Stars payments/refunds, cross-account access, authorization/IDOR, administrative boundaries, secrets, backup integrity, and unsafe/replayed mutations; a prerelease label is **not** a reason to defer a real vulnerability.
+- For active risk, prefer rapid containment: pause the controlled pilot, restrict the allowlist, disable affected entry points/new payment acceptance, revoke compromised credentials, or use another verified mitigation appropriate to the finding. Existing confirmed payments and audit history must not be silently discarded.
+- When a code change is required, prepare a **new immutable published RC**, validate the affected scenario and regressions, and deploy only through the normal controlled release process. Never rewrite an existing RC tag or treat green CI as production acceptance.
+- No fixed remediation SLA, automatic backport to older RCs, general customer availability, or claim of full v5 production readiness is implied. Revisit this table when stable v5 is published and its production acceptance is complete.
+
+Do not publish a proof of concept, exploit details, credentials, subscription identifiers, private hostnames/IPs, database content, backup artifacts, or secret-bearing logs in a public issue.
 
 ## Reporting a vulnerability
 
-For public releases, the canonical reporting channel is **GitHub Private Vulnerability Reporting**:
+For both supported stable releases **and controlled v5 prereleases**, the canonical reporting channel is **GitHub Private Vulnerability Reporting**:
 
 1. Open the repository's **Security** tab.
 2. Open **Advisories**.

@@ -86,6 +86,11 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("Private Vulnerability Reporting is enabled", security)
         self.assertIn("Report a vulnerability", security)
         self.assertIn("public repository", security)
+        self.assertIn("Limited prerelease security support", security)
+        self.assertIn("Latest published v5.0.0-rc.N (controlled pilot)", security)
+        self.assertIn("do not require reproduction on v4", security)
+        self.assertIn("Private Vulnerability Reporting", security)
+        self.assertIn("new immutable published RC", security)
 
     def test_git_and_release_docs_record_current_rulesets(self):
         git_workflow = (ROOT / "docs" / "GIT_WORKFLOW.md").read_text(
