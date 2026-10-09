@@ -14,6 +14,8 @@ from aiogram.types import (
 
 from admin_ui import render_callback
 from config import load_settings
+from client_flags import ClientFeatureFlags
+from db import Database
 from client_rate_limit import SlidingWindowRateLimiter
 from customer_service import CustomerPortalService, CustomerProviderUnavailable
 from ui_time import format_timestamp
@@ -24,6 +26,7 @@ from stars_invoice_ui import stars_invoice_title
 
 settings = load_settings()
 customer_service: CustomerPortalService | None = None
+feature_flags = ClientFeatureFlags(Database(settings.db_path), settings)
 
 client_access_router = Router(name="client_access")
 
@@ -43,8 +46,8 @@ def is_allowed(tg_id: int) -> bool:
     )
 
 
-def payment_acceptance_enabled() -> bool:
-    return bool(settings.client_payment_acceptance_enabled)
+async def payment_acceptance_enabled() -> bool:
+    return (await feature_flags.snapshot()).stars_enabled
 
 
 def configure_client_access(service: CustomerPortalService) -> None:
@@ -113,7 +116,7 @@ def back_menu() -> InlineKeyboardMarkup:
 
 
 async def guard_message(message: Message) -> bool:
-    if not settings.client_portal_enabled:
+    if not (await feature_flags.snapshot()).portal_enabled:
         await message.answer("Личный кабинет временно отключён.")
         return False
     if not message.from_user or not is_allowed(message.from_user.id):
@@ -326,7 +329,7 @@ async def devices_cb(call: CallbackQuery):
 async def buy_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    if not payment_acceptance_enabled():
+    if not await payment_acceptance_enabled():
         await render_callback(
             call,
             "💳 Купить / продлить\n\nПриём новых платежей временно отключён.",
@@ -432,6 +435,9 @@ async def plan_cb(call: CallbackQuery):
         plan=plan,
     )
     payload = stars_payload(order_id=order.id, telegram_id=call.from_user.id)
+    if not await payment_acceptance_enabled():
+        await call.answer("Приём новых платежей временно отключён.", show_alert=True)
+        return
     await call.bot.send_invoice(
         chat_id=call.from_user.id,
         title=await stars_invoice_title(call.bot),
@@ -485,6 +491,9 @@ async def terms_accept_cb(call: CallbackQuery):
         plan=plan,
     )
     payload = stars_payload(order_id=order.id, telegram_id=call.from_user.id)
+    if not await payment_acceptance_enabled():
+        await call.answer("Приём новых платежей временно отключён.", show_alert=True)
+        return
     await call.bot.send_invoice(
         chat_id=call.from_user.id,
         title=await stars_invoice_title(call.bot),
