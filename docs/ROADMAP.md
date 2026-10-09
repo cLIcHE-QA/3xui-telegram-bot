@@ -136,10 +136,10 @@
 В v4.x входят:
 
 - завершение и полировка административных workflows;
-- infrastructure/node/fleet operations;
+- операции с инфраструктурой, нодами и серверным парком;
 - monitoring, audit, jobs, backups и disaster recovery;
 - admin roles и privilege boundaries;
-- provisioning/reconcile primitives;
+- базовые операции выдачи доступа и сверки состояния;
 - Plans / Server Groups / Payments / Promo Codes как административные и backend-сущности;
 - operational hardening, migration/recovery tooling и regression coverage;
 - исправления UX/навигации `/admin`;
@@ -326,7 +326,7 @@ Roadmap не задаёт искусственный глобальный про
 
 Encrypted off-site backup опубликован и развернут в production как `v4.18.0` (release commit `1cc730c5929ba8b2fe1152a0db1ade4b1aaa21f9`). Базовый runtime acceptance пройден: exact tag/SHA, container, app version, health, DB и 3x-ui connectivity подтверждены. Full Backup использует checksummed manifest schema 2, S3-compatible transport шифрует canonical archive client-side через AES-256-GCM, local и off-site outcomes записываются раздельно (`backup.daily`/`backup.manual` и `backup.offsite`), после upload обязателен remote download/decrypt/SHA/deep-validation round trip, retention ограничен fixed prefix, а host-side recovery CLI скачивает и проверяет latest external copy перед существующим bootstrap restore flow. Feature выключена по умолчанию и не открывает Telegram доступ к bucket/object key/credentials/filesystem path.
 
-**Production acceptance завершён 2026-10-05:** на реально внешнем S3-compatible target с dedicated credentials и отдельно сохранённым recovery encryption key создан manual Full Backup; `backup.offsite` завершился `success`, а обязательный upload → HEAD → download → AES-GCM authentication/decrypt → SHA-256/size → повторный deep validation round trip подтверждён. На отдельном recovery VPS host-side CLI получил latest canonical object и завершился `OFFSITE_RECOVERY_OK`; `manifest.version=4.26.4`. Дополнительный bootstrap smoke восстановил `bot.env` и `bot.sqlite3`, поднял container с `APP_VERSION=4.26.4`, Health/DB `ok`; финальный generic upstream TCP probe из изолированного recovery VPS получил timeout, что относится к подготовке полного replacement Master/network path и не входит в критерий этого off-site gate. После smoke recovery bot остановлен, production Master возвращён с Health/DB/3x-ui connectivity `ok`, временное recovery окружение очищено. Секреты bucket credentials/encryption key не публиковались в Telegram/chat/Git.
+**Приёмка в production завершён 2026-10-05:** на реально внешнем S3-compatible target с dedicated credentials и отдельно сохранённым recovery encryption key создан manual Full Backup; `backup.offsite` завершился `success`, а обязательный upload → HEAD → download → AES-GCM authentication/decrypt → SHA-256/size → повторный deep validation round trip подтверждён. На отдельном recovery VPS host-side CLI получил latest canonical object и завершился `OFFSITE_RECOVERY_OK`; `manifest.version=4.26.4`. Дополнительный bootstrap smoke восстановил `bot.env` и `bot.sqlite3`, поднял container с `APP_VERSION=4.26.4`, Health/DB `ok`; финальный generic upstream TCP probe из изолированного recovery VPS получил timeout, что относится к подготовке полного replacement Master/network path и не входит в критерий этого off-site gate. После smoke recovery bot остановлен, production Master возвращён с Health/DB/3x-ui connectivity `ok`, временное recovery окружение очищено. Секреты bucket credentials/encryption key не публиковались в Telegram/chat/Git.
 
 Локальный Full Backup остаётся необходимым, но сам по себе не закрывает сценарий полной потери Master VPS. До v5.0.0 должен появиться поддерживаемый способ иметь хотя бы одну актуальную recovery copy вне Master host.
 
@@ -463,7 +463,7 @@ Scope `v4.20.5`:
 - navigation regression проверяет, что `admin_menu()` используется только корневым экраном, а `Обзор` имеет локальную навигацию и явный возврат к `Панели администратора`;
 - `docs/UI_STYLE.md` остаётся нормативным источником этих правил для следующих UI PR.
 
-Production acceptance `v4.20.5` закрыт: release развернут в production, и оператор подтвердил успешный targeted smoke по всем трём пунктам — Fleet Health display, симметричный status template списка `Ноды` и локальная навигация `Обзора`. Следующим patch-релизом идёт `v4.20.6` с UI-04, затем последовательность feature-релизов `v4.21.0`–`v4.26.0`; off-site drill и freeze выполняются уже после них.
+Приёмка в production `v4.20.5` закрыт: release развернут в production, и оператор подтвердил успешный targeted smoke по всем трём пунктам — Fleet Health display, симметричный status template списка `Ноды` и локальная навигация `Обзора`. Следующим patch-релизом идёт `v4.20.6` с UI-04, затем последовательность feature-релизов `v4.21.0`–`v4.26.0`; off-site drill и freeze выполняются уже после них.
 
 ##### UI-04 — симметрия Master/direct-node health summary
 
@@ -507,7 +507,7 @@ Production acceptance `v4.20.5` закрыт: release развернут в prod
 🌐 Inbounds: 3 · 👥 Клиентов: 24 · 📡 В сети: 7 · 📶 42 ms
 ~~~
 
-Production acceptance `v4.20.6` закрыт: release развернут в production, и оператор подтвердил targeted smoke экрана `Мониторинг → Состояние системы`. Общие Master/direct-node labels и statuses отображаются по новому contract, Xray state/version видны у direct node, а Master-only/node-only показатели остаются разделены. Разница RAM представления считается ожидаемой: Master получает used/total из `server_status()`, а агрегированный `NodeInfo` direct node сейчас содержит только `memPct`; дополнительные direct-node API calls ради абсолютных значений не добавляются.
+Приёмка в production `v4.20.6` закрыт: release развернут в production, и оператор подтвердил targeted smoke экрана `Мониторинг → Состояние системы`. Общие Master/direct-node labels и statuses отображаются по новому contract, Xray state/version видны у direct node, а Master-only/node-only показатели остаются разделены. Разница RAM представления считается ожидаемой: Master получает used/total из `server_status()`, а агрегированный `NodeInfo` direct node сейчас содержит только `memPct`; дополнительные direct-node API calls ради абсолютных значений не добавляются.
 
 ##### Единая терминология Inbound / Inbounds
 
@@ -524,7 +524,7 @@ Production acceptance `v4.20.6` закрыт: release развернут в prod
 - regression/source-audit запрещает возврат гибридных operator-facing форм и отдельно допускает технические lower-case identifiers там, где они не являются пользовательским текстом;
 - SQLite schema, provisioning semantics, 3x-ui/OpenAPI contract, Host Control/Deploy Agent API, callback identity и mutation safety не меняются.
 
-Production acceptance `v4.20.7` закрыт: release развернут в production, и оператор завершил targeted smoke основных operator-facing поверхностей с новым terminology contract — `Обзор`, `Инфраструктура → Inbounds`, карточки Inbound, direct-node Inbounds, карточка пользователя/связи Inbounds, Server Groups, `Мониторинг → Состояние системы`, `Роли и права` и client `/start`. Гибридные формы с апострофом на проверенных поверхностях не обнаружены; runtime/API/DB identifiers и mutation semantics не менялись.
+Приёмка в production `v4.20.7` закрыт: release развернут в production, и оператор завершил targeted smoke основных operator-facing поверхностей с новым terminology contract — `Обзор`, `Инфраструктура → Inbounds`, карточки Inbound, direct-node Inbounds, карточка пользователя/связи Inbounds, Server Groups, `Мониторинг → Состояние системы`, `Роли и права` и client `/start`. Гибридные формы с апострофом на проверенных поверхностях не обнаружены; runtime/API/DB identifiers и mutation semantics не менялись.
 
 #### v4.20.8 — финальная капитализация Inbound
 
@@ -532,7 +532,7 @@ Production acceptance `v4.20.7` закрыт: release развернут в prod
 
 Scope ограничен operator-facing строками: оставшийся lowercase `inbound` в edit/clone/delete/error/help flows заменяется на канонические `Inbound` / `Inbounds`. Callback data, audit action ids, API/DB fields, Python identifiers, SQLite schema, provisioning semantics и mutation behavior не меняются. Regression gate отдельно фиксирует это различие между пользовательским термином и technical identifiers.
 
-Production acceptance `v4.20.8` закрыт: release развернут в production, и оператор успешно завершил targeted smoke по Inbound edit/help prompts, sync/reset confirmations, clone flow, template copy, delete confirmation, user Inbounds copy и Server Group policy text. Проверенные operator-facing поверхности используют канонические `Inbound` / `Inbounds`; destructive actions во время smoke не выполнялись. Callback/API/DB/Python identifiers, SQLite schema, provisioning semantics и mutation behavior не менялись.
+Приёмка в production `v4.20.8` закрыт: release развернут в production, и оператор успешно завершил targeted smoke по Inbound edit/help prompts, sync/reset confirmations, clone flow, template copy, delete confirmation, user Inbounds copy и Server Group policy text. Проверенные operator-facing поверхности используют канонические `Inbound` / `Inbounds`; destructive actions во время smoke не выполнялись. Callback/API/DB/Python identifiers, SQLite schema, provisioning semantics и mutation behavior не менялись.
 
 #### v4.20.9 — очистка интерфейса оператора после приёмки
 
@@ -563,7 +563,7 @@ Production smoke `v4.20.9` подтвердил корректное отобр�
 
 Confirmation screen удаления сохраняет полное `Удалить Inbound` и отдельное явное подтверждение; callback identifiers, deletion safety contract, SQLite schema, storage/persistence semantics и provisioning behavior не меняются.
 
-Production acceptance `v4.20.10` закрыт: release развернут в production, и оператор завершил targeted smoke после обновления бота. Компактная пятистрочная клавиатура карточки Inbound принята; проверены desktop/mobile presentation, короткая кнопка `🗑 Удалить` в карточке и сохранение полного `Удалить Inbound` на confirmation screen. Delete confirmation guardrail, callback identifiers, SQLite schema, storage/persistence semantics, provisioning и mutation behavior не менялись.
+Приёмка в production `v4.20.10` закрыт: release развернут в production, и оператор завершил targeted smoke после обновления бота. Компактная пятистрочная клавиатура карточки Inbound принята; проверены desktop/mobile presentation, короткая кнопка `🗑 Удалить` в карточке и сохранение полного `Удалить Inbound` на confirmation screen. Delete confirmation guardrail, callback identifiers, SQLite schema, storage/persistence semantics, provisioning и mutation behavior не менялись.
 
 ##### Редактируемое имя пользователя
 
@@ -583,7 +583,7 @@ Production acceptance `v4.20.10` закрыт: release развернут в pro
 - provisioning, subscription identity, `telegram_id`, `sub_id` и 3x-ui email не меняются как побочный эффект;
 - regression pack проверяет migration upgrade, fallback, edit/clear flow, RBAC и отсутствие использования display name в machine bindings.
 
-Production acceptance `v4.21.0` закрыт: release развернут через Safe Bot Self-Update, bot штатно запустился с новой SQLite schema v2, и оператор завершил targeted smoke display-name flow. Подтверждены установка отображаемого имени, его явная очистка с возвратом fallback на email и отсутствие наблюдаемых regressions в пользовательской карточке/подписке. Machine identity (`email`, `telegram_id`, `sub_id`, 3x-ui client identity) по contract и regression coverage не изменяется; production smoke не выявил побочных изменений.
+Приёмка в production `v4.21.0` закрыт: release развернут через Safe Bot Self-Update, bot штатно запустился с новой SQLite schema v2, и оператор завершил targeted smoke display-name flow. Подтверждены установка отображаемого имени, его явная очистка с возвратом fallback на email и отсутствие наблюдаемых regressions в пользовательской карточке/подписке. Machine identity (`email`, `telegram_id`, `sub_id`, 3x-ui client identity) по contract и regression coverage не изменяется; production smoke не выявил побочных изменений.
 
 ##### v4.21.1 — согласованность отображаемого имени и времени МСК
 
@@ -596,7 +596,7 @@ Patch закрывает два post-acceptance presentation findings `v4.21.0` 
 - date-only operator input `YYYY-MM-DD` для user/promo expiry интерпретируется как `23:59:59 MSK`;
 - SQLite schema, 3x-ui/OpenAPI, provisioning, subscription identity, Host Control/Deploy Agent и mutation semantics не меняются.
 
-Production acceptance после deployment должен подтвердить:
+Приёмка в production после deployment должен подтвердить:
 
 - display name в `Пользователи` и `Подписки`, а также на нескольких соседних user surfaces;
 - fallback на email после очистки display name;
@@ -615,7 +615,7 @@ Production smoke `v4.21.1` подтвердил display name в `Подписк�
 
 `v4.21.2` исправляет оба finding без изменения SQLite schema, 3x-ui/OpenAPI, raw log timezone, redaction/security boundaries или mutation semantics.
 
-Production acceptance закрыт: оператор подтвердил штатное открытие Disaster Recovery без `NameError`, фактическое различие режимов журнала `50` / `200` и успешный базовый health check `GET /healthz` с HTTP 200. Raw log timestamps продолжают отображаться в machine-level UTC по contract.
+Приёмка в production закрыт: оператор подтвердил штатное открытие Disaster Recovery без `NameError`, фактическое различие режимов журнала `50` / `200` и успешный базовый health check `GET /healthz` с HTTP 200. Raw log timestamps продолжают отображаться в machine-level UTC по contract.
 
 ##### Группы пользователей и аудиторий
 
@@ -643,7 +643,7 @@ User Groups являются отдельной продуктовой сущн�
 - Client Portal v5 использует этот же matcher для content/feature visibility, вместо ad-hoc проверок конкретных group names;
 - regression tests покрывают migration, many-to-many membership, rename/delete, RBAC, audit и matcher edge cases.
 
-Production acceptance `v4.22.0` закрыт на развёрнутом release commit `37e16cf8e2f5a38f7796118c0ac93ba9c78a3c12`. Базовый status до и после targeted smoke подтвердил `Container: running`, `RestartCount=0`, `Bot version: 4.22.0`, `Health: ok`, `DB: ok`, ожидаемый Docker subnet `172.19.0.0/16` и `3x-ui connectivity: ok`. Migration journal подтвердил успешные v1/v2 и `v3 user_audience_groups_v4_22_0`.
+Приёмка в production `v4.22.0` закрыт на развёрнутом release commit `37e16cf8e2f5a38f7796118c0ac93ba9c78a3c12`. Базовый status до и после targeted smoke подтвердил `Container: running`, `RestartCount=0`, `Bot version: 4.22.0`, `Health: ok`, `DB: ok`, ожидаемый Docker subnet `172.19.0.0/16` и `3x-ui connectivity: ok`. Migration journal подтвердил успешные v1/v2 и `v3 user_audience_groups_v4_22_0`.
 
 Targeted smoke подтвердил production flow: создание временной User Group, поиск существующего пользователя, добавление membership, отображение группы из карточки пользователя, удаление membership через confirmation flow, наличие audit-событий для create/add/remove и двухшаговое удаление пустой группы. Тестовые данные после проверки удалены. Разделение User Groups и VPN provisioning отдельно защищено code/regression contract; production smoke не выполнял искусственных VPN mutations ради проверки.
 
@@ -651,7 +651,7 @@ Targeted smoke подтвердил production flow: создание време
 
 **Статус: ✅ Выполнено в `v4.23.1`.**
 
-Production acceptance закрыт после hotfix `v4.23.1` на exact release SHA `ff6638442cbe9c2adc9aa76d74c2cfb4b647aaf6`: Master/direct-node shortcuts, domain/public IP/ASN, URL/private-IP rejection, graceful unavailable/recovery и финальный base health пройдены; `AS213459` с response около 382 KiB успешно обработан новым 1 MiB bounded limit. После остановки и запуска только Cheburcheck backend оба runtime-сервиса вернулись в `healthy`, а bot status остался `RestartCount=0`, Health/DB/3x-ui `ok`. Проверка bot logs по exact internal URL и credential-variable names дала нулевые совпадения. Production flood для backend rate limit намеренно не выполнялся; per-admin 2-second cooldown закреплён отдельным regression-test без нагрузки на upstream.
+Приёмка в production закрыт после hotfix `v4.23.1` на exact release SHA `ff6638442cbe9c2adc9aa76d74c2cfb4b647aaf6`: Master/direct-node shortcuts, domain/public IP/ASN, URL/private-IP rejection, graceful unavailable/recovery и финальный base health пройдены; `AS213459` с response около 382 KiB успешно обработан новым 1 MiB bounded limit. После остановки и запуска только Cheburcheck backend оба runtime-сервиса вернулись в `healthy`, а bot status остался `RestartCount=0`, Health/DB/3x-ui `ok`. Проверка bot logs по exact internal URL и credential-variable names дала нулевые совпадения. Production flood для backend rate limit намеренно не выполнялся; per-admin 2-second cooldown закреплён отдельным regression-test без нагрузки на upstream.
 
 Цель — встроить в бот функциональность проверки доменов/IP/ASN на блокировки, сохраняя upstream Cheburcheck checker как source of behavior и не переписывая его алгоритм без необходимости.
 
@@ -712,7 +712,7 @@ Scope:
    Источник: Cheburcheck.
    ~~~
 
-   Presentation contract:
+   Контракт представления:
    - верхняя часть содержит только цель, итоговый verdict и доступную network identity: организация / ASN / location;
    - блок `📋 Списки` агрегирует РКН, CDN, CDN exception и ASN/subnet coverage в одну короткую секцию;
    - региональные ответы сворачиваются в одну строку с общим числом и количеством `🟢 / 🔴 / 🟡`, без длинного перечня регионов в основном result card;
@@ -968,7 +968,7 @@ Disabled/paused — отдельный lifecycle flag, а не health verdict.
 - response-time threshold: **5 секунд**;
 - first repeated-alert interval: **30 минут**;
 - после нескольких alerts следующий interval: **320 минут**;
-- max monitored targets per admin: **10**.
+- максимальное число контролируемых целей на администратора: **10**.
 
 Эти значения являются application defaults, а не Telegram-controlled arbitrary scheduler input. Изменение global defaults отдельной UI mutation в `v4.24.0` не требуется.
 
@@ -998,9 +998,9 @@ Fail-closed требования:
 Начальные hard bounds:
 
 - redirects: не более **5**;
-- connect timeout: **3 s**;
-- read timeout: **7 s**;
-- total HTTP timeout: **10 s**;
+- тайм-аут подключения: **3 s**;
+- тайм-аут чтения: **7 s**;
+- общий тайм-аут HTTP: **10 s**;
 - обычный response body: не более **1 MiB**;
 - sitemap document: не более **2 MiB**;
 - sitemap documents за одну операцию: не более **10**;
@@ -1026,7 +1026,7 @@ Web:
 
 SEO:
 
-- indexability/robots/noindex — read-only summary;
+- доступность индексации, robots/noindex — сводка без изменений;
 - PageSpeed включается только при локально настроенном API key; отсутствие key отображается как disabled/unconfigured, а не ошибка сайта.
 
 Utilities:
@@ -1068,7 +1068,7 @@ Screenshot/headless-browser diagnostics из README PackBot не входят в
 
 - migration tests с upgrade существующей schema и сохранением текущих данных;
 - deterministic state-machine tests: first failure/recheck, false alarm, confirmed down, repeated down, recovery, restart during incident;
-- notification idempotency per watcher;
+- идемпотентность уведомлений для каждого наблюдателя;
 - negative RBAC coverage для всех callbacks;
 - SSRF suite для IPv4/IPv6/private/link-local/CGNAT/reserved/metadata, redirect-to-private и simulated DNS rebinding;
 - hard-limit tests для redirects/body/sitemap/count/concurrency;
@@ -1076,7 +1076,7 @@ Screenshot/headless-browser diagnostics из README PackBot не входят в
 - navigation tests для Back/Cancel и отсутствие raw URL в callbacks;
 - license/attribution regression: reviewed PackBot revision и MIT notice остаются в `THIRD_PARTY_NOTICES.md`.
 
-Production acceptance после deployment:
+Приёмка в production после deployment:
 
 1. `deploy-release.sh --status` подтверждает exact tag/version, `RestartCount=0`, Health/DB/3x-ui `ok`;
 2. controlled public test target проходит add → initial up → manual check → diagnostics;
@@ -1104,7 +1104,7 @@ Production smoke `v4.24.0` подтвердил корректную работ�
 
 Scope `v4.24.1`:
 
-**WHOIS/RDAP presentation**
+**Представление результатов WHOIS/RDAP**
 
 - нормализовать `created_at` / `expires_at` RDAP timestamps в единый presentation helper;
 - показывать absolute date/time в формате `DD.MM.YYYY HH:MM MSK` согласно `docs/UI_STYLE.md`;
@@ -1113,7 +1113,7 @@ Scope `v4.24.1`:
 - invalid/missing upstream timestamp остаётся `—`, без guess/parsing fallback;
 - покрыть regression tests для `Z`, explicit offset и date rollover при переводе в MSK.
 
-**Cheburcheck compact card detail**
+**Компактная карточка Cheburcheck**
 
 Вернуть в основную карточку только нормализованные bounded static-check значения, которые реально присутствуют в upstream result:
 
@@ -1124,7 +1124,7 @@ Scope `v4.24.1`:
 - `Размер подсети` / `subnet_size` — только когда применимо и поле присутствует;
 - существующие `Сеть`, `РКН`, `CDN`, `Исключение CDN`, `ASN` и агрегированная строка `🌍 Регионы` сохраняются.
 
-Output bounds:
+Ограничения размера вывода:
 
 - IP и Reverse DNS: показывать не более **5** значений каждого типа, затем `… ещё N`;
 - blocked subnets: показывать не более **5** значений, затем `… ещё N`;
@@ -1138,7 +1138,7 @@ Regional probe boundary остаётся прежним:
 - если позже понадобится per-region drill-down, это отдельный bounded `🌍 Детали регионов` workflow, а не dump JSON/SSE в основной result.
 
 
-**Website monitoring IPv6 literal validation**
+**Проверка буквальных IPv6-адресов при мониторинге сайтов**
 
 - распознавать literal IPv4/IPv6 через `ipaddress.ip_address()` **до** domain/IDNA hostname validation;
 - public IPv6 literal разрешать при тех же `http/https` и standard-port правилах, что public IPv4;
@@ -1698,7 +1698,7 @@ Parent: карточка пользователя. `admin:u:traffic:{telegram_id
 - добавляет отсутствующие и удаляет только управляемые extras, которых нет в target policy;
 - last-access/managed safety guards существующего provisioning engine сохраняются.
 
-Confirmation:
+Подтверждение:
 
 ~~~text
 ⚠️ Строгое согласование
@@ -2118,7 +2118,7 @@ Existing `adminenable:{telegram_id}` может стать ask-screen, mutation 
 
 Сохраняется существующий двухшаговый `admindelask:* → admindel:*`.
 
-Confirmation:
+Подтверждение:
 
 ~~~text
 🗑 Удалить пользователя
@@ -2142,7 +2142,7 @@ Existing remote-before-local safety semantics не ослабляются. По�
 
 Bulk selection остаётся отдельным flow от карточки пользователя. Selection screen сохраняет pagination и выбранные IDs в FSM, callback identity — `telegram_id`.
 
-Target actions:
+Целевые действия:
 
 ~~~text
 ☑️ Выбрано: {count}
@@ -2260,7 +2260,7 @@ Implementation PR должен добавить/обновить tests как м
 23. one-message admin navigation/FSM cleanup без dead ends;
 24. MSK timestamps на новых operator-facing absolute dates.
 
-Production acceptance после публикации `v4.25.0` должен пройти минимум под `Read-only`, `Support` и `Administrator` test accounts:
+Приёмка в production после публикации `v4.25.0` должен пройти минимум под `Read-only`, `Support` и `Administrator` test accounts:
 
 - открыть список, поиск, pagination и карточку пользователя;
 - пройти каждый read-only подраздел и Back-chain до `Пользователи`;
@@ -2278,7 +2278,7 @@ Production acceptance после публикации `v4.25.0` должен п�
 
 Acceptance считается закрытым только если navigation contract принят на Telegram Desktop и mobile, privilege boundaries подтверждены, legacy sync paths не выдают лишний доступ, а новые HWID/IP calls соответствуют pinned 3x-ui contract.
 
-Production acceptance findings от 2026-09-28:
+Приёмка в production findings от 2026-09-28:
 
 - под `Read-only` главная карточка пользователя ошибочно показывает shortcut `⏳ Продлить` с callback `adminextend:{telegram_id}`, хотя callback защищён privilege `users.support`; backend RBAC корректно не допускает mutation, но keyboard нарушает role-aware UI contract;
 - acceptance review подтвердил более чистый fix: полностью убрать shortcut `⏳ Продлить` с главной карточки пользователя для всех ролей; продление срока остаётся только в каноническом parent-screen `📅 Срок → ➕ +30 дней`;
@@ -2359,13 +2359,13 @@ Production acceptance findings от 2026-09-28:
 
 `v4.25.1` production-accepted по своему User Management/HWID scope после targeted re-acceptance от 2026-09-29.
 
-Production evidence `v4.25.1`:
+Свидетельства эксплуатации `v4.25.1`:
 
-- deployment: tag `v4.25.1`, commit `99e51b8988ffd90413b324021cac352ee71b39b7`, container running, `RestartCount=0`, bot version `4.25.1`;
-- baseline health: `Health: ok`, `DB: ok`, expected Docker subnet, 3x-ui connectivity `ok`;
-- targeted re-acceptance cases 28–37: **PASS**;
+- развёртывание: тег `v4.25.1`, commit `99e51b8988ffd90413b324021cac352ee71b39b7`, container running, `RestartCount=0`, bot version `4.25.1`;
+- исходное состояние: `Health: ok`, `DB: ok`, expected Docker subnet, 3x-ui connectivity `ok`;
+- повторные адресные проверки 28–37: **PASS**;
 - подтверждены navigation/back-chain fixes, create-user production not-found handling, default/per-user HWID limit, preservation across Plan/reconcile, real mobile + desktop HWID registration через public compat path, HWID delete two-step, administrator status/role emoji contract и single-user traffic limit;
-- final post-smoke health: **PASS**;
+- финальная проверка состояния после smoke: **PASS**;
 - исторический stale legacy sync callback production-click (бывший test 25) не воспроизведён из-за отсутствия сохранённого старого Telegram message и зафиксирован как **N/A production exception**; compatibility handler и non-mutating redirect покрыты code review/regression tests, mutation path через старый callback не используется.
 
 Acceptance `v4.25.1` закрыт. Выявленные затем client-compatibility findings были выделены в `v4.25.2–v4.25.6` и также проверены и закрыты; незавершённого acceptance прежних релизов `v4.25.x` не осталось.
@@ -2410,7 +2410,7 @@ Acceptance `v4.25.1` закрыт. Выявленные затем client-compat
 9. INCY mobile сохраняет существующую AmneziaWG conversion/работоспособность;
 10. generic upstream 404/5xx без HWID diagnostic headers не переопределяются как HWID-limit case.
 
-Production acceptance `v4.25.2`:
+Приёмка в production `v4.25.2`:
 
 - проверить INCY Desktop на реальной подписке: неподдерживаемые AWG entries не создают «мёртвые» Desktop-ноды, остальные протоколы работают;
 - повторить INCY mobile AWG smoke и подтвердить отсутствие regression;
@@ -2426,14 +2426,14 @@ Acceptance `v4.25.2` завершён с follow-up в `v4.25.3`: первона�
 
 **Статус: ✅ Опубликовано в `v4.25.3` и принято в production; последующие `v4.25.4–v4.25.6` относились только к Streisand compatibility investigation/revert.**
 
-Production acceptance `v4.25.2` от 2026-09-29:
+Приёмка в production `v4.25.2` от 2026-09-29:
 
-- INCY mobile: **PASS**;
-- Shadowrocket mobile: **PASS**;
-- Shadowrocket desktop: **PASS**;
-- controlled full-slot diagnostic: **PASS**, proxy log reason `hwid_max_devices_reached`;
+- INCY на мобильном устройстве: **PASS**;
+- Shadowrocket на мобильном устройстве: **PASS**;
+- Shadowrocket на компьютере: **PASS**;
+- контролируемая диагностика заполненного лимита устройств: **PASS**, proxy log reason `hwid_max_devices_reached`;
 - same-URL recovery после освобождения/увеличения HWID slot: **PASS**;
-- final health: **PASS**;
+- итоговое состояние: **PASS**;
 - INCY Desktop: **FAIL** — AWG entries остались.
 
 Root cause подтверждён по безопасно извлечённому User-Agent без subscription URL/sub_id: реальный Desktop UA — `INCY/3.8.8/mac os x Dalvik/21.0.12.1+1-LTS`. Реализация `v4.25.2` ожидала ровно три slash-сегмента и platform token `macos`, поэтому этот валидный Desktop request не попадал под filtering.
@@ -2446,7 +2446,7 @@ Root cause подтверждён по безопасно извлечённом
 - не менять Shadowrocket/HWID gate semantics, уже принятые в `v4.25.2`;
 - включить явную операционную инструкцию Shadowrocket `Send HWID` в README и ADMIN_SETUP.
 
-Targeted acceptance `v4.25.3`:
+Адресная приёмка `v4.25.3`:
 
 1. INCY Desktop macOS с реальным UA больше не получает AWG entries;
 2. VLESS/прочие поддерживаемые entries остаются и работают;
@@ -2454,7 +2454,7 @@ Targeted acceptance `v4.25.3`:
 4. Shadowrocket/HWID smoke не регрессирует;
 5. final bot/DB/3x-ui health остаётся PASS.
 
-Targeted acceptance `v4.25.3` закрыт; принятый runtime contract повторно подтверждён финальным smoke `v4.25.6`.
+Адресная приёмка `v4.25.3` закрыт; принятый runtime contract повторно подтверждён финальным smoke `v4.25.6`.
 
 
 ##### v4.25.4 — совместимость текстовой подписки Streisand
@@ -2538,7 +2538,7 @@ Fix `v4.25.5`:
 - оставить `v4.25.4` и `v4.25.5` в Git/release history как диагностические релизы;
 - документировать Streisand как известное client limitation для пользователей с активным HWID limit.
 
-Targeted acceptance `v4.25.6`:
+Адресная приёмка `v4.25.6`:
 
 1. default subscription behavior совпадает с `v4.25.3`;
 2. Shadowrocket/V2Box/V2RayTun/Happ/INCY smoke не регрессирует;
@@ -2547,16 +2547,16 @@ Targeted acceptance `v4.25.6`:
 5. final bot/DB/3x-ui health остаётся PASS.
 
 
-Production acceptance `v4.25.6` от 2026-09-29:
+Приёмка в production `v4.25.6` от 2026-09-29:
 
-- release: tag `v4.25.6`, commit `b3fb80d334c8cded51e4bc9de4b08af2e31d0cd6`;
-- test 50 — version/health: **PASS**;
-- test 51 — Shadowrocket: **PASS**;
-- test 52 — V2Box / V2RayTun / Happ: **PASS**;
-- test 53 — INCY mobile + desktop: **PASS**;
-- test 54 — HWID full-slot / recovery diagnostics: **PASS**;
-- test 55 — Streisand: **EXPECTED LIMITATION** — raw subscription при `HWID limit > 0` несовместим, потому что клиент не передаёт совместимый `X-HWID`; 3x-ui корректно отвечает `hwid_not_supported`;
-- test 56 — final bot/DB/3x-ui health: **PASS**;
+- выпуск: тег `v4.25.6`, commit `b3fb80d334c8cded51e4bc9de4b08af2e31d0cd6`;
+- проверка 50 — version/health: **PASS**;
+- проверка 51 — Shadowrocket: **PASS**;
+- проверка 52 — V2Box / V2RayTun / Happ: **PASS**;
+- проверка 53 — INCY mobile + desktop: **PASS**;
+- проверка 54 — HWID full-slot / recovery diagnostics: **PASS**;
+- проверка 55 — Streisand: **EXPECTED LIMITATION** — raw subscription при `HWID limit > 0` несовместим, потому что клиент не передаёт совместимый `X-HWID`; 3x-ui корректно отвечает `hwid_not_supported`;
+- проверка 56 — final bot/DB/3x-ui health: **PASS**;
 - временные `plain=1` workarounds отсутствуют в финальном runtime; subscription proxy соответствует принятому контракту `v4.25.3`;
 - synthetic/fallback HWID не добавляется, per-device enforcement не ослабляется.
 
@@ -2569,7 +2569,7 @@ Production acceptance `v4.25.6` от 2026-09-29:
 
 **Статус: ✅ Выполнено в `v4.25.7`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #199 закрыт как completed после targeted smoke.**
 
-Tracking: [issue #199](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/199) (closed/completed), [fix PR #200](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/200), [release PR #201](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/201). Fix PR #200 слит в `main` squash-коммитом `2b24ce709ffe77d479c98e1604462deb4910c072`; release-prep PR #201 слит коммитом `053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890`, на который указывает tag `v4.25.7`.
+Отслеживание: [issue #199](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/199) (closed/completed), [fix PR #200](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/200), [release PR #201](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/201). Fix PR #200 слит в `main` squash-коммитом `2b24ce709ffe77d479c98e1604462deb4910c072`; release-prep PR #201 слит коммитом `053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890`, на который указывает tag `v4.25.7`.
 
 Новый post-acceptance finding: в `inbound_admin.py` ветки ошибочного ввода строят Cancel keyboard с локальным `iid`/`tid` до его присваивания. Нечисловой/вне диапазона порт в `inbound_clone_port` и `template_deploy_port`, а также пустое/слишком длинное имя в `inbound_template_save` приводят к `UnboundLocalError` вместо подсказки.
 
@@ -2581,7 +2581,7 @@ Scope:
 - не менять callback identifiers, RBAC, допустимые диапазоны, payload semantics, схему SQLite, pinned 3x-ui/OpenAPI, HWID/proxy, Host Control/Deploy Agent или политику повторов запросов;
 - не смешивать исправление с Node Drain, общим рефакторингом или новыми возможностями.
 
-Regression contract:
+Контракт регрессионной проверки:
 
 1. нечисловой, пустой и отсутствующий текст порта; `0`, отрицательный порт и `65536`;
 2. пустое/пробельное/отсутствующее имя и имя длиннее 64 символов;
@@ -2593,7 +2593,7 @@ Regression contract:
 
 Tests: `tests/test_inbound_input_validation.py` выполняет реальные async handlers с `MemoryStorage`; внешние вызовы и Telegram rendering заменены моками. Итоговый fix PR HEAD `186b958cf6d8af7d6f37c794f19405046ae18483` прошёл штатные `Python checks` и `PR conventions`; после squash merge повторный `Python checks` на `main` commit `2b24ce709ffe77d479c98e1604462deb4910c072` также завершился success (576 tests).
 
-Production acceptance `v4.25.7` от 2026-09-29:
+Приёмка в production `v4.25.7` от 2026-09-29:
 
 - tag/GitHub Release `v4.25.7` опубликованы штатным workflow; tag указывает на `053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890`;
 - production deployment выполнен на опубликованный tag;
@@ -2609,13 +2609,13 @@ Admin Setup: новых настроек и действий установки 
 
 **Статус: ✅ Выполнено в `v4.25.8`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #202 закрыт как `completed`.**
 
-Production finding:
+Проблема, найденная в production:
 
 - путь: `/admin → Инфраструктура → Inbounds → <Inbound> → 📋 Клонировать`;
 - до исправления `✖ Отмена` на выборе target server возвращала в общий список `📡 Inbounds`;
 - после исправления вложенный flow возвращается в карточку исходного Inbound: `admin:inbound:{source_id}`.
 
-Implementation:
+Реализация:
 
 - shared `_target_keyboard(...)` получает явный Cancel parent;
 - Clone Inbound передаёт `admin:inbound:{iid}`;
@@ -2623,7 +2623,7 @@ Implementation:
 - invalid-port Cancel по-прежнему возвращает в исходный Inbound;
 - clone target callbacks, disabled/clientless payload, RBAC, audit и 3x-ui API semantics не изменены.
 
-Tracking: [issue #202](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/202) (closed/completed), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205), [release PR #206](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/206).
+Отслеживание: [issue #202](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/202) (closed/completed), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205), [release PR #206](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/206).
 
 ##### v4.25.8 — защита Owner от изменения собственной роли
 
@@ -2633,16 +2633,16 @@ DB-backed Owner теперь не может понизить собственн
 
 - self-demotion требует отдельного confirmation screen с явным предупреждением о потере Owner-only прав;
 - mutation выполняется только через Owner-only confirm callback с актуальным FSM state + nonce;
-- direct/stale confirmation fail-closed;
+- прямые и устаревшие подтверждения блокируются;
 - Cancel очищает confirmation и возвращает в собственную карточку без mutation;
 - изменение ролей других DB-администраторов Owner'ом сохраняет прежнюю семантику;
 - локальный break-glass Owner из `ADMIN_TELEGRAM_IDS` остаётся immutable;
 - audit фиксирует actor/target и переход роли;
 - role model, privilege catalog и уровни ролей не меняются.
 
-Tracking: [issue #204](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/204) (closed/completed), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205), [release PR #206](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/206).
+Отслеживание: [issue #204](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/204) (closed/completed), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205), [release PR #206](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/206).
 
-Production acceptance `v4.25.8`:
+Приёмка в production `v4.25.8`:
 
 - tag/GitHub Release `v4.25.8` опубликованы штатным workflow; tag указывает на `768fc0e4b9a0c0d2e35508febf272709896c3e7f`;
 - implementation PR #205 и release-prep PR #206 слиты в `main`;
@@ -2715,13 +2715,13 @@ Operator UX:
 
 Карточка ноды и Fleet Health должны визуально различать как минимум `maintenance`, `draining` и `drained`; нельзя показывать `drained`, пока Xray просто продолжает обслуживать пользователей с прежними assignments.
 
-RBAC / destructive boundary:
+Граница полномочий RBAC и разрушительных действий:
 
 - read-only status/progress Drain — `fleet.view` / Read-only+;
 - start/cancel/continue controlled Drain — `fleet.manage` / Administrator+;
 - `Stop Xray` и `Stop service` остаются Owner-only и не становятся частью Admin-level Drain confirmation.
 
-Regression / acceptance minimum:
+Минимальные регрессионные и приёмочные проверки:
 
 1. maintenance по-прежнему не трактуется как traffic cutoff;
 2. node в draining немедленно исключается из новых provisioning targets;
@@ -2737,7 +2737,7 @@ Regression / acceptance minimum:
 
 Конкретный способ определения remaining active sessions должен использовать только реально доступные 3x-ui/Xray данные и документировать их ограничения. Online/IP наблюдение не должно выдаваться за точный учёт физических устройств или гарантированный session drain, если upstream этого не доказывает.
 
-Implementation / production evidence:
+Реализация и свидетельства эксплуатации:
 
 - feature issue #208 на момент release оставался открытым до полного targeted production smoke; обязательный smoke завершён 2026-10-01 и issue закрыт как `completed`;
 - implementation PR #209 слит в `main` squash commit `e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a`;
@@ -2765,7 +2765,7 @@ Scope patch:
 
 Этот patch не расширяет Node Drain scope и не меняет SQLite schema, 3x-ui API contract или destructive Host Control boundaries.
 
-Implementation / production evidence:
+Реализация и свидетельства эксплуатации:
 
 - fix PR #213 слит в `main` squash commit `218f2e9fda914b05121051dd0dd00a94ba99dc6b`;
 - release-prep PR #214 слит в `main` squash commit `c2fc8baee1c11a716babb4bfc72743dface686ed`; штатный workflow опубликовал tag/GitHub Release `v4.26.1`;
@@ -2938,7 +2938,7 @@ Audit должен охватывать как минимум:
 19. **Documentation:** README, install/update/recovery runbooks, config examples, UI paths, threat-model/security boundaries, public/private deployment differences and tested disaster recovery steps exactly match released code.
 20. **Clean-room acceptance:** installation from documented instructions on a fresh host/environment, migration from representative older DB, restore from verified backup, controlled service/node failures, restart during long-running operation and final production smoke.
 
-Audit output contract:
+Контракт вывода аудита:
 
 - отдельный versioned report в `docs/audits/` с exact audited commit SHA;
 - findings имеют ID, severity, component, evidence/reproduction, impact, fix/decision и regression test reference;
@@ -3660,14 +3660,14 @@ vs
 current active Internal Squads
 ~~~
 
-Safe reconcile:
+Безопасная сверка:
 
 - добавляет отсутствующие required managed squads;
 - не удаляет дополнительные access assignments;
 - после mutation выполняет read-back;
 - uncertain mutation не повторяется автоматически.
 
-Strict reconcile:
+Строгая сверка:
 
 - сначала добавляет недостающий required access;
 - подтверждает post-condition;
@@ -4062,7 +4062,7 @@ Remnawave rollout не считается принятым только пото
    - зафиксировать controlled update/rollback procedure для probe packages/images;
    - при необходимости расширять fleet постепенно, не меняя Telegram result contract.
 
-Security / operational boundary:
+Граница безопасности и эксплуатации:
 
 - RMQTT не должен принимать anonymous/unrestricted clients;
 - каждый reporter имеет отдельные ID/token; token не переиспользуется между probes и не совпадает с bot/3x-ui/Host Control/Deploy Agent credentials;
@@ -4094,7 +4094,7 @@ Branch ruleset **Protect main release path** (ID `24575428`):
 Tag ruleset **Protect release tags** (ID `24615100`):
 
 - target: `refs/tags/v*`;
-- enforcement: active;
+- применение правил: активно;
 - `update`, `deletion` и `non_fast_forward` запрещены;
 - bypass actors отсутствуют;
 - `current_user_can_bypass=never`;
@@ -4195,7 +4195,7 @@ Client Portal и Admin Control Plane живут в одном Telegram-боте 
 - Plan;
 - срок действия;
 - число доступных серверов/локаций;
-- subscription URL;
+- URL подписки;
 - состояние provisioning/reconcile.
 
 Контекстные действия:
@@ -4230,7 +4230,7 @@ Client Portal и Admin Control Plane живут в одном Telegram-боте 
 - итог заказа;
 - `🎟 Промокод`;
 - выбор доступного способа оплаты;
-- payment/order status;
+- статус платежа/заказа;
 - результат activation/extension.
 
 Жизненный цикл серверной части:
@@ -4336,14 +4336,14 @@ Finding #320 не блокирует targeted acceptance `v5.0.0-rc.3`; закр
 Минимальные данные:
 
 - provider;
-- provider event/payment identifier;
-- received timestamp;
-- signature/authentication result;
-- normalized event type;
+- идентификатор события/платежа провайдера;
+- время получения;
+- результат проверки подписи/аутентификации;
+- нормализованный тип события;
 - raw payload hash и безопасный диагностический metadata subset;
-- processing status;
+- статус обработки;
 - связанный order/payment;
-- applied timestamp/result.
+- время и результат применения.
 
 Требования:
 
@@ -4593,7 +4593,7 @@ Public launch блокируется до закрытия release-blocking find
 
 ## Запланировано: персональный сброс клиентской сессии (2026-10-08)
 
-**⬜ TODO / не реализовано в rc.6.** Tracking: [#345](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/345). Добавить в `/admin → Пользователи → карточка пользователя` Owner-only действие **«🔄 Сбросить клиентскую сессию»**: целевой in-memory rate-limit bucket, применимый временный customer dialog/FSM state, confirmation + RBAC + audit, без глобального Docker restart. Операция не меняет 3x-ui, подписку, платежи, entitlement, devices, allowlist, не сбрасывает ограничения Telegram transport. Реализация обязана работать в **живом процессе** бота, а не в отдельном `docker compose exec python`. Acceptance: два пользователя из pilot, isolation A/B, ACL/forged callback, audit, отсутствие финансовых/provider mutation. Полный scope — issue #345.
+**⬜ TODO / не реализовано в rc.6.** Отслеживание: [#345](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/345). Добавить в `/admin → Пользователи → карточка пользователя` Owner-only действие **«🔄 Сбросить клиентскую сессию»**: целевой in-memory rate-limit bucket, применимый временный customer dialog/FSM state, confirmation + RBAC + audit, без глобального Docker restart. Операция не меняет 3x-ui, подписку, платежи, entitlement, devices, allowlist, не сбрасывает ограничения Telegram transport. Реализация обязана работать в **живом процессе** бота, а не в отдельном `docker compose exec python`. Acceptance: два пользователя из pilot, isolation A/B, ACL/forged callback, audit, отсутствие финансовых/provider mutation. Полный scope — issue #345.
 
 ## Фактические результаты rc.6 production smoke (2026-10-08; scoped, НЕ общий PASS)
 
@@ -4725,7 +4725,7 @@ Plan → Server Group → Nodes → Inbounds
 После стабилизации customer/domain model допускается отдельный этап внешних интеграций:
 
 - read-only metrics endpoint для Prometheus-compatible collection;
-- scoped service/API tokens;
+- ограниченные токены сервисов/API;
 - signed outgoing webhooks для событий subscription/payment/provisioning;
 - documented API для внешних систем.
 
@@ -4735,8 +4735,8 @@ Plan → Server Group → Nodes → Inbounds
 
 Даже при расширении observability/automation следующие возможности не считаются целями проекта:
 
-- arbitrary remote shell/terminal;
-- generic command runner;
+- произвольный удалённый shell/терминал;
+- универсальное выполнение команд;
 - произвольный script execution из Telegram;
 - передача arbitrary filesystem path/unit name/Docker arguments;
 - автоматический retry state-changing host/deploy/update operations после uncertain outcome.
