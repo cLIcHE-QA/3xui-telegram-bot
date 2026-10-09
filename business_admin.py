@@ -1370,14 +1370,14 @@ async def client_switches_view(call: CallbackQuery):
     lines = [
         "👤 Клиентский портал и Telegram Stars", "",
         f"Портал: {label(snapshot.portal_enabled)} — {snapshot.reason('portal')}",
-        f"Портал .env: {'разрешает' if snapshot.env_portal else 'запрещает'}",
+        f"Портал локальная конфигурация: {'разрешает' if snapshotлокальная конфигурация_portal else 'запрещает'}",
         f"Портал DB: {snapshot.db_portal if snapshot.available else 'неизвестно'}",
         f"Новые Stars: {label(snapshot.stars_enabled)} — {snapshot.reason('stars')}",
-        f"Stars .env: {'разрешает' if snapshot.env_stars else 'запрещает'}",
+        f"Stars локальная конфигурация: {'разрешает' if snapshotлокальная конфигурация_stars else 'запрещает'}",
         f"Stars DB: {snapshot.db_stars if snapshot.available else 'неизвестно'}",
         f"Pilot allowlist: {len(set(settings.allowed_telegram_ids) | set(settings.admin_telegram_ids))} аккаунтов",
         f"Rate limit: {settings.client_rate_limit_count} / {settings.client_rate_limit_window_seconds} сек.",
-        "Операции с уже оплаченными заказами продолжаются. .env=false — безусловный запрет.",
+        "Операции с уже оплаченными заказами продолжаются. локальная конфигурация=false — безусловный запрет.",
     ]
     rows = []
     role = await get_admin_role(db, settings, call.from_user.id)
@@ -1408,7 +1408,7 @@ async def client_switches_ask(call: CallbackQuery):
         return
     await render_callback(call,
         f"⚠️ {'Разрешить' if choice == 'on' else 'Запретить'} {flag}?\n"
-        "Этот шаг не меняет .env, подписки и оплаченные заказы.",
+        "Этот шаг не меняет локальная конфигурация, подписки и оплаченные заказы.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"admin:settings:client:{flag}:run:{choice}:{rev}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:settings:client")],
