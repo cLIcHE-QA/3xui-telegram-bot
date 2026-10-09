@@ -88,6 +88,11 @@ class ExtendedNodeBackupTests(unittest.IsolatedAsyncioTestCase):
         with sqlite3.connect(self.db_path) as connection:
             connection.execute("CREATE TABLE sample(id INTEGER PRIMARY KEY)")
         self.manager = BackupManager(str(self.db_path), str(root / "backups"), keep=3)
+        master_db = root / "backup_sources" / "x-ui" / "x-ui.db"
+        master_db.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(master_db) as connection:
+            connection.execute("CREATE TABLE master(id INTEGER PRIMARY KEY)")
+        self.manager.sources_root = root / "backup_sources"
         self.node = NodeBackupTarget(
             key="FI",
             node_name="Finland",
