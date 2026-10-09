@@ -286,6 +286,41 @@ curl -fsS https://www.githubstatus.com/api/v2/incidents/unresolved.json \
 
 Для обычного feature/fix PR отдельный status preflight перед каждым действием не требуется. Он обязателен перед merge release-prep PR согласно [Release workflow](RELEASES.md) и используется как первый diagnostic step при признаках проблем GitHub.
 
+## Диагностика Docker Hub / Registry как внешней dependency
+
+Если GitHub Actions или локальный `docker compose build` / `docker build` / image pull падает **до запуска тестируемого контейнера** из-за `failed to fetch oauth token`, `auth.docker.io/token` с HTTP `5xx` (например, `504 Gateway Timeout`), ошибки получения manifest или недоступности `registry-1.docker.io`, сначала проверь состояние внешнего сервиса. Это не доказательство дефекта в коде, `Dockerfile` или pinned image digest.
+
+**Официальный Docker Status:** https://www.dockerstatus.com/ — проверь актуальные incidents/maintenance и прежде всего компоненты `Docker Authentication`, `Docker Hub Registry`, `Docker Hub Web Services`. Публичная status page может ещё не отражать кратковременный, региональный или зависящий от конкретного runner сбой; её зелёный статус не заменяет фактический повтор проверки.
+
+Если нужно подтвердить симптом, выполни **read-only** диагностику с затронутого host/runner, не передавая Docker credentials и не печатая полученный public pull token:
+
+~~~bash
+# Проверка анонимной выдачи токена на чтение публичного python image.
+set -o pipefail
+if curl -fsS --connect-timeout 5 --max-time 15 \
+  'https://auth.docker.io/token?service=registry.docker.io&scope=repository:library/python:pull' \
+  | jq -e '((.token // .access_token // "") | length) > 0' >/dev/null; then
+  echo 'Docker Authentication: OK'
+else
+  echo 'Docker Authentication: failed/unknown'
+fi
+
+# Проверка доступности Registry API без credentials.
+curl -sS --connect-timeout 5 --max-time 15 \
+  --output /dev/null \
+  --write-out 'Docker Registry v2 (anonymous): HTTP %{http_code}\n' \
+  https://registry-1.docker.io/v2/
+~~~
+
+Для неавторизованного `GET /v2/` **HTTP 401 — ожидаемый authentication challenge**, а не признак недоступности registry. Эти проверки не равны полноценному `docker pull`: их результат помогает отделить проблемы токена/registry от ошибок конфигурации конкретного runner. HTTP `429` требует отдельной проверки rate limits и политики повторов, а не автоматического вывода об общем outage.
+
+Правила:
+
+- при подтверждённом внешнем `5xx` / incident не меняй код, `Dockerfile`, lockfile или pinned image digest только ради исчезновения сетевой ошибки; не отключай TLS verification и не подменяй base image на непроверенный `latest`;
+- при зелёной status page, но повторном сбое на runner проверь DNS, outbound connectivity, proxy, лимиты и точный HTTP status; недоступная status page означает `health unknown`, а не `Docker Hub operational` или `Docker Hub down`;
+- сохрани failed CI attempt как evidence; после восстановления внешнего сервиса повтори упавший job на **том же актуальном PR head** и проверь полный результат, включая container smoke; до этого не отмечай required `test` как `PASS`;
+- не обходи required checks, PR checklist или release workflow ради внешней ошибки; status preflight нужен **при симптомах** и не добавляется как обязательный network dependency каждого обычного PR.
+
 ## Типовой цикл
 
 1. Создать ветку от актуального `main`.
