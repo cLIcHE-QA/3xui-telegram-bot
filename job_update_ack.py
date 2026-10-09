@@ -1,29 +1,39 @@
-"""Read-only evidence for operator acknowledgment of historical bot.update unknown jobs.
+"""Read-only Deploy Agent evidence for acknowledging historical bot.update unknown.
 
-This module never invokes the Deploy Agent mutation endpoint and never changes a
-job's historical result. Any current-health observation is a *separate* fact.
+This module never sends a deploy POST or changes a historical job result.
 """
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Protocol
 
-from db import JobRunRecord
 from deploy_control import DeployControlClient, DeployControlError, STATES
+
+
+class JobLike(Protocol):
+    name: str
+    status: str
+    details: str
 
 
 _OPERATION_ID = re.compile(r"(?:^|; )operation_id=([0-9a-f]{32})(?:;|$)")
 _RELEASE = re.compile(r"(?:^|; )release=(v\d+\.\d+\.\d+)(?:;|$)")
 _SAFE_RELEASE = re.compile(r"v\d+\.\d+\.\d+(?:-rc\.\d+)?\Z")
 _SHA = re.compile(r"[0-9a-f]{40}\Z")
-_REASON = re.compile(r"[\w .,;:!?()#–—-]{12,240}\Z", re.UNICODE)
+
+REASON_LABELS = {
+    "reviewed": "Проверены доступные сведения; исход операции не установлен",
+    "recovered": "Текущий сервис восстановлен; исход старой операции не установлен",
+    "insufficient": "Сведения агента недоступны; инцидент рассмотрен без вывода об исходе",
+}
 
 EVIDENCE_LABELS = {
     "metadata_missing": "в задании нет полной идентичности операции",
     "agent_unconfigured": "Deploy Agent не настроен",
     "journal_unavailable": "журнал Deploy Agent недоступен",
     "journal_missing": "операция в журнале не найдена",
-    "journal_mismatch": "идентичность операции/релиза не совпала",
+    "journal_mismatch": "идентичность операции или релиза не совпала",
     "status_unavailable": "операция найдена, текущий статус недоступен",
     "journal_found": "запись операции найдена",
 }
@@ -57,23 +67,15 @@ class DeployEvidence:
             lines.append(f"Сейчас SHA: {self.current_sha[:12]}")
         lines.append(
             "Текущая post-condition: "
-            + ("healthy и точное совпадение с target" if self.postcondition == "current_matches_target"
-               else "не подтверждает исходную операцию")
+            + ("healthy, релиз и SHA совпадают с target операции"
+               if self.postcondition == "current_matches_target"
+               else "не доказывает исход исторической операции")
         )
         return lines
 
 
-def normalize_reason(raw: str) -> str:
-    reason = " ".join(str(raw or "").split())
-    if not _REASON.fullmatch(reason) or re.search(r"\w{48,}", reason):
-        raise ValueError(
-            "Укажи причину 12–240 символов: обычный текст без ссылок, секретов и переносов строк."
-        )
-    return reason
-
-
 async def correlate_deploy(
-    job: JobRunRecord,
+    job: JobLike,
     client: DeployControlClient | None,
 ) -> DeployEvidence:
     """GET-only correlation; never infers historical success from current health."""
