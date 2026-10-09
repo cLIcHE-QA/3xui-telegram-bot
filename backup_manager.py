@@ -236,10 +236,35 @@ class BackupManager:
                 encoding="utf-8",
             )
 
-            with tarfile.open(archive_path, "w:gz") as tar:
-                for item in sorted(stage.iterdir(), key=lambda p: p.name):
-                    tar.add(item, arcname=item.name, recursive=True)
-            os.chmod(archive_path, 0o600)
+            # Create a mode-0600 temporary archive on the same filesystem;
+            # never expose partially written backups under the canonical name.
+            fd, private_name = tempfile.mkstemp(
+                prefix=".backup-pending-", suffix=".tar.gz", dir=self.backup_dir,
+            )
+            pending = Path(private_name)
+            try:
+                with os.fdopen(fd, "wb") as output:
+                    with tarfile.open(fileobj=output, mode="w:gz") as tar:
+                        for item in sorted(stage.iterdir(), key=lambda p: p.name):
+                            tar.add(item, arcname=item.name, recursive=True)
+                    output.flush()
+                    os.fsync(output.fileno())
+
+                # The same deep validator protects off-site upload and restore.
+                # Do not publish a local archive that would fail that gate.
+                from restore_manager import RestoreManager
+
+                inspection = RestoreManager(
+                    str(self.db_path), str(self.backup_dir),
+                ).inspect_backup(pending, deep=True)
+                if not inspection.valid:
+                    raise RuntimeError(
+                        "Full Backup blocked: archive failed deep validation ("
+                        + "; ".join(inspection.errors[:3]) + ")"
+                    )
+                os.replace(pending, archive_path)
+            finally:
+                pending.unlink(missing_ok=True)
 
         self.prune()
         stat = archive_path.stat()
