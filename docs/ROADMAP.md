@@ -362,7 +362,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Этот gate нужен именно как защита от тихой несовместимости после обновления 3x-ui и не заменяет integration tests против реального поддерживаемого release.
 
-##### Gate перед открытием Client Portal
+##### Gate перед открытием Клиентский портал
 
 Переход к `v5.0.0` предполагает закрытие следующего набора v4.x работ:
 
@@ -534,7 +534,7 @@ Scope ограничен operator-facing строками: оставшийся 
 
 Production acceptance `v4.20.8` закрыт: release развернут в production, и оператор успешно завершил targeted smoke по Inbound edit/help prompts, sync/reset confirmations, clone flow, template copy, delete confirmation, user Inbounds copy и Server Group policy text. Проверенные operator-facing поверхности используют канонические `Inbound` / `Inbounds`; destructive actions во время smoke не выполнялись. Callback/API/DB/Python identifiers, SQLite schema, provisioning semantics и mutation behavior не менялись.
 
-#### v4.20.9 — post-acceptance operator-facing UI cleanup
+#### v4.20.9 — очистка интерфейса оператора после приёмки
 
 **Статус: ✅ Опубликовано в `v4.20.9`; layout follow-up завершён в `v4.20.10`.**
 
@@ -547,7 +547,7 @@ Scope предназначен для небольших presentation findings, 
 - Зафиксировать deletion safety guardrail для Admin Control Plane: любые новые operator-facing delete actions только через отдельный confirmation screen (`confirm` + `✖ Отмена`), без one-click mutation. В `v4.20.9` добавить regression/source-audit для текущих delete flows и нормативный contract в `docs/UI_STYLE.md`; существующие delete semantics не меняются.
 
 Дополнительные findings могут быть добавлены в этот же patch до implementation PR, если они остаются narrowly-scoped UI/copy cleanup без behavior changes.
-#### v4.20.10 — compact Inbound keyboard follow-up
+#### v4.20.10 — доработка компактных кнопок Inbound
 
 **Статус: ✅ Выполнено и принято в production в `v4.20.10`.**
 
@@ -585,7 +585,7 @@ Production acceptance `v4.20.10` закрыт: release развернут в pro
 
 Production acceptance `v4.21.0` закрыт: release развернут через Safe Bot Self-Update, bot штатно запустился с новой SQLite schema v2, и оператор завершил targeted smoke display-name flow. Подтверждены установка отображаемого имени, его явная очистка с возвратом fallback на email и отсутствие наблюдаемых regressions в пользовательской карточке/подписке. Machine identity (`email`, `telegram_id`, `sub_id`, 3x-ui client identity) по contract и regression coverage не изменяется; production smoke не выявил побочных изменений.
 
-##### v4.21.1 — display name consistency и MSK
+##### v4.21.1 — согласованность отображаемого имени и времени МСК
 
 **Статус: ✅ Production smoke выполнен для `v4.21.1`; найденные runtime/UI follow-up закрыты и приняты в `v4.21.2`.**
 
@@ -604,7 +604,7 @@ Production acceptance после deployment должен подтвердить:
 - отсутствие изменений email / Telegram ID / `sub_id` / VPN access;
 - базовый health/status после обновления.
 
-##### v4.21.2 — DR formatter и log viewer follow-up
+##### v4.21.2 — исправление отображения DR и журнала
 
 **Статус: ✅ Выполнено и принято в production в `v4.21.2`.**
 
@@ -733,7 +733,7 @@ Scope:
 
 Цель релиза — улучшить информативность и UX Cheburcheck без изменения его read-only security boundary, provisioning/VPN state или 3x-ui mutations.
 
-##### v4.23.3 — Cheburcheck: hotfix compact result enrichment
+##### v4.23.3 — Cheburcheck: исправление подробностей компактного результата
 
 **Статус: ✅ Закрыто. `v4.23.3` опубликован и принят; acceptance линии Cheburcheck `v4.23.x` завершён.**
 
@@ -1092,7 +1092,7 @@ Production acceptance после deployment:
 Operational closure линии `v4.24.x` достигнут: website monitoring и обязательные diagnostics работают через единый safe outbound boundary, incidents/alerts переживают restart без replay, PackBot attribution/parity соответствуют reviewed revision, а targeted findings `v4.24.0` подтверждены исправленными на deployed `v4.24.1`.
 
 
-##### v4.24.1 — Hotfix diagnostics и IPv6
+##### v4.24.1 — исправление диагностики и IPv6
 
 **Статус: ✅ Выполнено и принято в production в `v4.24.1`; acceptance линии `v4.24.x` закрыт.**
 
@@ -2304,7 +2304,7 @@ Production acceptance findings от 2026-09-28:
 - acceptance считается пройденным только после проверки хотя бы одного реального HWID-capable клиента через публичный compat URL, а не только synthetic direct-upstream `curl`.
 
 
-##### v4.25.1 — User Management stabilization / HWID completion
+##### v4.25.1 — стабилизация управления пользователями и HWID
 
 **Статус: ✅ Опубликовано в `v4.25.1` и принято в production.**
 
@@ -2372,7 +2372,7 @@ Acceptance `v4.25.1` закрыт. Выявленные затем client-compat
 
 
 
-##### v4.25.2 — Subscription client compatibility
+##### v4.25.2 — совместимость клиентов подписки
 
 **Статус: ✅ Проверено и закрыто: Shadowrocket/HWID acceptance пройден в `v4.25.2`, INCY Desktop UA finding исправлен и принят в `v4.25.3`.**
 
@@ -2422,7 +2422,7 @@ Production acceptance `v4.25.2`:
 Acceptance `v4.25.2` завершён с follow-up в `v4.25.3`: первоначальный INCY Desktop FAIL сохранён в истории ниже, а исправление подтверждено последующим smoke. Этот finding больше не блокирует дальнейшие релизы.
 
 
-##### v4.25.3 — INCY Desktop UA compatibility
+##### v4.25.3 — совместимость User-Agent настольного INCY
 
 **Статус: ✅ Опубликовано в `v4.25.3` и принято в production; последующие `v4.25.4–v4.25.6` относились только к Streisand compatibility investigation/revert.**
 
@@ -2457,7 +2457,7 @@ Targeted acceptance `v4.25.3`:
 Targeted acceptance `v4.25.3` закрыт; принятый runtime contract повторно подтверждён финальным smoke `v4.25.6`.
 
 
-##### v4.25.4 — Streisand plain subscription compatibility
+##### v4.25.4 — совместимость текстовой подписки Streisand
 
 **Статус: ✅ Проверено и закрыто как исторический diagnostic release; гипотеза `plain=1` не решила Streisand compatibility и была удалена в `v4.25.6`.**
 
@@ -2490,7 +2490,7 @@ Production finding после успешного acceptance `v4.25.3`:
 Проверка `v4.25.4` завершена отрицательным результатом для гипотезы `plain=1`; investigation и forward-revert закрыты в `v4.25.6`. Поддержка Streisand при активном HWID limit не заявляется.
 
 
-##### v4.25.5 — Streisand plain mode precedence
+##### v4.25.5 — приоритет текстового режима Streisand
 
 **Статус: ✅ Проверено и закрыто как исторический diagnostic release; HTML-precedence fix не устранил корневую HWID-несовместимость и был удалён в `v4.25.6`.**
 
@@ -2516,7 +2516,7 @@ Fix `v4.25.5`:
 4. final bot/DB/3x-ui health остаётся PASS.
 
 
-##### v4.25.6 — Streisand incompatibility / forward revert
+##### v4.25.6 — несовместимость Streisand и отмена изменений новым коммитом
 
 **Статус: ✅ Опубликовано в `v4.25.6`, принято в production; предыдущие релизы `v4.25.0–v4.25.6` закрыты.**
 
@@ -2565,7 +2565,7 @@ Production acceptance `v4.25.6` от 2026-09-29:
 Следующий активный патч — `v4.25.8` с navigation hotfix Clone Inbound и Owner self-role safety. После его отдельного release/acceptance следующий feature release — `v4.26.0` Node Drain.
 
 
-##### v4.25.7 — Inbound input validation
+##### v4.25.7 — проверка ввода Inbound
 
 **Статус: ✅ Выполнено в `v4.25.7`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #199 закрыт как completed после targeted smoke.**
 
@@ -2605,7 +2605,7 @@ Production acceptance `v4.25.7` от 2026-09-29:
 Admin Setup: новых настроек и действий установки для `v4.25.7` не потребовалось.
 
 
-##### v4.25.8 — Inbound clone navigation hotfix
+##### v4.25.8 — исправление навигации клонирования Inbound
 
 **Статус: ✅ Выполнено в `v4.25.8`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #202 закрыт как `completed`.**
 
@@ -2625,7 +2625,7 @@ Implementation:
 
 Tracking: [issue #202](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/202) (closed/completed), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205), [release PR #206](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/206).
 
-##### v4.25.8 — Owner self-role safety
+##### v4.25.8 — защита Owner от изменения собственной роли
 
 **Статус: ✅ Выполнено в `v4.25.8`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #204 закрыт как `completed`.**
 
@@ -2657,7 +2657,7 @@ Production acceptance `v4.25.8`:
 Admin Setup: новых настроек и действий установки для `v4.25.8` не потребовалось.
 
 
-##### v4.26.0 — Node Drain / graceful traffic evacuation
+##### v4.26.0 — плавное выведение ноды из трафика
 
 **Статус: ✅ `v4.26.0` опубликован и развёрнут; полный controlled state-changing production acceptance завершён 2026-10-01, issue #208 закрыт как `completed`.**
 
@@ -2748,7 +2748,7 @@ Implementation / production evidence:
 - pre-mutation confirmation был отменён без remote mutation; finding #211: `✖ Отмена` вернула в корень `Операции с нодами` вместо canonical parent — preflight той же ноды;
 - полный targeted production smoke из пункта 11 был отложен до безопасной test node/user cohort и завершён 2026-10-01: read-only preflight показал affected=1, movable=1, blockers=0; state-changing run выполнил maintenance → attach-before-detach с read-back → detach с read-back → `drained`; remaining assignments=0, blockers=0; reconnect через альтернативный Master прошёл успешно; test node возвращена из maintenance и обычное policy reconciliation восстановило исходную тестовую политику; временные test user/plan/server group/Inbound/node bindings после acceptance удалены с Master, audit/job/Drain history сохранена.
 
-##### v4.26.1 — Node Drain Cancel navigation
+##### v4.26.1 — навигация отмены Node Drain
 
 **Статус: ✅ Выполнено в `v4.26.1`; patch опубликован, развёрнут и targeted production verification завершён, issue #211 закрыт как `completed`.**
 
@@ -2793,7 +2793,7 @@ Production diagnosis подтвердил, что control-plane адрес па�
 
 Production proof 2026-10-01 на безопасной test node подтвердил реальный drift: исходный Inbound имел `shareAddrStrategy=node` и пустой `shareAddr`. Выполнена одна контролируемая mutation только share-address полей, после которой read-back подтвердил `custom` и явный operator-supplied public data-plane IP. `Node.address`, `settings`, `streamSettings`, `sniffing` и Reality SNI остались без изменений; обновлённая subscription успешно переподключилась через test node. После acceptance временный тестовый контур удалён с Master. Issue #219 закрыт как `completed`.
 
-##### v4.26.2 — Dashboard Attention summary
+##### v4.26.2 — сводка требующих внимания событий
 
 **Статус: ✅ Выполнено в `v4.26.2`; release опубликован, развёрнут и production acceptance завершён, issue #216 закрыт как `completed`.**
 
@@ -2823,7 +2823,7 @@ Implementation evidence перед release:
 - финальный status — **PASS**: container running, `RestartCount=0`, Health/DB/3x-ui connectivity — ok;
 - issue #216 закрыт как `completed`.
 
-##### v4.26.3 — Attention Center drill-down
+##### v4.26.3 — детализация Attention Center
 
 **Статус: ✅ Выполнено; production acceptance завершён через fix `v4.26.4`, issue #217 закрыт как `completed`.**
 
@@ -2860,7 +2860,7 @@ Production smoke `v4.26.3` подтвердил сам Attention Center, но в
   - `🌐 Операции с нодами` показывает maintenance/rollout management entry points (`fleet.manage`, admin);
 - static `attention_menu()` показывает domain deep-links даже при calm/empty state; это не прямой RBAC defect, но создаёт misleading drill-down UX и включается в fix scope.
 
-##### v4.26.4 — Permission-aware admin navigation fix
+##### v4.26.4 — исправление административной навигации с учётом прав
 
 **Статус: ✅ Выполнено в `v4.26.4`; release опубликован, развёрнут и production acceptance завершён. Bug #226 и issue #217 закрыты как `completed`.**
 
@@ -2903,7 +2903,7 @@ Implementation evidence перед release:
 
 Оба Attention-релиза и их fix относятся к финальной полировке Admin Control Plane и должны быть operationally приняты до off-site drill и final v4 feature freeze. Они не меняют SQLite schema по умолчанию, pinned 3x-ui API contract или destructive Host Control boundaries.
 
-##### Финальный v4 Repository / Public-Release Audit
+##### Финальный v4 аудит репозитория перед публичным выпуском
 
 **Статус: ✅ PASS. Audit начат 2026-10-05 на freeze commit `fe34f9dc97f0a6441dde9fcfe865e34ad8696c32` и завершён 2026-10-07 после remediation, clean-room acceptance, финальных pre-public scans и public/PVR acceptance.**
 
@@ -3163,7 +3163,7 @@ mux/observatory и другие Xray-native sections
 
 Для простой VLESS + Reality ноды JSON сам по себе не создаёт нового transport capability: те же connection parameters уже выражаются обычной `vless://` ссылкой. Переход на JSON не нужен только ради явного data-plane IP, Reality SNI, public key или `xtls-rprx-vision`.
 
-##### Data-plane address и protocol identity
+##### Адрес data plane и идентичность протокола
 
 Новый format не должен отменять принятый v4.x addressing contract.
 
@@ -3270,7 +3270,7 @@ User-Agent detection допускается только как bounded compatib
 - redirects и origin changes не должны утекать auth/device headers на другой origin;
 - `Cache-Control: no-store`/privacy semantics сохраняются там, где body содержит customer credentials.
 
-##### HWID / device metadata
+##### HWID и метаданные устройств
 
 Наличие JSON endpoint не означает автоматически, что HWID enforcement работает идентично raw path.
 
@@ -3345,7 +3345,7 @@ Raw path нельзя удалить только потому, что один 
 - секретные/device headers не forward'ятся на другой origin после redirect;
 - unsupported/partial format не возвращается как ложный полноценный success.
 
-##### Failure semantics
+##### Семантика ошибок
 
 Новый format должен сохранять понятную ошибочную семантику:
 
@@ -3400,7 +3400,7 @@ Raw path нельзя удалить только потому, что один 
 
 Если позже добавляется Clash/Mihomo, для него выполняется отдельный format-specific acceptance, включая YAML parsing, protocol coverage, routing rules и реальные Mihomo clients. Успешный JSON smoke не считается автоматическим acceptance Clash/Mihomo.
 
-##### Definition of Done
+##### Критерии завершения
 
 Track считается завершённым только когда:
 
@@ -3632,7 +3632,7 @@ client-facing address / connection parameters
 
 Нельзя пытаться механически переименовать текущий `Server Group` в `Internal Squad` и считать миграцию законченной. Нужен явный mapping layer, потому что сущности имеют разную семантику.
 
-##### Remnawave-native semantics
+##### Собственная семантика Remnawave
 
 При реализации adapter необходимо исходить из актуальной архитектуры Remnawave, а не эмулировать 3x-ui:
 
@@ -3678,7 +3678,7 @@ Strict reconcile:
 
 Provider adapters обязаны сохранять существующий no-retry safety contract для state-changing операций: timeout/lost response/5xx после возможного применения mutation не является основанием для слепого повторения запроса.
 
-##### Client Portal
+##### Клиентский портал
 
 `/start` должен оставаться полностью provider-neutral.
 
@@ -3751,7 +3751,7 @@ get_device_limit()
 
 IP observations не должны переименовываться в физические устройства и не должны использоваться как замена HWID inventory.
 
-##### Admin Infrastructure UI
+##### Административный интерфейс инфраструктуры
 
 При включённом Remnawave provider инфраструктурный UI не должен притворяться 3x-ui UI с переименованными labels.
 
@@ -3771,7 +3771,7 @@ IP observations не должны переименовываться в физи
 
 Stable callback identity должна использовать стабильные UUID/IDs Remnawave, а не display name.
 
-##### Host Control / node lifecycle
+##### Host Control и жизненный цикл нод
 
 Текущий Host Control Agent остаётся 3x-ui-specific boundary для точного allowlist управления `x-ui.service` и не должен искусственно расширяться до generic shell/container agent ради Remnawave.
 
@@ -3786,7 +3786,7 @@ Stable callback identity должна использовать стабильн�
 - credentials отдельны от panel/API/bot/backup credentials;
 - lifecycle нового agent проходит отдельный threat model, deploy runbook и acceptance.
 
-##### Graceful Node Drain
+##### Плавное выведение ноды из трафика
 
 Концепт Node Drain сохраняется, но 3x-ui алгоритм attach-alternative-Inbound → prove → detach-target-Inbound нельзя напрямую копировать в Remnawave.
 
@@ -3860,7 +3860,7 @@ Provider-neutral mutation layer должен иметь единый safety cont
 - состояние после crash/restart — recovered-success / recovered-failed / unknown/interrupted;
 - Continue после unknown требует нового plan/preflight, если предыдущий post-condition нельзя доказать.
 
-##### Drift detection и reconciliation
+##### Обнаружение расхождений и сверка
 
 Multi-provider deployment требует явного обнаружения расхождений между local desired state и remote actual state.
 
@@ -3962,7 +3962,7 @@ Attention Center может агрегировать эти данные, но �
 
 Provider name, operation ID, stable remote target ID и last verified state допустимы в технической диагностике; secrets и customer subscription URLs — нет.
 
-##### Backup / restore
+##### Резервное копирование и восстановление
 
 Локальный Full Backup должен включать только те provider bindings/policies/journals, которые принадлежат самому боту.
 
@@ -4016,7 +4016,7 @@ Remnawave API endpoint является privileged control-plane destination и 
 
 Remnawave rollout не считается принятым только потому, что API отвечает `200`.
 
-##### Definition of Done
+##### Критерии завершения
 
 Отложенный Remnawave track считается архитектурно завершённым только когда:
 
@@ -4104,7 +4104,7 @@ Tag ruleset **Protect release tags** (ID `24615100`):
 
 A-007 больше не имеет residual accepted risk: branch и release-tag paths защищены GitHub-side enforcement, а release workflow остаётся единственным штатным способом публикации новых tags/releases.
 
-### v5.0.0 — Client Portal
+### v5.0.0 — Клиентский портал
 
 **Статус: 🟡 Реализуется в `main`. Backend foundation и pilot Client Portal уже слиты; публичный launch ещё закрыт allowlist/launch-gates.**
 
@@ -4496,7 +4496,7 @@ Roadmap не требует device registration в первой версии. Н
 
 Открытие публичного `/start` выполняется только после готовности customer authorization, entitlement/payment lifecycle и abuse/rate-limit policy.
 
-## Gate перед публичным запуском Client Portal
+## Gate перед публичным запуском Клиентский портал
 
 Финальный v4 audit создаёт проверенную backend/control-plane baseline, но не заменяет review нового public attack surface.
 
@@ -4515,7 +4515,7 @@ Roadmap не требует device registration в первой версии. Н
 
 Public launch блокируется до закрытия release-blocking findings этого v5 launch audit.
 
-## Текущий статус v5 Client Portal — 2026-10-08
+## Текущий статус v5 Клиентский портал — 2026-10-08
 
 **Актуальный срез на 2026-10-08:** production остаётся на immutable `v5.0.0-rc.5` (`14042f6dc9d467dc8d0e999eb493f9e1cfc90611`); V5-A-009 Stars refund — scoped PASS, V5-A-002 только read-only preflight/reconciliation — scoped PASS (подробности ниже). #333/#334 исправлены и прошли CI в `main` через PR #335, **не выпущены/не проверены в production**. `rc.6` — первоначальный release-prep PR #339 не прошёл CI (2 format-check tests), исправление канонической строки Admin Setup перенесено в пересобранный release-prep от актуального `main`; новый CI/merge/tag/deploy ещё не подтверждены. Будущий внешний PSP/СБП #336 запланирован через PR #338, без реализации. **Общий v5 production acceptance — NOT PASS**, pilot allowlist сохраняется.
 
@@ -4566,7 +4566,7 @@ Public launch блокируется до закрытия release-blocking find
 
 Актуальная release sequence: **`v5.0.0-rc.1` published/deployed → FAIL (V5-A-005/V5-A-006) → fixes #312 → `rc.2` published/deployed → targeted V5-A-005/V5-A-006 PASS → V5-A-007 FAIL (#317) → fix #318 → `rc.3` published/deployed → V5-A-007 targeted PASS → STOP/FAIL V5-A-008 (#324) → fix #325 → immutable `v5.0.0-rc.4` published/deployed → V5-A-008 targeted production retest PASS (2026-10-08) → V5-A-009 Stars refund FAIL на rc.4 (#328) → fix #329 merged / release-prep rc.5 → immutable rc.5 published/deployed / V5-A-009 targeted refund PASS (#328 closed) → read-only V5-A-002 commerce reconciliation PASS на rc.5 → #333/#334 identified, fix PR #335 merged/CI PASS → rc.6 release-prep PR #339 failed/stale head → пересобранный release-prep от актуального main (required CI pending) → оставшиеся V5-A-001/V5-A-002/V5-A-003, ownership/rollback/reconciliation/soak → общий production acceptance PASS → stable `v5.0.0` → постепенное расширение cohort**.
 
-## План: переключатели Client Portal / Stars и ревизия системных настроек (2026-10-08)
+## План: переключатели Клиентский портал / Stars и ревизия системных настроек (2026-10-08)
 
 **Статус на 2026-10-09: 🟡 Реализовано в `main`, но ещё не опубликовано и не принято в production.** [#342](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/342) слит через [PR #368](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/368), нулевые лимиты [#343](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/343) через [PR #367](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/367). Эти изменения отсутствуют в `v5.0.0-rc.7`, acceptance не выполнен, pilot allowlist не расширять. Приоритет — до широкого customer rollout; решение о включении в текущий v5.0 feature scope принимается отдельно от уже идущего V5-A-001…A-003.
 
