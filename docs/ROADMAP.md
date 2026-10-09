@@ -362,7 +362,7 @@ Compatibility gate опубликован в `v4.17.0`: поддерживаем
 
 Этот gate нужен именно как защита от тихой несовместимости после обновления 3x-ui и не заменяет integration tests против реального поддерживаемого release.
 
-##### Gate перед открытием Клиентский портал
+##### Gate перед открытием Client Portal — Клиентский портал
 
 Переход к `v5.0.0` предполагает закрытие следующего набора v4.x работ:
 
@@ -1037,7 +1037,7 @@ Utilities:
 
 Screenshot/headless-browser diagnostics из README PackBot не входят в обязательный `v4.24.0`: это отдельный browser/runtime attack surface и требует отдельного решения, если когда-либо понадобится.
 
-###### Матрица совместимости с PackBot
+###### Матрица совместимости с PackBot (PackBot parity matrix)
 
 | PackBot capability | Решение `v4.24.0` |
 | --- | --- |
@@ -2457,7 +2457,7 @@ Root cause подтверждён по безопасно извлечённом
 Адресная приёмка `v4.25.3` закрыт; принятый runtime contract повторно подтверждён финальным smoke `v4.25.6`.
 
 
-##### v4.25.4 — совместимость текстовой подписки Streisand
+##### v4.25.4 — Streisand plain subscription compatibility — совместимость текстовой подписки Streisand
 
 **Статус: ✅ Проверено и закрыто как исторический diagnostic release; гипотеза `plain=1` не решила Streisand compatibility и была удалена в `v4.25.6`.**
 
@@ -2490,7 +2490,7 @@ Production finding после успешного acceptance `v4.25.3`:
 Проверка `v4.25.4` завершена отрицательным результатом для гипотезы `plain=1`; investigation и forward-revert закрыты в `v4.25.6`. Поддержка Streisand при активном HWID limit не заявляется.
 
 
-##### v4.25.5 — приоритет текстового режима Streisand
+##### v4.25.5 — Streisand plain mode precedence — приоритет текстового режима Streisand
 
 **Статус: ✅ Проверено и закрыто как исторический diagnostic release; HTML-precedence fix не устранил корневую HWID-несовместимость и был удалён в `v4.25.6`.**
 
@@ -2516,7 +2516,7 @@ Fix `v4.25.5`:
 4. final bot/DB/3x-ui health остаётся PASS.
 
 
-##### v4.25.6 — несовместимость Streisand и отмена изменений новым коммитом
+##### v4.25.6 — Streisand incompatibility / forward revert — несовместимость Streisand и отмена изменений новым коммитом
 
 **Статус: ✅ Опубликовано в `v4.25.6`, принято в production; предыдущие релизы `v4.25.0–v4.25.6` закрыты.**
 
@@ -2550,13 +2550,13 @@ Fix `v4.25.5`:
 Приёмка в production `v4.25.6` от 2026-09-29:
 
 - выпуск: тег `v4.25.6`, commit `b3fb80d334c8cded51e4bc9de4b08af2e31d0cd6`;
-- проверка 50 — version/health: **PASS**;
+- test 50 — version/health: **PASS**;
 - проверка 51 — Shadowrocket: **PASS**;
 - проверка 52 — V2Box / V2RayTun / Happ: **PASS**;
 - проверка 53 — INCY mobile + desktop: **PASS**;
 - проверка 54 — HWID full-slot / recovery diagnostics: **PASS**;
-- проверка 55 — Streisand: **EXPECTED LIMITATION** — raw subscription при `HWID limit > 0` несовместим, потому что клиент не передаёт совместимый `X-HWID`; 3x-ui корректно отвечает `hwid_not_supported`;
-- проверка 56 — final bot/DB/3x-ui health: **PASS**;
+- test 55 — Streisand: **EXPECTED LIMITATION** — raw subscription при `HWID limit > 0` несовместим, потому что клиент не передаёт совместимый `X-HWID`; 3x-ui корректно отвечает `hwid_not_supported`;
+- test 56 — final bot/DB/3x-ui health: **PASS**;
 - временные `plain=1` workarounds отсутствуют в финальном runtime; subscription proxy соответствует принятому контракту `v4.25.3`;
 - synthetic/fallback HWID не добавляется, per-device enforcement не ослабляется.
 
@@ -2605,7 +2605,7 @@ Tests: `tests/test_inbound_input_validation.py` выполняет реальн�
 Admin Setup: новых настроек и действий установки для `v4.25.7` не потребовалось.
 
 
-##### v4.25.8 — исправление навигации клонирования Inbound
+##### v4.25.8 — Inbound clone navigation hotfix — исправление навигации клонирования Inbound
 
 **Статус: ✅ Выполнено в `v4.25.8`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #202 закрыт как `completed`.**
 
@@ -2657,7 +2657,7 @@ DB-backed Owner теперь не может понизить собственн
 Admin Setup: новых настроек и действий установки для `v4.25.8` не потребовалось.
 
 
-##### v4.26.0 — плавное выведение ноды из трафика
+##### v4.26.0 — Node Drain / graceful traffic evacuation — плавное выведение ноды из трафика
 
 **Статус: ✅ `v4.26.0` опубликован и развёрнут; полный controlled state-changing production acceptance завершён 2026-10-01, issue #208 закрыт как `completed`.**
 
@@ -2748,7 +2748,7 @@ Operator UX:
 - pre-mutation confirmation был отменён без remote mutation; finding #211: `✖ Отмена` вернула в корень `Операции с нодами` вместо canonical parent — preflight той же ноды;
 - полный targeted production smoke из пункта 11 был отложен до безопасной test node/user cohort и завершён 2026-10-01: read-only preflight показал affected=1, movable=1, blockers=0; state-changing run выполнил maintenance → attach-before-detach с read-back → detach с read-back → `drained`; remaining assignments=0, blockers=0; reconnect через альтернативный Master прошёл успешно; test node возвращена из maintenance и обычное policy reconciliation восстановило исходную тестовую политику; временные test user/plan/server group/Inbound/node bindings после acceptance удалены с Master, audit/job/Drain history сохранена.
 
-##### v4.26.1 — навигация отмены Node Drain
+##### v4.26.1 — Node Drain Cancel navigation — навигация отмены Node Drain
 
 **Статус: ✅ Выполнено в `v4.26.1`; patch опубликован, развёрнут и targeted production verification завершён, issue #211 закрыт как `completed`.**
 
@@ -2793,7 +2793,7 @@ Production diagnosis подтвердил, что control-plane адрес па�
 
 Production proof 2026-10-01 на безопасной test node подтвердил реальный drift: исходный Inbound имел `shareAddrStrategy=node` и пустой `shareAddr`. Выполнена одна контролируемая mutation только share-address полей, после которой read-back подтвердил `custom` и явный operator-supplied public data-plane IP. `Node.address`, `settings`, `streamSettings`, `sniffing` и Reality SNI остались без изменений; обновлённая subscription успешно переподключилась через test node. После acceptance временный тестовый контур удалён с Master. Issue #219 закрыт как `completed`.
 
-##### v4.26.2 — сводка требующих внимания событий
+##### v4.26.2 — Dashboard Attention summary — сводка требующих внимания событий
 
 **Статус: ✅ Выполнено в `v4.26.2`; release опубликован, развёрнут и production acceptance завершён, issue #216 закрыт как `completed`.**
 
@@ -3678,7 +3678,7 @@ current active Internal Squads
 
 Provider adapters обязаны сохранять существующий no-retry safety contract для state-changing операций: timeout/lost response/5xx после возможного применения mutation не является основанием для слепого повторения запроса.
 
-##### Клиентский портал
+##### Client Portal — Клиентский портал
 
 `/start` должен оставаться полностью provider-neutral.
 
@@ -4104,7 +4104,7 @@ Tag ruleset **Protect release tags** (ID `24615100`):
 
 A-007 больше не имеет residual accepted risk: branch и release-tag paths защищены GitHub-side enforcement, а release workflow остаётся единственным штатным способом публикации новых tags/releases.
 
-### v5.0.0 — Клиентский портал
+### v5.0.0 — Client Portal — Клиентский портал
 
 **Статус: 🟡 Реализуется в `main`. Backend foundation и pilot Client Portal уже слиты; публичный launch ещё закрыт allowlist/launch-gates.**
 
