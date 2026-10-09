@@ -1363,3 +1363,7 @@ Streisand не передаёт совместимый `X-HWID` для raw subsc
 - `CLIENT_RATE_LIMIT_COUNT` / `CLIENT_RATE_LIMIT_WINDOW_SECONDS` — per-user sliding-window guard customer commands/callbacks.
 
 Для emergency rollback сначала выключайте payment acceptance, затем при необходимости Client Portal. Не удаляйте подтверждённые orders/payments/entitlements и не исправляйте их прямой правкой БД.
+
+## Client Portal / Stars runtime switches (#342; после следующего релиза)
+
+В новом коде `/admin → Система → Настройки → 👤 Клиентский портал` Owner может ограничить доступ к клиентскому порталу и **новым** Telegram Stars платежам без редактирования `.env` и пересоздания контейнера. На опубликованном/развёрнутом `v5.0.0-rc.7` интерфейс ещё отсутствует; пользоваться им до отдельного выпуска/controlled rollout нельзя. `.env CLIENT_PORTAL_ENABLED=false` или `CLIENT_PAYMENT_ACCEPTANCE_ENABLED=false` всегда сильнее DB override `true`; отключённый портал также запрещает оплату. Наличие DB override без внешнего разрешения не включает pilot-доступ. Для emergency break-glass остаются локальные `.env` flags с контролируемым redeploy по release-процедуре, а не Telegram-host shell. Read-only состояние при ошибке DB = unknown/disabled. Toggle не отзывает 3x-ui клиентов, не переписывает entitlement, не останавливает обработку уже пришедшего successful_payment. Перед production acceptance отдельно проверить рестарт, audit, старые invoices/precheckout, приватные права и read-only payment reconciliation без реальной повторной оплаты/refund.
