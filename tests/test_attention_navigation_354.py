@@ -12,6 +12,7 @@ os.environ.setdefault("PANEL_API_TOKEN", "test-panel-token")
 os.environ.setdefault("SUBSCRIPTION_URL_TEMPLATE", "https://example.org/sub/{sub_id}")
 os.environ.setdefault("DB_PATH", _ENV_ROOT.name + "/bot.sqlite3")
 os.environ.setdefault("ALLOWED_TELEGRAM_IDS", "1001")
+os.environ.setdefault("ADMIN_TELEGRAM_IDS", "1001")
 from pathlib import Path
 
 from admin_navigation import (
