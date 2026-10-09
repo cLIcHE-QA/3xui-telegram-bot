@@ -319,3 +319,7 @@ PR, изменяющий Telegram UI, должен проверять как м�
 - список HWID показывает только bounded upstream metadata/short fingerprint; удаление одного device — двухшаговое и доступно Support+;
 - read-only карточка устройства не показывает mutation-кнопку; uncertain DELETE outcome не повторяется автоматически, а оператору предлагается обновить список;
 - IP view не создаёт локальный бессрочный history ledger и не пишет IP values в audit только ради просмотра.
+
+## Historical bot.update unknown acknowledgment (schema v12)
+
+Owner открывает `Система → Обновления бота → Разобрать исторический unknown`, выбирает фиксированное основание и подтверждает отдельным callback. UI использует только Deploy Agent GET, не отправляет deployment POST и не меняет `unknown` в `success`. Read-only evidence разделяет журнал операции и текущий health. SQLite хранит immutable job_run_id, actor, основание, evidence и аудит. Обзор скрывает только acknowledged run; история сохраняет original unknown с отметкой о рассмотрении. Новая проблема с новым ID появляется снова.
