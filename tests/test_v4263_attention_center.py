@@ -132,11 +132,11 @@ class AttentionCenterTests(unittest.TestCase):
         self.assertEqual(
             callbacks,
             {
-                "admin:health",
-                "admin:jobs",
-                "admin:alerts",
-                "admin:backups",
-                "admin:fleet",
+                "admin:attention:health",
+                "admin:attention:jobs",
+                "admin:attention:alerts",
+                "admin:attention:backups",
+                "admin:attention:fleet",
                 "admin:attention",
                 "admin:dashboard",
             },
