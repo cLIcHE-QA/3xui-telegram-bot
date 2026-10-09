@@ -147,7 +147,7 @@
 
 ### Зафиксированные цели финализации v4.x
 
-#### RBAC / Roles & Privileges catalog
+#### Каталог ролей и привилегий RBAC
 
 **Статус: ✅ Выполнено в `v4.14.0`.**
 
@@ -164,7 +164,7 @@
 
 Первый вариант не требует custom roles или индивидуальной выдачи произвольных permission отдельным администраторам. Четыре существующие роли остаются каноническими; цель — сделать их возможности полными, прозрачными и поддерживаемыми по мере развития `/admin`.
 
-#### Extended direct-node backup
+#### Расширенное резервирование direct nodes
 
 **Статус: ✅ Выполнено в `v4.14.1`.**
 
@@ -194,7 +194,7 @@ nodes/<node>/
 
 В scope v4.x достаточно надёжно сохранять nginx configuration вместе с node DB. Автоматический remote nginx restore и полный bare-metal disaster recovery remote node не являются обязательными целями этой линии. При необходимости nginx bundle должен оставаться доступным для контролируемого ручного восстановления с обязательной локальной валидацией конфигурации перед reload.
 
-#### Safe Bot Self-Update
+#### Безопасное самообновление бота
 
 **Статус: ✅ Выполнено в `v4.19.1`.**
 
@@ -214,7 +214,7 @@ existing scripts/deploy-release.sh
 Git / Docker Compose / production bot service
 ~~~
 
-Security boundary:
+Граница безопасности:
 
 - update доступен только `Owner`;
 - Deploy Agent работает вне bot container и переживает recreate самого bot service;
@@ -263,7 +263,7 @@ success / failed / unknown
 
 #### Обязательные условия перехода к v5.0.0
 
-##### Host Control startup recovery
+##### Восстановление Host Control после запуска
 
 **Статус: ✅ Выполнено в `v4.13.2`.**
 
@@ -342,7 +342,7 @@ Encrypted off-site backup опубликован и развернут в produc
 
 Конкретная реализация может использовать S3-compatible object storage, отдельный backup host или другой ограниченный transport, но Telegram/Admin UI не должен получать arbitrary remote filesystem access.
 
-##### 3x-ui API compatibility / OpenAPI contract gate
+##### Проверка совместимости API 3x-ui и контракта OpenAPI
 
 **Статус: ✅ Выполнено в `v4.17.0`.**
 
@@ -456,7 +456,7 @@ Scope `v4.20.5`:
 2. **Список `Ноды` использует один status template для Master и direct nodes.** Master и direct nodes показывают идентичность сущности, status icon и текстовый status label в одном формате; direct-node identity формируется через `node_display_name()`. Пример: `🖥 Master · 🟢 В сети` и `🇫🇮 Finland · 🟢 В сети`.
 3. **`Обзор` следует общему top-level navigation contract.** `admin:home` остаётся единственным корневым экраном с `admin_menu()`. `admin:dashboard` становится обычным дочерним экраном с собственной локальной клавиатурой (`🔄 Обновить`, `⬅ Панель администратора`) и не сохраняет корневое меню под содержимым overview.
 
-Regression requirements:
+Требования к регрессионным проверкам:
 
 - отдельный тест проверяет конкретную Fleet Health строку и запрещает raw direct-node name на этом экране;
 - тест списка `Ноды` проверяет одинаковую грамматику статуса Master/direct nodes, включая online/offline/maintenance/unknown варианты;
@@ -617,7 +617,7 @@ Production smoke `v4.21.1` подтвердил display name в `Подписк�
 
 Production acceptance закрыт: оператор подтвердил штатное открытие Disaster Recovery без `NameError`, фактическое различие режимов журнала `50` / `200` и успешный базовый health check `GET /healthz` с HTTP 200. Raw log timestamps продолжают отображаться в machine-level UTC по contract.
 
-##### User / Audience Groups
+##### Группы пользователей и аудиторий
 
 **Статус: ✅ Выполнено и принято в production в `v4.22.0`.**
 
@@ -647,7 +647,7 @@ Production acceptance `v4.22.0` закрыт на развёрнутом release
 
 Targeted smoke подтвердил production flow: создание временной User Group, поиск существующего пользователя, добавление membership, отображение группы из карточки пользователя, удаление membership через confirmation flow, наличие audit-событий для create/add/remove и двухшаговое удаление пустой группы. Тестовые данные после проверки удалены. Разделение User Groups и VPN provisioning отдельно защищено code/regression contract; production smoke не выполнял искусственных VPN mutations ради проверки.
 
-##### Cheburcheck integration
+##### Интеграция Cheburcheck
 
 **Статус: ✅ Выполнено в `v4.23.1`.**
 
@@ -763,7 +763,7 @@ Runtime scope завершён и опубликован: schema v4/v5 website m
 
 Цель — нативно перенести полезное поведение `vladpak1/packbot` в текущий Admin Control Plane без встраивания отдельного PHP Telegram bot, MySQL runtime, webhook stack или второй application database.
 
-Reviewed upstream contract:
+Проверенный контракт upstream:
 
 - project: `vladpak1/packbot`;
 - reviewed revision: `3c4a5bb29626f8b3e28056bd52cd94fdce9f3c1a`;
@@ -934,7 +934,7 @@ UNIQUE(incident_id, telegram_id, kind, sequence)
 
 Raw response bodies, WHOIS payloads, sitemap XML и PageSpeed JSON не сохраняются как persistent monitoring state. Для основной карточки хранится только bounded normalized metadata. Incident history — источник истории availability; `v4.24.0` не обязан вводить неограниченный time-series storage каждого успешного check.
 
-###### Monitoring state machine
+###### Модель состояний мониторинга
 
 PackBot behavior сохраняется по смыслу, но оформляется явной deterministic state machine:
 
@@ -976,7 +976,7 @@ Candidate failure включает target-attributable timeout/DNS/TLS/connect f
 
 Scheduled loop использует persistent `next_check_at` + bounded worker concurrency. Restart не создаёт duplicate incident/alert: current state читается из SQLite, а notification journal делает first/repeat/recovery delivery идемпотентной на уровне recipient/kind/sequence. На каждый future poll не создаётся бесконечная durable job queue.
 
-###### Outbound request safety layer
+###### Защита исходящих запросов
 
 Все HTTP(S)-функции `v4.24.0` — monitor check, canonical/effective URL discovery, redirects, CMS, SEO, PageSpeed target validation, robots и Sitemap — обязаны использовать **один общий** safe outbound client.
 
@@ -1009,7 +1009,7 @@ Fail-closed требования:
 
 WHOIS принимает только нормализованный domain и не позволяет пользователю задавать произвольный WHOIS server/port. DNS diagnostics принимает только domain/record-family inputs и не превращается в arbitrary DNS resolver client к указанному пользователем nameserver.
 
-###### Diagnostics contract
+###### Контракт диагностики
 
 `🔎 Разовая диагностика` не создаёт persistent monitor target без отдельного `Добавить в мониторинг`.
 
@@ -1037,7 +1037,7 @@ Utilities:
 
 Screenshot/headless-browser diagnostics из README PackBot не входят в обязательный `v4.24.0`: это отдельный browser/runtime attack surface и требует отдельного решения, если когда-либо понадобится.
 
-###### PackBot parity matrix
+###### Матрица совместимости с PackBot
 
 | PackBot capability | Решение `v4.24.0` |
 | --- | --- |
@@ -1155,7 +1155,7 @@ Scope guard:
 - кроме исправления ordering IPv6-literal validation не менять safe outbound transport semantics, redirect/DNS-rebinding policy, website monitoring state machine, SQLite schema, navigation/RBAC contract, Host Control, Deploy Agent или 3x-ui/OpenAPI;
 - `v4.24.1` остаётся presentation/read-only diagnostics hotfix.
 
-Acceptance hotfix:
+Приёмка исправления:
 
 1. WHOIS на controlled domain показывает creation/expiration в `DD.MM.YYYY HH:MM MSK`;
 2. UTC → MSK conversion проверяется на значении, которое переходит на следующий календарный день;
@@ -1180,7 +1180,7 @@ Acceptance hotfix:
 
 Implementation scope закрыт и опубликован в `v4.25.0`: User list/search/create, каноническая карточка и detail navigation, policy-based Access/Flow, Connections/HWID/IP, local-only Subscription QR, user-scoped Payments/Activity, confirmation-first lifecycle и завершённый bulk workflow реализованы и защищены regression coverage. Production smoke выполнен; найденные follow-up исправлены и повторно проверены в `v4.25.1–v4.25.6`. Закрытие предыдущих релизов подтверждено владельцем 2026-09-29; новый finding валидации Inbound не переоткрывает их исторический acceptance scope.
 
-Release boundary:
+Границы релиза:
 
 - scope относится только к `/admin → Пользователи`; публичный `/start` и Client Portal остаются задачей v5.x;
 - machine identity не меняется: `telegram_id`, 3x-ui `email` и `sub_id` сохраняют текущую семантику; `display_name` остаётся только presentation metadata;
@@ -1949,7 +1949,7 @@ ID: {masked_sub_id}
 - если QR требует отдельного media message, основной admin panel state и кнопка возврата не теряются; generated QR не сохраняется как постоянный файл;
 - `🔐 Перевыпустить ссылку` использует существующий admin-only ask/run contract `admin:u:subrotateask:* → admin:u:subrotaterun:*`.
 
-Confirmation rotation:
+Подтверждение смены:
 
 ~~~text
 ⚠️ Перевыпустить ссылку подписки?
@@ -2166,7 +2166,7 @@ Semantics:
 - partial failure не останавливает обработку остальных пользователей, а result summary явно разделяет success/failed/unknown там, где backend может доказать разные outcomes;
 - audit не перечисляет secret data и не должен без необходимости сохранять полный список email в одной строке.
 
-###### Callback / navigation contract
+###### Контракт callback и навигации
 
 Implementation может сохранить существующие identifiers, где это не ухудшает semantics. Целевые parent routes:
 
@@ -2231,7 +2231,7 @@ Implementation может сохранить существующие identifier
 - новый role model или custom per-admin permissions;
 - возврат legacy attach-all sync под новым названием.
 
-###### Regression / acceptance contract
+###### Контракт регрессионных проверок и приёмки
 
 Implementation PR должен добавить/обновить tests как минимум для:
 
@@ -2776,7 +2776,7 @@ Implementation / production evidence:
 - issue #211 закрыт как `completed`;
 - на момент acceptance `v4.26.1` полный state-changing Node Drain mutation smoke оставался отдельным scope #208; он выполнен 2026-10-01 на безопасной test node/user cohort и issue #208 закрыт как `completed`.
 
-##### Data-plane address hardening — issue #219
+##### Усиление защиты адреса data plane — issue #219
 
 **Статус: ✅ Pre-freeze hardening принят 2026-10-01; issue #219 закрыт как `completed` документированным v4.x product decision и production proof.**
 
@@ -3287,7 +3287,7 @@ User-Agent detection допускается только как bounded compatib
 
 Нельзя «чинить» JSON-клиент, который не умеет HWID, генерацией fake HWID на proxy. Unsupported client должен оставаться честным unsupported state.
 
-##### Client compatibility matrix
+##### Матрица совместимости клиентов
 
 До показа альтернативных formats в Client Portal нужна явная проверяемая matrix минимум по используемым клиентам и версиям.
 
@@ -3310,7 +3310,7 @@ Matrix должна опираться на production-like smoke/tests, а не
 
 Raw path нельзя удалить только потому, что один preferred client хорошо работает с JSON.
 
-##### Server-managed DNS/routing
+##### Управляемые сервером DNS и маршрутизация
 
 Главное функциональное преимущество Xray JSON — возможность централизованно передать Xray-native DNS/routing/policy.
 
@@ -3357,7 +3357,7 @@ Raw path нельзя удалить только потому, что один 
 - lost upstream response не создаёт новую subscription identity и не запускает mutation;
 - refresh format является read operation и не должен менять entitlement/provisioning state, кроме документированной provider-side device-registration semantics.
 
-##### Implementation sequence
+##### Последовательность реализации
 
 Если track будет открыт, рекомендуемый порядок:
 
@@ -3375,7 +3375,7 @@ Raw path нельзя удалить только потому, что один 
 12. провести controlled production canary на test user/cohort;
 13. сохранить мгновенный rollback: disable JSON/Clash presentation без изменения raw URL/`sub_id`.
 
-##### Regression / acceptance gate
+##### Проверки регрессий и приёмки
 
 Минимальный acceptance pack:
 
@@ -3417,7 +3417,7 @@ Track считается завершённым только когда:
 
 До открытия этого track текущая production policy не меняется: raw subscription + существующий `subscription_proxy.py` остаются каноническим и проверенным путём.
 
-#### Provider-neutral Control Plane и поддержка Remnawave
+#### Независимая от провайдера панель управления и поддержка Remnawave
 
 **Статус: ⬜ Отложено. Не является текущим блокером финального v4.x freeze, repository/public-release audit или открытия базового Client Portal v5. Реализация допускается только отдельным архитектурным треком после закрытия текущих обязательных gates.**
 
@@ -3450,7 +3450,7 @@ Track считается завершённым только когда:
 
 Ключевой принцип: локальная business-domain модель бота остаётся источником истины для customer/order/payment/entitlement lifecycle. Ни 3x-ui client, ни Remnawave User не становятся эквивалентом локального Customer. Remote control plane считается исполняющим provider-слоем, который может быть временно недоступен, заменён или мигрирован без потери бизнес-состояния.
 
-##### Provider-neutral domain boundary
+##### Граница предметной области без привязки к провайдеру
 
 До добавления Remnawave provider-specific calls должны быть вытеснены из Client Portal и по возможности из верхнего слоя Admin UI за интерфейс уровня domain capabilities.
 
@@ -3498,7 +3498,7 @@ get_node_health()
 
 Client Portal и общие domain services не должны импортировать `XUIClient` или `RemnawaveClient` напрямую.
 
-##### Capability model
+##### Модель возможностей
 
 3x-ui и Remnawave не обязаны поддерживать полностью одинаковый набор операций. Вместо provider-name branching UI и services должны использовать явный capability contract, например:
 
@@ -3646,7 +3646,7 @@ client-facing address / connection parameters
 
 Эта модель хорошо сочетается с общим hardening-принципом разделения control-plane address и operator-owned data-plane address: Remnawave Node и Remnawave Host не должны схлопываться в одну локальную сущность только ради совместимости со старой моделью.
 
-##### Provisioning / reconcile
+##### Выдача доступа и сверка состояния
 
 Текущий `ProvisioningEngine` не должен быть выброшен только из-за добавления второго provider. Его policy/reconcile роль сохраняется, но provider-specific primitives должны быть вынесены ниже.
 
@@ -3708,7 +3708,7 @@ subscription_url
 
 Факт использования 3x-ui или Remnawave не обязан быть customer-facing detail.
 
-##### Subscription subsystem
+##### Подсистема подписок
 
 Для Remnawave сначала следует использовать нативную subscription subsystem и не переносить автоматически весь текущий 3x-ui compatibility proxy.
 
@@ -3846,7 +3846,7 @@ Role names `Read-only`, `Support`, `Administrator`, `Owner` сохраняютс
 - direct/stale callback не обходит privilege check;
 - provider credential никогда не попадает в Telegram, audit payload или SQLite в открытом виде.
 
-##### Mutation journal / idempotency / recovery
+##### Журнал изменений, идемпотентность и восстановление
 
 Provider-neutral mutation layer должен иметь единый safety contract:
 
@@ -3944,7 +3944,7 @@ provider: unavailable
 
 Provider selection не должен зависеть от Telegram message history. Решение placement должно быть persistent и auditable.
 
-##### Observability / Attention Center
+##### Наблюдаемость и Attention Center
 
 Multi-provider слой должен давать одинаково диагностируемые состояния:
 
@@ -3976,7 +3976,7 @@ Provider name, operation ID, stable remote target ID и last verified state до
 - обязательный post-restore reconciliation/read-only inventory до любых mutations;
 - отсутствие автоматического destructive "sync remote to local" после restore.
 
-##### Security / SSRF / network boundary
+##### Безопасность, SSRF и сетевая граница
 
 Remnawave API endpoint является privileged control-plane destination и проходит отдельную конфигурационную validation policy.
 
@@ -3993,7 +3993,7 @@ Remnawave API endpoint является privileged control-plane destination и 
 - proxy environment не используется неявно без отдельного решения;
 - TLS verification не отключается production toggle'ом из Telegram UI.
 
-##### Regression / acceptance gates
+##### Проверки регрессий и приёмкиs
 
 До production включения Remnawave обязательны:
 
@@ -4036,7 +4036,7 @@ Remnawave rollout не считается принятым только пото
 До начала implementation отдельный design PR должен уточнить точную версию Remnawave, pinned API contract, перечень используемых endpoints, локальную schema migration, capability matrix и rollout plan. Этот roadmap-пункт фиксирует направление архитектуры, но не разрешает обход текущих v4 closure gates и не превращает Remnawave в скрытую зависимость базового Client Portal.
 
 
-#### Cheburcheck Probe fleet для региональных проверок
+#### Региональные проверки с помощью сети проб Cheburcheck
 
 **Статус: ⬜ Отложено. Не является блокером `v4.23.3`, `v4.24.0` или обязательным условием перехода к `v5.0.0`.**
 
@@ -4076,7 +4076,7 @@ Security / operational boundary:
 
 Этот пункт считается отдельной infrastructure-задачей средней сложности. Сам probe runtime лёгкий, но production-ready fleet требует broker/TLS/auth, нескольких независимых точек наблюдения, credential lifecycle, monitoring и runbook'ов.
 
-### Post-public governance hardening
+### Усиление правил сопровождения публичного репозитория
 
 **Статус: ✅ Выполнено 2026-10-07. A-007 технически закрыт полностью.**
 
@@ -4233,7 +4233,7 @@ Client Portal и Admin Control Plane живут в одном Telegram-боте 
 - payment/order status;
 - результат activation/extension.
 
-Backend lifecycle:
+Жизненный цикл серверной части:
 
 ~~~text
 Plan selection
@@ -4253,7 +4253,7 @@ Provisioning / reconcile
 Subscription available
 ~~~
 
-### Order / Payment / Entitlement state machine
+### Модель состояний заказа, платежа и entitlement
 
 Commerce flow должен иметь явные persistent states, а не выводить состояние покупки из Telegram message history или набора loosely-related flags.
 
@@ -4295,7 +4295,7 @@ failed
 - `unknown` используется там, где внешний provider мог принять mutation, но итог невозможно доказать;
 - ручная коррекция финансовых состояний доступна только через audit-friendly административный workflow.
 
-### Admin observability: Stars orders / invoice state
+### Наблюдаемость администратора: заказы Stars и состояние счетов
 
 Текущий экран `/admin → Платежи → Telegram Stars` показывает локальные `commerce_payments`. При этом отправленный, но ещё не оплаченный Telegram Stars invoice может уже иметь локальный `commerce_order` в `created/awaiting_payment`, но ещё не иметь payment row и поэтому не виден оператору в Stars ledger.
 
@@ -4329,7 +4329,7 @@ Backend integrity при этом сохраняется: pre-checkout прин�
 
 Finding #320 не блокирует targeted acceptance `v5.0.0-rc.3`; закрыть до stable/public rollout либо включить в следующий RC, если он потребуется по release-blocking причинам.
 
-### Payment provider webhook journal
+### Журнал webhook платёжного провайдера
 
 Для каждого внешнего payment event хранится immutable/minimally-mutable journal record.
 
@@ -4454,7 +4454,7 @@ HWID limit трактуется как ограничение одновреме
 - device-specific onboarding/deep-link;
 - явная capability/status presentation: device management supported / HWID enforcement enabled / limit disabled / unsupported client / limit reached / provider error.
 
-## Client onboarding / connection UX
+## Подключение клиентов и удобство настройки
 
 Первый Client Portal должен уменьшать зависимость от ручной поддержки при подключении устройства.
 
@@ -4482,7 +4482,7 @@ Roadmap не требует device registration в первой версии. Н
 
 `🛠 Проверить подписку` — read-only diagnostics либо безопасная ссылка на reconcile flow; она не должна выполнять опасные infrastructure mutations.
 
-## Authorization boundary
+## Граница авторизации
 
 Текущий проект ограничивает пользовательский flow через allowlist. Для публичного Client Portal это должно быть пересмотрено отдельно в v5.x.
 
@@ -4751,7 +4751,7 @@ Plan → Server Group → Nodes → Inbounds
 - payment history — может появиться внутри Profile/Purchase flow позже, если будет полезен клиенту;
 - infrastructure/server controls — никогда не относятся к Client Portal.
 
-## Definition of direction
+## Основной принцип развития
 
 До `v5.0.0`:
 
