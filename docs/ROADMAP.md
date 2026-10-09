@@ -42,6 +42,16 @@ Roadmap ведётся как living document. Для пунктов, по ко�
 
 - **⬜ [#357](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/357):** авторская русскоязычная текстовая инструкция Cloudflare WARP для VPS/direct nodes, адаптация по [AézaWiki (архив)](https://web.archive.org/web/20260408162809/https://wiki.aeza.net/ru/guides/warp/) и официальной upstream документации. Без скриншотов/копирования чужого текста verbatim, с безопасными preflight, routing/SSH/DNS/Host Control рисками, disable/rollback. Docs-only; не устанавливать WARP автоматически.
 
+### Аудит открытых GitHub issues и PR (2026-10-09)
+
+**Охват:** 15 открытых issues и 5 открытых PR на момент проверки; каждый issue имеет существующую запись в roadmap: исторический backlog #320, #333, #334, #336, #342, #343, #345 уже упоминался в `main`, а #348, #349 и #352–#357 добавлены данным PR. Наличие записи в roadmap **не означает**, что исправление принято или развернуто.
+
+**Реализовано, но открыто до scoped acceptance:** #333 (терминальный `refunded`, High; тесты и fix merged PR #335, включено в опубликованный rc.6) и #334 (раздельная Stars-сводка; тот же PR #335, rc.6). Не закрывать issues без операционного evidence согласно `docs/GIT_WORKFLOW.md`; реальную duplicate Stars delivery/refund в production **не проигрывать**. Задачи #320 (неактивный вид paid invoice), #342/#343 (переключатели и пробные лимиты), #345 (сброс customer session) остаются отдельным текущим product backlog, а #336 (внешний PSP/СБП) — post-stabilization/Telegram-compliance gate.
+
+**Разделение PR и порядок:** #346 — только scoped rc.6 canary evidence, #358 — эта дорожная карта с новым backlog; оба меняют `docs/ROADMAP.md`, поэтому после merge одного нужно синхронизировать второй и повторить required CI. #347 — отдельное изменение presentation invoice title, без изменений payment payload, не является доказательством закрытия #320. #350 и #351 — последовательный stacked backup-fix, сохранять Draft до security review и независимой acceptance. **Все пять PR с успешными required `test`/`title` checks на проверенных HEAD**, но отсутствие требуемых approval в branch ruleset не заменяет содержательный review и не разрешает обязательный production release gate.
+
+**Формат issues:** названия всех открытых задач приведены к `bug:`, `feature:` или `task:`; #333/#334 переведены на русский, содержат раздельные symptom/reproduction/expected/actual/acceptance, без секретов и без изменения исторических выводов. Будущие issues оформлять по `.github/ISSUE_TEMPLATE/` и `docs/GIT_WORKFLOW.md`.
+
 ### Приёмка и порядок
 
 - Каждая новая работа — отдельный issue/feature-or-fix PR с tests, если меняется код, и review living-docs impact. Docs-only WARP не становится runtime prerequisite.
