@@ -21,6 +21,7 @@ class ClientLaunchReadinessTests(unittest.TestCase):
         source = (ROOT / "client_access.py").read_text(encoding="utf-8")
         self.assertIn("settings.client_portal_enabled", source)
         self.assertIn("settings.client_payment_acceptance_enabled", source)
+        self.assertIn("feature_flags.snapshot()", source)
         self.assertIn("client_rate_limiter.allow", source)
 
     def test_payment_kill_switch_does_not_drop_successful_payment_handler(self):
