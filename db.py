@@ -84,6 +84,23 @@ class AuditRecord:
     created_at: int
 
 
+@dataclass(frozen=True)
+class BotUpdateAcknowledgment:
+    job_run_id: int
+    actor_id: int
+    actor_username: str
+    reason_code: str
+    evidence_code: str
+    operation_id: str
+    target_release: str
+    agent_state: str
+    target_sha: str
+    current_release: str
+    current_sha: str
+    postcondition: str
+    acknowledged_at: int
+
+
 @dataclass
 class JobRunRecord:
     id: int
@@ -2700,6 +2717,106 @@ class Database:
                 ),
             )
             await db.commit()
+
+
+    async def get_job_run(self, run_id: int) -> JobRunRecord | None:
+        async with aiosqlite.connect(self.path) as conn:
+            conn.row_factory = aiosqlite.Row
+            row = await (await conn.execute(
+                "SELECT * FROM job_runs WHERE id = ?", (int(run_id),)
+            )).fetchone()
+            return JobRunRecord(**dict(row)) if row is not None else None
+
+    async def get_bot_update_acknowledgment(
+        self, run_id: int
+    ) -> BotUpdateAcknowledgment | None:
+        async with aiosqlite.connect(self.path) as conn:
+            conn.row_factory = aiosqlite.Row
+            row = await (await conn.execute(
+                "SELECT * FROM bot_update_acknowledgments WHERE job_run_id = ?",
+                (int(run_id),),
+            )).fetchone()
+            return BotUpdateAcknowledgment(**dict(row)) if row is not None else None
+
+    async def list_bot_update_acknowledged_run_ids(
+        self, run_ids: list[int]
+    ) -> set[int]:
+        ids = list(dict.fromkeys(int(value) for value in run_ids if int(value) > 0))
+        if not ids:
+            return set()
+        placeholders = ", ".join("?" for _ in ids)
+        async with aiosqlite.connect(self.path) as conn:
+            rows = await (await conn.execute(
+                f"SELECT job_run_id FROM bot_update_acknowledgments WHERE job_run_id IN ({placeholders})",
+                ids,
+            )).fetchall()
+            return {int(row[0]) for row in rows}
+
+    async def acknowledge_bot_update_unknown(
+        self, run_id: int, *, actor_id: int, actor_username: str,
+        reason_code: str, evidence,
+    ) -> bool:
+        """Atomic append-only finding + audit; duplicates are no-ops."""
+        if reason_code not in {"reviewed", "recovered", "insufficient"}:
+            raise ValueError("Unrecognized historical incident reason")
+        if actor_id <= 0 or run_id <= 0:
+            raise ValueError("Invalid actor or run identity")
+        async with aiosqlite.connect(self.path, timeout=15) as conn:
+            try:
+                await conn.execute("BEGIN IMMEDIATE")
+                run = await (await conn.execute(
+                    "SELECT name, status FROM job_runs WHERE id = ?", (int(run_id),)
+                )).fetchone()
+                if run is None or run[0] != "bot.update" or run[1] != "unknown":
+                    raise ValueError("Historical bot.update unknown no longer exists")
+                existing = await (await conn.execute(
+                    "SELECT 1 FROM bot_update_acknowledgments WHERE job_run_id = ?",
+                    (int(run_id),),
+                )).fetchone()
+                if existing is not None:
+                    await conn.rollback()
+                    return False
+                now = int(time.time())
+                await conn.execute(
+                    """
+                    INSERT INTO bot_update_acknowledgments(
+                        job_run_id, actor_id, actor_username, reason_code,
+                        evidence_code, operation_id, target_release, agent_state,
+                        target_sha, current_release, current_sha, postcondition,
+                        acknowledged_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        int(run_id), int(actor_id), str(actor_username or "")[:64],
+                        reason_code, str(evidence.code)[:64],
+                        str(evidence.operation_id)[:32],
+                        str(evidence.requested_release)[:64],
+                        str(evidence.agent_state)[:24], str(evidence.target_sha)[:40],
+                        str(evidence.current_release)[:64],
+                        str(evidence.current_sha)[:40],
+                        str(evidence.postcondition)[:32], now,
+                    ),
+                )
+                await conn.execute(
+                    """
+                    INSERT INTO audit_log(
+                        actor_id, actor_username, action, target_type, target_id,
+                        details, success, created_at
+                    ) VALUES (?, ?, 'bot.update.unknown.acknowledged', 'job_run',
+                              ?, ?, 1, ?)
+                    """,
+                    (
+                        int(actor_id), str(actor_username or "")[:64], str(int(run_id)),
+                        f"reason={reason_code}; evidence={str(evidence.code)[:64]}; "
+                        f"operation_id={str(evidence.operation_id)[:32]}; "
+                        f"postcondition={str(evidence.postcondition)[:32]}", now,
+                    ),
+                )
+                await conn.commit()
+                return True
+            except Exception:
+                await conn.rollback()
+                raise
 
     async def list_job_runs(self, *, name: str | None = None, limit: int = 20) -> list[JobRunRecord]:
         limit = max(1, min(100, int(limit)))
