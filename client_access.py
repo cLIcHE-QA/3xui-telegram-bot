@@ -553,6 +553,10 @@ async def stars_pre_checkout(query: PreCheckoutQuery):
             error_message="Заказ изменился или больше недоступен. Создайте оплату заново.",
         )
         return
+    # Recheck after order validation: a switch may change during DB I/O.
+    if not await payment_acceptance_enabled():
+        await query.answer(ok=False, error_message="Приём новых платежей временно отключён.")
+        return
     await query.answer(ok=True)
 
 
