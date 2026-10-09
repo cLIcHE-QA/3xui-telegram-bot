@@ -19,6 +19,7 @@ from admin_auth import ROLE_LABELS, authorize_callback, authorize_message, get_a
 from admin_privileges import PRIVILEGES
 from audit import audit_from_call, audit_from_message
 from config import load_settings
+from trial_settings import parse_trial_setting, trial_limit_label
 from db import AdministratorRecord, Database, PaymentRecord, PromoCodeRecord
 from ui_time import backup_schedule_text, end_of_day_timestamp, format_timestamp
 from user_ui import user_label
@@ -1345,13 +1346,15 @@ async def administrator_delete(call: CallbackQuery):
 
 async def effective_setting(key: str) -> str:
     defaults = {
-        "trial_days": str(settings.test_days),
-        "trial_traffic_gb": str(settings.test_traffic_gb),
-        "trial_ip_limit": str(settings.test_ip_limit),
+        "trial_days": settings.test_days,
+        "trial_traffic_gb": settings.test_traffic_gb,
+        "trial_ip_limit": settings.test_ip_limit,
         "default_currency": "RUB",
     }
-    return str(await db.get_runtime_setting(key, defaults[key]) or defaults[key])
-
+    raw = await db.get_runtime_setting(key)
+    if key.startswith("trial_"):
+        return str(parse_trial_setting(key, raw, defaults[key]))
+    return str(defaults[key] if raw is None else raw)
 
 @business_router.callback_query(F.data == "admin:settings")
 async def settings_view(call: CallbackQuery):
@@ -1360,8 +1363,8 @@ async def settings_view(call: CallbackQuery):
     values = {key: await effective_setting(key) for key in SAFE_SETTING_SPECS}
     rows = [
         [InlineKeyboardButton(text=f"🗓 Дней пробного доступа · {values['trial_days']}", callback_data="admin:settings:edit:trial_days")],
-        [InlineKeyboardButton(text=f"📦 Трафик пробного доступа · {values['trial_traffic_gb']} GB", callback_data="admin:settings:edit:trial_traffic_gb")],
-        [InlineKeyboardButton(text=f"📱 Лимит IP пробного доступа · {values['trial_ip_limit']}", callback_data="admin:settings:edit:trial_ip_limit")],
+        [InlineKeyboardButton(text=f"📦 Трафик пробного доступа · {trial_limit_label('trial_traffic_gb', int(values['trial_traffic_gb']))}", callback_data="admin:settings:edit:trial_traffic_gb")],
+        [InlineKeyboardButton(text=f"📱 Лимит IP пробного доступа · {trial_limit_label('trial_ip_limit', int(values['trial_ip_limit']))}", callback_data="admin:settings:edit:trial_ip_limit")],
         [InlineKeyboardButton(text=f"💱 Валюта по умолчанию · {values['default_currency']}", callback_data="admin:settings:edit:default_currency")],
         [InlineKeyboardButton(text="⬅ Система", callback_data="admin:section:system")],
     ]
@@ -1369,9 +1372,11 @@ async def settings_view(call: CallbackQuery):
         "🔧 Настройки\n\n"
         "Безопасные настройки — применяются без изменения локальной конфигурации:\n"
         f"🗓 Дней пробного доступа: {values['trial_days']}\n"
-        f"📦 Трафик пробного доступа: {values['trial_traffic_gb']} GB\n"
-        f"📱 Лимит IP пробного доступа: {values['trial_ip_limit']}\n"
+        f"📦 Трафик пробного доступа: {trial_limit_label('trial_traffic_gb', int(values['trial_traffic_gb']))}\n"
+        f"📱 Лимит IP пробного доступа: {trial_limit_label('trial_ip_limit', int(values['trial_ip_limit']))}\n"
         f"💱 Валюта по умолчанию: {values['default_currency']}\n\n"
+        "Ноль в лимитах трафика/IP = без ограничений в 3x-ui. "
+        "Trial-настройки действуют только при новом создании в режиме совместимости; существующие пользователи не изменяются.\n\n"
         "Окружение (только чтение):\n"
         f"💾 Резервные копии: {'включены' if settings.backup_enabled else 'выключены'}, {backup_schedule_text(settings.backup_hour_utc)}, хранить {settings.backup_keep}\n"
         f"🔐 Проверка TLS: {'включена' if settings.verify_tls else 'выключена'}\n"
@@ -1396,6 +1401,8 @@ async def settings_edit(call: CallbackQuery, state: FSMContext):
     await state.set_state(EditSettingStates.value)
     current = await effective_setting(key)
     hint = "трёхбуквенный ISO-код, например RUB или USD" if spec[3] == "currency" else f"целое число {spec[1]}..{spec[2]}"
+    if key in {"trial_traffic_gb", "trial_ip_limit"}:
+        hint += "; 0 = без лимита"
     await render_callback(call, 
         f"{spec[0]}\n\nТекущее значение: {current}\nОтправь новое значение ({hint}).",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -1432,6 +1439,12 @@ async def settings_value(message: Message, state: FSMContext):
         if parsed < spec[1] or parsed > spec[2]:
             await render_input(message, f"Допустимый диапазон: {spec[1]}..{spec[2]}.", reply_markup=cancel("admin:settings:cancel"))
             return
+        if key.startswith("trial_"):
+            try:
+                parsed = parse_trial_setting(key, raw, getattr(settings, {"trial_days": "test_days", "trial_traffic_gb": "test_traffic_gb", "trial_ip_limit": "test_ip_limit"}[key]))
+            except ValueError as exc:
+                await render_input(message, str(exc), reply_markup=cancel("admin:settings:cancel"))
+                return
         value = str(parsed)
     old = await effective_setting(key)
     await db.set_runtime_setting(key, value, updated_by=message.from_user.id)
