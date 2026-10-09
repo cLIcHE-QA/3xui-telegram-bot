@@ -11,6 +11,7 @@ from admin_privileges import (
 )
 from config import Settings
 from db import Database
+from admin_identity import observe_admin_identity
 
 
 def is_private_admin_event(event: CallbackQuery | Message) -> bool:
@@ -86,6 +87,7 @@ async def authorize_callback(
             show_alert=True,
         )
         return False, role
+    observe_admin_identity(call.from_user.id, call.from_user.username)
     return True, role
 
 
