@@ -31,8 +31,7 @@ backup_manager = BackupManager(
 system_backup = SystemBackupService(
     backup_manager,
     settings.node_backup_targets,
-    settings.host_control_targets,
-)
+    settings.host_control_targets, master_client=XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls),)
 offsite_restore_manager = RestoreManager(settings.db_path, settings.backup_dir)
 offsite_backup = service_from_settings(settings, offsite_restore_manager)
 
