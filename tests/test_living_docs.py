@@ -110,6 +110,49 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("### v5.0.0 — Client Portal", roadmap)
         self.assertIn("A-007 технически закрыт полностью", roadmap)
 
+    def test_roadmap_status_contract_matches_workflow_and_pr_template(self):
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        workflow = (ROOT / "docs" / "GIT_WORKFLOW.md").read_text(
+            encoding="utf-8"
+        )
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        pr_template = (ROOT / ".github" / "pull_request_template.md").read_text(
+            encoding="utf-8"
+        )
+
+        expected = (
+            "⬜ Запланировано",
+            "🟡 Реализовано в main",
+            "🟠 Опубликовано; acceptance отложен",
+            "✅ Выполнено в vX.Y.Z",
+        )
+        roadmap_section = roadmap.split("## Статусы дорожной карты", 1)[1].split(
+            "\n## ", 1
+        )[0]
+        workflow_section = workflow.split("## Ведение roadmap", 1)[1].split(
+            "\n## ", 1
+        )[0]
+        roadmap_statuses = [
+            line.split("`", 2)[1]
+            for line in roadmap_section.splitlines()
+            if line.startswith("- `")
+        ]
+        workflow_statuses = [
+            line.split("`", 2)[1]
+            for line in workflow_section.splitlines()
+            if line.startswith("- `")
+        ]
+        self.assertEqual(roadmap_statuses, list(expected))
+        self.assertEqual(workflow_statuses, list(expected))
+        for label in expected:
+            with self.subTest(status=label):
+                self.assertIn(f"`{label}`", agents)
+
+        for check_status in ("PASS", "PARTIAL", "PENDING", "FAIL", "BLOCKED"):
+            self.assertIn(f"`{check_status}`", workflow_section)
+        self.assertIn("## Roadmap / Acceptance impact", pr_template)
+        self.assertIn("Что останется проверить", pr_template)
+
     def test_living_docs_are_linked_from_readme_and_agent_contract(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
