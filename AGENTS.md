@@ -232,6 +232,8 @@ PR diff автоматически проверяет `scripts/check-living-docs
 
 Не используй CHANGELOG как current setup manual.
 
+Для release-prep сверяй все merged `feat/fix/security` PR с версионным разделом CHANGELOG через `scripts/check-release-scope.py`. Обоснованное исключение записывай как `Release scope exclusion: PR #N — причина`; не путай полноту журнала с фактической приёмкой.
+
 ### ROADMAP
 
 `docs/ROADMAP.md` отражает фактическое состояние, а не намерения. Следуй обязательному порядку фиксации результатов и оставшихся проверок из раздела «Ведение roadmap» в `docs/GIT_WORKFLOW.md`.
