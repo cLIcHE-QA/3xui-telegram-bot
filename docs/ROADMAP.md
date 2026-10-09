@@ -2565,7 +2565,7 @@ Fix `v4.25.5`:
 Следующий активный патч — `v4.25.8` с navigation hotfix Clone Inbound и Owner self-role safety. После его отдельного release/acceptance следующий feature release — `v4.26.0` Node Drain.
 
 
-##### v4.25.7 — проверка ввода Inbound
+##### v4.25.7 — Inbound input validation — проверка ввода Inbound
 
 **Статус: ✅ Выполнено в `v4.25.7`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #199 закрыт как completed после targeted smoke.**
 
@@ -2625,7 +2625,7 @@ Admin Setup: новых настроек и действий установки 
 
 Отслеживание: [issue #202](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/202) (closed/completed), [fix PR #205](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/205), [release PR #206](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/206).
 
-##### v4.25.8 — защита Owner от изменения собственной роли
+##### v4.25.8 — Owner self-role safety — защита Owner от изменения собственной роли
 
 **Статус: ✅ Выполнено в `v4.25.8`; опубликовано, развёрнуто и принято в production 2026-09-29. Issue #204 закрыт как `completed`.**
 
@@ -2776,7 +2776,7 @@ Scope patch:
 - issue #211 закрыт как `completed`;
 - на момент acceptance `v4.26.1` полный state-changing Node Drain mutation smoke оставался отдельным scope #208; он выполнен 2026-10-01 на безопасной test node/user cohort и issue #208 закрыт как `completed`.
 
-##### Усиление защиты адреса data plane — issue #219
+##### Data-plane address hardening — issue #219 — усиление защиты адреса data plane
 
 **Статус: ✅ Pre-freeze hardening принят 2026-10-01; issue #219 закрыт как `completed` документированным v4.x product decision и production proof.**
 
@@ -2860,7 +2860,7 @@ Production smoke `v4.26.3` подтвердил сам Attention Center, но в
   - `🌐 Операции с нодами` показывает maintenance/rollout management entry points (`fleet.manage`, admin);
 - static `attention_menu()` показывает domain deep-links даже при calm/empty state; это не прямой RBAC defect, но создаёт misleading drill-down UX и включается в fix scope.
 
-##### v4.26.4 — исправление административной навигации с учётом прав
+##### v4.26.4 — Permission-aware admin navigation fix — исправление административной навигации с учётом прав
 
 **Статус: ✅ Выполнено в `v4.26.4`; release опубликован, развёрнут и production acceptance завершён. Bug #226 и issue #217 закрыты как `completed`.**
 
