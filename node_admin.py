@@ -39,8 +39,7 @@ backup_manager = BackupManager(settings.db_path, settings.backup_dir, settings.b
 system_backup = SystemBackupService(
     backup_manager,
     settings.node_backup_targets,
-    settings.host_control_targets,
-)
+    settings.host_control_targets, master_client=XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls),)
 drain_store = DrainPlanStore(Path(settings.db_path).parent / "fleet")
 
 node_admin_router = Router(name="node_admin")
