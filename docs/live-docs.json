@@ -14,13 +14,16 @@
     "docs/OFFSITE_BACKUP.md",
     "docs/SQLITE_MIGRATIONS.md",
     "docs/3XUI_OPENAPI_CONTRACT.md",
-    "docs/UI_STYLE.md"
+    "docs/UI_STYLE.md",
+    "docs/V5_PRODUCTION_ACCEPTANCE.md"
   ],
   "rules": [
     {
       "id": "release-version",
       "mode": "require_all",
-      "triggers": ["version.py"],
+      "triggers": [
+        "version.py"
+      ],
       "documents": [
         "README.md",
         "CHANGELOG.md",
@@ -44,7 +47,9 @@
         "scripts/bootstrap-bot-from-backup.sh",
         "scripts/fetch-offsite-backup.py"
       ],
-      "documents": ["docs/ADMIN_SETUP.md"],
+      "documents": [
+        "docs/ADMIN_SETUP.md"
+      ],
       "waiver": "Admin Setup: изменений не требуется"
     },
     {
@@ -56,7 +61,10 @@
         "scripts/deploy-release.sh",
         "scripts/render-release-notes.py"
       ],
-      "documents": ["docs/RELEASES.md", "docs/GIT_WORKFLOW.md"],
+      "documents": [
+        "docs/RELEASES.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
       "waiver": "Living Docs: release-process — изменений не требуется"
     },
     {
@@ -69,14 +77,22 @@
         "scripts/check-repository-state.py",
         "docs/live-docs.json"
       ],
-      "documents": ["docs/LIVING_DOCS.md", "docs/GIT_WORKFLOW.md"],
+      "documents": [
+        "docs/LIVING_DOCS.md",
+        "docs/GIT_WORKFLOW.md"
+      ],
       "waiver": "Living Docs: ci-governance — изменений не требуется"
     },
     {
       "id": "database-schema",
       "mode": "review",
-      "triggers": ["db_migrations.py", "database.py"],
-      "documents": ["docs/SQLITE_MIGRATIONS.md"],
+      "triggers": [
+        "db_migrations.py",
+        "database.py"
+      ],
+      "documents": [
+        "docs/SQLITE_MIGRATIONS.md"
+      ],
       "waiver": "Living Docs: database-schema — изменений не требуется"
     },
     {
@@ -87,8 +103,26 @@
         ".github/VULNERABILITY_REPORT.yml",
         ".github/ISSUE_TEMPLATE/**"
       ],
-      "documents": ["SECURITY.md"],
+      "documents": [
+        "SECURITY.md"
+      ],
       "waiver": "Living Docs: security-reporting — изменений не требуется"
+    },
+    {
+      "id": "v5-client-acceptance",
+      "mode": "review",
+      "triggers": [
+        "client_access.py",
+        "client_flags.py",
+        "commerce.py",
+        "customer_service.py",
+        "customer_provider_xui.py",
+        "db_migrations.py"
+      ],
+      "documents": [
+        "docs/V5_PRODUCTION_ACCEPTANCE.md"
+      ],
+      "waiver": "Living Docs: v5-client-acceptance — изменений не требуется"
     }
   ],
   "repository_state": {
@@ -96,7 +130,9 @@
     "branch_ruleset": {
       "name": "Protect main release path",
       "target": "branch",
-      "include": ["~DEFAULT_BRANCH"],
+      "include": [
+        "~DEFAULT_BRANCH"
+      ],
       "enforcement": "active",
       "required_rules": [
         "deletion",
@@ -105,18 +141,31 @@
         "required_status_checks",
         "required_linear_history"
       ],
-      "allowed_merge_methods": ["squash"],
-      "required_status_checks": ["test", "title"],
+      "allowed_merge_methods": [
+        "squash"
+      ],
+      "required_status_checks": [
+        "test",
+        "title"
+      ],
       "strict_status_checks": true,
       "no_bypass": true
     },
     "tag_ruleset": {
       "name": "Protect release tags",
       "target": "tag",
-      "include": ["refs/tags/v*"],
+      "include": [
+        "refs/tags/v*"
+      ],
       "enforcement": "active",
-      "required_rules": ["deletion", "non_fast_forward", "update"],
-      "forbidden_rules": ["creation"],
+      "required_rules": [
+        "deletion",
+        "non_fast_forward",
+        "update"
+      ],
+      "forbidden_rules": [
+        "creation"
+      ],
       "no_bypass": true
     }
   }
