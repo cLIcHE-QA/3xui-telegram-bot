@@ -30,7 +30,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (11, "entitlement_quota_cycle_v5_0_0", "success"))
+                self.assertEqual(row, (12, "bot_update_unknown_ack_v5_0_0", "success"))
                 columns = [
                     item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
                 ]
@@ -123,7 +123,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (8, "checkout_reference_v5_0_0", "success"),
                         (9, "telegram_stars_price_v5_0_0", "success"),
                         (10, "stars_production_hardening_v5_0_0", "success"),
-                        (11, "entitlement_quota_cycle_v5_0_0", "success"),
+                        (12, "bot_update_unknown_ack_v5_0_0", "success"),
                     ],
                 )
 
@@ -171,7 +171,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (8, "checkout_reference_v5_0_0", "success"),
                         (9, "telegram_stars_price_v5_0_0", "success"),
                         (10, "stars_production_hardening_v5_0_0", "success"),
-                        (11, "entitlement_quota_cycle_v5_0_0", "success"),
+                        (12, "bot_update_unknown_ack_v5_0_0", "success"),
                     ],
                 )
 
@@ -213,7 +213,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
+                    (12, "bot_update_unknown_ack_v5_0_0", "success"),
                 )
 
     async def test_schema_v4_upgrades_watcher_lifecycle_without_data_loss(self):
@@ -268,7 +268,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
+                    (12, "bot_update_unknown_ack_v5_0_0", "success"),
                 )
 
     async def test_schema_v5_upgrades_to_commerce_foundation_without_legacy_payment_changes(self):
@@ -309,7 +309,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
+                    (12, "bot_update_unknown_ack_v5_0_0", "success"),
                 )
 
     async def test_schema_v6_adds_reconciliation_reference_without_losing_webhook_journal(self):
@@ -355,7 +355,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
+                    (12, "bot_update_unknown_ack_v5_0_0", "success"),
                 )
 
     async def test_schema_v7_adds_checkout_reference_without_losing_payment_identity(self):
@@ -405,7 +405,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
+                    (12, "bot_update_unknown_ack_v5_0_0", "success"),
                 )
 
     async def test_schema_v8_adds_stars_price_without_changing_existing_plan_price(self):
@@ -440,7 +440,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                     conn.execute(
                         "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                     ).fetchone(),
-                    (11, "entitlement_quota_cycle_v5_0_0", "success"),
+                    (12, "bot_update_unknown_ack_v5_0_0", "success"),
                 )
 
     async def test_schema_v10_adds_quota_reset_journal_without_replaying_legacy_rows(self):
