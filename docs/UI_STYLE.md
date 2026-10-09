@@ -166,7 +166,7 @@ Operator-facing термин `membership` в обычных экранах не 
 - для нового delete flow regression coverage должна проверять, что первый delete action не вызывает mutation, а mutation находится только за отдельным confirm callback/handler;
 - наиболее частые действия доступны без лишней глубины, но top-level меню не разрастается ради единичной операции;
 - после FSM/confirmation flow пользователь возвращается в логичный родительский экран;
-- `/admin` и будущий `/start` сохраняют независимые navigation/authorization boundaries;
+- `/admin` и уже существующий пилотный `/start` сохраняют независимые navigation/authorization boundaries; клиентский доступ остаётся ограничен флагами, pilot allowlist и отдельной приёмкой v5;
 - названия родительских разделов в кнопках возврата должны совпадать с фактическими названиями этих разделов.
 
 Зафиксированный контракт Admin Control Plane:

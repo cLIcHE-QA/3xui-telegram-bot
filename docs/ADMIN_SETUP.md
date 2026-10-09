@@ -2,7 +2,7 @@
 
 Этот runbook описывает полное развёртывание и operational-настройку административного контура 3x-ui Telegram Bot с чистых VPS: Master, одна или несколько direct nodes, Host Control Agent и Extended direct-node backup с nginx snapshot.
 
-Scope документа — только **Admin Control Plane**. Будущая client-facing часть проекта должна иметь отдельное руководство (например, `docs/CLIENT_SETUP.md`) и не смешиваться с административным deployment flow.
+Scope документа — только **Admin Control Plane**. Client Portal v5 уже реализован для ограниченного pilot allowlist, но полный production acceptance ещё не завершён; этот runbook не является инструкцией по публичному запуску клиентского интерфейса или приёму новых реальных платежей. Условия контролируемой приёмки описаны в [v5 Production Acceptance](V5_PRODUCTION_ACCEPTANCE.md). Отдельный client-facing setup/launch runbook следует подготовить перед общедоступным rollout; административный deployment flow здесь не смешивается с клиентским.
 
 ## Как поддерживать это руководство
 
@@ -57,7 +57,7 @@ Guide ориентирован на release v5.0.0-rc.7. Этот prerelease а�
 
 - Telegram Bot token;
 - numeric Telegram ID как минимум одного Owner;
-- authenticated read access к private GitHub repository;
+- read-only доступ к **публичному** GitHub repository; для host-side Deploy Agent — отдельный read-only SSH deploy key и проверенный `known_hosts`;
 - Docker Engine + Docker Compose plugin;
 - Git;
 - Python 3 + venv для локальных onboarding helpers.
@@ -130,14 +130,14 @@ systemctl is-active docker
 
 ## 3. Получи release бота
 
-Настрой read access к private GitHub repository через отдельный deploy key/SSH key или другой разрешённый способ. Не записывай GitHub token в repository или .env.
+Репозиторий **публичный**: его можно клонировать по HTTPS без GitHub credentials. Для контролируемого host-side Deploy Agent всё равно требуется отдельный read-only SSH deploy key и проверенный `known_hosts` согласно [Safe Bot Self-Update](BOT_SELF_UPDATE.md); публичность исходников не отменяет защиту privileged операций. Не записывай GitHub token в repository или `.env`.
 
 ~~~bash
 sudo mkdir -p /opt/3xui-bot
 sudo chown "$(id -u):$(id -g)" /opt/3xui-bot
 cd /opt/3xui-bot
 
-git clone git@github.com:cLIcHE-QA/3xui-telegram-bot.git
+git clone https://github.com/cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
