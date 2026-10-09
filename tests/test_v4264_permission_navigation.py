@@ -105,17 +105,17 @@ class PermissionAwareNavigationTests(unittest.TestCase):
         ))
         self.assertEqual(
             problem,
-            {"admin:jobs", "admin:fleet", "admin:attention", "admin:dashboard"},
+            {"admin:attention:jobs", "admin:attention:fleet", "admin:attention", "admin:dashboard"},
         )
 
     def test_existing_attention_menu_default_contract_stays_available(self):
         full = callbacks(admin_navigation.attention_menu())
         for callback in (
-            "admin:health",
-            "admin:jobs",
-            "admin:alerts",
-            "admin:backups",
-            "admin:fleet",
+            "admin:attention:health",
+            "admin:attention:jobs",
+            "admin:attention:alerts",
+            "admin:attention:backups",
+            "admin:attention:fleet",
             "admin:attention",
             "admin:dashboard",
         ):
@@ -136,7 +136,8 @@ class PermissionAwareNavigationTests(unittest.TestCase):
         )[0]
         self.assertIn("filter_keyboard_for_role(kb, role)", jobs_block)
 
-        self.assertIn("filter_keyboard_for_role(_alerts_keyboard(rules), role)", alerts)
+        self.assertIn("filter_keyboard_for_role(", alerts)
+        self.assertIn("_alerts_keyboard(rules, from_attention=", alerts)
         self.assertIn("await _backup_menu_for_call(call)", storage)
         self.assertIn("filter_keyboard_for_role(markup, role)", fleet)
         self.assertIn("await _fleet_home_keyboard_for_call(call)", fleet)
