@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import tarfile
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -56,6 +57,44 @@ class MasterBackupFailClosedTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "snapshot failed"):
             self.manager.create_full_backup()
         self.assertEqual(self.archives(), [])
+
+    def test_deep_validation_failure_is_not_published(self):
+        master = self.manager.sources_root / "x-ui" / "x-ui.db"
+        database(master)
+        from restore_manager import RestoreManager, BackupInspection
+        from dataclasses import replace
+
+        original = RestoreManager.inspect_backup
+
+        def fail_validation(manager, path, *, deep=False, **kwargs):
+            inspection = original(manager, path, deep=deep, **kwargs)
+            return replace(inspection, valid=False, errors=("synthetic invalid manifest",))
+
+        with patch.object(RestoreManager, "inspect_backup", fail_validation):
+            with self.assertRaisesRegex(RuntimeError, "deep validation"):
+                self.manager.create_full_backup()
+        self.assertEqual(self.archives(), [])
+        self.assertEqual(list(self.manager.backup_dir.glob(".backup-pending-*")), [])
+
+    def test_archive_creation_failure_cleans_temporary_file(self):
+        master = self.manager.sources_root / "x-ui" / "x-ui.db"
+        database(master)
+        original = tarfile.TarFile.add
+
+        def failed_add(tar, name, *args, **kwargs):
+            raise OSError("synthetic tar failure")
+
+        with patch.object(tarfile.TarFile, "add", failed_add):
+            with self.assertRaisesRegex(OSError, "synthetic tar failure"):
+                self.manager.create_full_backup()
+        self.assertEqual(self.archives(), [])
+        self.assertEqual(list(self.manager.backup_dir.glob(".backup-pending-*")), [])
+
+    def test_archive_published_with_private_mode(self):
+        master = self.manager.sources_root / "x-ui" / "x-ui.db"
+        database(master)
+        result = self.manager.create_full_backup()
+        self.assertEqual(result.info.path.stat().st_mode & 0o777, 0o600)
 
     def test_valid_master_is_included(self):
         master = self.manager.sources_root / "x-ui" / "x-ui.db"
