@@ -2,7 +2,7 @@
 
 Этот runbook описывает полное развёртывание и operational-настройку административного контура 3x-ui Telegram Bot с чистых VPS: Master, одна или несколько direct nodes, Host Control Agent и Extended direct-node backup с nginx snapshot.
 
-Scope документа — только **Admin Control Plane**. Client Portal v5 уже реализован для ограниченного pilot allowlist, но полный production acceptance ещё не завершён; этот runbook не является инструкцией по публичному запуску клиентского интерфейса или приёму новых реальных платежей. Условия контролируемой приёмки описаны в [v5 Production Acceptance](V5_PRODUCTION_ACCEPTANCE.md). Отдельный client-facing setup/launch runbook следует подготовить перед общедоступным rollout; административный deployment flow здесь не смешивается с клиентским.
+Scope документа — только **Admin Control Plane**. Client Portal v5 уже реализован для ограниченного pilot allowlist, но полный production acceptance ещё не завершён; этот runbook не является инструкцией по публичному запуску клиентского интерфейса или приёму новых реальных платежей. Условия контролируемой приёмки описаны в [v5 Production Acceptance](V5_PRODUCTION_ACCEPTANCE.md). Пилотная настройка client-facing функции описана в [CLIENT_SETUP.md](CLIENT_SETUP.md) и **не** разрешает общедоступный rollout; административный deployment flow здесь не смешивается с клиентским.
 
 ## Как поддерживать это руководство
 

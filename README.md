@@ -383,6 +383,7 @@ git diff --check
 | Git/PR/issue conventions | [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) |
 | Living docs / drift contract | [docs/LIVING_DOCS.md](docs/LIVING_DOCS.md) |
 | Product roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
+| Client Portal v5: настройка только контролируемого пилота | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
 | v5 Client Portal controlled canary и acceptance | [docs/V5_PRODUCTION_ACCEPTANCE.md](docs/V5_PRODUCTION_ACCEPTANCE.md) |
 | UI style | [docs/UI_STYLE.md](docs/UI_STYLE.md) |
 | Direct-node onboarding | [docs/NODE_ONBOARDING.md](docs/NODE_ONBOARDING.md) |

@@ -214,6 +214,8 @@ Security-sensitive change требует reasoning/review фактическог
 
 ### Living Docs
 
+Для клиентских настроек controlled v5 pilot используй `docs/CLIENT_SETUP.md`, для полноценной приёмки — `docs/V5_PRODUCTION_ACCEPTANCE.md`; не трактуй пилотную инструкцию как public launch approval.
+
 Перед PR проверь `docs/LIVING_DOCS.md` и `docs/live-docs.json`.
 
 PR diff автоматически проверяет `scripts/check-living-docs.py` внутри required `Python checks`.
