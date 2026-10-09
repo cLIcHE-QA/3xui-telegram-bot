@@ -2,6 +2,15 @@
 from __future__ import annotations
 
 import unittest
+import os
+import tempfile
+
+_ENV_ROOT = tempfile.TemporaryDirectory()
+os.environ.setdefault("BOT_TOKEN", "123456:AA-test-token")
+os.environ.setdefault("PANEL_URL", "https://example.org")
+os.environ.setdefault("PANEL_API_TOKEN", "test-panel-token")
+os.environ.setdefault("SUBSCRIPTION_URL_TEMPLATE", "https://example.org/sub/{sub_id}")
+os.environ.setdefault("DB_PATH", _ENV_ROOT.name + "/bot.sqlite3")
 from pathlib import Path
 
 from admin_navigation import (
@@ -10,8 +19,6 @@ from admin_navigation import (
 )
 from admin_privileges import required_role_for_callback
 from admin_ui import filter_keyboard_for_role
-from fleet_operations import _fleet_home_keyboard
-from logs_alerts import _alerts_keyboard
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTEXT = {
@@ -72,12 +79,14 @@ class ContextNavigationTests(unittest.TestCase):
                 self.assertNotIn("admin:section:system", backup)
                 self.assertEqual(labels(backup_menu(role))["admin:section:system"], "⬅ Система")
 
+                from fleet_operations import _fleet_home_keyboard
                 fleet = labels(_fleet_home_keyboard(role, from_attention=True))
                 self.assertEqual(fleet["admin:attention:fleet"], "🔄 Обновить")
                 self.assertEqual(fleet["admin:attention"], "⬅ Требует внимания")
                 self.assertNotIn("admin:section:infrastructure", fleet)
                 self.assertIn("admin:section:infrastructure", labels(_fleet_home_keyboard(role)))
 
+                from logs_alerts import _alerts_keyboard
                 alert_rules = []
                 alert = labels(filter_keyboard_for_role(
                     _alerts_keyboard(alert_rules, from_attention=True), role
@@ -96,6 +105,7 @@ class ContextNavigationTests(unittest.TestCase):
         for role in ("read_only", "support"):
             with self.subTest(role=role):
                 self.assertNotIn("admin:backup:create", labels(backup_menu(role, from_attention=True)))
+                from fleet_operations import _fleet_home_keyboard
                 self.assertNotIn("admin:fleet:rollout", labels(_fleet_home_keyboard(role, from_attention=True)))
         for callback in ("admin:jobs:backup", "admin:alerts:toggle:job_failed", "admin:backup:create"):
             self.assertEqual(required_role_for_callback(callback), "admin")
