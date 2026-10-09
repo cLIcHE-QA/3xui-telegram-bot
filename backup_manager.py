@@ -132,6 +132,7 @@ class BackupManager:
         *,
         version: str = APP_VERSION,
         extra_manifest: dict | None = None,
+        master_database: bytes | None = None,
     ) -> BackupResult:
         self._ensure_dir()
         stamp = self._timestamp()
@@ -147,17 +148,34 @@ class BackupManager:
             self._sqlite_backup(self.db_path, stage / "bot.sqlite3")
             included.append("bot.sqlite3")
 
-            # 3x-ui SQLite: directory mount lets SQLite see possible -wal/-shm files.
-            xui_db = self.sources_root / "x-ui" / "x-ui.db"
-            if not xui_db.is_file():
-                raise RuntimeError("Full Backup blocked: required Master x-ui.db is missing")
-            try:
-                self._sqlite_backup(xui_db, stage / "x-ui.db")
-            except (sqlite3.Error, OSError) as exc:
-                raise RuntimeError(
-                    f"Full Backup blocked: Master x-ui.db SQLite snapshot failed ({type(exc).__name__})"
-                ) from exc
-            included.append("x-ui.db")
+            # Production prefers the panel's authenticated database export, which
+            # is independent from chmod 0600 on the live WAL/SHM files.
+            if master_database is not None:
+                snapshot = stage / "x-ui.db"
+                if not master_database.startswith(b"SQLite format 3\x00"):
+                    raise RuntimeError("Full Backup blocked: Master API returned non-SQLite data")
+                _prepare_private_file(snapshot)
+                snapshot.write_bytes(master_database)
+                try:
+                    with sqlite3.connect(f"file:{snapshot.resolve()}?mode=ro", uri=True) as conn:
+                        if conn.execute("PRAGMA quick_check").fetchone() != ("ok",):
+                            raise sqlite3.DatabaseError("Master API snapshot failed SQLite quick_check")
+                except sqlite3.Error as exc:
+                    snapshot.unlink(missing_ok=True)
+                    raise RuntimeError("Full Backup blocked: invalid Master API SQLite snapshot") from exc
+                included.append("x-ui.db")
+            else:
+                # Legacy/offline source: SQLite backup requires readable WAL/SHM.
+                xui_db = self.sources_root / "x-ui" / "x-ui.db"
+                if not xui_db.is_file():
+                    raise RuntimeError("Full Backup blocked: required Master x-ui.db is missing")
+                try:
+                    self._sqlite_backup(xui_db, stage / "x-ui.db")
+                except (sqlite3.Error, OSError) as exc:
+                    raise RuntimeError(
+                        f"Full Backup blocked: Master x-ui.db SQLite snapshot failed ({type(exc).__name__})"
+                    ) from exc
+                included.append("x-ui.db")
 
             bot_env = self.sources_root / "bot.env"
             if bot_env.is_file():
