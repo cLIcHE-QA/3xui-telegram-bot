@@ -325,3 +325,7 @@ PR, изменяющий Telegram UI, должен проверять как м�
 ## Historical bot.update unknown acknowledgment (schema v12)
 
 Owner открывает `Система → Обновления бота → Разобрать исторический unknown`, выбирает фиксированное основание и подтверждает отдельным callback. UI использует только Deploy Agent GET, не отправляет deployment POST и не меняет `unknown` в `success`. Read-only evidence разделяет журнал операции и текущий health. SQLite хранит immutable job_run_id, actor, основание, evidence и аудит. Обзор скрывает только acknowledged run; история сохраняет original unknown с отметкой о рассмотрении. Новая проблема с новым ID появляется снова.
+
+## Telegram username в списке администраторов (#355)
+
+Owner-only список `/admin → Система → Администраторы` отображает `@username` только из недавно наблюдавшихся авторизованных private Telegram updates; при отсутствии, удалении, ошибке валидации или истечении 6-часового TTL показывает `TG <telegram_id>`. Кэш изолирован в памяти процесса, ограничен 256 записями, не содержит истории, после restart пуст и не вызывает `getChat`/network lookup или SQLite migration. Факт наблюдения `from_user` не влияет на `get_admin_role`, callback identity, RBAC или audit; одинаковые/изменяющиеся username не создают связей между разными IDs. Карточка всегда содержит цифровой `Telegram ID`, даже если известен username. Telegram keyboard labels ограничены 64 символами; источник/статус/роль и отметка «локальная конфигурация» сохраняются. Не записывать username в audit/log и не показывать вне Owner-only раздела.

@@ -72,7 +72,7 @@ class V4251StabilizationTests(unittest.TestCase):
     def test_local_owner_keeps_explicit_source_marker(self):
         source = (ROOT / "business_admin.py").read_text(encoding="utf-8")
         self.assertIn(
-            'f"🟢 👑 TG {tg_id} · Owner · локальная конфигурация"',
+            'f"🟢 👑 {administrator_label(tg_id)} · Owner · локальная конфигурация"',
             source,
         )
 
