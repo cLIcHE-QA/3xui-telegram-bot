@@ -99,6 +99,9 @@ def scan_repository(root: Path) -> set[tuple[str, str, str]]:
 
 
 def check_catalog(root: Path) -> None:
+    import sys
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
     from telegram_commands import COMMANDS, validate_catalog
     validate_catalog()
     actual = scan_repository(root)
