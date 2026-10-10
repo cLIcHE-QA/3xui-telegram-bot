@@ -37,7 +37,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide подготовлен для будущего release v5.0.0-rc.8 (до официальной публикации и отдельного controlled deployment production остаётся на rc.7). RC объединяет прежний Full Backup fix #348/#349, Owner-only сброс клиентского ограничителя #345, косметическую очистку оплаченных Stars invoice #320 и SQLite schema v13. Перед развёртыванием обязателен проверенный backup и preflight миграции v11→v13; простой downgrade к rc.7 после обновления DB запрещён. После controlled deployment сначала проверь точный tag/SHA, Health/SQLite/3x-ui, затем manual Full Backup, off-site download/decrypt/deep validation и следующий scheduled backup/off-site cycle; прошлый `rc.6` backup нельзя считать PASS. Не изменяй права DB/WAL/SHM, не запускай реальные payments/refunds ради проверки backup. Public launch и stable release остаются заблокированы до общего v5 acceptance. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v5.0.0-rc.8. До его официальной публикации и отдельного controlled deployment production остаётся на v5.0.0-rc.7. RC объединяет прежний Full Backup fix #348/#349, Owner-only сброс клиентского ограничителя #345, косметическую очистку оплаченных Stars invoice #320 и SQLite schema v13. Перед развёртыванием обязателен проверенный backup и preflight миграции v11→v13; простой downgrade к rc.7 после обновления DB запрещён. После controlled deployment сначала проверь точный tag/SHA, Health/SQLite/3x-ui, затем manual Full Backup, off-site download/decrypt/deep validation и следующий scheduled backup/off-site cycle; прошлый `rc.6` backup нельзя считать PASS. Не изменяй права DB/WAL/SHM, не запускай реальные payments/refunds ради проверки backup. Public launch и stable release остаются заблокированы до общего v5 acceptance. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -105,7 +105,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.7` машинно проверяемый native API contract pinned к 3x-ui `v3.9.0`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
+Для bot release `v5.0.0-rc.8` машинно проверяемый native API contract pinned к 3x-ui `v3.9.0`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
 
 ## 2. Базовая подготовка Master VPS
 
@@ -668,15 +668,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v5.0.0-rc.7.tar.gz
+  /root/3xui-host-control-bundle-v5.0.0-rc.8.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v5.0.0-rc.7.tar.gz \
-  /root/3xui-host-control-bundle-v5.0.0-rc.7.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v5.0.0-rc.8.tar.gz \
+  /root/3xui-host-control-bundle-v5.0.0-rc.8.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -686,7 +686,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.7.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.8.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -695,7 +695,7 @@ sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.7.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.7.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.8.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
