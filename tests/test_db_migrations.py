@@ -30,7 +30,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 row = conn.execute(
                     "SELECT version, name, status FROM schema_migrations ORDER BY version DESC LIMIT 1"
                 ).fetchone()
-                self.assertEqual(row, (12, "bot_update_unknown_ack_v5_0_0", "success"))
+                self.assertEqual(row, (13, "stars_invoice_cleanup_v5_0_0", "success"))
                 columns = [
                     item[1] for item in conn.execute('PRAGMA table_info("user_profiles")').fetchall()
                 ]
