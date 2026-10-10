@@ -16,6 +16,7 @@ from admin_auth import authorize_callback, authorize_message
 from admin_navigation import confirm_delete_keyboard
 from inbound_policy import is_managed_inbound as inbound_is_managed
 from audit import audit_from_call, audit_from_message
+from client_access import client_rate_limiter
 from config import load_settings
 from trial_settings import parse_trial_setting
 from db import Database, UserRecord
@@ -30,6 +31,10 @@ db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 advanced_users_router = Router(name="advanced_users")
 provisioner = ProvisioningEngine(db, xui, settings)
+
+# In-process confirmations only. No persistent customer/payment/provider mutation.
+_session_reset_challenges: dict[int, tuple[int, str, float]] = {}
+_SESSION_RESET_TTL = 90.0
 
 
 def _client_field_matches(actual: object, expected: object) -> bool:
@@ -818,6 +823,11 @@ async def _user_more_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
                 InlineKeyboardButton(text="✅ Включить", callback_data=f"adminenable:{tg_id}")
             )])
         rows.append([InlineKeyboardButton(text="🔄 Сбросить трафик", callback_data=f"admin:u:resetask:{tg_id}")])
+    if role == "owner" and client_rate_limiter.has_bucket(tg_id):
+        rows.append([InlineKeyboardButton(
+            text="🔄 Сбросить клиентскую сессию",
+            callback_data=f"admin:u:sessionreset:ask:{tg_id}",
+        )])
     if _role_can_admin(role):
         rows.append([InlineKeyboardButton(text="⚠️ Строгое согласование", callback_data=f"admin:u:provstrictask:{tg_id}")])
         rows.append([InlineKeyboardButton(text="🔐 Перевыпустить подписку", callback_data=f"admin:u:subrotateask:{tg_id}")])
@@ -1370,6 +1380,94 @@ async def user_profile_view(call: CallbackQuery, state: FSMContext):
 @advanced_users_router.callback_query(F.data.startswith("admin:u:more:"))
 async def user_more_view(call: CallbackQuery, state: FSMContext):
     await _render_user_section(call, _user_more_view, state)
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:sessionreset:ask:\d+$"))
+async def user_session_reset_ask(call: CallbackQuery):
+    if not await guard(call, minimum="owner"):
+        return
+    tg_id = int((call.data or "").rsplit(":", 1)[-1])
+    if not await db.get(tg_id):
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    if not client_rate_limiter.has_bucket(tg_id):
+        await call.answer("Активного клиентского limiter-состояния нет.", show_alert=True)
+        return
+    actor = int(call.from_user.id)
+    nonce = secrets.token_hex(8)
+    _session_reset_challenges[actor] = (tg_id, nonce, time.monotonic() + _SESSION_RESET_TTL)
+    await render_callback(
+        call,
+        "🔄 Сбросить клиентскую сессию\n\n"
+        f"Цель: Telegram ID {tg_id}.\n"
+        "Будет очищено только текущее in-memory окно ограничителя запросов "
+        "этого клиента в работающем процессе бота.\n"
+        "У Client Portal нет отдельного customer FSM-состояния для очистки. "
+        "Административные диалоги, Telegram, VPN, подписка, платежи и БД не изменятся.\n\n"
+        "⚠️ Ограничения доставки / flood control самого Telegram этим не снимаются.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="✅ Подтвердить сброс сессии",
+                callback_data=f"admin:u:sessionreset:run:{tg_id}:{nonce}",
+            )],
+            [InlineKeyboardButton(text="⬅ Ещё действия", callback_data=f"admin:u:more:{tg_id}")],
+        ]),
+    )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:sessionreset:run:\d+:[a-f0-9]{16}$"))
+async def user_session_reset_run(call: CallbackQuery):
+    if not await guard(call, minimum="owner"):
+        return
+    parts = (call.data or "").split(":")
+    tg_id = int(parts[4])
+    nonce = parts[5]
+    actor = int(call.from_user.id)
+    challenge = _session_reset_challenges.pop(actor, None)
+    if (
+        challenge is None
+        or challenge[0] != tg_id
+        or not secrets.compare_digest(challenge[1], nonce)
+        or time.monotonic() >= challenge[2]
+    ):
+        await audit_from_call(
+            db, call, "client.session.reset", target_type="user",
+            target_id=tg_id, details="outcome=denied; reason=stale_or_mismatched", success=False,
+        )
+        await call.answer("Подтверждение устарело или не соответствует пользователю.", show_alert=True)
+        return
+    if not await db.get(tg_id):
+        await audit_from_call(
+            db, call, "client.session.reset", target_type="user",
+            target_id=tg_id, details="outcome=denied; reason=user_missing", success=False,
+        )
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    if not client_rate_limiter.has_bucket(tg_id):
+        await audit_from_call(
+            db, call, "client.session.reset", target_type="user",
+            target_id=tg_id, details="outcome=noop; reason=limiter_window_empty",
+        )
+        await call.answer("Окно ограничителя уже пусто; сбрасывать нечего.", show_alert=True)
+        return
+
+    client_rate_limiter.reset(tg_id)
+    await audit_from_call(
+        db, call, "client.session.reset", target_type="user",
+        target_id=tg_id, details="outcome=success; limiter_cleared=true; customer_fsm=not_applicable",
+    )
+    await render_callback(
+        call,
+        "✅ Локальное окно ограничителя запросов очищено.\n\n"
+        "Сброшена только клиентская сессия выбранного пользователя "
+        f"(Telegram ID {tg_id}). Доступ к VPN и платежи не менялись.\n"
+        "Ограничения доставки самого Telegram не сбрасываются.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅ Ещё действия", callback_data=f"admin:u:more:{tg_id}")],
+        ]),
+    )
+    await call.answer()
 
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:accesscfg:"))
