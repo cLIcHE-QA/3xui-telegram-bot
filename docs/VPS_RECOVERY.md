@@ -41,6 +41,12 @@ Production off-site recovery drill успешно завершён **2026-10-05*
 
 Drill не публикует bucket credentials, encryption key, bot/panel tokens, archive contents или иные production secrets. Канонический transport для secret-bearing recovery artifacts — только защищённый host-side/off-site path; Telegram/GitHub не используются как backup storage.
 
+## Исправление host identity: rc.7 DR, 2026-10-10
+
+**Оператор в ~16:12 МСК уточнил: все DR команды текущей серии, считавшиеся запущенными на отдельном Recovery VPS, на самом деле выполнялись на production Master.** Строки `RECOVERY` в stdout не являются доказательством физического хоста. Предыдущие записи 2026-10-10 о controlled Docker startup, SQLite extraction, S3 verification, Master preflight и version inspection — только **Master-local scoped evidence**, а не independent second-VPS recovery. Независимый Recovery VPS **NOT VERIFIED / PENDING**, полный v5 acceptance **NOT PASS**; исторический drill от 2026-10-05 этим фактом не пересмотрен.
+
+**Пауза на Master:** не запускать дополнительные restore/bootstrap, `x-ui` lifecycle, test images с production mounts и не удалять предполагаемые test DB/plaintext artifacts без inventory. Старое правило «очистка на Recovery VPS» не означает разрешения выполнить wildcard/deletion на Master. Следующий шаг — установить идентичность двух *уже открытых* shell sessions read-only командами `/proc/sys/kernel/random/boot_id` и `hostname` **с локальным сравнением**, не публикуя hostname, IP или сам boot ID в чат. Для доказательства двух машин нужны два различных boot ID, сверенных на обеих SSH-сессиях; метка `ROLE=RECOVERY` недостаточна. При совпадении или отсутствии второго сеанса — STOP. Затем заново выполнить DR только на фактически независимом изолированном VPS.
+
 ## Очистка артефактов изолированных DR-тестов
 
 **Обязательное правило для Recovery VPS:** каждый тест до запуска определяет собственные временные файлы, каталоги, Docker image/container, критерий окончания и порядок очистки. `PASS` или `NOT PASS` не отменяют cleanup. Удалять разрешено только после сверки точного владельца/пути и подтверждения, что артефакт не нужен для незавершённого DR; никакого wildcard удаления вне специально созданного disposable workspace.
