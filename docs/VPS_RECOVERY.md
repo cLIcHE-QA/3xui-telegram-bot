@@ -53,6 +53,8 @@ Drill не публикует bucket credentials, encryption key, bot/panel toke
 
 **Состояние на 2026-10-10 ~15:37 МСК:** process/container smoke для `v5.0.0-rc.7` завершился `NOT PASS` с классом `ModuleNotFoundError` (operator-reported); exact missing module не определён, нельзя считать `bot.py` восстановленным. Pinned Docker image build, non-root user, disposable DB preparation — отдельные scoped PASS. Container запущен с `--rm`, disposable workspace из команды использует `trap`, но их post-cleanup физически не проверен. Не удалять source recovery archive и isolated SQLite до успешного повторного smoke и отдельного Master DR.
 
+**Обновление ~15:46 МСК (2026-10-10), operator-reported:** повторный controlled Docker process smoke **scoped PASS**: `PYTHONPATH=/app`, immutable rc.7 image, disposable restored SQLite v11, реальный `app_runtime.main()`, real loopback `/healthz`, router registration и clean shutdown, внутри `--network none` с synthetic tokens, patched Telegram polling/recovery/background workers и без production endpoints. Предыдущее `NOT PASS` остаётся историческим evidence, но текущий ограниченный process smoke PASS. Это не доказательство непатченного production startup, внешнего Telegram transport, provider/3x-ui connectivity либо полного Master restore. Использованный disposable Docker image теперь кандидат для удаления после проверки отсутствия потребителей и закрытия bot-only smoke; plaintext archive и исходные isolated DB остаются до Master DR. Post-cleanup audit ещё PENDING.
+
 ## Что bootstrap-скрипт НЕ делает
 
 `scripts/bootstrap-bot-from-backup.sh` намеренно не:
