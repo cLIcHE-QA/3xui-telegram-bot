@@ -1,6 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.7
+# Telegram-бот для 3x-ui v5.0.0-rc.8
 
-Telegram Control Plane для 3x-ui с защищённым `/admin` и pilot Client Portal v5. Версия `v5.0.0-rc.7` предназначена для контролируемого восстановления Full Backup после дефектов #348/#349: Master SQLite snapshot идёт через 3x-ui API, а локальный архив публикуется только после глубокой проверки. Также обновлён заголовок новых Telegram Stars invoices. **Публикация RC сама по себе не означает завершения production acceptance:** необходимы manual/scheduled/off-site/DR проверки; до общего PASS `/start` остаётся ограничен pilot allowlist, stable `v5.0.0` и широкий customer launch заблокированы.
+Telegram Control Plane для 3x-ui с защищённым `/admin` и pilot Client Portal v5. Версия `v5.0.0-rc.8` подготавливает к controlled canary Owner-only сброс клиентского лимитера (#345), безопасную косметическую очистку оплаченных Telegram Stars invoices (#320), UI/переключатели и SQLite schema v13 поверх изменений rc.7. Ни публикация RC, ни CI сами по себе не равны production acceptance. **Публикация RC сама по себе не означает завершения production acceptance:** необходимы manual/scheduled/off-site/DR проверки; до общего PASS `/start` остаётся ограничен pilot allowlist, stable `v5.0.0` и широкий customer launch заблокированы.
 
 Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
 
