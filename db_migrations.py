@@ -1020,6 +1020,26 @@ async def _migration_0012_bot_update_unknown_ack_v5_0_0(
     await _validate_current_schema(db, include_bot_update_acknowledgments=True)
 
 
+async def _migration_0013_stars_invoice_cleanup_v5_0_0(
+    db: aiosqlite.Connection,
+) -> None:
+    # Optional presentation metadata, not a commerce source of truth.
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS stars_invoice_messages (
+            order_id INTEGER NOT NULL REFERENCES commerce_orders(id),
+            chat_id INTEGER NOT NULL,
+            message_id INTEGER NOT NULL,
+            cleanup_status TEXT NOT NULL DEFAULT 'pending'
+                CHECK(cleanup_status IN ('pending', 'attempted', 'success', 'unknown')),
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            PRIMARY KEY(order_id, chat_id, message_id)
+        )
+        """
+    )
+
+
 MIGRATIONS: tuple[MigrationStep, ...] = (
     MigrationStep(
         version=1,
@@ -1091,6 +1111,11 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=12,
         name="bot_update_unknown_ack_v5_0_0",
         apply=_migration_0012_bot_update_unknown_ack_v5_0_0,
+        requires_backup=False,
+    ),    MigrationStep(
+        version=13,
+        name="stars_invoice_cleanup_v5_0_0",
+        apply=_migration_0013_stars_invoice_cleanup_v5_0_0,
         requires_backup=False,
     ),
 )

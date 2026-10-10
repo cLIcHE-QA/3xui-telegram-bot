@@ -444,7 +444,7 @@ async def plan_cb(call: CallbackQuery):
     if not await payment_acceptance_enabled():
         await call.answer("Приём новых платежей временно отключён.", show_alert=True)
         return
-    await call.bot.send_invoice(
+    invoice_message = await call.bot.send_invoice(
         chat_id=call.from_user.id,
         title=await stars_invoice_title(call.bot),
         description=(
@@ -460,6 +460,15 @@ async def plan_cb(call: CallbackQuery):
         ],
         provider_token="",
     )
+    # Cosmetics only: persistence failure must never affect a Telegram payment.
+    try:
+        await _service().db.record_stars_invoice_message(
+            order_id=order.id, chat_id=call.from_user.id,
+            message_id=invoice_message.message_id,
+        )
+    except Exception:
+        import logging
+        logging.exception("Could not record Stars invoice message for cleanup")
     state = "создан" if created else "уже существует"
     await render_callback(
         call,
@@ -500,7 +509,7 @@ async def terms_accept_cb(call: CallbackQuery):
     if not await payment_acceptance_enabled():
         await call.answer("Приём новых платежей временно отключён.", show_alert=True)
         return
-    await call.bot.send_invoice(
+    invoice_message = await call.bot.send_invoice(
         chat_id=call.from_user.id,
         title=await stars_invoice_title(call.bot),
         description=f"VPN-подписка: {plan.name}, срок {plan.duration_days} дней."[:255],
@@ -509,6 +518,15 @@ async def terms_accept_cb(call: CallbackQuery):
         prices=[LabeledPrice(label=plan.name[:32], amount=int(plan.stars_price))],
         provider_token="",
     )
+    # Cosmetics only: persistence failure must never affect a Telegram payment.
+    try:
+        await _service().db.record_stars_invoice_message(
+            order_id=order.id, chat_id=call.from_user.id,
+            message_id=invoice_message.message_id,
+        )
+    except Exception:
+        import logging
+        logging.exception("Could not record Stars invoice message for cleanup")
     state = "создан" if created else "уже существует"
     await render_callback(
         call,
@@ -602,6 +620,37 @@ async def stars_successful_payment(message: Message):
             "Не оплачивайте повторно и обратитесь в поддержку."
         )
         raise
+
+    # Only after durable confirmation. Claim each invoice before Telegram API mutation;
+    # failed/uncertain cosmetic cleanup cannot cause retry or rollback payment.
+    try:
+        invoice_ids = await _service().db.claim_stars_invoice_cleanup(
+            order_id=order.id, chat_id=message.from_user.id,
+        )
+        for invoice_id in invoice_ids:
+            success = False
+            try:
+                await message.bot.delete_message(
+                    chat_id=message.from_user.id, message_id=invoice_id,
+                )
+                success = True
+            except Exception:
+                import logging
+                logging.warning(
+                    "Optional Stars invoice cleanup unavailable; not replaying",
+                    exc_info=True,
+                )
+            try:
+                await _service().db.finish_stars_invoice_cleanup(
+                    order_id=order.id, chat_id=message.from_user.id,
+                    message_id=invoice_id, success=success,
+                )
+            except Exception:
+                import logging
+                logging.exception("Could not finalize optional Stars invoice cleanup journal")
+    except Exception:
+        import logging
+        logging.exception("Could not claim optional Stars invoice cleanup")
 
     await message.answer(
         "✅ Оплата Telegram Stars подтверждена.\n\n"

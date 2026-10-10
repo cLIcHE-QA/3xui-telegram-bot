@@ -1100,6 +1100,79 @@ class Database:
                     summary[f"{status}_amount"] = int(amount)
             return summary
 
+    async def record_stars_invoice_message(
+        self, *, order_id: int, chat_id: int, message_id: int,
+    ) -> None:
+        """Persist one invoice message, never payment credentials."""
+        if min(int(order_id), int(chat_id), int(message_id)) <= 0:
+            raise ValueError("Invalid Stars invoice identity")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as conn:
+            # Correlate only invoices belonging to their order's customer.
+            await conn.execute(
+                """
+                INSERT OR IGNORE INTO stars_invoice_messages (
+                    order_id, chat_id, message_id, created_at, updated_at
+                )
+                SELECT id, ?, ?, ?, ? FROM commerce_orders
+                WHERE id = ? AND telegram_id = ? AND currency = 'XTR'
+                """,
+                (chat_id, message_id, now, now, order_id, chat_id),
+            )
+            await conn.commit()
+
+    async def claim_stars_invoice_cleanup(
+        self, *, order_id: int, chat_id: int,
+    ) -> list[int]:
+        """Claim before Telegram mutation: uncertain outcomes never replay."""
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as conn:
+            await conn.execute("BEGIN IMMEDIATE")
+            try:
+                cur = await conn.execute(
+                    """
+                    SELECT im.message_id FROM stars_invoice_messages AS im
+                    JOIN commerce_orders AS co ON co.id = im.order_id
+                    WHERE im.order_id = ? AND im.chat_id = ?
+                      AND co.telegram_id = ? AND co.status = 'paid'
+                      AND im.cleanup_status = 'pending'
+                    ORDER BY im.message_id
+                    """,
+                    (order_id, chat_id, chat_id),
+                )
+                ids = [int(row[0]) for row in await cur.fetchall()]
+                if ids:
+                    await conn.executemany(
+                        """
+                        UPDATE stars_invoice_messages
+                        SET cleanup_status = 'attempted', updated_at = ?
+                        WHERE order_id = ? AND chat_id = ? AND message_id = ?
+                          AND cleanup_status = 'pending'
+                        """,
+                        [(now, order_id, chat_id, message_id) for message_id in ids],
+                    )
+                await conn.commit()
+                return ids
+            except Exception:
+                await conn.rollback()
+                raise
+
+    async def finish_stars_invoice_cleanup(
+        self, *, order_id: int, chat_id: int, message_id: int, success: bool,
+    ) -> None:
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as conn:
+            await conn.execute(
+                """
+                UPDATE stars_invoice_messages
+                SET cleanup_status = ?, updated_at = ?
+                WHERE order_id = ? AND chat_id = ? AND message_id = ?
+                  AND cleanup_status = 'attempted'
+                """,
+                ("success" if success else "unknown", now, order_id, chat_id, message_id),
+            )
+            await conn.commit()
+
     # --- Client Portal commerce ---------------------------------------
 
     async def create_commerce_order(

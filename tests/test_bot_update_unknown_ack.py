@@ -51,7 +51,7 @@ class HistoricalUnknownAckTests(unittest.IsolatedAsyncioTestCase):
                 old_id = conn.execute("SELECT id FROM job_runs").fetchone()[0]
             await Database(str(path)).init()
             with sqlite3.connect(path) as conn:
-                self.assertEqual(CURRENT_SCHEMA_VERSION, 12)
+                self.assertEqual(CURRENT_SCHEMA_VERSION, 13)
                 self.assertEqual(conn.execute(
                     "SELECT status FROM job_runs WHERE id=?", (old_id,)
                 ).fetchone()[0], "unknown")
