@@ -144,6 +144,20 @@ Bootstrap бота **не заменяет** `/etc/x-ui/x-ui.db`.
 
 Восстановление Master x-ui DB делается отдельно, на совместимой версии 3x-ui, при остановленном x-ui и после preflight/rescue-copy. Не подменяй x-ui DB одновременно с bot DB без отдельной проверки.
 
+## Изолированный Master 3x-ui drill при занятом Recovery VPS
+
+Если на Recovery VPS проверка `X-UI SERVICE INACTIVE` или `NO RUNNING X-UI PROCESS` дала `NOT READY`, **host-level восстановление блокировано**. Это не означает ошибку backup; сервис/процесс может уже использовать хостовую панель и её базы. Запрещены `systemctl stop/restart x-ui`, подмена `/etc/x-ui/x-ui.db`, правки host CLI settings, запуск второго `x-ui` с default paths, `docker compose up/down` в чужом stack и любая команда, способная активировать Xray с восстановленными inbounds.
+
+Дальнейшая последовательность:
+
+1. Read-only выяснить версию установленного **на исходном production Master** 3x-ui и версии доступного isolated recovery binary/image; обычное наличие executable и архитектуры `x86_64` **не доказывает** совместимость. Не вызывать меню `/usr/bin/x-ui` (может быть script с управляющими действиями), settings/reset/update/migrate. Если поддерживается установленным *настоящим бинарником*, допустим только безобидный `-v` с таймаутом и подавлением произвольного stderr, без вывода credentials/settings. Версия production может отличаться от версии уже занятого Recovery VPS.
+2. Подготовить отдельный **pinned** 3x-ui Docker image по совместимой версии (immutable release/digest, не `latest`), проверить источник. Не давать образу host network, host `/etc/x-ui`, Docker socket, systemd или privilege caps; избегать постоянных volumes и port mappings.
+3. Сделать одноразовый SQLite snapshot ранее извлечённой Master `x-ui.db` в новом каталоге mode `0700` на Recovery VPS. Любые миграции/изменения разрешены **только на disposable copy**, никогда на исходной извлечённой DB.
+4. Если standalone runtime smoke нужен после отдельного review, запускать в закрытой сети `--network none`, с явным `XUI_DB_FOLDER` на disposable volume и `XUI_LOG_FOLDER` внутри него; обеспечить **отсутствие запуска Xray, управления inbounds, Fail2ban/firewall и любых внешних подключений**, а также безопасную очистку по политике выше. Перед этим проверить конфигурацию именно выбранной версии — `--network none` само по себе не предотвращает запуск Xray внутри контейнера.
+5. По итогу отметить отдельно `Master SQLite: scoped PASS`, `compatible 3x-ui startup/read-back: PASS/NOT PASS`, `external panel/Xray connectivity: PENDING`. Если безопасный запуск не обеспечен, **не запускать и сохранять PENDING**. Production и установленный на Recovery VPS x-ui не менять.
+
+**Operator evidence 2026-10-10 ~15:55 МСК:** `MASTER RESTORED DB: PASS`, `MASTER SQLITE INTEGRITY: PASS`, `3X-UI EXECUTABLE: PASS`, `DOCKER ENGINE: PASS`, `MASTER RESTORE PREFLIGHT: PASS`; но отдельный guard дал `X-UI SERVICE INACTIVE: NOT READY`, `NO RUNNING X-UI PROCESS: NOT READY` (`RECOVERY ARCHITECTURE: x86_64`). Следовательно **host isolation NOT READY**, восстановление работающей Master панели не проверено.
+
 ## Контрольная точка
 
 Нормальное восстановленное состояние:
