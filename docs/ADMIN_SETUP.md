@@ -37,7 +37,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.7. Этот prerelease адресует #348/#349: Full Backup не публикует пустую Master `x-ui.db`, получает согласованный Master SQLite export через authenticated `GET /panel/api/server/getDb` и deep-validates приватный архив перед атомарной публикацией. После controlled deployment сначала проверь точный tag/SHA, Health/SQLite/3x-ui, затем manual Full Backup, off-site download/decrypt/deep validation и следующий scheduled backup/off-site cycle; прошлый `rc.6` backup нельзя считать PASS. Не изменяй права DB/WAL/SHM, не запускай реальные payments/refunds ради проверки backup. Public launch и stable release остаются заблокированы до общего v5 acceptance. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide подготовлен для будущего release v5.0.0-rc.8 (до официальной публикации и отдельного controlled deployment production остаётся на rc.7). RC объединяет прежний Full Backup fix #348/#349, Owner-only сброс клиентского ограничителя #345, косметическую очистку оплаченных Stars invoice #320 и SQLite schema v13. Перед развёртыванием обязателен проверенный backup и preflight миграции v11→v13; простой downgrade к rc.7 после обновления DB запрещён. После controlled deployment сначала проверь точный tag/SHA, Health/SQLite/3x-ui, затем manual Full Backup, off-site download/decrypt/deep validation и следующий scheduled backup/off-site cycle; прошлый `rc.6` backup нельзя считать PASS. Не изменяй права DB/WAL/SHM, не запускай реальные payments/refunds ради проверки backup. Public launch и stable release остаются заблокированы до общего v5 acceptance. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -141,7 +141,7 @@ git clone https://github.com/cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v5.0.0-rc.7
+git checkout --detach v5.0.0-rc.8
 ~~~
 
 Проверка release:
@@ -156,7 +156,7 @@ PY
 Ожидается:
 
 ~~~text
-5.0.0-rc.7
+5.0.0-rc.8
 ~~~
 
 ## 4. Создай local admin venv
@@ -1136,10 +1136,10 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v5.0.0-rc.7
+Git tag: v5.0.0-rc.8
 Container: running
 RestartCount=0
-Bot version: 5.0.0-rc.7
+Bot version: 5.0.0-rc.8
 Health: ok
 DB: ok
 3x-ui connectivity: ok
