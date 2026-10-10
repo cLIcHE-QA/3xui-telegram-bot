@@ -44,7 +44,7 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 Для `v5.0.0-rc.1` и `v5.0.0-rc.2` опубликованная bot schema version — **10**.
 
-Для опубликованного `v5.0.0-rc.7` bot schema version — **11** (впервые опубликована в `rc.3`). В текущем коде ветки разработки текущая bot schema version — **13**; до публикации следующего релиза схема v12 не считается развёрнутой. Полный каталог ветки:
+Для опубликованного `v5.0.0-rc.7` bot schema version — **11** (впервые опубликована в `rc.3`). Release-prep `v5.0.0-rc.8` включает **v12 и v13**; до публикации RC и controlled deployment обе новые migration остаются только в коде `main` / release branch, не на production. Полный каталог ветки:
 
 1. `v1 baseline_v4_14_2` — исходная каноническая схема v4.14.2;
 2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`;
