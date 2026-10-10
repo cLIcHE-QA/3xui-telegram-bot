@@ -21,5 +21,18 @@ class SlidingWindowRateLimiter:
         bucket.append(current)
         return True
 
+    def has_bucket(self, key: int) -> bool:
+        """Check whether this in-process user has any unexpired limiter events."""
+        bucket = self._events.get(int(key))
+        if not bucket:
+            return False
+        cutoff = time.monotonic() - self.window_seconds
+        while bucket and bucket[0] <= cutoff:
+            bucket.popleft()
+        if not bucket:
+            self._events.pop(int(key), None)
+            return False
+        return True
+
     def reset(self, key: int) -> None:
         self._events.pop(int(key), None)

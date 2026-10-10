@@ -184,6 +184,12 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     )
     + _rules("users.support", "regex", r"^admin:u:provrun:\d+:safe$")
     + _rules("users.admin", "exact", "admin:syncall:ask", "admin:syncall:run")
+    + _rules(
+        "administrators.manage",
+        "regex",
+        r"^admin:u:sessionreset:ask:\d+$",
+        r"^admin:u:sessionreset:run:\d+:[a-f0-9]{16}$",
+    )
     + _rules("users.admin", "regex", r"^admin:u:provrun:\d+:strict$")
     + _rules(
         "user_groups.view",
