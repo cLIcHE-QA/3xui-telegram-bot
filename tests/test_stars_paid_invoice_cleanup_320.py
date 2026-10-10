@@ -54,11 +54,11 @@ class StarsPaidInvoiceCleanupTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def invoke(self, message):
-        service = SimpleNamespace(db=self.db, confirm_stars_payment=AsyncMock(
-            side_effect=lambda **kwargs: self.commerce.confirm_telegram_stars_payment(
-                **kwargs
-            )
-        ))
+        async def confirm_stars_payment(**kwargs):
+            # Commerce uses order_id/telegram_id/charge_id/amount/raw_payload.
+            return await self.commerce.confirm_telegram_stars_payment(**kwargs)
+
+        service = SimpleNamespace(db=self.db, confirm_stars_payment=confirm_stars_payment)
         with patch.object(client_access, "_service", return_value=service):
             await client_access.stars_successful_payment(message)
 
