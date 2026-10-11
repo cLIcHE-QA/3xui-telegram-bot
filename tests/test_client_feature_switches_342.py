@@ -106,6 +106,74 @@ class ClientFlagTests(unittest.IsolatedAsyncioTestCase):
             ok=False, error_message="Приём новых платежей временно отключён."
         )
 
+    async def test_customer_callbacks_honor_effective_portal_switch(self):
+        import client_access
+
+        flags = ClientFeatureFlags(self.db, env())
+        call = SimpleNamespace(
+            from_user=SimpleNamespace(id=123),
+            answer=AsyncMock(),
+        )
+        with patch.object(client_access, "feature_flags", flags), patch.object(
+            client_access, "is_allowed", return_value=True
+        ), patch.object(
+            client_access.client_rate_limiter, "allow", return_value=True
+        ) as limiter:
+            # Default allows callbacks from a pilot identity.
+            self.assertTrue(await client_access.guard_callback(call))
+            call.answer.assert_not_awaited()
+
+            # Runtime Owner DB override must veto *existing* inline callbacks.
+            await self.db.set_runtime_setting("client_portal_enabled", "false")
+            self.assertFalse(await client_access.guard_callback(call))
+            call.answer.assert_awaited_with(
+                "Личный кабинет временно отключён.", show_alert=True
+            )
+            limiter.assert_called_once()
+
+            # Same override also prevents new invoice/pre-checkout.
+            snapshot = await flags.snapshot()
+            self.assertFalse(snapshot.portal_enabled)
+            self.assertFalse(snapshot.stars_enabled)
+            self.assertFalse(await client_access.payment_acceptance_enabled())
+
+            # A restored override permits the preexisting callback again.
+            await self.db.set_runtime_setting("client_portal_enabled", "true")
+            call.answer.reset_mock()
+            self.assertTrue(await client_access.guard_callback(call))
+            call.answer.assert_not_awaited()
+
+    async def test_customer_callbacks_fail_closed_on_env_or_db_read_failure(self):
+        import client_access
+
+        flags = ClientFeatureFlags(self.db, env())
+        call = SimpleNamespace(
+            from_user=SimpleNamespace(id=123),
+            answer=AsyncMock(),
+        )
+        with patch.object(client_access, "feature_flags", flags), patch.object(
+            client_access, "is_allowed", return_value=True
+        ), patch.object(
+            client_access.client_rate_limiter, "allow", return_value=True
+        ) as limiter:
+            await self.db.set_runtime_setting("client_portal_enabled", "unexpected")
+            self.assertFalse(await client_access.guard_callback(call))
+            await self.db.delete_runtime_setting("client_portal_enabled")
+            with patch.object(
+                self.db, "get_feature_flag_records",
+                side_effect=sqlite3.OperationalError("DB read unavailable"),
+            ):
+                self.assertFalse(await client_access.guard_callback(call))
+            limiter.assert_not_called()
+            self.assertEqual(call.answer.await_count, 2)
+
+        # An environment veto is absolute, regardless of DB overrides.
+        denied_flags = ClientFeatureFlags(self.db, env(portal=False, stars=True))
+        with patch.object(client_access, "feature_flags", denied_flags), patch.object(
+            client_access, "is_allowed", return_value=True
+        ):
+            self.assertFalse(await client_access.guard_callback(call))
+
     async def test_unauthorized_callback_never_maps_to_mutation(self):
         self.assertEqual(required_role_for_callback("admin:settings:client"), "read_only")
         for code in (
