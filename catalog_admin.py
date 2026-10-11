@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import ipaddress
+import json
 import re
 import sqlite3
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -1097,6 +1099,19 @@ async def hosts_local(call: CallbackQuery):
     await call.answer()
 
 
+def _xui_host_identity(group: dict) -> str:
+    """Stable opaque callback identity; revalidated against a fresh Master read."""
+    group_id = group.get("groupId")
+    if isinstance(group_id, str) and group_id:
+        identity = group_id
+    else:
+        identity = json.dumps(
+            {key: group.get(key) for key in ("hosts", "port", "inboundIds", "nodeGuids")},
+            sort_keys=True, ensure_ascii=True, default=str,
+        )
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()[:12]
+
+
 def _xui_host_owner_labels(group: dict, node_by_guid: dict[str, str]) -> str:
     guids = group.get("nodeGuids")
     if not isinstance(guids, list) or not guids:
@@ -1189,7 +1204,7 @@ async def hosts_xui_page(call: CallbackQuery):
         icon = "⛔" if group.get("isDisabled") else "🌐"
         rows.append([InlineKeyboardButton(
             text=f"{icon} {index + 1}. {remark}",
-            callback_data=f"admin:hosts:xui:detail:{index}:{page}",
+            callback_data=f"admin:hosts:xui:detail:{index}:{page}:{_xui_host_identity(group)}",
         )])
     nav = []
     if page:
@@ -1212,18 +1227,19 @@ async def hosts_xui_page(call: CallbackQuery):
     await call.answer()
 
 
-@catalog_router.callback_query(F.data.regexp(r"^admin:hosts:xui:detail:\d+:\d+$"))
+@catalog_router.callback_query(F.data.regexp(r"^admin:hosts:xui:detail:\d+:\d+:[a-f0-9]{12}$"))
 async def hosts_xui_detail(call: CallbackQuery):
     if not await guard_call(call):
         return
-    _, _, _, _, ix, pg = call.data.split(":")
+    _, _, _, _, ix, pg, expected_identity = call.data.split(":")
     index, page = int(ix), min(100, int(pg))
     try:
         groups = await xui.hosts_list()
     except (XUIError, TimeoutError):
         await call.answer("Хосты 3x-ui: API недоступен.", show_alert=True)
         return
-    if index >= len(groups) or not isinstance(groups[index], dict):
+    if (index >= len(groups) or not isinstance(groups[index], dict)
+            or _xui_host_identity(groups[index]) != expected_identity):
         await call.answer("Список изменился. Обновите хосты.", show_alert=True)
         return
     group = groups[index]
