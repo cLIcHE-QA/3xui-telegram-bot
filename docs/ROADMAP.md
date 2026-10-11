@@ -39,6 +39,34 @@
 
 ## Актуальный статус релизов и проверок — 11 октября 2026 года
 
+### Полный аудит будущих доработок Roadmap → GitHub Issues — 2026-10-12 01:56 EEST (UTC+03:00)
+
+**Scope / evidence:** read-only review полного [`docs/ROADMAP.md`](ROADMAP.md) (`5 248` строк на исходном main; v4 historical, v5 acceptance, future infrastructure, Client Portal product design) на immutable GitHub `main` `249d8f1d60faf221eda061d706d55e383dd48920`, сверка всех 63 существовавших до аудита GitHub Issues (17 OPEN / 46 CLOSED) и целевых исходных файлов `client_access.py`, `customer_service.py`, `commerce.py`, `audience.py` в `main`. **Аудит покрытий: scoped PASS** по явно записанным будущим самостоятельным направлениям; **implementation/CI/production acceptance новых функций: PENDING / NOT TESTED**. Источник — GitHub repository/Issues/read-only code review, не VPS/Telegram/test runner. Проверка не заменяет будущий design review; Roadmap и старый audit trail сохранены.
+
+**Найдено и зарегистрировано 12 самостоятельных future improvements — OPEN / ⬜ Запланировано, без milestone, target release и срока:** каждое Issue содержит исходный roadmap scope и собственные acceptance criteria; это proposal backlog, а не утверждённый порядок внедрения.
+
+| Issue | Будущий scope и источник исторического Roadmap | Состояние |
+| --- | --- | --- |
+| [#496](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/496) | User/Audience Groups → ограничение видимости функций Client Portal (исторический «Группы пользователей и аудиторий») | OPEN / PENDING |
+| [#497](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/497) | Расширенная read-only карточка «Моя подписка», безопасные контекстные действия | OPEN / PENDING |
+| [#498](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/498) | Отдельная клиентская manual subscription sync с защищённым reconcile; **не** текущая read-only «Проверить подписку» | OPEN / PENDING |
+| [#499](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/499) | Промокод при покупке/продлении Stars; admin Promo Codes и `promo_code_id` ≠ client checkout | OPEN / PENDING |
+| [#500](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/500) | Настраиваемое клиентом автопродление, только после product/Stars-compliance decision | OPEN / PENDING |
+| [#501](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/501) | Preferences/уведомления клиенту о собственных events; не подменять Admin job alerts | OPEN / PENDING |
+| [#502](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/502) | Опциональная мультиязычность Client Portal, русская локализация остаётся текущим контрактом | OPEN / PENDING |
+| [#503](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/503) | Статистика трафика за сегодня / 7 / 30 дней при **достоверном** historical source | OPEN / PENDING |
+| [#504](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/504) | Пользовательские labels зарегистрированных HWID — отдельный scope от read-only списка #471 и DELETE #472 | OPEN / PENDING |
+| [#505](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/505) | FAQ + общий канал поддержки в Client Portal, отдельно от уже существующего `/paysupport` | OPEN / PENDING |
+| [#506](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/506) | Read-only собственная история заказов и платежей, отдельно от **Admin** Orders #470 | OPEN / PENDING |
+| [#507](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/507) | Возможный выбор периода/варианта тарифа в checkout, только после product/immutable-pricing decision | OPEN / PENDING |
+
+**Не дублировать существующее:** future geo/node #475, subscriptions raw/JSON/Mihomo #476, Remnawave #477, Cheburcheck Probe #478, integrations #479, PSP/СБП #336; Stars returns #433/#434/#436/#437, client devices #470–#473, 3x-ui load #482 и Master→Node verification #487 уже имеют собственные **OPEN** Issues. V5-A-001…003 и G-01…G-11 — **acceptance checklist**, не двенадцать новых features; W-01/W-02 waived/inconclusive **не возобновлять**. Выполненные v4.x работы и закрытые Issues не открывать вновь; условные подробности реализации внутри больших tracks остаются в родительских Issues, а не создают искусственные дубликаты. Public rollout и stable v5 — завершающий acceptance/release gate, не новая feature-задача.
+
+**GitHub baseline перед checkpoint PR:** main `249d8f1d60faf221eda061d706d55e383dd48920` (предыдущая Roadmap sync [PR #495](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/495), post-merge `Python checks` [run 38181422269](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38181422269) PASS). Published последний immutable prerelease `v5.0.0-rc.9` / `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; последний **deployed только operator-reported** `rc.9` (2026-10-11 16:15 EEST), независимого production read-back нет. До новых Issues **17 OPEN**, после регистрации 12 новых **29 OPEN**, closed state ранее завершённых без изменений; на момент создания docs checkpoint open PR 0. Общий v5 acceptance **NOT PASS**, pilot allowlist и запрет public launch без изменений. Нового code merge, release, deployment, production smoke, payment/refund/restart не выполнялось.
+
+**Checkpoint / Next:** данный реестр должен пройти docs-only PR с required `test`/`title`, squash merge, independent `main` read-back, audit всех #496–#507 и повторную сверку 29 OPEN Issues против Roadmap. Пока docs PR не в main — `ROADMAP SYNC: PENDING`, и новая разработка/production smoke не начинается. Future backlog можно приоритизировать только отдельным решением после обязательных acceptance-gates; roadmap audit сам по себе не разрешает начать реализацию.
+
+
 ### GitHub read-only baseline и Issue closure audit — 2026-10-12 01:30 Europe/Helsinki (EEST, UTC+03:00)
 
 **Scope / source:** независимое read-only чтение GitHub REST через подключённый GitHub connector (branch, Releases, tag ref, Actions, PR, Issues, rulesets) на 2026-10-12 01:30 EEST. **GitHub baseline: scoped PASS; production/live smoke: NOT RUN.** В данной сессии локальный working tree, VPS, Telegram, 3x-ui и SQLite не проверялись; новые production evidence или accepted gates не заявляются.
