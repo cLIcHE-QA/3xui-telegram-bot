@@ -41,7 +41,7 @@
 
 ### GitHub branch lifecycle / retained refs audit — 2026-10-12 02:43 EEST (UTC+03:00)
 
-**Scope / provenance:** read-only GitHub REST inventory of repo settings, all six branch pages (5 × 100 + 57, next empty), all pull-request pages (4 × 100 + 34, next empty), current `main` `1aab2f4ae2d158fd5aba425ccecd6e112909eed5`, existing `docs/GIT_WORKFLOW.md`, `docs/LIVING_DOCS.md`, `docs/RELEASES.md`, `CHANGELOG.md`. **Audit: scoped PASS (inventory and PR-name correlation), branch-deletion safety and policy approval: PENDING.** No git checkout, branch deletion, GitHub settings mutation, production changes or VPS/Telegram smoke.
+**Scope / provenance:** read-only GitHub REST inventory of repo settings, all six branch pages (4 × 100 + 57, next empty), all pull-request pages (4 × 100 + 34, next empty), current `main` `1aab2f4ae2d158fd5aba425ccecd6e112909eed5`, existing `docs/GIT_WORKFLOW.md`, `docs/LIVING_DOCS.md`, `docs/RELEASES.md`, `CHANGELOG.md`. **Audit: scoped PASS (inventory and PR-name correlation), branch-deletion safety and policy approval: PENDING.** No git checkout, branch deletion, GitHub settings mutation, production changes or VPS/Telegram smoke.
 
 | GitHub branch audit, baseline before PR | Read-only observation | Limit |
 | --- | --- | --- |
