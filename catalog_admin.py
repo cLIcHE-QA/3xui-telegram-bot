@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import ipaddress
+import json
 import re
 import sqlite3
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -1054,6 +1056,23 @@ async def server_group_delete(call: CallbackQuery):
 async def hosts_list(call: CallbackQuery):
     if not await guard_call(call):
         return
+    await render_callback(
+        call,
+        "🌐 Хосты\n\nВыберите источник данных. Локальные адреса бота и Host Groups 3x-ui "
+        "не синхронизируются между собой автоматически.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🗂 Адреса инфраструктуры · SQLite", callback_data="admin:hosts:local")],
+            [InlineKeyboardButton(text="🌐 Хосты 3x-ui · Master API", callback_data="admin:hosts:xui:page:0")],
+            [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
+        ]),
+    )
+    await call.answer()
+
+
+@catalog_router.callback_query(F.data == "admin:hosts:local")
+async def hosts_local(call: CallbackQuery):
+    if not await guard_call(call):
+        return
     hosts = await db.list_hosts()
     rows: list[list[InlineKeyboardButton]] = []
     for host in hosts[:50]:
@@ -1065,16 +1084,192 @@ async def hosts_list(call: CallbackQuery):
         )])
     rows += [
         [InlineKeyboardButton(text="➕ Добавить хост", callback_data="admin:hostadd:start")],
-        [InlineKeyboardButton(text="🔎 Найти текущие хосты", callback_data="admin:hosts:discover")],
+        [InlineKeyboardButton(text="🔎 Импортировать адреса из конфигурации", callback_data="admin:hosts:discover")],
         [InlineKeyboardButton(text="⬅ Инфраструктура", callback_data="admin:section:infrastructure")],
     ]
     enabled = sum(1 for h in hosts if h.enabled)
     await render_callback(call, 
-        "🌐 Хосты\n\n"
+        "🗂 Адреса инфраструктуры · SQLite бота\n\n"
         f"Записей: {len(hosts)} · активных: {enabled}\n\n"
-        "Это централизованный реестр доменов/IP и их ролей. Изменения здесь не меняют DNS, nginx "
-        "или 3x-ui автоматически.",
+        "🟢 означает включённую запись в реестре, не доступность сервера. "
+        "Кнопка импорта записывает в SQLite три URL конфигурации бота и может повторно включить "
+        "ранее отключённые совпавшие адреса; 3x-ui/DNS/nginx не меняются.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+def _xui_host_identity(group: dict) -> str:
+    """Stable opaque callback identity; revalidated against a fresh Master read."""
+    group_id = group.get("groupId")
+    if isinstance(group_id, str) and group_id:
+        identity = group_id
+    else:
+        identity = json.dumps(
+            {key: group.get(key) for key in ("hosts", "port", "inboundIds", "nodeGuids")},
+            sort_keys=True, ensure_ascii=True, default=str,
+        )
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()[:12]
+
+
+def _xui_host_owner_labels(group: dict, node_by_guid: dict[str, str]) -> str:
+    guids = group.get("nodeGuids")
+    if not isinstance(guids, list) or not guids:
+        return "привязка к ноде не определена"
+    names: list[str] = []
+    for item in guids[:12]:
+        if not isinstance(item, str) or not item:
+            names.append("неизвестная привязка")
+        else:
+            names.append(node_by_guid.get(item, "нода не найдена в Master"))
+    if len(guids) > 12:
+        names.append("… ещё ноды")
+    return ", ".join(dict.fromkeys(names))
+
+
+def _xui_host_safe_addresses(group: dict) -> str:
+    raw = group.get("hosts")
+    if not isinstance(raw, list):
+        return "адреса не предоставлены"
+    result: list[str] = []
+    for value in raw[:6]:
+        if not isinstance(value, str):
+            continue
+        try:
+            host = _normalize_hostname(value)
+        except ValueError:
+            continue
+        if host not in result:
+            result.append(host)
+    if not result:
+        return "адреса не предоставлены"
+    suffix = " …" if len(raw) > 6 else ""
+    port = group.get("port")
+    try:
+        port_int = int(port or 0)
+    except (TypeError, ValueError):
+        port_int = 0
+    if 1 <= port_int <= 65535:
+        return ", ".join(f"{h}:{port_int}" for h in result) + suffix
+    return ", ".join(result) + suffix
+
+
+def _xui_host_inbound_labels(group: dict, inbound_by_id: dict[int, str] | None) -> str:
+    values = group.get("inboundIds")
+    if not isinstance(values, list) or not values:
+        return "привязка к inbound не указана"
+    if inbound_by_id is None:
+        return "метаданные inbound недоступны"
+    names: list[str] = []
+    for value in values[:10]:
+        try:
+            identity = int(value)
+        except (ValueError, TypeError):
+            names.append("неизвестный inbound")
+            continue
+        names.append(inbound_by_id.get(identity, f"inbound #{identity} (не обнаружен)"))
+    if len(values) > 10:
+        names.append("…")
+    return ", ".join(dict.fromkeys(names))
+
+
+@catalog_router.callback_query(F.data.regexp(r"^admin:hosts:xui:page:\d+$"))
+async def hosts_xui_page(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    page = min(100, int(call.data.rsplit(":", 1)[-1]))
+    try:
+        groups = await xui.hosts_list()
+    except (XUIError, TimeoutError):
+        await render_callback(
+            call,
+            "🌐 Хосты 3x-ui · Master API\n\n⚠️ API недоступен или ответ некорректен. "
+            "Это не означает, что хостов нет.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔄 Повторить чтение", callback_data="admin:hosts:xui:page:0")],
+                [InlineKeyboardButton(text="⬅ Хосты", callback_data="admin:hosts")],
+            ]),
+        )
+        await call.answer()
+        return
+    offset = page * 8
+    if groups and offset >= len(groups):
+        page = max(0, (len(groups) - 1) // 8)
+        offset = page * 8
+    rows = []
+    for index, group in enumerate(groups[offset:offset + 8], offset):
+        if not isinstance(group, dict):
+            continue
+        remark = str(group.get("remark") or "Без названия").replace("\n", " ")[:32]
+        icon = "⛔" if group.get("isDisabled") else "🌐"
+        rows.append([InlineKeyboardButton(
+            text=f"{icon} {index + 1}. {remark}",
+            callback_data=f"admin:hosts:xui:detail:{index}:{page}:{_xui_host_identity(group)}",
+        )])
+    nav = []
+    if page:
+        nav.append(InlineKeyboardButton(text="⬅ Пред.", callback_data=f"admin:hosts:xui:page:{page - 1}"))
+    if offset + 8 < len(groups) and page < 100:
+        nav.append(InlineKeyboardButton(text="➡ След.", callback_data=f"admin:hosts:xui:page:{page + 1}"))
+    if nav:
+        rows.append(nav)
+    rows.extend([
+        [InlineKeyboardButton(text="🔄 Обновить", callback_data=f"admin:hosts:xui:page:{page}")],
+        [InlineKeyboardButton(text="⬅ Хосты", callback_data="admin:hosts")],
+    ])
+    await render_callback(
+        call,
+        f"🌐 Хосты 3x-ui · Master API\n\nГрупп: {len(groups)} · страница {page + 1}\n"
+        "Источником служит центральная панель, не SQLite бота. "
+        "Статус записи не подтверждает работоспособность Xray или доступность ноды.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+@catalog_router.callback_query(F.data.regexp(r"^admin:hosts:xui:detail:\d+:\d+:[a-f0-9]{12}$"))
+async def hosts_xui_detail(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    _, _, _, _, ix, pg, expected_identity = call.data.split(":")
+    index, page = int(ix), min(100, int(pg))
+    try:
+        groups = await xui.hosts_list()
+    except (XUIError, TimeoutError):
+        await call.answer("Хосты 3x-ui: API недоступен.", show_alert=True)
+        return
+    if (index >= len(groups) or not isinstance(groups[index], dict)
+            or _xui_host_identity(groups[index]) != expected_identity):
+        await call.answer("Список изменился. Обновите хосты.", show_alert=True)
+        return
+    group = groups[index]
+    nodes_err = False
+    try:
+        nodes = await xui.nodes_list()
+        by_guid = {n.guid: str(n.name).replace("\n", " ")[:48] for n in nodes if n.guid}
+    except (XUIError, TimeoutError):
+        by_guid, nodes_err = {}, True
+    try:
+        inbounds = await xui.inbound_options()
+        by_inbound = {v.id: str(v.remark).replace("\n", " ")[:48] for v in inbounds}
+    except (XUIError, TimeoutError):
+        by_inbound = None
+    text = (
+        "🌐 Host Group 3x-ui · Master API\n\n"
+        f"Название: {str(group.get('remark') or 'Без названия')[:80]}\n"
+        f"Адреса: {_xui_host_safe_addresses(group)}\n"
+        f"Ноды: {'⚠️ перечень нод недоступен' if nodes_err else _xui_host_owner_labels(group, by_guid)}\n"
+        f"Inbounds: {_xui_host_inbound_labels(group, by_inbound)}\n"
+        f"Состояние: {'⛔ отключена' if group.get('isDisabled') else '✅ включена в конфигурации'}\n"
+        f"В подписках: {'скрыта' if group.get('isHidden') else 'видима'}\n\n"
+        "⚠️ Это конфигурация Master, не live health ноды/Xray и не локальные Hosts ноды."
+    )
+    await render_callback(
+        call,
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅ Хосты 3x-ui", callback_data=f"admin:hosts:xui:page:{page}")],
+        ]),
     )
     await call.answer()
 
