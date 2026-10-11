@@ -1210,7 +1210,7 @@ async def hosts_xui_page(call: CallbackQuery):
     if page:
         nav.append(InlineKeyboardButton(text="⬅ Пред.", callback_data=f"admin:hosts:xui:page:{page - 1}"))
     if offset + 8 < len(groups) and page < 100:
-        nav.append(InlineKeyboardButton(text="След. ➡", callback_data=f"admin:hosts:xui:page:{page + 1}"))
+        nav.append(InlineKeyboardButton(text="➡ След.", callback_data=f"admin:hosts:xui:page:{page + 1}"))
     if nav:
         rows.append(nav)
     rows.extend([
