@@ -38,6 +38,22 @@
 
 Если информация в чате противоречит фактическому состоянию репозитория, сначала укажи на расхождение. Не подгоняй код или документацию под устаревший контекст молча.
 
+## 1а. Обязательный acceptance/Issue checkpoint после каждой проверки
+
+**В начале каждого нового чата и до любых repository writes** сначала прочитай актуальные `docs/GIT_WORKFLOW.md` (первая нормативная точка входа), `docs/LIVING_DOCS.md`, `docs/RELEASES.md`, верхнюю сводку `docs/ROADMAP.md` и `CHANGELOG.md`; при v5 smoke также `docs/V5_PRODUCTION_ACCEPTANCE.md` и `docs/CLIENT_SETUP.md`. Проверяй GitHub `main`, merged PR, published tag, operator-reported deployed tag/SHA и open/closed Issues. Эти состояния **не взаимозаменяемы**. `AGENTS.md` — указатель на действующие contracts, а не альтернативный Roadmap.
+
+**Нельзя переходить к следующей значимой задаче/пакету production smoke**, пока завершённый пакет не оформлен в текущей верхней сводке `docs/ROADMAP.md` и фактически не попал в `main` через PR с required checks. Если CI или GitHub недоступны, явно обозначь `ROADMAP SYNC: PENDING`, не называй sync завершённым и не продолжай следующий пакет, кроме отдельно согласованной аварийной операции. Вносить результаты ретроспективно без чёткого указания даты, окружения и источника запрещено.
+
+После **каждой** значимой проверки/release/deployment делай атомарный по процессу checkpoint:
+
+1. Сопоставь ожидаемое и полученное, зафиксируй дату с часовым поясом, immutable tag/SHA, target, фактический source (operator-reported, CI job, read-only DB, live Telegram и т.д.), `PASS/PARTIAL/PENDING/FAIL/BLOCKED` **только для проверенного scope**, отсутствующие evidence и конкретный next action. Не запускай регрессию вместо согласованных targeted smoke.
+2. Обнови верхний `docs/ROADMAP.md` через штатный PR; после merge **проверь в main**, что актуальные строки действительно обновлены. Никаких предположений, что commit в ветке или открытый PR равен синхронизации.
+3. Выполни **Issue closure audit**: прочитай собственные acceptance criteria каждого затронутого Issue, проверь published/deployed state и offline/live evidence; добавь ссылку/комментарий с результатом. Закрой `completed` только Issue с доказанным **его собственным** acceptance scope. При частичном PASS или новом дефекте сохрани Issue открытым и укажи PENDING. Не требуй дополнительных live mutations, если Issue прямо исключает их; не считай общий v5 acceptance обязательным для независимого docs-only/targeted issue.
+4. Повторно сверь **Issue state с Roadmap**. Если состояние Issue изменилось после docs PR, обнови Roadmap соответствующей фактической строкой отдельным docs-only PR до следующего значимого этапа.
+5. Отдельно в конце ответа отчитывайся: `Roadmap: merged SHA / PENDING`; `Issues: closed / open`; `Acceptance: scoped PASS / remaining PENDING`; `Next: ...`. Не заявляй, что всё закрыто, если Issue и Roadmap разошлись.
+
+**Никогда не закрывай Issue при merge только ради зелёного CI:** для production bug требуются published/deployed и его targeted outcome. Исключения обоснованы scope (например docs-only Issue не нуждается в production smoke). Не закрывай весь V5-A-001/A-002/A-003 только из-за scoped smoke и не возобновляй waived Telegram burst. Production deploy, Stars payments, реальный refund/restore/restart — только по отдельному разрешению оператора.
+
 ## 2. Канонические источники
 
 Используй документы по их назначению:
