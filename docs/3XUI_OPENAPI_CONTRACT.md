@@ -15,7 +15,9 @@
 
 Schema берётся из immutable release tag, а не из upstream `main`. CI не скачивает OpenAPI из сети и поэтому не меняет compatibility contract самопроизвольно.
 
-Начиная с `v4.25.0` bot API surface включает reviewed client-connections routes: `POST /panel/api/clients/ips/{email}`, `POST /panel/api/clients/hwids/{email}` и `DELETE /panel/api/clients/hwids/{email}/{id}`. Текущий manifest содержит **54** endpoint. При переходе `v3.8.5 → v3.9.0` этот используемый surface сохранил route/method, Bearer auth, request body/media/mandatory fields и проверяемый JSON response envelope; runtime client changes для contract parity не потребовались.
+Начиная с `v4.25.0` bot API surface включает reviewed client-connections routes: `POST /panel/api/clients/ips/{email}`, `POST /panel/api/clients/hwids/{email}` и `DELETE /panel/api/clients/hwids/{email}/{id}`. Текущий manifest содержит **55** endpoints, включая `GET /panel/api/hosts/list` (Issue #422 / PR #424). При переходе `v3.8.5 → v3.9.0` этот используемый surface сохранил route/method, Bearer auth, request body/media/mandatory fields и проверяемый JSON response envelope; runtime client changes для contract parity не потребовались.
+
+При изменении `contracts/3xui/contract.json` или vendored `contracts/3xui/**/openapi.json` Living Docs требует синхронного изменения этого документа в том же PR (`require_all`, без waiver). Изменения API-клиентов `xui.py` / `version_api.py` требуют review документа либо точного обоснованного waiver. Semantic test сверяет количество endpoints с manifest; это не требует обновления pinned upstream версии при расширении уже существующего API surface.
 
 ## Что проверяет CI
 
