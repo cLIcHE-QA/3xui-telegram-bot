@@ -30,6 +30,7 @@
 ## Roadmap / Acceptance impact
 
 - Связанный Issue / пункт `docs/ROADMAP.md`: укажи ссылку либо `не требуется` с объяснением.
+- [ ] Для новой самостоятельной задачи указан существующий/новый Issue; иначе явное `Issue: N/A — причина` по узкому исключению из Git workflow.
 - Изменение product/acceptance state: укажи, какой факт нужно зафиксировать **после merge**, либо почему текущее состояние Roadmap не меняется.
 - Что уже проверено: CI/targeted tests/manual smoke, scope и evidence; не отмечай production PASS без фактической проверки.
 - Что останется проверить после merge / release / deployment: перечисли gates и следующий шаг либо обоснуй `не требуется`.
