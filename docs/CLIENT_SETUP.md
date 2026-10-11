@@ -1,6 +1,6 @@
 # Client Portal v5 — настройка контролируемого пилота
 
-> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Production по operator-reported deployment 2026-10-10 23:13 UTC — immutable `v5.0.0-rc.8` (SHA `af5d2c891174e32e36cb4f031fed2700ea783719`). Частичные targeted smoke пройдены, но общий v5 production acceptance **NOT PASS** и пилотный allowlist остаётся. Состояние и незакрытые gates: [ROADMAP.md](ROADMAP.md), [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md).
+> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Последняя operator-reported production версия — immutable `v5.0.0-rc.9` (tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`, сообщение 2026-10-11 16:15 Europe/Helsinki), без независимого VPS read-back. Частичные targeted smoke пройдены, но общий v5 production acceptance **NOT PASS** и пилотный allowlist остаётся. Состояние и незакрытые gates: [ROADMAP.md](ROADMAP.md), [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md).
 
 ## Operator-reported deployment rc.9 (2026-10-11)
 
