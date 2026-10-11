@@ -209,7 +209,8 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         for needle in (
             '"💎 Тарифы\\n\\n"',
             '"🗂 Группы серверов\\n\\n"',
-            '"🌐 Хосты\\n\\n"',
+            '"🗂 Адреса инфраструктуры · SQLite бота\\n\\n"',
+            '"🌐 Хосты\\n\\nВыберите источник данных.',
             'text="⬅ Тарифы"',
             'text="⬅ Группы серверов"',
             'text="⬅ Хосты"',
