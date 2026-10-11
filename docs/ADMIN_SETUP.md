@@ -1371,3 +1371,64 @@ Streisand не передаёт совместимый `X-HWID` для raw subsc
 ## Client Portal / Stars runtime switches (#342; после следующего релиза)
 
 В новом коде `/admin → Система → Настройки → 👤 Клиентский портал` Owner может ограничить доступ к клиентскому порталу и **новым** Telegram Stars платежам без редактирования `.env` и пересоздания контейнера. На предыдущем `v5.0.0-rc.8` существующие клиентские callbacks игнорировали DB Portal OFF. Исправление опубликовано и operator-reported deployed в `v5.0.0-rc.9`; оператор 2026-10-11 17:25–17:30 EEST подтвердил scoped Portal OFF → старый callback denied → ON, `/start` и `/admin` доступны после восстановления, Stars настройки без изменений. Независимого production DB/audit/read-only reconciliation пока нет: #342 остаётся OPEN/PARTIAL, общий v5 acceptance NOT PASS. `.env CLIENT_PORTAL_ENABLED=false` или `CLIENT_PAYMENT_ACCEPTANCE_ENABLED=false` всегда сильнее DB override `true`; отключённый портал также запрещает оплату. Наличие DB override без внешнего разрешения не включает pilot-доступ. Для emergency break-glass остаются локальные `.env` flags с контролируемым redeploy по release-процедуре, а не Telegram-host shell. Read-only состояние при ошибке DB = unknown/disabled. Toggle не отзывает 3x-ui клиентов, не переписывает entitlement, не останавливает обработку уже пришедшего successful_payment. Перед production acceptance отдельно проверить рестарт, audit, старые invoices/precheckout, приватные права и read-only payment reconciliation без реальной повторной оплаты/refund.
+
+
+## Изолированная проверка доставки Telegram #352 (только QA-бот)
+
+Для проверки **только транспорта** сообщений `job_failed` используется
+`scripts/qa352_telegram_delivery.py` на отдельной **operator workstation**, а
+не на Master/Node. Понадобятся отдельный QA-бот от @BotFather и личный чат,
+отправивший `/start`. Скрипт не запускает приложение, бэкапы, задания или
+production SQLite, не читает production `.env` и не использует production token.
+Перед регистрацией отключите возможность добавлять QA-бота в группы через
+BotFather `/setjoingroups`; наличие только одного приватного `/start` дополнительно
+проверяет runner. Никаких тестовых токенов/chat ID не отправлять в GitHub/chat.
+
+На workstation возьмите **проверенный checkout `main`**, содержащий runner; не
+переключайте production на `main`. В приватной локальной shell-сессии задайте
+`QA352_BOT_TOKEN` и `QA352_EXPECTED_BOT_USERNAME` (без записи в bash history,
+командную строку процесса, CI, issue или PR). Username должен содержать
+`qa`/`test`; QA token не должен совпадать с production `BOT_TOKEN`.
+Первым делом выполните только offline preview:
+
+~~~bash
+python3 scripts/qa352_telegram_delivery.py preview
+~~~
+
+После проверки формата и отдельного согласования с оператором — **не более
+одного шага за раз**, на workstation непривилегированным пользователем:
+
+~~~bash
+python3 scripts/qa352_telegram_delivery.py enroll --confirm PRIVATE_QA352_CHAT_ONLY
+python3 scripts/qa352_telegram_delivery.py status
+~~~
+
+`enroll` выполняет только read-only запросы Telegram `getMe`,
+`getWebhookInfo`, `getUpdates` и закрепляет единственный private `/start`.
+Если у бота webhook, несколько чатов или нет подходящего `/start`, runner
+останавливается. Регистрация не отправляет сообщений. Она хранит bot ID/chat ID
+в локальной приватной SQLite `~/.local/state/3xui-qa352-delivery/qa352.sqlite3`
+(0700/0600); это не production DB. Данные не публикуются.
+
+После отдельного approval каждого синтетического сообщения:
+
+~~~bash
+python3 scripts/qa352_telegram_delivery.py send 1 --confirm SEND_ONE_QA352_MESSAGE
+~~~
+
+Убедитесь, что текст **фактически появился в личном чате** и помечен
+`QA #352 — СИНТЕТИЧЕСКОЕ УВЕДОМЛЕНИЕ, НЕ АВАРИЯ`. Затем подтвердите:
+
+~~~bash
+python3 scripts/qa352_telegram_delivery.py confirm 1 --observed YES
+~~~
+
+Шаги 2, 3 и 4 выполняются строго аналогично, с очередным отдельным
+подтверждением; преждевременная отправка, повтор шага и превышение четырёх
+заблокированы. **После timeout/ошибки API, если исход неизвестен, не
+повторяйте send:** локальное состояние перейдёт в `unknown` до ручного
+разбора. Действие `confirm` возможно только после Telegram API acceptance
+и визуального подтверждения. Не запускать через root/production checkout,
+не использовать для production incident simulation. Испытание доказывает
+только доставку **от отдельного тестового бота**, не работу основного
+production delivery и не объединение проекций в Attention Center.
