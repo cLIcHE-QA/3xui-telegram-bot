@@ -30,7 +30,7 @@ class MasterHostsReadOnlyTests(unittest.IsolatedAsyncioTestCase):
     def test_callbacks_read_only_rbac_and_untrusted_id_rejected(self):
         for callback in (
             "admin:hosts", "admin:hosts:local", "admin:hosts:xui:page:0",
-            "admin:hosts:xui:detail:10:1",
+            "admin:hosts:xui:detail:10:1:abcdef012345",
         ):
             self.assertEqual(required_role_for_callback(callback), "read_only")
         self.assertEqual(required_role_for_callback("admin:hosts:discover"), "admin")
@@ -111,9 +111,9 @@ class MasterHostsReadOnlyTests(unittest.IsolatedAsyncioTestCase):
             text = render.await_args.args[1]
             self.assertIn("Master API", text)
             buttons = render.await_args.kwargs["reply_markup"]
-            self.assertIn("admin:hosts:xui:detail:0:0", {
+            self.assertTrue(any(value.startswith("admin:hosts:xui:detail:0:0:") for value in {
                 b.callback_data for row in buttons.inline_keyboard for b in row
-            })
+            }))
 
     async def test_master_hosts_api_unavailable_does_not_show_empty(self):
         call = fake_call("admin:hosts:xui:page:0")
@@ -127,7 +127,10 @@ class MasterHostsReadOnlyTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("Групп: 0", render.await_args.args[1])
 
     async def test_detail_joins_node_guid_and_inbound(self):
-        call = fake_call("admin:hosts:xui:detail:0:0")
+        call = fake_call("admin:hosts:xui:detail:0:0:" + catalog_admin._xui_host_identity({
+            "remark": "NL UDP", "hosts": ["hy.example.org"], "port": 443,
+            "nodeGuids": ["phys-12"], "inboundIds": [51]
+        }))
         nodes = [XUIClient._parse_node({"id": 12, "guid": "phys-12", "name": "Finland"})]
         options = [SimpleNamespace(id=51, remark="NL Hysteria2")]
         with patch.object(catalog_admin, "guard_call", AsyncMock(return_value=True)), patch.object(
