@@ -4,6 +4,8 @@ import importlib.util
 import io
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
