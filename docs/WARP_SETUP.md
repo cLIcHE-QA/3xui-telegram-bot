@@ -142,6 +142,55 @@ curl -4 --fail --silent --show-error https://www.cloudflare.com/cdn-cgi/trace
 
 См. [Split Tunnels](https://developers.cloudflare.com/cloudflare-one/team-and-resources/devices/cloudflare-one-client/configure/route-traffic/split-tunnels/) и [Device settings](https://developers.cloudflare.com/cloudflare-one/team-and-resources/devices/cloudflare-one-client/configure/settings/).
 
+## 4.4. Вариант из AezaWiki: WARP как локальный SOCKS outbound для VLESS (только test/canary)
+
+**Оригинал оператора:** [архив AezaWiki от 08.04.2026 — «Настройка WARP для VLESS»](https://web.archive.org/web/20260408162809/https://wiki.aeza.net/ru/guides/warp/#%D0%B4%D0%BB%D1%8F-%D1%87%D0%B5%D0%B3%D0%BE-%D0%BD%D1%83%D0%B6%D0%B5%D0%BD-warp). Этот раздел восстановлен **по восьми последовательным скриншотам оператора**, а не как проверенная на нашей VPS процедура. На исходной странице некоторые иллюстрации не загрузились, поэтому детали невидимых routing-правил нельзя восстановить достоверно. Скриншоты 1–8 остаются источником описания; URL оригинала позволяет сверять контекст. Для Marzban инструкция на скриншотах есть, но наш проект использует **3x-ui**, поэтому Marzban JSON/forms не переносим в действующий setup.
+
+**Чем отличается от §4.1–4.3:** это **не** включение full-tunnel WARP на уровне VPS. Здесь WARP CLI поднимает **локальный SOCKS-прокси**, а Xray может использовать его как отдельный `outbound`. Только маршруты, которым явно задано `outboundTag: "warp"`, выйдут через этот прокси. Входящий IP/VLESS listener, публичный адрес ноды и Reality SNI не меняются.
+
+### Схема из скриншотов 1–8
+
+1. На **отдельной тестовой VPS** подготовь Cloudflare WARP CLI. Оригинал предлагает загрузить `install-warp-cli.sh` из `Skrepysh/tools` и запустить его, затем выбрать **1** (установка и настройка). **Не выполняй curl-to-shell или скрипт из изменяемой ветки `main` на production.** Если выбран именно этот сторонний скрипт, сначала сохрани, изучи и зафиксируй конкретный immutable Git commit, проверь команды добавления репозитория, регистрацию, сервисы и права. Без такого review предпочти официальную установку из §3 и отдельную проверенную настройку proxy mode. Источник стороннего скрипта: [Skrepysh/tools/install-warp-cli.sh](https://github.com/Skrepysh/tools/blob/main/install-warp-cli.sh) (указан для сверки, **не как одобрение исполнения**).
+2. На prompts исходного скрипта: вариант **1**; для необязательного WARP+ ключа — **Enter** без ключа; укажи локальный SOCKS-порт **`40000`**. В просмотренной версии скрипта режим устанавливается как `warp-cli mode proxy`, а порт через `warp-cli proxy port 40000`. Синтаксис сверяй с `warp-cli --help` установленной версии; результат `Connected` в CLI сам по себе не подтверждает реальную маршрутизацию.
+3. **Перед изменением Xray**, с тестовой VPS убедись, что прокси доступен **только локально** и реально даёт отдельный egress:
+   - `sudo ss -lntp | grep 40000` — должен слушать loopback (не `0.0.0.0`/`::`).
+   - `curl --max-time 10 --socks5-hostname 127.0.0.1:40000 https://www.cloudflare.com/cdn-cgi/trace` — сверить ожидаемый WARP-путь, без публикации полного trace.
+   - Не открывай входящий порт `40000` в UFW, cloud firewall, Docker publishes или снаружи; при отсутствии proxy listener — **STOP**.
+4. В панели **3x-ui → Настройки Xray → Outbounds** добавь один новый outbound (скриншоты 3–8). Скриншот содержит эквивалент следующего объекта; адрес `127.0.0.1` верен **только если Xray и SOCKS listener в одном network namespace**:
+
+   ~~~json
+   {
+     "tag": "warp",
+     "protocol": "socks",
+     "settings": {
+       "servers": [
+         {
+           "address": "127.0.0.1",
+           "port": 40000
+         }
+       ]
+     }
+   }
+   ~~~
+
+   В визуальной форме 3x-ui: **Протокол — Socks, Тег — warp, Адрес — 127.0.0.1, Порт — 40000**. Если Xray в контейнере/отдельной сетевой namespace, `127.0.0.1` обозначает **его** loopback, а не host WARP; не заменяй его на публичный IP или `0.0.0.0` ради обхода.
+5. **Routing — отдельный обязательный этап, не показанный разборчиво на всех скриншотах.** Создать outbound недостаточно: сначала согласуй, какие только outbound domains/направления направлять через `warp`. Пример **формы**, не готовое production-правило:
+
+   ~~~json
+   {
+     "type": "field",
+     "domain": ["domain:example.org"],
+     "outboundTag": "warp"
+   }
+   ~~~
+
+   Здесь `example.org` — фиктивный placeholder. Правило должно находиться **перед** общими routing-правилами, иначе его перекроют ранее совпавшие. Не включай `warp` глобально, не маршрутизируй loopback/bot→Master API/Node Control/Host Control, платежи или operator management через WARP без отдельного design review. Нельзя рассчитывать на обход блокировок любого сервиса или региона.
+6. На **отдельно согласованной test/canary**, после сохранения изменённой конфигурации Xray и только если необходим и одобрен его restart/reload, проверь targeted connection выбранного VLESS клиента, его ожидаемый внешний egress и отсутствие изменений других клиентов. Исходная статья предлагает «перезапустить Xray», но для проекта это отдельная **state-changing операция**, не часть документационного PR. При отказе тестового подключения — **STOP и rollback** настроек на canary, с повторной проверкой доступности. Не меняй `shareAddr`, Reality SNI, публичный Node IP, Master/Node synchronization или firewall в одном пакете.
+
+**Что ожидать:** локальный WARP SOCKS egress меняет исходящий IP *только для маршрутизированного трафика*, а не адрес сервера, к которому подключается клиент. Если WARP или локальный SOCKS недоступны, эти маршруты могут стать неработоспособны; конфигурация и postcondition должны это явно показывать, а не выдавать за успешную установку. Здесь нет требования устанавливать WARP на Master или на каждую ноду: outbound нужен на **том хосте, где реально исполняется конкретный Xray**, с учётом 3x-ui `nodeId`.
+
+**Статус:** docs-only, без запуска команд и canary acceptance. [Issue #489](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/489) отслеживает дальнейшую сверку/использование; **OPEN / PENDING**. Написание этой инструкции не разрешает production deployment, restart Xray, установку WARP или изменение host network. Отличие от старого host-level runbook сохранено намеренно.
+
 ## 5. Раздельный health/readiness и reboot smoke
 
 Любой FAIL — остановка rollout и откат, а не попытка «включить ещё раз».
@@ -225,6 +274,6 @@ Disable не равно stop. Не используй очистку табли�
 6. [Headless Linux Zero Trust enrollment](https://developers.cloudflare.com/cloudflare-one/tutorials/deploy-client-headless-linux/).
 7. [Device settings / auto-connect](https://developers.cloudflare.com/cloudflare-one/team-and-resources/devices/cloudflare-one-client/configure/settings/).
 
-Операторская исходная ссылка: [AézaWiki WARP, архив 2026-04-08](https://web.archive.org/web/20260408162809/https://wiki.aeza.net/ru/guides/warp/). Архив **не удалось открыть** при сверке. Его материал и команды здесь **не копировались**, приведён оригинальный текст по официальному upstream и внутренним сетевым контрактам проекта.
+Операторская исходная ссылка: [AézaWiki WARP, архив 2026-04-08](https://web.archive.org/web/20260408162809/https://wiki.aeza.net/ru/guides/warp/). Первоначальный обзор #357 не мог прочесть архив и не использовал материал AezaWiki. **Дополнение #489** отдельно восстановлено по восьми предоставленным оператором скриншотам с source-specific шагами WARP SOCKS → 3x-ui outbound; недоступные изображения/непрочитанные шаги не выданы за проверенный оригинал.
 
 **Scope #357:** docs-only. Никаких команд по установке/подключению WARP на production/VPS не выполнялось и не планируется в рамках issue.
