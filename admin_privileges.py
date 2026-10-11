@@ -277,7 +277,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     )
     + _rules("server_groups.manage", "prefix", "admin:servergroup:toggle:", "admin:servergroup:inboundmode:", "admin:servergroup:ibtoggle:", "admin:servergroup:deleteask:", "admin:servergroup:delete:")
     + _rules("hosts.view", "exact", "admin:hosts", "admin:hosts:local")
-    + _rules("hosts.view", "regex", r"^admin:hosts:xui:page:\d+$", r"^admin:hosts:xui:detail:\d+:\d+$")
+    + _rules("hosts.view", "regex", r"^admin:hosts:xui:page:\d+$", r"^admin:hosts:xui:detail:\d+:\d+:[a-f0-9]{12}$")
     + _rules("hosts.view", "regex", r"^admin:host:\d+$")
     + _rules("hosts.manage", "exact", "admin:hosts:discover", "admin:hostadd:start", "admin:hostadd:cancel")
     + _rules("hosts.manage", "prefix", "admin:hostadd:role:", "admin:host:toggle:", "admin:host:deleteask:", "admin:host:delete:")
