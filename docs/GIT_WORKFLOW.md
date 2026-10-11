@@ -135,7 +135,9 @@ Force-push/rebase общей PR-ветки без необходимости н�
 
 ### Issues
 
-Issues используются для работы, которая требует отдельного tracking/discussion. Мелкая очевидная правка может идти сразу через PR.
+**Issue-first tracking (обязательное правило для новых самостоятельных задач).** Любой новый bug/fix, feature/UX/architecture improvement, security/operational hardening, technical debt, performance/scaling work или значимый acceptance finding, имеющий собственный scope/acceptance, **до начала реализации** связывается с существующим GitHub Issue либо регистрируется новым Issue. Roadmap фиксирует состояние и evidence, **не заменяет** Issue. Сначала проверь отсутствие дубликата; опиши цель/симптом, scope, критерии приёмки, ограничения и `OPEN/PENDING` до подтверждённого завершения. При необходимости укажи Issue в PR и актуальной сводке Roadmap; версию/milestone заранее назначать не нужно.
+
+**Узкое исключение (N/A с причиной в PR):** тривиальная опечатка/форматирование без нового поведения/контракта и самостоятельного acceptance scope; чистая синхронизация Roadmap/evidence или docs-only checkpoint по **уже отслеживаемой** задаче; release-prep/служебная документация без самостоятельной новой задачи. Не используй исключение для bugfix, новой функции, техдолга, security finding или изменения пользовательского/operator contract. Для sensitive findings следуй `SECURITY.md` и не публикуй exploit/secrets в обычном Issue. Не создавай повторные Issues для одного scope и не переделывай исторические PR/Issues задним числом.
 
 Канонические issue titles:
 
