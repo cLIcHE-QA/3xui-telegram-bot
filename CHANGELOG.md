@@ -6,9 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Не опубликовано — кандидат v5.0.0-rc.9
+## v5.0.0-rc.9 — Portal callbacks fail-closed и Host Groups 3x-ui
 
-- #422: операторский раздел `Инфраструктура → Хосты` разделяет локальный SQLite-реестр адресов панели/подписок и read-only Host Groups центрального Master 3x-ui. Второй источник показывает адреса/порты, привязки к inbound и нодам по стабильному GUID из Master Nodes API, честно отмечает неизвестную привязку; не изменяет DNS, nginx, настройки 3x-ui, SQLite, VPN или привязки нод. Кнопка импорта локальных URL теперь явно названа изменяющим SQLite действием. **Код слит в `main` через PR #424 (squash SHA `cfb6d1108d35e139200bd1652306f17a3738d699`), но ещё не published, не deployed и не принят в production.**
+- #342 / PR #420: существующие клиентские inline callbacks теперь проверяют effective `CLIENT_PORTAL_ENABLED` и persistent DB override через fail-closed gate, как `/start`; выключение портала не открывает обход через старые кнопки. Административный `/admin`, обработка уже полученного `successful_payment`, 3x-ui доступы и pilot allowlist не изменяются.
+- #422 / PR #424: раздел `/admin → Инфраструктура → Хосты` разделяет локальные SQLite metadata и read-only Host Groups Master 3x-ui (`GET /panel/api/hosts/list`). Ноды связываются только по `nodeGuids` ↔ `NodeView.guid`, inbound — по Master metadata; unknown/unmapped/offline не маскируются как Master/healthy. Добавлены pagination, защита stale callbacks, fail-closed ошибки API; импорт локальных URL явно маркирован как SQLite write, live Hosts API не выполняет mutations.
+- Контракт 3x-ui остаётся pinned к `v3.9.0` (55 endpoints); SQLite schema — **v13**, новых migrations, секретов и изменений production конфигурации нет.
+- Это **controlled-canary prerelease**, не public launch. GitHub Release не выполняет production deployment автоматически. После отдельного operator-approved deployment обязательны targeted production smoke: #342 Portal OFF → старые callbacks denied → ON и доступность `/admin`; #422 — три read-only проверки локальных metadata, реальных Master Host Groups/inbound и GUID-привязок нод. Каждая серия фиксируется в Roadmap с PR/CI и Issue audit. До фактических результатов #342/#422 **PENDING**, общий v5 acceptance **NOT PASS**; повторять ранее пройденные или waived smoke не требуется.
 
 ## v5.0.0-rc.8 — Client Portal, Stars invoice UX и Owner recovery
 
