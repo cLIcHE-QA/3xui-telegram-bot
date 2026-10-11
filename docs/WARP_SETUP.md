@@ -189,7 +189,7 @@ curl -4 --fail --silent --show-error https://www.cloudflare.com/cdn-cgi/trace
 
 **Что ожидать:** локальный WARP SOCKS egress меняет исходящий IP *только для маршрутизированного трафика*, а не адрес сервера, к которому подключается клиент. Если WARP или локальный SOCKS недоступны, эти маршруты могут стать неработоспособны; конфигурация и postcondition должны это явно показывать, а не выдавать за успешную установку. Здесь нет требования устанавливать WARP на Master или на каждую ноду: outbound нужен на **том хосте, где реально исполняется конкретный Xray**, с учётом 3x-ui `nodeId`.
 
-**Статус:** docs-only, без запуска команд и canary acceptance. [Issue #489](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/489) отслеживает дальнейшую сверку/использование; **OPEN / PENDING**. Написание этой инструкции не разрешает production deployment, restart Xray, установку WARP или изменение host network. Отличие от старого host-level runbook сохранено намеренно.
+**Статус:** docs-only **PASS; [Issue #489](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/489) CLOSED / completed** после [PR #490](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/490) и independent main read-back. По решению оператора 2026-10-11 22:16 UTC test/canary **SKIPPED / OPERATOR-WAIVED / NOT TESTED**, не PASS; для отдельной будущей установки требуются pinned/reviewed installer, approval и безопасный canary с rollback. Написание этой инструкции не разрешает production deployment, restart Xray, установку WARP или изменение host network. Отличие от старого host-level runbook сохранено намеренно.
 
 ## 5. Раздельный health/readiness и reboot smoke
 
