@@ -70,6 +70,7 @@ class NodeInfo:
     allow_private_address: bool
     net_up: int
     net_down: int
+    guid: str = ""
 
 class XUIClient(VersionAPIMixin):
     def __init__(self, base_url: str, token: str, verify_tls: bool = True):
@@ -320,6 +321,7 @@ class XUIClient(VersionAPIMixin):
             allow_private_address=bool(item.get("allowPrivateAddress", False)),
             net_up=int(item.get("netUp") or 0),
             net_down=int(item.get("netDown") or 0),
+            guid=str(item.get("guid") or ""),
         )
 
     async def restart_xray(self) -> dict[str, Any]:
@@ -433,6 +435,14 @@ class XUIClient(VersionAPIMixin):
             pass
         data = await self._request("GET", "/panel/api/inbounds/list")
         return [self._parse_option(x) for x in (data.get("obj") or [])]
+
+    async def hosts_list(self) -> list[dict[str, Any]]:
+        """Read Master-owned 3x-ui HostGroups without mutating local host metadata."""
+        data = await self._request("GET", "/panel/api/hosts/list")
+        obj = data.get("obj")
+        if not isinstance(obj, list) or any(not isinstance(g, dict) for g in obj):
+            raise XUIError("Некорректный ответ 3x-ui Hosts API")
+        return obj
 
     async def inbounds_list(self, *, slim: bool = False) -> list[dict[str, Any]]:
         path = "/panel/api/inbounds/list/slim" if slim else "/panel/api/inbounds/list"
