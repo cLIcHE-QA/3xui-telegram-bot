@@ -149,6 +149,10 @@
     },
     {
       "method": "GET",
+      "path": "/panel/api/hosts/list"
+    },
+    {
+      "method": "GET",
       "path": "/panel/api/inbounds/options"
     },
     {
