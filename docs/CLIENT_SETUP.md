@@ -1,6 +1,6 @@
 # Client Portal v5 — настройка контролируемого пилота
 
-> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Это операторское руководство для ограниченной группы уже разрешённых Telegram ID. Оно **не** является подтверждением полного production acceptance, инструкцией по открытию массовой регистрации или разрешением на приём новых реальных платежей. Опубликованный и развёрнутый baseline по состоянию на 9 октября 2026 — `v5.0.0-rc.7`; последующие изменения `main` не считаются частью этого релиза до отдельной публикации и controlled deployment. Факты и незакрытые gates: [ROADMAP.md](ROADMAP.md) и [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md).
+> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Production по operator-reported deployment 2026-10-10 23:13 UTC — immutable `v5.0.0-rc.8` (SHA `af5d2c891174e32e36cb4f031fed2700ea783719`). Частичные targeted smoke пройдены, но общий v5 production acceptance **NOT PASS** и пилотный allowlist остаётся. Состояние и незакрытые gates: [ROADMAP.md](ROADMAP.md), [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md).
 
 ## Область ответственности и условия старта
 
@@ -23,7 +23,7 @@
 
 Настоящий код определяет доступ как принадлежность к `ALLOWED_TELEGRAM_IDS` **или** `ADMIN_TELEGRAM_IDS`, с отдельным gate Client Portal; административный Telegram ID не становится автоматически внешним клиентом. Для приёмочных прогонов используйте специально выделенные аккаунты, не открывая доступ всем пользователям.
 
-**Fail closed:** `.env` — верхний запрет. В ещё **не опубликованном** коде после PR #368 добавлены Owner-only runtime switches по пути `/admin → Система → Настройки → 👤 Клиентский портал` с SQLite override и revision-aware audit. **В `rc.7` этого интерфейса нет.** После выпуска новой версии значение `false` в `.env` сильнее любого DB override; при сбое чтения SQLite состояние блокируется. Не пытайтесь использовать UI switches на `rc.7` и не интерпретируйте успешный CI `main` как production PASS.
+**Fail closed / rc.8 limitation:** `.env` остаётся безусловным veto. Owner-only runtime DB overrides находятся в `/admin → Система → Настройки → 👤 Клиентский портал`. На production `rc.8` выявлен code-review finding: обработчик уже открытых клиентских inline callbacks не учитывает DB `portal=false`, хотя `/start` и Stars new invoice/precheckout используют effective flags. **До отдельного исправленного immutable RC не полагайтесь на Owner UI «Портал: отключить» как на полный emergency stop всех клиентских callbacks.** Для break-glass остаётся локальный `.env CLIENT_PORTAL_ENABLED=false` с контролируемым применением конфигурации. Данный fix-PR меняет только callback gate; не изменяет подтверждённые платежи, 3x-ui entitlement или allowlist.
 
 ## Безопасный smoke без реальных платежей
 
@@ -39,7 +39,7 @@
 ## Действия при проблеме / rollback
 
 1. При подозрении на проблему с платежами сначала выключите **новые** платежи: локально `CLIENT_PAYMENT_ACCEPTANCE_ENABLED=false` и контролируемое применение конфигурации. Не удаляйте существующие orders/payments/entitlements и не выполняйте повторные refund/provisioning mutations при `unknown` без доказанного postcondition.
-2. При проблеме с доступом дополнительно выключите `CLIENT_PORTAL_ENABLED=false`. `/admin` должен остаться доступным. Не отключайте backup/audit и не меняйте сведения об уже подтверждённых платежах.
+2. При проблеме с доступом дополнительно установите `.env CLIENT_PORTAL_ENABLED=false` и примените только через контролируемый операторский deployment, пока исправление callback-gate не выпущено. Динамический UI switch rc.8 **не гарантирует** блокирование старых клиентских кнопок. `/admin` должен остаться доступным. Не отключайте backup/audit и не меняйте сведения об уже подтверждённых платежах.
 3. Проверьте exact deployed tag/SHA, Health/SQLite/3x-ui, read-only payment journal и затронутых тестовых клиентов. Изменение `.env` требует штатного контролируемого применения; редактирование файла само по себе не означает, что контейнер получил новые значения.
 4. Возвращайте флаги только после нового targeted PASS с evidence и согласованного решения; прежний `FAIL/unknown` сохраняйте как историю. Для security finding используйте [SECURITY.md](../SECURITY.md) и приватный канал репортинга.
 
