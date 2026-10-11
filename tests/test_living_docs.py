@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import unittest
 from pathlib import Path
 
@@ -76,10 +77,21 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn(f"- 3x-ui: `v{version}`;", readme)
         self.assertIn(f"pinned к 3x-ui `v{version}`", admin_setup)
         self.assertIn(f"- 3x-ui: `v{version}`;", contract_doc)
+        declared_count = re.findall(r"Текущий manifest содержит \*\*(\d+)\*\* endpoints", contract_doc)
+        self.assertEqual(len(declared_count), 1, "Manifest endpoint count must appear exactly once")
+        self.assertEqual(int(declared_count[0]), len(manifest["endpoints"]))
         self.assertIn(
             f"contracts/3xui/v{version}/openapi.json",
             manifest["vendored_schema"],
         )
+
+    def test_3xui_living_docs_trigger_contract(self):
+        rules = {rule["id"]: rule for rule in self.contract["rules"]}
+        self.assertEqual(rules["3xui-openapi-contract"]["mode"], "require_all")
+        self.assertEqual(set(rules["3xui-openapi-contract"]["triggers"]), {"contracts/3xui/contract.json", "contracts/3xui/**/openapi.json"})
+        self.assertEqual(rules["3xui-openapi-contract"]["documents"], ["docs/3XUI_OPENAPI_CONTRACT.md"])
+        self.assertEqual(rules["3xui-client-api"]["mode"], "review")
+        self.assertEqual(set(rules["3xui-client-api"]["triggers"]), {"xui.py", "version_api.py"})
 
     def test_public_security_reporting_is_current(self):
         security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
