@@ -32,6 +32,8 @@ Living documents описывают текущее состояние проек
 
 Waiver означает, что документ фактически просмотрен и изменение не требуется. Он не заменяет обновление документа, если contract/setup/current state реально изменился.
 
+Для API 3x-ui действует отдельная граница: изменение `contracts/3xui/contract.json` или vendored `contracts/3xui/**/openapi.json` требует синхронного обновления `docs/3XUI_OPENAPI_CONTRACT.md` (`require_all`, waiver запрещён). Изменения `xui.py` / `version_api.py` требуют фактической проверки влияния на документ или точного waiver `Living Docs: 3xui-client-api — изменений не требуется`. Постоянный semantic invariant сверяет количество endpoints в manifest с документом, даже если PR diff не затрагивает manifest.
+
 Примеры waiver:
 
 ~~~text
@@ -49,7 +51,8 @@ Diff-trigger не заменяет проверку содержания. `tests
 - public security reporting contract присутствует в `SECURITY.md`;
 - Git/release docs отражают enforced branch/tag rulesets;
 - roadmap показывает текущий активный product track;
-- machine-readable contract не ссылается на отсутствующие документы.
+- machine-readable contract не ссылается на отсутствующие документы;
+- число endpoints текущего `contracts/3xui/contract.json` совпадает с `docs/3XUI_OPENAPI_CONTRACT.md`.
 
 Новые постоянные current-state checks добавляются в `test_living_docs.py`, а не накапливаются в version-specific test files.
 
