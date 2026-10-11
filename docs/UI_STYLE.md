@@ -330,7 +330,7 @@ PR, изменяющий Telegram UI, должен проверять как м�
 
 Host Group details отображают адреса/порты, enabled/hidden, inbound aliases (`GET /panel/api/inbounds/options`) и связь `nodeGuids` ↔ `NodeView.guid` (`GET /panel/api/nodes/list`). Несколько GUID могут обозначать разные ноды для одной группы. Имя inbound, страна в домене или индекс панели **не** доказывают физическую Node: для пустого/незнакомого GUID используется `не определена` / `нода не найдена`, при отказе Node API — явное `API недоступен`; отсутствие GUID нельзя автоматически приписывать Master. Данные центральной панели не претендуют на локальную конфигурацию unmanaged/самостоятельной 3x-ui ноды и не свидетельствуют о доступности Xray.
 
-Callbacks `admin:hosts:xui:page:N` и `admin:hosts:xui:detail:N:P` — read-only RBAC `hosts.view`, bounded pagination, Refresh, Back → Хосты; числовые индексы используются только для текущего fresh API snapshot и не разрешают mutation. Устаревшая кнопка должна безопасно сообщать, что список изменился. URL path/query, subscription IDs, credentials, raw upstream data не выводятся. При API error возвращать явное состояние `недоступен`, а не `Групп: 0`.
+Callbacks `admin:hosts:xui:page:N` и `admin:hosts:xui:detail:N:P:H` — read-only RBAC `hosts.view`, bounded pagination, Refresh, Back → Хосты; числовые индексы используются только для текущего fresh API snapshot и не разрешают mutation. Устаревшая кнопка должна безопасно сообщать, что список изменился. URL path/query, subscription IDs, credentials, raw upstream data не выводятся. При API error возвращать явное состояние `недоступен`, а не `Групп: 0`.
 
 ## Historical bot.update unknown acknowledgment (schema v12)
 
