@@ -21,6 +21,13 @@ import sys
 import time
 from urllib import parse, request
 
+# Direct execution (`python3 scripts/qa352_telegram_delivery.py`) puts only
+# scripts/ on sys.path. Resolve project-local imports from this file location,
+# independently of the operator workstation's current working directory.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from alert_job_incidents import job_incident_message, job_value
 
 STATE_DIR = Path.home() / ".local" / "state" / "3xui-qa352-delivery"
