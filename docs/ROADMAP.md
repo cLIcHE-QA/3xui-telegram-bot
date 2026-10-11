@@ -37,38 +37,71 @@
 
 Новые факты дополняют актуальную сводку и исторические evidence, не переписывая более ранние наблюдения. Для детальных production canary/acceptance результатов используются соответствующие `docs/audits/**` и профильные runbooks; secrets и приватные идентификаторы туда не переносятся.
 
-## Актуальный статус релизов и проверок — 10 октября 2026 года
+## Актуальный статус релизов и проверок — 11 октября 2026 года
 
-**Проверено:** история GitHub Releases, слитые PR и открытые Issues по состоянию на 9 октября, а также новое read-only свидетельство оператора по естественному истечению бесплатного trial 10 октября. Runtime-срез после PR #368; последующие процессные PR #370/#371 слиты в `main`, а точный HEAD сверяется по GitHub (он изменяется при docs-only PR). Эта сводка описывает *текущее* состояние; более старые записи «сейчас» или «Draft» ниже являются историческими. **CI, публикация, развёртывание и фактическая приёмка — разные состояния.**
+**Актуальный baseline (2026-10-11 00:24 UTC):** GitHub prerelease `v5.0.0-rc.8` опубликован 2026-10-10 23:09 UTC; release-prep [PR #418](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/418) слит squash в `main` с SHA `af5d2c891174e32e36cb4f031fed2700ea783719`. По подтверждению оператора 2026-10-10 23:13 UTC production на том же immutable tag/SHA, APP_VERSION `5.0.0-rc.8`, контейнер работает, `RestartCount=0`, Health/DB/3x-ui/TCP=ok, schema **v13**, pre-deploy backup создан. Это не верификация независимым оператором и не полный acceptance. Ниже датированные разделы rc.7 сохраняются как исторические свидетельства. **CI, публикация, развёртывание и фактическая приёмка — разные состояния.**
 
 | Этап | Факт на дату сверки | Незавершённая проверка |
 | --- | --- | --- |
 | **Стабильная v4.x** | ✅ Последний стабильный GitHub Release — [`v4.26.9`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v4.26.9); предыдущие v4.x acceptance описаны ниже. | Не подменяет приёмку v5. |
 | **v5.0.0-rc.1…rc.6** | ✅ Все шесть prerelease опубликованы. Исправления #333/#334 (PR #335) впервые опубликованы в `rc.6` и сохраняются в `rc.7`. | #333: targeted isolated immutable-rc.7 regression PASS (1/1) 10 октября; #334: production read-only Telegram UI targeted PASS. Общий V5-A-002 по-прежнему PENDING. |
-| **Текущий production — `v5.0.0-rc.7`** | 🟠 Опубликован и развёрнут по подтверждению оператора; immutable tag `76b7910404596b7816fedbba605d5c79c02eeacd`, SQLite **v11**. Read-only production baseline 2026-10-10 ~16:36 МСК: APP_VERSION / SQLite `quick_check` / schema v11 — **PASS**; ранее bot HTTP health, `x-ui` service и Compose bot — **PASS** после ограниченной очистки. | **Автоматический backup #96 + encrypted offsite #97 (10 октября, 05:00 МСК) — scoped PASS:** scheduled/success, deep inspection/manifest обеих SQLite и Master-local S3 HEAD/SHA/download/decrypt повторная проверка PASS. Все расширенные DR/SQLite/Docker тесты 10 октября проводились **на Master**, не на отдельном сервере. Отдельного Recovery VPS нет; cross-host restoration **SKIPPED / OPERATOR-WAIVED / NOT TESTED (не PASS)**. Остаются v5 Stars/reconciliation/Telegram canary, Ownership/abuse/soak, опубликование/проверка нового rc.8; **overall v5 acceptance NOT PASS**. |
-| **Код после `rc.7`** | 🟡 PR **#361–#368** слиты в `main`, но ещё не опубликованы. SQLite **v12** добавлена после `rc.7`. В `version.py` остаётся `5.0.0-rc.7`. | Нет опубликованного `rc.8` и нет production deployment / smoke этого кода. |
+| **Предыдущий production — `v5.0.0-rc.7`** | ✅ Immutable prerelease `76b7910404596b7816fedbba605d5c79c02eeacd`, schema v11, опубликован/развёрнут и использовался для ранее датированных scoped rc.7 проверок. | Ранее установленная DR-граница: **cross-host restore SKIPPED / OPERATOR-WAIVED / NOT TESTED**; независимое восстановление Master не подтверждено. |
+| **Текущий production — `v5.0.0-rc.8`** | 🟠 Published 2026-10-10 23:09 UTC и deployed 23:13 UTC по отчёту оператора; tag/main `af5d2c891174e32e36cb4f031fed2700ea783719`, APP_VERSION `5.0.0-rc.8`, SQLite v13; `DB=ok`, `3XUI_TCP=ok`, Health=ok, `RestartCount=0`; pre-deploy backup зафиксирован на Master. PR #361–#368, #416, #417 вошли в выпуск через release-prep #418. | Targeted production smoke 1–9 и 11–20: scoped PASS, #21 PASS только по прошлому операторскому свидетельству. **#352 job-alert PENDING**; **#342 effective portal callback OFF finding (code review), PENDING fix + new RC**; нулевой trial full create/provision, pending v5 acceptance gates. |
+| **Текущий `main` / код release** | ✅ `main` содержит `rc.8`, APP_VERSION `5.0.0-rc.8`, migration v12 (bot.update acknowledgment) и v13 (Stars invoice journal). Изменения в Roadmap — отдельно через docs-only PR, без нового runtime code. | Следующий кодовый fix #342 оформляется отдельным PR; без его выпуска и acceptance не считать DB-controlled portal OFF полным emergency stop. |
 | **Финальный `v5.0.0`** | ⬜ Не опубликован; **общий v5 production acceptance = NOT PASS**. Ограниченный pilot allowlist сохраняется. | Закрыть обязательные gates и провести отдельный controlled rollout. |
 
 ### Изменения процесса сопровождения после rc.7 (не runtime release)
 
 - ✅ [PR #370](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/370) слит: единая сводка Roadmap фиксирует merged изменения, подтверждённые проверки, обязательный остаток и evidence; статусы `⬜/🟡/🟠/✅` сохранены, новые не вводятся.
 - ✅ [PR #371](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/371) слит: `title` required check валидирует наличие и закрытие пунктов шаблона PR. Проверка была **FAIL** с одной открытой галочкой, после завершения CI и обновления описания стала **PASS**; повторные main CI после merge — **PASS**.
-- **Release/deployment:** эти PR меняют только документацию, правила и CI, не публикуют версию приложения и не закрывают v5 acceptance; production smoke для них не требуется. На следующем release-prep необходимо сверить все восемь изменений PR #361–#368 с верхним `CHANGELOG.md`.
+- **Процессные PR #370/#371:** эти изменения сами по себе не требуют production smoke. Позднее отдельным [release-prep #418](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/418) фактически опубликован `rc.8` с code PR #361–#368, #416, #417; operator-targeted smoke этого релиза ниже.
 
-### Уже реализовано в main после rc.7, но ещё не опубликовано
+### Изменения, выпущенные в rc.8 — целевые результаты по Issues
 
-| Issue | PR и результат | Что не принято |
+Все нижеперечисленные PR уже **merged в main, published и deployed** на immutable `v5.0.0-rc.8`; колонка статуса описывает только проверенный **issue scope**, а не общий v5 acceptance.
+
+| Issue / PR | Состояние / подтверждённый scope | Остаток / следующий шаг |
 | --- | --- | --- |
-| [#352](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/352) | 🟡 [#361](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/361): новые ошибки/напоминания различаются по `job_id`, SQLite-регрессии. | Production уведомления после нового релиза не проверены. |
-| [#353](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/353) | 🟡 [#362](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/362): Owner-only подтверждение исторического `bot.update:80` без изменения `unknown`; SQLite v12. | Само историческое подтверждение оператором **не выполнено**; deploy mutation не повторять. |
-| [#354](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/354) | 🟡 [#363](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/363): Back/Refresh и заголовок роли. | Production UI smoke не выполнен. |
-| [#355](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/355) | 🟡 [#364](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/364): достоверный `@username` либо TG ID, ограниченный TTL-кэш. | Production UI smoke не выполнен. |
-| [#356](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/356) | 🟡 [#365](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/365): реестр шести slash-команд и CI AST-проверка. | Production UI smoke не выполнен. |
-| [#357](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/357) | 🟡 [#366](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/366): [инструкция Cloudflare WARP](WARP_SETUP.md) на русском. | Только документация; WARP не устанавливался и не должен устанавливаться автоматически. |
-| [#343](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/343) | 🟡 [#367](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/367): нулевые trial traffic/IP limits сохранены как «без лимита», строгая проверка ошибок. | Production trial smoke не выполнен; существующие клиенты не менялись. |
-| [#342](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/342) | 🟡 [#368](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/368): Owner-only переключатели портала и новых Stars, атомарная запись и аудит. | Production smoke старых invoices, pre-checkout, already-paid `successful_payment` при выключении и состояния после restart не выполнен. |
+| [#352](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/352) / [#361](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/361) | 🟠 Код новых/повторных уведомлений фоновых заданий опубликован в rc.8, offline CI PASS. | **PENDING:** не было естественной production ошибки `job_failed`/повтора. Сообщения Xray Finland (stop→recovered) от 2026-10-11 00:00 UTC относятся к инфраструктуре, а не к #352. Не создавать искусственный сбой/Telegram burst. |
+| [#353](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/353) / [#362](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/362) | ✅ **Scoped production PASS:** Owner ознакомился с historical `bot.update #80` от неудачного v4.26.7, подтвердил `recovered` 2026-10-10 23:46 UTC; read-only SQLite: `job_runs.status=unknown`, `reason_code=recovered`, ровно **1** audit entry; старый run больше не отображается в Attention Center (SMOKE-8/9). | Исторический outcome навсегда `unknown`, а не `success`; не повторять deploy mutation. Отдельный формальный статус Issue сверяется после синхронизации. |
+| [#354](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/354) / [#363](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/363) | ✅ **Targeted production UI PASS**: Attention Center Back/Refresh/navigation (SMOKE-3, 23:29 UTC). | Не означает общий operational load/recovery acceptance. |
+| [#355](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/355) / [#364](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/364) | ✅ **Targeted production UI PASS**: admin labels, roles/status, возврат (SMOKE-4, 23:29 UTC). | Данные о пользователях в evidence не публиковались. |
+| [#356](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/356) / [#365](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/365) | ✅ **Targeted production UI PASS**: справочник команд и Back (SMOKE-2, 23:29 UTC). | Никакие legacy commands не запускались. |
+| [#357](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/357) / [#366](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/366) | ✅ **Docs-only scope**: [WARP runbook](WARP_SETUP.md) включён в rc.8; WARP не устанавливался (не требовалось). | Изменение маршрутизации хостов/установка WARP не входят в этот scope. |
+| [#343](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/343) / [#367](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/367) | 🟠 **UI smoke PASS**: редактирование traffic/IP показывает `0 = без лимита`, оба экрана закрыты через «Отмена» без изменения данных (SMOKE-6, 23:44 UTC). | **PENDING:** реальный create-user/trial с zero limits и 3x-ui read-back; UI smoke этого не доказывает. |
+| [#342](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/342) / [#368](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/368) | 🟠 **UI-only smoke PASS**: Owner видит effective/env/DB состояния, allowlist/rate, двухшаговую отмену без мутации (SMOKE-5, 23:44 UTC). **Новый finding при чтении deployed rc.8 code 2026-10-11:** `client_access.guard_callback()` проверяет только `settings.client_portal_enabled`, игнорируя DB effective `portal_enabled`; `guard_message()` проверяет правильно. | **PENDING / потенциальный fail-open:** callback личного кабинета при Owner portal=OFF может оставаться доступен. Требуется отдельный fix PR, CI, новый immutable RC и только targeted OFF→callback denial→ON smoke; ранее оплаченные события, precheckout и restart/rollback из общего acceptance не засчитывать. |
+| [#345](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/345) / [#416](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/416) | ✅ **Targeted production PASS**: Owner сбросил только активное in-memory окно test customer A, кабинет A снова доступен, B не затронут (SMOKE-7, 23:44 UTC). | Telegram-side flood/delivery ограничения не сбрасываются; load/soak не тестировались. |
+| [#320](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/320) / [#417](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/417) | ✅ **Targeted production UX PASS (2026-10-11 ~00:00 UTC):** один новый pilot Stars invoice на **1 XTR**; оператор подтвердил успешную покупку и исправленный визуальный UX, journal `cleanup=success`, `order=paid`, payment=1, entitlement=1 (SMOKE-11–14). Entitlement `active`, `quota_reset=success`, finite, expiry=future; Telegram профиль/VPN PASS (SMOKE-16–18). Один valid applied webhook event, 0 other, 1 payment/entitlement (SMOKE-19). Issue #320 был auto-closed до live проверки; теперь есть отдельное operator-reported live evidence. | Одна покупка не доказывает live duplicate/delayed delivery, refunds, все precheckout edge cases и общий V5-A-001/A-002. Повторную покупку ради UX не делать. |
 
-Все восемь Issues остаются OPEN; их закрытие требует отдельной приёмки, а не только CI/merge. Для #357 не требуется запускать WARP ради проверки документации.
+### v5.0.0-rc.8 — протокол production smoke (оператор, 2026-10-10 23:13 — 2026-10-11 00:24 UTC)
+
+**Источник:** operator-reported результаты в сопровождении release, без переноса screenshots/customer IDs/charge IDs/URLs/secrets в GitHub. Published tag, `main` и deployed tag совпали на `af5d2c891174e32e36cb4f031fed2700ea783719`; `DEPLOY_OK`, container running/restarts=0, Health/DB/3x-ui TCP PASS; predeploy backup на Master зафиксирован. SQL smoke использовали SQLite read-only URI + `PRAGMA query_only=ON`; единственная новая финансовая mutation — **одна согласованная покупка 1 XTR** через обычный Telegram pilot flow.
+
+| Smoke | Время UTC | Факт / ограниченный результат |
+| --- | --- | --- |
+| 1 SQLite v13 | 2026-10-10 23:29 | **PASS** миграции v11/v12/v13 `success`, таблицы `bot_update_acknowledgments`, `stars_invoice_messages` |
+| 2 #356 команды | 23:29 | **PASS** каталог/возврат |
+| 3 #354 Attention Center | 23:29 | **PASS** навигация/обновление/возврат |
+| 4 #355 администраторы | 23:29 | **PASS** подписи/роли/возврат |
+| 5 #342 portal/Stars switches | 23:44 | **PASS UI only**: status/confirmation Cancel; фактический OFF не применялся |
+| 6 #343 trial limits | 23:44 | **PASS UI only**: `0` допустим для traffic/IP; Cancel, без нового 3x-ui trial |
+| 7 #345 session reset | 23:44 | **PASS** Owner local limiter bucket A, B не затронут |
+| 8 #353 historical unknown | 23:44 | **PASS UI** Owner рассмотрел evidence; **23:46** ACK `recovered` |
+| 9 #353 journal / Attention | 23:53 | **PASS** `('unknown', 'recovered')`, audit=1, historical warning скрыт |
+| 10 #352 job notifications | 2026-10-11 00:00 | **PENDING/NOT TESTED**: естественные Xray Finland stop/recovery сообщения не являются job_failed |
+| 11 #320 invoice DB preflight | 2026-10-10 23:53 | **PASS preflight**, journal перед новой покупкой пуст |
+| 12 #320 new 1-XTR invoice | 2026-10-11 00:00 | **PASS**, одна test identity/invoice |
+| 13 #320 paid UX | 00:00 | **PASS operator-reported** visual/cosmetic Telegram outcome, без повторной оплаты |
+| 14 #320 paid DB | 00:00 | **PASS** `('success', 'paid', 1, 1)` |
+| 15 Finland Xray recovery | 00:03 | **PASS** нода/Xray работает, старой active alarm нет |
+| 16 paid entitlement | 00:03 | **PASS** `('active', 'success', 'finite', 'future')` |
+| 17 customer profile | 00:03 | **PASS** оплачен/активен/корректный срок |
+| 18 VPN client | 00:03 | **PASS** однократное обновление подписки, доступ работает |
+| 19 Stars event uniqueness | 00:24 | **PASS** `(applied_events=1, other_events=0, payments=1, active_entitlements=1)` |
+| 20 two allowed pilot accounts | 00:24 | **PASS** нормальная A/B UI-изоляция, **не** forged callback/IDOR |
+| 21 outsider denial | 00:24 | **PASS ранее**, оператор сообщил повторный запуск не проводился; **не новый PASS на rc.8** |
+
+**Оставшиеся gates:** #352 natural `job_failed` notification; #342 callback fail-closed fix + immutable release + targeted ON/OFF; #343 реальные zero trial-limit 3x-ui creation; старые/open invoices и paid-event treatment при переключателях; live V5-A-002 failure/restart/unknown-no-replay/duplicate-delayed; forged callback/IDOR, V5-A-003 load/soak (Telegram burst **WAIVED/INCONCLUSIVE**), policy refund/entitlement expiry и full provider/SQLite reconciliation. Cross-host DR по прежнему **SKIPPED/OPERATOR-WAIVED/NOT TESTED**; третьего Recovery VPS нет. **Общий v5 production acceptance NOT PASS, pilot allowlist не расширять, stable v5.0.0 не публиковать.** Никакие другие production mutations/deploy/restarts в этой docs-sync не выполнялись.
 
 ### Выпущено, но остаётся не полностью проверенным
 
