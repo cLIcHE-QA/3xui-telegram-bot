@@ -152,5 +152,24 @@ class MasterHostsReadOnlyTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("всё работает", content)
 
 
+    async def test_detail_rejects_stale_group_identity_without_node_requests(self):
+        call = fake_call("admin:hosts:xui:detail:0:0:abcdef012345")
+        with patch.object(catalog_admin, "guard_call", AsyncMock(return_value=True)), patch.object(
+            catalog_admin.xui, "hosts_list", AsyncMock(return_value=[{
+                "groupId": "other", "hosts": ["new.example.org"]
+            }])
+        ), patch.object(
+            catalog_admin.xui, "nodes_list", AsyncMock()
+        ) as nodes, patch.object(
+            catalog_admin, "render_callback", AsyncMock()
+        ) as render:
+            await catalog_admin.hosts_xui_detail(call)
+            call.answer.assert_awaited_once_with(
+                "Список изменился. Обновите хосты.", show_alert=True
+            )
+            nodes.assert_not_awaited()
+            render.assert_not_awaited()
+
+
 if __name__ == "__main__":
     unittest.main()
