@@ -1158,7 +1158,7 @@ def _xui_host_inbound_labels(group: dict, inbound_by_id: dict[int, str] | None) 
     return ", ".join(dict.fromkeys(names))
 
 
-@catalog_router.callback_query(F.data.regexp(r"^admin:hosts:xui:page:\\d+$"))
+@catalog_router.callback_query(F.data.regexp(r"^admin:hosts:xui:page:\d+$"))
 async def hosts_xui_page(call: CallbackQuery):
     if not await guard_call(call):
         return
@@ -1212,7 +1212,7 @@ async def hosts_xui_page(call: CallbackQuery):
     await call.answer()
 
 
-@catalog_router.callback_query(F.data.regexp(r"^admin:hosts:xui:detail:\\d+:\\d+$"))
+@catalog_router.callback_query(F.data.regexp(r"^admin:hosts:xui:detail:\d+:\d+$"))
 async def hosts_xui_detail(call: CallbackQuery):
     if not await guard_call(call):
         return
