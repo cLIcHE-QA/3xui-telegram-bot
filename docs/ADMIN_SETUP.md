@@ -37,7 +37,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.8. Этот prerelease опубликован 2026-10-10 23:09 UTC (SHA `af5d2c891174e32e36cb4f031fed2700ea783719`); последнее operator-reported controlled production deployment — 2026-10-10 23:13 UTC на том же tag/SHA. Это не независимый live read-back и не общий v5 acceptance PASS. RC объединяет прежний Full Backup fix #348/#349, Owner-only сброс клиентского ограничителя #345, косметическую очистку оплаченных Stars invoice #320 и SQLite schema v13. Перед развёртыванием обязателен проверенный backup и preflight миграции v11→v13; простой downgrade к rc.7 после обновления DB запрещён. После controlled deployment сначала проверь точный tag/SHA, Health/SQLite/3x-ui, затем manual Full Backup, off-site download/decrypt/deep validation и следующий scheduled backup/off-site cycle; прошлый `rc.6` backup нельзя считать PASS. Не изменяй права DB/WAL/SHM, не запускай реальные payments/refunds ради проверки backup. Public launch и stable release остаются заблокированы до общего v5 acceptance. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v5.0.0-rc.9. Этот prerelease пока только release-prep candidate: не published/deployed. Последний published и operator-reported deployed production — `v5.0.0-rc.8` (2026-10-10 23:13 UTC, SHA `af5d2c891174e32e36cb4f031fed2700ea783719`). Это не независимый live read-back и не общий v5 acceptance PASS. RC включает #342 effective Portal callback OFF guard и #422 read-only Master Host Groups / GUID mapping поверх существующей SQLite schema v13. Перед возможным deployment обязателен отдельный operator approval, проверенный backup и preflight текущей schema v13; downgrade к более старой несовместимой schema запрещён. После controlled deployment сначала проверь точный tag/SHA, Health/SQLite/3x-ui, затем manual Full Backup, off-site download/decrypt/deep validation и следующий scheduled backup/off-site cycle; прошлый `rc.6` backup нельзя считать PASS. Не изменяй права DB/WAL/SHM, не запускай реальные payments/refunds ради проверки backup. Public launch и stable release остаются заблокированы до общего v5 acceptance. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -105,7 +105,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.8` машинно проверяемый native API contract pinned к 3x-ui `v3.9.0`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
+Для bot release `v5.0.0-rc.9` машинно проверяемый native API contract pinned к 3x-ui `v3.9.0`. Более новая версия панели не принимается автоматически как совместимая: перед плановым upgrade сначала обновляется и проходит review OpenAPI contract из `docs/3XUI_OPENAPI_CONTRACT.md`.
 
 ## 2. Базовая подготовка Master VPS
 
@@ -141,7 +141,7 @@ git clone https://github.com/cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v5.0.0-rc.8
+git checkout --detach v5.0.0-rc.9
 ~~~
 
 Проверка release:
@@ -156,7 +156,7 @@ PY
 Ожидается:
 
 ~~~text
-5.0.0-rc.8
+5.0.0-rc.9
 ~~~
 
 ## 4. Создай local admin venv
@@ -668,15 +668,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v5.0.0-rc.8.tar.gz
+  /root/3xui-host-control-bundle-v5.0.0-rc.9.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v5.0.0-rc.8.tar.gz \
-  /root/3xui-host-control-bundle-v5.0.0-rc.8.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v5.0.0-rc.9.tar.gz \
+  /root/3xui-host-control-bundle-v5.0.0-rc.9.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -686,7 +686,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.8.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.9.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -695,7 +695,7 @@ sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.8.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.8.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.9.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
@@ -1136,10 +1136,10 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v5.0.0-rc.8
+Git tag: v5.0.0-rc.9
 Container: running
 RestartCount=0
-Bot version: 5.0.0-rc.8
+Bot version: 5.0.0-rc.9
 Health: ok
 DB: ok
 3x-ui connectivity: ok
@@ -1370,4 +1370,4 @@ Streisand не передаёт совместимый `X-HWID` для raw subsc
 
 ## Client Portal / Stars runtime switches (#342; после следующего релиза)
 
-В новом коде `/admin → Система → Настройки → 👤 Клиентский портал` Owner может ограничить доступ к клиентскому порталу и **новым** Telegram Stars платежам без редактирования `.env` и пересоздания контейнера. На опубликованном/развёрнутом `v5.0.0-rc.7` интерфейс ещё отсутствует; пользоваться им до отдельного выпуска/controlled rollout нельзя. `.env CLIENT_PORTAL_ENABLED=false` или `CLIENT_PAYMENT_ACCEPTANCE_ENABLED=false` всегда сильнее DB override `true`; отключённый портал также запрещает оплату. Наличие DB override без внешнего разрешения не включает pilot-доступ. Для emergency break-glass остаются локальные `.env` flags с контролируемым redeploy по release-процедуре, а не Telegram-host shell. Read-only состояние при ошибке DB = unknown/disabled. Toggle не отзывает 3x-ui клиентов, не переписывает entitlement, не останавливает обработку уже пришедшего successful_payment. Перед production acceptance отдельно проверить рестарт, audit, старые invoices/precheckout, приватные права и read-only payment reconciliation без реальной повторной оплаты/refund.
+В новом коде `/admin → Система → Настройки → 👤 Клиентский портал` Owner может ограничить доступ к клиентскому порталу и **новым** Telegram Stars платежам без редактирования `.env` и пересоздания контейнера. На опубликованном/развёрнутом `v5.0.0-rc.8` интерфейс доступен, но существующие клиентские callbacks игнорируют DB Portal OFF. Исправление в candidate `rc.9` не считается deployed до отдельного rollout и targeted acceptance. `.env CLIENT_PORTAL_ENABLED=false` или `CLIENT_PAYMENT_ACCEPTANCE_ENABLED=false` всегда сильнее DB override `true`; отключённый портал также запрещает оплату. Наличие DB override без внешнего разрешения не включает pilot-доступ. Для emergency break-glass остаются локальные `.env` flags с контролируемым redeploy по release-процедуре, а не Telegram-host shell. Read-only состояние при ошибке DB = unknown/disabled. Toggle не отзывает 3x-ui клиентов, не переписывает entitlement, не останавливает обработку уже пришедшего successful_payment. Перед production acceptance отдельно проверить рестарт, audit, старые invoices/precheckout, приватные права и read-only payment reconciliation без реальной повторной оплаты/refund.
