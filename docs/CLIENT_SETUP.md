@@ -2,6 +2,10 @@
 
 > **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Production по operator-reported deployment 2026-10-10 23:13 UTC — immutable `v5.0.0-rc.8` (SHA `af5d2c891174e32e36cb4f031fed2700ea783719`). Частичные targeted smoke пройдены, но общий v5 production acceptance **NOT PASS** и пилотный allowlist остаётся. Состояние и незакрытые gates: [ROADMAP.md](ROADMAP.md), [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md).
 
+## Плановая внешняя оплата
+
+Решение об индивидуальной hosted Platega ссылке из Telegram-бота, отдельных валюте/статистике и предохранителях для будущего PSP зафиксировано в [EXTERNAL_PAYMENT_LINKS.md](EXTERNAL_PAYMENT_LINKS.md). **На текущем пилоте внешняя кнопка НЕ работает и не одобрена к rollout**: merchant/KYC/согласование правил Telegram для цифровых услуг ещё PENDING. До отдельного выпуска остаётся Stars flow с существующими флагами.
+
 ## Область ответственности и условия старта
 
 - Инфраструктура Master/direct node, 3x-ui, Docker, TLS, backup и секреты устанавливаются по [ADMIN_SETUP.md](ADMIN_SETUP.md), не повторяются здесь.
