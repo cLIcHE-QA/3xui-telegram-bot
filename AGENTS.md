@@ -38,6 +38,8 @@
 
 Если информация в чате противоречит фактическому состоянию репозитория, сначала укажи на расхождение. Не подгоняй код или документацию под устаревший контекст молча.
 
+**Для каждой новой самостоятельной задачи (bug/fix, feature, improvement, security, техдолг, performance, значимый finding) сначала найди или создай GitHub Issue с scope/acceptance и свяжи его с Roadmap и implementation PR.** Узкие исключения без самостоятельного scope требуют явного `Issue: N/A — причина` в PR. Полные правила и запрет дубликатов — [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md#issues).
+
 ## 1а. Обязательный acceptance/Issue checkpoint после каждой проверки
 
 **В начале каждого нового чата и до любых repository writes** сначала прочитай актуальные `docs/GIT_WORKFLOW.md` (первая нормативная точка входа), `docs/LIVING_DOCS.md`, `docs/RELEASES.md`, верхнюю сводку `docs/ROADMAP.md` и `CHANGELOG.md`; при v5 smoke также `docs/V5_PRODUCTION_ACCEPTANCE.md` и `docs/CLIENT_SETUP.md`. Проверяй GitHub `main`, merged PR, published tag, operator-reported deployed tag/SHA и open/closed Issues. Эти состояния **не взаимозаменяемы**. `AGENTS.md` — указатель на действующие contracts, а не альтернативный Roadmap.
