@@ -39,6 +39,26 @@
 
 ## Актуальный статус релизов и проверок — 11 октября 2026 года
 
+### GitHub branch lifecycle / retained refs audit — 2026-10-12 02:43 EEST (UTC+03:00)
+
+**Scope / provenance:** read-only GitHub REST inventory of repo settings, all six branch pages (5 × 100 + 57, next empty), all pull-request pages (4 × 100 + 34, next empty), current `main` `1aab2f4ae2d158fd5aba425ccecd6e112909eed5`, existing `docs/GIT_WORKFLOW.md`, `docs/LIVING_DOCS.md`, `docs/RELEASES.md`, `CHANGELOG.md`. **Audit: scoped PASS (inventory and PR-name correlation), branch-deletion safety and policy approval: PENDING.** No git checkout, branch deletion, GitHub settings mutation, production changes or VPS/Telegram smoke.
+
+| GitHub branch audit, baseline before PR | Read-only observation | Limit |
+| --- | --- | --- |
+| Branch refs | **457 total** (1 protected `main`, 456 non-main) | Branches != tasks; no automatic clean-up was performed |
+| Repository setting | `delete_branch_on_merge=false` | GitHub does not auto-delete the PR source ref after merge |
+| PR registry | **434 PR:** 427 merged, 7 closed/unmerged, **0 open** | Merged/closed are distinct; no open PR does not prove safe deletion |
+| Branch names joined to historical PR heads | **427** non-main branches associated with ≥1 merged PR; among these **423** current branch tips equal an original merged PR head SHA, **4** differ | Squash merge means Git ancestry `--merged` alone is not a proof of safety |
+| Other non-main branches | **6** associated only with closed/unmerged PR; **23** have no corresponding PR head name in retrieved PR registry | Must review orphan/non-merged and dependency refs manually |
+| Name/prefix distribution | `docs/*` 219; `fix/*` 69; `release/*` 60; `feature/*` + `feat/*` 54; other non-main 54 | Prefix does not determine if branch is safe to remove |
+
+**Four head SHA mismatches requiring review:** `chore/publish-v4.9.1`, `chore/publish-v4.9.2`, `chore/publish-v4.9.3`, `fix/ui-russian-domain`. **Six branches with only closed/unmerged PR:** `docs/future-external-psp-sbp-checkout`, `docs/v5-rc7-production-smoke-20261010`, `docs/v4253-production-acceptance`, `feature/extended-node-backup`, `fix/v4.20.7-inbounds-terminology`, `release/v5.0.0-rc.6`. The 23 no-matching-PR branches also need individual review. Do not delete these on assumptions. Even exact matching of branch tip to merged PR head is a **candidate classification, not proof** that no unmerged/downstream work would be lost; no exhaustive dependency/commit-level safety analysis has been performed.
+
+**Issue tracking:** ⬜ [#510 — определить жизненный цикл и безопасную очистку GitHub-веток](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) — **OPEN / PENDING**. Proposed operator decision only: short-lived work branches may be deleted after verified completion of their own PR; protected `main` and immutable `v*` release tags remain; exceptions require explicit review of branch tip, PR provenance, downstream use, and any unmerged work. GitHub supports an opt-in `Automatically delete head branches` setting, **not enabled** in this baseline. First prepare reproducible dry-run manifest and safe/review/retain classifications; obtain **separate operator approval** before settings updates or any batch deletes. If approved, update the normative `docs/GIT_WORKFLOW.md` contract through Issue-linked PR and required CI, then execute controlled small batches with before/after GitHub read-back.
+
+**Release / production boundary:** published latest immutable `v5.0.0-rc.9` tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; last deployed is **operator-reported only** `rc.9` (2026-10-11 16:15 EEST), independent VPS deployment read-back **PENDING**. No release/deploy/acceptance transition was made. The v5 G-01…G-11 remaining gates and W-01/W-02 waivers are unchanged, stable/public launch remains BLOCKED. **Next:** Roadmap sync via docs-only PR with required `test`/`title`, merge and independent main read-back; then no deletion or repo-settings change until a separate operator decision. This audit's **scoped PASS** does not close #510.
+
+
 ### Полный аудит будущих доработок Roadmap → GitHub Issues — 2026-10-12 01:56 EEST (UTC+03:00)
 
 **Scope / evidence:** read-only review полного [`docs/ROADMAP.md`](ROADMAP.md) (`5 248` строк на исходном main; v4 historical, v5 acceptance, future infrastructure, Client Portal product design) на immutable GitHub `main` `249d8f1d60faf221eda061d706d55e383dd48920`, сверка всех 63 существовавших до аудита GitHub Issues (17 OPEN / 46 CLOSED) и целевых исходных файлов `client_access.py`, `customer_service.py`, `commerce.py`, `audience.py` в `main`. **Аудит покрытий: scoped PASS** по явно записанным будущим самостоятельным направлениям; **implementation/CI/production acceptance новых функций: PENDING / NOT TESTED**. Источник — GitHub repository/Issues/read-only code review, не VPS/Telegram/test runner. Проверка не заменяет будущий design review; Roadmap и старый audit trail сохранены.
