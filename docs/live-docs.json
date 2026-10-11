@@ -110,6 +110,29 @@
       "waiver": "Living Docs: security-reporting — изменений не требуется"
     },
     {
+      "id": "3xui-openapi-contract",
+      "mode": "require_all",
+      "triggers": [
+        "contracts/3xui/contract.json",
+        "contracts/3xui/**/openapi.json"
+      ],
+      "documents": [
+        "docs/3XUI_OPENAPI_CONTRACT.md"
+      ]
+    },
+    {
+      "id": "3xui-client-api",
+      "mode": "review",
+      "triggers": [
+        "xui.py",
+        "version_api.py"
+      ],
+      "documents": [
+        "docs/3XUI_OPENAPI_CONTRACT.md"
+      ],
+      "waiver": "Living Docs: 3xui-client-api — изменений не требуется"
+    },
+    {
       "id": "v5-client-acceptance",
       "mode": "review",
       "triggers": [
