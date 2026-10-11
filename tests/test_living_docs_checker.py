@@ -82,6 +82,42 @@ class LivingDocsCheckerTests(unittest.TestCase):
             "Admin Setup: изменений не требуется",
         )
 
+    def test_real_3xui_contract_requires_doc_without_waiver(self):
+        contract = module.load_contract()
+        for changed_file in (
+            "contracts/3xui/contract.json",
+            "contracts/3xui/v3.9.0/openapi.json",
+        ):
+            with self.subTest(path=changed_file):
+                violations = module.evaluate_contract(
+                    contract,
+                    [changed_file],
+                    "Living Docs: 3xui-client-api — изменений не требуется",
+                )
+                self.assertEqual([v["id"] for v in violations], ["3xui-openapi-contract"])
+                self.assertEqual(violations[0]["missing"], ["docs/3XUI_OPENAPI_CONTRACT.md"])
+                self.assertEqual(
+                    module.evaluate_contract(
+                        contract,
+                        [changed_file, "docs/3XUI_OPENAPI_CONTRACT.md"],
+                    ),
+                    [],
+                )
+
+    def test_real_3xui_client_review_requires_doc_or_exact_waiver(self):
+        contract = module.load_contract()
+        for path in ("xui.py", "version_api.py"):
+            with self.subTest(path=path):
+                violations = module.evaluate_contract(contract, [path], "")
+                self.assertEqual([v["id"] for v in violations], ["3xui-client-api"])
+                self.assertEqual(
+                    module.evaluate_contract(
+                        contract, [path],
+                        "Living Docs: 3xui-client-api — изменений не требуется",
+                    ),
+                    [],
+                )
+
     def test_unrelated_change_does_not_trigger_contract(self):
         violations = module.evaluate_contract(
             self.contract,
