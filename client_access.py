@@ -135,7 +135,9 @@ async def guard_message(message: Message) -> bool:
 
 
 async def guard_callback(call: CallbackQuery) -> bool:
-    if not settings.client_portal_enabled:
+    # Every customer callback must honor the same fail-closed effective portal
+    # switch as /start, including Owner DB overrides and SQLite read failures.
+    if not (feature_flags and (await feature_flags.snapshot()).portal_enabled):
         await call.answer("Личный кабинет временно отключён.", show_alert=True)
         return False
     if not call.from_user or not is_allowed(call.from_user.id):

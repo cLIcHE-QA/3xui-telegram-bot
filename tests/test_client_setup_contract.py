@@ -17,8 +17,9 @@ class ClientSetupContractTests(unittest.TestCase):
         self.assertIn("CLIENT_PORTAL_ENABLED", setup)
         self.assertIn("CLIENT_PAYMENT_ACCEPTANCE_ENABLED", setup)
         self.assertIn("ALLOWED_TELEGRAM_IDS", setup)
-        self.assertIn("rc.7", setup)
-        self.assertIn("В `rc.7` этого интерфейса нет", setup)
+        self.assertIn("v5.0.0-rc.8", setup)
+        self.assertIn("rc.8 limitation", setup)
+        self.assertIn("не учитывает DB `portal=false`", setup)
         self.assertIn("unknown", setup)
 
     def test_living_docs_and_navigation(self):
