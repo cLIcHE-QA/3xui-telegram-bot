@@ -18,6 +18,24 @@ spec.loader.exec_module(qa)
 
 
 class QATelegramDeliveryContract(unittest.TestCase):
+    def test_00_direct_preview_from_other_directory(self):
+        # Regression for ModuleNotFoundError when launched via scripts/ directly.
+        with tempfile.TemporaryDirectory() as cwd:
+            env = os.environ.copy()
+            env.pop("PYTHONPATH", None)
+            env.pop("QA352_BOT_TOKEN", None)
+            env.pop("QA352_EXPECTED_BOT_USERNAME", None)
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "preview"],
+                cwd=cwd, env=env, capture_output=True, text=True, timeout=15,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.count("(НЕ ОТПРАВЛЕНО)"), 4)
+        self.assertIn("Новая ошибка фонового задания", result.stdout)
+        self.assertIn("Повторное напоминание", result.stdout)
+        self.assertIn("Восстановлено", result.stdout)
+
     def test_01_exact_four_sanitized_messages(self):
         messages = [qa.message_for_step(n) for n in range(1, 5)]
         self.assertEqual(len(set(messages)), 4)
