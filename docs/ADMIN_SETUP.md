@@ -1389,7 +1389,10 @@ BotFather `/setjoingroups`; наличие только одного прива�
 `QA352_BOT_TOKEN` и `QA352_EXPECTED_BOT_USERNAME` (без записи в bash history,
 командную строку процесса, CI, issue или PR). Username должен содержать
 `qa`/`test`; QA token не должен совпадать с production `BOT_TOKEN`.
-Первым делом выполните только offline preview:
+Из каталога репозитория запустите только offline preview. Runner сам
+находит корень checkout при прямом запуске через `scripts/`, поэтому
+`PYTHONPATH=.` устанавливать не требуется. Команда не использует токен,
+SQLite или Telegram API:
 
 ~~~bash
 python3 scripts/qa352_telegram_delivery.py preview
