@@ -1,0 +1,1687 @@
+{
+  "schema": 1,
+  "issue": 510,
+  "repository": "cLIcHE-QA/3xui-telegram-bot",
+  "timestamp": "2026-10-12 16:08:14 EEST UTC+03:00",
+  "action": "READ_ONLY_SNAPSHOT_NOT_DELETE_AUTHORIZATION",
+  "main_sha": "6e1e1f199248c8d7b501507cb27e2f2e94c1c7be",
+  "original_refs": 109,
+  "non_main_count": 108,
+  "open_prs": 0,
+  "total_prs": 468,
+  "preliminary_count": 89,
+  "manual_review_count": 19,
+  "ref_records": [
+    {
+      "name": "chore/git-conventions",
+      "sha": "678939c7474d01260d1afdaff24f4b1985353c5d",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 21,
+          "merged": true,
+          "head_sha": "678939c7474d01260d1afdaff24f4b1985353c5d",
+          "base": "main",
+          "squash_sha": "1ccfbc6db722eaaff3c9da1c8e8bbdc103ec938f"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "chore/guarded-legacy-branch-cleanup-001-20261012",
+      "sha": "36663c61764308416cd6ac085503ab95a1179876",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "no PR",
+      "pr": [],
+      "as_base": []
+    },
+    {
+      "name": "chore/localize-release-v490",
+      "sha": "c0b40a3d1169163bb86a15daa2f1327aa4ba8122",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "no PR",
+      "pr": [],
+      "as_base": []
+    },
+    {
+      "name": "chore/publish-v4.10.0",
+      "sha": "d05a7fbd4a9f2786e6abb9622dd5f9ef3f7f9fa9",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 13,
+          "merged": true,
+          "head_sha": "d05a7fbd4a9f2786e6abb9622dd5f9ef3f7f9fa9",
+          "base": "main",
+          "squash_sha": "b1d25d743a8037e59e767dbcfb00fd6b4bcd5299"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "chore/publish-v4.9.0",
+      "sha": "d4861cf2d18cc4fc38caa2997a4989729701d6bc",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "no PR",
+      "pr": [],
+      "as_base": []
+    },
+    {
+      "name": "chore/publish-v4.9.1",
+      "sha": "9b959657e46d3aae73789560d0b4c4ab3b23c456",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "head SHA mismatch",
+      "pr": [
+        {
+          "number": 5,
+          "merged": true,
+          "head_sha": "8ff9849ab6542e8817285148ec646dac899bb1b3",
+          "base": "main",
+          "squash_sha": "eeb778e2cf879ea0073056332c12c54ccc7635f4"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "chore/publish-v4.9.2",
+      "sha": "b27ca479822878ebefc594acde6bd158e8fee2d1",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "head SHA mismatch",
+      "pr": [
+        {
+          "number": 8,
+          "merged": true,
+          "head_sha": "e20fb41a22b3ff22de09b6993c159a6ec365eabd",
+          "base": "main",
+          "squash_sha": "57c3f04e901899201e248d556981f11189aa9fb9"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "chore/publish-v4.9.3",
+      "sha": "62c4aad2b9100fbd97dbab646f0e71f936263699",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "head SHA mismatch",
+      "pr": [
+        {
+          "number": 10,
+          "merged": true,
+          "head_sha": "2eae326af2406212130151172004e924677c4c61",
+          "base": "main",
+          "squash_sha": "ce1e660463e0bc7d05e78f0d28caf44d4d6c3a15"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "chore/release-deploy-helper",
+      "sha": "5ac20bf05981ecf895d0eac3b5ea9ba5743cd97d",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 6,
+          "merged": true,
+          "head_sha": "5ac20bf05981ecf895d0eac3b5ea9ba5743cd97d",
+          "base": "main",
+          "squash_sha": "72f66eb28b8d7a899a5c841ec784f6e51454a0bb"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "chore/retire-next-100-docs-510",
+      "sha": "fc2a4ecb626320aee15b0d26b174b3c47a5eab22",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "no PR",
+      "pr": [],
+      "as_base": []
+    },
+    {
+      "name": "chore/verify-retire-second-100-510-20261012",
+      "sha": "ffce2ea4ddbb1cba94e7b4ed09ad13e9a62bd9a8",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "not merged",
+      "pr": [
+        {
+          "number": 541,
+          "merged": false,
+          "head_sha": "ffce2ea4ddbb1cba94e7b4ed09ad13e9a62bd9a8",
+          "base": "main",
+          "squash_sha": "633c2982e4705e0065b4fe73e5104acfe30ffd43"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "docs/branch-batch20-510-closure-sync",
+      "sha": "ce3fb684e773f471e3d70d0ab3d284eaf5545b58",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "no PR",
+      "pr": [],
+      "as_base": []
+    },
+    {
+      "name": "docs/branch-cleanup-100-84-final-510",
+      "sha": "31e8d4d32b9396c96f2c46eece10287fdb782528",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "no PR",
+      "pr": [],
+      "as_base": []
+    },
+    {
+      "name": "docs/future-external-psp-sbp-checkout",
+      "sha": "3c7968ff227d51cdad1aa4b6d6de45003dbee203",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "not merged",
+      "pr": [
+        {
+          "number": 337,
+          "merged": false,
+          "head_sha": "3c7968ff227d51cdad1aa4b6d6de45003dbee203",
+          "base": "main",
+          "squash_sha": "e445c1b640a9d00151be3273346ec98c77a1161f"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "docs/merged-pr-branch-patch-audit-20261012",
+      "sha": "b1c2f7becf3024cba92ecc8ad3d91413243e72a5",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "no PR",
+      "pr": [],
+      "as_base": []
+    },
+    {
+      "name": "docs/russian-documentation",
+      "sha": "40101eec1125b9b1f7077751b42d9f1403195b92",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 2,
+          "merged": true,
+          "head_sha": "40101eec1125b9b1f7077751b42d9f1403195b92",
+          "base": "main",
+          "squash_sha": "f322adcd15b21d1798e48a9b72b3ebdde8c608da"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "docs/v4.10-host-control-contract",
+      "sha": "e760bd9047066c4118d7b54558d8e85a042de772",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 11,
+          "merged": true,
+          "head_sha": "e760bd9047066c4118d7b54558d8e85a042de772",
+          "base": "main",
+          "squash_sha": "ec9837e142a5dac16b4491cf49eda13748e40412"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "docs/v4253-production-acceptance",
+      "sha": "3f3059ae436d52b42c2ed73287aa2638815033a2",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "not merged",
+      "pr": [
+        {
+          "number": 194,
+          "merged": false,
+          "head_sha": "3f3059ae436d52b42c2ed73287aa2638815033a2",
+          "base": "main",
+          "squash_sha": "12975e1e8a38bc82ac54389a8d90bb85c3b440b2"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "docs/v5-rc7-production-smoke-20261010",
+      "sha": "1307dba03350fe0222050f126986617f97892e6d",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "not merged",
+      "pr": [
+        {
+          "number": 403,
+          "merged": false,
+          "head_sha": "1307dba03350fe0222050f126986617f97892e6d",
+          "base": "main",
+          "squash_sha": "1d4f9be029ed504137fc010ffacaef2e3d3157bb"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "feature/extended-node-backup",
+      "sha": "c0c9fa11ed1b773935d09e89baf459c701d8e6a1",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "not merged",
+      "pr": [
+        {
+          "number": 44,
+          "merged": false,
+          "head_sha": "c0c9fa11ed1b773935d09e89baf459c701d8e6a1",
+          "base": "main",
+          "squash_sha": "47a24302082024735a01d91ddfe49ae871aef4dc"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "feature/v4.10-host-control",
+      "sha": "91aab52b47bba99359e3ecf95d118114c85c5f29",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 12,
+          "merged": true,
+          "head_sha": "91aab52b47bba99359e3ecf95d118114c85c5f29",
+          "base": "main",
+          "squash_sha": "f6d72c7292ea0758c60af8fef076215913666dab"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "feature/v4.9.2-system-version-fingerprint",
+      "sha": "7a8f2c887f3285c478a132ec4590b1c1751388b0",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 7,
+          "merged": true,
+          "head_sha": "7a8f2c887f3285c478a132ec4590b1c1751388b0",
+          "base": "main",
+          "squash_sha": "937470eda9032bc95a521ee24eee7cda3c8213ba"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "feature/versions-updates",
+      "sha": "6e6d26274d15c78f6440b40471a38f29b99cd59d",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 1,
+          "merged": true,
+          "head_sha": "6e6d26274d15c78f6440b40471a38f29b99cd59d",
+          "base": "main",
+          "squash_sha": "9c9f534fe318ede5aff0885743566362cbfc341a"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/admin-ui-navigation-consistency",
+      "sha": "ea8bc25aa310b082436af88a61e88712a38f2a35",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 4,
+          "merged": true,
+          "head_sha": "ea8bc25aa310b082436af88a61e88712a38f2a35",
+          "base": "main",
+          "squash_sha": "c24f04008422c4920d9eb86cc74f3fa141c1624c"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/release-tag-probe",
+      "sha": "ac68a7d065523b50f717d5f81d32825f357c5340",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 20,
+          "merged": true,
+          "head_sha": "ac68a7d065523b50f717d5f81d32825f357c5340",
+          "base": "main",
+          "squash_sha": "958500aadb28ab470c4cd029c886ef424da90a46"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/stable-bot-docker-network",
+      "sha": "2f571f6080dc3cf463cef03ed97dee219bb89274",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 3,
+          "merged": true,
+          "head_sha": "2f571f6080dc3cf463cef03ed97dee219bb89274",
+          "base": "main",
+          "squash_sha": "7187d7390b10a60bd4ed27ec5e3ef231ff5aa914"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/ui-russian-domain",
+      "sha": "21a6dd32a38e488d9f67e23948be975321e99832",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "multiple PR",
+      "pr": [
+        {
+          "number": 98,
+          "merged": false,
+          "head_sha": "21a6dd32a38e488d9f67e23948be975321e99832",
+          "base": "main",
+          "squash_sha": null
+        },
+        {
+          "number": 97,
+          "merged": true,
+          "head_sha": "ccfb82cfd0f27b3d5aa8c4949a2a6f00f71a73a6",
+          "base": "main",
+          "squash_sha": "6395a841188ac25595308edb3d3e60d8f69e7f62"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/v4.20.7-inbounds-terminology",
+      "sha": "84ac14637f859ce79700eed55787a3730a630a2e",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "not merged",
+      "pr": [
+        {
+          "number": 124,
+          "merged": false,
+          "head_sha": "84ac14637f859ce79700eed55787a3730a630a2e",
+          "base": "main",
+          "squash_sha": null
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/v4.9.3-node-detail-counters",
+      "sha": "7679bac9f49dda1d639b265ab11be15ce7a16a6e",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 9,
+          "merged": true,
+          "head_sha": "7679bac9f49dda1d639b265ab11be15ce7a16a6e",
+          "base": "main",
+          "squash_sha": "b7b36cd0b376dcc07f3bcdc42586af5ba22ce566"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/xui-mutation-certainty",
+      "sha": "598364a6b9d090e256be2eececcca72fd0e87b47",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 250,
+          "merged": true,
+          "head_sha": "598364a6b9d090e256be2eececcca72fd0e87b47",
+          "base": "main",
+          "squash_sha": "d4178af779e344f757ee4bed27cc43c675c32794"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/xui-mutation-certainty-phase2",
+      "sha": "e8e77a1fefee91f818ad55a927b430a478223667",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 252,
+          "merged": true,
+          "head_sha": "e8e77a1fefee91f818ad55a927b430a478223667",
+          "base": "main",
+          "squash_sha": "8d6dc771993daeb9c4198bbf7cb31c9aecd17ade"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/xui-mutation-certainty-phase3",
+      "sha": "d49293c2d35bed02d1abc71792d8aa1c6557be14",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 253,
+          "merged": true,
+          "head_sha": "d49293c2d35bed02d1abc71792d8aa1c6557be14",
+          "base": "main",
+          "squash_sha": "8ef2e0f1b652d5dbb2112d294b745b6d18de866e"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "fix/xui-mutation-certainty-phase4",
+      "sha": "2a16caf3a86195d72c683b5a0bbee7ef9e5acc5f",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 255,
+          "merged": true,
+          "head_sha": "2a16caf3a86195d72c683b5a0bbee7ef9e5acc5f",
+          "base": "main",
+          "squash_sha": "32b1c1f536151c6c3640b3328752759208dcefaf"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "hotfix/cheburcheck-v4-23-3",
+      "sha": "3d8be2fbd933130253dc4fba8e710739dec4f31e",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 160,
+          "merged": true,
+          "head_sha": "3d8be2fbd933130253dc4fba8e710739dec4f31e",
+          "base": "main",
+          "squash_sha": "e4bec20b5959922612fd8ffb2c0d6f7040a41935"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "hotfix/direct-node-bind-parsing",
+      "sha": "98989e2e2d017994a8544636477c7af77b9b1610",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 52,
+          "merged": true,
+          "head_sha": "98989e2e2d017994a8544636477c7af77b9b1610",
+          "base": "main",
+          "squash_sha": "33fce6447e103b1f5ba79d42faf5ae750c334186"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "hotfix/fleet-rollout-job-accounting",
+      "sha": "d2a85ce400e2de0b4c8914ad25662622a3a98e5d",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 29,
+          "merged": true,
+          "head_sha": "d2a85ce400e2de0b4c8914ad25662622a3a98e5d",
+          "base": "main",
+          "squash_sha": "7965025e110e74397a35142bbfe42ae2cf1cb354"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "hotfix/host-control-snapshot-streaming",
+      "sha": "34f629499978ddc01adfb6cdd16c23318c319c1f",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 48,
+          "merged": true,
+          "head_sha": "34f629499978ddc01adfb6cdd16c23318c319c1f",
+          "base": "main",
+          "squash_sha": "852cc3b9cccdbbdb508be71a2e0874d4185a88c5"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "hotfix/v4-24-1-diagnostics-ipv6",
+      "sha": "608bbc403c46b6dc1a7627020bc59cd7bbf21522",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 171,
+          "merged": true,
+          "head_sha": "608bbc403c46b6dc1a7627020bc59cd7bbf21522",
+          "base": "main",
+          "squash_sha": "813f2f6b909f4e1c0eeedfb70e69bb009443bf93"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4-23-0",
+      "sha": "ef39ed8bfc771dc5ea211b2f60b55179614f9c04",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 155,
+          "merged": true,
+          "head_sha": "ef39ed8bfc771dc5ea211b2f60b55179614f9c04",
+          "base": "main",
+          "squash_sha": "628953099f7a0eb700e740285e4719b0a54299f9"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4-23-1",
+      "sha": "b4acd456d163fccae43fb8e4c1f275e0af6008a7",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 156,
+          "merged": true,
+          "head_sha": "b4acd456d163fccae43fb8e4c1f275e0af6008a7",
+          "base": "main",
+          "squash_sha": "ff6638442cbe9c2adc9aa76d74c2cfb4b647aaf6"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.10.0-publish",
+      "sha": "11dbf45fd95de9c9092668015404e48233a64540",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "no PR",
+      "pr": [],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.10.1",
+      "sha": "b1c1e1a00115421641dbb7f1aabc4637457554ea",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 16,
+          "merged": true,
+          "head_sha": "b1c1e1a00115421641dbb7f1aabc4637457554ea",
+          "base": "main",
+          "squash_sha": "c3bccf7edfcf0db2ea7513f90483b72111b0b7b5"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.11.0",
+      "sha": "8707f1a67469da802860f2e513cdf1db6585a435",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 18,
+          "merged": true,
+          "head_sha": "8707f1a67469da802860f2e513cdf1db6585a435",
+          "base": "main",
+          "squash_sha": "104a17ec1f797b971b74d33dacd3febf93f66fb6"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.11.1",
+      "sha": "8006c5bed107667f981ba668d85bb80ac8b5d326",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 23,
+          "merged": true,
+          "head_sha": "8006c5bed107667f981ba668d85bb80ac8b5d326",
+          "base": "main",
+          "squash_sha": "b23040fd5df930d6265c9249149ed004f9b7685f"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.12.0",
+      "sha": "8ee5ab32db5db676ed59811ed0c5a0c4f756ee77",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 25,
+          "merged": true,
+          "head_sha": "8ee5ab32db5db676ed59811ed0c5a0c4f756ee77",
+          "base": "main",
+          "squash_sha": "9fff63d03d66962f4812221cdbe205e1a02e74e1"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.13.0",
+      "sha": "afa770f443d60869e181092f82595e4117302a08",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 27,
+          "merged": true,
+          "head_sha": "afa770f443d60869e181092f82595e4117302a08",
+          "base": "main",
+          "squash_sha": "91ada391fa1250f67930a6bda2a5f394474a7f46"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.13.1",
+      "sha": "a78e454a570a4c67df25012c8df936934d5b0b14",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 30,
+          "merged": true,
+          "head_sha": "a78e454a570a4c67df25012c8df936934d5b0b14",
+          "base": "main",
+          "squash_sha": "8f9ba237c1bd85c086b4fcef8ac47747459c8f69"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.13.2",
+      "sha": "1f77dc18a85801aa5024023485cc3f78718e4982",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 38,
+          "merged": true,
+          "head_sha": "1f77dc18a85801aa5024023485cc3f78718e4982",
+          "base": "main",
+          "squash_sha": "70350296ca0a41ec5053b5cbfa96255fa63a009d"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.14.0",
+      "sha": "d573cbaa61f85140c25b3ad29f630f5656fd3bee",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 47,
+          "merged": true,
+          "head_sha": "d573cbaa61f85140c25b3ad29f630f5656fd3bee",
+          "base": "main",
+          "squash_sha": "6cc5e95600e75e863d38ae00b070a994daf84ee3"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.14.1",
+      "sha": "78c06beab129b003d88a2653e6f13767ab52771f",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 49,
+          "merged": true,
+          "head_sha": "78c06beab129b003d88a2653e6f13767ab52771f",
+          "base": "main",
+          "squash_sha": "81c018c0084b31483d4457d5dcd6e7be04cd4e00"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.14.2",
+      "sha": "a6c3aa7cee8b250c4737453ddc13bf7b2c5c4e01",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 53,
+          "merged": true,
+          "head_sha": "a6c3aa7cee8b250c4737453ddc13bf7b2c5c4e01",
+          "base": "main",
+          "squash_sha": "cb602ba1824d510f94e7c30fb2ca23ac355397df"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.15.0",
+      "sha": "5c0a67d2762424ee2f6c9968c261316fb7fd5312",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 57,
+          "merged": true,
+          "head_sha": "5c0a67d2762424ee2f6c9968c261316fb7fd5312",
+          "base": "main",
+          "squash_sha": "3de864e9d1a779cbf25fb783bbb036b9542f9ef5"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.16.0",
+      "sha": "871990dc70bd9c840d7dea97ea547fffe1a6ebfa",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 62,
+          "merged": true,
+          "head_sha": "871990dc70bd9c840d7dea97ea547fffe1a6ebfa",
+          "base": "main",
+          "squash_sha": "90f3240588a94396ba3c6a29b8d84218d6d2a70f"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.17.0",
+      "sha": "6ad8be06e19744c694775ea5deb5f7e3559f6b14",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 66,
+          "merged": true,
+          "head_sha": "6ad8be06e19744c694775ea5deb5f7e3559f6b14",
+          "base": "main",
+          "squash_sha": "cc47384acf311a810b3450250c6c389ba0acea10"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.18.0",
+      "sha": "3c2b7f251a61505135e02f6887b6403e0d8cb938",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 70,
+          "merged": true,
+          "head_sha": "3c2b7f251a61505135e02f6887b6403e0d8cb938",
+          "base": "main",
+          "squash_sha": "1cc730c5929ba8b2fe1152a0db1ade4b1aaa21f9"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.19.0",
+      "sha": "4d2bd7f6b01ed2965384fd1328d7975ebe7934ed",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 75,
+          "merged": true,
+          "head_sha": "4d2bd7f6b01ed2965384fd1328d7975ebe7934ed",
+          "base": "main",
+          "squash_sha": "a31a353f4477f1b2ad9367d53ed2ffe7543681f2"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.19.1",
+      "sha": "67dde6440a65d10813646d35cf7ab8ec03aab350",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 76,
+          "merged": true,
+          "head_sha": "67dde6440a65d10813646d35cf7ab8ec03aab350",
+          "base": "main",
+          "squash_sha": "40b96a310c121d708043610bde3581acb0e6d971"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.0",
+      "sha": "cc4e21f52aaff066f118ae1b6a3f340f9bd9d2aa",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 106,
+          "merged": true,
+          "head_sha": "cc4e21f52aaff066f118ae1b6a3f340f9bd9d2aa",
+          "base": "main",
+          "squash_sha": "4fec4e0274a8810f4135b07d239609218d002add"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.10",
+      "sha": "eb736f01be27a8dccef259e7a6d54024a826be92",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 134,
+          "merged": true,
+          "head_sha": "eb736f01be27a8dccef259e7a6d54024a826be92",
+          "base": "main",
+          "squash_sha": "c11e7339f513c6d57ed1d99558ec78f263612fc3"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.2",
+      "sha": "beaa64b4dd12f803b878a0cd76e17d6eea5b2c96",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 110,
+          "merged": true,
+          "head_sha": "beaa64b4dd12f803b878a0cd76e17d6eea5b2c96",
+          "base": "main",
+          "squash_sha": "8bf23b64be8478f14f8c2e2d783254ff130e16f5"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.3",
+      "sha": "3db510e2f5235726baa0de19d12fbb5688273d01",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 112,
+          "merged": true,
+          "head_sha": "3db510e2f5235726baa0de19d12fbb5688273d01",
+          "base": "main",
+          "squash_sha": "d6c844d3e327d2f5efab20ae6ceddb3a43a55e13"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.4",
+      "sha": "1ef8b2e106d55e0ca36d979380fb4c2b0f29af4f",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 113,
+          "merged": true,
+          "head_sha": "1ef8b2e106d55e0ca36d979380fb4c2b0f29af4f",
+          "base": "main",
+          "squash_sha": "da487178f4d283c84d59d5fea660b2927c2b7329"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.5",
+      "sha": "a3e1907a16d9b910f290e3e23db53ad414c7d11c",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 118,
+          "merged": true,
+          "head_sha": "a3e1907a16d9b910f290e3e23db53ad414c7d11c",
+          "base": "main",
+          "squash_sha": "2ae5db0485ec73c7ec7115ef36c1b3e38334d7eb"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.6",
+      "sha": "8fdc1c1743089490dd174b57c44f91eebf49c9c6",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 122,
+          "merged": true,
+          "head_sha": "8fdc1c1743089490dd174b57c44f91eebf49c9c6",
+          "base": "main",
+          "squash_sha": "5f4f74c9d1e96abec6e212f634fe61c76596b111"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.7",
+      "sha": "822767cedad3daa2f716600182d508e20c630f63",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 126,
+          "merged": true,
+          "head_sha": "822767cedad3daa2f716600182d508e20c630f63",
+          "base": "main",
+          "squash_sha": "e7e552edab11ab0a63a2f2c125173b2a2c5f4d45"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.8",
+      "sha": "7d9e917db2ec11eb5cd4d85204b300333e6527de",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 129,
+          "merged": true,
+          "head_sha": "7d9e917db2ec11eb5cd4d85204b300333e6527de",
+          "base": "main",
+          "squash_sha": "8175b417283a9060ce19e1c69bf7ec2686a079b4"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.20.9",
+      "sha": "4d60f421424ac56f28ecfabde2acebcf481456b3",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 132,
+          "merged": true,
+          "head_sha": "4d60f421424ac56f28ecfabde2acebcf481456b3",
+          "base": "main",
+          "squash_sha": "88251d9133bb3b2a67af472353f7d0f52f9ea6bc"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.21.0",
+      "sha": "297e71441eeaaecc4ebf9579bf4ad018b200f897",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 137,
+          "merged": true,
+          "head_sha": "297e71441eeaaecc4ebf9579bf4ad018b200f897",
+          "base": "main",
+          "squash_sha": "2d7126d8a2100156c0a676cdbd928f368528949e"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.21.1",
+      "sha": "546f3da96bce57a5357e67cd19fe384ae9a94315",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 141,
+          "merged": true,
+          "head_sha": "546f3da96bce57a5357e67cd19fe384ae9a94315",
+          "base": "main",
+          "squash_sha": "1e4690d29ef7f13612d44a50ecd4ee7b124257a8"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.21.2",
+      "sha": "937a4d8d8ee7a491c1a78fce7dca82176ee30295",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 144,
+          "merged": true,
+          "head_sha": "937a4d8d8ee7a491c1a78fce7dca82176ee30295",
+          "base": "main",
+          "squash_sha": "ab4b0cad45eb8c4870851d6b72a6f49a2e4204cb"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.22.0",
+      "sha": "a38834ef9dcc39bad801a5f88c0a4849825ea08c",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 149,
+          "merged": true,
+          "head_sha": "a38834ef9dcc39bad801a5f88c0a4849825ea08c",
+          "base": "main",
+          "squash_sha": "37e16cf8e2f5a38f7796118c0ac93ba9c78a3c12"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.23.2",
+      "sha": "7a76052ed566093b3e1193edf15809b49badfa7c",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 159,
+          "merged": true,
+          "head_sha": "7a76052ed566093b3e1193edf15809b49badfa7c",
+          "base": "main",
+          "squash_sha": "a6905de9aa69c3abfabcf0987a5f21e85c228bc3"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.23.3",
+      "sha": "7216ced3e230c154b510ad3772cc16f8a5fd8067",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 161,
+          "merged": true,
+          "head_sha": "7216ced3e230c154b510ad3772cc16f8a5fd8067",
+          "base": "main",
+          "squash_sha": "9e459697308c7dd7e5917152441b6d20fd6ab436"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.24.0",
+      "sha": "b5560522789a03f7f1dadf50513624632d745cd0",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 169,
+          "merged": true,
+          "head_sha": "b5560522789a03f7f1dadf50513624632d745cd0",
+          "base": "main",
+          "squash_sha": "e7515e8df0a0b9e6147bd2b29dbfc04e9b9cf696"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.24.1",
+      "sha": "4151d9adadd1eee083e43a7cd7f4fe05913f5908",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 172,
+          "merged": true,
+          "head_sha": "4151d9adadd1eee083e43a7cd7f4fe05913f5908",
+          "base": "main",
+          "squash_sha": "016a621acea336a2b97ed195afcda825f9127687"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.25.0",
+      "sha": "a24ee01fe2cf1d3d7a222a4e90178f1f9e525764",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 186,
+          "merged": true,
+          "head_sha": "a24ee01fe2cf1d3d7a222a4e90178f1f9e525764",
+          "base": "main",
+          "squash_sha": "71d21062917f2cec0f760eac61725ade3b09f936"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.25.7",
+      "sha": "7c3ec95395b992b68c39bea69ab974271be9f551",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 201,
+          "merged": true,
+          "head_sha": "7c3ec95395b992b68c39bea69ab974271be9f551",
+          "base": "main",
+          "squash_sha": "053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.25.8",
+      "sha": "ff36d0c96781e4068492fc60f4bf81b22bb922d0",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 206,
+          "merged": true,
+          "head_sha": "ff36d0c96781e4068492fc60f4bf81b22bb922d0",
+          "base": "main",
+          "squash_sha": "768fc0e4b9a0c0d2e35508febf272709896c3e7f"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.0",
+      "sha": "85031206dc86e0f56736574b01f23cc6932ca232",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 210,
+          "merged": true,
+          "head_sha": "85031206dc86e0f56736574b01f23cc6932ca232",
+          "base": "main",
+          "squash_sha": "cd39048a2da00443523e7b33b400f4c8b5dcd608"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.1",
+      "sha": "7feae9f0c2fb1bebb273367a6d8590bd8e2e4a91",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 214,
+          "merged": true,
+          "head_sha": "7feae9f0c2fb1bebb273367a6d8590bd8e2e4a91",
+          "base": "main",
+          "squash_sha": "c2fc8baee1c11a716babb4bfc72743dface686ed"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.2",
+      "sha": "48ba4d00e195780c900fc6ef61d24d3f1f4e0ff6",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 222,
+          "merged": true,
+          "head_sha": "48ba4d00e195780c900fc6ef61d24d3f1f4e0ff6",
+          "base": "main",
+          "squash_sha": "467d4f5609290622f0f839ce103fbf606f6f29b6"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.3",
+      "sha": "e22b49c68a64ebdd9dd0c3833097b2099b0c31aa",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 225,
+          "merged": true,
+          "head_sha": "e22b49c68a64ebdd9dd0c3833097b2099b0c31aa",
+          "base": "main",
+          "squash_sha": "7857e1eb57f5934a25c5d334edbc23aa2715f648"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.4",
+      "sha": "e4b1d5b573c4dff0bd18e55a567b215cc6a40e1c",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 229,
+          "merged": true,
+          "head_sha": "e4b1d5b573c4dff0bd18e55a567b215cc6a40e1c",
+          "base": "main",
+          "squash_sha": "e2b6834d549a6b3272702fc27570c8a8a3a99bfe"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.5",
+      "sha": "2fc106efd9b6c0ab8c8b90aa6976faa3a9d55b55",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 256,
+          "merged": true,
+          "head_sha": "2fc106efd9b6c0ab8c8b90aa6976faa3a9d55b55",
+          "base": "main",
+          "squash_sha": "27e0d69aba47c32dbc78e8e0cefd96227f7de7a6"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.6",
+      "sha": "9979c9ed3adf17fe7ace62c7bb7229f722dda6f3",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 261,
+          "merged": true,
+          "head_sha": "9979c9ed3adf17fe7ace62c7bb7229f722dda6f3",
+          "base": "main",
+          "squash_sha": "e04834e9c2d6200fa84896e7c135f476f56bc78e"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.7",
+      "sha": "916c76e27fc23cc0fb318a7986e385676c1f7701",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 278,
+          "merged": true,
+          "head_sha": "916c76e27fc23cc0fb318a7986e385676c1f7701",
+          "base": "main",
+          "squash_sha": "70acd009a3d1546c96c0852544b99c5569541a88"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.8",
+      "sha": "9866223f8d42608dca0201edf41494d470020cb1",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 280,
+          "merged": true,
+          "head_sha": "9866223f8d42608dca0201edf41494d470020cb1",
+          "base": "main",
+          "squash_sha": "e096bf436425ea037399e290a5a54f54c729b352"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v4.26.9",
+      "sha": "1ce3429e115d38af51af94128797d8b7833f2c1f",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 299,
+          "merged": true,
+          "head_sha": "1ce3429e115d38af51af94128797d8b7833f2c1f",
+          "base": "main",
+          "squash_sha": "11f93bfbf9d4ffa645acdcfc5b3579ee3cec47a9"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.1",
+      "sha": "05cd59aaa984788284eb519bb0ec3cc4c5ba8965",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 311,
+          "merged": true,
+          "head_sha": "05cd59aaa984788284eb519bb0ec3cc4c5ba8965",
+          "base": "main",
+          "squash_sha": "60560ce9458f54e37d49dbc85d4fb2ed5c5f9fcf"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.2",
+      "sha": "44621f7709ccbda4e5b658920ec2ceac67f73526",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 313,
+          "merged": true,
+          "head_sha": "44621f7709ccbda4e5b658920ec2ceac67f73526",
+          "base": "main",
+          "squash_sha": "24272d61f87396d365522b0156dff5c3165c682c"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.3",
+      "sha": "d129e5bf47385d5f2ff89f803595e91a9fb5348d",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 319,
+          "merged": true,
+          "head_sha": "d129e5bf47385d5f2ff89f803595e91a9fb5348d",
+          "base": "main",
+          "squash_sha": "a4e1e9f5c28b54b209ce4a81b23e5d85a2c9f73a"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.4",
+      "sha": "3c10a7105b0bf86b5a12ba39d006d1525bdc3c6b",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 326,
+          "merged": true,
+          "head_sha": "3c10a7105b0bf86b5a12ba39d006d1525bdc3c6b",
+          "base": "main",
+          "squash_sha": "d34b76d694a43d3f1d364cc01d9a88bc2b666ee5"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.5",
+      "sha": "40f73454f5e7562a9c46a297d21d41e84b6ca515",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 330,
+          "merged": true,
+          "head_sha": "40f73454f5e7562a9c46a297d21d41e84b6ca515",
+          "base": "main",
+          "squash_sha": "14042f6dc9d467dc8d0e999eb493f9e1cfc90611"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.6",
+      "sha": "6b98592204a64dbd660035a0dcaadf37a04e842a",
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reason": "not merged",
+      "pr": [
+        {
+          "number": 339,
+          "merged": false,
+          "head_sha": "078135655fe961950fb0f3fc5f450a508eae4392",
+          "base": "main",
+          "squash_sha": "2cb14d13f0b9012e56758f45f72465116f954a6f"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.6-resync",
+      "sha": "af1c96906a37b04b505044d8d94f19083f2f0c40",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 341,
+          "merged": true,
+          "head_sha": "af1c96906a37b04b505044d8d94f19083f2f0c40",
+          "base": "main",
+          "squash_sha": "b9555d685603e82a330e053e3187ac4368231090"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.7",
+      "sha": "41775d5a414d748110dfc310c1b796c28dbc7541",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 359,
+          "merged": true,
+          "head_sha": "41775d5a414d748110dfc310c1b796c28dbc7541",
+          "base": "main",
+          "squash_sha": "76b7910404596b7816fedbba605d5c79c02eeacd"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.8",
+      "sha": "c357803f6b8f7b7724d86a1afc642964b9faa49e",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 418,
+          "merged": true,
+          "head_sha": "c357803f6b8f7b7724d86a1afc642964b9faa49e",
+          "base": "main",
+          "squash_sha": "af5d2c891174e32e36cb4f031fed2700ea783719"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "release/v5.0.0-rc.9",
+      "sha": "5fb671c6e28e300017a58a18b4a1c272ab41baa2",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 430,
+          "merged": true,
+          "head_sha": "5fb671c6e28e300017a58a18b4a1c272ab41baa2",
+          "base": "main",
+          "squash_sha": "13fdbe8bccfbe92cffc4117b79083bbdcad5a8db"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/actions-storage-secret-audit",
+      "sha": "8586a246253765c7acc1afc519e1554e9da37e91",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 266,
+          "merged": true,
+          "head_sha": "8586a246253765c7acc1afc519e1554e9da37e91",
+          "base": "main",
+          "squash_sha": "f5b30900e8c53e47bb27b3e30d145b9feff81d20"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/container-least-privilege",
+      "sha": "20eccc86d1528641c718e90329ff9f45cadf8b9c",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 268,
+          "merged": true,
+          "head_sha": "20eccc86d1528641c718e90329ff9f45cadf8b9c",
+          "base": "main",
+          "squash_sha": "a9ab0c02b019bbaa086d72bd02749543bca9e796"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/git-history-secret-audit",
+      "sha": "930f5732006212201df143529faa5c8677dbdbf4",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 264,
+          "merged": true,
+          "head_sha": "930f5732006212201df143529faa5c8677dbdbf4",
+          "base": "main",
+          "squash_sha": "9679d6480f21f0f0d6cd0072cd135ff5a30ee7cf"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/github-release-governance",
+      "sha": "9d7830d295f321655ebb8eacae3e52ce10f09076",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 263,
+          "merged": true,
+          "head_sha": "9d7830d295f321655ebb8eacae3e52ce10f09076",
+          "base": "main",
+          "squash_sha": "21ed36f9c163b4bf0c7567d07feaaa4b78f3d1bc"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/no-telegram-secret-backups",
+      "sha": "1f399d7b3d1e3405f1527ee8a548d3e6c31bb191",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 248,
+          "merged": true,
+          "head_sha": "1f399d7b3d1e3405f1527ee8a548d3e6c31bb191",
+          "base": "main",
+          "squash_sha": "66f74c637d6ee33247775064eaeb211fc694e757"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/private-vulnerability-reporting",
+      "sha": "b524f2b0965400853a63e43e3cb62f97c3bf4317",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 272,
+          "merged": true,
+          "head_sha": "b524f2b0965400853a63e43e3cb62f97c3bf4317",
+          "base": "main",
+          "squash_sha": "58144834372db838596bc8fe6ffb89ecca21c989"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/redact-subscription-access-logs",
+      "sha": "da9341d3e64f552608063ffeb2610260d8db0c66",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 249,
+          "merged": true,
+          "head_sha": "da9341d3e64f552608063ffeb2610260d8db0c66",
+          "base": "main",
+          "squash_sha": "4e53b5d9a845dee235b768ae5a067365cbd111ca"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/subscription-proxy-resource-bounds",
+      "sha": "3b1fd34296c30d4fef3d883a9f5f05afc60c37a5",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 270,
+          "merged": true,
+          "head_sha": "3b1fd34296c30d4fef3d883a9f5f05afc60c37a5",
+          "base": "main",
+          "squash_sha": "8485346f0fbe99732a7e4b3d69f9ca28f96ac1af"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/supply-chain-baseline",
+      "sha": "c856810939cd1932da407adfa436d407b529ed3e",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 273,
+          "merged": true,
+          "head_sha": "c856810939cd1932da407adfa436d407b529ed3e",
+          "base": "main",
+          "squash_sha": "4cb3c581209ae07bfc2bcd290ec9294099878792"
+        }
+      ],
+      "as_base": []
+    },
+    {
+      "name": "security/v4266-audit-a004-a006",
+      "sha": "0778cc50cc9fbbddd5c4227f63656f72558b6fcb",
+      "classification": "PRELIMINARY_REVIEW",
+      "reason": "deep proof PENDING",
+      "pr": [
+        {
+          "number": 260,
+          "merged": true,
+          "head_sha": "0778cc50cc9fbbddd5c4227f63656f72558b6fcb",
+          "base": "main",
+          "squash_sha": "a15ff4beaeae2ec249b729e53b2aeaadf6c349ef"
+        }
+      ],
+      "as_base": []
+    }
+  ]
+}
