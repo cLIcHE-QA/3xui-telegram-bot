@@ -4,6 +4,14 @@
 
 Дорожная карта задаёт границы продуктовых этапов, но не заменяет перечень изменений конкретного релиза: перед публикацией состав релиза фиксируется в отдельных PR реализации и подготовки.
 
+## #510 — десять release-веток: ограниченный read-only proof (2026-10-12 16:21 EEST)
+
+**#510 OPEN/PENDING; DELETE 0/10 NOT RUN.** Baseline protected `main` `9a94611a256b0b731666180c18aed20a0d369d84`. После полного [108-ref inventory](audits/branch-cleanup-remaining-108-snapshot-2026-10-12.json) выделены десять точных исторических `release/*` веток, каждая с одним merged-to-main PR и неизменным original tip SHA. Независимое GitHub REST сопоставление PR files/status/blob ↔ single-parent squash на **10/10 PASS только для сравнения файлов**, результаты и exact имена/SHA/PR сохранены в [subset audit](audits/branch-cleanup-release-10-candidates-2026-10-12.json). Это не полное разрешение на удаление.
+
+**BLOCKED до нового deep safety proof:** fresh Git SHA/PR, ancestry squash относительно main, tracked workflow/deploy/config branch-name references, downstream branch descendants и external/dynamic consumer risk, полный fail-closed required CI и одноразовый SHA-lease механизм. Workflow deletion не создавался, никакого удаления не происходило. Отдельно обнаружен scheduled [Repository state audit 38254198740](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38254198740) **FAIL**: скрипт сравнивает stable-only GitHub latest endpoint `v4.26.9` с текущей `APP_VERSION=5.0.0-rc.9`. Branch и tag rulesets внутри этого audit **PASS**, postmerge `Python checks` на baseline PASS. Не исправлять статус задним числом, не обходить required checks; governance audit требует отдельного исправления.
+
+**Published** immutable `v5.0.0-rc.9` SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; **Deployed** rc.9 только operator-reported, independent VPS read-back PENDING; **Accepted** v5 NOT PASS. Production/Stars/refunds/deploy/restart не затронуты. Следующее действие — полный независимый deep preflight, только затем scoped SHA-leased deletion и очередной Roadmap/Issue checkpoint.
+
 ## #510 — полный read-only snapshot оставшихся 108 refs (2026-10-12 16:08 EEST (UTC+03:00))
 
 **⬜ Запланировано — #510 OPEN/PENDING.** GitHub REST полный inventory на защищённом `main` `6e1e1f199248c8d7b501507cb27e2f2e94c1c7be`: **109 refs всего, 108 non-main**, 0 OPEN PR; все 108 exact name/tip SHA и связанные PR из 468 historical PR (GitHub REST) сохранены в [immutable snapshot](audits/branch-cleanup-remaining-108-snapshot-2026-10-12.json). Фиксация snapshot произведена без изменения этих 108 refs; новая `docs/audit-remaining-108-510-20261012` — временная PR branch, не часть исходного инвентаря.
