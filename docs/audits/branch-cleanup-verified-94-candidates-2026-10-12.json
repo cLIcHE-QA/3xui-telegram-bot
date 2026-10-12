@@ -1,0 +1,826 @@
+{
+  "schema": 1,
+  "issue": 510,
+  "repository": "cLIcHE-QA/3xui-telegram-bot",
+  "date": "2026-10-12",
+  "timezone": "Europe/Helsinki (EEST UTC+03:00)",
+  "action": "PREPARE_ONLY_NO_DELETION",
+  "baseline_main_sha": "ae669ba8bff3b7bf93250bd0efddfb8f89c2f053",
+  "parent_manifest_path": "docs/audits/branch-cleanup-next-100-second-dry-run-2026-10-12.json",
+  "parent_manifest_blob_sha": "3b9cb914e288b79223951196e192142ddce6c436",
+  "original_100_ref_preflight_run": 38246026296,
+  "original_preflight_status": "FAIL",
+  "original_candidates": 100,
+  "original_pass_count": 94,
+  "original_retain_count": 6,
+  "scope": "Exactly 94 immutable branch name/tip_sha/merged PR/squash references from prior 100-ref preflight; fresh full independent safety gate required.",
+  "selected_count": 94,
+  "groups": {
+    "chore": 6,
+    "docs": 1,
+    "feat": 15,
+    "feature": 34,
+    "fix": 38
+  },
+  "exclusions": [
+    {
+      "branch": "chore/git-conventions",
+      "tip_sha": "678939c7474d01260d1afdaff24f4b1985353c5d",
+      "reason": "tracked branch-name source dependency",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    },
+    {
+      "branch": "chore/publish-v4.10.0",
+      "tip_sha": "d05a7fbd4a9f2786e6abb9622dd5f9ef3f7f9fa9",
+      "reason": "original PR / one-parent squash file-status-blob mismatch",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    },
+    {
+      "branch": "chore/release-deploy-helper",
+      "tip_sha": "5ac20bf05981ecf895d0eac3b5ea9ba5743cd97d",
+      "reason": "original PR / one-parent squash file-status-blob mismatch",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    },
+    {
+      "branch": "feature/v4.9.2-system-version-fingerprint",
+      "tip_sha": "7a8f2c887f3285c478a132ec4590b1c1751388b0",
+      "reason": "original PR / one-parent squash file-status-blob mismatch",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    },
+    {
+      "branch": "feature/v4.10-host-control",
+      "tip_sha": "91aab52b47bba99359e3ecf95d118114c85c5f29",
+      "reason": "original PR / one-parent squash file-status-blob mismatch",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    },
+    {
+      "branch": "feature/versions-updates",
+      "tip_sha": "6e6d26274d15c78f6440b40471a38f29b99cd59d",
+      "reason": "original PR / one-parent squash file-status-blob mismatch",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    }
+  ],
+  "preflight_required": [
+    "repeat exact current branch SHA checks against immutable manifest and git ls-remote",
+    "one merged original PR with unchanged original head SHA and main as base",
+    "PR files/status/blob SHA match single-parent squash and ancestor of verified main",
+    "no open or other PR base linkage and no protected or tag refs",
+    "tracked-name dependency scan excluding historical audit and this guarded tool",
+    "remote branch descendants and independent downstream/external/dynamic dependency uncertainty STOP",
+    "fresh main-success workflow provenance and first-parent SHA before any SHA-leased single writes"
+  ],
+  "candidates": [
+    {
+      "branch": "chore/host-control-rollout",
+      "tip_sha": "b2c8d5776d6b85192b8860c33b1a71d896534d9a",
+      "merged_pr": 15,
+      "original_pr_head_sha": "b2c8d5776d6b85192b8860c33b1a71d896534d9a",
+      "squash_sha": "389b1b906eab638f6a580c747145a244e921ddb9",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "chore/living-docs-contract",
+      "tip_sha": "06b4d1e9e62cefa47f77a946ecf4dc80125cf391",
+      "merged_pr": 289,
+      "original_pr_head_sha": "06b4d1e9e62cefa47f77a946ecf4dc80125cf391",
+      "squash_sha": "6f61f092d67376093335094cd85980fe7f0342e9",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "chore/pr-checklist-gate",
+      "tip_sha": "5836ffe504dc710a2cfa63a3266975ba35c1de1e",
+      "merged_pr": 371,
+      "original_pr_head_sha": "5836ffe504dc710a2cfa63a3266975ba35c1de1e",
+      "squash_sha": "c808716089678422338a844951a34737832c5b79",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "chore/release-automation",
+      "tip_sha": "2b7ad82f47d608cce712f68880ae9d33d8a4db0e",
+      "merged_pr": 19,
+      "original_pr_head_sha": "2b7ad82f47d608cce712f68880ae9d33d8a4db0e",
+      "squash_sha": "ab04200fcd6036afe18a8b36ba6c844a6981f142",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "chore/vps-recovery-kit",
+      "tip_sha": "16b1666997a7839c24ffcb5b436b92bd1fc2b643",
+      "merged_pr": 14,
+      "original_pr_head_sha": "16b1666997a7839c24ffcb5b436b92bd1fc2b643",
+      "squash_sha": "7619117258e580bcb5c599081793029bb52fd547",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "chore/3xui-living-contract-sync",
+      "tip_sha": "99f781f44af4fdba43a92fb362eccddecf771413",
+      "merged_pr": 428,
+      "original_pr_head_sha": "99f781f44af4fdba43a92fb362eccddecf771413",
+      "squash_sha": "0304c4f612df5ecc6dcb5f38771ecf7ccedb139d",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/branch-audit-closure-readback-20261012",
+      "tip_sha": "ca4c922e1980c24c6f7e08c48829694213980b7e",
+      "merged_pr": 512,
+      "original_pr_head_sha": "ca4c922e1980c24c6f7e08c48829694213980b7e",
+      "squash_sha": "fe91d42c23ea4cbf02cbf88b60a1cf580f13c9e3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/master-node-hosts-readonly-422",
+      "tip_sha": "42ccdd740b8a062def3242d1c04574ab72a9d548",
+      "merged_pr": 424,
+      "original_pr_head_sha": "42ccdd740b8a062def3242d1c04574ab72a9d548",
+      "squash_sha": "cfb6d1108d35e139200bd1652306f17a3738d699",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-checkout-provider-boundary",
+      "tip_sha": "2b5fbd817d2fa107b36d11578016f030fb2aa548",
+      "merged_pr": 302,
+      "original_pr_head_sha": "2b5fbd817d2fa107b36d11578016f030fb2aa548",
+      "squash_sha": "12ffc3660feebb35f3656e36fe58c4c180e04f00",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-client-onboarding-diagnostics",
+      "tip_sha": "9839396320f37559a1848d144709ce62562f0148",
+      "merged_pr": 306,
+      "original_pr_head_sha": "9839396320f37559a1848d144709ce62562f0148",
+      "squash_sha": "c500a22572d2952cd742abc675cde6ee74c53519",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-client-portal-shell",
+      "tip_sha": "42b64d2b6d6a5a3f5d9ffd34c4ab28a5acdf7ec7",
+      "merged_pr": 296,
+      "original_pr_head_sha": "42b64d2b6d6a5a3f5d9ffd34c4ab28a5acdf7ec7",
+      "squash_sha": "0b58e634ad5f7a602a1a60afca941a3d81a5eafe",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-commerce-foundation",
+      "tip_sha": "9cc2d7cd14c9dfa296bb39834ddf23789a0422e1",
+      "merged_pr": 290,
+      "original_pr_head_sha": "9cc2d7cd14c9dfa296bb39834ddf23789a0422e1",
+      "squash_sha": "da28e1d4deb245661166913f1e8533ad1b1f3bc5",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-customer-service-boundary",
+      "tip_sha": "beb89ecb73513df39691a40f4a3abc968e044d6b",
+      "merged_pr": 301,
+      "original_pr_head_sha": "beb89ecb73513df39691a40f4a3abc968e044d6b",
+      "squash_sha": "acd8f41d3121b93486cc303b86e0608b91b571c9",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-entitlement-fulfillment-worker",
+      "tip_sha": "3d89e083fcaa6b663dc224c75716daeee8ce1ce3",
+      "merged_pr": 295,
+      "original_pr_head_sha": "3d89e083fcaa6b663dc224c75716daeee8ce1ce3",
+      "squash_sha": "ed8ae145e04cfc6e3b5f4b38cbe4b0509bedd712",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-entitlement-provisioning",
+      "tip_sha": "39f374cea8eccdb46f692cad64a55e0fc97aa58d",
+      "merged_pr": 292,
+      "original_pr_head_sha": "39f374cea8eccdb46f692cad64a55e0fc97aa58d",
+      "squash_sha": "9d5d83730d5cb3acdf35b324b300d681db668847",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-launch-readiness",
+      "tip_sha": "4e7bb23fe848ad51a82256d3e43a9411e53355bd",
+      "merged_pr": 307,
+      "original_pr_head_sha": "4e7bb23fe848ad51a82256d3e43a9411e53355bd",
+      "squash_sha": "81b54a0de5d0d892428affb4affbaa1f17845c91",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-payment-entitlement-transaction",
+      "tip_sha": "0831384e76bba14a9905ac80ed7050e46252aea9",
+      "merged_pr": 291,
+      "original_pr_head_sha": "0831384e76bba14a9905ac80ed7050e46252aea9",
+      "squash_sha": "e0a8f8c5fffdf85906255e82ad6bfa7e65b137db",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-payment-event-reconciliation",
+      "tip_sha": "d08fdc87f27ad7028af2255adb2ddd656938e139",
+      "merged_pr": 294,
+      "original_pr_head_sha": "d08fdc87f27ad7028af2255adb2ddd656938e139",
+      "squash_sha": "afb32d3ef4819205165552e8f7399f5edce2052f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-payment-webhook-gateway",
+      "tip_sha": "cb731d04c4c57de56bf9b714c47780a1ff54f0de",
+      "merged_pr": 293,
+      "original_pr_head_sha": "cb731d04c4c57de56bf9b714c47780a1ff54f0de",
+      "squash_sha": "13efc622a9e87a5858f8e6cc7aaea1322f06bf60",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-release-candidate-path",
+      "tip_sha": "c2a76a0132e8bb59ecc7e572475d533ee2c18d8d",
+      "merged_pr": 310,
+      "original_pr_head_sha": "c2a76a0132e8bb59ecc7e572475d533ee2c18d8d",
+      "squash_sha": "2d39bc342d7b9352b4fc43958a19c263179290f1",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-stars-production-hardening",
+      "tip_sha": "840c848ef516b2b3b1124770cd646e4ec33f1afb",
+      "merged_pr": 305,
+      "original_pr_head_sha": "840c848ef516b2b3b1124770cd646e4ec33f1afb",
+      "squash_sha": "4494774c0985851a020f9c3866a07190d2b2463e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-telegram-stars",
+      "tip_sha": "1eee32586d3ee14bd493037bd3be7f0c6a01c581",
+      "merged_pr": 304,
+      "original_pr_head_sha": "1eee32586d3ee14bd493037bd3be7f0c6a01c581",
+      "squash_sha": "e65a55cf184bb81635faa15e57747ea87bb8982e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/admin-username-display-355",
+      "tip_sha": "7d7874aa278d8ab9d99dab4bdfcdbf7e2a78f5b8",
+      "merged_pr": 364,
+      "original_pr_head_sha": "7d7874aa278d8ab9d99dab4bdfcdbf7e2a78f5b8",
+      "squash_sha": "4acf990eb09363dda78dd43cb26a57990a95b907",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/attention-center",
+      "tip_sha": "5044031d53279d992faf5719b53ad9b5e7063047",
+      "merged_pr": 224,
+      "original_pr_head_sha": "5044031d53279d992faf5719b53ad9b5e7063047",
+      "squash_sha": "9acbbe85d16a6907b11e477d96245a7cc3be656d",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/cheburcheck-discovery-v4-23",
+      "tip_sha": "b9da160fb1e8b0283568d65f41553fd8d8f72c7b",
+      "merged_pr": 154,
+      "original_pr_head_sha": "b9da160fb1e8b0283568d65f41553fd8d8f72c7b",
+      "squash_sha": "05a888a2d6dab8c44203e1acff108cd9a92404f0",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/cheburcheck-v4-23-2",
+      "tip_sha": "d5df86801329aae29b1a4acd64e2bb96e5aac978",
+      "merged_pr": 158,
+      "original_pr_head_sha": "d5df86801329aae29b1a4acd64e2bb96e5aac978",
+      "squash_sha": "944b4e054cb6f9ce47dab004121d959e74ec951b",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/cheburcheck-v4-23",
+      "tip_sha": "517bdddfc31f8b5807d40b3e8c6b8e2e789cf45e",
+      "merged_pr": 153,
+      "original_pr_head_sha": "517bdddfc31f8b5807d40b3e8c6b8e2e789cf45e",
+      "squash_sha": "49178d8e666256d8bb7cced0905f503bf838b615",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/client-portal-stars-switches-342",
+      "tip_sha": "ff0d699ccb80b1fbab5197619976f1f9fc20b444",
+      "merged_pr": 368,
+      "original_pr_head_sha": "ff0d699ccb80b1fbab5197619976f1f9fc20b444",
+      "squash_sha": "2b3f936a8435b66bdf7ffcaaced4d61f11ebfb22",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/dashboard-attention",
+      "tip_sha": "5ebcd4c82451fc957a76ba90aff2f619c9e85e04",
+      "merged_pr": 221,
+      "original_pr_head_sha": "5ebcd4c82451fc957a76ba90aff2f619c9e85e04",
+      "squash_sha": "1b6c72a91f2aac340bca2df37220f8934a8bc52c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/direct-node-onboarding-wrapper",
+      "tip_sha": "371bb91735207c87f39c49a5005540dfd8f352af",
+      "merged_pr": 24,
+      "original_pr_head_sha": "371bb91735207c87f39c49a5005540dfd8f352af",
+      "squash_sha": "f14d9c92478cc05e874cd4592890bff415f54a29",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/extended-node-backup-clean",
+      "tip_sha": "1b6afc96ecf75cb7310f8d2f7ccfabbd75f3c434",
+      "merged_pr": 45,
+      "original_pr_head_sha": "1b6afc96ecf75cb7310f8d2f7ccfabbd75f3c434",
+      "squash_sha": "a6c7f915a77bec8d54fad37e87fa1b42847dd946",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/fleet-operations",
+      "tip_sha": "413abf186e093e7ac42f230c2ca4e0e9b82135cf",
+      "merged_pr": 26,
+      "original_pr_head_sha": "413abf186e093e7ac42f230c2ca4e0e9b82135cf",
+      "squash_sha": "b297385f0f123eff3994b7d5cd2abab1c68cbebd",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/job-update-unknown-ack-353",
+      "tip_sha": "2552168cbdbc9599eb30da96ed76faec07f387d6",
+      "merged_pr": 362,
+      "original_pr_head_sha": "2552168cbdbc9599eb30da96ed76faec07f387d6",
+      "squash_sha": "c885bfaa927342a4d2c649557f55a95405dd548e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/node-drain",
+      "tip_sha": "f3d105bc03fdaf13fe65f46a6cd943d40af3990e",
+      "merged_pr": 209,
+      "original_pr_head_sha": "f3d105bc03fdaf13fe65f46a6cd943d40af3990e",
+      "squash_sha": "e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/owner-client-session-reset-345",
+      "tip_sha": "680fa7789a12e8c4f42bcf15874f3bd8bbb954df",
+      "merged_pr": 416,
+      "original_pr_head_sha": "680fa7789a12e8c4f42bcf15874f3bd8bbb954df",
+      "squash_sha": "2693d30bbf7a7e5ec8cdb4e70f50c610d20bf6bb",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/rbac-privileges",
+      "tip_sha": "44ef8973aeff4238060349a93d984065b785c7f3",
+      "merged_pr": 42,
+      "original_pr_head_sha": "44ef8973aeff4238060349a93d984065b785c7f3",
+      "squash_sha": "2ffedb3abb0eb6a263ed6f274cd45e07e26d4dcf",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/telegram-command-catalog-356",
+      "tip_sha": "bf50ffad077a75b066bab1df55ccc2e0cfd8fe7d",
+      "merged_pr": 365,
+      "original_pr_head_sha": "bf50ffad077a75b066bab1df55ccc2e0cfd8fe7d",
+      "squash_sha": "482866ae7be7ae36351165fff93496377ceaf8a9",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/user-audience-groups",
+      "tip_sha": "c1b1c44c536f78f8b28517beff0656d152cb496f",
+      "merged_pr": 147,
+      "original_pr_head_sha": "c1b1c44c536f78f8b28517beff0656d152cb496f",
+      "squash_sha": "d0b7cb61ed926d9b613e5daaf253955ee10d503d",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/user-display-name",
+      "tip_sha": "bf1556cc77e91c3873857008cb56eeae102d1877",
+      "merged_pr": 136,
+      "original_pr_head_sha": "bf1556cc77e91c3873857008cb56eeae102d1877",
+      "squash_sha": "fa2d96aee104bc3b184ac208066b6dc73d564ff2",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-24-monitoring-foundation",
+      "tip_sha": "33785ccd9cdb315c92764c3f485bcff36fe4e0ac",
+      "merged_pr": 165,
+      "original_pr_head_sha": "33785ccd9cdb315c92764c3f485bcff36fe4e0ac",
+      "squash_sha": "b0c1728554b4a31c05e78421c8196d7c98696f70",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-24-monitoring-lifecycle",
+      "tip_sha": "3ed7f054f52de2821fd429ce844978d8570d8c45",
+      "merged_pr": 168,
+      "original_pr_head_sha": "3ed7f054f52de2821fd429ce844978d8570d8c45",
+      "squash_sha": "f0ca696bbe328d2a3011aa62fd1016d033918ca6",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-24-monitoring-ui-runtime",
+      "tip_sha": "8b967aa2eb9435624f4a6aa4affd01e0af737591",
+      "merged_pr": 166,
+      "original_pr_head_sha": "8b967aa2eb9435624f4a6aa4affd01e0af737591",
+      "squash_sha": "aa35185b33f96a7e9d7bc6878a58f3f6471714d1",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-24-web-diagnostics",
+      "tip_sha": "089a7a4535463c4f5ba12f7fb9ad29e62cd5b9e2",
+      "merged_pr": 167,
+      "original_pr_head_sha": "089a7a4535463c4f5ba12f7fb9ad29e62cd5b9e2",
+      "squash_sha": "d38227d98b729d0f6e9d35cfdd9a9c3a1c7f5ad9",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-bulk-completion",
+      "tip_sha": "6936549fcb25d96056ce8e2c92f525727fdf8ab2",
+      "merged_pr": 182,
+      "original_pr_head_sha": "6936549fcb25d96056ce8e2c92f525727fdf8ab2",
+      "squash_sha": "4a3f913636f4ec5022b7c14410123e8370c0d7d0",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-card-navigation",
+      "tip_sha": "e7d3add006b0124c36a739acf3b71431cccc34fd",
+      "merged_pr": 177,
+      "original_pr_head_sha": "e7d3add006b0124c36a739acf3b71431cccc34fd",
+      "squash_sha": "92df050cb48f76f6e6ad65ce9bee0496c510369e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-connections",
+      "tip_sha": "7f4a2373954cffcc0c8d42b18203e33a9f26348e",
+      "merged_pr": 178,
+      "original_pr_head_sha": "7f4a2373954cffcc0c8d42b18203e33a9f26348e",
+      "squash_sha": "4599ec0fe5b55251a7de250304388e1424f89117",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-create",
+      "tip_sha": "3a6a41ef543bc2ae3591e73f09e4151f83838009",
+      "merged_pr": 180,
+      "original_pr_head_sha": "3a6a41ef543bc2ae3591e73f09e4151f83838009",
+      "squash_sha": "bedb28a221ff3ce335d8a17732fc8243d099d82f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-management-foundation",
+      "tip_sha": "23ff19b013ba6339ae510120bdd3969065bad8d3",
+      "merged_pr": 176,
+      "original_pr_head_sha": "23ff19b013ba6339ae510120bdd3969065bad8d3",
+      "squash_sha": "9fa74b7f977ac52eb2dc8ee380ff5e54447f723c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-payments-activity",
+      "tip_sha": "a2e82cc77ed9d801e3e7207d150b3adc09879be7",
+      "merged_pr": 179,
+      "original_pr_head_sha": "a2e82cc77ed9d801e3e7207d150b3adc09879be7",
+      "squash_sha": "ee43bcf43469e13d067d39df8fb941a86bf8926e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-safety-subscription",
+      "tip_sha": "3ff1de440f2fdf4246f60627086de6e9ee126ea3",
+      "merged_pr": 181,
+      "original_pr_head_sha": "3ff1de440f2fdf4246f60627086de6e9ee126ea3",
+      "squash_sha": "15075b8a62343dfc45c7b53fd3b86aa2f75b901c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.11.0-node-onboarding",
+      "tip_sha": "dd2744f309346875a0a6468e646d11801d56fc68",
+      "merged_pr": 17,
+      "original_pr_head_sha": "dd2744f309346875a0a6468e646d11801d56fc68",
+      "squash_sha": "9b30bf743cef1b86e7998958d2d2124801129343",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.16-regression-hardening",
+      "tip_sha": "14dd01729d59e6bf0190574d1254e29be1662fc0",
+      "merged_pr": 60,
+      "original_pr_head_sha": "14dd01729d59e6bf0190574d1254e29be1662fc0",
+      "squash_sha": "1a4c2cb940a42d7cd52a417ba78ae925bd3f5d8f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.17-openapi-contract-gate",
+      "tip_sha": "a6dc3d1c2f7377d332fcb1fe015b11788d18c9a2",
+      "merged_pr": 64,
+      "original_pr_head_sha": "a6dc3d1c2f7377d332fcb1fe015b11788d18c9a2",
+      "squash_sha": "194154b86b76db70313b9342ecda87834aab492f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.18-offsite-backup",
+      "tip_sha": "45386133476507f20337aa8800366c13d7ec3b7b",
+      "merged_pr": 68,
+      "original_pr_head_sha": "45386133476507f20337aa8800366c13d7ec3b7b",
+      "squash_sha": "1c2fe32a2e85bb3b206a5d0ed80fc08301cc1b78",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.19-safe-bot-self-update",
+      "tip_sha": "fa0c21fd8f3c699f05b03216181cf61c8582bba5",
+      "merged_pr": 73,
+      "original_pr_head_sha": "fa0c21fd8f3c699f05b03216181cf61c8582bba5",
+      "squash_sha": "20c7e6ffdbaa00ff50b63d68457dd768e3028d61",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "feature/versioned-sqlite-migrations",
+      "tip_sha": "20608d01a745a5a0d8a29ac8bab6deaa8a3dc906",
+      "merged_pr": 55,
+      "original_pr_head_sha": "20608d01a745a5a0d8a29ac8bab6deaa8a3dc906",
+      "squash_sha": "4fc21305e287463b5aeda5941a96d74a85083274",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/attention-navigation-role-heading-354",
+      "tip_sha": "7bb726a31f32403e9fc1c710e62d2271b9733acb",
+      "merged_pr": 363,
+      "original_pr_head_sha": "7bb726a31f32403e9fc1c710e62d2271b9733acb",
+      "squash_sha": "0b44ac1c7dd4b53f69092ee8c5a38c7c0c4e504e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/backup-master-fail-closed",
+      "tip_sha": "dda781907b7319ad492865c39bb6438534eeb4af",
+      "merged_pr": 350,
+      "original_pr_head_sha": "dda781907b7319ad492865c39bb6438534eeb4af",
+      "squash_sha": "3125559771e0e0cd14a17ab1ab1f8bde3dc9406c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/client-portal-callback-effective-flag",
+      "tip_sha": "c8d1d3ac8df6a89012df42766168937fbbe9fdcc",
+      "merged_pr": 420,
+      "original_pr_head_sha": "c8d1d3ac8df6a89012df42766168937fbbe9fdcc",
+      "squash_sha": "7afb430bd1e87c95f3b12d467402ee3f3eccf262",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/container-least-privilege-rollout",
+      "tip_sha": "b51b5995af681d217086adae8a50dce92badcb36",
+      "merged_pr": 269,
+      "original_pr_head_sha": "b51b5995af681d217086adae8a50dce92badcb36",
+      "squash_sha": "d3f0611060292e0609a10128e1351bcfdbabe18f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/container-source-permissions",
+      "tip_sha": "d460f78c708ff3498d034d0da92c930b34761b10",
+      "merged_pr": 279,
+      "original_pr_head_sha": "d460f78c708ff3498d034d0da92c930b34761b10",
+      "squash_sha": "6ebdd5e5bb67e741ce643de853c50c90889a45f3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/history-secret-audit-fetch",
+      "tip_sha": "c60baf0d975347bf854f9e3c6021663662ac503d",
+      "merged_pr": 265,
+      "original_pr_head_sha": "c60baf0d975347bf854f9e3c6021663662ac503d",
+      "squash_sha": "c8a15362d82bfae812dc93758568602a1475febd",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/inbound-input-validation",
+      "tip_sha": "186b958cf6d8af7d6f37c794f19405046ae18483",
+      "merged_pr": 200,
+      "original_pr_head_sha": "186b958cf6d8af7d6f37c794f19405046ae18483",
+      "squash_sha": "2b24ce709ffe77d479c98e1604462deb4910c072",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/job-alert-repeat-context",
+      "tip_sha": "cfc18797972226e9e0cb227e3e7664aef3543bcf",
+      "merged_pr": 361,
+      "original_pr_head_sha": "cfc18797972226e9e0cb227e3e7664aef3543bcf",
+      "squash_sha": "43fdd371990bc0a0ac240c918b529f39f295df2a",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/master-backup-api-wal-acl",
+      "tip_sha": "b1c4df9fa7f83ca5e3e64e52e37070b11e65b44f",
+      "merged_pr": 351,
+      "original_pr_head_sha": "b1c4df9fa7f83ca5e3e64e52e37070b11e65b44f",
+      "squash_sha": "6321a03218368b5807f48ded8d256f3564750eaf",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/node-drain-cancel-navigation",
+      "tip_sha": "a26233176467f23ed537d3e803c4db454389637c",
+      "merged_pr": 213,
+      "original_pr_head_sha": "a26233176467f23ed537d3e803c4db454389637c",
+      "squash_sha": "218f2e9fda914b05121051dd0dd00a94ba99dc6b",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/permission-aware-navigation",
+      "tip_sha": "ec36268fa8affdd5e1a845e6930d27326abafacd",
+      "merged_pr": 228,
+      "original_pr_head_sha": "ec36268fa8affdd5e1a845e6930d27326abafacd",
+      "squash_sha": "7e34a61354a94f8565cd94967654f127ec0f258d",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/qa352-direct-preview-import",
+      "tip_sha": "5305583d4b995949755da4ebc7c05c94862ebead",
+      "merged_pr": 454,
+      "original_pr_head_sha": "5305583d4b995949755da4ebc7c05c94862ebead",
+      "squash_sha": "bddfbe8eda98c4bcfea8440dab659a4760908f9d",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/safari-subscription-assets-nginx",
+      "tip_sha": "048fe4f3f67ebe4cd9d428d1c4d491acdf2f3e50",
+      "merged_pr": 300,
+      "original_pr_head_sha": "048fe4f3f67ebe4cd9d428d1c4d491acdf2f3e50",
+      "squash_sha": "5b5df5a577b1aebd4f28173c1914b4c931b2b66e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/stars-invoice-use-bot-display-name",
+      "tip_sha": "31baa5427b8a7e0b7cd0e2a1070991b98916bba0",
+      "merged_pr": 347,
+      "original_pr_head_sha": "31baa5427b8a7e0b7cd0e2a1070991b98916bba0",
+      "squash_sha": "71c3f0eb7b0c7d4c3192ba4a0c49f6f505a9e70d",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/stars-paid-invoice-cleanup-320",
+      "tip_sha": "b525328d2de39b6a3c41b3a44b63c99bf0b99da8",
+      "merged_pr": 417,
+      "original_pr_head_sha": "b525328d2de39b6a3c41b3a44b63c99bf0b99da8",
+      "squash_sha": "b29cbe2019e3170becbb77f33d3f0319588a324c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/subscription-browser-blank-page",
+      "tip_sha": "76ea0c926adf9805c89d03180baba9f5c6226dd5",
+      "merged_pr": 297,
+      "original_pr_head_sha": "76ea0c926adf9805c89d03180baba9f5c6226dd5",
+      "squash_sha": "d081f8bf1c881dc3e8a0a79959c2b6716cb725c8",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/subscription-runtime-base-path",
+      "tip_sha": "922af000227da4573ce7367a331d8c3bc40d0248",
+      "merged_pr": 298,
+      "original_pr_head_sha": "922af000227da4573ce7367a331d8c3bc40d0248",
+      "squash_sha": "e6466d579c0ec136986dd3dec21433392b18519a",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/trial-zero-limits-343",
+      "tip_sha": "5608105300913eefa4fd5c671f99ddd148bc69a0",
+      "merged_pr": 367,
+      "original_pr_head_sha": "5608105300913eefa4fd5c671f99ddd148bc69a0",
+      "squash_sha": "587940ac86163fc31a690411046a08d6f2980f30",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4-25-access-navigation-contract",
+      "tip_sha": "b6fbd241054019c5ca9eb62fe253f19bcc4aac46",
+      "merged_pr": 183,
+      "original_pr_head_sha": "b6fbd241054019c5ca9eb62fe253f19bcc4aac46",
+      "squash_sha": "f94785362587ccc50e8c3b6d5b0df0d3d7cfce33",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4-25-final-ui-contract",
+      "tip_sha": "5c1d115007be49eaef30f6dec8ca5d68c2f44d08",
+      "merged_pr": 184,
+      "original_pr_head_sha": "5c1d115007be49eaef30f6dec8ca5d68c2f44d08",
+      "squash_sha": "6dea0b9153f14fa4ee0b30f62c5bb8d4f558703a",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.8-inbound-capitalization",
+      "tip_sha": "8d57c95c81d61d5c6be08300d50eb7744f2d9070",
+      "merged_pr": 128,
+      "original_pr_head_sha": "8d57c95c81d61d5c6be08300d50eb7744f2d9070",
+      "squash_sha": "ac435dc00176202a4ae8b693665addcb878d2241",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.9-post-acceptance-ui-cleanup",
+      "tip_sha": "6de9c6cf2ce1d5fed917c05a00cda560819ab46c",
+      "merged_pr": 131,
+      "original_pr_head_sha": "6de9c6cf2ce1d5fed917c05a00cda560819ab46c",
+      "squash_sha": "f5a9a07a10c6ec914f8c0ec05f5021b91f01a403",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.10-inbound-keyboard-density",
+      "tip_sha": "b06832e9dfbf63e3f928f77abc13fa506c3fd409",
+      "merged_pr": 133,
+      "original_pr_head_sha": "b06832e9dfbf63e3f928f77abc13fa506c3fd409",
+      "squash_sha": "b5706cecef499e1612b7c05b7ec287d9540e6dc3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.21.1-display-time-consistency",
+      "tip_sha": "faa1ff287dc4013b0c3de58970dee2220a0e87da",
+      "merged_pr": 140,
+      "original_pr_head_sha": "faa1ff287dc4013b0c3de58970dee2220a0e87da",
+      "squash_sha": "bb7130406a1b85f04df7bcb32e4e78e6cc565920",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.21.2-dr-logs",
+      "tip_sha": "8613d075d078b6fd9159290d9314050db89e0b1b",
+      "merged_pr": 143,
+      "original_pr_head_sha": "8613d075d078b6fd9159290d9314050db89e0b1b",
+      "squash_sha": "e0ddcb9e53b14f44e140587dce85ea0da4f722fb",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.25.8-navigation-owner-safety",
+      "tip_sha": "f5fdb1284286396cb2a7023444da96d9d492473f",
+      "merged_pr": 205,
+      "original_pr_head_sha": "f5fdb1284286396cb2a7023444da96d9d492473f",
+      "squash_sha": "1b28d5cc3e668b134bb18a6f29364533ac5398be",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-expired-customer-status",
+      "tip_sha": "2d5b3fe24f9c6a2e2ffbc706e0ccfd43e1edd268",
+      "merged_pr": 312,
+      "original_pr_head_sha": "2d5b3fe24f9c6a2e2ffbc706e0ccfd43e1edd268",
+      "squash_sha": "c25c8aaf8ac2f6f814c3955552c684284af8c16c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-rc3-provider-access-status",
+      "tip_sha": "41dacac830e26df181bbf7c4280a7611ca50d44e",
+      "merged_pr": 325,
+      "original_pr_head_sha": "41dacac830e26df181bbf7c4280a7611ca50d44e",
+      "squash_sha": "95231befc9988c47d29150f2084d1a8af8444e41",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-rc3-quota-ui",
+      "tip_sha": "bb3a326fa9ad908f59751bcdf2887fde6ccfc411",
+      "merged_pr": 318,
+      "original_pr_head_sha": "bb3a326fa9ad908f59751bcdf2887fde6ccfc411",
+      "squash_sha": "ba4a25980ddb185dd5558d9387a8f4fe9cbed1c8",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-stars-refund-handler-import",
+      "tip_sha": "f3b7f75fa375299f81e25c60174d9e273a72d13a",
+      "merged_pr": 329,
+      "original_pr_head_sha": "f3b7f75fa375299f81e25c60174d9e273a72d13a",
+      "squash_sha": "2ba7decc38a7365107a7b4ab3530bc4aa5671c2b",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-stars-refund-terminal-and-admin-totals",
+      "tip_sha": "29596f9cdfcba0dfd8eccb275c5e0bcf8cd26f67",
+      "merged_pr": 335,
+      "original_pr_head_sha": "29596f9cdfcba0dfd8eccb275c5e0bcf8cd26f67",
+      "squash_sha": "4b66f3ce48afbe3bdd9c979a633825bacd13d55c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4250-acceptance-readonly-extend",
+      "tip_sha": "4eeca5a076241ddafdb313f57dfc37c15a0b4246",
+      "merged_pr": 188,
+      "original_pr_head_sha": "4eeca5a076241ddafdb313f57dfc37c15a0b4246",
+      "squash_sha": "6d2c877f96b13a82e3a331ce3d60cc593521c888",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4251-stabilization",
+      "tip_sha": "837be548cad132b56669ce3ff06c995a1be5fec2",
+      "merged_pr": 189,
+      "original_pr_head_sha": "837be548cad132b56669ce3ff06c995a1be5fec2",
+      "squash_sha": "99e51b8988ffd90413b324021cac352ee71b39b7",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4252-subscription-compat",
+      "tip_sha": "a78065522e402c0c848b4d500cc12690c09b7849",
+      "merged_pr": 191,
+      "original_pr_head_sha": "a78065522e402c0c848b4d500cc12690c09b7849",
+      "squash_sha": "b71d45846a5fa4734337bf2afc526ad3e83a8f9b",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4253-incy-desktop-ua",
+      "tip_sha": "453c146d438e2fc32c10b0dd7a10bf589f03d809",
+      "merged_pr": 193,
+      "original_pr_head_sha": "453c146d438e2fc32c10b0dd7a10bf589f03d809",
+      "squash_sha": "92909cde932c09d5b1b98742ef66e4fc3041424f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4254-streisand-plain-subscription",
+      "tip_sha": "3a7c87c00c91f400d4ef4c90aa35c48a3fcb9c86",
+      "merged_pr": 195,
+      "original_pr_head_sha": "3a7c87c00c91f400d4ef4c90aa35c48a3fcb9c86",
+      "squash_sha": "6126190301bff41ca7c142c1ea42fd7758c60b68",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4255-streisand-force-raw",
+      "tip_sha": "770607de34140d47a4d02b14d02bef5d5a2d9647",
+      "merged_pr": 196,
+      "original_pr_head_sha": "770607de34140d47a4d02b14d02bef5d5a2d9647",
+      "squash_sha": "ac9ef4792030e191a91d17a54bdca1d101ddeebe",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4256-revert-streisand-workarounds",
+      "tip_sha": "03f3ff4d625c147ec5d4c96f3167516b3e1e82f6",
+      "merged_pr": 197,
+      "original_pr_head_sha": "03f3ff4d625c147ec5d4c96f3167516b3e1e82f6",
+      "squash_sha": "b3fb80d334c8cded51e4bc9de4b08af2e31d0cd6",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    }
+  ]
+}
