@@ -136,6 +136,32 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("### v5.0.0 — Client Portal", roadmap)
         self.assertIn("A-007 технически закрыт полностью", roadmap)
 
+    def test_roadmap_narrative_has_russian_language_guard(self):
+        """Reject new long English-only explanations, ignoring technical literals."""
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        fence = False
+        violations = []
+        for number, original in enumerate(roadmap.splitlines(), 1):
+            if re.match(r"^\\s*\x60\x60\x60", original):
+                fence = not fence
+                continue
+            if fence:
+                continue
+            prose = re.sub(r"\x60[^\x60]*\x60", "", original)
+            prose = re.sub(r"\\]\\([^)]+\\)", "]", prose)
+            prose = re.sub(r"https?://\\S+", "", prose)
+            latin = len(re.findall(r"[A-Za-z]", prose))
+            cyrillic = len(re.findall(r"[А-Яа-яЁё]", prose))
+            # English-only explanatory blocks are not valid Russian docs.
+            # Short API/CI labels, technical identifiers and exact source
+            # fragments are allowed and must never be silently rewritten.
+            if latin >= 90 and cyrillic == 0:
+                violations.append(number)
+        self.assertEqual(
+            violations, [],
+            f"Русскоязычный Roadmap: длинная английская проза, строки {violations}",
+        )
+
     def test_roadmap_status_contract_matches_workflow_and_pr_template(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         workflow = (ROOT / "docs" / "GIT_WORKFLOW.md").read_text(
