@@ -1,0 +1,21 @@
+# Historical merged-PR branch patch-equivalence preflight — 2026-10-12
+
+**Issue:** [#510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) OPEN/PENDING. **Source:** read-only GitHub REST API (branches, all PRs, file patches, squash merge commits, compare, current operational files). **Baseline:** `main` `967231d708fc243e7cc4cc8193944d22bd5cf72b`. Historical source tips were confirmed unchanged against [full branch manifest](branch-dry-run-inventory-2026-10-12.md). **Scope:** three docs-only merged-PR branches. **No branch deletes or GitHub setting changes.**
+
+## Exact per-ref evidence
+
+| Branch | Exact current SHA = PR head SHA | Original merged PR | Squash SHA, Git ancestor of current main | PR↔squash files, patches and resulting blobs | Disposition |
+| --- | --- | --- | --- | --- | --- |
+| `docs/branch-lifecycle-audit-20261012` | `78d5f29727f4b4967311cf09cf17ff80f76858d4` | [#511](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/511), MERGED | `37b1c700c846791b66a893843e1c68063ab92a6a`, compare `ahead=0/behind=7` | `docs/ROADMAP.md`: exact diff patch + resulting blob `e89b5e8d02d85180cb34c1b5fc46c42464e3701a` | PILOT CANDIDATE / NO DELETE YET |
+| `docs/branch-audit-closure-readback-20261012` | `ca4c922e1980c24c6f7e08c48829694213980b7e` | [#512](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/512), MERGED | `fe91d42c23ea4cbf02cbf88b60a1cf580f13c9e3`, `ahead=0/behind=6` | `docs/ROADMAP.md`: exact diff patch + blob `7117af30118fd9b3647c460bdd044ad9ea755aac` | PILOT CANDIDATE / NO DELETE YET |
+| `docs/branch-retention-policy-20261012` | `e4de8b36c4dcdd0c2327eb417d8b774591198a95` | [#513](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/513), MERGED | `94ff9bc9ced2b45327b6e4d904d11a49bb16afc5`, `ahead=0/behind=5` | `docs/GIT_WORKFLOW.md`: exact patch + blob `b4b52d74886dbf92eef236dd92d879c708ae351f`; `docs/ROADMAP.md`: exact patch + blob `27cbac07654680ac279d0fc5e5d7a1f421b243c9` | PILOT CANDIDATE / NO DELETE YET |
+
+**GitHub evidence methodology:** current branch inventory at the above baseline: 464 total refs, all three names present/unprotected and exact tip SHA stable. GitHub `GET pulls/{N}/files` and `GET commits/{squash_sha}` compared all filenames, `patch` strings, and resulting blob SHA for each changed file, each equal. Squash SHA is an ancestor of the current main by GitHub compare. PR registry: 442 historical PRs fetched across complete pages, zero OPEN; each of these three source names is used as `head` only by its own merged #511/#512/#513; **zero other PR references these as base**. In all 49 current GitHub-tracked operational files (`.github/**`, `scripts/**`, `deploy/**`, and selected root runtime config) exact string scan found **zero references** to these three branch names.
+
+## Limits and safe next action
+
+The above establishes **the changes of each exact PR head were represented byte-for-byte in its squash commit and remain on main**. It does not prove no external GitHub Action consumers outside the current files, operational clones, forks, third-party automation, historical branch-local scripts, or dynamic ref computations. Nor is the connector able to invoke a SHA-guarded delete-ref operation. **Status: content-preservation evidence scoped PASS; ref deletion / external dependency review PENDING.** Do not delete refs based only on matching source patch if operators still depend on their branch names.
+
+For an operator-executed tiny pilot, first revalidate the exact remote tip SHA and no open PR/ref consumers, obtain final operational dependency clearance, then perform only one conditionally SHA-leased deletion with immediate independent GitHub read-back. Any mismatch or 403/409/error = STOP; no force-refresh, no protection or tag modification. After the operation (even if blocked), record exact before/after evidence in Roadmap via required CI PR and audit #510 **before proceeding**. No live production smoke, deployment, restart, payments, refunds, or tags are involved.
+
+**Release boundary:** latest immutable published `v5.0.0-rc.9` tag `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; production deployed only operator-reported `rc.9`, independent VPS read-back PENDING; overall v5 acceptance NOT PASS.
