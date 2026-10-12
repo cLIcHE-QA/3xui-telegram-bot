@@ -296,7 +296,7 @@ class V4269ReleaseTests(unittest.TestCase):
             "tag/GitHub Release `v4.25.8`",
             "768fc0e4b9a0c0d2e35508febf272709896c3e7f",
             "587 tests OK",
-            "targeted production tests navigation hotfix и Owner self-demotion safety — **PASS**",
+            "целевые production-тесты исправления навигации и защиты от снятия Owner собственных прав — **PASS**",
             "final bot/DB/3x-ui health — **PASS**",
             "issues #202 и #204",
         ):
