@@ -140,13 +140,17 @@ def check_branch(name: str, sha: str) -> None:
 def ensure_execute_gate() -> None:
     if os.environ.get("GITHUB_REPOSITORY", "").casefold() != REPO.casefold():
         stop("wrong repository")
-    if os.environ.get("GITHUB_EVENT_NAME") != "push" or os.environ.get("GITHUB_REF") != "refs/heads/main":
-        stop("not a protected main push")
-    if os.environ.get("GITHUB_EVENT_BEFORE") != BASE:
-        stop("not the unique approved one-shot push")
+    if os.environ.get("GITHUB_EVENT_NAME") != "workflow_run":
+        stop("not a trusted successful post-main-CI event")
+    if os.environ.get("GITHUB_WORKFLOW_RUN_CONCLUSION") != "success":
+        stop("main required CI did not succeed")
+    if os.environ.get("GITHUB_WORKFLOW_RUN_EVENT") != "push":
+        stop("triggered by PR instead of verified main push")
     if git("rev-parse", "HEAD^").stdout.strip() != BASE:
-        stop("first-parent baseline does not match")
+        stop("first-parent baseline does not match unique approved batch")
     head = git("rev-parse", "HEAD").stdout.strip()
+    if os.environ.get("GITHUB_WORKFLOW_RUN_SHA") != head:
+        stop("checked-out commit differs from successful Python checks SHA")
     if api("branches/main")["commit"]["sha"] != head:
         stop("main moved during preflight")
 
