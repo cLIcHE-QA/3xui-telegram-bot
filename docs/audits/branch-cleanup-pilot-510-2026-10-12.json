@@ -1,0 +1,20 @@
+{
+  "issue": 510,
+  "baseline_main_sha": "8684135fa58dd20ceee7fb0725c51bdb31a60d52",
+  "created_at": "2026-10-12T10:12:42+03:00",
+  "scope": "3-ref low-risk GitHub-only pilot, explicitly operator-requested; no production, external dynamic consumers not independently excluded",
+  "refs": [
+    {
+      "name": "chore/github-branch-gc-510",
+      "sha": "37b1c700c846791b66a893843e1c68063ab92a6a"
+    },
+    {
+      "name": "docs/branch-policy-and-inventory-510-20261012",
+      "sha": "37b1c700c846791b66a893843e1c68063ab92a6a"
+    },
+    {
+      "name": "docs/git-branch-lifecycle-policy-510",
+      "sha": "37b1c700c846791b66a893843e1c68063ab92a6a"
+    }
+  ]
+}
