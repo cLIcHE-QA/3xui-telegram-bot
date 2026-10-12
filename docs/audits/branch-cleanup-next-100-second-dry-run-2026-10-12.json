@@ -1,0 +1,3305 @@
+{
+  "schema": 1,
+  "issue": 510,
+  "repository": "cLIcHE-QA/3xui-telegram-bot",
+  "date": "2026-10-12",
+  "timezone": "Europe/Helsinki (EEST UTC+03:00)",
+  "source": "GitHub REST read-only exact paginated branches and pull requests",
+  "action": "PREPARE_ONLY_NO_DELETES",
+  "baseline_main_sha": "87451138f93a5b877bdb4056bbc6c415750bd9bd",
+  "baseline_source_branch_count": 202,
+  "protected_main_count": 1,
+  "non_main_count": 201,
+  "pr_count": 462,
+  "merged_pr_count": 455,
+  "closed_unmerged_pr_count": 7,
+  "open_pr_count": 0,
+  "working_branch_excluded_from_baseline": "docs/prepare-next-100-branches-510-20261012",
+  "source_pages": {
+    "branches": [
+      100,
+      100,
+      2
+    ],
+    "pull_requests": [
+      100,
+      100,
+      100,
+      100,
+      62
+    ]
+  },
+  "selection": "Deterministic case-sensitive lexical branch-name order among unprotected non-release refs with exactly one merged PR targeting main, exact unchanged PR head tip, no PR-base linkage and no known RETAIN exception. First 100 only.",
+  "preliminary_pass_count": 119,
+  "selected_count": 100,
+  "deferred_preliminary_count": 19,
+  "selected_groups": {
+    "chore": 9,
+    "docs": 1,
+    "feat": 15,
+    "feature": 37,
+    "fix": 38
+  },
+  "proof_only": [
+    "branch exists at exact tip_sha in GitHub branch API",
+    "protected=false",
+    "not a release/* ref",
+    "exactly one linked merged PR head with matching original SHA and target main",
+    "no linked open/unmerged PR",
+    "branch name never used as PR base across 462 historic PRs",
+    "six known historical RETAIN exceptions excluded"
+  ],
+  "not_verified_required_before_any_delete": [
+    "fresh GitHub remote SHA and PR state check",
+    "complete PR changed files/status/blob SHA against one-parent squash commit",
+    "squash commit ancestry in current main",
+    "tracked branch-name references in workflows/scripts/deploy/config",
+    "downstream branch refs and internal/external/dynamic consumers",
+    "local-only/unpushed work cannot be established via GitHub API",
+    "separate explicit operator authorization and SHA-leased one-shot execution",
+    "independent exact 404 per name and fresh Roadmap/Issue checkpoint"
+  ],
+  "known_exceptions": [
+    {
+      "branch": "docs/russian-documentation",
+      "reason": "исторический PR/squash blob mismatch; RETAIN"
+    },
+    {
+      "branch": "docs/v4.10-host-control-contract",
+      "reason": "исторический PR/squash blob mismatch; RETAIN"
+    },
+    {
+      "branch": "fix/stable-bot-docker-network",
+      "reason": "PR/squash file/status/blob mismatch; RETAIN"
+    },
+    {
+      "branch": "fix/admin-ui-navigation-consistency",
+      "reason": "PR/squash file/status/blob mismatch; RETAIN"
+    },
+    {
+      "branch": "fix/v4.9.3-node-detail-counters",
+      "reason": "PR/squash file/status/blob mismatch; RETAIN"
+    },
+    {
+      "branch": "fix/release-tag-probe",
+      "reason": "tracked source branch-name dependency; RETAIN"
+    }
+  ],
+  "candidate_count": 100,
+  "candidates": [
+    {
+      "branch": "chore/git-conventions",
+      "tip_sha": "678939c7474d01260d1afdaff24f4b1985353c5d",
+      "merged_pr": 21,
+      "original_pr_head_sha": "678939c7474d01260d1afdaff24f4b1985353c5d",
+      "squash_sha": "1ccfbc6db722eaaff3c9da1c8e8bbdc103ec938f",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "chore/host-control-rollout",
+      "tip_sha": "b2c8d5776d6b85192b8860c33b1a71d896534d9a",
+      "merged_pr": 15,
+      "original_pr_head_sha": "b2c8d5776d6b85192b8860c33b1a71d896534d9a",
+      "squash_sha": "389b1b906eab638f6a580c747145a244e921ddb9",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "chore/living-docs-contract",
+      "tip_sha": "06b4d1e9e62cefa47f77a946ecf4dc80125cf391",
+      "merged_pr": 289,
+      "original_pr_head_sha": "06b4d1e9e62cefa47f77a946ecf4dc80125cf391",
+      "squash_sha": "6f61f092d67376093335094cd85980fe7f0342e9",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "chore/pr-checklist-gate",
+      "tip_sha": "5836ffe504dc710a2cfa63a3266975ba35c1de1e",
+      "merged_pr": 371,
+      "original_pr_head_sha": "5836ffe504dc710a2cfa63a3266975ba35c1de1e",
+      "squash_sha": "c808716089678422338a844951a34737832c5b79",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "chore/publish-v4.10.0",
+      "tip_sha": "d05a7fbd4a9f2786e6abb9622dd5f9ef3f7f9fa9",
+      "merged_pr": 13,
+      "original_pr_head_sha": "d05a7fbd4a9f2786e6abb9622dd5f9ef3f7f9fa9",
+      "squash_sha": "b1d25d743a8037e59e767dbcfb00fd6b4bcd5299",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "chore/release-automation",
+      "tip_sha": "2b7ad82f47d608cce712f68880ae9d33d8a4db0e",
+      "merged_pr": 19,
+      "original_pr_head_sha": "2b7ad82f47d608cce712f68880ae9d33d8a4db0e",
+      "squash_sha": "ab04200fcd6036afe18a8b36ba6c844a6981f142",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "chore/release-deploy-helper",
+      "tip_sha": "5ac20bf05981ecf895d0eac3b5ea9ba5743cd97d",
+      "merged_pr": 6,
+      "original_pr_head_sha": "5ac20bf05981ecf895d0eac3b5ea9ba5743cd97d",
+      "squash_sha": "72f66eb28b8d7a899a5c841ec784f6e51454a0bb",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "chore/vps-recovery-kit",
+      "tip_sha": "16b1666997a7839c24ffcb5b436b92bd1fc2b643",
+      "merged_pr": 14,
+      "original_pr_head_sha": "16b1666997a7839c24ffcb5b436b92bd1fc2b643",
+      "squash_sha": "7619117258e580bcb5c599081793029bb52fd547",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "chore/3xui-living-contract-sync",
+      "tip_sha": "99f781f44af4fdba43a92fb362eccddecf771413",
+      "merged_pr": 428,
+      "original_pr_head_sha": "99f781f44af4fdba43a92fb362eccddecf771413",
+      "squash_sha": "0304c4f612df5ecc6dcb5f38771ecf7ccedb139d",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "docs/branch-audit-closure-readback-20261012",
+      "tip_sha": "ca4c922e1980c24c6f7e08c48829694213980b7e",
+      "merged_pr": 512,
+      "original_pr_head_sha": "ca4c922e1980c24c6f7e08c48829694213980b7e",
+      "squash_sha": "fe91d42c23ea4cbf02cbf88b60a1cf580f13c9e3",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/master-node-hosts-readonly-422",
+      "tip_sha": "42ccdd740b8a062def3242d1c04574ab72a9d548",
+      "merged_pr": 424,
+      "original_pr_head_sha": "42ccdd740b8a062def3242d1c04574ab72a9d548",
+      "squash_sha": "cfb6d1108d35e139200bd1652306f17a3738d699",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-checkout-provider-boundary",
+      "tip_sha": "2b5fbd817d2fa107b36d11578016f030fb2aa548",
+      "merged_pr": 302,
+      "original_pr_head_sha": "2b5fbd817d2fa107b36d11578016f030fb2aa548",
+      "squash_sha": "12ffc3660feebb35f3656e36fe58c4c180e04f00",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-client-onboarding-diagnostics",
+      "tip_sha": "9839396320f37559a1848d144709ce62562f0148",
+      "merged_pr": 306,
+      "original_pr_head_sha": "9839396320f37559a1848d144709ce62562f0148",
+      "squash_sha": "c500a22572d2952cd742abc675cde6ee74c53519",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-client-portal-shell",
+      "tip_sha": "42b64d2b6d6a5a3f5d9ffd34c4ab28a5acdf7ec7",
+      "merged_pr": 296,
+      "original_pr_head_sha": "42b64d2b6d6a5a3f5d9ffd34c4ab28a5acdf7ec7",
+      "squash_sha": "0b58e634ad5f7a602a1a60afca941a3d81a5eafe",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-commerce-foundation",
+      "tip_sha": "9cc2d7cd14c9dfa296bb39834ddf23789a0422e1",
+      "merged_pr": 290,
+      "original_pr_head_sha": "9cc2d7cd14c9dfa296bb39834ddf23789a0422e1",
+      "squash_sha": "da28e1d4deb245661166913f1e8533ad1b1f3bc5",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-customer-service-boundary",
+      "tip_sha": "beb89ecb73513df39691a40f4a3abc968e044d6b",
+      "merged_pr": 301,
+      "original_pr_head_sha": "beb89ecb73513df39691a40f4a3abc968e044d6b",
+      "squash_sha": "acd8f41d3121b93486cc303b86e0608b91b571c9",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-entitlement-fulfillment-worker",
+      "tip_sha": "3d89e083fcaa6b663dc224c75716daeee8ce1ce3",
+      "merged_pr": 295,
+      "original_pr_head_sha": "3d89e083fcaa6b663dc224c75716daeee8ce1ce3",
+      "squash_sha": "ed8ae145e04cfc6e3b5f4b38cbe4b0509bedd712",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-entitlement-provisioning",
+      "tip_sha": "39f374cea8eccdb46f692cad64a55e0fc97aa58d",
+      "merged_pr": 292,
+      "original_pr_head_sha": "39f374cea8eccdb46f692cad64a55e0fc97aa58d",
+      "squash_sha": "9d5d83730d5cb3acdf35b324b300d681db668847",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-launch-readiness",
+      "tip_sha": "4e7bb23fe848ad51a82256d3e43a9411e53355bd",
+      "merged_pr": 307,
+      "original_pr_head_sha": "4e7bb23fe848ad51a82256d3e43a9411e53355bd",
+      "squash_sha": "81b54a0de5d0d892428affb4affbaa1f17845c91",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-payment-entitlement-transaction",
+      "tip_sha": "0831384e76bba14a9905ac80ed7050e46252aea9",
+      "merged_pr": 291,
+      "original_pr_head_sha": "0831384e76bba14a9905ac80ed7050e46252aea9",
+      "squash_sha": "e0a8f8c5fffdf85906255e82ad6bfa7e65b137db",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-payment-event-reconciliation",
+      "tip_sha": "d08fdc87f27ad7028af2255adb2ddd656938e139",
+      "merged_pr": 294,
+      "original_pr_head_sha": "d08fdc87f27ad7028af2255adb2ddd656938e139",
+      "squash_sha": "afb32d3ef4819205165552e8f7399f5edce2052f",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-payment-webhook-gateway",
+      "tip_sha": "cb731d04c4c57de56bf9b714c47780a1ff54f0de",
+      "merged_pr": 293,
+      "original_pr_head_sha": "cb731d04c4c57de56bf9b714c47780a1ff54f0de",
+      "squash_sha": "13efc622a9e87a5858f8e6cc7aaea1322f06bf60",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-release-candidate-path",
+      "tip_sha": "c2a76a0132e8bb59ecc7e572475d533ee2c18d8d",
+      "merged_pr": 310,
+      "original_pr_head_sha": "c2a76a0132e8bb59ecc7e572475d533ee2c18d8d",
+      "squash_sha": "2d39bc342d7b9352b4fc43958a19c263179290f1",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-stars-production-hardening",
+      "tip_sha": "840c848ef516b2b3b1124770cd646e4ec33f1afb",
+      "merged_pr": 305,
+      "original_pr_head_sha": "840c848ef516b2b3b1124770cd646e4ec33f1afb",
+      "squash_sha": "4494774c0985851a020f9c3866a07190d2b2463e",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feat/v5-telegram-stars",
+      "tip_sha": "1eee32586d3ee14bd493037bd3be7f0c6a01c581",
+      "merged_pr": 304,
+      "original_pr_head_sha": "1eee32586d3ee14bd493037bd3be7f0c6a01c581",
+      "squash_sha": "e65a55cf184bb81635faa15e57747ea87bb8982e",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/admin-username-display-355",
+      "tip_sha": "7d7874aa278d8ab9d99dab4bdfcdbf7e2a78f5b8",
+      "merged_pr": 364,
+      "original_pr_head_sha": "7d7874aa278d8ab9d99dab4bdfcdbf7e2a78f5b8",
+      "squash_sha": "4acf990eb09363dda78dd43cb26a57990a95b907",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/attention-center",
+      "tip_sha": "5044031d53279d992faf5719b53ad9b5e7063047",
+      "merged_pr": 224,
+      "original_pr_head_sha": "5044031d53279d992faf5719b53ad9b5e7063047",
+      "squash_sha": "9acbbe85d16a6907b11e477d96245a7cc3be656d",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/cheburcheck-discovery-v4-23",
+      "tip_sha": "b9da160fb1e8b0283568d65f41553fd8d8f72c7b",
+      "merged_pr": 154,
+      "original_pr_head_sha": "b9da160fb1e8b0283568d65f41553fd8d8f72c7b",
+      "squash_sha": "05a888a2d6dab8c44203e1acff108cd9a92404f0",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/cheburcheck-v4-23-2",
+      "tip_sha": "d5df86801329aae29b1a4acd64e2bb96e5aac978",
+      "merged_pr": 158,
+      "original_pr_head_sha": "d5df86801329aae29b1a4acd64e2bb96e5aac978",
+      "squash_sha": "944b4e054cb6f9ce47dab004121d959e74ec951b",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/cheburcheck-v4-23",
+      "tip_sha": "517bdddfc31f8b5807d40b3e8c6b8e2e789cf45e",
+      "merged_pr": 153,
+      "original_pr_head_sha": "517bdddfc31f8b5807d40b3e8c6b8e2e789cf45e",
+      "squash_sha": "49178d8e666256d8bb7cced0905f503bf838b615",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/client-portal-stars-switches-342",
+      "tip_sha": "ff0d699ccb80b1fbab5197619976f1f9fc20b444",
+      "merged_pr": 368,
+      "original_pr_head_sha": "ff0d699ccb80b1fbab5197619976f1f9fc20b444",
+      "squash_sha": "2b3f936a8435b66bdf7ffcaaced4d61f11ebfb22",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/dashboard-attention",
+      "tip_sha": "5ebcd4c82451fc957a76ba90aff2f619c9e85e04",
+      "merged_pr": 221,
+      "original_pr_head_sha": "5ebcd4c82451fc957a76ba90aff2f619c9e85e04",
+      "squash_sha": "1b6c72a91f2aac340bca2df37220f8934a8bc52c",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/direct-node-onboarding-wrapper",
+      "tip_sha": "371bb91735207c87f39c49a5005540dfd8f352af",
+      "merged_pr": 24,
+      "original_pr_head_sha": "371bb91735207c87f39c49a5005540dfd8f352af",
+      "squash_sha": "f14d9c92478cc05e874cd4592890bff415f54a29",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/extended-node-backup-clean",
+      "tip_sha": "1b6afc96ecf75cb7310f8d2f7ccfabbd75f3c434",
+      "merged_pr": 45,
+      "original_pr_head_sha": "1b6afc96ecf75cb7310f8d2f7ccfabbd75f3c434",
+      "squash_sha": "a6c7f915a77bec8d54fad37e87fa1b42847dd946",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/fleet-operations",
+      "tip_sha": "413abf186e093e7ac42f230c2ca4e0e9b82135cf",
+      "merged_pr": 26,
+      "original_pr_head_sha": "413abf186e093e7ac42f230c2ca4e0e9b82135cf",
+      "squash_sha": "b297385f0f123eff3994b7d5cd2abab1c68cbebd",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/job-update-unknown-ack-353",
+      "tip_sha": "2552168cbdbc9599eb30da96ed76faec07f387d6",
+      "merged_pr": 362,
+      "original_pr_head_sha": "2552168cbdbc9599eb30da96ed76faec07f387d6",
+      "squash_sha": "c885bfaa927342a4d2c649557f55a95405dd548e",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/node-drain",
+      "tip_sha": "f3d105bc03fdaf13fe65f46a6cd943d40af3990e",
+      "merged_pr": 209,
+      "original_pr_head_sha": "f3d105bc03fdaf13fe65f46a6cd943d40af3990e",
+      "squash_sha": "e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/owner-client-session-reset-345",
+      "tip_sha": "680fa7789a12e8c4f42bcf15874f3bd8bbb954df",
+      "merged_pr": 416,
+      "original_pr_head_sha": "680fa7789a12e8c4f42bcf15874f3bd8bbb954df",
+      "squash_sha": "2693d30bbf7a7e5ec8cdb4e70f50c610d20bf6bb",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/rbac-privileges",
+      "tip_sha": "44ef8973aeff4238060349a93d984065b785c7f3",
+      "merged_pr": 42,
+      "original_pr_head_sha": "44ef8973aeff4238060349a93d984065b785c7f3",
+      "squash_sha": "2ffedb3abb0eb6a263ed6f274cd45e07e26d4dcf",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/telegram-command-catalog-356",
+      "tip_sha": "bf50ffad077a75b066bab1df55ccc2e0cfd8fe7d",
+      "merged_pr": 365,
+      "original_pr_head_sha": "bf50ffad077a75b066bab1df55ccc2e0cfd8fe7d",
+      "squash_sha": "482866ae7be7ae36351165fff93496377ceaf8a9",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/user-audience-groups",
+      "tip_sha": "c1b1c44c536f78f8b28517beff0656d152cb496f",
+      "merged_pr": 147,
+      "original_pr_head_sha": "c1b1c44c536f78f8b28517beff0656d152cb496f",
+      "squash_sha": "d0b7cb61ed926d9b613e5daaf253955ee10d503d",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/user-display-name",
+      "tip_sha": "bf1556cc77e91c3873857008cb56eeae102d1877",
+      "merged_pr": 136,
+      "original_pr_head_sha": "bf1556cc77e91c3873857008cb56eeae102d1877",
+      "squash_sha": "fa2d96aee104bc3b184ac208066b6dc73d564ff2",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-24-monitoring-foundation",
+      "tip_sha": "33785ccd9cdb315c92764c3f485bcff36fe4e0ac",
+      "merged_pr": 165,
+      "original_pr_head_sha": "33785ccd9cdb315c92764c3f485bcff36fe4e0ac",
+      "squash_sha": "b0c1728554b4a31c05e78421c8196d7c98696f70",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-24-monitoring-lifecycle",
+      "tip_sha": "3ed7f054f52de2821fd429ce844978d8570d8c45",
+      "merged_pr": 168,
+      "original_pr_head_sha": "3ed7f054f52de2821fd429ce844978d8570d8c45",
+      "squash_sha": "f0ca696bbe328d2a3011aa62fd1016d033918ca6",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-24-monitoring-ui-runtime",
+      "tip_sha": "8b967aa2eb9435624f4a6aa4affd01e0af737591",
+      "merged_pr": 166,
+      "original_pr_head_sha": "8b967aa2eb9435624f4a6aa4affd01e0af737591",
+      "squash_sha": "aa35185b33f96a7e9d7bc6878a58f3f6471714d1",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-24-web-diagnostics",
+      "tip_sha": "089a7a4535463c4f5ba12f7fb9ad29e62cd5b9e2",
+      "merged_pr": 167,
+      "original_pr_head_sha": "089a7a4535463c4f5ba12f7fb9ad29e62cd5b9e2",
+      "squash_sha": "d38227d98b729d0f6e9d35cfdd9a9c3a1c7f5ad9",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-bulk-completion",
+      "tip_sha": "6936549fcb25d96056ce8e2c92f525727fdf8ab2",
+      "merged_pr": 182,
+      "original_pr_head_sha": "6936549fcb25d96056ce8e2c92f525727fdf8ab2",
+      "squash_sha": "4a3f913636f4ec5022b7c14410123e8370c0d7d0",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-card-navigation",
+      "tip_sha": "e7d3add006b0124c36a739acf3b71431cccc34fd",
+      "merged_pr": 177,
+      "original_pr_head_sha": "e7d3add006b0124c36a739acf3b71431cccc34fd",
+      "squash_sha": "92df050cb48f76f6e6ad65ce9bee0496c510369e",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-connections",
+      "tip_sha": "7f4a2373954cffcc0c8d42b18203e33a9f26348e",
+      "merged_pr": 178,
+      "original_pr_head_sha": "7f4a2373954cffcc0c8d42b18203e33a9f26348e",
+      "squash_sha": "4599ec0fe5b55251a7de250304388e1424f89117",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-create",
+      "tip_sha": "3a6a41ef543bc2ae3591e73f09e4151f83838009",
+      "merged_pr": 180,
+      "original_pr_head_sha": "3a6a41ef543bc2ae3591e73f09e4151f83838009",
+      "squash_sha": "bedb28a221ff3ce335d8a17732fc8243d099d82f",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-management-foundation",
+      "tip_sha": "23ff19b013ba6339ae510120bdd3969065bad8d3",
+      "merged_pr": 176,
+      "original_pr_head_sha": "23ff19b013ba6339ae510120bdd3969065bad8d3",
+      "squash_sha": "9fa74b7f977ac52eb2dc8ee380ff5e54447f723c",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-payments-activity",
+      "tip_sha": "a2e82cc77ed9d801e3e7207d150b3adc09879be7",
+      "merged_pr": 179,
+      "original_pr_head_sha": "a2e82cc77ed9d801e3e7207d150b3adc09879be7",
+      "squash_sha": "ee43bcf43469e13d067d39df8fb941a86bf8926e",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4-25-user-safety-subscription",
+      "tip_sha": "3ff1de440f2fdf4246f60627086de6e9ee126ea3",
+      "merged_pr": 181,
+      "original_pr_head_sha": "3ff1de440f2fdf4246f60627086de6e9ee126ea3",
+      "squash_sha": "15075b8a62343dfc45c7b53fd3b86aa2f75b901c",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.9.2-system-version-fingerprint",
+      "tip_sha": "7a8f2c887f3285c478a132ec4590b1c1751388b0",
+      "merged_pr": 7,
+      "original_pr_head_sha": "7a8f2c887f3285c478a132ec4590b1c1751388b0",
+      "squash_sha": "937470eda9032bc95a521ee24eee7cda3c8213ba",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.10-host-control",
+      "tip_sha": "91aab52b47bba99359e3ecf95d118114c85c5f29",
+      "merged_pr": 12,
+      "original_pr_head_sha": "91aab52b47bba99359e3ecf95d118114c85c5f29",
+      "squash_sha": "f6d72c7292ea0758c60af8fef076215913666dab",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.11.0-node-onboarding",
+      "tip_sha": "dd2744f309346875a0a6468e646d11801d56fc68",
+      "merged_pr": 17,
+      "original_pr_head_sha": "dd2744f309346875a0a6468e646d11801d56fc68",
+      "squash_sha": "9b30bf743cef1b86e7998958d2d2124801129343",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.16-regression-hardening",
+      "tip_sha": "14dd01729d59e6bf0190574d1254e29be1662fc0",
+      "merged_pr": 60,
+      "original_pr_head_sha": "14dd01729d59e6bf0190574d1254e29be1662fc0",
+      "squash_sha": "1a4c2cb940a42d7cd52a417ba78ae925bd3f5d8f",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.17-openapi-contract-gate",
+      "tip_sha": "a6dc3d1c2f7377d332fcb1fe015b11788d18c9a2",
+      "merged_pr": 64,
+      "original_pr_head_sha": "a6dc3d1c2f7377d332fcb1fe015b11788d18c9a2",
+      "squash_sha": "194154b86b76db70313b9342ecda87834aab492f",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.18-offsite-backup",
+      "tip_sha": "45386133476507f20337aa8800366c13d7ec3b7b",
+      "merged_pr": 68,
+      "original_pr_head_sha": "45386133476507f20337aa8800366c13d7ec3b7b",
+      "squash_sha": "1c2fe32a2e85bb3b206a5d0ed80fc08301cc1b78",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/v4.19-safe-bot-self-update",
+      "tip_sha": "fa0c21fd8f3c699f05b03216181cf61c8582bba5",
+      "merged_pr": 73,
+      "original_pr_head_sha": "fa0c21fd8f3c699f05b03216181cf61c8582bba5",
+      "squash_sha": "20c7e6ffdbaa00ff50b63d68457dd768e3028d61",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/versioned-sqlite-migrations",
+      "tip_sha": "20608d01a745a5a0d8a29ac8bab6deaa8a3dc906",
+      "merged_pr": 55,
+      "original_pr_head_sha": "20608d01a745a5a0d8a29ac8bab6deaa8a3dc906",
+      "squash_sha": "4fc21305e287463b5aeda5941a96d74a85083274",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "feature/versions-updates",
+      "tip_sha": "6e6d26274d15c78f6440b40471a38f29b99cd59d",
+      "merged_pr": 1,
+      "original_pr_head_sha": "6e6d26274d15c78f6440b40471a38f29b99cd59d",
+      "squash_sha": "9c9f534fe318ede5aff0885743566362cbfc341a",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/attention-navigation-role-heading-354",
+      "tip_sha": "7bb726a31f32403e9fc1c710e62d2271b9733acb",
+      "merged_pr": 363,
+      "original_pr_head_sha": "7bb726a31f32403e9fc1c710e62d2271b9733acb",
+      "squash_sha": "0b44ac1c7dd4b53f69092ee8c5a38c7c0c4e504e",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/backup-master-fail-closed",
+      "tip_sha": "dda781907b7319ad492865c39bb6438534eeb4af",
+      "merged_pr": 350,
+      "original_pr_head_sha": "dda781907b7319ad492865c39bb6438534eeb4af",
+      "squash_sha": "3125559771e0e0cd14a17ab1ab1f8bde3dc9406c",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/client-portal-callback-effective-flag",
+      "tip_sha": "c8d1d3ac8df6a89012df42766168937fbbe9fdcc",
+      "merged_pr": 420,
+      "original_pr_head_sha": "c8d1d3ac8df6a89012df42766168937fbbe9fdcc",
+      "squash_sha": "7afb430bd1e87c95f3b12d467402ee3f3eccf262",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/container-least-privilege-rollout",
+      "tip_sha": "b51b5995af681d217086adae8a50dce92badcb36",
+      "merged_pr": 269,
+      "original_pr_head_sha": "b51b5995af681d217086adae8a50dce92badcb36",
+      "squash_sha": "d3f0611060292e0609a10128e1351bcfdbabe18f",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/container-source-permissions",
+      "tip_sha": "d460f78c708ff3498d034d0da92c930b34761b10",
+      "merged_pr": 279,
+      "original_pr_head_sha": "d460f78c708ff3498d034d0da92c930b34761b10",
+      "squash_sha": "6ebdd5e5bb67e741ce643de853c50c90889a45f3",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/history-secret-audit-fetch",
+      "tip_sha": "c60baf0d975347bf854f9e3c6021663662ac503d",
+      "merged_pr": 265,
+      "original_pr_head_sha": "c60baf0d975347bf854f9e3c6021663662ac503d",
+      "squash_sha": "c8a15362d82bfae812dc93758568602a1475febd",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/inbound-input-validation",
+      "tip_sha": "186b958cf6d8af7d6f37c794f19405046ae18483",
+      "merged_pr": 200,
+      "original_pr_head_sha": "186b958cf6d8af7d6f37c794f19405046ae18483",
+      "squash_sha": "2b24ce709ffe77d479c98e1604462deb4910c072",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/job-alert-repeat-context",
+      "tip_sha": "cfc18797972226e9e0cb227e3e7664aef3543bcf",
+      "merged_pr": 361,
+      "original_pr_head_sha": "cfc18797972226e9e0cb227e3e7664aef3543bcf",
+      "squash_sha": "43fdd371990bc0a0ac240c918b529f39f295df2a",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/master-backup-api-wal-acl",
+      "tip_sha": "b1c4df9fa7f83ca5e3e64e52e37070b11e65b44f",
+      "merged_pr": 351,
+      "original_pr_head_sha": "b1c4df9fa7f83ca5e3e64e52e37070b11e65b44f",
+      "squash_sha": "6321a03218368b5807f48ded8d256f3564750eaf",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/node-drain-cancel-navigation",
+      "tip_sha": "a26233176467f23ed537d3e803c4db454389637c",
+      "merged_pr": 213,
+      "original_pr_head_sha": "a26233176467f23ed537d3e803c4db454389637c",
+      "squash_sha": "218f2e9fda914b05121051dd0dd00a94ba99dc6b",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/permission-aware-navigation",
+      "tip_sha": "ec36268fa8affdd5e1a845e6930d27326abafacd",
+      "merged_pr": 228,
+      "original_pr_head_sha": "ec36268fa8affdd5e1a845e6930d27326abafacd",
+      "squash_sha": "7e34a61354a94f8565cd94967654f127ec0f258d",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/qa352-direct-preview-import",
+      "tip_sha": "5305583d4b995949755da4ebc7c05c94862ebead",
+      "merged_pr": 454,
+      "original_pr_head_sha": "5305583d4b995949755da4ebc7c05c94862ebead",
+      "squash_sha": "bddfbe8eda98c4bcfea8440dab659a4760908f9d",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/safari-subscription-assets-nginx",
+      "tip_sha": "048fe4f3f67ebe4cd9d428d1c4d491acdf2f3e50",
+      "merged_pr": 300,
+      "original_pr_head_sha": "048fe4f3f67ebe4cd9d428d1c4d491acdf2f3e50",
+      "squash_sha": "5b5df5a577b1aebd4f28173c1914b4c931b2b66e",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/stars-invoice-use-bot-display-name",
+      "tip_sha": "31baa5427b8a7e0b7cd0e2a1070991b98916bba0",
+      "merged_pr": 347,
+      "original_pr_head_sha": "31baa5427b8a7e0b7cd0e2a1070991b98916bba0",
+      "squash_sha": "71c3f0eb7b0c7d4c3192ba4a0c49f6f505a9e70d",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/stars-paid-invoice-cleanup-320",
+      "tip_sha": "b525328d2de39b6a3c41b3a44b63c99bf0b99da8",
+      "merged_pr": 417,
+      "original_pr_head_sha": "b525328d2de39b6a3c41b3a44b63c99bf0b99da8",
+      "squash_sha": "b29cbe2019e3170becbb77f33d3f0319588a324c",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/subscription-browser-blank-page",
+      "tip_sha": "76ea0c926adf9805c89d03180baba9f5c6226dd5",
+      "merged_pr": 297,
+      "original_pr_head_sha": "76ea0c926adf9805c89d03180baba9f5c6226dd5",
+      "squash_sha": "d081f8bf1c881dc3e8a0a79959c2b6716cb725c8",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/subscription-runtime-base-path",
+      "tip_sha": "922af000227da4573ce7367a331d8c3bc40d0248",
+      "merged_pr": 298,
+      "original_pr_head_sha": "922af000227da4573ce7367a331d8c3bc40d0248",
+      "squash_sha": "e6466d579c0ec136986dd3dec21433392b18519a",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/trial-zero-limits-343",
+      "tip_sha": "5608105300913eefa4fd5c671f99ddd148bc69a0",
+      "merged_pr": 367,
+      "original_pr_head_sha": "5608105300913eefa4fd5c671f99ddd148bc69a0",
+      "squash_sha": "587940ac86163fc31a690411046a08d6f2980f30",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4-25-access-navigation-contract",
+      "tip_sha": "b6fbd241054019c5ca9eb62fe253f19bcc4aac46",
+      "merged_pr": 183,
+      "original_pr_head_sha": "b6fbd241054019c5ca9eb62fe253f19bcc4aac46",
+      "squash_sha": "f94785362587ccc50e8c3b6d5b0df0d3d7cfce33",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4-25-final-ui-contract",
+      "tip_sha": "5c1d115007be49eaef30f6dec8ca5d68c2f44d08",
+      "merged_pr": 184,
+      "original_pr_head_sha": "5c1d115007be49eaef30f6dec8ca5d68c2f44d08",
+      "squash_sha": "6dea0b9153f14fa4ee0b30f62c5bb8d4f558703a",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.8-inbound-capitalization",
+      "tip_sha": "8d57c95c81d61d5c6be08300d50eb7744f2d9070",
+      "merged_pr": 128,
+      "original_pr_head_sha": "8d57c95c81d61d5c6be08300d50eb7744f2d9070",
+      "squash_sha": "ac435dc00176202a4ae8b693665addcb878d2241",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.9-post-acceptance-ui-cleanup",
+      "tip_sha": "6de9c6cf2ce1d5fed917c05a00cda560819ab46c",
+      "merged_pr": 131,
+      "original_pr_head_sha": "6de9c6cf2ce1d5fed917c05a00cda560819ab46c",
+      "squash_sha": "f5a9a07a10c6ec914f8c0ec05f5021b91f01a403",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.10-inbound-keyboard-density",
+      "tip_sha": "b06832e9dfbf63e3f928f77abc13fa506c3fd409",
+      "merged_pr": 133,
+      "original_pr_head_sha": "b06832e9dfbf63e3f928f77abc13fa506c3fd409",
+      "squash_sha": "b5706cecef499e1612b7c05b7ec287d9540e6dc3",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.21.1-display-time-consistency",
+      "tip_sha": "faa1ff287dc4013b0c3de58970dee2220a0e87da",
+      "merged_pr": 140,
+      "original_pr_head_sha": "faa1ff287dc4013b0c3de58970dee2220a0e87da",
+      "squash_sha": "bb7130406a1b85f04df7bcb32e4e78e6cc565920",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.21.2-dr-logs",
+      "tip_sha": "8613d075d078b6fd9159290d9314050db89e0b1b",
+      "merged_pr": 143,
+      "original_pr_head_sha": "8613d075d078b6fd9159290d9314050db89e0b1b",
+      "squash_sha": "e0ddcb9e53b14f44e140587dce85ea0da4f722fb",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.25.8-navigation-owner-safety",
+      "tip_sha": "f5fdb1284286396cb2a7023444da96d9d492473f",
+      "merged_pr": 205,
+      "original_pr_head_sha": "f5fdb1284286396cb2a7023444da96d9d492473f",
+      "squash_sha": "1b28d5cc3e668b134bb18a6f29364533ac5398be",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-expired-customer-status",
+      "tip_sha": "2d5b3fe24f9c6a2e2ffbc706e0ccfd43e1edd268",
+      "merged_pr": 312,
+      "original_pr_head_sha": "2d5b3fe24f9c6a2e2ffbc706e0ccfd43e1edd268",
+      "squash_sha": "c25c8aaf8ac2f6f814c3955552c684284af8c16c",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-rc3-provider-access-status",
+      "tip_sha": "41dacac830e26df181bbf7c4280a7611ca50d44e",
+      "merged_pr": 325,
+      "original_pr_head_sha": "41dacac830e26df181bbf7c4280a7611ca50d44e",
+      "squash_sha": "95231befc9988c47d29150f2084d1a8af8444e41",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-rc3-quota-ui",
+      "tip_sha": "bb3a326fa9ad908f59751bcdf2887fde6ccfc411",
+      "merged_pr": 318,
+      "original_pr_head_sha": "bb3a326fa9ad908f59751bcdf2887fde6ccfc411",
+      "squash_sha": "ba4a25980ddb185dd5558d9387a8f4fe9cbed1c8",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-stars-refund-handler-import",
+      "tip_sha": "f3b7f75fa375299f81e25c60174d9e273a72d13a",
+      "merged_pr": 329,
+      "original_pr_head_sha": "f3b7f75fa375299f81e25c60174d9e273a72d13a",
+      "squash_sha": "2ba7decc38a7365107a7b4ab3530bc4aa5671c2b",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v5-stars-refund-terminal-and-admin-totals",
+      "tip_sha": "29596f9cdfcba0dfd8eccb275c5e0bcf8cd26f67",
+      "merged_pr": 335,
+      "original_pr_head_sha": "29596f9cdfcba0dfd8eccb275c5e0bcf8cd26f67",
+      "squash_sha": "4b66f3ce48afbe3bdd9c979a633825bacd13d55c",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4250-acceptance-readonly-extend",
+      "tip_sha": "4eeca5a076241ddafdb313f57dfc37c15a0b4246",
+      "merged_pr": 188,
+      "original_pr_head_sha": "4eeca5a076241ddafdb313f57dfc37c15a0b4246",
+      "squash_sha": "6d2c877f96b13a82e3a331ce3d60cc593521c888",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4251-stabilization",
+      "tip_sha": "837be548cad132b56669ce3ff06c995a1be5fec2",
+      "merged_pr": 189,
+      "original_pr_head_sha": "837be548cad132b56669ce3ff06c995a1be5fec2",
+      "squash_sha": "99e51b8988ffd90413b324021cac352ee71b39b7",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4252-subscription-compat",
+      "tip_sha": "a78065522e402c0c848b4d500cc12690c09b7849",
+      "merged_pr": 191,
+      "original_pr_head_sha": "a78065522e402c0c848b4d500cc12690c09b7849",
+      "squash_sha": "b71d45846a5fa4734337bf2afc526ad3e83a8f9b",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4253-incy-desktop-ua",
+      "tip_sha": "453c146d438e2fc32c10b0dd7a10bf589f03d809",
+      "merged_pr": 193,
+      "original_pr_head_sha": "453c146d438e2fc32c10b0dd7a10bf589f03d809",
+      "squash_sha": "92909cde932c09d5b1b98742ef66e4fc3041424f",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4254-streisand-plain-subscription",
+      "tip_sha": "3a7c87c00c91f400d4ef4c90aa35c48a3fcb9c86",
+      "merged_pr": 195,
+      "original_pr_head_sha": "3a7c87c00c91f400d4ef4c90aa35c48a3fcb9c86",
+      "squash_sha": "6126190301bff41ca7c142c1ea42fd7758c60b68",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4255-streisand-force-raw",
+      "tip_sha": "770607de34140d47a4d02b14d02bef5d5a2d9647",
+      "merged_pr": 196,
+      "original_pr_head_sha": "770607de34140d47a4d02b14d02bef5d5a2d9647",
+      "squash_sha": "ac9ef4792030e191a91d17a54bdca1d101ddeebe",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4256-revert-streisand-workarounds",
+      "tip_sha": "03f3ff4d625c147ec5d4c96f3167516b3e1e82f6",
+      "merged_pr": 197,
+      "original_pr_head_sha": "03f3ff4d625c147ec5d4c96f3167516b3e1e82f6",
+      "squash_sha": "b3fb80d334c8cded51e4bc9de4b08af2e31d0cd6",
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT"
+    }
+  ],
+  "full_inventory": [
+    {
+      "branch": "chore/git-conventions",
+      "tip_sha": "678939c7474d01260d1afdaff24f4b1985353c5d",
+      "protected": false,
+      "merged_pr": 21,
+      "original_pr_head_sha": "678939c7474d01260d1afdaff24f4b1985353c5d",
+      "squash_sha": "1ccfbc6db722eaaff3c9da1c8e8bbdc103ec938f",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "chore/guarded-legacy-branch-cleanup-001-20261012",
+      "tip_sha": "36663c61764308416cd6ac085503ab95a1179876",
+      "protected": false,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 0,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "linked_pr_count_0",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "chore/host-control-rollout",
+      "tip_sha": "b2c8d5776d6b85192b8860c33b1a71d896534d9a",
+      "protected": false,
+      "merged_pr": 15,
+      "original_pr_head_sha": "b2c8d5776d6b85192b8860c33b1a71d896534d9a",
+      "squash_sha": "389b1b906eab638f6a580c747145a244e921ddb9",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "chore/living-docs-contract",
+      "tip_sha": "06b4d1e9e62cefa47f77a946ecf4dc80125cf391",
+      "protected": false,
+      "merged_pr": 289,
+      "original_pr_head_sha": "06b4d1e9e62cefa47f77a946ecf4dc80125cf391",
+      "squash_sha": "6f61f092d67376093335094cd85980fe7f0342e9",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "chore/localize-release-v490",
+      "tip_sha": "c0b40a3d1169163bb86a15daa2f1327aa4ba8122",
+      "protected": false,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 0,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "linked_pr_count_0",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "chore/pr-checklist-gate",
+      "tip_sha": "5836ffe504dc710a2cfa63a3266975ba35c1de1e",
+      "protected": false,
+      "merged_pr": 371,
+      "original_pr_head_sha": "5836ffe504dc710a2cfa63a3266975ba35c1de1e",
+      "squash_sha": "c808716089678422338a844951a34737832c5b79",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "chore/publish-v4.9.0",
+      "tip_sha": "d4861cf2d18cc4fc38caa2997a4989729701d6bc",
+      "protected": false,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 0,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "linked_pr_count_0",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "chore/publish-v4.9.1",
+      "tip_sha": "9b959657e46d3aae73789560d0b4c4ab3b23c456",
+      "protected": false,
+      "merged_pr": 5,
+      "original_pr_head_sha": "8ff9849ab6542e8817285148ec646dac899bb1b3",
+      "squash_sha": "eeb778e2cf879ea0073056332c12c54ccc7635f4",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "original_pr_tip_mismatch"
+      ]
+    },
+    {
+      "branch": "chore/publish-v4.9.2",
+      "tip_sha": "b27ca479822878ebefc594acde6bd158e8fee2d1",
+      "protected": false,
+      "merged_pr": 8,
+      "original_pr_head_sha": "e20fb41a22b3ff22de09b6993c159a6ec365eabd",
+      "squash_sha": "57c3f04e901899201e248d556981f11189aa9fb9",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "original_pr_tip_mismatch"
+      ]
+    },
+    {
+      "branch": "chore/publish-v4.9.3",
+      "tip_sha": "62c4aad2b9100fbd97dbab646f0e71f936263699",
+      "protected": false,
+      "merged_pr": 10,
+      "original_pr_head_sha": "2eae326af2406212130151172004e924677c4c61",
+      "squash_sha": "ce1e660463e0bc7d05e78f0d28caf44d4d6c3a15",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "original_pr_tip_mismatch"
+      ]
+    },
+    {
+      "branch": "chore/publish-v4.10.0",
+      "tip_sha": "d05a7fbd4a9f2786e6abb9622dd5f9ef3f7f9fa9",
+      "protected": false,
+      "merged_pr": 13,
+      "original_pr_head_sha": "d05a7fbd4a9f2786e6abb9622dd5f9ef3f7f9fa9",
+      "squash_sha": "b1d25d743a8037e59e767dbcfb00fd6b4bcd5299",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "chore/release-automation",
+      "tip_sha": "2b7ad82f47d608cce712f68880ae9d33d8a4db0e",
+      "protected": false,
+      "merged_pr": 19,
+      "original_pr_head_sha": "2b7ad82f47d608cce712f68880ae9d33d8a4db0e",
+      "squash_sha": "ab04200fcd6036afe18a8b36ba6c844a6981f142",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "chore/release-deploy-helper",
+      "tip_sha": "5ac20bf05981ecf895d0eac3b5ea9ba5743cd97d",
+      "protected": false,
+      "merged_pr": 6,
+      "original_pr_head_sha": "5ac20bf05981ecf895d0eac3b5ea9ba5743cd97d",
+      "squash_sha": "72f66eb28b8d7a899a5c841ec784f6e51454a0bb",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "chore/retire-next-100-docs-510",
+      "tip_sha": "fc2a4ecb626320aee15b0d26b174b3c47a5eab22",
+      "protected": false,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 0,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "linked_pr_count_0",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "chore/vps-recovery-kit",
+      "tip_sha": "16b1666997a7839c24ffcb5b436b92bd1fc2b643",
+      "protected": false,
+      "merged_pr": 14,
+      "original_pr_head_sha": "16b1666997a7839c24ffcb5b436b92bd1fc2b643",
+      "squash_sha": "7619117258e580bcb5c599081793029bb52fd547",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "chore/3xui-living-contract-sync",
+      "tip_sha": "99f781f44af4fdba43a92fb362eccddecf771413",
+      "protected": false,
+      "merged_pr": 428,
+      "original_pr_head_sha": "99f781f44af4fdba43a92fb362eccddecf771413",
+      "squash_sha": "0304c4f612df5ecc6dcb5f38771ecf7ccedb139d",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "docs/branch-audit-closure-readback-20261012",
+      "tip_sha": "ca4c922e1980c24c6f7e08c48829694213980b7e",
+      "protected": false,
+      "merged_pr": 512,
+      "original_pr_head_sha": "ca4c922e1980c24c6f7e08c48829694213980b7e",
+      "squash_sha": "fe91d42c23ea4cbf02cbf88b60a1cf580f13c9e3",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "docs/branch-batch20-510-closure-sync",
+      "tip_sha": "ce3fb684e773f471e3d70d0ab3d284eaf5545b58",
+      "protected": false,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 0,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "linked_pr_count_0",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "docs/branch-cleanup-100-84-final-510",
+      "tip_sha": "31e8d4d32b9396c96f2c46eece10287fdb782528",
+      "protected": false,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 0,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "linked_pr_count_0",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "docs/future-external-psp-sbp-checkout",
+      "tip_sha": "3c7968ff227d51cdad1aa4b6d6de45003dbee203",
+      "protected": false,
+      "merged_pr": 337,
+      "original_pr_head_sha": "3c7968ff227d51cdad1aa4b6d6de45003dbee203",
+      "squash_sha": "e445c1b640a9d00151be3273346ec98c77a1161f",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "unmerged_pr"
+      ]
+    },
+    {
+      "branch": "docs/merged-pr-branch-patch-audit-20261012",
+      "tip_sha": "b1c2f7becf3024cba92ecc8ad3d91413243e72a5",
+      "protected": false,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 0,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "linked_pr_count_0",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "docs/russian-documentation",
+      "tip_sha": "40101eec1125b9b1f7077751b42d9f1403195b92",
+      "protected": false,
+      "merged_pr": 2,
+      "original_pr_head_sha": "40101eec1125b9b1f7077751b42d9f1403195b92",
+      "squash_sha": "f322adcd15b21d1798e48a9b72b3ebdde8c608da",
+      "linked_pr_count": 1,
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reasons": [
+        "known_exception_retain"
+      ],
+      "exception_detail": "исторический PR/squash blob mismatch; RETAIN"
+    },
+    {
+      "branch": "docs/v4.10-host-control-contract",
+      "tip_sha": "e760bd9047066c4118d7b54558d8e85a042de772",
+      "protected": false,
+      "merged_pr": 11,
+      "original_pr_head_sha": "e760bd9047066c4118d7b54558d8e85a042de772",
+      "squash_sha": "ec9837e142a5dac16b4491cf49eda13748e40412",
+      "linked_pr_count": 1,
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reasons": [
+        "known_exception_retain"
+      ],
+      "exception_detail": "исторический PR/squash blob mismatch; RETAIN"
+    },
+    {
+      "branch": "docs/v5-rc7-production-smoke-20261010",
+      "tip_sha": "1307dba03350fe0222050f126986617f97892e6d",
+      "protected": false,
+      "merged_pr": 403,
+      "original_pr_head_sha": "1307dba03350fe0222050f126986617f97892e6d",
+      "squash_sha": "1d4f9be029ed504137fc010ffacaef2e3d3157bb",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "unmerged_pr"
+      ]
+    },
+    {
+      "branch": "docs/v4253-production-acceptance",
+      "tip_sha": "3f3059ae436d52b42c2ed73287aa2638815033a2",
+      "protected": false,
+      "merged_pr": 194,
+      "original_pr_head_sha": "3f3059ae436d52b42c2ed73287aa2638815033a2",
+      "squash_sha": "12975e1e8a38bc82ac54389a8d90bb85c3b440b2",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "unmerged_pr"
+      ]
+    },
+    {
+      "branch": "feat/master-node-hosts-readonly-422",
+      "tip_sha": "42ccdd740b8a062def3242d1c04574ab72a9d548",
+      "protected": false,
+      "merged_pr": 424,
+      "original_pr_head_sha": "42ccdd740b8a062def3242d1c04574ab72a9d548",
+      "squash_sha": "cfb6d1108d35e139200bd1652306f17a3738d699",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-checkout-provider-boundary",
+      "tip_sha": "2b5fbd817d2fa107b36d11578016f030fb2aa548",
+      "protected": false,
+      "merged_pr": 302,
+      "original_pr_head_sha": "2b5fbd817d2fa107b36d11578016f030fb2aa548",
+      "squash_sha": "12ffc3660feebb35f3656e36fe58c4c180e04f00",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-client-onboarding-diagnostics",
+      "tip_sha": "9839396320f37559a1848d144709ce62562f0148",
+      "protected": false,
+      "merged_pr": 306,
+      "original_pr_head_sha": "9839396320f37559a1848d144709ce62562f0148",
+      "squash_sha": "c500a22572d2952cd742abc675cde6ee74c53519",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-client-portal-shell",
+      "tip_sha": "42b64d2b6d6a5a3f5d9ffd34c4ab28a5acdf7ec7",
+      "protected": false,
+      "merged_pr": 296,
+      "original_pr_head_sha": "42b64d2b6d6a5a3f5d9ffd34c4ab28a5acdf7ec7",
+      "squash_sha": "0b58e634ad5f7a602a1a60afca941a3d81a5eafe",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-commerce-foundation",
+      "tip_sha": "9cc2d7cd14c9dfa296bb39834ddf23789a0422e1",
+      "protected": false,
+      "merged_pr": 290,
+      "original_pr_head_sha": "9cc2d7cd14c9dfa296bb39834ddf23789a0422e1",
+      "squash_sha": "da28e1d4deb245661166913f1e8533ad1b1f3bc5",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-customer-service-boundary",
+      "tip_sha": "beb89ecb73513df39691a40f4a3abc968e044d6b",
+      "protected": false,
+      "merged_pr": 301,
+      "original_pr_head_sha": "beb89ecb73513df39691a40f4a3abc968e044d6b",
+      "squash_sha": "acd8f41d3121b93486cc303b86e0608b91b571c9",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-entitlement-fulfillment-worker",
+      "tip_sha": "3d89e083fcaa6b663dc224c75716daeee8ce1ce3",
+      "protected": false,
+      "merged_pr": 295,
+      "original_pr_head_sha": "3d89e083fcaa6b663dc224c75716daeee8ce1ce3",
+      "squash_sha": "ed8ae145e04cfc6e3b5f4b38cbe4b0509bedd712",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-entitlement-provisioning",
+      "tip_sha": "39f374cea8eccdb46f692cad64a55e0fc97aa58d",
+      "protected": false,
+      "merged_pr": 292,
+      "original_pr_head_sha": "39f374cea8eccdb46f692cad64a55e0fc97aa58d",
+      "squash_sha": "9d5d83730d5cb3acdf35b324b300d681db668847",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-launch-readiness",
+      "tip_sha": "4e7bb23fe848ad51a82256d3e43a9411e53355bd",
+      "protected": false,
+      "merged_pr": 307,
+      "original_pr_head_sha": "4e7bb23fe848ad51a82256d3e43a9411e53355bd",
+      "squash_sha": "81b54a0de5d0d892428affb4affbaa1f17845c91",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-payment-entitlement-transaction",
+      "tip_sha": "0831384e76bba14a9905ac80ed7050e46252aea9",
+      "protected": false,
+      "merged_pr": 291,
+      "original_pr_head_sha": "0831384e76bba14a9905ac80ed7050e46252aea9",
+      "squash_sha": "e0a8f8c5fffdf85906255e82ad6bfa7e65b137db",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-payment-event-reconciliation",
+      "tip_sha": "d08fdc87f27ad7028af2255adb2ddd656938e139",
+      "protected": false,
+      "merged_pr": 294,
+      "original_pr_head_sha": "d08fdc87f27ad7028af2255adb2ddd656938e139",
+      "squash_sha": "afb32d3ef4819205165552e8f7399f5edce2052f",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-payment-webhook-gateway",
+      "tip_sha": "cb731d04c4c57de56bf9b714c47780a1ff54f0de",
+      "protected": false,
+      "merged_pr": 293,
+      "original_pr_head_sha": "cb731d04c4c57de56bf9b714c47780a1ff54f0de",
+      "squash_sha": "13efc622a9e87a5858f8e6cc7aaea1322f06bf60",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-release-candidate-path",
+      "tip_sha": "c2a76a0132e8bb59ecc7e572475d533ee2c18d8d",
+      "protected": false,
+      "merged_pr": 310,
+      "original_pr_head_sha": "c2a76a0132e8bb59ecc7e572475d533ee2c18d8d",
+      "squash_sha": "2d39bc342d7b9352b4fc43958a19c263179290f1",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-stars-production-hardening",
+      "tip_sha": "840c848ef516b2b3b1124770cd646e4ec33f1afb",
+      "protected": false,
+      "merged_pr": 305,
+      "original_pr_head_sha": "840c848ef516b2b3b1124770cd646e4ec33f1afb",
+      "squash_sha": "4494774c0985851a020f9c3866a07190d2b2463e",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feat/v5-telegram-stars",
+      "tip_sha": "1eee32586d3ee14bd493037bd3be7f0c6a01c581",
+      "protected": false,
+      "merged_pr": 304,
+      "original_pr_head_sha": "1eee32586d3ee14bd493037bd3be7f0c6a01c581",
+      "squash_sha": "e65a55cf184bb81635faa15e57747ea87bb8982e",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/admin-username-display-355",
+      "tip_sha": "7d7874aa278d8ab9d99dab4bdfcdbf7e2a78f5b8",
+      "protected": false,
+      "merged_pr": 364,
+      "original_pr_head_sha": "7d7874aa278d8ab9d99dab4bdfcdbf7e2a78f5b8",
+      "squash_sha": "4acf990eb09363dda78dd43cb26a57990a95b907",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/attention-center",
+      "tip_sha": "5044031d53279d992faf5719b53ad9b5e7063047",
+      "protected": false,
+      "merged_pr": 224,
+      "original_pr_head_sha": "5044031d53279d992faf5719b53ad9b5e7063047",
+      "squash_sha": "9acbbe85d16a6907b11e477d96245a7cc3be656d",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/cheburcheck-discovery-v4-23",
+      "tip_sha": "b9da160fb1e8b0283568d65f41553fd8d8f72c7b",
+      "protected": false,
+      "merged_pr": 154,
+      "original_pr_head_sha": "b9da160fb1e8b0283568d65f41553fd8d8f72c7b",
+      "squash_sha": "05a888a2d6dab8c44203e1acff108cd9a92404f0",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/cheburcheck-v4-23-2",
+      "tip_sha": "d5df86801329aae29b1a4acd64e2bb96e5aac978",
+      "protected": false,
+      "merged_pr": 158,
+      "original_pr_head_sha": "d5df86801329aae29b1a4acd64e2bb96e5aac978",
+      "squash_sha": "944b4e054cb6f9ce47dab004121d959e74ec951b",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/cheburcheck-v4-23",
+      "tip_sha": "517bdddfc31f8b5807d40b3e8c6b8e2e789cf45e",
+      "protected": false,
+      "merged_pr": 153,
+      "original_pr_head_sha": "517bdddfc31f8b5807d40b3e8c6b8e2e789cf45e",
+      "squash_sha": "49178d8e666256d8bb7cced0905f503bf838b615",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/client-portal-stars-switches-342",
+      "tip_sha": "ff0d699ccb80b1fbab5197619976f1f9fc20b444",
+      "protected": false,
+      "merged_pr": 368,
+      "original_pr_head_sha": "ff0d699ccb80b1fbab5197619976f1f9fc20b444",
+      "squash_sha": "2b3f936a8435b66bdf7ffcaaced4d61f11ebfb22",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/dashboard-attention",
+      "tip_sha": "5ebcd4c82451fc957a76ba90aff2f619c9e85e04",
+      "protected": false,
+      "merged_pr": 221,
+      "original_pr_head_sha": "5ebcd4c82451fc957a76ba90aff2f619c9e85e04",
+      "squash_sha": "1b6c72a91f2aac340bca2df37220f8934a8bc52c",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/direct-node-onboarding-wrapper",
+      "tip_sha": "371bb91735207c87f39c49a5005540dfd8f352af",
+      "protected": false,
+      "merged_pr": 24,
+      "original_pr_head_sha": "371bb91735207c87f39c49a5005540dfd8f352af",
+      "squash_sha": "f14d9c92478cc05e874cd4592890bff415f54a29",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/extended-node-backup",
+      "tip_sha": "c0c9fa11ed1b773935d09e89baf459c701d8e6a1",
+      "protected": false,
+      "merged_pr": 44,
+      "original_pr_head_sha": "c0c9fa11ed1b773935d09e89baf459c701d8e6a1",
+      "squash_sha": "47a24302082024735a01d91ddfe49ae871aef4dc",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "unmerged_pr"
+      ]
+    },
+    {
+      "branch": "feature/extended-node-backup-clean",
+      "tip_sha": "1b6afc96ecf75cb7310f8d2f7ccfabbd75f3c434",
+      "protected": false,
+      "merged_pr": 45,
+      "original_pr_head_sha": "1b6afc96ecf75cb7310f8d2f7ccfabbd75f3c434",
+      "squash_sha": "a6c7f915a77bec8d54fad37e87fa1b42847dd946",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/fleet-operations",
+      "tip_sha": "413abf186e093e7ac42f230c2ca4e0e9b82135cf",
+      "protected": false,
+      "merged_pr": 26,
+      "original_pr_head_sha": "413abf186e093e7ac42f230c2ca4e0e9b82135cf",
+      "squash_sha": "b297385f0f123eff3994b7d5cd2abab1c68cbebd",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/job-update-unknown-ack-353",
+      "tip_sha": "2552168cbdbc9599eb30da96ed76faec07f387d6",
+      "protected": false,
+      "merged_pr": 362,
+      "original_pr_head_sha": "2552168cbdbc9599eb30da96ed76faec07f387d6",
+      "squash_sha": "c885bfaa927342a4d2c649557f55a95405dd548e",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/node-drain",
+      "tip_sha": "f3d105bc03fdaf13fe65f46a6cd943d40af3990e",
+      "protected": false,
+      "merged_pr": 209,
+      "original_pr_head_sha": "f3d105bc03fdaf13fe65f46a6cd943d40af3990e",
+      "squash_sha": "e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/owner-client-session-reset-345",
+      "tip_sha": "680fa7789a12e8c4f42bcf15874f3bd8bbb954df",
+      "protected": false,
+      "merged_pr": 416,
+      "original_pr_head_sha": "680fa7789a12e8c4f42bcf15874f3bd8bbb954df",
+      "squash_sha": "2693d30bbf7a7e5ec8cdb4e70f50c610d20bf6bb",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/rbac-privileges",
+      "tip_sha": "44ef8973aeff4238060349a93d984065b785c7f3",
+      "protected": false,
+      "merged_pr": 42,
+      "original_pr_head_sha": "44ef8973aeff4238060349a93d984065b785c7f3",
+      "squash_sha": "2ffedb3abb0eb6a263ed6f274cd45e07e26d4dcf",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/telegram-command-catalog-356",
+      "tip_sha": "bf50ffad077a75b066bab1df55ccc2e0cfd8fe7d",
+      "protected": false,
+      "merged_pr": 365,
+      "original_pr_head_sha": "bf50ffad077a75b066bab1df55ccc2e0cfd8fe7d",
+      "squash_sha": "482866ae7be7ae36351165fff93496377ceaf8a9",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/user-audience-groups",
+      "tip_sha": "c1b1c44c536f78f8b28517beff0656d152cb496f",
+      "protected": false,
+      "merged_pr": 147,
+      "original_pr_head_sha": "c1b1c44c536f78f8b28517beff0656d152cb496f",
+      "squash_sha": "d0b7cb61ed926d9b613e5daaf253955ee10d503d",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/user-display-name",
+      "tip_sha": "bf1556cc77e91c3873857008cb56eeae102d1877",
+      "protected": false,
+      "merged_pr": 136,
+      "original_pr_head_sha": "bf1556cc77e91c3873857008cb56eeae102d1877",
+      "squash_sha": "fa2d96aee104bc3b184ac208066b6dc73d564ff2",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-24-monitoring-foundation",
+      "tip_sha": "33785ccd9cdb315c92764c3f485bcff36fe4e0ac",
+      "protected": false,
+      "merged_pr": 165,
+      "original_pr_head_sha": "33785ccd9cdb315c92764c3f485bcff36fe4e0ac",
+      "squash_sha": "b0c1728554b4a31c05e78421c8196d7c98696f70",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-24-monitoring-lifecycle",
+      "tip_sha": "3ed7f054f52de2821fd429ce844978d8570d8c45",
+      "protected": false,
+      "merged_pr": 168,
+      "original_pr_head_sha": "3ed7f054f52de2821fd429ce844978d8570d8c45",
+      "squash_sha": "f0ca696bbe328d2a3011aa62fd1016d033918ca6",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-24-monitoring-ui-runtime",
+      "tip_sha": "8b967aa2eb9435624f4a6aa4affd01e0af737591",
+      "protected": false,
+      "merged_pr": 166,
+      "original_pr_head_sha": "8b967aa2eb9435624f4a6aa4affd01e0af737591",
+      "squash_sha": "aa35185b33f96a7e9d7bc6878a58f3f6471714d1",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-24-web-diagnostics",
+      "tip_sha": "089a7a4535463c4f5ba12f7fb9ad29e62cd5b9e2",
+      "protected": false,
+      "merged_pr": 167,
+      "original_pr_head_sha": "089a7a4535463c4f5ba12f7fb9ad29e62cd5b9e2",
+      "squash_sha": "d38227d98b729d0f6e9d35cfdd9a9c3a1c7f5ad9",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-25-user-bulk-completion",
+      "tip_sha": "6936549fcb25d96056ce8e2c92f525727fdf8ab2",
+      "protected": false,
+      "merged_pr": 182,
+      "original_pr_head_sha": "6936549fcb25d96056ce8e2c92f525727fdf8ab2",
+      "squash_sha": "4a3f913636f4ec5022b7c14410123e8370c0d7d0",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-25-user-card-navigation",
+      "tip_sha": "e7d3add006b0124c36a739acf3b71431cccc34fd",
+      "protected": false,
+      "merged_pr": 177,
+      "original_pr_head_sha": "e7d3add006b0124c36a739acf3b71431cccc34fd",
+      "squash_sha": "92df050cb48f76f6e6ad65ce9bee0496c510369e",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-25-user-connections",
+      "tip_sha": "7f4a2373954cffcc0c8d42b18203e33a9f26348e",
+      "protected": false,
+      "merged_pr": 178,
+      "original_pr_head_sha": "7f4a2373954cffcc0c8d42b18203e33a9f26348e",
+      "squash_sha": "4599ec0fe5b55251a7de250304388e1424f89117",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-25-user-create",
+      "tip_sha": "3a6a41ef543bc2ae3591e73f09e4151f83838009",
+      "protected": false,
+      "merged_pr": 180,
+      "original_pr_head_sha": "3a6a41ef543bc2ae3591e73f09e4151f83838009",
+      "squash_sha": "bedb28a221ff3ce335d8a17732fc8243d099d82f",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-25-user-management-foundation",
+      "tip_sha": "23ff19b013ba6339ae510120bdd3969065bad8d3",
+      "protected": false,
+      "merged_pr": 176,
+      "original_pr_head_sha": "23ff19b013ba6339ae510120bdd3969065bad8d3",
+      "squash_sha": "9fa74b7f977ac52eb2dc8ee380ff5e54447f723c",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-25-user-payments-activity",
+      "tip_sha": "a2e82cc77ed9d801e3e7207d150b3adc09879be7",
+      "protected": false,
+      "merged_pr": 179,
+      "original_pr_head_sha": "a2e82cc77ed9d801e3e7207d150b3adc09879be7",
+      "squash_sha": "ee43bcf43469e13d067d39df8fb941a86bf8926e",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4-25-user-safety-subscription",
+      "tip_sha": "3ff1de440f2fdf4246f60627086de6e9ee126ea3",
+      "protected": false,
+      "merged_pr": 181,
+      "original_pr_head_sha": "3ff1de440f2fdf4246f60627086de6e9ee126ea3",
+      "squash_sha": "15075b8a62343dfc45c7b53fd3b86aa2f75b901c",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4.9.2-system-version-fingerprint",
+      "tip_sha": "7a8f2c887f3285c478a132ec4590b1c1751388b0",
+      "protected": false,
+      "merged_pr": 7,
+      "original_pr_head_sha": "7a8f2c887f3285c478a132ec4590b1c1751388b0",
+      "squash_sha": "937470eda9032bc95a521ee24eee7cda3c8213ba",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4.10-host-control",
+      "tip_sha": "91aab52b47bba99359e3ecf95d118114c85c5f29",
+      "protected": false,
+      "merged_pr": 12,
+      "original_pr_head_sha": "91aab52b47bba99359e3ecf95d118114c85c5f29",
+      "squash_sha": "f6d72c7292ea0758c60af8fef076215913666dab",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4.11.0-node-onboarding",
+      "tip_sha": "dd2744f309346875a0a6468e646d11801d56fc68",
+      "protected": false,
+      "merged_pr": 17,
+      "original_pr_head_sha": "dd2744f309346875a0a6468e646d11801d56fc68",
+      "squash_sha": "9b30bf743cef1b86e7998958d2d2124801129343",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4.16-regression-hardening",
+      "tip_sha": "14dd01729d59e6bf0190574d1254e29be1662fc0",
+      "protected": false,
+      "merged_pr": 60,
+      "original_pr_head_sha": "14dd01729d59e6bf0190574d1254e29be1662fc0",
+      "squash_sha": "1a4c2cb940a42d7cd52a417ba78ae925bd3f5d8f",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4.17-openapi-contract-gate",
+      "tip_sha": "a6dc3d1c2f7377d332fcb1fe015b11788d18c9a2",
+      "protected": false,
+      "merged_pr": 64,
+      "original_pr_head_sha": "a6dc3d1c2f7377d332fcb1fe015b11788d18c9a2",
+      "squash_sha": "194154b86b76db70313b9342ecda87834aab492f",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4.18-offsite-backup",
+      "tip_sha": "45386133476507f20337aa8800366c13d7ec3b7b",
+      "protected": false,
+      "merged_pr": 68,
+      "original_pr_head_sha": "45386133476507f20337aa8800366c13d7ec3b7b",
+      "squash_sha": "1c2fe32a2e85bb3b206a5d0ed80fc08301cc1b78",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/v4.19-safe-bot-self-update",
+      "tip_sha": "fa0c21fd8f3c699f05b03216181cf61c8582bba5",
+      "protected": false,
+      "merged_pr": 73,
+      "original_pr_head_sha": "fa0c21fd8f3c699f05b03216181cf61c8582bba5",
+      "squash_sha": "20c7e6ffdbaa00ff50b63d68457dd768e3028d61",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/versioned-sqlite-migrations",
+      "tip_sha": "20608d01a745a5a0d8a29ac8bab6deaa8a3dc906",
+      "protected": false,
+      "merged_pr": 55,
+      "original_pr_head_sha": "20608d01a745a5a0d8a29ac8bab6deaa8a3dc906",
+      "squash_sha": "4fc21305e287463b5aeda5941a96d74a85083274",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "feature/versions-updates",
+      "tip_sha": "6e6d26274d15c78f6440b40471a38f29b99cd59d",
+      "protected": false,
+      "merged_pr": 1,
+      "original_pr_head_sha": "6e6d26274d15c78f6440b40471a38f29b99cd59d",
+      "squash_sha": "9c9f534fe318ede5aff0885743566362cbfc341a",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/admin-ui-navigation-consistency",
+      "tip_sha": "ea8bc25aa310b082436af88a61e88712a38f2a35",
+      "protected": false,
+      "merged_pr": 4,
+      "original_pr_head_sha": "ea8bc25aa310b082436af88a61e88712a38f2a35",
+      "squash_sha": "c24f04008422c4920d9eb86cc74f3fa141c1624c",
+      "linked_pr_count": 1,
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reasons": [
+        "known_exception_retain"
+      ],
+      "exception_detail": "PR/squash file/status/blob mismatch; RETAIN"
+    },
+    {
+      "branch": "fix/attention-navigation-role-heading-354",
+      "tip_sha": "7bb726a31f32403e9fc1c710e62d2271b9733acb",
+      "protected": false,
+      "merged_pr": 363,
+      "original_pr_head_sha": "7bb726a31f32403e9fc1c710e62d2271b9733acb",
+      "squash_sha": "0b44ac1c7dd4b53f69092ee8c5a38c7c0c4e504e",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/backup-master-fail-closed",
+      "tip_sha": "dda781907b7319ad492865c39bb6438534eeb4af",
+      "protected": false,
+      "merged_pr": 350,
+      "original_pr_head_sha": "dda781907b7319ad492865c39bb6438534eeb4af",
+      "squash_sha": "3125559771e0e0cd14a17ab1ab1f8bde3dc9406c",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/client-portal-callback-effective-flag",
+      "tip_sha": "c8d1d3ac8df6a89012df42766168937fbbe9fdcc",
+      "protected": false,
+      "merged_pr": 420,
+      "original_pr_head_sha": "c8d1d3ac8df6a89012df42766168937fbbe9fdcc",
+      "squash_sha": "7afb430bd1e87c95f3b12d467402ee3f3eccf262",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/container-least-privilege-rollout",
+      "tip_sha": "b51b5995af681d217086adae8a50dce92badcb36",
+      "protected": false,
+      "merged_pr": 269,
+      "original_pr_head_sha": "b51b5995af681d217086adae8a50dce92badcb36",
+      "squash_sha": "d3f0611060292e0609a10128e1351bcfdbabe18f",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/container-source-permissions",
+      "tip_sha": "d460f78c708ff3498d034d0da92c930b34761b10",
+      "protected": false,
+      "merged_pr": 279,
+      "original_pr_head_sha": "d460f78c708ff3498d034d0da92c930b34761b10",
+      "squash_sha": "6ebdd5e5bb67e741ce643de853c50c90889a45f3",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/history-secret-audit-fetch",
+      "tip_sha": "c60baf0d975347bf854f9e3c6021663662ac503d",
+      "protected": false,
+      "merged_pr": 265,
+      "original_pr_head_sha": "c60baf0d975347bf854f9e3c6021663662ac503d",
+      "squash_sha": "c8a15362d82bfae812dc93758568602a1475febd",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/inbound-input-validation",
+      "tip_sha": "186b958cf6d8af7d6f37c794f19405046ae18483",
+      "protected": false,
+      "merged_pr": 200,
+      "original_pr_head_sha": "186b958cf6d8af7d6f37c794f19405046ae18483",
+      "squash_sha": "2b24ce709ffe77d479c98e1604462deb4910c072",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/job-alert-repeat-context",
+      "tip_sha": "cfc18797972226e9e0cb227e3e7664aef3543bcf",
+      "protected": false,
+      "merged_pr": 361,
+      "original_pr_head_sha": "cfc18797972226e9e0cb227e3e7664aef3543bcf",
+      "squash_sha": "43fdd371990bc0a0ac240c918b529f39f295df2a",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/master-backup-api-wal-acl",
+      "tip_sha": "b1c4df9fa7f83ca5e3e64e52e37070b11e65b44f",
+      "protected": false,
+      "merged_pr": 351,
+      "original_pr_head_sha": "b1c4df9fa7f83ca5e3e64e52e37070b11e65b44f",
+      "squash_sha": "6321a03218368b5807f48ded8d256f3564750eaf",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/node-drain-cancel-navigation",
+      "tip_sha": "a26233176467f23ed537d3e803c4db454389637c",
+      "protected": false,
+      "merged_pr": 213,
+      "original_pr_head_sha": "a26233176467f23ed537d3e803c4db454389637c",
+      "squash_sha": "218f2e9fda914b05121051dd0dd00a94ba99dc6b",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/permission-aware-navigation",
+      "tip_sha": "ec36268fa8affdd5e1a845e6930d27326abafacd",
+      "protected": false,
+      "merged_pr": 228,
+      "original_pr_head_sha": "ec36268fa8affdd5e1a845e6930d27326abafacd",
+      "squash_sha": "7e34a61354a94f8565cd94967654f127ec0f258d",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/qa352-direct-preview-import",
+      "tip_sha": "5305583d4b995949755da4ebc7c05c94862ebead",
+      "protected": false,
+      "merged_pr": 454,
+      "original_pr_head_sha": "5305583d4b995949755da4ebc7c05c94862ebead",
+      "squash_sha": "bddfbe8eda98c4bcfea8440dab659a4760908f9d",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/release-tag-probe",
+      "tip_sha": "ac68a7d065523b50f717d5f81d32825f357c5340",
+      "protected": false,
+      "merged_pr": 20,
+      "original_pr_head_sha": "ac68a7d065523b50f717d5f81d32825f357c5340",
+      "squash_sha": "958500aadb28ab470c4cd029c886ef424da90a46",
+      "linked_pr_count": 1,
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reasons": [
+        "known_exception_retain"
+      ],
+      "exception_detail": "tracked source branch-name dependency; RETAIN"
+    },
+    {
+      "branch": "fix/safari-subscription-assets-nginx",
+      "tip_sha": "048fe4f3f67ebe4cd9d428d1c4d491acdf2f3e50",
+      "protected": false,
+      "merged_pr": 300,
+      "original_pr_head_sha": "048fe4f3f67ebe4cd9d428d1c4d491acdf2f3e50",
+      "squash_sha": "5b5df5a577b1aebd4f28173c1914b4c931b2b66e",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/stable-bot-docker-network",
+      "tip_sha": "2f571f6080dc3cf463cef03ed97dee219bb89274",
+      "protected": false,
+      "merged_pr": 3,
+      "original_pr_head_sha": "2f571f6080dc3cf463cef03ed97dee219bb89274",
+      "squash_sha": "7187d7390b10a60bd4ed27ec5e3ef231ff5aa914",
+      "linked_pr_count": 1,
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reasons": [
+        "known_exception_retain"
+      ],
+      "exception_detail": "PR/squash file/status/blob mismatch; RETAIN"
+    },
+    {
+      "branch": "fix/stars-invoice-use-bot-display-name",
+      "tip_sha": "31baa5427b8a7e0b7cd0e2a1070991b98916bba0",
+      "protected": false,
+      "merged_pr": 347,
+      "original_pr_head_sha": "31baa5427b8a7e0b7cd0e2a1070991b98916bba0",
+      "squash_sha": "71c3f0eb7b0c7d4c3192ba4a0c49f6f505a9e70d",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/stars-paid-invoice-cleanup-320",
+      "tip_sha": "b525328d2de39b6a3c41b3a44b63c99bf0b99da8",
+      "protected": false,
+      "merged_pr": 417,
+      "original_pr_head_sha": "b525328d2de39b6a3c41b3a44b63c99bf0b99da8",
+      "squash_sha": "b29cbe2019e3170becbb77f33d3f0319588a324c",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/subscription-browser-blank-page",
+      "tip_sha": "76ea0c926adf9805c89d03180baba9f5c6226dd5",
+      "protected": false,
+      "merged_pr": 297,
+      "original_pr_head_sha": "76ea0c926adf9805c89d03180baba9f5c6226dd5",
+      "squash_sha": "d081f8bf1c881dc3e8a0a79959c2b6716cb725c8",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/subscription-runtime-base-path",
+      "tip_sha": "922af000227da4573ce7367a331d8c3bc40d0248",
+      "protected": false,
+      "merged_pr": 298,
+      "original_pr_head_sha": "922af000227da4573ce7367a331d8c3bc40d0248",
+      "squash_sha": "e6466d579c0ec136986dd3dec21433392b18519a",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/trial-zero-limits-343",
+      "tip_sha": "5608105300913eefa4fd5c671f99ddd148bc69a0",
+      "protected": false,
+      "merged_pr": 367,
+      "original_pr_head_sha": "5608105300913eefa4fd5c671f99ddd148bc69a0",
+      "squash_sha": "587940ac86163fc31a690411046a08d6f2980f30",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/ui-russian-domain",
+      "tip_sha": "21a6dd32a38e488d9f67e23948be975321e99832",
+      "protected": false,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 2,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "linked_pr_count_2",
+        "unmerged_pr",
+        "original_pr_tip_mismatch",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "fix/v4-25-access-navigation-contract",
+      "tip_sha": "b6fbd241054019c5ca9eb62fe253f19bcc4aac46",
+      "protected": false,
+      "merged_pr": 183,
+      "original_pr_head_sha": "b6fbd241054019c5ca9eb62fe253f19bcc4aac46",
+      "squash_sha": "f94785362587ccc50e8c3b6d5b0df0d3d7cfce33",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4-25-final-ui-contract",
+      "tip_sha": "5c1d115007be49eaef30f6dec8ca5d68c2f44d08",
+      "protected": false,
+      "merged_pr": 184,
+      "original_pr_head_sha": "5c1d115007be49eaef30f6dec8ca5d68c2f44d08",
+      "squash_sha": "6dea0b9153f14fa4ee0b30f62c5bb8d4f558703a",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4.9.3-node-detail-counters",
+      "tip_sha": "7679bac9f49dda1d639b265ab11be15ce7a16a6e",
+      "protected": false,
+      "merged_pr": 9,
+      "original_pr_head_sha": "7679bac9f49dda1d639b265ab11be15ce7a16a6e",
+      "squash_sha": "b7b36cd0b376dcc07f3bcdc42586af5ba22ce566",
+      "linked_pr_count": 1,
+      "classification": "RETAIN_MANUAL_REVIEW",
+      "reasons": [
+        "known_exception_retain"
+      ],
+      "exception_detail": "PR/squash file/status/blob mismatch; RETAIN"
+    },
+    {
+      "branch": "fix/v4.20.7-inbounds-terminology",
+      "tip_sha": "84ac14637f859ce79700eed55787a3730a630a2e",
+      "protected": false,
+      "merged_pr": 124,
+      "original_pr_head_sha": "84ac14637f859ce79700eed55787a3730a630a2e",
+      "squash_sha": null,
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "unmerged_pr",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "fix/v4.20.8-inbound-capitalization",
+      "tip_sha": "8d57c95c81d61d5c6be08300d50eb7744f2d9070",
+      "protected": false,
+      "merged_pr": 128,
+      "original_pr_head_sha": "8d57c95c81d61d5c6be08300d50eb7744f2d9070",
+      "squash_sha": "ac435dc00176202a4ae8b693665addcb878d2241",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4.20.9-post-acceptance-ui-cleanup",
+      "tip_sha": "6de9c6cf2ce1d5fed917c05a00cda560819ab46c",
+      "protected": false,
+      "merged_pr": 131,
+      "original_pr_head_sha": "6de9c6cf2ce1d5fed917c05a00cda560819ab46c",
+      "squash_sha": "f5a9a07a10c6ec914f8c0ec05f5021b91f01a403",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4.20.10-inbound-keyboard-density",
+      "tip_sha": "b06832e9dfbf63e3f928f77abc13fa506c3fd409",
+      "protected": false,
+      "merged_pr": 133,
+      "original_pr_head_sha": "b06832e9dfbf63e3f928f77abc13fa506c3fd409",
+      "squash_sha": "b5706cecef499e1612b7c05b7ec287d9540e6dc3",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4.21.1-display-time-consistency",
+      "tip_sha": "faa1ff287dc4013b0c3de58970dee2220a0e87da",
+      "protected": false,
+      "merged_pr": 140,
+      "original_pr_head_sha": "faa1ff287dc4013b0c3de58970dee2220a0e87da",
+      "squash_sha": "bb7130406a1b85f04df7bcb32e4e78e6cc565920",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4.21.2-dr-logs",
+      "tip_sha": "8613d075d078b6fd9159290d9314050db89e0b1b",
+      "protected": false,
+      "merged_pr": 143,
+      "original_pr_head_sha": "8613d075d078b6fd9159290d9314050db89e0b1b",
+      "squash_sha": "e0ddcb9e53b14f44e140587dce85ea0da4f722fb",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4.25.8-navigation-owner-safety",
+      "tip_sha": "f5fdb1284286396cb2a7023444da96d9d492473f",
+      "protected": false,
+      "merged_pr": 205,
+      "original_pr_head_sha": "f5fdb1284286396cb2a7023444da96d9d492473f",
+      "squash_sha": "1b28d5cc3e668b134bb18a6f29364533ac5398be",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v5-expired-customer-status",
+      "tip_sha": "2d5b3fe24f9c6a2e2ffbc706e0ccfd43e1edd268",
+      "protected": false,
+      "merged_pr": 312,
+      "original_pr_head_sha": "2d5b3fe24f9c6a2e2ffbc706e0ccfd43e1edd268",
+      "squash_sha": "c25c8aaf8ac2f6f814c3955552c684284af8c16c",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v5-rc3-provider-access-status",
+      "tip_sha": "41dacac830e26df181bbf7c4280a7611ca50d44e",
+      "protected": false,
+      "merged_pr": 325,
+      "original_pr_head_sha": "41dacac830e26df181bbf7c4280a7611ca50d44e",
+      "squash_sha": "95231befc9988c47d29150f2084d1a8af8444e41",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v5-rc3-quota-ui",
+      "tip_sha": "bb3a326fa9ad908f59751bcdf2887fde6ccfc411",
+      "protected": false,
+      "merged_pr": 318,
+      "original_pr_head_sha": "bb3a326fa9ad908f59751bcdf2887fde6ccfc411",
+      "squash_sha": "ba4a25980ddb185dd5558d9387a8f4fe9cbed1c8",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v5-stars-refund-handler-import",
+      "tip_sha": "f3b7f75fa375299f81e25c60174d9e273a72d13a",
+      "protected": false,
+      "merged_pr": 329,
+      "original_pr_head_sha": "f3b7f75fa375299f81e25c60174d9e273a72d13a",
+      "squash_sha": "2ba7decc38a7365107a7b4ab3530bc4aa5671c2b",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v5-stars-refund-terminal-and-admin-totals",
+      "tip_sha": "29596f9cdfcba0dfd8eccb275c5e0bcf8cd26f67",
+      "protected": false,
+      "merged_pr": 335,
+      "original_pr_head_sha": "29596f9cdfcba0dfd8eccb275c5e0bcf8cd26f67",
+      "squash_sha": "4b66f3ce48afbe3bdd9c979a633825bacd13d55c",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4250-acceptance-readonly-extend",
+      "tip_sha": "4eeca5a076241ddafdb313f57dfc37c15a0b4246",
+      "protected": false,
+      "merged_pr": 188,
+      "original_pr_head_sha": "4eeca5a076241ddafdb313f57dfc37c15a0b4246",
+      "squash_sha": "6d2c877f96b13a82e3a331ce3d60cc593521c888",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4251-stabilization",
+      "tip_sha": "837be548cad132b56669ce3ff06c995a1be5fec2",
+      "protected": false,
+      "merged_pr": 189,
+      "original_pr_head_sha": "837be548cad132b56669ce3ff06c995a1be5fec2",
+      "squash_sha": "99e51b8988ffd90413b324021cac352ee71b39b7",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4252-subscription-compat",
+      "tip_sha": "a78065522e402c0c848b4d500cc12690c09b7849",
+      "protected": false,
+      "merged_pr": 191,
+      "original_pr_head_sha": "a78065522e402c0c848b4d500cc12690c09b7849",
+      "squash_sha": "b71d45846a5fa4734337bf2afc526ad3e83a8f9b",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4253-incy-desktop-ua",
+      "tip_sha": "453c146d438e2fc32c10b0dd7a10bf589f03d809",
+      "protected": false,
+      "merged_pr": 193,
+      "original_pr_head_sha": "453c146d438e2fc32c10b0dd7a10bf589f03d809",
+      "squash_sha": "92909cde932c09d5b1b98742ef66e4fc3041424f",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4254-streisand-plain-subscription",
+      "tip_sha": "3a7c87c00c91f400d4ef4c90aa35c48a3fcb9c86",
+      "protected": false,
+      "merged_pr": 195,
+      "original_pr_head_sha": "3a7c87c00c91f400d4ef4c90aa35c48a3fcb9c86",
+      "squash_sha": "6126190301bff41ca7c142c1ea42fd7758c60b68",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4255-streisand-force-raw",
+      "tip_sha": "770607de34140d47a4d02b14d02bef5d5a2d9647",
+      "protected": false,
+      "merged_pr": 196,
+      "original_pr_head_sha": "770607de34140d47a4d02b14d02bef5d5a2d9647",
+      "squash_sha": "ac9ef4792030e191a91d17a54bdca1d101ddeebe",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/v4256-revert-streisand-workarounds",
+      "tip_sha": "03f3ff4d625c147ec5d4c96f3167516b3e1e82f6",
+      "protected": false,
+      "merged_pr": 197,
+      "original_pr_head_sha": "03f3ff4d625c147ec5d4c96f3167516b3e1e82f6",
+      "squash_sha": "b3fb80d334c8cded51e4bc9de4b08af2e31d0cd6",
+      "linked_pr_count": 1,
+      "classification": "PREPARED_REQUIRES_FRESH_DEEP_PREFLIGHT",
+      "reasons": []
+    },
+    {
+      "branch": "fix/xui-mutation-certainty",
+      "tip_sha": "598364a6b9d090e256be2eececcca72fd0e87b47",
+      "protected": false,
+      "merged_pr": 250,
+      "original_pr_head_sha": "598364a6b9d090e256be2eececcca72fd0e87b47",
+      "squash_sha": "d4178af779e344f757ee4bed27cc43c675c32794",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "fix/xui-mutation-certainty-phase2",
+      "tip_sha": "e8e77a1fefee91f818ad55a927b430a478223667",
+      "protected": false,
+      "merged_pr": 252,
+      "original_pr_head_sha": "e8e77a1fefee91f818ad55a927b430a478223667",
+      "squash_sha": "8d6dc771993daeb9c4198bbf7cb31c9aecd17ade",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "fix/xui-mutation-certainty-phase3",
+      "tip_sha": "d49293c2d35bed02d1abc71792d8aa1c6557be14",
+      "protected": false,
+      "merged_pr": 253,
+      "original_pr_head_sha": "d49293c2d35bed02d1abc71792d8aa1c6557be14",
+      "squash_sha": "8ef2e0f1b652d5dbb2112d294b745b6d18de866e",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "fix/xui-mutation-certainty-phase4",
+      "tip_sha": "2a16caf3a86195d72c683b5a0bbee7ef9e5acc5f",
+      "protected": false,
+      "merged_pr": 255,
+      "original_pr_head_sha": "2a16caf3a86195d72c683b5a0bbee7ef9e5acc5f",
+      "squash_sha": "32b1c1f536151c6c3640b3328752759208dcefaf",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "hotfix/cheburcheck-v4-23-3",
+      "tip_sha": "3d8be2fbd933130253dc4fba8e710739dec4f31e",
+      "protected": false,
+      "merged_pr": 160,
+      "original_pr_head_sha": "3d8be2fbd933130253dc4fba8e710739dec4f31e",
+      "squash_sha": "e4bec20b5959922612fd8ffb2c0d6f7040a41935",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "hotfix/direct-node-bind-parsing",
+      "tip_sha": "98989e2e2d017994a8544636477c7af77b9b1610",
+      "protected": false,
+      "merged_pr": 52,
+      "original_pr_head_sha": "98989e2e2d017994a8544636477c7af77b9b1610",
+      "squash_sha": "33fce6447e103b1f5ba79d42faf5ae750c334186",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "hotfix/fleet-rollout-job-accounting",
+      "tip_sha": "d2a85ce400e2de0b4c8914ad25662622a3a98e5d",
+      "protected": false,
+      "merged_pr": 29,
+      "original_pr_head_sha": "d2a85ce400e2de0b4c8914ad25662622a3a98e5d",
+      "squash_sha": "7965025e110e74397a35142bbfe42ae2cf1cb354",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "hotfix/host-control-snapshot-streaming",
+      "tip_sha": "34f629499978ddc01adfb6cdd16c23318c319c1f",
+      "protected": false,
+      "merged_pr": 48,
+      "original_pr_head_sha": "34f629499978ddc01adfb6cdd16c23318c319c1f",
+      "squash_sha": "852cc3b9cccdbbdb508be71a2e0874d4185a88c5",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "hotfix/v4-24-1-diagnostics-ipv6",
+      "tip_sha": "608bbc403c46b6dc1a7627020bc59cd7bbf21522",
+      "protected": false,
+      "merged_pr": 171,
+      "original_pr_head_sha": "608bbc403c46b6dc1a7627020bc59cd7bbf21522",
+      "squash_sha": "813f2f6b909f4e1c0eeedfb70e69bb009443bf93",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "main",
+      "tip_sha": "87451138f93a5b877bdb4056bbc6c415750bd9bd",
+      "protected": true,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 0,
+      "classification": "RETAIN_PROTECTED",
+      "reasons": [
+        "protected_main",
+        "protected_ref",
+        "linked_pr_count_0",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "release/v4-23-0",
+      "tip_sha": "ef39ed8bfc771dc5ea211b2f60b55179614f9c04",
+      "protected": false,
+      "merged_pr": 155,
+      "original_pr_head_sha": "ef39ed8bfc771dc5ea211b2f60b55179614f9c04",
+      "squash_sha": "628953099f7a0eb700e740285e4719b0a54299f9",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4-23-1",
+      "tip_sha": "b4acd456d163fccae43fb8e4c1f275e0af6008a7",
+      "protected": false,
+      "merged_pr": 156,
+      "original_pr_head_sha": "b4acd456d163fccae43fb8e4c1f275e0af6008a7",
+      "squash_sha": "ff6638442cbe9c2adc9aa76d74c2cfb4b647aaf6",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.10.0-publish",
+      "tip_sha": "11dbf45fd95de9c9092668015404e48233a64540",
+      "protected": false,
+      "merged_pr": null,
+      "original_pr_head_sha": null,
+      "squash_sha": null,
+      "linked_pr_count": 0,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review",
+        "linked_pr_count_0",
+        "missing_or_unverified_squash_sha"
+      ]
+    },
+    {
+      "branch": "release/v4.10.1",
+      "tip_sha": "b1c1e1a00115421641dbb7f1aabc4637457554ea",
+      "protected": false,
+      "merged_pr": 16,
+      "original_pr_head_sha": "b1c1e1a00115421641dbb7f1aabc4637457554ea",
+      "squash_sha": "c3bccf7edfcf0db2ea7513f90483b72111b0b7b5",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.11.0",
+      "tip_sha": "8707f1a67469da802860f2e513cdf1db6585a435",
+      "protected": false,
+      "merged_pr": 18,
+      "original_pr_head_sha": "8707f1a67469da802860f2e513cdf1db6585a435",
+      "squash_sha": "104a17ec1f797b971b74d33dacd3febf93f66fb6",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.11.1",
+      "tip_sha": "8006c5bed107667f981ba668d85bb80ac8b5d326",
+      "protected": false,
+      "merged_pr": 23,
+      "original_pr_head_sha": "8006c5bed107667f981ba668d85bb80ac8b5d326",
+      "squash_sha": "b23040fd5df930d6265c9249149ed004f9b7685f",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.12.0",
+      "tip_sha": "8ee5ab32db5db676ed59811ed0c5a0c4f756ee77",
+      "protected": false,
+      "merged_pr": 25,
+      "original_pr_head_sha": "8ee5ab32db5db676ed59811ed0c5a0c4f756ee77",
+      "squash_sha": "9fff63d03d66962f4812221cdbe205e1a02e74e1",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.13.0",
+      "tip_sha": "afa770f443d60869e181092f82595e4117302a08",
+      "protected": false,
+      "merged_pr": 27,
+      "original_pr_head_sha": "afa770f443d60869e181092f82595e4117302a08",
+      "squash_sha": "91ada391fa1250f67930a6bda2a5f394474a7f46",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.13.1",
+      "tip_sha": "a78e454a570a4c67df25012c8df936934d5b0b14",
+      "protected": false,
+      "merged_pr": 30,
+      "original_pr_head_sha": "a78e454a570a4c67df25012c8df936934d5b0b14",
+      "squash_sha": "8f9ba237c1bd85c086b4fcef8ac47747459c8f69",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.13.2",
+      "tip_sha": "1f77dc18a85801aa5024023485cc3f78718e4982",
+      "protected": false,
+      "merged_pr": 38,
+      "original_pr_head_sha": "1f77dc18a85801aa5024023485cc3f78718e4982",
+      "squash_sha": "70350296ca0a41ec5053b5cbfa96255fa63a009d",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.14.0",
+      "tip_sha": "d573cbaa61f85140c25b3ad29f630f5656fd3bee",
+      "protected": false,
+      "merged_pr": 47,
+      "original_pr_head_sha": "d573cbaa61f85140c25b3ad29f630f5656fd3bee",
+      "squash_sha": "6cc5e95600e75e863d38ae00b070a994daf84ee3",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.14.1",
+      "tip_sha": "78c06beab129b003d88a2653e6f13767ab52771f",
+      "protected": false,
+      "merged_pr": 49,
+      "original_pr_head_sha": "78c06beab129b003d88a2653e6f13767ab52771f",
+      "squash_sha": "81c018c0084b31483d4457d5dcd6e7be04cd4e00",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.14.2",
+      "tip_sha": "a6c3aa7cee8b250c4737453ddc13bf7b2c5c4e01",
+      "protected": false,
+      "merged_pr": 53,
+      "original_pr_head_sha": "a6c3aa7cee8b250c4737453ddc13bf7b2c5c4e01",
+      "squash_sha": "cb602ba1824d510f94e7c30fb2ca23ac355397df",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.15.0",
+      "tip_sha": "5c0a67d2762424ee2f6c9968c261316fb7fd5312",
+      "protected": false,
+      "merged_pr": 57,
+      "original_pr_head_sha": "5c0a67d2762424ee2f6c9968c261316fb7fd5312",
+      "squash_sha": "3de864e9d1a779cbf25fb783bbb036b9542f9ef5",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.16.0",
+      "tip_sha": "871990dc70bd9c840d7dea97ea547fffe1a6ebfa",
+      "protected": false,
+      "merged_pr": 62,
+      "original_pr_head_sha": "871990dc70bd9c840d7dea97ea547fffe1a6ebfa",
+      "squash_sha": "90f3240588a94396ba3c6a29b8d84218d6d2a70f",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.17.0",
+      "tip_sha": "6ad8be06e19744c694775ea5deb5f7e3559f6b14",
+      "protected": false,
+      "merged_pr": 66,
+      "original_pr_head_sha": "6ad8be06e19744c694775ea5deb5f7e3559f6b14",
+      "squash_sha": "cc47384acf311a810b3450250c6c389ba0acea10",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.18.0",
+      "tip_sha": "3c2b7f251a61505135e02f6887b6403e0d8cb938",
+      "protected": false,
+      "merged_pr": 70,
+      "original_pr_head_sha": "3c2b7f251a61505135e02f6887b6403e0d8cb938",
+      "squash_sha": "1cc730c5929ba8b2fe1152a0db1ade4b1aaa21f9",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.19.0",
+      "tip_sha": "4d2bd7f6b01ed2965384fd1328d7975ebe7934ed",
+      "protected": false,
+      "merged_pr": 75,
+      "original_pr_head_sha": "4d2bd7f6b01ed2965384fd1328d7975ebe7934ed",
+      "squash_sha": "a31a353f4477f1b2ad9367d53ed2ffe7543681f2",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.19.1",
+      "tip_sha": "67dde6440a65d10813646d35cf7ab8ec03aab350",
+      "protected": false,
+      "merged_pr": 76,
+      "original_pr_head_sha": "67dde6440a65d10813646d35cf7ab8ec03aab350",
+      "squash_sha": "40b96a310c121d708043610bde3581acb0e6d971",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.0",
+      "tip_sha": "cc4e21f52aaff066f118ae1b6a3f340f9bd9d2aa",
+      "protected": false,
+      "merged_pr": 106,
+      "original_pr_head_sha": "cc4e21f52aaff066f118ae1b6a3f340f9bd9d2aa",
+      "squash_sha": "4fec4e0274a8810f4135b07d239609218d002add",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.2",
+      "tip_sha": "beaa64b4dd12f803b878a0cd76e17d6eea5b2c96",
+      "protected": false,
+      "merged_pr": 110,
+      "original_pr_head_sha": "beaa64b4dd12f803b878a0cd76e17d6eea5b2c96",
+      "squash_sha": "8bf23b64be8478f14f8c2e2d783254ff130e16f5",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.3",
+      "tip_sha": "3db510e2f5235726baa0de19d12fbb5688273d01",
+      "protected": false,
+      "merged_pr": 112,
+      "original_pr_head_sha": "3db510e2f5235726baa0de19d12fbb5688273d01",
+      "squash_sha": "d6c844d3e327d2f5efab20ae6ceddb3a43a55e13",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.4",
+      "tip_sha": "1ef8b2e106d55e0ca36d979380fb4c2b0f29af4f",
+      "protected": false,
+      "merged_pr": 113,
+      "original_pr_head_sha": "1ef8b2e106d55e0ca36d979380fb4c2b0f29af4f",
+      "squash_sha": "da487178f4d283c84d59d5fea660b2927c2b7329",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.5",
+      "tip_sha": "a3e1907a16d9b910f290e3e23db53ad414c7d11c",
+      "protected": false,
+      "merged_pr": 118,
+      "original_pr_head_sha": "a3e1907a16d9b910f290e3e23db53ad414c7d11c",
+      "squash_sha": "2ae5db0485ec73c7ec7115ef36c1b3e38334d7eb",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.6",
+      "tip_sha": "8fdc1c1743089490dd174b57c44f91eebf49c9c6",
+      "protected": false,
+      "merged_pr": 122,
+      "original_pr_head_sha": "8fdc1c1743089490dd174b57c44f91eebf49c9c6",
+      "squash_sha": "5f4f74c9d1e96abec6e212f634fe61c76596b111",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.7",
+      "tip_sha": "822767cedad3daa2f716600182d508e20c630f63",
+      "protected": false,
+      "merged_pr": 126,
+      "original_pr_head_sha": "822767cedad3daa2f716600182d508e20c630f63",
+      "squash_sha": "e7e552edab11ab0a63a2f2c125173b2a2c5f4d45",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.8",
+      "tip_sha": "7d9e917db2ec11eb5cd4d85204b300333e6527de",
+      "protected": false,
+      "merged_pr": 129,
+      "original_pr_head_sha": "7d9e917db2ec11eb5cd4d85204b300333e6527de",
+      "squash_sha": "8175b417283a9060ce19e1c69bf7ec2686a079b4",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.9",
+      "tip_sha": "4d60f421424ac56f28ecfabde2acebcf481456b3",
+      "protected": false,
+      "merged_pr": 132,
+      "original_pr_head_sha": "4d60f421424ac56f28ecfabde2acebcf481456b3",
+      "squash_sha": "88251d9133bb3b2a67af472353f7d0f52f9ea6bc",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.20.10",
+      "tip_sha": "eb736f01be27a8dccef259e7a6d54024a826be92",
+      "protected": false,
+      "merged_pr": 134,
+      "original_pr_head_sha": "eb736f01be27a8dccef259e7a6d54024a826be92",
+      "squash_sha": "c11e7339f513c6d57ed1d99558ec78f263612fc3",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.21.0",
+      "tip_sha": "297e71441eeaaecc4ebf9579bf4ad018b200f897",
+      "protected": false,
+      "merged_pr": 137,
+      "original_pr_head_sha": "297e71441eeaaecc4ebf9579bf4ad018b200f897",
+      "squash_sha": "2d7126d8a2100156c0a676cdbd928f368528949e",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.21.1",
+      "tip_sha": "546f3da96bce57a5357e67cd19fe384ae9a94315",
+      "protected": false,
+      "merged_pr": 141,
+      "original_pr_head_sha": "546f3da96bce57a5357e67cd19fe384ae9a94315",
+      "squash_sha": "1e4690d29ef7f13612d44a50ecd4ee7b124257a8",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.21.2",
+      "tip_sha": "937a4d8d8ee7a491c1a78fce7dca82176ee30295",
+      "protected": false,
+      "merged_pr": 144,
+      "original_pr_head_sha": "937a4d8d8ee7a491c1a78fce7dca82176ee30295",
+      "squash_sha": "ab4b0cad45eb8c4870851d6b72a6f49a2e4204cb",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.22.0",
+      "tip_sha": "a38834ef9dcc39bad801a5f88c0a4849825ea08c",
+      "protected": false,
+      "merged_pr": 149,
+      "original_pr_head_sha": "a38834ef9dcc39bad801a5f88c0a4849825ea08c",
+      "squash_sha": "37e16cf8e2f5a38f7796118c0ac93ba9c78a3c12",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.23.2",
+      "tip_sha": "7a76052ed566093b3e1193edf15809b49badfa7c",
+      "protected": false,
+      "merged_pr": 159,
+      "original_pr_head_sha": "7a76052ed566093b3e1193edf15809b49badfa7c",
+      "squash_sha": "a6905de9aa69c3abfabcf0987a5f21e85c228bc3",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.23.3",
+      "tip_sha": "7216ced3e230c154b510ad3772cc16f8a5fd8067",
+      "protected": false,
+      "merged_pr": 161,
+      "original_pr_head_sha": "7216ced3e230c154b510ad3772cc16f8a5fd8067",
+      "squash_sha": "9e459697308c7dd7e5917152441b6d20fd6ab436",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.24.0",
+      "tip_sha": "b5560522789a03f7f1dadf50513624632d745cd0",
+      "protected": false,
+      "merged_pr": 169,
+      "original_pr_head_sha": "b5560522789a03f7f1dadf50513624632d745cd0",
+      "squash_sha": "e7515e8df0a0b9e6147bd2b29dbfc04e9b9cf696",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.24.1",
+      "tip_sha": "4151d9adadd1eee083e43a7cd7f4fe05913f5908",
+      "protected": false,
+      "merged_pr": 172,
+      "original_pr_head_sha": "4151d9adadd1eee083e43a7cd7f4fe05913f5908",
+      "squash_sha": "016a621acea336a2b97ed195afcda825f9127687",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.25.0",
+      "tip_sha": "a24ee01fe2cf1d3d7a222a4e90178f1f9e525764",
+      "protected": false,
+      "merged_pr": 186,
+      "original_pr_head_sha": "a24ee01fe2cf1d3d7a222a4e90178f1f9e525764",
+      "squash_sha": "71d21062917f2cec0f760eac61725ade3b09f936",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.25.7",
+      "tip_sha": "7c3ec95395b992b68c39bea69ab974271be9f551",
+      "protected": false,
+      "merged_pr": 201,
+      "original_pr_head_sha": "7c3ec95395b992b68c39bea69ab974271be9f551",
+      "squash_sha": "053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.25.8",
+      "tip_sha": "ff36d0c96781e4068492fc60f4bf81b22bb922d0",
+      "protected": false,
+      "merged_pr": 206,
+      "original_pr_head_sha": "ff36d0c96781e4068492fc60f4bf81b22bb922d0",
+      "squash_sha": "768fc0e4b9a0c0d2e35508febf272709896c3e7f",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.0",
+      "tip_sha": "85031206dc86e0f56736574b01f23cc6932ca232",
+      "protected": false,
+      "merged_pr": 210,
+      "original_pr_head_sha": "85031206dc86e0f56736574b01f23cc6932ca232",
+      "squash_sha": "cd39048a2da00443523e7b33b400f4c8b5dcd608",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.1",
+      "tip_sha": "7feae9f0c2fb1bebb273367a6d8590bd8e2e4a91",
+      "protected": false,
+      "merged_pr": 214,
+      "original_pr_head_sha": "7feae9f0c2fb1bebb273367a6d8590bd8e2e4a91",
+      "squash_sha": "c2fc8baee1c11a716babb4bfc72743dface686ed",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.2",
+      "tip_sha": "48ba4d00e195780c900fc6ef61d24d3f1f4e0ff6",
+      "protected": false,
+      "merged_pr": 222,
+      "original_pr_head_sha": "48ba4d00e195780c900fc6ef61d24d3f1f4e0ff6",
+      "squash_sha": "467d4f5609290622f0f839ce103fbf606f6f29b6",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.3",
+      "tip_sha": "e22b49c68a64ebdd9dd0c3833097b2099b0c31aa",
+      "protected": false,
+      "merged_pr": 225,
+      "original_pr_head_sha": "e22b49c68a64ebdd9dd0c3833097b2099b0c31aa",
+      "squash_sha": "7857e1eb57f5934a25c5d334edbc23aa2715f648",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.4",
+      "tip_sha": "e4b1d5b573c4dff0bd18e55a567b215cc6a40e1c",
+      "protected": false,
+      "merged_pr": 229,
+      "original_pr_head_sha": "e4b1d5b573c4dff0bd18e55a567b215cc6a40e1c",
+      "squash_sha": "e2b6834d549a6b3272702fc27570c8a8a3a99bfe",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.5",
+      "tip_sha": "2fc106efd9b6c0ab8c8b90aa6976faa3a9d55b55",
+      "protected": false,
+      "merged_pr": 256,
+      "original_pr_head_sha": "2fc106efd9b6c0ab8c8b90aa6976faa3a9d55b55",
+      "squash_sha": "27e0d69aba47c32dbc78e8e0cefd96227f7de7a6",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.6",
+      "tip_sha": "9979c9ed3adf17fe7ace62c7bb7229f722dda6f3",
+      "protected": false,
+      "merged_pr": 261,
+      "original_pr_head_sha": "9979c9ed3adf17fe7ace62c7bb7229f722dda6f3",
+      "squash_sha": "e04834e9c2d6200fa84896e7c135f476f56bc78e",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.7",
+      "tip_sha": "916c76e27fc23cc0fb318a7986e385676c1f7701",
+      "protected": false,
+      "merged_pr": 278,
+      "original_pr_head_sha": "916c76e27fc23cc0fb318a7986e385676c1f7701",
+      "squash_sha": "70acd009a3d1546c96c0852544b99c5569541a88",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.8",
+      "tip_sha": "9866223f8d42608dca0201edf41494d470020cb1",
+      "protected": false,
+      "merged_pr": 280,
+      "original_pr_head_sha": "9866223f8d42608dca0201edf41494d470020cb1",
+      "squash_sha": "e096bf436425ea037399e290a5a54f54c729b352",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v4.26.9",
+      "tip_sha": "1ce3429e115d38af51af94128797d8b7833f2c1f",
+      "protected": false,
+      "merged_pr": 299,
+      "original_pr_head_sha": "1ce3429e115d38af51af94128797d8b7833f2c1f",
+      "squash_sha": "11f93bfbf9d4ffa645acdcfc5b3579ee3cec47a9",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.1",
+      "tip_sha": "05cd59aaa984788284eb519bb0ec3cc4c5ba8965",
+      "protected": false,
+      "merged_pr": 311,
+      "original_pr_head_sha": "05cd59aaa984788284eb519bb0ec3cc4c5ba8965",
+      "squash_sha": "60560ce9458f54e37d49dbc85d4fb2ed5c5f9fcf",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.2",
+      "tip_sha": "44621f7709ccbda4e5b658920ec2ceac67f73526",
+      "protected": false,
+      "merged_pr": 313,
+      "original_pr_head_sha": "44621f7709ccbda4e5b658920ec2ceac67f73526",
+      "squash_sha": "24272d61f87396d365522b0156dff5c3165c682c",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.3",
+      "tip_sha": "d129e5bf47385d5f2ff89f803595e91a9fb5348d",
+      "protected": false,
+      "merged_pr": 319,
+      "original_pr_head_sha": "d129e5bf47385d5f2ff89f803595e91a9fb5348d",
+      "squash_sha": "a4e1e9f5c28b54b209ce4a81b23e5d85a2c9f73a",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.4",
+      "tip_sha": "3c10a7105b0bf86b5a12ba39d006d1525bdc3c6b",
+      "protected": false,
+      "merged_pr": 326,
+      "original_pr_head_sha": "3c10a7105b0bf86b5a12ba39d006d1525bdc3c6b",
+      "squash_sha": "d34b76d694a43d3f1d364cc01d9a88bc2b666ee5",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.5",
+      "tip_sha": "40f73454f5e7562a9c46a297d21d41e84b6ca515",
+      "protected": false,
+      "merged_pr": 330,
+      "original_pr_head_sha": "40f73454f5e7562a9c46a297d21d41e84b6ca515",
+      "squash_sha": "14042f6dc9d467dc8d0e999eb493f9e1cfc90611",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.6-resync",
+      "tip_sha": "af1c96906a37b04b505044d8d94f19083f2f0c40",
+      "protected": false,
+      "merged_pr": 341,
+      "original_pr_head_sha": "af1c96906a37b04b505044d8d94f19083f2f0c40",
+      "squash_sha": "b9555d685603e82a330e053e3187ac4368231090",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.6",
+      "tip_sha": "6b98592204a64dbd660035a0dcaadf37a04e842a",
+      "protected": false,
+      "merged_pr": 339,
+      "original_pr_head_sha": "078135655fe961950fb0f3fc5f450a508eae4392",
+      "squash_sha": "2cb14d13f0b9012e56758f45f72465116f954a6f",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review",
+        "unmerged_pr",
+        "original_pr_tip_mismatch"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.7",
+      "tip_sha": "41775d5a414d748110dfc310c1b796c28dbc7541",
+      "protected": false,
+      "merged_pr": 359,
+      "original_pr_head_sha": "41775d5a414d748110dfc310c1b796c28dbc7541",
+      "squash_sha": "76b7910404596b7816fedbba605d5c79c02eeacd",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.8",
+      "tip_sha": "c357803f6b8f7b7724d86a1afc642964b9faa49e",
+      "protected": false,
+      "merged_pr": 418,
+      "original_pr_head_sha": "c357803f6b8f7b7724d86a1afc642964b9faa49e",
+      "squash_sha": "af5d2c891174e32e36cb4f031fed2700ea783719",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "release/v5.0.0-rc.9",
+      "tip_sha": "5fb671c6e28e300017a58a18b4a1c272ab41baa2",
+      "protected": false,
+      "merged_pr": 430,
+      "original_pr_head_sha": "5fb671c6e28e300017a58a18b4a1c272ab41baa2",
+      "squash_sha": "13fdbe8bccfbe92cffc4117b79083bbdcad5a8db",
+      "linked_pr_count": 1,
+      "classification": "REVIEW_NOT_APPROVED",
+      "reasons": [
+        "release_ref_manual_review"
+      ]
+    },
+    {
+      "branch": "security/actions-storage-secret-audit",
+      "tip_sha": "8586a246253765c7acc1afc519e1554e9da37e91",
+      "protected": false,
+      "merged_pr": 266,
+      "original_pr_head_sha": "8586a246253765c7acc1afc519e1554e9da37e91",
+      "squash_sha": "f5b30900e8c53e47bb27b3e30d145b9feff81d20",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "security/container-least-privilege",
+      "tip_sha": "20eccc86d1528641c718e90329ff9f45cadf8b9c",
+      "protected": false,
+      "merged_pr": 268,
+      "original_pr_head_sha": "20eccc86d1528641c718e90329ff9f45cadf8b9c",
+      "squash_sha": "a9ab0c02b019bbaa086d72bd02749543bca9e796",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "security/git-history-secret-audit",
+      "tip_sha": "930f5732006212201df143529faa5c8677dbdbf4",
+      "protected": false,
+      "merged_pr": 264,
+      "original_pr_head_sha": "930f5732006212201df143529faa5c8677dbdbf4",
+      "squash_sha": "9679d6480f21f0f0d6cd0072cd135ff5a30ee7cf",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "security/github-release-governance",
+      "tip_sha": "9d7830d295f321655ebb8eacae3e52ce10f09076",
+      "protected": false,
+      "merged_pr": 263,
+      "original_pr_head_sha": "9d7830d295f321655ebb8eacae3e52ce10f09076",
+      "squash_sha": "21ed36f9c163b4bf0c7567d07feaaa4b78f3d1bc",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "security/no-telegram-secret-backups",
+      "tip_sha": "1f399d7b3d1e3405f1527ee8a548d3e6c31bb191",
+      "protected": false,
+      "merged_pr": 248,
+      "original_pr_head_sha": "1f399d7b3d1e3405f1527ee8a548d3e6c31bb191",
+      "squash_sha": "66f74c637d6ee33247775064eaeb211fc694e757",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "security/private-vulnerability-reporting",
+      "tip_sha": "b524f2b0965400853a63e43e3cb62f97c3bf4317",
+      "protected": false,
+      "merged_pr": 272,
+      "original_pr_head_sha": "b524f2b0965400853a63e43e3cb62f97c3bf4317",
+      "squash_sha": "58144834372db838596bc8fe6ffb89ecca21c989",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "security/redact-subscription-access-logs",
+      "tip_sha": "da9341d3e64f552608063ffeb2610260d8db0c66",
+      "protected": false,
+      "merged_pr": 249,
+      "original_pr_head_sha": "da9341d3e64f552608063ffeb2610260d8db0c66",
+      "squash_sha": "4e53b5d9a845dee235b768ae5a067365cbd111ca",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "security/subscription-proxy-resource-bounds",
+      "tip_sha": "3b1fd34296c30d4fef3d883a9f5f05afc60c37a5",
+      "protected": false,
+      "merged_pr": 270,
+      "original_pr_head_sha": "3b1fd34296c30d4fef3d883a9f5f05afc60c37a5",
+      "squash_sha": "8485346f0fbe99732a7e4b3d69f9ca28f96ac1af",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "security/supply-chain-baseline",
+      "tip_sha": "c856810939cd1932da407adfa436d407b529ed3e",
+      "protected": false,
+      "merged_pr": 273,
+      "original_pr_head_sha": "c856810939cd1932da407adfa436d407b529ed3e",
+      "squash_sha": "4cb3c581209ae07bfc2bcd290ec9294099878792",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    },
+    {
+      "branch": "security/v4266-audit-a004-a006",
+      "tip_sha": "0778cc50cc9fbbddd5c4227f63656f72558b6fcb",
+      "protected": false,
+      "merged_pr": 260,
+      "original_pr_head_sha": "0778cc50cc9fbbddd5c4227f63656f72558b6fcb",
+      "squash_sha": "a15ff4beaeae2ec249b729e53b2aeaadf6c349ef",
+      "linked_pr_count": 1,
+      "classification": "DEFERRED_NOT_IN_THIS_BATCH",
+      "reasons": []
+    }
+  ]
+}
