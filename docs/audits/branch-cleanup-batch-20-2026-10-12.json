@@ -1,0 +1,88 @@
+{
+  "issue": 510,
+  "baseline_main_sha": "17ca2a1812941b72d57e2883ea45cf283e4b4099",
+  "created_at": "2026-10-12T10:31:17+03:00",
+  "scope": "20 previously Git-ancestral no-matched-PR historical refs; fresh GitHub REST preflight 20/20 protected=false, original tip SHA stable, behind/ahead=0, no PR head/base; no production operations; external dynamic consumers remain residual risk",
+  "refs": [
+    {
+      "name": "chore/pre-v5-repo-hygiene",
+      "sha": "6f61f092d67376093335094cd85980fe7f0342e9"
+    },
+    {
+      "name": "docs/a007-fully-remediated",
+      "sha": "3514200d536562e8ee237a418b46c585ef6caf79"
+    },
+    {
+      "name": "docs/qa352-telegram-4of4-confirmed-20261011",
+      "sha": "aee2df99e878ac705bb953818fe40b3040e9641a"
+    },
+    {
+      "name": "docs/qa352-tls-restored-20261011",
+      "sha": "779fcc03009dfdadc6c77a11ef20616569b6f7c4"
+    },
+    {
+      "name": "docs/reschedule-v5-expiry-smoke-oct10",
+      "sha": "0b44ac1c7dd4b53f69092ee8c5a38c7c0c4e504e"
+    },
+    {
+      "name": "docs/v4-audit-closure",
+      "sha": "e4633406b0cfffe5f8805e816a21728274d650e0"
+    },
+    {
+      "name": "docs/v4-audit-completion-gates",
+      "sha": "e4633406b0cfffe5f8805e816a21728274d650e0"
+    },
+    {
+      "name": "docs/v4-audit-finalization",
+      "sha": "e4633406b0cfffe5f8805e816a21728274d650e0"
+    },
+    {
+      "name": "docs/v4-audit-findings",
+      "sha": "e4633406b0cfffe5f8805e816a21728274d650e0"
+    },
+    {
+      "name": "docs/v4-audit-follow-up",
+      "sha": "e4633406b0cfffe5f8805e816a21728274d650e0"
+    },
+    {
+      "name": "docs/v4-audit-followups",
+      "sha": "e4633406b0cfffe5f8805e816a21728274d650e0"
+    },
+    {
+      "name": "docs/v4-safe-bot-self-update",
+      "sha": "bccb74cb5b9bf6630775defa620dd1e1ba2ca4e2"
+    },
+    {
+      "name": "docs/v5-a002-two-offline-regressions-20261011",
+      "sha": "d07ee9b762cddce68cd785a120592dd442d9ac93"
+    },
+    {
+      "name": "docs/v5-commerce-offline-suite-20261010",
+      "sha": "04c951caa5f1b5e7cdd5247b07eeebc536b8af98"
+    },
+    {
+      "name": "docs/v5-scheduled-backup-deepcheck-20261010",
+      "sha": "b4e7938b7d7c913661b29917ff88492c26d228f3"
+    },
+    {
+      "name": "docs/v5-stars-refund-unknown-no-retry-rc7-20261011",
+      "sha": "d07ee9b762cddce68cd785a120592dd442d9ac93"
+    },
+    {
+      "name": "feature/v4.11.1-node-onboarding",
+      "sha": "c3bccf7edfcf0db2ea7513f90483b72111b0b7b5"
+    },
+    {
+      "name": "fix/roadmap-gate-v4191",
+      "sha": "b8df3aaa828360fca0385b47cd054f971b2dc829"
+    },
+    {
+      "name": "fix/v4.20.2-admin-navigation",
+      "sha": "7f0f20e27b7394ea91780380b8fecbdb24750f1a"
+    },
+    {
+      "name": "security/private-admin-chat",
+      "sha": "d4178af779e344f757ee4bed27cc43c675c32794"
+    }
+  ]
+}
