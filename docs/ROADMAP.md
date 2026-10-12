@@ -4,6 +4,14 @@
 
 Дорожная карта задаёт границы продуктовых этапов, но не заменяет перечень изменений конкретного релиза: перед публикацией состав релиза фиксируется в отдельных PR реализации и подготовки.
 
+## #510 — strict 10-ref preflight FAIL / 9 PASS, 1 RETAIN (2026-10-12 16:29 EEST)
+
+**Issue #510 OPEN/PENDING.** [PR #548](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/548) head `46e1784a1c227e806ff6199a6fdac5cd41a9a39b` **CLOSED WITHOUT MERGE** после [strict read-only preflight 38256017221](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38256017221) **FAIL**: девять individually PASS, одна **RETAIN** — `release/v4.12.0`, SHA `8ee5ab32db5db676ed59811ed0c4f756ee77`, PR #25, `tracked source contains branch-name dependency`. `retire-once` SKIPPED, **DELETE 0/10 NOT RUN**. Поимённый [аудит](audits/branch-cleanup-release10-preflight-fail-2026-10-12.md). Preflight FAIL нельзя объявлять PASS; девять успешных индивидуальных proofs не разрешают автоматическое удаление без нового exact 9-ref manifest и повторного safety gate.
+
+**Status:** safety mechanism scoped PASS (fail-closed), full 10-ref deletion FAIL; 108 исторических non-main refs по исходному baseline остались, historical distinct ABSENT **361** неизменно. `release/v4.12.0` RETAIN/MANUAL REVIEW. Следующий пакет BLOCKED до docs-only required `test`/`title`, squash, independent main Roadmap/audit read-back и Issue closure audit; затем 9-ref новый preflight + SHA-lease execution и свой checkpoint. Внешние/dynamic зависимости PENDING.
+
+**Published** immutable `v5.0.0-rc.9` tag `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; **Deployed** rc.9 operator-reported only, independent VPS read-back PENDING; **Accepted** v5 NOT PASS. Без production/Stars/refunds/restart/deploy.
+
 ## #510 — десять release-веток: ограниченный read-only proof (2026-10-12 16:21 EEST)
 
 **#510 OPEN/PENDING; DELETE 0/10 NOT RUN.** Baseline protected `main` `9a94611a256b0b731666180c18aed20a0d369d84`. После полного [108-ref inventory](audits/branch-cleanup-remaining-108-snapshot-2026-10-12.json) выделены десять точных исторических `release/*` веток, каждая с одним merged-to-main PR и неизменным original tip SHA. Независимое GitHub REST сопоставление PR files/status/blob ↔ single-parent squash на **10/10 PASS только для сравнения файлов**, результаты и exact имена/SHA/PR сохранены в [subset audit](audits/branch-cleanup-release-10-candidates-2026-10-12.json). Это не полное разрешение на удаление.
