@@ -1,0 +1,513 @@
+{
+  "issue": 510,
+  "baseline_main_sha": "8d0599db573be7f8237f506217676a9397b02543",
+  "source_inventory_blob_sha": "1a56c8f346db88ee23e78e5b8e64d9f8e71bbf26",
+  "created_at": "2026-10-12, Europe/Helsinki EEST (UTC+03:00)",
+  "scope": "100 historic docs branches, preliminarily SHA-stable and merged-PR-associated; only per-ref runtime full PR/squash blob+dependency PASS may delete. Exclude prior two known blob-mismatch refs and unique/diverged/unmerged.",
+  "refs": [
+    {
+      "name": "docs/v5-rc5-reconciliation-and-rc6-status",
+      "sha": "fa0ef4abf09003540fa8581eaed1585972f19136",
+      "pr_number": 340
+    },
+    {
+      "name": "docs/v5-admin-settings-review",
+      "sha": "2de080e12ef1ef44994cde58a7763a0a73d5b752",
+      "pr_number": 344
+    },
+    {
+      "name": "docs/v5-rc6-ownership-canary",
+      "sha": "7210caf46e13ac3b31a7029c8af145ab8f37bbb6",
+      "pr_number": 346
+    },
+    {
+      "name": "docs/v5-rc6-post-canary-fix-backlog",
+      "sha": "eab829444ae030a009e923ce4794c7d6383fc387",
+      "pr_number": 358
+    },
+    {
+      "name": "docs/rc7-backup-acceptance-evidence",
+      "sha": "17c933336fc28d17e06d5119d5649c343372d804",
+      "pr_number": 360
+    },
+    {
+      "name": "docs/cloudflare-warp-runbook-357",
+      "sha": "7a18cd74da982dc48834fe9cf32d8dc722978e2b",
+      "pr_number": 366
+    },
+    {
+      "name": "docs/roadmap-release-acceptance-l10n-audit",
+      "sha": "8976fe856d9ef4083d4f72c1c51402a6112b01f9",
+      "pr_number": 369
+    },
+    {
+      "name": "docs/roadmap-acceptance-ledger",
+      "sha": "fb4b10986433580b34fdfeb174aa93deddd5807b",
+      "pr_number": 370
+    },
+    {
+      "name": "docs/reconcile-current-living-docs",
+      "sha": "f7ddeeaf793bd1b5314ec3092279d450f0fe8435",
+      "pr_number": 372
+    },
+    {
+      "name": "docs/security-v5-rc-limited-support",
+      "sha": "a0a4243214c3fe9de4cf0e58a1c382602e3170f8",
+      "pr_number": 374
+    },
+    {
+      "name": "docs/client-portal-controlled-pilot-setup",
+      "sha": "3b1d562f62621ada3eb592b9f350fc74acaaaefb",
+      "pr_number": 375
+    },
+    {
+      "name": "docs/v5-trial-expiry-20261010",
+      "sha": "eab797147576d62a31da2125c63e0529c936fb52",
+      "pr_number": 376
+    },
+    {
+      "name": "docs/docker-hub-status-diagnostics",
+      "sha": "4125816c46b2b8c49cb4e741eec58771d3d05e87",
+      "pr_number": 377
+    },
+    {
+      "name": "docs/v5-order3-provider-reconciliation-20261010",
+      "sha": "eac3521727abe304806397238812165d902af365",
+      "pr_number": 379
+    },
+    {
+      "name": "docs/v5-paid-customer-ui-20261010",
+      "sha": "600a838c105062fd43766fea5a70b9ff174f9604",
+      "pr_number": 380
+    },
+    {
+      "name": "docs/v5-isolated-ownership-smoke-20261010",
+      "sha": "cc6807dc0a51dadd821b65c1f470e6edf0b2f152",
+      "pr_number": 381
+    },
+    {
+      "name": "docs/v5-tempdb-handler-ownership-20261010",
+      "sha": "00b491a1810573a8437e2d5538d37f10f901e7ec",
+      "pr_number": 382
+    },
+    {
+      "name": "docs/v5-offline-callback-rbac-smoke-20261010",
+      "sha": "c6b5d906068988086167f28f281dbdc56073fa72",
+      "pr_number": 383
+    },
+    {
+      "name": "docs/v5-dispatcher-offline-smoke-20261010",
+      "sha": "d0f1e21386cb6d6b51fd11a0950393a7e60d1e08",
+      "pr_number": 384
+    },
+    {
+      "name": "docs/v5-quota-reset-no-replay-offline-20261010",
+      "sha": "b22472cee81a17586edd0ea445582e82027370b0",
+      "pr_number": 385
+    },
+    {
+      "name": "docs/v5-commerce-offline-regression-20261010",
+      "sha": "d0a7a5bc6ae2c1dfda05ba4236ca680582ad2303",
+      "pr_number": 386
+    },
+    {
+      "name": "docs/v5-stars-isolated-regression-20261010",
+      "sha": "0b6259cba53c3a8ae7f92cc111cb6f91ac52b8cd",
+      "pr_number": 387
+    },
+    {
+      "name": "docs/v5-stars-kill-switch-offline-20261010",
+      "sha": "6297f525b281f01aea5db610b8acfdd0c808c34d",
+      "pr_number": 388
+    },
+    {
+      "name": "docs/v5-provider-outage-recovery-20261010",
+      "sha": "04a9e4264ffb228c29870c32e96db7393365c9ff",
+      "pr_number": 389
+    },
+    {
+      "name": "docs/v5-scheduled-backup-job-pass-20261010",
+      "sha": "d0651ba60ea0aa366db3ae4c73310cded0ebfb77",
+      "pr_number": 390
+    },
+    {
+      "name": "docs/v5-scheduled-archive-deep-check-20261010",
+      "sha": "deacc86ef4b85be0a6b49aad33fcf4039c8cc5f1",
+      "pr_number": 391
+    },
+    {
+      "name": "docs/v5-offsite-97-independent-linkage-20261010",
+      "sha": "20a356f80312cd52dd58db1fff85d74acdefbbc9",
+      "pr_number": 392
+    },
+    {
+      "name": "docs/v5-isolated-restore-preflight-20261010",
+      "sha": "f762c0016e4a24d5af440d4bfed265ff5a348df5",
+      "pr_number": 393
+    },
+    {
+      "name": "docs/v5-recovery-97-archive-linkage-20261010",
+      "sha": "040be4c835e9da32a8a8e906f871398b5d544673",
+      "pr_number": 394
+    },
+    {
+      "name": "docs/v5-rc7-recovery-component-startup-20261010",
+      "sha": "cdb76a200939f101bf8d9d7c13254c11263c1f1d",
+      "pr_number": 395
+    },
+    {
+      "name": "docs/recovery-drill-artifact-cleanup-20261010",
+      "sha": "6766cf68bc9790b4b3f93b6c477090226ecd1db4",
+      "pr_number": 396
+    },
+    {
+      "name": "docs/v5-rc7-isolated-container-process-pass-20261010",
+      "sha": "9fad528f68acf1a35cfdfc195645e3f3d689b9cf",
+      "pr_number": 397
+    },
+    {
+      "name": "docs/v5-master-xui-isolation-preflight-20261010",
+      "sha": "24b9f674a1139e74cadf67a39823c821f546865f",
+      "pr_number": 398
+    },
+    {
+      "name": "docs/correct-rc7-dr-host-identity-20261010",
+      "sha": "f3f53db4a175d71e2b10d45ee453261f322d4232",
+      "pr_number": 399
+    },
+    {
+      "name": "docs/record-master-cleanup-and-dr-waiver-20261010",
+      "sha": "b4da705df678f84ee76318ad934f6d7df8e26e49",
+      "pr_number": 400
+    },
+    {
+      "name": "docs/roadmap-current-rc7-acceptance-20261010",
+      "sha": "9c97d1e365b218f6bef5918d5147af8bbe904df4",
+      "pr_number": 401
+    },
+    {
+      "name": "docs/record-real-telegram-ab-canary-20261010",
+      "sha": "f51c24e8e75aa7eb4448b4c964e7c4d97be44f8c",
+      "pr_number": 402
+    },
+    {
+      "name": "docs/v5-rc7-smoke-current-main-20261010",
+      "sha": "e1b639f58b152b4513003f68f445ce47a4e827a6",
+      "pr_number": 404
+    },
+    {
+      "name": "docs/close-334-stars-summary-20261010",
+      "sha": "bc5a17e71f29bb2961a061e320547534deb6c6ad",
+      "pr_number": 405
+    },
+    {
+      "name": "docs/close-333-refunded-stars-20261010",
+      "sha": "fd3b8453b30f244f40156c1565e917c46993110f",
+      "pr_number": 406
+    },
+    {
+      "name": "docs/stars-invoice-ui-rc7-20261010",
+      "sha": "bfd5262208744eb21ef6e538039ad76315279c7f",
+      "pr_number": 407
+    },
+    {
+      "name": "docs/accept-backup-fixes-348-349-20261010",
+      "sha": "ea3921f6896e91c836dd004c744ace358a8978ba",
+      "pr_number": 408
+    },
+    {
+      "name": "docs/stars-sqlite-ledger-reconciliation-20261010",
+      "sha": "93bb065a12c438a031a33e82b6d8c8928d3eeb86",
+      "pr_number": 409
+    },
+    {
+      "name": "docs/v5-client-subscription-refresh-smoke-20261010",
+      "sha": "299ef84c95634af0aeda4af62389f94e257622c9",
+      "pr_number": 410
+    },
+    {
+      "name": "docs/v5-nonpilot-telegram-auth-denial-20261010",
+      "sha": "d270e74f818c973988de3ad40f88bf82ce0b547a",
+      "pr_number": 411
+    },
+    {
+      "name": "docs/v5-nonpilot-subscription-command-denied-20261010",
+      "sha": "afb07907cc17080ff0a8397d70dfd998a7f9b2e8",
+      "pr_number": 412
+    },
+    {
+      "name": "docs/v5-telegram-burst-transport-waiver-20261010",
+      "sha": "09191322e02e3ce173c704406312c6c577970aa8",
+      "pr_number": 413
+    },
+    {
+      "name": "docs/v5-a002-refund-unknown-and-quota-success-recovery-20261011",
+      "sha": "4c3a450606132571ddd2b07e0c67d9e421aa3c4e",
+      "pr_number": 414
+    },
+    {
+      "name": "docs/v5-a002-cross-process-recovery-20261011",
+      "sha": "180fa527546f75aad2f0ebd38deabca3a94544e2",
+      "pr_number": 415
+    },
+    {
+      "name": "docs/rc8-production-smoke-evidence",
+      "sha": "d0dc7df9540ab9d3ee61a70be08903c1881ccb42",
+      "pr_number": 419
+    },
+    {
+      "name": "docs/agent-acceptance-issue-checkpoints",
+      "sha": "7160af4b0c3e07010efe6b9b08e563375af1e924",
+      "pr_number": 421
+    },
+    {
+      "name": "docs/plan-3xui-hosts-rc9",
+      "sha": "54b39deb5a40f44756b5391444f138d989b04d0a",
+      "pr_number": 423
+    },
+    {
+      "name": "docs/sync-hosts-422-main",
+      "sha": "92dbca1f187c434334315254c6f0a1abfb72fea6",
+      "pr_number": 425
+    },
+    {
+      "name": "docs/rc9-readiness-checkpoint",
+      "sha": "31426447345c7b9fdd5f14fe6de73a9644b8f13f",
+      "pr_number": 426
+    },
+    {
+      "name": "docs/read-only-baseline-20261011",
+      "sha": "276df0af3e9f51414246e65501a874112e61fe4b",
+      "pr_number": 427
+    },
+    {
+      "name": "docs/sync-3xui-contract-governance-428",
+      "sha": "bc069b7e66155458bf24e23251570ef5b0e9d2c0",
+      "pr_number": 429
+    },
+    {
+      "name": "docs/rc9-release-prep-checkpoint",
+      "sha": "8051360de8adf22738566776d5221fd8faf30f9f",
+      "pr_number": 431
+    },
+    {
+      "name": "docs/rc9-published-checkpoint",
+      "sha": "ae8651475b391c3f213e5e660fc00b61ba6bdb7b",
+      "pr_number": 432
+    },
+    {
+      "name": "docs/rc10-refunds-plan",
+      "sha": "2189bb276a85bd9f875f9177a2b5e326baf17f4c",
+      "pr_number": 435
+    },
+    {
+      "name": "docs/rc10-legal-support-psp-plan",
+      "sha": "cfe78357c4553d11238fe4c4a41779d0092aaad0",
+      "pr_number": 438
+    },
+    {
+      "name": "docs/platega-payment-link-contract",
+      "sha": "53e3a842678daf401442123caba5af76f4b33f82",
+      "pr_number": 439
+    },
+    {
+      "name": "docs/rc9-operator-deploy-checkpoint",
+      "sha": "041f9258fb8d0e9cd4f8bf79f8281213671a1c63",
+      "pr_number": 440
+    },
+    {
+      "name": "docs/rc9-hosts-visibility-checkpoint",
+      "sha": "a6121fdee882e67741b2614130a375d7614ee391",
+      "pr_number": 441
+    },
+    {
+      "name": "docs/rc9-netherlands-mapping-checkpoint",
+      "sha": "74ae09f683146ceac233d87df7170538b2fc22a6",
+      "pr_number": 442
+    },
+    {
+      "name": "docs/rc9-host-sources-acceptance",
+      "sha": "bb00c44fc310d8fdaa8829acbfd40a3a484f9db0",
+      "pr_number": 443
+    },
+    {
+      "name": "docs/rc9-422-closure-sync",
+      "sha": "941a1ce88f4d73fb3c23ab62472267fcb07ce305",
+      "pr_number": 444
+    },
+    {
+      "name": "docs/rc9-342-portal-off-callback-checkpoint",
+      "sha": "a6f10f501548b8a94d29b2415e320f8a86ec4884",
+      "pr_number": 445
+    },
+    {
+      "name": "docs/rc9-342-portal-restored-checkpoint",
+      "sha": "4528680e8fdf0ccbe5487510567277df171b2923",
+      "pr_number": 446
+    },
+    {
+      "name": "docs/rc9-342-readonly-acceptance",
+      "sha": "a2f4913644cd9676ac60699ff3516bda7e18eec7",
+      "pr_number": 447
+    },
+    {
+      "name": "docs/rc9-342-closed-status",
+      "sha": "110878302e73df79166a37e4cbc09256a65637e8",
+      "pr_number": 448
+    },
+    {
+      "name": "docs/rc9-352-readonly-preflight",
+      "sha": "4330f75a8ab1f634ef3da974711c912e971e7329",
+      "pr_number": 449
+    },
+    {
+      "name": "docs/rc9-352-isolated-smoke-result",
+      "sha": "7164e424138d8a579eced577fc31fa39628d07b6",
+      "pr_number": 451
+    },
+    {
+      "name": "docs/352-qa-runner-merged-sync",
+      "sha": "4a920c75c2999aa8473942965ff8f53cffb9f50e",
+      "pr_number": 453
+    },
+    {
+      "name": "docs/qa352-preview-pass-20261011",
+      "sha": "f1cedc4815f4477ee80fc0c815c4a2463a6967dc",
+      "pr_number": 455
+    },
+    {
+      "name": "docs/qa352-enroll-blocked-20261011",
+      "sha": "e97fbab1db03392993792ad60988b5fe63bf1db0",
+      "pr_number": 456
+    },
+    {
+      "name": "docs/qa352-getme-urlerror-20261011",
+      "sha": "64d4ff09e9e0d5dd895fc1f579a641b03b759a37",
+      "pr_number": 457
+    },
+    {
+      "name": "docs/qa352-ssl-verification-blocked-20261011",
+      "sha": "66e6efc893b1534de6cfb924dfb77c165d726129",
+      "pr_number": 458
+    },
+    {
+      "name": "docs/qa352-python-ca-paths-20261011",
+      "sha": "c23a8d2a9aab713cc0ac27029022e2968f676b50",
+      "pr_number": 459
+    },
+    {
+      "name": "docs/qa352-mac-ca-install-pass-20261011",
+      "sha": "7fbf945e7e835e9ed2636dece02d179243862713",
+      "pr_number": 460
+    },
+    {
+      "name": "docs/qa352-tls-post-ca-pass-20261011",
+      "sha": "079c37efe7d97651e69b1c5641275108e850cecc",
+      "pr_number": 461
+    },
+    {
+      "name": "docs/qa352-qa-private-enroll-pass-20261011",
+      "sha": "d36f8a19fa618ba661c559eb4a4bfc5e27b58c78",
+      "pr_number": 462
+    },
+    {
+      "name": "docs/qa352-first-telegram-delivery-evidence-20261011",
+      "sha": "02dae43803bbe2c51f600fa767bfc073e6ca3699",
+      "pr_number": 463
+    },
+    {
+      "name": "docs/qa352-telegram-synthetic-visual-4of4-20261011",
+      "sha": "982c2013e54c0a1f84b803a768a959dbd198a84a",
+      "pr_number": 464
+    },
+    {
+      "name": "docs/qa352-transport-confirmed-4of4-20261011",
+      "sha": "1e0e128dc59fa325a95c4d477c5b597011e35510",
+      "pr_number": 465
+    },
+    {
+      "name": "docs/qa352-risk-accepted-closure-20261011",
+      "sha": "3879d103409e9e4d7f81b2e02c9c5317d2c4df6c",
+      "pr_number": 467
+    },
+    {
+      "name": "docs/qa352-closed-followup-open-20261011",
+      "sha": "7d5e34fce161a98c31ac3eaf11182ae637894010",
+      "pr_number": 468
+    },
+    {
+      "name": "docs/rc9-acceptance-gates-waivers-index-20261011",
+      "sha": "8fab01793ac9e2d84a608424bc82001148c5aa6f",
+      "pr_number": 469
+    },
+    {
+      "name": "docs/rc11-client-portal-backlog-20261011",
+      "sha": "0f5ddefc215d6804ede5749fc2ad9fe2281d57e6",
+      "pr_number": 474
+    },
+    {
+      "name": "docs/future-tracks-issues-no-milestone-20261011",
+      "sha": "8eb289a57f20b1485ec838c24aff586b8a86e383",
+      "pr_number": 480
+    },
+    {
+      "name": "docs/rc9-scale-risk-code-review-20261011",
+      "sha": "e9c1bb6e6424bba67e2284d6810d8c98d8d899ff",
+      "pr_number": 481
+    },
+    {
+      "name": "docs/scale-issue-482-roadmap-20261011",
+      "sha": "4de4190329a4a7ea6c8bda0ede983cee0b1c64aa",
+      "pr_number": 483
+    },
+    {
+      "name": "docs/issue-first-tracking-rule-20261011",
+      "sha": "01647ad78e9f7b43682063f6d7c5f2232c76dca8",
+      "pr_number": 485
+    },
+    {
+      "name": "docs/issue-484-closure-20261011",
+      "sha": "bac07edb6f294043cc16acc191d458464b11f7f1",
+      "pr_number": 486
+    },
+    {
+      "name": "docs/node-sync-issue-487-20261012",
+      "sha": "d3d5d4eb3a127384193f00960a5e62b3c92a6b32",
+      "pr_number": 488
+    },
+    {
+      "name": "docs/aeza-warp-socks-vless-guide-20261012",
+      "sha": "d2e52bf7f1a0c34433294c71b02e62523c74a5c7",
+      "pr_number": 490
+    },
+    {
+      "name": "docs/sub-tls-nginx-readonly-checkpoint-20261012",
+      "sha": "00bed306aaf4c35019d9ea2125494ccef07fa848",
+      "pr_number": 492
+    },
+    {
+      "name": "docs/sub-tls-nginx-issue491-closure-sync",
+      "sha": "218eeb42d498aef79f10f7d47253b07f7cbbbb7a",
+      "pr_number": 493
+    },
+    {
+      "name": "docs/warp-issue489-closure-sync-20261012",
+      "sha": "accafeaea8b1ab2a0b9256d6fc05528ebf4996c2",
+      "pr_number": 494
+    },
+    {
+      "name": "docs/github-baseline-checkpoint-20261012-0130",
+      "sha": "68f25520ee6732f3248332bcac1267528c1d298f",
+      "pr_number": 495
+    },
+    {
+      "name": "docs/roadmap-future-issue-audit-20261012",
+      "sha": "79587fa9a8976be79f3d4da2071ca1354f0d89c3",
+      "pr_number": 508
+    }
+  ],
+  "hard_exclusions": [
+    "docs/russian-documentation",
+    "docs/v4.10-host-control-contract"
+  ]
+}
