@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""#510: one-shot SHA-leased deletion of exactly 100 revalidated merged historical refs.
+"""#510: one-shot SHA-leased deletion of exactly 96 revalidated merged historical refs.
 
 Never retry a DELETE operation. Bounded read-only post-delete checks tolerate GitHub REST lag.
 No bot/production operations; unexpected state halts all subsequent deletions.
@@ -20,7 +20,7 @@ import urllib.request
 REPO = "cLIcHE-QA/3xui-telegram-bot"
 BASE = "6692005c1781221bf49512516e7fe81b81496bf2"
 MANIFEST_BASE = "b1fbd95b6f3c1b0dba35029f63533ba3f76360b1"
-MANIFEST = Path("docs/audits/branch-cleanup-next-100-dry-run-2026-10-12.json")
+MANIFEST = Path("docs/audits/branch-cleanup-verified-96-candidates-2026-10-12.json")
 WORKFLOW = ".github/workflows/retire-verified-100-510.yml"
 SELF = "scripts/retire-verified-100-510.py"
 EXPECTED = {
@@ -101,10 +101,6 @@ EXPECTED = {
     "refactor/client-access-router": ("c05257f9d8f08e99ffda745cecfabbe0e3f740fa", 89),
     "refactor/admin-shell-router": ("70c8052fbd3dd2b42480bd0e3a9c3abadb720efa", 90),
     "refactor/app-runtime": ("66927838b2faef5432eb6ccb2a9c269490efefcb", 91),
-    "fix/stable-bot-docker-network": ("2f571f6080dc3cf463cef03ed97dee219bb89274", 3),
-    "fix/admin-ui-navigation-consistency": ("ea8bc25aa310b082436af88a61e88712a38f2a35", 4),
-    "fix/v4.9.3-node-detail-counters": ("7679bac9f49dda1d639b265ab11be15ce7a16a6e", 9),
-    "fix/release-tag-probe": ("ac68a7d065523b50f717d5f81d32825f357c5340", 20),
     "fix/readiness-callback-routing": ("87f3ea394cedbd534d7e334c0e0a0d815a1abf1e", 22),
     "fix/host-control-startup-recovery": ("16bc72fe07d66a672bcc656ea8f452da08e50bc3", 35),
     "fix/recovery-alert-copy": ("27b4dfd7021d452f1f759360d84011f62c1d58d4", 77),
@@ -179,20 +175,25 @@ def read_manifest() -> None:
         m = json.loads(MANIFEST.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         stop("manifest unreadable")
-    if git("hash-object", str(MANIFEST)).stdout.strip() != "edf5c32d782c8e775462b05ee6930295317d1794":
+    if git("hash-object", str(MANIFEST)).stdout.strip() != "285df619eed3e3ed1facd78f969856d9484bf04c":
         stop("immutable original 50-ref manifest blob mismatch")
-    if m.get("issue") != 510 or m.get("baseline_main_sha") != MANIFEST_BASE:
+    if m.get("issue") != 510 or m.get("baseline_main_sha") != BASE:
         stop("manifest issue/original SHA mismatch")
-    if m.get("action") != "PREPARE_ONLY_NO_DELETION" or m.get("candidate_count") != 100:
+    if m.get("action") != "PREPARE_ONLY_NO_DELETION" or m.get("selected_count") != 96:
         stop("manifest schema/count is not the approved preflight snapshot")
     refs = m.get("candidates")
-    if not isinstance(refs, list) or len(refs) != 100 or len(EXPECTED) != 100:
-        stop("expected exactly 100 historical ref candidates")
+    if not isinstance(refs, list) or len(refs) != 96 or len(EXPECTED) != 96:
+        stop("expected exactly 96 historical ref candidates")
     if any(not isinstance(x, dict) or set(x) != {
         "branch", "tip_sha", "merged_pr", "squash_sha", "classification"} for x in refs):
         stop("candidate fields modified")
     if {x["branch"]: (x["tip_sha"], x["merged_pr"]) for x in refs} != EXPECTED:
         stop("hardcoded exact SHA/PR allowlist differs from immutable manifest")
+    # Hard fail if any of the four original unsafe candidates enters the new scope.
+    forbidden = {"fix/stable-bot-docker-network", "fix/admin-ui-navigation-consistency",
+                 "fix/v4.9.3-node-detail-counters", "fix/release-tag-probe"}
+    if any(n in EXPECTED for n in forbidden):
+        stop("unsafe original 4 reintroduced")
     for row in refs:
         if row["classification"] != "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT":
             stop("unexpected candidate classification")
@@ -206,7 +207,7 @@ def read_manifest() -> None:
     if any(n in EXPECTED for n in (
         "docs/russian-documentation", "docs/v4.10-host-control-contract", "main")):
         stop("known protected or mismatch exclusion in target list")
-    if len({x["branch"] for x in refs}) != 100:
+    if len({x["branch"] for x in refs}) != 96:
         stop("duplicate branch name")
 
 
@@ -377,10 +378,10 @@ def main() -> None:
         else:
             print("PROOF PASS", name, sha, "PR#" + str(pr_num), flush=True)
     if errors:
-        stop("at least one of the 100 refs failed independent proof; deleted=0")
-    print("PROOF SUMMARY eligible=100 retained=0", flush=True)
+        stop("at least one of the 96 refs failed independent proof; deleted=0")
+    print("PROOF SUMMARY eligible=96 retained=4_excluded", flush=True)
     if args.mode == "check":
-        print("DRY-RUN PASS 100/100; deleted=0", flush=True)
+        print("DRY-RUN PASS 96/96; deleted=0", flush=True)
         return
 
     verified = 0
@@ -399,7 +400,7 @@ def main() -> None:
         read_back_deleted_without_replay(name, sha)
         verified += 1
         print("DELETED / VERIFIED", name, sha, "PR#" + str(pr_num), flush=True)
-    print("BATCH100 RESULT verified_deleted=" + str(verified) + "/100", flush=True)
+    print("BATCH96 RESULT verified_deleted=" + str(verified) + "/96", flush=True)
 
 
 if __name__ == "__main__":
