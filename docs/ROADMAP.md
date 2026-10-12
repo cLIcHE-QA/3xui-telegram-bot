@@ -4,6 +4,14 @@
 
 Дорожная карта задаёт границы продуктовых этапов, но не заменяет перечень изменений конкретного релиза: перед публикацией состав релиза фиксируется в отдельных PR реализации и подготовки.
 
+## #510 — глубокая проверка следующих 100 refs, перед удалением (2026-10-12, EEST UTC+03:00)
+
+**⬜ Запланировано — #510 OPEN/PENDING.** Подтверждён checkpoint [PR #540](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/540) squash MERGED `0f2be966e49e3cd13e4c764ba27efa1d2d3ff753`, required `test` [38244679910](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38244679910) и `title` [38244895764](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38244895764) PASS, post-merge Python checks [38244965019](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38244965019) PASS; Roadmap и [100-ref preparatory manifest](audits/branch-cleanup-next-100-second-dry-run-2026-10-12.json) независимо подтверждены в `main`. 100 именованных refs: 9 chore, 1 docs, 15 feat, 37 feature, 38 fix. Это только **initial selection**, не разрешение удалить.
+
+**Deep preflight: PENDING**, выполнение удаления **0/100 NOT RUN** на момент этого PR. Готовится fail-closed однократный механизм с полным подтверждением **каждого из 100**: immutable branch SHA/PR, PR ↔ single-parent squash file/status/blob equivalence, ancestry в `main`, tracked branch-name references, downstream branches, GitHub protection/open PR. Любой отказ или unknown → **STOP**, несовпадающие refs сохраняются для REVIEW/RETAIN; без required `test`/`title`, отдельного read-only preflight 100/100 и пост-merge main Python checks удаление не разрешено. После фактического исполнения обязательны independent GitHub 404 и отдельный docs-only Roadmap checkpoint с CI/squash/main read-back, Issue audit **до** следующего пакета.
+
+**Published** immutable `v5.0.0-rc.9` SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; **Deployed** rc.9 operator-reported only; **Accepted** overall v5 NOT PASS. Scope GitHub-only; никакого VPS/Stars/refund/restart/deploy.
+
 ## #510 — ещё 100 веток PREPARED, не удалены (2026-10-12, Europe/Helsinki EEST UTC+03:00)
 
 **⬜ Запланировано — [Issue #510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) OPEN/PENDING.** Scope только read-only GitHub inventory/preparation на защищённом `main` `87451138f93a5b877bdb4056bbc6c415750bd9bd`, после завершённого #539 checkpoint. Независимая пагинация до создания новой рабочей docs-ветки: **202 refs** (201 рабочих + защищённая `main`), **462 PR** (455 merged, 7 closed/unmerged), **0 open PR**; `delete_branch_on_merge=true` ранее подтверждён. [Воспроизводимый новый 100-ref manifest](audits/branch-cleanup-next-100-second-dry-run-2026-10-12.json) содержит **весь 202-ref inventory** с immutable tip SHA и классификацией, плюс exact name/SHA/merged PR/squash SHA для выбранной сотни. Связанный docs-only checkpoint: **CHECKPOINT_PR_PENDING**.
