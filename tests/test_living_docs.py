@@ -120,10 +120,19 @@ class LivingDocsSemanticTests(unittest.TestCase):
 
     def test_roadmap_has_current_next_product_track(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn(
-            "**Статус: 🟡 Реализуется в `main`.",
-            roadmap,
+        # The first current-state summary must precede dated historical
+        # checkpoints and correctly distinguish published v5 from acceptance.
+        current_start = roadmap.index("## Актуальная сводка проекта")
+        historical_start = roadmap.index(
+            "## Ранее зафиксированные операционные сведения"
         )
+        self.assertLess(current_start, historical_start)
+        current = roadmap[current_start:historical_start]
+        self.assertIn("🟠 Опубликовано; acceptance отложен", current)
+        self.assertIn("v5.0.0-rc.9", current)
+        self.assertIn("overall **NOT PASS**", current)
+        self.assertIn("#510", current)
+        self.assertIn("⬜ Запланировано", current)
         self.assertIn("### v5.0.0 — Client Portal", roadmap)
         self.assertIn("A-007 технически закрыт полностью", roadmap)
 

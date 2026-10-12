@@ -4,6 +4,23 @@
 
 Дорожная карта задаёт границы продуктовых этапов, но не заменяет перечень изменений конкретного релиза: перед публикацией состав релиза фиксируется в отдельных PR реализации и подготовки.
 
+## Актуальная сводка проекта — 12 октября 2026 (Europe/Helsinki, EEST UTC+03:00)
+
+**Текущая проверенная точка:** GitHub `main` `8d0599db573be7f8237f506217676a9397b02543` после squash [PR #528](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/528); required `test`/`title` для #528 **PASS** ([38224035296](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38224035296), [38224296437](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38224296437)), post-merge `Python checks` **PASS** ([38224371303](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38224371303)), supply-chain audit **PASS** ([38224371296](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38224371296)); независимый read-back `main`, Roadmap, audit и отсутствие временного one-shot workflow/script — **PASS**. При снимке: **30 OPEN Issues, 0 OPEN PR**. Источник — GitHub REST/Actions, **не новая проверка production**.
+
+| Пункт / Issue | Статус Roadmap (только один из четырёх) | Факт в `main` / Published / Deployed | Проверено / evidence | Остаток и следующий шаг |
+| --- | --- | --- | --- | --- |
+| [#510 — жизненный цикл и очистка GitHub-веток](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) | ⬜ Запланировано | Полный исторический cleanup **не завершён**, Issue **OPEN**; отдельные безопасные пакеты слиты и выполнены без release/deploy | Пилот **3/3 PASS**, пакет **20/20 PASS**, прежний пакет 100 — **FAIL/PARTIAL: 34 ABSENT**, ещё 50 refs отсутствовали до следующего запуска (**executor UNKNOWN**), последующий пакет **14/14 PASS**. **121 уникальный ref ABSENT**, это **не 121 подтверждённое удаление одним workflow**. [Последний audit](audits/branch-cleanup-remaining-14-result-2026-10-12.md), [#510 evidence](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510), [PR #527](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/527), [PR #528](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/528) | Сотни иных refs требуют классификации, проверки уникальных commits/PR/операционных зависимостей; **2 PR/blob mismatch RETAIN**. Следующий **отдельный** пакет — только с актуальным SHA manifest, PR/dependency proof, безопасным deletion/read-back и собственным Roadmap/Issue checkpoint; не закрывать #510 по частичному результату |
+| Controlled-canary v5 / G-01…G-11 | 🟠 Опубликовано; acceptance отложен | В `main` `APP_VERSION=5.0.0-rc.9`; **Published** immutable prerelease [`v5.0.0-rc.9`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.9), tag `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; **Deployed** rc.9 только operator-reported (2026-10-11 16:15 EEST); **Accepted** overall **NOT PASS** | Targeted и offline scoped results ниже; G-01…G-11 имеют **PARTIAL/PENDING**, W-01 DR — **SKIPPED/WAIVED/NOT TESTED**, W-02 Telegram burst — **INCONCLUSIVE/WAIVED** (оба NOT PASS) | Независимый VPS tag/SHA и baseline read-back **PENDING**; завершить оставшиеся gates по [приёмке](V5_PRODUCTION_ACCEPTANCE.md) только безопасными пакетами 3–4 и с отдельным approval для mutations. Stable `v5.0.0` и public launch запрещены |
+| [#342 — Client Portal callbacks](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/342) | ✅ Выполнено в v5.0.0-rc.9 | PR #420 в `main`, опубликован immutable rc.9, deployed **operator-reported** | **CLOSED/completed**, собственный targeted OFF → старые callbacks denied → ON и `/admin` available; operator-reported scoped PASS 2026-10-11, [closure](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/342) | Не выдавать этот PASS за полный G-08/Stars emergency-stop acceptance |
+| [#422 — Host Groups](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/422) | ✅ Выполнено в v5.0.0-rc.9 | PR #424 в `main`, опубликован rc.9, deployed **operator-reported** | **CLOSED/completed**, собственный read-only Host Groups/SQLite/GUID smoke **3/3 scoped PASS**, [closure](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/422) | Не считать это доказательством node-side sync, G-02/G-07 или общего v5 acceptance |
+| [#466 — естественные job_failed уведомления](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) | 🟠 Опубликовано; acceptance отложен | Runtime уведомлений включён в rc.8 и последующий rc.9; #352 закрыт с принятием отдельного риска, #466 **OPEN** | Separate QA bot / offline evidence scoped PASS; **основной production bot natural event NOT OBSERVED** | Пассивное read-only наблюдение нового/reminder/recovery при естественном событии, без искусственного сбоя |
+| [#487 — Master→Node sync](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) | ⬜ Запланировано | Архитектурный read-only review зафиксирован, actual node-side sync acceptance не подтверждён; Issue **OPEN** | Статический review bot-side writes в Master — scoped PASS, **не** production/node-side PASS | Отдельная согласованная read-only проверка фактической ноды; не создавать mutations только ради теста |
+
+**Правило чтения:** в этой таблице — **текущий** статус каждого пункта из четырёх разрешённых; `OPEN/CLOSED` обозначает состояние Issue, а `PASS/PARTIAL/PENDING/FAIL/BLOCKED` — **только результат отдельной проверки**. Ниже сохранены **датированные исторические свидетельства**, включая прежние формулировки «следующий PR/CI ещё требуется»: они относились к моменту записи и **не заменяют** уже завершённый #528 checkpoint. Для нового факта сначала PR с required CI, затем merge и independent `main` read-back, Issue closure audit, и лишь потом следующий пакет.
+
+## Ранее зафиксированные операционные сведения и датированные checkpoint (история)
+
 > **Дополнение оператора ~16:20 МСК:** реально существуют **ровно два VPS: production Master и Node**. **Третьего Recovery VPS нет и не было.** Вся текущая серия rc.7 DR-команд выполнялась на Master; Node не использовалась для восстановления и не считается подготовленной заменой Master. Самостоятельный cross-host DR для rc.7 **НЕ ПРОВОДИЛСЯ**; прежние формулировки о его PASS недействительны. Не предполагать третий хост в дальнейших инструкциях и не превращать Node в recovery-хост без отдельного одобрения.
 
 > **КРИТИЧЕСКАЯ КОРРЕКЦИЯ DR host identity (оператор, 2026-10-10 ~16:12 МСК):** оператор уточнил, что **все команды DR, ранее обозначенные как выполнявшиеся на отдельном Recovery VPS, фактически выполнялись на production Master**. Метки `RECOVERY` в stdout были строками скрипта, не независимым подтверждением хоста. В приведённых ниже исторических строках #390–#398 сохраняются первоначальные формулировки/evidence, но любые утверждения о двух физических VPS, независимом offsite retrieval и DR с потерей Master **ОТОЗВАНЫ**. Результаты SQLite, local image/container smoke, S3 LIST/HEAD/download/decrypt могут рассматриваться только как **operator-reported local-on-Master scoped evidence**, без подтверждения независимой аварийной восстанавливаемости или отсутствия влияния на production. Физический факт удаления временных артефактов и завершённость cleanup не подтверждены. Recovery VPS access/identity, isolation и повторный offsite DR: **NOT VERIFIED / PENDING**. До верификации конкретного VPS не выполнять destructive cleanup, x-ui lifecycle, restore/bootstrap или прочие recovery-мутации на Master. Production release/acceptance остаются неизменными, v5 acceptance **NOT PASS**.
@@ -36,6 +53,8 @@
 `PASS`, `PARTIAL`, `PENDING`, `FAIL`, `BLOCKED` относятся **к отдельным проверкам**, а не заменяют четыре статуса Roadmap. Частичная проверка, зелёный CI, manual smoke, публикация RC или отсутствие новых жалоб не являются доказательством полного production acceptance. Нельзя закрывать обязательный gate без подтверждённого результата; manual и scheduled проверки, DR preflight и isolated restore учитываются отдельно.
 
 Новые факты дополняют актуальную сводку и исторические evidence, не переписывая более ранние наблюдения. Для детальных production canary/acceptance результатов используются соответствующие `docs/audits/**` и профильные runbooks; secrets и приватные идентификаторы туда не переносятся.
+
+Секции checkpoint ниже — датированные записи с состоянием **на момент своего создания**. Их формулировки будущих шагов не отменяют завершённые после этого PR/CI. Текущий статус всегда указан в таблице «Актуальная сводка проекта» в начале файла.
 
 ## Branch cleanup #510: remaining merged docs 14/14 PASS — 2026-10-12 Europe/Helsinki (EEST, UTC+03:00)
 
@@ -77,7 +96,7 @@
 
 **Next:** лишь отдельно validated small pilot historical branch batch по #510, SHA-guarded before/delete/after, а затем **отдельный** Roadmap PR с required `test`/`title`, squash merge, independent main read-back и Issue audit до следующего пакета. Никаких deletes до подтверждения safety и возможности безопасной операции; без deploy/restart/payment/refund/release changes.
 
-## Актуальный статус релизов и проверок — 11 октября 2026 года
+## Исторический срез релизов и проверок — 11 октября 2026 года (не текущая сводка)
 
 ### Historical branch cleanup: merged PR files/blob equivalence — 2026-10-12 EEST (UTC+03:00)
 
@@ -4736,7 +4755,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 
 ### v5.0.0 — Client Portal — Клиентский портал
 
-**Статус: 🟡 Реализуется в `main`. Backend foundation и pilot Client Portal уже слиты; публичный launch ещё закрыт allowlist/launch-gates.**
+**Статус: 🟠 Опубликовано; acceptance отложен (controlled-canary `v5.0.0-rc.9`).** Backend foundation и pilot Client Portal опубликованы в immutable prerelease; production deployed `rc.9` подтверждён только оператором. Общий v5 acceptance **NOT PASS**, G-01…G-11 остаются `PARTIAL/PENDING`; stable `v5.0.0` не опубликован, публичный launch закрыт allowlist/launch-gates.
 
 Рекомендуемый порядок первой реализации и фактический прогресс:
 
