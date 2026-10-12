@@ -1,0 +1,54 @@
+name: One-time SHA-leased merged docs branch cleanup #510 (100 candidates)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/retire-merged-docs-100-510.yml'
+      - 'scripts/retire-merged-docs-100-510.py'
+      - 'docs/audits/branch-cleanup-merged-docs-100-2026-10-12.json'
+  workflow_run:
+    workflows: ['Python checks']
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  preflight:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Read-only 100-ref exact SHA PR/squash blob/dependency preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/retire-merged-docs-100-510.py check
+  retire-once:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+    concurrency:
+      group: branch-cleanup-510-merged-docs-100
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Recheck current main and delete only independently proven safe SHA-leased refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          GITHUB_WORKFLOW_RUN_EVENT: ${{ github.event.workflow_run.event }}
+          GITHUB_WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: python3 scripts/retire-merged-docs-100-510.py execute
