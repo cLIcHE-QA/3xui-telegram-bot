@@ -4,6 +4,14 @@
 
 Дорожная карта задаёт границы продуктовых этапов, но не заменяет перечень изменений конкретного релиза: перед публикацией состав релиза фиксируется в отдельных PR реализации и подготовки.
 
+## #510 — строгий execution preflight 10 release refs (2026-10-12 16:28 EEST)
+
+**PENDING / DELETE NOT RUN.** Baseline protected main `42bb1cfcef94a6e99b1841c74f4481e4a8a869a4` после completed #547 checkpoint. Отдельный immutable [10-ref execution manifest](audits/branch-cleanup-release-10-execution-2026-10-12.json) фиксирует десять точных имён, original tip SHA, merged PR, squash SHA, source blob provenance. В этом PR добавлены `scripts/retire-release-10-510.py` и `.github/workflows/retire-release-10-510.yml`. Они обязаны выполнить **full read-only preflight 10/10**, с PR/squash file/status/blob, ancestry, exact SHA, tracked-source и downstream checks. Любая неизвестность → **FAIL/CANCEL, 0 deletes**. GitHub PR required `test` и `title`, supply-chain audit и дополнительный strict preflight обязательны до squash.
+
+**Разрешённый scope при успехе всех gates:** только 10 SHA-leased ref deletions exactly-once, main/immutable tags не затрагиваются; выполнение после post-merge main `Python checks` и только при first-parent exact baseline. При failed/unknown outcome — STOP без retry; независимый post-delete read-back каждой ветки и следующая docs-only Roadmap/Issue запись обязательны до нового пакета. Пока strict preflight/CI/actual deletion/closure checkpoint **PENDING**; это не evidence об уже удалённых ветках. #510 OPEN/PENDING. Scheduled governance audit 38254198740 остаётся историческим FAIL, отдельно фиксирован в предыдущем разделе.
+
+Published `v5.0.0-rc.9` SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; Deployed rc.9 operator-reported only; accepted v5 NOT PASS. Никаких production/deploy/restart/Stars/refunds.
+
 ## #510 — десять release-веток: ограниченный read-only proof (2026-10-12 16:21 EEST)
 
 **#510 OPEN/PENDING; DELETE 0/10 NOT RUN.** Baseline protected `main` `9a94611a256b0b731666180c18aed20a0d369d84`. После полного [108-ref inventory](audits/branch-cleanup-remaining-108-snapshot-2026-10-12.json) выделены десять точных исторических `release/*` веток, каждая с одним merged-to-main PR и неизменным original tip SHA. Независимое GitHub REST сопоставление PR files/status/blob ↔ single-parent squash на **10/10 PASS только для сравнения файлов**, результаты и exact имена/SHA/PR сохранены в [subset audit](audits/branch-cleanup-release-10-candidates-2026-10-12.json). Это не полное разрешение на удаление.
