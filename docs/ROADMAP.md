@@ -4,6 +4,14 @@
 
 Дорожная карта задаёт границы продуктовых этапов, но не заменяет перечень изменений конкретного релиза: перед публикацией состав релиза фиксируется в отдельных PR реализации и подготовки.
 
+## #510 — 9-ref новый immutable preflight после FAIL исходного 10-ref (2026-10-12 16:38 EEST)
+
+**Задача #510 остаётся OPEN/PENDING; удалений 0/9, DELETE NOT RUN.** Предыдущий [38256017221](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38256017221) remains **FAIL 9 individually PASS / 1 RETAIN**, original PR #548 CLOSED WITHOUT MERGE; [docs checkpoint #549](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/549) merged main `96d3e63738f9501f5b8e744b4c5ad4760cf69184` with postmerge Python checks PASS [38256583646](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38256583646), Roadmap/Issue read-back PASS.
+
+Новый отдельный [immutable 9-ref manifest](audits/branch-cleanup-release-9-verified-2026-10-12.json) содержит только девять доказанных individual PASS из исходной десятки, без `release/v4.12.0` (tracked branch-name dependency RETAIN). Новые `scripts/retire-release-9-510.py` и `.github/workflows/retire-release-9-510.yml` **PENDING required test/title/supply-chain audit и свежий full read-only 9/9 preflight**; до этого `retire-once` не разрешён. После PASS обязателен squash protected main и successful post-merge `Python checks`, first-parent exact SHA, one-shot SHA-leased deletion без retry, independent 404 и следующий docs-only Roadmap/Issue checkpoint **до любого следующего пакета**. При FAIL — STOP/RETAIN, прежний FAIL не переписывать.
+
+Original non-main refs 108, historical distinct ABSENT 361 до новых подтверждённых deletion; no production/Stars/refunds/deploy/restart. Published immutable `v5.0.0-rc.9` tag `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; Deployed rc.9 operator-reported only, VPS read-back PENDING; Accepted v5 NOT PASS.
+
 ## #510 — strict 10-ref preflight FAIL / 9 PASS, 1 RETAIN (2026-10-12 16:29 EEST)
 
 **Issue #510 OPEN/PENDING.** [PR #548](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/548) head `46e1784a1c227e806ff6199a6fdac5cd41a9a39b` **CLOSED WITHOUT MERGE** после [strict read-only preflight 38256017221](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38256017221) **FAIL**: девять individually PASS, одна **RETAIN** — `release/v4.12.0`, SHA `8ee5ab32db5db676ed59811ed0c4f756ee77`, PR #25, `tracked source contains branch-name dependency`. `retire-once` SKIPPED, **DELETE 0/10 NOT RUN**. Поимённый [аудит](audits/branch-cleanup-release10-preflight-fail-2026-10-12.md). Preflight FAIL нельзя объявлять PASS; девять успешных индивидуальных proofs не разрешают автоматическое удаление без нового exact 9-ref manifest и повторного safety gate.
