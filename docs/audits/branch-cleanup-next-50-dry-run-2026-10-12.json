@@ -1,0 +1,388 @@
+{
+  "schema": 1,
+  "issue": 510,
+  "action": "PREPARE_ONLY_NO_DELETION",
+  "generated_utc": "2026-10-12T09:31:19.828Z",
+  "generated_helsinki": "12.10.2026, 12:31:19 EEST (UTC+03:00)",
+  "repository": "cLIcHE-QA/3xui-telegram-bot",
+  "baseline_main_sha": "9fff3180a87a95d965aa155950079f910a49349e",
+  "published_release_tag": "v5.0.0-rc.9",
+  "published_release_commit_sha": "13fdbe8bccfbe92cffc4117b79083bbdcad5a8db",
+  "deployed": "v5.0.0-rc.9 operator-reported only; independent read-back PENDING",
+  "accepted_v5": "NOT PASS",
+  "inventory": {
+    "all_branch_refs": 348,
+    "protected_main": 1,
+    "non_main": 347,
+    "open_pr": 0,
+    "all_pr_records": 454
+  },
+  "candidate_count": 50,
+  "scoped_evidence": {
+    "live_branch_sha_equals_original_merged_pr_head": "PASS 50/50",
+    "merged_pr_and_no_other_pr_head_or_base_for_branch": "PASS 50/50 across full PR inventory",
+    "pr_files_filename_status_blob_identical_to_single_parent_squash_commit": "PASS 50/50 (read-only GitHub REST exact file checks)",
+    "squash_commits_reachable_from_baseline_main": "PASS 50/50 (GitHub commits ancestry inventory; first 400 ancestors)",
+    "literal_branch_name_matches_in_tracked_operational_files": "0 across 50 current tracked .github/scripts/deploy/root operational files",
+    "untracked_external_dynamic_branch_name_consumers": "PENDING / NOT VERIFIED",
+    "future_per_ref_fresh_sha_lease_and_no_active_pr": "PENDING (required immediately before any deletion)",
+    "future_per_ref_post_delete_404_readback": "NOT RUN",
+    "historical_50_absent_attribution": "Оператор 2026-10-12 сообщил, что эти 50 ранее отсутствовавших refs были удалены агентом; нет независимо связанного per-ref workflow/executor evidence, поэтому операционное утверждение помечено operator-reported, а не CI PASS"
+  },
+  "exclusions": [
+    "docs/russian-documentation (PR #2 blob mismatch RETAIN)",
+    "docs/v4.10-host-control-contract (PR #11 blob mismatch RETAIN)"
+  ],
+  "candidates": [
+    {
+      "branch": "docs/v5-rc5-reconciliation-and-rc6-status",
+      "tip_sha": "fa0ef4abf09003540fa8581eaed1585972f19136",
+      "merged_pr": 340,
+      "squash_sha": "fce2129876c3a2f453cd17117306650d1d81d1a2",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-admin-settings-review",
+      "tip_sha": "2de080e12ef1ef44994cde58a7763a0a73d5b752",
+      "merged_pr": 344,
+      "squash_sha": "cd6a7fc53c9245741bc60e3aa6ce442e8b413e02",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-rc6-ownership-canary",
+      "tip_sha": "7210caf46e13ac3b31a7029c8af145ab8f37bbb6",
+      "merged_pr": 346,
+      "squash_sha": "0cfd6244e54f6be65525b39a083c582de8c21faa",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-rc6-post-canary-fix-backlog",
+      "tip_sha": "eab829444ae030a009e923ce4794c7d6383fc387",
+      "merged_pr": 358,
+      "squash_sha": "3eab2d613f572a5aa398e7e68716eff141a501bf",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc7-backup-acceptance-evidence",
+      "tip_sha": "17c933336fc28d17e06d5119d5649c343372d804",
+      "merged_pr": 360,
+      "squash_sha": "004bb51aa32592d2882d5ef485acde06f17d8cc4",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/cloudflare-warp-runbook-357",
+      "tip_sha": "7a18cd74da982dc48834fe9cf32d8dc722978e2b",
+      "merged_pr": 366,
+      "squash_sha": "ec16eb1a7eef618b09dbe0d9e6303a1b86067325",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/roadmap-release-acceptance-l10n-audit",
+      "tip_sha": "8976fe856d9ef4083d4f72c1c51402a6112b01f9",
+      "merged_pr": 369,
+      "squash_sha": "761e4d3eebd81b38efe1043422463c75df202e3a",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/roadmap-acceptance-ledger",
+      "tip_sha": "fb4b10986433580b34fdfeb174aa93deddd5807b",
+      "merged_pr": 370,
+      "squash_sha": "8946153306544a155b7f6bbd49a0c731c8590029",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/reconcile-current-living-docs",
+      "tip_sha": "f7ddeeaf793bd1b5314ec3092279d450f0fe8435",
+      "merged_pr": 372,
+      "squash_sha": "acd5f0876e83fef0cd5cad5831749021bee9cdf3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/security-v5-rc-limited-support",
+      "tip_sha": "a0a4243214c3fe9de4cf0e58a1c382602e3170f8",
+      "merged_pr": 374,
+      "squash_sha": "683f80d0c4a672df66c99823e53328e0ce4d2425",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/client-portal-controlled-pilot-setup",
+      "tip_sha": "3b1d562f62621ada3eb592b9f350fc74acaaaefb",
+      "merged_pr": 375,
+      "squash_sha": "d6ec3f86d262671fae954628fbda50f82a5180a2",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-trial-expiry-20261010",
+      "tip_sha": "eab797147576d62a31da2125c63e0529c936fb52",
+      "merged_pr": 376,
+      "squash_sha": "cd6099e97768eccb938761b09f169a70df453408",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/docker-hub-status-diagnostics",
+      "tip_sha": "4125816c46b2b8c49cb4e741eec58771d3d05e87",
+      "merged_pr": 377,
+      "squash_sha": "cec1013970c3a207123d292d8c3d238eff35da26",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-order3-provider-reconciliation-20261010",
+      "tip_sha": "eac3521727abe304806397238812165d902af365",
+      "merged_pr": 379,
+      "squash_sha": "4c577a332ee2d8356fa984b02fbf13226b787ef4",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-paid-customer-ui-20261010",
+      "tip_sha": "600a838c105062fd43766fea5a70b9ff174f9604",
+      "merged_pr": 380,
+      "squash_sha": "9a34dede8a5796b2a15cc759b55091bdb602884e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-isolated-ownership-smoke-20261010",
+      "tip_sha": "cc6807dc0a51dadd821b65c1f470e6edf0b2f152",
+      "merged_pr": 381,
+      "squash_sha": "8627e5099444fbcdf824ea9685e256b77f87bc15",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-tempdb-handler-ownership-20261010",
+      "tip_sha": "00b491a1810573a8437e2d5538d37f10f901e7ec",
+      "merged_pr": 382,
+      "squash_sha": "1a676214332eb04bfb4f381170ef9cece7012533",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-offline-callback-rbac-smoke-20261010",
+      "tip_sha": "c6b5d906068988086167f28f281dbdc56073fa72",
+      "merged_pr": 383,
+      "squash_sha": "fd68e2f4f204bfb41716f62ddfe4483f4af06818",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-dispatcher-offline-smoke-20261010",
+      "tip_sha": "d0f1e21386cb6d6b51fd11a0950393a7e60d1e08",
+      "merged_pr": 384,
+      "squash_sha": "0c9741c2d540bedf3c3d8181e8e07722acc8e3e5",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-quota-reset-no-replay-offline-20261010",
+      "tip_sha": "b22472cee81a17586edd0ea445582e82027370b0",
+      "merged_pr": 385,
+      "squash_sha": "04c951caa5f1b5e7cdd5247b07eeebc536b8af98",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-commerce-offline-regression-20261010",
+      "tip_sha": "d0a7a5bc6ae2c1dfda05ba4236ca680582ad2303",
+      "merged_pr": 386,
+      "squash_sha": "c01ded6c54f8e8a75aa63ebf98a4a564adc1c68d",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-stars-isolated-regression-20261010",
+      "tip_sha": "0b6259cba53c3a8ae7f92cc111cb6f91ac52b8cd",
+      "merged_pr": 387,
+      "squash_sha": "c668bc9a8ff7151722f12e1e17dc73debd8876de",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-stars-kill-switch-offline-20261010",
+      "tip_sha": "6297f525b281f01aea5db610b8acfdd0c808c34d",
+      "merged_pr": 388,
+      "squash_sha": "0160bfd7217069c812aa4304aaf4dc688244be2f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-provider-outage-recovery-20261010",
+      "tip_sha": "04a9e4264ffb228c29870c32e96db7393365c9ff",
+      "merged_pr": 389,
+      "squash_sha": "9a96f071f583ee9f7ed44b247626b959aa884267",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-scheduled-backup-job-pass-20261010",
+      "tip_sha": "d0651ba60ea0aa366db3ae4c73310cded0ebfb77",
+      "merged_pr": 390,
+      "squash_sha": "b4e7938b7d7c913661b29917ff88492c26d228f3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-scheduled-archive-deep-check-20261010",
+      "tip_sha": "deacc86ef4b85be0a6b49aad33fcf4039c8cc5f1",
+      "merged_pr": 391,
+      "squash_sha": "ded00a6e70cec4d7717f1eb8ff662f812927ecf1",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-offsite-97-independent-linkage-20261010",
+      "tip_sha": "20a356f80312cd52dd58db1fff85d74acdefbbc9",
+      "merged_pr": 392,
+      "squash_sha": "ad191afef57b810360ee77856c8139bfea831b06",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-isolated-restore-preflight-20261010",
+      "tip_sha": "f762c0016e4a24d5af440d4bfed265ff5a348df5",
+      "merged_pr": 393,
+      "squash_sha": "93f2b5882fefba376523f3fe9e38c17564b93805",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-recovery-97-archive-linkage-20261010",
+      "tip_sha": "040be4c835e9da32a8a8e906f871398b5d544673",
+      "merged_pr": 394,
+      "squash_sha": "85cb5cc3d2d81566d39ed20bf09a1a1ce10ddd31",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-rc7-recovery-component-startup-20261010",
+      "tip_sha": "cdb76a200939f101bf8d9d7c13254c11263c1f1d",
+      "merged_pr": 395,
+      "squash_sha": "6f89d0a612804a542b0653e3e7aa4172ac14a0f7",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/recovery-drill-artifact-cleanup-20261010",
+      "tip_sha": "6766cf68bc9790b4b3f93b6c477090226ecd1db4",
+      "merged_pr": 396,
+      "squash_sha": "346a72af6a52ae685bd0369cd75543a8de3958b5",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-rc7-isolated-container-process-pass-20261010",
+      "tip_sha": "9fad528f68acf1a35cfdfc195645e3f3d689b9cf",
+      "merged_pr": 397,
+      "squash_sha": "7a8c967eeba92e249ce1ef7de14ea98a1c60afbc",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-master-xui-isolation-preflight-20261010",
+      "tip_sha": "24b9f674a1139e74cadf67a39823c821f546865f",
+      "merged_pr": 398,
+      "squash_sha": "3ec573c053dbe615e757724b0e0dac49fefaa9c0",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/correct-rc7-dr-host-identity-20261010",
+      "tip_sha": "f3f53db4a175d71e2b10d45ee453261f322d4232",
+      "merged_pr": 399,
+      "squash_sha": "a6e023d2e1c919e19dccc07405f9bd669f7098fb",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/record-master-cleanup-and-dr-waiver-20261010",
+      "tip_sha": "b4da705df678f84ee76318ad934f6d7df8e26e49",
+      "merged_pr": 400,
+      "squash_sha": "96b5a89c4a13a521ef70e0afb1af08c9f76884b4",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/roadmap-current-rc7-acceptance-20261010",
+      "tip_sha": "9c97d1e365b218f6bef5918d5147af8bbe904df4",
+      "merged_pr": 401,
+      "squash_sha": "16f5e2519fa4a208796ebe220fa5d5c31b445c04",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/record-real-telegram-ab-canary-20261010",
+      "tip_sha": "f51c24e8e75aa7eb4448b4c964e7c4d97be44f8c",
+      "merged_pr": 402,
+      "squash_sha": "7a913f5e62f7350e621e3de691a0e08a4a8abde7",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-rc7-smoke-current-main-20261010",
+      "tip_sha": "e1b639f58b152b4513003f68f445ce47a4e827a6",
+      "merged_pr": 404,
+      "squash_sha": "6d6f7f89ac79f288513cde12f142da275a6ca9e3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/close-334-stars-summary-20261010",
+      "tip_sha": "bc5a17e71f29bb2961a061e320547534deb6c6ad",
+      "merged_pr": 405,
+      "squash_sha": "b670a5535244dbffa00ace9ffada0002aa8a17c7",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/close-333-refunded-stars-20261010",
+      "tip_sha": "fd3b8453b30f244f40156c1565e917c46993110f",
+      "merged_pr": 406,
+      "squash_sha": "b5c77463d226ddc1fb2112513b49e94ef961b1e8",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/stars-invoice-ui-rc7-20261010",
+      "tip_sha": "bfd5262208744eb21ef6e538039ad76315279c7f",
+      "merged_pr": 407,
+      "squash_sha": "9e55e501d2add1611e90d83522cffaef7e0f3c53",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/accept-backup-fixes-348-349-20261010",
+      "tip_sha": "ea3921f6896e91c836dd004c744ace358a8978ba",
+      "merged_pr": 408,
+      "squash_sha": "b1864a676ed8da91200b1f12f0a4655c0541b025",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/stars-sqlite-ledger-reconciliation-20261010",
+      "tip_sha": "93bb065a12c438a031a33e82b6d8c8928d3eeb86",
+      "merged_pr": 409,
+      "squash_sha": "c1f45ed518e322252a2d962b873eaebfc4141e00",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-client-subscription-refresh-smoke-20261010",
+      "tip_sha": "299ef84c95634af0aeda4af62389f94e257622c9",
+      "merged_pr": 410,
+      "squash_sha": "0fd5ed78de33afba6e41b2bfc180c3af3c33d5fa",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-nonpilot-telegram-auth-denial-20261010",
+      "tip_sha": "d270e74f818c973988de3ad40f88bf82ce0b547a",
+      "merged_pr": 411,
+      "squash_sha": "a979a24d1b314dcd115542d76a58f4c6721fc6be",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-nonpilot-subscription-command-denied-20261010",
+      "tip_sha": "afb07907cc17080ff0a8397d70dfd998a7f9b2e8",
+      "merged_pr": 412,
+      "squash_sha": "89b94785c1a64cfc076caa1c463f1938556f1acb",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-telegram-burst-transport-waiver-20261010",
+      "tip_sha": "09191322e02e3ce173c704406312c6c577970aa8",
+      "merged_pr": 413,
+      "squash_sha": "d07ee9b762cddce68cd785a120592dd442d9ac93",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-a002-refund-unknown-and-quota-success-recovery-20261011",
+      "tip_sha": "4c3a450606132571ddd2b07e0c67d9e421aa3c4e",
+      "merged_pr": 414,
+      "squash_sha": "8958c8fe9c56c3eb6a1bcf78de0d234af8b3fb3e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/v5-a002-cross-process-recovery-20261011",
+      "tip_sha": "180fa527546f75aad2f0ebd38deabca3a94544e2",
+      "merged_pr": 415,
+      "squash_sha": "9471fd0044a2fc019d630ecae68d107c1444e976",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc8-production-smoke-evidence",
+      "tip_sha": "d0dc7df9540ab9d3ee61a70be08903c1881ccb42",
+      "merged_pr": 419,
+      "squash_sha": "5ef9093dfd4bea4ad54a976123b80bedfe30918e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    }
+  ]
+}
