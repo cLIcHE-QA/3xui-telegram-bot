@@ -4,6 +4,12 @@
 
 Дорожная карта задаёт границы продуктовых этапов, но не заменяет перечень изменений конкретного релиза: перед публикацией состав релиза фиксируется в отдельных PR реализации и подготовки.
 
+## #510 — 100 refs: execution safety gate (2026-10-12, EEST UTC+03:00)
+
+**⬜ Запланировано / PENDING — Issue #510 OPEN.** [100-ref immutable manifest](audits/branch-cleanup-next-100-dry-run-2026-10-12.json), baseline `main` `6692005c1781221bf49512516e7fe81b81496bf2`. GitHub-only PR готовит отдельный one-shot workflow и fail-closed проверку: 100 exact names/SHA, merged PR, одно-родительский squash и PR/commit file/status/blob equivalence, reachability, tracked-name dependencies, remote branch descendants, current remote SHA, PR head/base. **До required PR test/title и read-only preflight 100/100 — DELETE NOT APPROVED, 0/100 удалений.** Любой FAIL/unknown требует STOP, ручного checkpoint и корректировки только отдельным CI PR. После успешного squash/CI workflow сможет выполнить только SHA-lease guarded delete; фактический outcome должен быть независимо проверен 404 и внесён **следующим** docs-only PR до нового пакета. Внешние/dynamic потребители имён не могут быть полностью исключены; residual risk сохраняется. #510 нельзя закрывать по одному batch.
+
+**Published** immutable `v5.0.0-rc.9`, tag `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; **Deployed** rc.9 operator-reported, независимый VPS read-back PENDING; **Accepted** overall v5 NOT PASS. Никаких production операций.
+
 ## #510 — следующий пакет 100 веток: подготовка, НЕ удаление (2026-10-12, EEST UTC+03:00)
 
 **⬜ Запланировано; #510 OPEN / PENDING.** На immutable baseline `main` `b1fbd95b6f3c1b0dba35029f63533ba3f76360b1` собран [100-ref dry-run manifest](audits/branch-cleanup-next-100-dry-run-2026-10-12.json): точные branch tip SHA, merged PR, squash SHA, classification `DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT`. Источник — независимые GitHub REST read-only pages (branches 100+100+99 после создания docs working branch; 459 historical PR, 0 open PR); отобраны 100 веток: 54 docs, 6 audit, 3 test, 1 ci, 1 legal, 12 refactor, 23 fix. **Scoped PASS 100/100:** каждый кандидат имеет один merged PR в `main`, совпадает с original head SHA, не используется как base исторических PR; две известные blob-mismatch ветки, `main`, `release/*`, непрозрачные и незалитые PR/refs исключены. **Это фильтр кандидатов, не окончательный deletion safety PASS.** Состояние перед созданием docs branch: 298 веток (297 рабочих + `main`).
