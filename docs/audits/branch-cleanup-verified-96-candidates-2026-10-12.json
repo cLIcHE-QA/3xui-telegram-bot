@@ -1,0 +1,720 @@
+{
+  "schema": 1,
+  "issue": 510,
+  "action": "PREPARE_ONLY_NO_DELETION",
+  "date": "2026-10-12 Europe/Helsinki (EEST UTC+03:00)",
+  "repository": "cLIcHE-QA/3xui-telegram-bot",
+  "baseline_main_sha": "6692005c1781221bf49512516e7fe81b81496bf2",
+  "parent_manifest_path": "docs/audits/branch-cleanup-next-100-dry-run-2026-10-12.json",
+  "parent_manifest_blob_sha": "edf5c32d782c8e775462b05ee6930295317d1794",
+  "approved_scope": "Subset only of 100 read-only original candidates after deeper preflight; no deletions",
+  "first_preflight_run": "https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38238613832",
+  "first_preflight_result": "FAIL: 96/100 PASS, 4 RETAIN; deleted=0",
+  "exclusions": [
+    {
+      "branch": "fix/stable-bot-docker-network",
+      "reason": "PR final file/status/blob mismatch",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    },
+    {
+      "branch": "fix/admin-ui-navigation-consistency",
+      "reason": "PR final file/status/blob mismatch",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    },
+    {
+      "branch": "fix/v4.9.3-node-detail-counters",
+      "reason": "PR final file/status/blob mismatch",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    },
+    {
+      "branch": "fix/release-tag-probe",
+      "reason": "tracked source contains branch-name dependency",
+      "classification": "RETAIN_MANUAL_REVIEW"
+    }
+  ],
+  "selected_count": 96,
+  "groups": {
+    "docs": 54,
+    "audit": 6,
+    "test": 3,
+    "ci": 1,
+    "legal": 1,
+    "refactor": 12,
+    "fix": 19
+  },
+  "gate": "96/96 fresh independent preflight (PR files/status/blobs, ancestry, dependencies, SHA) PENDING; no execution until required CI and explicit postmerge gate",
+  "candidates": [
+    {
+      "branch": "docs/agent-acceptance-issue-checkpoints",
+      "tip_sha": "7160af4b0c3e07010efe6b9b08e563375af1e924",
+      "merged_pr": 421,
+      "squash_sha": "acc4899259f7daaa14d4daedd2284ba09951095a",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/plan-3xui-hosts-rc9",
+      "tip_sha": "54b39deb5a40f44756b5391444f138d989b04d0a",
+      "merged_pr": 423,
+      "squash_sha": "9add5edb1e0a24b4b76f6e722ee417b82ad45d5f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/sync-hosts-422-main",
+      "tip_sha": "92dbca1f187c434334315254c6f0a1abfb72fea6",
+      "merged_pr": 425,
+      "squash_sha": "dd5d2c8ee69c4864937a07846db16568e9efadba",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-readiness-checkpoint",
+      "tip_sha": "31426447345c7b9fdd5f14fe6de73a9644b8f13f",
+      "merged_pr": 426,
+      "squash_sha": "6fbebec7dd9b7935afa7eb6e8c345952a93909a1",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/read-only-baseline-20261011",
+      "tip_sha": "276df0af3e9f51414246e65501a874112e61fe4b",
+      "merged_pr": 427,
+      "squash_sha": "da8cbf2fc18e82ef151c45238097b20cd812ec10",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/sync-3xui-contract-governance-428",
+      "tip_sha": "bc069b7e66155458bf24e23251570ef5b0e9d2c0",
+      "merged_pr": 429,
+      "squash_sha": "c7b3f4028f296b3972739ffd8e5eade501d0cfb4",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-release-prep-checkpoint",
+      "tip_sha": "8051360de8adf22738566776d5221fd8faf30f9f",
+      "merged_pr": 431,
+      "squash_sha": "a3d54bd9152e4a1ab1497ff67cac1f52503062b6",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-published-checkpoint",
+      "tip_sha": "ae8651475b391c3f213e5e660fc00b61ba6bdb7b",
+      "merged_pr": 432,
+      "squash_sha": "5fc0e5284f1110057e0b06ab110d8913d66f65b6",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc10-refunds-plan",
+      "tip_sha": "2189bb276a85bd9f875f9177a2b5e326baf17f4c",
+      "merged_pr": 435,
+      "squash_sha": "15e9ee066046ac5ceb180c84735ec2044df820ce",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc10-legal-support-psp-plan",
+      "tip_sha": "cfe78357c4553d11238fe4c4a41779d0092aaad0",
+      "merged_pr": 438,
+      "squash_sha": "994f6fd4574a67ff099b8ab124351c3fb4af476e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/platega-payment-link-contract",
+      "tip_sha": "53e3a842678daf401442123caba5af76f4b33f82",
+      "merged_pr": 439,
+      "squash_sha": "dd58a151bc6a0a8489ac8339abb008454dc1e9f3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-operator-deploy-checkpoint",
+      "tip_sha": "041f9258fb8d0e9cd4f8bf79f8281213671a1c63",
+      "merged_pr": 440,
+      "squash_sha": "fb034ed045bcb1b90b98f3ec4aae6125b7a79775",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-hosts-visibility-checkpoint",
+      "tip_sha": "a6121fdee882e67741b2614130a375d7614ee391",
+      "merged_pr": 441,
+      "squash_sha": "1d21cfae4aeeb1c4bbd8e444907e00ce42097a56",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-netherlands-mapping-checkpoint",
+      "tip_sha": "74ae09f683146ceac233d87df7170538b2fc22a6",
+      "merged_pr": 442,
+      "squash_sha": "aa04ddf01a92350810e6680e64f1b0aadc7575b3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-host-sources-acceptance",
+      "tip_sha": "bb00c44fc310d8fdaa8829acbfd40a3a484f9db0",
+      "merged_pr": 443,
+      "squash_sha": "85839f3c0450d1f559f4652f6c0d3a6c1baf814a",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-422-closure-sync",
+      "tip_sha": "941a1ce88f4d73fb3c23ab62472267fcb07ce305",
+      "merged_pr": 444,
+      "squash_sha": "b97c33d5089ac7c2272c9ac17655e8707ba73f30",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-342-portal-off-callback-checkpoint",
+      "tip_sha": "a6f10f501548b8a94d29b2415e320f8a86ec4884",
+      "merged_pr": 445,
+      "squash_sha": "5d76b4dffab963e5f53457b4cd429ada2964a169",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-342-portal-restored-checkpoint",
+      "tip_sha": "4528680e8fdf0ccbe5487510567277df171b2923",
+      "merged_pr": 446,
+      "squash_sha": "93d273a2c09271b6d3740c020e6c2fb11a58af28",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-342-readonly-acceptance",
+      "tip_sha": "a2f4913644cd9676ac60699ff3516bda7e18eec7",
+      "merged_pr": 447,
+      "squash_sha": "f6a360d3a59bf1826dc98b18c35cca5e326d7312",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-342-closed-status",
+      "tip_sha": "110878302e73df79166a37e4cbc09256a65637e8",
+      "merged_pr": 448,
+      "squash_sha": "6670cfd03d54cc5161b050987a60f4553f8d26bb",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-352-readonly-preflight",
+      "tip_sha": "4330f75a8ab1f634ef3da974711c912e971e7329",
+      "merged_pr": 449,
+      "squash_sha": "6b520ffbe2ef6e21dbcdce0d80c33a9ce1749818",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-352-isolated-smoke-result",
+      "tip_sha": "7164e424138d8a579eced577fc31fa39628d07b6",
+      "merged_pr": 451,
+      "squash_sha": "f3df11741a8264e4c04d8ccc1e407c5347d07287",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/352-qa-runner-merged-sync",
+      "tip_sha": "4a920c75c2999aa8473942965ff8f53cffb9f50e",
+      "merged_pr": 453,
+      "squash_sha": "7c2c1196723e8b3a13205a0ac76a26813482f7f7",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-preview-pass-20261011",
+      "tip_sha": "f1cedc4815f4477ee80fc0c815c4a2463a6967dc",
+      "merged_pr": 455,
+      "squash_sha": "fa8b3e5250bcaa30200edbcf98c365ac5a58d7d3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-enroll-blocked-20261011",
+      "tip_sha": "e97fbab1db03392993792ad60988b5fe63bf1db0",
+      "merged_pr": 456,
+      "squash_sha": "570418f747dc5d3859573a3d6b5418879a366728",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-getme-urlerror-20261011",
+      "tip_sha": "64d4ff09e9e0d5dd895fc1f579a641b03b759a37",
+      "merged_pr": 457,
+      "squash_sha": "997b05068ac0d2522133482272cf0121861ca841",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-ssl-verification-blocked-20261011",
+      "tip_sha": "66e6efc893b1534de6cfb924dfb77c165d726129",
+      "merged_pr": 458,
+      "squash_sha": "329d769527ac90db05781451fea76c2c3443fe79",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-python-ca-paths-20261011",
+      "tip_sha": "c23a8d2a9aab713cc0ac27029022e2968f676b50",
+      "merged_pr": 459,
+      "squash_sha": "c1950b50122277265042c82784a851e91f7eae60",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-mac-ca-install-pass-20261011",
+      "tip_sha": "7fbf945e7e835e9ed2636dece02d179243862713",
+      "merged_pr": 460,
+      "squash_sha": "779fcc03009dfdadc6c77a11ef20616569b6f7c4",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-tls-post-ca-pass-20261011",
+      "tip_sha": "079c37efe7d97651e69b1c5641275108e850cecc",
+      "merged_pr": 461,
+      "squash_sha": "028269ce57376c6c88166bfa4119c19946d3e4e2",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-qa-private-enroll-pass-20261011",
+      "tip_sha": "d36f8a19fa618ba661c559eb4a4bfc5e27b58c78",
+      "merged_pr": 462,
+      "squash_sha": "aa1a7b5a06ce555340a65bb7cbaff4544a984804",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-first-telegram-delivery-evidence-20261011",
+      "tip_sha": "02dae43803bbe2c51f600fa767bfc073e6ca3699",
+      "merged_pr": 463,
+      "squash_sha": "e230a9228ded2d292ad2f320a37666ffc2f639cc",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-telegram-synthetic-visual-4of4-20261011",
+      "tip_sha": "982c2013e54c0a1f84b803a768a959dbd198a84a",
+      "merged_pr": 464,
+      "squash_sha": "aee2df99e878ac705bb953818fe40b3040e9641a",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-transport-confirmed-4of4-20261011",
+      "tip_sha": "1e0e128dc59fa325a95c4d477c5b597011e35510",
+      "merged_pr": 465,
+      "squash_sha": "82bc546a700b172afd2033a4e87a1ea8621ba1c9",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-risk-accepted-closure-20261011",
+      "tip_sha": "3879d103409e9e4d7f81b2e02c9c5317d2c4df6c",
+      "merged_pr": 467,
+      "squash_sha": "6e110cfe0d4942a67f546e22c7e0b3ac87ae4e9c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/qa352-closed-followup-open-20261011",
+      "tip_sha": "7d5e34fce161a98c31ac3eaf11182ae637894010",
+      "merged_pr": 468,
+      "squash_sha": "940522db1f0a791348b57f59c05a12de2838143f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-acceptance-gates-waivers-index-20261011",
+      "tip_sha": "8fab01793ac9e2d84a608424bc82001148c5aa6f",
+      "merged_pr": 469,
+      "squash_sha": "94d8bc96460b7b73c4e044a7400805dfca88fa0c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc11-client-portal-backlog-20261011",
+      "tip_sha": "0f5ddefc215d6804ede5749fc2ad9fe2281d57e6",
+      "merged_pr": 474,
+      "squash_sha": "2cb1df0d29df119842be2638b3dbd2b2dce77dd0",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/future-tracks-issues-no-milestone-20261011",
+      "tip_sha": "8eb289a57f20b1485ec838c24aff586b8a86e383",
+      "merged_pr": 480,
+      "squash_sha": "01fff60b7488cc1174cdbec94ae569564cc1f3fb",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/rc9-scale-risk-code-review-20261011",
+      "tip_sha": "e9c1bb6e6424bba67e2284d6810d8c98d8d899ff",
+      "merged_pr": 481,
+      "squash_sha": "9f75b17a2eb11d494926b0b470d0fb7ea9105915",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/scale-issue-482-roadmap-20261011",
+      "tip_sha": "4de4190329a4a7ea6c8bda0ede983cee0b1c64aa",
+      "merged_pr": 483,
+      "squash_sha": "7ab16dc86cdf1ff6ecee95f142c901e34cf81604",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/issue-first-tracking-rule-20261011",
+      "tip_sha": "01647ad78e9f7b43682063f6d7c5f2232c76dca8",
+      "merged_pr": 485,
+      "squash_sha": "38db61ccab71de22e5b278879e26ca091c2f8825",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/issue-484-closure-20261011",
+      "tip_sha": "bac07edb6f294043cc16acc191d458464b11f7f1",
+      "merged_pr": 486,
+      "squash_sha": "05ea2d537c2ea1e1593b9d9164bcb7dc8163c83e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/node-sync-issue-487-20261012",
+      "tip_sha": "d3d5d4eb3a127384193f00960a5e62b3c92a6b32",
+      "merged_pr": 488,
+      "squash_sha": "7e0cb2c556a822a0cd97d3e0990c82c38eaf220e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/aeza-warp-socks-vless-guide-20261012",
+      "tip_sha": "d2e52bf7f1a0c34433294c71b02e62523c74a5c7",
+      "merged_pr": 490,
+      "squash_sha": "68213a54a8e3cb20835a310922316bbdbad58e0c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/sub-tls-nginx-readonly-checkpoint-20261012",
+      "tip_sha": "00bed306aaf4c35019d9ea2125494ccef07fa848",
+      "merged_pr": 492,
+      "squash_sha": "181d487a68d774d9a1328077d3abd5aa6b9bfd72",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/sub-tls-nginx-issue491-closure-sync",
+      "tip_sha": "218eeb42d498aef79f10f7d47253b07f7cbbbb7a",
+      "merged_pr": 493,
+      "squash_sha": "9a819c6a128972133fd3d04a485a687af4c312cd",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/warp-issue489-closure-sync-20261012",
+      "tip_sha": "accafeaea8b1ab2a0b9256d6fc05528ebf4996c2",
+      "merged_pr": 494,
+      "squash_sha": "914fb99105a78ed9b81ca1c7897b1028fa058508",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/github-baseline-checkpoint-20261012-0130",
+      "tip_sha": "68f25520ee6732f3248332bcac1267528c1d298f",
+      "merged_pr": 495,
+      "squash_sha": "249d8f1d60faf221eda061d706d55e383dd48920",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/roadmap-future-issue-audit-20261012",
+      "tip_sha": "79587fa9a8976be79f3d4da2071ca1354f0d89c3",
+      "merged_pr": 508,
+      "squash_sha": "bf465a77de964aab32958df70887700feef198d8",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/future-issues-closure-sync-20261012",
+      "tip_sha": "56746ee597c86901677e1663a24270e8436701fe",
+      "merged_pr": 509,
+      "squash_sha": "1aab2f4ae2d158fd5aba425ccecd6e112909eed5",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/branch-lifecycle-audit-20261012",
+      "tip_sha": "78d5f29727f4b4967311cf09cf17ff80f76858d4",
+      "merged_pr": 511,
+      "squash_sha": "37b1c700c846791b66a893843e1c68063ab92a6a",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/branch-retention-policy-20261012",
+      "tip_sha": "e4de8b36c4dcdd0c2327eb417d8b774591198a95",
+      "merged_pr": 513,
+      "squash_sha": "94ff9bc9ced2b45327b6e4d904d11a49bb16afc5",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "docs/branch-dry-run-inventory-20261012",
+      "tip_sha": "9a7dc1eca791e1e95594b330751869cb90de0798",
+      "merged_pr": 514,
+      "squash_sha": "4487bd6b04a24fd596317d126005074434147219",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "audit/a011-production-acceptance",
+      "tip_sha": "094dfc224f4ab819dde4754b400d7ef55e582b7b",
+      "merged_pr": 281,
+      "squash_sha": "ecc999bd22f88732d82a1096d9f536bbc63cf47e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "audit/a012-production-acceptance",
+      "tip_sha": "7c9e1e23625d42c56904fa45bf62590ea46a152d",
+      "merged_pr": 282,
+      "squash_sha": "77da78a1e2b72d9402291bda319160639a1739bf",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "audit/pre-public-cross-cutting",
+      "tip_sha": "2db20516499d06b878481d0e8baa9310562824bb",
+      "merged_pr": 283,
+      "squash_sha": "825d93b9698168cdefe0ad6b6fb37c70601659af",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "audit/clean-room-acceptance",
+      "tip_sha": "c8174517e963d09bdc66b27b95f856f34f68c43d",
+      "merged_pr": 284,
+      "squash_sha": "c6066c1ab77e019970a70ebfa7242a66a41ba8a3",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "audit/final-v4-pass",
+      "tip_sha": "eb8d4bf99ec4fd608596a9991fd2fe1b99be128d",
+      "merged_pr": 285,
+      "squash_sha": "f7b4a6beb4918d1be93b36e4cd781204f17767d4",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "audit/v5-launch-gate",
+      "tip_sha": "ffc8e0122d3a42064a379a525c50a37f888f2b09",
+      "merged_pr": 308,
+      "squash_sha": "ced272f01d6b38ba1d173d72fe3a2525144f6344",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "test/living-docs-release-scope-gates",
+      "tip_sha": "6001b9aa33a4e33d7725786a9c0944dd7392b6d3",
+      "merged_pr": 373,
+      "squash_sha": "859abb64ada88da8f9516a21671b4915d0b6aeef",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "test/352-isolated-job-alert-lifecycle",
+      "tip_sha": "c830916d603da8ddcf7818c927c67b0cb2b583af",
+      "merged_pr": 450,
+      "squash_sha": "64fb45512670b036747aa24013bd2185d7129e04",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "test/352-qa-telegram-delivery",
+      "tip_sha": "9fea79e08b16c522fe2dfb802a819bafacb863bb",
+      "merged_pr": 452,
+      "squash_sha": "7808480e10a5aaf23185116e4dc48ee0d83d1352",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "ci/supply-chain-main-gate",
+      "tip_sha": "7ffe500487d5df0ac0c893cf1d3b065c4099ba1c",
+      "merged_pr": 274,
+      "squash_sha": "80a989d0342ffcbb097caf3184d7d5d118ed68b4",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "legal/apache-2-license",
+      "tip_sha": "f8e48f7a59ef450765a36f512580f2650ead335b",
+      "merged_pr": 275,
+      "squash_sha": "9bb2dd32f7fa80c6cc7f00a205a7b6ce1a42222d",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/admin-navigation",
+      "tip_sha": "7ba98fea89c2368eedee1f58faf4c1a3cb5dc8a4",
+      "merged_pr": 80,
+      "squash_sha": "4f05244c04be00b5d72e8178d4d4311b02742690",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/node-ui",
+      "tip_sha": "889a8bf7c6399c7b58fbe8d9c2f9257b01022426",
+      "merged_pr": 81,
+      "squash_sha": "6309b9505d9c8b24bc8f5897af0623b6988ceb10",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/node-onboarding",
+      "tip_sha": "1692ed8c9aacff57dce4dba5638e09c1b2dff7ea",
+      "merged_pr": 82,
+      "squash_sha": "ba80f8f8eb688dd9df2adb783e46f1c8f5d6b720",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/node-presentation",
+      "tip_sha": "0747d0c45f76db6f0a214d3625329db239db0209",
+      "merged_pr": 83,
+      "squash_sha": "c43883bad9665dca60ad5687bf473f1ffe197119",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/node-admin-router",
+      "tip_sha": "4b0f5db853c5f0a0643f700804e10f2170e01e24",
+      "merged_pr": 84,
+      "squash_sha": "07b24d7747ac009b905959231b00990e9421c067",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/system-admin-router",
+      "tip_sha": "f19f7d116b908bada2652930452c9afd3c2036b7",
+      "merged_pr": 85,
+      "squash_sha": "aadecd43303cbf1e407bac614ec9a4467b630822",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/backup-admin-router",
+      "tip_sha": "6e2fbf744fe41a5246dd6c5b72a39e7255aac92e",
+      "merged_pr": 86,
+      "squash_sha": "ec7d1606ffd9b7c6fa4fd29c3272c9ea15f35980",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/legacy-user-admin",
+      "tip_sha": "83c670286063f8acf85bb966a8537bd61dc8dfa3",
+      "merged_pr": 87,
+      "squash_sha": "2513ef72fff1d136e15c7776c63dd07fbcc67cbe",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/admin-users-router",
+      "tip_sha": "6e35373a46fa6759e196d02ae9d5a1cb87f0858d",
+      "merged_pr": 88,
+      "squash_sha": "28913d8411bbb43c1ef2c8306e145bbeeeb9c5ca",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/client-access-router",
+      "tip_sha": "c05257f9d8f08e99ffda745cecfabbe0e3f740fa",
+      "merged_pr": 89,
+      "squash_sha": "f06e67da7810e1dccb30522020ba19999a409f08",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/admin-shell-router",
+      "tip_sha": "70c8052fbd3dd2b42480bd0e3a9c3abadb720efa",
+      "merged_pr": 90,
+      "squash_sha": "05ce3defcdb8e3ebe7a54f21f5f6a923ef7ea34f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "refactor/app-runtime",
+      "tip_sha": "66927838b2faef5432eb6ccb2a9c269490efefcb",
+      "merged_pr": 91,
+      "squash_sha": "d1b84593986c4940245a62e46d7599f878631827",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/readiness-callback-routing",
+      "tip_sha": "87f3ea394cedbd534d7e334c0e0a0d815a1abf1e",
+      "merged_pr": 22,
+      "squash_sha": "e9716c1d000e6d9f03e7ed910c23e3dbfc53fdba",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/host-control-startup-recovery",
+      "tip_sha": "16bc72fe07d66a672bcc656ea8f452da08e50bc3",
+      "merged_pr": 35,
+      "squash_sha": "da91d33db7cd0f62c3949933a6b1b7a0d5f1599c",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/recovery-alert-copy",
+      "tip_sha": "27b4dfd7021d452f1f759360d84011f62c1d58d4",
+      "merged_pr": 77,
+      "squash_sha": "b8df3aaa828360fca0385b47cd054f971b2dc829",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/roadmap-gate-v4191-2",
+      "tip_sha": "292dc4ff440cb03609d31e76c376135a73fbd9a8",
+      "merged_pr": 78,
+      "squash_sha": "cc181e6591ed70e486cfd3d0ca5aba6b49411908",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/admin-setup-release-version",
+      "tip_sha": "d342721a8153b5f3da7f8d869759c1d77bcdb328",
+      "merged_pr": 79,
+      "squash_sha": "fc1ba472c91312a1c134042d1bacae375451f649",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/ui-russian-operations",
+      "tip_sha": "9a1b77abf4f2b431b6b2748f3537c6f133ef234f",
+      "merged_pr": 94,
+      "squash_sha": "2ca58ad4d6173890b316358ac4c89df33c5bb50f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/ui-russian-control",
+      "tip_sha": "c34b298b8fb4bb7726440077aff4cfc48924447c",
+      "merged_pr": 95,
+      "squash_sha": "f1615d55d50ac29f76cec62afd66145c9217bf1f",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/ui-russian-updates",
+      "tip_sha": "dcf9f9c00dcb8549908fe91e4e725753a946dbe2",
+      "merged_pr": 96,
+      "squash_sha": "c99dd0b0093e7fceef30fc63d752c851dc8fee00",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/ui-russian-domain-followup",
+      "tip_sha": "120ce436bf9c11efa50e4d0176976dd7a4a47d12",
+      "merged_pr": 99,
+      "squash_sha": "71973b7e95d59e4b03ec8e560ee8d5a98e5e5bfe",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/ui-russian-final-audit",
+      "tip_sha": "97537cc1c2555b46af61a7c38d15b3a8dc5b13e7",
+      "merged_pr": 102,
+      "squash_sha": "4b81ef8b464054a727fc1c7c61717020c4de343e",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/ui-emoji-audit",
+      "tip_sha": "8f2ab26951b1eb3df45f42eedc1419ced18008be",
+      "merged_pr": 103,
+      "squash_sha": "344d35cb0473471e8245100ea519cba622888054",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/admin-navigation-audit",
+      "tip_sha": "1955646c72b9284c7bcbcf9b97e9b06343804827",
+      "merged_pr": 104,
+      "squash_sha": "7dd61a1c40474addb1a792946d237136c514dc35",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/public-readiness-copy",
+      "tip_sha": "d19ce4f7271b5f63badb804edd079abd85b9ff75",
+      "merged_pr": 105,
+      "squash_sha": "4e522a634da0a7f14446321e6f280bf425a57359",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.1-release-notes-sigpipe",
+      "tip_sha": "2c1d86e19c481012db1aa90d97395b8a09945df5",
+      "merged_pr": 107,
+      "squash_sha": "80d8539e39e95f6e61b20fed473a31d0b064cd66",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/admin-navigation-parent-flows",
+      "tip_sha": "0b4e9444aebfd6f24c28b0fa6db09dab46b5257a",
+      "merged_pr": 109,
+      "squash_sha": "1bfc9416c00c2e7141f3183a701443297d8e0ef7",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.2-production-smoke",
+      "tip_sha": "086ee56eda3973376bb9ac14d759b9ebaccc654f",
+      "merged_pr": 111,
+      "squash_sha": "14c439372b4ee56956a434f16162bf99dbdbaadf",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.5-ui-consistency",
+      "tip_sha": "f7bfd3e79f510f8cc11780e5d113974efe07158f",
+      "merged_pr": 117,
+      "squash_sha": "8b32a4f7d9ea24d4f365eab01817c0767a535836",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.6-health-summary",
+      "tip_sha": "0aa3b58a5fdf4165bc8d9f2b21b243cd5e8ccc31",
+      "merged_pr": 121,
+      "squash_sha": "70bf69c7a3169e37cae70bacc02697e41d49c6ab",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    },
+    {
+      "branch": "fix/v4.20.7-inbounds-terminology-clean",
+      "tip_sha": "adf4bfa66e59fff820d8b09c30ee393f40f5368e",
+      "merged_pr": 125,
+      "squash_sha": "33f6b52064ef63b31c13dc939d7cc14fd2233dae",
+      "classification": "DELETE_CANDIDATE_REQUIRES_FRESH_PREFLIGHT"
+    }
+  ]
+}
