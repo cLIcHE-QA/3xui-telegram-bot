@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "issue": 510,
+  "repo": "cLIcHE-QA/3xui-telegram-bot",
+  "main_sha": "9a94611a256b0b731666180c18aed20a0d369d84",
+  "scope": "10 release branches, read-only review only; no deletion authorization",
+  "scoped_pr_blob_comparison": "10/10 initial PR files/status/blob versus single-parent squash equal",
+  "remaining_gates": [
+    "fresh exact SHA and PR state",
+    "squash ancestry main",
+    "tracked source, downstream and dynamic dependencies",
+    "required PR checks and main checks",
+    "operator-reviewed one-shot deletion"
+  ],
+  "candidates": [
+    {
+      "branch": "release/v4-23-0",
+      "tip_sha": "ef39ed8bfc771dc5ea211b2f60b55179614f9c04",
+      "merged_pr": 155,
+      "squash_sha": "628953099f7a0eb700e740285e4719b0a54299f9",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    },
+    {
+      "branch": "release/v4-23-1",
+      "tip_sha": "b4acd456d163fccae43fb8e4c1f275e0af6008a7",
+      "merged_pr": 156,
+      "squash_sha": "ff6638442cbe9c2adc9aa76d74c2cfb4b647aaf6",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    },
+    {
+      "branch": "release/v4.10.1",
+      "tip_sha": "b1c1e1a00115421641dbb7f1aabc4637457554ea",
+      "merged_pr": 16,
+      "squash_sha": "c3bccf7edfcf0db2ea7513f90483b72111b0b7b5",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    },
+    {
+      "branch": "release/v4.11.0",
+      "tip_sha": "8707f1a67469da802860f2e513cdf1db6585a435",
+      "merged_pr": 18,
+      "squash_sha": "104a17ec1f797b971b74d33dacd3febf93f66fb6",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    },
+    {
+      "branch": "release/v4.11.1",
+      "tip_sha": "8006c5bed107667f981ba668d85bb80ac8b5d326",
+      "merged_pr": 23,
+      "squash_sha": "b23040fd5df930d6265c9249149ed004f9b7685f",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    },
+    {
+      "branch": "release/v4.12.0",
+      "tip_sha": "8ee5ab32db5db676ed59811ed0c5a0c4f756ee77",
+      "merged_pr": 25,
+      "squash_sha": "9fff63d03d66962f4812221cdbe205e1a02e74e1",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    },
+    {
+      "branch": "release/v4.13.0",
+      "tip_sha": "afa770f443d60869e181092f82595e4117302a08",
+      "merged_pr": 27,
+      "squash_sha": "91ada391fa1250f67930a6bda2a5f394474a7f46",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    },
+    {
+      "branch": "release/v4.13.1",
+      "tip_sha": "a78e454a570a4c67df25012c8df936934d5b0b14",
+      "merged_pr": 30,
+      "squash_sha": "8f9ba237c1bd85c086b4fcef8ac47747459c8f69",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    },
+    {
+      "branch": "release/v4.13.2",
+      "tip_sha": "1f77dc18a85801aa5024023485cc3f78718e4982",
+      "merged_pr": 38,
+      "squash_sha": "70350296ca0a41ec5053b5cbfa96255fa63a009d",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    },
+    {
+      "branch": "release/v4.14.0",
+      "tip_sha": "d573cbaa61f85140c25b3ad29f630f5656fd3bee",
+      "merged_pr": 47,
+      "squash_sha": "6cc5e95600e75e863d38ae00b070a994daf84ee3",
+      "disposition": "RETAIN_UNTIL_DEEP_CI_PREFLIGHT"
+    }
+  ]
+}
