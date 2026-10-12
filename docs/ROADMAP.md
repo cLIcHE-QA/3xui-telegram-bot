@@ -261,7 +261,7 @@
 
 **✅ [#484](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/484) — CLOSED / completed, docs-only governance acceptance PASS (2026-10-11 21:20 UTC).** [PR #485](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/485) required `test` PASS (run `38175777570`), latest `title` PASS, squash merged SHA `38db61ccab71de22e5b278879e26ca091c2f8825`; независимый GitHub `main` read-back подтвердил `AGENTS.md`, `docs/GIT_WORKFLOW.md`, `.github/pull_request_template.md` и данный Roadmap. Нет версии/deploy/production change; общий v5 acceptance NOT PASS. Оператор утвердил на будущее правило: новая самостоятельная задача bug/fix/feature/security/improvement/tech-debt или значимый acceptance finding должна иметь существующий либо новый GitHub Issue с критериями, а Roadmap остаётся канонической сводкой. Узкие исключения только для trivial/no-scope и docs-only/evidence/release synchronization, с явным `Issue: N/A — причина` в PR. Contract change уже в `main`: `AGENTS.md`, `docs/GIT_WORKFLOW.md`, PR template; docs-only checklist/CI подтверждены. **Baseline** `main` `7ab16dc86cdf1ff6ecee95f142c901e34cf81604`; last published `v5.0.0-rc.9` tag `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; deployed только operator-reported тот же `rc.9` (16:15 EEST), overall v5 acceptance NOT PASS. Никаких production/release операций; G-01–G-11/W-01/W-02 без изменения. Статус #484 закрыт только после сверки собственных acceptance criteria; будущие Issues остаются самостоятельными.
 
-### Master→Node sync: read-only architecture review и future verification — 2026-10-12 00:30 EEST (UTC+03:00)
+### Синхронизация Master→Node: архитектурный обзор только на чтение и будущая проверка — 12.10.2026 00:30 EEST (UTC+03:00)
 
 **⬜ [#487 — проверить целостность синхронизации Master и direct nodes](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) — OPEN / PENDING, без milestone, целевого release и срока.** Источник: запрос оператора 2026-10-11 21:24 UTC; GitHub read-only review текущего `main` `05ea2d537c2ea1e1593b9d9164bcb7dc8163c83e` и pinned upstream 3x-ui `v3.9.0`, без VPS/Telegram/API production-read-back, node-side mutations или новых тестов. По коду [xui.py](../xui.py), [provisioning.py](../provisioning.py), [docs/NODE_ONBOARDING.md](NODE_ONBOARDING.md), [tests/test_v416_provisioning.py](../tests/test_v416_provisioning.py) бот пишет client/attach/update **только через Master 3x-ui API** (центральный `XUIClient`, `inboundIds`), не создавая второго per-node provisioning engine; onboarding использует штатный `nodes API`, отдельный node-sync token и `inboundSyncMode=all`. Штатный [upstream Multi-node contract 3x-ui v3.9.0](https://github.com/MHSanaei/3x-ui/blob/v3.9.0/docs/content/docs/en/operations/multi-node.mdx) предполагает Master→Node API interaction, не репликацию `x-ui.db` как обязательный путь. **Архитектурный review: scoped PASS для отсутствия bot-side duplicate writes, не production sync PASS.**
 
@@ -385,7 +385,7 @@
 
 **Previous QA/production boundaries:** локальный `preview` **operator-reported PASS 4/4** ([PR #455](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/455)); private `enroll` **BLOCKED** ([PR #456](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/456)); read-only `getMe` `URLError` и текущий tokenless TLS check **BLOCKED**, QA Telegram delivery **PENDING**, no `sendMessage` executed by these checks. Published immutable prerelease remains `v5.0.0-rc.9` tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; **last operator-reported deployed** on production Master also rc.9 (2026-10-11 16:15 EEST basic health, no new independent VPS readback), whereas local QA runner/docs fixes are `main` only. [Issue #352](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/352) must remain **OPEN / 🟠 Опубликовано; acceptance отложен** until its own scoped acceptance; natural production `job_failed` new/reminder/recovery and Attention Center projections are **PENDING**, QA-bot transport alone will not establish them. Overall v5 acceptance **NOT PASS**; public launch BLOCKED, no new production deploy/restart/refund/Stars operations or waived burst/DR. Other OPEN Issues: #336, #433, #434, #436, #437; #342/#422 CLOSED.
 
-**Next mandatory checkpoint:** docs-only Roadmap PR → required `test`/`title` → squash merge → read-back from `main` → comment/evidence and closure audit for Issue #352 → Roadmap↔Issues recheck; only then **one** local, tokenless, non-mutating command to inspect `python3` executable, OpenSSL and trusted CA store. No further `enroll` or Telegram send before TLS trust is restored and a separate scoped approval.
+**Следующий обязательный этап:** docs-only PR дорожной карты → required `test`/`title` → squash merge → чтение `main` → комментарий и audit закрытия #352 → повторная сверка Roadmap и Issues. Только после этого — одна локальная команда без токенов и изменений для проверки Python, OpenSSL и доверенных CA. Не повторять `enroll` и отправку Telegram.
 
 
 **#352 — QA Telegram `getMe` read-only diagnosis: `URLError`, operator report 2026-10-11 16:50:48 UTC / 19:50:48 Europe/Helsinki (UTC+03:00), macOS workstation:** после прежнего `enroll` BLOCKED оператор выполнил согласованный безопасный read-only Python `urllib.request` запрос `getMe` (HTTP POST с пустым body, без `sendMessage`) и предоставил **строго две строки** `TOKEN_SET: True`, `ERROR_TYPE: URLError`. **Scoped result: FAIL/BLOCKED — HTTPS getMe не завершён, HTTP status/Telegram API payload не получены; secret presence in process environment confirmed, token validity/authentication NOT VERIFIED.** Нельзя вывести из общего `URLError` причину: DNS, TLS certificate verification, timeout, proxy или transport остаются гипотезами. Точный subtype `URLError.reason`, network/path/env, фактический timestamp исполнения и независимый read-back отсутствуют. Ни токен, ни URL с токеном, ни private Telegram ID не сохранялись в GitHub evidence; ранее раскрытый QA-токен рекомендуется отозвать и перевыпустить через BotFather перед дальнейшей авторизованной проверкой.
@@ -406,7 +406,7 @@
 **Границы release/production и acceptance:** последний **published** immutable prerelease `v5.0.0-rc.9`, tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; последний **operator-reported deployed** на production Master — тот же `v5.0.0-rc.9` (2026-10-11 16:15 Europe/Helsinki, базовые Health/DB/3x-ui PASS по прошлому отчёту, без нового независимого VPS read-back). PR #454 — последующий **неопубликованный workstation-only runner fix в `main`**, не production release и не deployment. Во время этого preview **отправок Telegram нет по выводу preview; production actions не запрашивались и не выполнялись агентом**. [Issue #352](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/352) остаётся **OPEN / 🟠 Опубликовано; acceptance отложен**: **PENDING** отдельное разрешение и private-only `enroll` на Mac (read-only Telegram API и локальный QA SQLite), затем отдельно подтверждаемые **по одному** 4 тестовых Telegram `send`/visual confirm; реальная доставка **основного production-бота**, natural job-failure уведомления и совместные проекции Attention Center всё ещё **NOT VERIFIED**. Изолированный QA-бот сам по себе не закрывает критерии #352; никаких искусственных production failures, restart/deploy, Stars/refund, burst или DR repeat. Общий V5-A-001/002/003 и full v5 acceptance **NOT PASS**; public launch BLOCKED. GitHub Issue audit на входе: **OPEN #336, #352, #433, #434, #436, #437; CLOSED #342, #422**. **Next:** docs-only PR → required `test`/`title` → squash merge → read-back Roadmap из `main` → Issue #352 evidence/closure audit → повторная сверка Issue/PR, и только потом отдельное согласование следующего пакета.
 
 
-**#352 QA runner local preview defect — operator report 2026-10-11 16:04:49 UTC / 19:04:49 EEST, macOS workstation:** direct `python3 scripts/qa352_telegram_delivery.py preview` failed with `ModuleNotFoundError: No module named 'alert_job_incidents'`. **Local preview FAIL**, no Telegram send, token usage, production changes or delivery evidence. Reproduced by static import/path analysis: direct script sets Python import path to `scripts/` and root module was not discoverable. Fix in this PR adds repo-root import path relative to `__file__`, clean-`PYTHONPATH` subprocess regression and operator runbook clarification. **Fix acceptance PENDING until required CI and operator re-run**; temporary non-persistent workaround `PYTHONPATH=. python3 scripts/qa352_telegram_delivery.py preview` (from repo root) previously suggested, not independently confirmed. Published and operator-reported deployed runtime `v5.0.0-rc.9` immutable SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db` unchanged. Issue #352 OPEN, Telegram transport/Attention Center PENDING, overall v5 acceptance NOT PASS. Next: PR required `test`/`title`, squash merge, verify Roadmap/Issues, then retry read-only preview from workstation; do not send QA messages yet.
+**#352: дефект локального preview QA-runner — отчёт оператора от 11.10.2026 16:04:49 UTC / 19:04:49 EEST, macOS.** Прямой запуск preview завершился `ModuleNotFoundError: No module named 'alert_job_incidents'`. Локальный preview **FAIL**; Telegram-сообщения не отправлялись, токен не применялся, production и delivery evidence не менялись.
 
 **#352 — QA Telegram runner merged, 2026-10-11:** [PR #452](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/452) merged в `main` SHA `7808480e10a5aaf23185116e4dc48ee0d83d1352`: защищённый test-only workstation runner `scripts/qa352_telegram_delivery.py`, локальная отдельная QA SQLite, private-only `/start`, pinned QA bot/chat, четыре ограниченных синтетических сообщения с ручным подтверждением, fail-closed no retry после неизвестного результата, без доступа к production jobs/DB/bot. Пять safety tests добавлены, required [CI run #38153353000](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38153353000) `test` PASS и `title` PASS; инструкции для оператора записаны в `docs/ADMIN_SETUP.md`. Оператор 2026-10-11 18:45:35 EEST сообщил, что QA-бот создан, `/start` отправлен, token сохранён локально, `/setjoingroups` пропущен. **No Telegram send performed: PENDING**, QA registration/preview/notifier delivery также PENDING. #352 остаётся OPEN / `🟠 Опубликовано; acceptance отложен`; test-only delivery не докажет production-bot delivery и Attention Center projections. Published `v5.0.0-rc.9` SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db` и ранее operator-reported deployed rc.9 не менялись. Следующий шаг — required docs CI/merge и повторная Issue сверка, затем на операторской workstation только offline `preview` и одобрение private-only регистрации; send messages отдельно. Общий v5 acceptance NOT PASS.
 
@@ -540,8 +540,8 @@
 | --- | --- | --- |
 | [#352](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/352) / [#361](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/361) | 🟠 Код новых/повторных уведомлений фоновых заданий опубликован в rc.8, offline CI PASS. | 🟠 **Issue остаётся OPEN**, natural job_failed notification PENDING. |
 | [#353](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/353) / [#362](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/362) | ✅ **Scoped production PASS:** Owner ознакомился с historical `bot.update #80` от неудачного v4.26.7, подтвердил `recovered` 2026-10-10 23:46 UTC; read-only SQLite: `job_runs.status=unknown`, `reason_code=recovered`, ровно **1** audit entry; старый run больше не отображается в Attention Center (SMOKE-8/9). | ✅ **Issue closed/completed 2026-10-11**: ACK recovered сохранён; исторический unknown не переписан. |
-| [#354](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/354) / [#363](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/363) | ✅ **Targeted production UI PASS**: Attention Center Back/Refresh/navigation (SMOKE-3, 23:29 UTC). | ✅ **Issue closed/completed 2026-10-11**: targeted navigation smoke + offline roles/routes tests. |
-| [#355](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/355) / [#364](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/364) | ✅ **Targeted production UI PASS**: admin labels, roles/status, возврат (SMOKE-4, 23:29 UTC). | ✅ **Issue closed/completed 2026-10-11**: targeted admin label smoke + offline TTL/RBAC tests. |
+| [#354](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/354) / [#363](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/363) | ✅ Целевой production UI **PASS**: возврат/обновление/навигация Attention Center (SMOKE-3, 23:29 UTC) | ✅ Issue CLOSED/completed 11.10.2026: целевой smoke навигации и offline-тесты ролей/маршрутов |
+| [#355](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/355) / [#364](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/364) | ✅ Целевой production UI **PASS**: подписи Admin, роли/статусы и возврат (SMOKE-4, 23:29 UTC) | ✅ Issue CLOSED/completed 11.10.2026: целевой smoke подписей и offline TTL/RBAC |
 | [#356](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/356) / [#365](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/365) | ✅ **Targeted production UI PASS**: справочник команд и Back (SMOKE-2, 23:29 UTC). | ✅ **Issue closed/completed 2026-10-11**: Telegram help UI smoke + AST catalog CI. |
 | [#357](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/357) / [#366](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/366) | ✅ **Docs-only scope**: [WARP runbook](WARP_SETUP.md) включён в rc.8; WARP не устанавливался (не требовалось). | ✅ **Issue closed/completed 2026-10-11**: docs-only scope; live WARP installation не является acceptance. |
 | [#343](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/343) / [#367](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/367) | 🟠 **UI smoke PASS**: редактирование traffic/IP показывает `0 = без лимита`, оба экрана закрыты через «Отмена» без изменения данных (SMOKE-6, 23:44 UTC). | ✅ **Issue closed/completed 2026-10-11**: isolated SQLite/zero wire payload tests + UI SMOKE-6 закрывают исходный scope, запрещавший production trial mutations. Отдельный широкий 3x-ui canary остаётся V5 acceptance, не блокирует #343. |
@@ -603,14 +603,14 @@
 - **Local entitlement uniqueness / no-shortening / owners — scoped PASS (оператор, 2026-10-10 ~18:48 МСК, read-only SQLite):** `DUPLICATE ENTITLEMENTS PER ORDER: PASS`, `LOCAL EXPIRY NOT SHORTENED: PASS`, `ENTITLEMENT OWNERS EXIST: PASS` (3/3). Агрегатно проверены отсутствие повторных entitlement для одного order, `users.expiry_time` не меньше максимума `entitlements.expires_at` среди paid orders и отсутствие orphan entitlement без `users`. Это завершает **локальный** SQLite-сегмент reconciliation без данных клиентов и без мутаций; не заменяет живую проверку 3x-ui/Telegram или полный v5 acceptance.
 - **Не закрыто:** реальная Telegram delivery/pre-checkout/rollback, V5-A-002 failure/restart/no-blind-replay, paid entitlement expiry, 3x-ui postconditions для всех оплаченных пользователей, load/soak, final cross-system reconciliation. Эти gates `PENDING`; **общий v5 production acceptance = NOT PASS**. Не повторять ровно эту SQLite-сверку без изменения данных или конкретного finding.
 
-### V5-A-002 — два offline regression PASS: Stars refund unknown и quota success recovery (2026-10-11 МСК)
+### V5-A-002 — две регрессионные проверки offline PASS: неизвестный возврат Stars и восстановление квоты после успеха (11.10.2026 МСК)
 
 - **Baseline/evidence (операторское подтверждение, точное время запусков не зафиксировано):** проверялись существующие тесты из immutable `v5.0.0-rc.7` (production baseline на момент проверок, SQLite schema v11). Оба результата — отдельные offline regression `Ran 1 test` / `OK`; сам GitHub CI или реальный Telegram/provider этим свидетельством не проверялся. Изменений runtime-кода, `APP_VERSION`, GitHub Release, production контейнера и данных эти проверки не требуют.
 - **Stars refund — unknown не вызывает повторный возврат, scoped PASS:** `tests/test_v5_stars_production_hardening.py::test_unknown_refund_is_not_replayed`; оператор сообщил `Ran 1 test in 0.456s — OK`. В тесте реальная `Database` работает с временной SQLite, Telegram `refund_star_payment()` заменён на `AsyncMock`, который выбрасывает `OSError("connection lost")`. Первый и повторный вызов `run_stars_refund()` возвращают операцию в состоянии `unknown`; `refund_star_payment.await_count == 1`; платёж сохраняется `confirmed`, не превращается в `refunded`. Это **не** повторная проверка #333 (duplicate delivery после уже успешного refund) и **не** доказательство сбоя живого Telegram API.
 - **Quota reset уже успешно записан — локальная активация без replay, scoped PASS:** `tests/test_commerce_foundation.py::test_successful_quota_reset_can_finish_local_activation_without_remote_replay`; оператор сообщил `Ran 1 test in 0.430s — OK`. Представленная команда запускала тест, извлечённый `git show v5.0.0-rc.7:...`, в одноразовом контейнере **на image production bot**, с `--network none`, `--read-only`, UID `10001:10001`, без повышенных capabilities; SQLite теста находится во временном каталоге. Тест заранее формирует `entitlement.status=provisioning`, `quota_reset_status=success`, записанные `starts_at=1000` / `expires_at=2000`. Реальный `EntitlementProvisioningService.reconcile()` завершает локальный переход в `active`, не меняет сохранённые сроки, синхронизирует `users.expiry_time=2000000`; заглушка запрещает любой повторный `sync_user()` и `reset_user_traffic()`. Тест **моделирует сохранённое промежуточное состояние**, но не выполняет настоящий crash/restart бота и не вызывает API 3x-ui.
 - **Границы и продолжение:** два дополнительных **scoped offline PASS** дополняют существующие V5-A-002 проверки `quota_reset=unknown` / no-replay и definite provider outage → explicit recovery, но не подменяют их и не закрывают весь сценарий. Без новых production Stars/refund, quota reset, SQLite/3x-ui mutations, deploy либо restart. **PENDING:** delayed/duplicate события через настоящий Telegram transport, controlled restart/reconciliation при незавершённой операции, provider read-back и финальная cross-system reconciliation. **V5-A-002 overall = PENDING; общий v5 production acceptance = NOT PASS.** Pilot allowlist не расширять.
 
-### V5-A-002 — cross-process delayed payment/reconciliation + duplicate: offline scoped PASS (2026-10-11 МСК)
+### V5-A-002 — межпроцессная отложенная оплата, сверка и дубликат: ограниченный offline PASS (11.10.2026 МСК)
 
 - **Operator-reported результат (точное время не зафиксировано):** в одноразовом `docker run --rm -i` на image действующего `v5.0.0-rc.7` три **раздельных дочерних Python-процесса** последовательно использовали **одну** временную SQLite. У внешнего контейнера `--network none`, `--read-only`, непривилегированный UID `10001`, `cap_drop ALL`, `no-new-privileges`; данные `TemporaryDirectory` удаляются автоматически. Synthetic provider `offline-test`, один тестовый order/event/payment, без Telegram Bot API, 3x-ui или production SQLite. Фактический stdout: `EARLY: PASS`, `RECOVER: PASS`, `DUPLICATE: PASS`, `V5-A-002 CROSS-PROCESS RECOVERY: SCOPED PASS`.
 - **Первый процесс, early event:** реальный `Database.init()`, `CommerceService.create_order()` и `apply_confirmed_payment_event(..., signature_valid=True)` фиксируют authenticated confirmation до появления `commerce_payments`: событие `failed/payment_not_found`, нет `payment`/`entitlement` и преждевременной активации.
@@ -699,7 +699,7 @@
 - **Итог:** `scoped PASS` для (1) `AsyncMock` service A/B smoke, (2) временной SQLite + Stars pre-checkout handler, (3) Admin RBAC / Client Portal callbacks на synthetic aiogram events и (4) `Dispatcher.feed_update` offline routing (6 проверок). **Ownership/IDOR full = PENDING**, поскольку Telegram transport/E2E canary не проверены; **V5-A-002 failure/restart = PENDING** и общий v5 acceptance **NOT PASS**. Следующий независимый этап — подтверждённый offline paid quota-reset uncertain/no-replay test (**scoped PASS, 2026-10-10 ~01:58 МСК**); дальнейшая проверка V5-A-002 — delayed/duplicate payment delivery на настоящей временной SQLite с имитацией рестарта, без live provider mutations.
 
 
-### V5-A-002 — simulated uncertain paid quota reset: persistent no-replay, scoped PASS (2026-10-10 ~01:58 МСК)
+### V5-A-002 — имитация неизвестного итога сброса оплаченной квоты: сохранение запрета повтора, ограниченный PASS (10.10.2026 ~01:58 МСК)
 
 - **Baseline:** deployed production `v5.0.0-rc.7`; оператор запустил однократный Python smoke в контейнере приложения, с `Database`/SQLite в автоматически удаляемом `tempfile`, реальными `CommerceService` и `EntitlementProvisioningService`, и подставным `LostResponseProvisioner`. Fake `reset_user_traffic()` один раз выбрасывал `XUIMutationError(code="network_error", uncertain=True)`. Тест **не обращался к production SQLite, 3x-ui или Telegram Bot API и не выполнял настоящий платеж/reset**.
 - **7 отдельных PASS + 1 итоговый:** `SYNTHETIC PAID STATE` (paid order, confirmed payment, pending entitlement); `LOST QUOTA RESPONSE HANDLED` (`ProvisioningUnknown`, `mutation_not_retried=true`, по одному вызову `sync_user` и `reset_user_traffic`); `UNKNOWN JOURNAL PERSISTED` (`entitlements.status=provisioning`, `quota_reset_status=unknown`); `PAYMENT SURVIVES UNKNOWN` (order остаётся paid, payment confirmed); `RESTART WORKER SKIPS REPLAY` (новые экземпляры `Database`/`EntitlementProvisioningService` читают тот же временный файл, `reconcile_pending().checked=0`, провайдерские методы-заглушки не вызываются); `DIRECT RETRY BLOCKED` (прямой `reconcile()` выдаёт `ProvisioningUnknown` до mutation); `PERSISTED STATE UNCHANGED` (status и quota journal стабильны, local user expiry=0). Итог `QUOTA RESET NO-REPLAY OFFLINE: PASS` — **агрегирующая восьмая строка**, не восьмой независимый тест.
@@ -806,7 +806,7 @@
 - admin roles и privilege boundaries;
 - базовые операции выдачи доступа и сверки состояния;
 - Plans / Server Groups / Payments / Promo Codes как административные и backend-сущности;
-- operational hardening, migration/recovery tooling и regression coverage;
+- укрепление эксплуатационной безопасности, инструменты миграции/восстановления и регрессионное покрытие;
 - исправления UX/навигации `/admin`;
 - backend prerequisites, необходимые будущему Client Portal, если они не открывают публичный customer flow.
 
@@ -979,8 +979,8 @@ Versioned migration framework опубликован в `v4.15.0`: `schema_migra
 - `advanced_users.py` — user lifecycle, enable/disable/extend/delete и role boundaries;
 - `inbound_admin.py` — inbound mutations, validation и failure paths;
 - `provisioning.py` — reconcile, повторный вызов, partial failure и сохранение subscription identity;
-- `subscription_proxy.py` — Base64/plain subscriptions, selective `vpn://` conversion, upstream errors и invalid `sub_id`;
-- disaster recovery / restore — malformed/incomplete backup, integrity checks, interrupted/failed recovery и Owner-only boundaries;
+- `subscription_proxy.py`: подписки Base64/обычные, выборочное преобразование `vpn://`, ошибки внешнего сервиса и неверный `sub_id`;
+- аварийное восстановление: некорректные/неполные резервные копии, целостность, прерванное восстановление и ограничения прав Owner;
 - отрицательные authorization tests для sensitive callbacks, чтобы новая mutation не могла случайно стать доступна более слабой роли.
 
 Roadmap не задаёт искусственный глобальный процент coverage. Критерий завершённости — наличие regression tests на security boundaries, state transitions, idempotency/retry semantics и recovery paths перечисленных модулей.
@@ -1685,7 +1685,7 @@ Domain:
 
 Web:
 
-- HTTP: final safe URL, status, latency, server/content-type и bounded headers subset;
+- HTTP: конечный безопасный URL, статус, задержка, тип сервера/контента и ограниченный набор заголовков;
 - Redirect trace: максимум 5 hops, каждый hop safe-validated;
 - CMS: best-effort detection; `не определена` отличается от transport failure.
 
@@ -1711,8 +1711,8 @@ Screenshot/headless-browser diagnostics из README PackBot не входят в
 | max sites per user | ✅ parity default 10 |
 | periodic up/down intervals | ✅ parity 10 min / 3 min |
 | second confirmation check | ✅ parity, 2 s |
-| first/repeated/recovery alerts | ✅ с persistent incident/notification journal |
-| incident history/statistics | ✅ incident history; без unbounded success time-series |
+| первое/повторное уведомление и восстановление | ✅ постоянный журнал инцидентов/уведомлений |
+| история и статистика инцидентов | ✅ история инцидентов; без неограниченного временного ряда успехов |
 | WHOIS + domain age | ✅ |
 | DNS records | ✅ bounded |
 | HTTP/server response | ✅ через safe outbound client |
@@ -1732,10 +1732,10 @@ Screenshot/headless-browser diagnostics из README PackBot не входят в
 До release обязательны:
 
 - migration tests с upgrade существующей schema и сохранением текущих данных;
-- deterministic state-machine tests: first failure/recheck, false alarm, confirmed down, repeated down, recovery, restart during incident;
+- детерминированные тесты автомата состояний: первичный сбой, повторная проверка, ложная тревога, подтверждённое падение, повтор, восстановление и рестарт во время инцидента;
 - идемпотентность уведомлений для каждого наблюдателя;
 - negative RBAC coverage для всех callbacks;
-- SSRF suite для IPv4/IPv6/private/link-local/CGNAT/reserved/metadata, redirect-to-private и simulated DNS rebinding;
+- набор SSRF-тестов для IPv4/IPv6, частных, локальных, CGNAT, зарезервированных/metadata адресов, переходов на внутренние адреса и имитации повторного DNS-разрешения;
 - hard-limit tests для redirects/body/sitemap/count/concurrency;
 - fake HTTP/DNS/WHOIS/PageSpeed fixtures; CI не зависит от случайных публичных сайтов;
 - navigation tests для Back/Cancel и отсутствие raw URL в callbacks;
@@ -1811,7 +1811,7 @@ Regional probe boundary остаётся прежним:
 - loopback (`::1`), link-local, private/non-global, multicast, reserved и unspecified IPv6 отклонять тем же `unsafe_target` policy, что IPv4;
 - пользовательский текст для `::1` и других non-public literals должен быть `Локальные, служебные и непубличные адреса запрещены.`, а не domain-syntax error;
 - DNS hostname path и DNS-rebinding protection не ослабляются: A/AAAA answers по-прежнему проверяются на global address до connect;
-- добавить regression: positive public IPv6 literal + negative `::1`, link-local и non-global IPv6.
+- добавить регрессионный тест: разрешённый публичный IPv6 literal, запрет `::1`, link-local и непубличных IPv6;
 
 Scope guard:
 
@@ -2877,7 +2877,7 @@ Implementation может сохранить существующие identifier
 
 - user-scoped payment query/pagination поверх существующей `payments.telegram_id`, без новой payment schema;
 - user-scoped audit query/pagination поверх существующего `audit_log`, без второго audit storage;
-- reviewed `XUIClient` methods + pinned OpenAPI contract entries для HWID list/delete-one и client IP read endpoints;
+- изученные методы `XUIClient` и записи закреплённого OpenAPI для списка HWID, удаления одного устройства и чтения IP клиента;
 - локальный QR renderer/library допустим только без передачи subscription URL внешнему сервису;
 - search/pagination helpers для users;
 - при необходимости небольшие shared presenter/formatter helpers, чтобы card/list labels не расходились.
@@ -2919,8 +2919,8 @@ Implementation PR должен добавить/обновить tests как м
 17. subscription URL/`sub_id` redaction из audit/logs и local-only QR generation;
 18. user-scoped payments, multi-currency summary и отсутствие payment write-actions в user card;
 19. user-scoped audit timeline и отсутствие secret reconstruction;
-20. enable/disable confirmation, user delete confirmation и correct post-action parent;
-21. bulk Plan/Group/expiry/traffic/safe-reconcile behavior и partial-failure summary;
+20. подтверждение включения/отключения, удаления пользователя и корректного перехода после действия;
+21. массовые операции с тарифом/группой/сроком/трафиком, безопасной сверкой и сводкой частичных отказов;
 22. callback payload length <= 64 bytes;
 23. one-message admin navigation/FSM cleanup без dead ends;
 24. MSK timestamps на новых operator-facing absolute dates.
@@ -3262,7 +3262,7 @@ Tests: `tests/test_inbound_input_validation.py` выполняет реальн�
 
 - tag/GitHub Release `v4.25.7` опубликованы штатным workflow; tag указывает на `053b9fecb85d009e5cfe9b323c1f4cf6d4e7d890`;
 - production deployment выполнен на опубликованный tag;
-- invalid/non-numeric/out-of-range port, invalid template name, invalid → valid retry, Cancel context, occupied port, Master/direct-node и controlled valid disabled/clientless flows — **PASS**;
+- ошибочный/нечисловой/вне диапазона порт, некорректный шаблон, повтор после исправления, отмена, занятый порт, Master/direct-node и разрешённые сценарии с выключенными клиентами — **PASS**;
 - финальный bot/DB/3x-ui health — **PASS**;
 - исходный `UnboundLocalError` finding устранён; issue #199 обновлён evidence и закрыт как `completed`;
 - отдельный Low/UX navigation finding Clone Inbound вынесен в issue #202 / `v4.25.8` и не переоткрывает #199.
@@ -3311,9 +3311,9 @@ DB-backed Owner теперь не может понизить собственн
 
 - tag/GitHub Release `v4.25.8` опубликованы штатным workflow; tag указывает на `768fc0e4b9a0c0d2e35508febf272709896c3e7f`;
 - implementation PR #205 и release-prep PR #206 слиты в `main`;
-- post-merge `Python checks` на release commit: **587 tests OK**, compileall, OpenAPI gate, release-notes smoke, deploy/helper/Compose checks и `git diff --check` — success;
+- post-merge `Python checks` для release-коммита: **587 tests OK**, компиляция, OpenAPI gate, проверка release notes, deploy/helper/Compose и `git diff --check` — success;
 - production deployment выполнен на опубликованный tag;
-- targeted production tests navigation hotfix и Owner self-demotion safety — **PASS**;
+- целевые production-тесты исправления навигации и защиты от снятия Owner собственных прав — **PASS**;
 - final bot/DB/3x-ui health — **PASS**;
 - issues #202 и #204 обновлены acceptance evidence и закрыты как `completed`.
 
@@ -3406,7 +3406,7 @@ Operator UX:
 
 - feature issue #208 на момент release оставался открытым до полного targeted production smoke; обязательный smoke завершён 2026-10-01 и issue закрыт как `completed`;
 - implementation PR #209 слит в `main` squash commit `e46c58870ea31b3a0532bd69b9b2dc01ba9bfa4a`;
-- post-merge `Python checks` на implementation merge commit — **PASS**: compileall, полный unittest suite, pinned 3x-ui OpenAPI contract, release tooling и `git diff --check`;
+- post-merge `Python checks` на implementation-коммите — **PASS**: компиляция, полный unittest, закреплённый OpenAPI 3x-ui, release tooling и `git diff --check`;
 - release-prep PR #210 слит в `main` squash commit `cd39048a2da00443523e7b33b400f4c8b5dcd608`; штатный workflow опубликовал tag/GitHub Release `v4.26.0`;
 - production deployment `v4.26.0` выполнен; базовые release status и runtime version checks подтверждены оператором;
 - read-only Node Drain preflight на production direct node показал 4 target Inbounds, 2 затронутых пользователей, 2 готовых к переносу и 0 blockers;
@@ -3561,7 +3561,7 @@ Implementation evidence перед release:
 - production deployment exact tag `v4.26.4` / SHA `e2b6834d549a6b3272702fc27570c8a8a3a99bfe` подтверждён;
 - targeted role smoke — **PASS**: `read_only` не видит admin/owner actions, `admin` не видит owner-only actions;
 - Attention Center `Refresh/Back` и context-aware navigation — **PASS**;
-- финальный status — **PASS**: container running, `RestartCount=0`, Bot version `4.26.4`, Health/DB/3x-ui connectivity — ok;
+- финальная проверка — **PASS**: контейнер работает, `RestartCount=0`, версия бота `4.26.4`, Health/DB/3x-ui connectivity — ok;
 - bug #226 и feature acceptance #217 закрыты как `completed`.
 
 После closure #208 и #219 2026-10-01 следующий порядок: encrypted off-site backup/restore drill → final v4 feature freeze → repository/public-release audit.
@@ -3584,29 +3584,29 @@ Audit должен охватывать как минимум:
 
 1. **Архитектура и runtime:** composition/startup/shutdown, router ownership, background loops, startup recovery order, dead code, duplicate responsibilities, circular coupling, large-module risk, blocking calls в async paths и graceful degradation optional services.
 2. **Telegram UI/front surface:** весь `/admin` и существующий client flow как реальные пользовательские сценарии; navigation/Back/Refresh/Cancel/Confirm, FSM cleanup, stale Telegram messages, localization, emoji/status grammar, long text/keyboard limits, escaping/formatting и отсутствие misleading state.
-3. **Domain/business logic:** Users, Plans, Server Groups, User Groups, Payments/Promo, provisioning/reconcile, subscription identity, monitoring/diagnostics; invariants, state transitions, partial failures, retries, idempotency и edge cases.
+3. **Доменная логика:** пользователи, тарифы, группы серверов/пользователей, платежи/промо, выдача доступа/сверка, идентификаторы подписок, мониторинг и диагностика; инварианты, переходы, частичные отказы, повторы, идемпотентность, пограничные случаи.
 4. **SQLite/data integrity:** schema/version journal, upgrade со всех реально поддерживаемых старых состояний, constraints/indexes, transactions, concurrent access, backup-before-dangerous-migration contract, corruption/failure behavior и rollback/recovery assumptions.
 5. **Authorization и object ownership:** полный callback/command inventory, RBAC minimum role, IDOR/callback tampering, typed confirmations, cross-user access, stale callback payloads и fail-closed behavior для неизвестных routes/permissions.
-6. **Secrets и sensitive data:** bot token, panel/deploy/host tokens, subscription URLs/`sub_id`, payment/provider data, off-site keys, backup contents и Telegram identifiers; redaction в logs/audit/errors/UI, file permissions, env/secret scopes и rotation procedures.
-7. **Outbound/network security:** SSRF, DNS rebinding, redirect validation, TLS verification, timeout/retry policy, proxy behavior, user-controlled URLs/hosts, internal address reachability и egress boundaries для Cheburcheck/PackBot integrations.
-8. **Injection/path/archive safety:** SQL parameterization, shell/argv construction, command injection, filesystem traversal, symlink handling, tar/zip extraction, filename handling, HTML/Markdown/Telegram escaping и untrusted external payload rendering.
-9. **Mutation safety/concurrency:** no-replay semantics, unknown outcomes, idempotency keys/operation IDs, locks, race conditions, double-click callbacks, concurrent jobs, cancellation/restart windows и post-condition verification.
-10. **HTTP/control-plane exposure:** inventory каждого listening port/endpoint (subscription proxy, Host Control, Deploy Agent и optional services), bind address, auth, TLS, rate limits, request/body limits, error disclosure и network reachability.
-11. **Backups/DR:** SQLite/full/node/off-site creation, manifests/checksums/encryption, retention, malformed/tampered archives, clean-host restore, missing key/credential scenarios, node loss, Master loss и actual production restore drill evidence.
-12. **Deployment/container hardening:** Dockerfile/Compose/systemd/sudoers, running user, writable mounts, capabilities, Docker socket absence, filesystem permissions, health checks, restart behavior, network segmentation и least privilege host helpers.
-13. **Supply chain:** Python/system/Rust optional dependencies, lock/pin policy, known-vulnerability scan, container/base-image scan, vendored 3x-ui OpenAPI integrity, GitHub Actions third-party actions/pinning, dependency provenance и upgrade process.
-14. **Repository/release security:** branch protection/rulesets, required CI checks, merge/release permissions, immutable tag/release expectations, Actions permissions, secret access, release workflow trust boundary и reproducibility of tag/SHA/version/release notes.
+6. **Секреты и конфиденциальные данные:** токены бота/панели/агентов, URL подписок/`sub_id`, платежные и провайдерские данные, ключи внешнего хранения и содержимое резервных копий, Telegram ID; маскировка в логах, UI, аудитах и ошибках, разрешения и ротация.
+7. **Исходящие соединения и безопасность сети:** SSRF, DNS rebinding, проверка переходов и TLS, тайм-ауты/повторы, прокси, пользовательские URL/хосты, доступность внутренних адресов, ограничения исходящего трафика Cheburcheck/PackBot.
+8. **Безопасность запросов, путей и архивов:** параметризация SQL, команды shell, внедрение команд, traversal, символические ссылки, извлечение tar/zip, имена файлов, экранирование HTML/Markdown/Telegram и обработка недоверенных данных.
+9. **Безопасность изменений и параллелизма:** запрет слепых повторов, неопределённые исходы, idempotency keys, блокировки, гонки, двойные callback, параллельные jobs, отмены/рестарты и проверка постусловий.
+10. **Открытые HTTP и управляющие интерфейсы:** инвентаризация listening endpoints (proxy, Host Control, Deploy Agent), bind address, аутентификация, TLS, ограничение запросов/размера, раскрытие ошибок и доступность по сети.
+11. **Резервное копирование и DR:** SQLite/full/node/off-site, манифесты/контрольные суммы/шифрование, хранение, повреждённые архивы, восстановление на чистом хосте, отсутствие ключей, потеря Node/Master и доказательства фактического восстановления.
+12. **Укрепление контейнеров и deployment:** Dockerfile/Compose/systemd/sudoers, пользователь процесса, права на тома, capabilities, отсутствие Docker socket, файловые права, health, поведение при рестарте, сегментация сети и минимальные права помощников.
+13. **Цепочка поставки:** зависимости Python/system/Rust, версии/lock, поиск уязвимостей, сканирование контейнеров, контроль vendored OpenAPI, закрепление сторонних GitHub Actions, происхождение зависимостей и обновления.
+14. **Безопасность репозитория и релиза:** защита веток/тегов, required CI, доступ к merge/release, неизменяемые теги, права Actions, секреты, границы доверия workflow и воспроизводимость tag/SHA/version/release notes.
 15. **Public-repository readiness:** current tree **и Git history** scan for secrets/private hostnames/IPs/Telegram IDs/credentials, sensitive deleted files, production examples, debug dumps and generated artifacts. Любой реально скомпрометированный secret, найденный в history, сначала ротируется; при необходимости history очищается до открытия repository.
 16. **Third-party/legal hygiene:** LICENSE, notices/attribution для Cheburcheck/PackBot и других vendored/adapted компонентов, dependency license review, README attribution и отсутствие неразрешённого копирования assets/code.
-17. **Reliability/resource abuse:** rate limits, quotas, max list/file/body sizes, bounded queues/concurrency, memory/disk growth, log rotation, backup growth, pagination and worst-case operator/customer input.
-18. **Observability:** health endpoints, logs, audit trail, job history, alert semantics, timestamps/timezones, correlation/operation IDs, operator diagnostics and absence of secret leakage in diagnostics.
-19. **Documentation:** README, install/update/recovery runbooks, config examples, UI paths, threat-model/security boundaries, public/private deployment differences and tested disaster recovery steps exactly match released code.
-20. **Clean-room acceptance:** installation from documented instructions on a fresh host/environment, migration from representative older DB, restore from verified backup, controlled service/node failures, restart during long-running operation and final production smoke.
+17. **Надёжность и защита ресурсов:** лимиты запросов/очередей/памяти, максимальные размеры файлов/ответов, рост логов/backup, пагинация и худшие входные данные операторов/клиентов.
+18. **Наблюдаемость:** health, логи, аудит, история jobs, смысл уведомлений, часовые пояса, идентификаторы корреляции, диагностика и недопущение утечек секретов.
+19. **Документация:** README, инструкции установки/обновления/восстановления, примеры config, пути UI и модель угроз должны совпадать с реальным опубликованным кодом и проверенными DR-действиями.
+20. **Приёмка с чистого окружения:** установка на новом хосте, миграция старой БД, восстановление из проверенной копии, управляемые отказы сервисов/Node, рестарт длительной операции и итоговый production smoke.
 
 Контракт вывода аудита:
 
 - отдельный versioned report в `docs/audits/` с exact audited commit SHA;
-- findings имеют ID, severity, component, evidence/reproduction, impact, fix/decision и regression test reference;
+- для каждого finding: ID, серьёзность, компонент, evidence/reproduction, последствия, исправление/решение и ссылка на regression-test;
 - automated scanners дополняют, но не заменяют manual code/flow review;
 - для security-sensitive code требуется evidence-based review, а не утверждение «безопасно» только потому, что тесты зелёные;
 - до финального v4 release не остаётся известных unresolved Critical/High findings; security/data-integrity Medium findings должны быть исправлены, а любой иной Medium имеет явный документированный disposition;
@@ -3624,7 +3624,7 @@ Audit должен охватывать как минимум:
 Зафиксированное состояние:
 
 - `bot.py` — минимальный executable shim, запускающий `app_runtime.main()`;
-- `app_runtime.py` владеет composition/startup, recovery order, background tasks и lifecycle Telegram polling;
+- `app_runtime.py` управляет композицией/startup, порядком восстановления, фоновыми задачами и жизненным циклом Telegram polling;
 - domain/admin handlers живут в тематических routers, а client-facing flow имеет отдельный `client_access_router`;
 - orchestration, которая нужна и Telegram UI, и background/recovery paths, живёт в services, а не внутри callback handlers;
 - существующие callback identifiers и внешнее поведение не менялись только ради рефакторинга;
@@ -4014,7 +4014,7 @@ Raw path нельзя удалить только потому, что один 
 
 Новый format должен сохранять понятную ошибочную семантику:
 
-- network timeout/upstream outage → bounded gateway/provider unavailable;
+- сетевые тайм-ауты/недоступность внешнего сервиса → ограниченная ошибка gateway/provider unavailable;
 - malformed JSON/YAML → format generation failure, а не raw fallback под тем же content type;
 - unknown subscription → not found/fail closed;
 - HWID rejection → отдельный диагностически полезный state с allowlisted headers без раскрытия HWID;
@@ -4776,11 +4776,11 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 Рекомендуемый порядок первой реализации и фактический прогресс:
 
 1. 🟡 customer ownership/auth boundary + feature flag/allowlist без публичного открытия — pilot boundary действует через существующий allowlist/admin policy; public signup, dedicated abuse/rate-limit policy и полный ownership audit ещё не завершены;
-2. ✅ persistent Order / Payment / Entitlement states и migration contract — PR #290–#294 + checkout schema v8, atomic payment confirmation, webhook journal, restart reconciliation и durable checkout identity;
+2. ✅ долговечные состояния Order / Payment / Entitlement и контракт миграций — PR #290–#294, schema v8, атомарное подтверждение, журнал webhook, сверка после рестарта и устойчивый checkout ID;
 3. ✅ provider-neutral customer/subscription service boundary поверх текущего 3x-ui provisioning — `client_access.py` работает через `CustomerPortalService`, provider contract задан `CustomerAccessProvider`, а текущие 3x-ui reads изолированы в `customer_provider_xui.py`; Telegram handlers больше не импортируют `XUIClient`, `Database` или `CommerceService` напрямую;
 4. ✅ read-only Client Portal skeleton: Профиль / Моя подписка / Трафик / Устройства / Помощь — PR #296; legacy `/create` / `/inbounds` больше не являются mutation-entrypoints;
 5. 🟡 commerce flow + authenticated/idempotent payment event journal — backend journal/state machine и provider-neutral checkout foundation готовы; следующий production path использует native Telegram Stars (`XTR`) для цифровой подписки внутри бота: отдельная Stars-цена тарифа, pre-checkout ownership/amount validation и atomic `successful_payment → Payment confirmed → Order paid → Entitlement` реализуются; после #305 Terms acceptance, `/paysupport` и one-shot refund journal/операторский flow реализованы; остаются test/prod payment smoke и production acceptance;
-6. ✅ entitlement → provisioning/reconcile с no-replay/unknown semantics — PR #292/#295; durable pending worker не replay'ит `provisioning` с uncertain outcome;
+6. ✅ entitlement → выдача доступа/сверка с правилами no-replay/unknown — PR #292/#295; очередь pending не повторяет `provisioning` при неопределённом результате;
 7. 🟡 onboarding/QR UX и self-service diagnostics реализуются в #306: platform selection, local/private QR и read-only entitlement/provider diagnostics; client-specific deep-link остаётся отложен до стабильного безопасного import contract;
 8. 🟡 отдельный v5 launch audit выполняется в #308: repository-verifiable ownership/payment/secret/rollback controls закреплены regression gate; production Stars acceptance, failure/restart canary и load/soak остаются release blockers; retention-policy disposition закрыт в `docs/DATA_RETENTION.md`;
 9. ⬜ controlled canary rollout по описанному ниже gate;
@@ -4800,7 +4800,7 @@ A-007 больше не имеет residual accepted risk: branch и release-tag
 - #297/#298 — subscription browser compatibility hotfixes, необходимые для корректной customer subscription page;
 - #300 — отдельные nginx limits для `/compat/assets/`, подтверждённые на Safari/WebKit;
 - #301 — provider-neutral customer service boundary: Client Portal больше не зависит напрямую от `XUIClient`/DB/Commerce;
-- #302 — provider-neutral checkout foundation, schema v8, durable checkout URL/idempotency и Telegram payment button.
+- #302 — независимая от провайдера основа оплаты, schema v8, устойчивый checkout URL/idempotency и кнопка оплаты Telegram;
 - #304 (текущий срез) — native Telegram Stars для цифровой подписки: schema v9, независимая Stars-цена тарифа, XTR invoice/pre-checkout/successful-payment lifecycle.
 
 До перехода к public launch основными implementation-блокерами остаются production acceptance Telegram Stars (после #305 остаются test/prod smoke и acceptance возвратов), после #306 остаются client-specific deep-link при наличии стабильного import contract, production Stars smoke/acceptance, затем launch audit + controlled canary.
@@ -5117,7 +5117,7 @@ HWID limit трактуется как ограничение одновреме
 
 - пользовательское имя устройства;
 - device-specific onboarding/deep-link;
-- явная capability/status presentation: device management supported / HWID enforcement enabled / limit disabled / unsupported client / limit reached / provider error.
+- явные возможности и состояния: управление устройствами доступно, HWID-проверка включена, лимит отключён, неподдерживаемый клиент, лимит достигнут, ошибка провайдера;
 
 ## Подключение клиентов и удобство настройки
 
@@ -5168,15 +5168,15 @@ Roadmap не требует device registration в первой версии. Н
 После реализации `v5.0.0`, но **до** снятия allowlist/допуска реальных клиентов, выполняется отдельный launch audit как минимум по следующим направлениям:
 
 - ownership/isolation каждого customer endpoint/callback и защита от IDOR;
-- signup/onboarding abuse, rate limits, spam/bot automation и resource quotas;
-- Order/Payment/Entitlement state machine, webhook authentication/idempotency/replay и reconciliation;
+- злоупотребления регистрацией/onboarding, лимиты запросов, spam/bot automation и квоты ресурсов;
+- автомат состояний Order/Payment/Entitlement, аутентификация/idempotency/replay webhook и сверка;
 - subscription URL/credential exposure, rotation и cross-user leakage;
 - input/file/deep-link/QR handling и внешние URL;
 - privacy/data-minimization/retention для Telegram/customer/payment data;
 - customer-visible error states и support/recovery flows;
 - load/concurrency/failure testing для ожидаемого публичного трафика;
 - повторный dependency/container/secret scan для v5 delta;
-- clean production-like end-to-end сценарий: registration → purchase/activation → provisioning → subscription use → renewal/expiry/recovery.
+- чистый production-like end-to-end сценарий: регистрация → покупка/активация → выдача доступа → использование подписки → продление/истечение/восстановление;
 
 Public launch блокируется до закрытия release-blocking findings этого v5 launch audit.
 
@@ -5380,7 +5380,7 @@ Plan → Server Group → Nodes → Inbounds
 - атомарный `Order → Payment → Entitlement → ProvisioningEngine` с ownership/amount/currency checks, exactly-once local apply, no duplicate entitlement, expiry extension или quota reset при повторном/delayed/out-of-order событии;
 - durable payment/refund/chargeback/`unknown` journal, отдельная refund/entitlement revocation policy и no blind retry при uncertain outcome;
 - отдельная read-only `RUB` сводка PSP в Admin, не смешивать с Stars/XTR и ручными платежами; безопасные correlation IDs, приватные checkout links, минимизация sensitive logs;
-- provider-specific kill switch, rate limits, short-lived state binding, проверка webhook signing, fail-closed IDOR/ownership, replay protection, restart/reconciliation coverage;
+- специфичный для провайдера emergency switch, лимиты запросов, привязка короткоживущего состояния, подпись webhook, fail-closed IDOR/ownership, защита от повтора и проверка восстановления при рестарте;
 - перед разработкой: выбрать PSP, изучить API, KYC/фискализацию (если применимо), определить compliance Telegram-linked UX, провести threat-model и отдельный implementation/release/acceptance цикл.
 
 **Пока не создавать** новые ссылки оплаты, кнопки, secrets, миграции или provider mutations. До завершения V5-A-001…A-003, #333, #334 и общего production acceptance эта идея не блокирует текущий canary.
