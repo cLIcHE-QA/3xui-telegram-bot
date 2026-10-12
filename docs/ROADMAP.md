@@ -37,6 +37,14 @@
 
 Новые факты дополняют актуальную сводку и исторические evidence, не переписывая более ранние наблюдения. Для детальных production canary/acceptance результатов используются соответствующие `docs/audits/**` и профильные runbooks; secrets и приватные идентификаторы туда не переносятся.
 
+## Проверенный GitHub baseline и #510 checkpoint — 2026-10-12 EEST (UTC+03:00)
+
+**Source:** GitHub REST/connector read-only, immutable main `36663c61764308416cd6ac085503ab95a1179876`. Предыдущий [PR #519](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/519) squash MERGED в этот commit: required `test` PASS [38192806220](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38192806220), latest required `title` PASS [38192936625](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38192936625); post-merge `Python checks` PASS [38192962940](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38192962940). Independent GitHub main / Roadmap read-back и Issue [#510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) closure audit подтверждены. Настройки: `delete_branch_on_merge=true`, protected `main` и immutable `v*` tag rulesets active. На момент snapshot 30 OPEN Issues, 0 OPEN PR; #510 OPEN / cleanup PENDING, #466 OPEN / natural production evidence PENDING; #342 и #422 CLOSED / completed только по их собственному targeted scope. Предыдущие кандидаты веток — не разрешение на автоматическую историческую очистку: external/dynamic consumers, unmerged changes и expected-SHA-safe deletion + read-back обязательны.
+
+**Отдельные состояния:** в main `APP_VERSION=5.0.0-rc.9`; последний **published** immutable prerelease `v5.0.0-rc.9`, tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; последний **deployed** — исключительно operator-reported production Master `rc.9` 2026-10-11 16:15 EEST, independent VPS read-back PENDING; overall v5 **NOT PASS**. G-01…G-11 сохраняют `PARTIAL/PENDING`; W-01 independent DR `SKIPPED / OPERATOR-WAIVED / NOT TESTED`, W-02 Telegram burst `ATTEMPTED / INCONCLUSIVE / OPERATOR-WAIVED` (оба NOT PASS). Новых production/VPS/Telegram/API smoke или measurements в этом GitHub-only checkpoint нет.
+
+**Next:** лишь отдельно validated small pilot historical branch batch по #510, SHA-guarded before/delete/after, а затем **отдельный** Roadmap PR с required `test`/`title`, squash merge, independent main read-back и Issue audit до следующего пакета. Никаких deletes до подтверждения safety и возможности безопасной операции; без deploy/restart/payment/refund/release changes.
+
 ## Актуальный статус релизов и проверок — 11 октября 2026 года
 
 ### Historical branch cleanup: merged PR files/blob equivalence — 2026-10-12 EEST (UTC+03:00)
