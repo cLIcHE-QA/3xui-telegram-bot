@@ -148,7 +148,7 @@ def read_manifest() -> None:
         if not re.fullmatch(r"[0-9a-f]{40}", row["squash_sha"]):
             stop("invalid source squash SHA")
     for name, (sha, pr) in EXPECTED.items():
-        if not re.fullmatch(r"docs/[a-zA-Z0-9_.\\-/]+", name):
+        if not re.fullmatch(r"docs/[a-zA-Z0-9_./-]+", name):
             stop("unsafe historical branch name")
         if not re.fullmatch(r"[0-9a-f]{40}", sha) or not isinstance(pr,int) or not 1 <= pr <= 534:
             stop("invalid exact tip SHA/PR")
