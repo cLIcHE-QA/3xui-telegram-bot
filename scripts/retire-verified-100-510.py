@@ -19,6 +19,7 @@ import urllib.request
 
 REPO = "cLIcHE-QA/3xui-telegram-bot"
 BASE = "6692005c1781221bf49512516e7fe81b81496bf2"
+MANIFEST_BASE = "b1fbd95b6f3c1b0dba35029f63533ba3f76360b1"
 MANIFEST = Path("docs/audits/branch-cleanup-next-100-dry-run-2026-10-12.json")
 WORKFLOW = ".github/workflows/retire-verified-100-510.yml"
 SELF = "scripts/retire-verified-100-510.py"
@@ -180,7 +181,7 @@ def read_manifest() -> None:
         stop("manifest unreadable")
     if git("hash-object", str(MANIFEST)).stdout.strip() != "edf5c32d782c8e775462b05ee6930295317d1794":
         stop("immutable original 50-ref manifest blob mismatch")
-    if m.get("issue") != 510 or m.get("baseline_main_sha") != BASE:
+    if m.get("issue") != 510 or m.get("baseline_main_sha") != MANIFEST_BASE:
         stop("manifest issue/original SHA mismatch")
     if m.get("action") != "PREPARE_ONLY_NO_DELETION" or m.get("candidate_count") != 100:
         stop("manifest schema/count is not the approved preflight snapshot")
