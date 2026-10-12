@@ -39,6 +39,14 @@
 
 ## Актуальный статус релизов и проверок — 11 октября 2026 года
 
+### Branch retention policy: решение принято, техническое применение PENDING — 2026-10-12 03:40 EEST (UTC+03:00)
+
+**⬜ [#510 — жизненный цикл и безопасная очистка GitHub-веток](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) OPEN / PENDING.** Оператор **одобрил** единственную постоянную `main`, короткоживущие рабочие ветки, включение GitHub `Automatically delete head branches` после completed squash merge, и controlled historical cleanup **после доказанного per-ref safety review**. Approval — решение о политике и принципе очистки, **не** разрешение пропускать проверку незалитой работы, downstream dependencies или SHA guard.
+
+**Source / scope:** операторское сообщение 2026-10-12 00:40:04 UTC; read-only GitHub connector на текущем `main` `fe91d42c23ea4cbf02cbf88b60a1cf580f13c9e3`, issue #510, last published immutable prerelease `v5.0.0-rc.9` / tag `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; 30 OPEN Issues / 0 OPEN PR, `delete_branch_on_merge=false` и required main `test`/`title` + squash ruleset. GitHub main CI `Python checks` [38188658356](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38188658356) PASS. **Policy approval: PASS; settings application, branch inventory revalidation, per-ref safety/deletions: PENDING**. Исторические 457 refs / 434 PR относятся к предыдущему snapshot, не выдаются за текущий полный список. Никаких branch deletion, repo setting changes или production операций не проводилось.
+
+**Документальный checkpoint:** policy внесена в `docs/GIT_WORKFLOW.md` вместе с этой строкой Roadmap на отдельной `docs/*` ветке; **до required CI, squash merge и independent `main` read-back — ROADMAP SYNC PENDING**. Затем — свежий полный dry-run manifest, проверки исключений и dependencies, безопасные deletion batches только после SHA read-back. Исходная published `rc.9` не изменена; production deployed `rc.9` **только operator-reported** (2026-10-11 16:15 EEST), independent VPS read-back PENDING, overall v5 acceptance **NOT PASS**, G-01…G-11 без нового PASS, W-01/W-02 waived/NOT PASS. #510 не закрывать до собственных acceptance.
+
 ### GitHub read-back после PR #511 / Issue checkpoint — 2026-10-12 03:32 EEST (UTC+03:00)
 
 **Scope / provenance:** read-only GitHub connector: `main`, [PR #511](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/511), exact GitHub Actions checks, published Releases + immutable tag ref, repository settings/rulesets, all OPEN Issues, Issue [#510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) with acceptance criteria and [closure audit comment](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510#issuecomment-6115283838), `version.py` и актуальный Roadmap. **GitHub read-back: scoped PASS** на `main` `37b1c700c846791b66a893843e1c68063ab92a6a`; локальный working tree, VPS/Telegram/3x-ui не проверялись, production smoke **NOT RUN**. Новых тестов/фактов production acceptance нет.

@@ -29,6 +29,16 @@
 
 Примеры: `feature/node-readiness`, `fix/release-tag-probe`, `chore/git-conventions`, `release/v4.12.0`.
 
+### Жизненный цикл временных веток (решение оператора 2026-10-12)
+
+**Единственная постоянная branch — защищённая `main`.** `feature/*`, `fix/*`, `hotfix/*`, `security/*`, `docs/*`, `chore/*`, `test/*` и `release/*` — короткоживущие рабочие refs; исключение возможно только при документированной реальной downstream/integration зависимости. Опубликованные immutable `v*` **tags — не ветки**, не являются целью cleanup и никогда не перемещаются и не удаляются. Итоговая история сохраняется в squash commits `main`, merged PR, issues и release tags.
+
+После успешного **squash merge** и подтверждения CI/независимого read-back рабочую ветку можно удалить, **если** нет незавершённой работы, новых commits после merge, открытых PR с этой веткой в `head` или `base`, используемой автоматизации или downstream refs. Закрытие PR **без merge** — не основание для удаления. Не приравнивать `git branch --merged` к безопасной проверке: squash merge меняет граф коммитов. Удаление refs **не** закрывает Issue и не доказывает production acceptance. Для текущих runtime Issues выполняются их собственные release/deployment/smoke gates.
+
+**Плановая настройка GitHub:** оператор 2026-10-12 03:40 EEST одобрил `Settings → General → Pull Requests → Automatically delete head branches`. Фактическое `delete_branch_on_merge` считается `false/PENDING` до независимого GitHub settings read-back с `true` и безопасного теста на новом completed PR. Не путать принятое решение с техническим применением настройки. Автоудаление затрагивает будущие merged PR и не очищает исторические ветки.
+
+**Историческая очистка:** использовать воспроизводимый dry-run manifest с точным `branch name → immutable current tip SHA`, всеми связанными PR/merge evidence, проверкой отсутствия unmerged/local-only work и downstream зависимостей (active PR, workflow/deploy/config references, другие branches). Разделить на `delete candidate`, `manual review`, `retain`; mere name/PR match не является доказательством безопасности. Сначала сохранить manifest и выполнить проверки, затем удалить только однозначно безопасные refs малыми пакетами. Перед каждым удалением перепроверить текущий SHA (изменившиеся refs исключать), после — повторить GitHub read-back. Защищённую `main`, immutable release tags, незавершённые, неидентифицированные и используемые refs не удалять; failure/uncertainty = STOP/PENDING. Для изменений состояния после каждого пакета нужен Roadmap PR с required `test`/`title`, squash merge, независимый read-back и Issue audit до следующего пакета.
+
 ### Commit subjects
 
 Канонический subject использует формат:
