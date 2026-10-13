@@ -123,5 +123,69 @@ class RepositoryStateCheckerTests(unittest.TestCase):
             module.verify_ruleset(ruleset, expected)
 
 
+    def test_latest_published_includes_rc_and_filters_drafts(self):
+        from unittest.mock import patch
+        fixtures = [
+            {"tag_name": "v4.26.9", "published_at": "2026-10-08T00:00:00Z", "draft": False},
+            {"tag_name": "v5.0.0-rc.9", "published_at": "2026-10-11T11:24:04Z", "draft": False},
+            {"tag_name": "v5.0.0-rc.10", "published_at": None, "draft": True},
+        ]
+        with patch.object(module, "api", side_effect=lambda _r, _s, _t: fixtures):
+            self.assertEqual(module.latest_published_release("o/r", "")["tag_name"], "v5.0.0-rc.9")
+
+    def test_latest_published_fail_closed_missing_ambiguous_and_invalid(self):
+        from unittest.mock import patch
+        good = {"tag_name": "v5.0.0-rc.9", "published_at": "2026-10-11T11:24:04Z", "draft": False}
+        fixtures = ([], [good, dict(good, tag_name="v5.0.0-rc.8")],
+                    [dict(good, published_at=None)],
+                    [dict(good, tag_name=None)])
+        for items in fixtures:
+            with self.subTest(items=items), patch.object(module, "api", return_value=items):
+                with self.assertRaises(module.AuditError):
+                    module.latest_published_release("o/r", "")
+
+    def test_verify_release_checks_rc_tag_version_and_ancestry(self):
+        from unittest.mock import patch
+        import base64
+        latest = {"tag_name": "v5.0.0-rc.9", "published_at": "2026-10-11T11:24:04Z", "draft": False}
+        contents = base64.b64encode(b'APP_VERSION = "5.0.0-rc.9"\n').decode()
+        def api_mock(_repo, path, _token):
+            if path.startswith("/releases?"):
+                return [latest]
+            if path.startswith("/contents/version.py?"):
+                return {"encoding": "base64", "content": contents}
+            if path.startswith("/git/ref/tags/"):
+                return {"object": {"type": "commit", "sha": "abc123"}}
+            if path.startswith("/compare/"):
+                return {"status": "ahead"}
+            raise AssertionError(path)
+        with patch.object(module, "api", side_effect=api_mock), patch.object(
+            module.Path, "read_text", return_value='APP_VERSION = "5.0.0-rc.9"\n'
+        ):
+            module.verify_release("o/r", "main", "")
+            latest["tag_name"] = "v5.0.0-rc.8"
+            with self.assertRaises(module.AuditError):
+                module.verify_release("o/r", "main", "")
+            latest["tag_name"] = "v5.0.0-rc.9"
+            contents = base64.b64encode(b'APP_VERSION = "5.0.0-rc.8"\n').decode()
+            with self.assertRaises(module.AuditError):
+                module.verify_release("o/r", "main", "")
+            contents = base64.b64encode(b'APP_VERSION = "5.0.0-rc.9"\n').decode()
+            def divergent(_repo, path, _token):
+                value = api_mock(_repo, path, _token)
+                if path.startswith("/compare/"):
+                    return {"status": "diverged"}
+                return value
+            with patch.object(module, "api", side_effect=divergent):
+                with self.assertRaises(module.AuditError):
+                    module.verify_release("o/r", "main", "")
+
+    def test_stable_release_accepted_when_latest(self):
+        from unittest.mock import patch
+        stable = {"tag_name": "v4.26.9", "published_at": "2026-10-11T11:24:04Z", "draft": False}
+        with patch.object(module, "api", return_value=[stable]):
+            self.assertEqual(module.latest_published_release("o/r", "")["tag_name"], "v4.26.9")
+
+
 if __name__ == "__main__":
     unittest.main()
