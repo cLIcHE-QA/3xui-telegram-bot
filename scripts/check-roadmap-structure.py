@@ -24,7 +24,7 @@ def check(root=ROOT):
         next_line = last + 1
     assert next_line - 1 == manifest["source_line_count"]
     source = "".join(pieces).encode("utf-8")
-    prefix = ("blob " + str(len(source)) + "\\0").encode("ascii")
+    prefix = ("blob " + str(len(source)) + "\0").encode("ascii")
     actual_sha = hashlib.sha1(prefix + source).hexdigest()
     assert actual_sha == manifest["source_blob"], ("archive source mismatch", actual_sha)
     roadmap = (root / "docs/ROADMAP.md").read_text(encoding="utf-8")
