@@ -96,8 +96,16 @@ class C1DurableUnknownTests(unittest.IsolatedAsyncioTestCase):
             summary = await EntitlementProvisioningService(
                 db_reopened, fake
             ).reconcile_pending()
-            self.assertGreaterEqual(summary.get("unknown", 0), 1)
-            self.assertEqual(summary.get("active", 0), 0)
+            # Unsafe provisioning/unknown must not enter automatic pending queue.
+            self.assertEqual(summary["checked"], 0)
+            self.assertEqual(summary["unknown"], 0)
+            self.assertEqual(summary["active"], 0)
+            self.assertEqual((fake.sync_calls, fake.reset_calls), (1, 1))
+            # Explicit operator reconciliation still requires review, not replay.
+            with self.assertRaises(ProvisioningUnknown):
+                await EntitlementProvisioningService(
+                    db_reopened, fake
+                ).reconcile(entitlement.id)
             self.assertEqual((fake.sync_calls, fake.reset_calls), (1, 1))
             persisted = await db_reopened.get_entitlement(entitlement.id)
             self.assertEqual(
