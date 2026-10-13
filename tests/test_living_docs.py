@@ -121,9 +121,9 @@ class LivingDocsSemanticTests(unittest.TestCase):
     def test_roadmap_has_current_next_product_track(self):
         roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn("## Актуальная сводка проекта", roadmap)
-        self.assertIn("## Реестр acceptance-gates rc.9", roadmap)
+        self.assertIn("## Реестр acceptance-gates", roadmap)
         self.assertIn("🟠 Опубликовано; acceptance отложен", roadmap)
-        self.assertIn("v5.0.0-rc.9", roadmap)
+        self.assertIn("v" + APP_VERSION, roadmap)
         self.assertIn("NOT PASS", roadmap)
         self.assertIn("#510", roadmap)
         self.assertIn("⬜ Запланировано", roadmap)
