@@ -23,6 +23,12 @@ Living documents описывают текущее состояние проек
 
 `docs/audits/**` — historical evidence. Старый факт внутри audit artifact не переписывается только потому, что состояние позже изменилось. Вместо этого добавляется closure/revalidation evidence и актуальный итоговый status.
 
+## Маршрутизация и контроль новых audits (#596)
+
+Таблица типов изменений и destinations — `docs/GIT_WORKFLOW.md#маршрутизация-изменений-и-evidence-596`. Текущий Roadmap остаётся единственным статусным реестром; `docs/roadmap/concepts/**` — редактируемые проектные документы, а исходные концептуальные snapshots вынесены в immutable `docs/audits/roadmap-history/source-*.md`. `docs/roadmap/archive-manifest.json` воспроизводит исходный Git blob и запрещает изменения исторических свидетельств. Новые audits никогда не меняют старые FAIL.
+
+Новые `docs/audits/*.md` (кроме шаблона и неизменного `roadmap-history/**`) обязаны копировать `docs/audits/AUDIT_TEMPLATE.md` и содержать machine-checkable marker, timestamp с TZ, scope, target tag/SHA/N/A с причиной, status, evidence, limitations, Issue/next и четыре отдельных факта merged/published/deployed/accepted. Только новые файлы подвергаются строгому template CI; старые документы остаются нетронутыми. `scripts/check-documentation-semantics.py` проверяет текущее содержание Roadmap и локальные ссылки; `scripts/check-roadmap-github.py` отдельно сверяет Issues и последний Published Release по GitHub API. API outage означает UNKNOWN/PENDING, а не PASS; GitHub read-only проверка **не** подтверждает VPS deployment/acceptance.
+
 ## Diff-trigger rules
 
 `scripts/check-living-docs.py` проверяет PR diff относительно base SHA и применяет rules из `docs/live-docs.json`.
