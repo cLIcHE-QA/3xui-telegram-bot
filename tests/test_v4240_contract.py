@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from roadmap_history import historical_roadmap
+
 from pathlib import Path
 import unittest
 
@@ -9,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class V4240ReleaseContractTests(unittest.TestCase):
     def test_roadmap_has_canonical_v4240_contract(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         start = roadmap.index("##### v4.24.0 — Мониторинг сайтов и web diagnostics")
         end = roadmap.index("##### v4.25.0 — User Management", start)
         section = roadmap[start:end]
@@ -58,7 +60,7 @@ class V4240ReleaseContractTests(unittest.TestCase):
         )
 
     def test_contract_keeps_v4240_inside_admin_monitoring(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         start = roadmap.index("##### v4.24.0 — Мониторинг сайтов и web diagnostics")
         end = roadmap.index("##### v4.25.0 — User Management", start)
         section = roadmap[start:end]
