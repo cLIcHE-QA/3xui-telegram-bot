@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from roadmap_history import historical_roadmap
+
 import unittest
 from pathlib import Path
 
@@ -650,7 +652,7 @@ class OperationalUiLocalizationTests(unittest.TestCase):
         alerts = source("logs_alerts.py")
         fleet = source("fleet_operations.py")
         style = source("docs/UI_STYLE.md")
-        roadmap = source("docs/ROADMAP.md")
+        roadmap = historical_roadmap(ROOT)
 
         for needle in (
             "🔗 Адрес:",
