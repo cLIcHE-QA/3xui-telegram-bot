@@ -111,6 +111,31 @@ def audit(repo: str, root: Path = ROOT, token: str = ""):
         raise Unknown("no published Releases returned")
     tag = max(published, key=lambda r: r["published_at"])["tag_name"]
     validate(roadmap, actual, tag)
+    # Every OPEN Issue must exist exactly once in the structured canonical register.
+    spec = __import__("importlib.util").util.spec_from_file_location(
+        "roadmap_governance", root / "scripts/check-roadmap-governance.py")
+    module = __import__("importlib.util").util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    rows = module.roadmap_rows(root)
+    open_ids = set()
+    page = 1
+    while True:
+        batch = fetch(repo, f"/issues?state=open&per_page=100&page={page}", token)
+        if not isinstance(batch,list):
+            raise Unknown("GitHub open Issues pagination response invalid")
+        open_ids.update(int(x["number"]) for x in batch if "pull_request" not in x)
+        if len(batch) < 100:
+            break
+        page += 1
+        if page > 30:
+            raise Unknown("open Issues pagination exceeded safe limit")
+    extra = set(rows) - open_ids
+    missing = open_ids - set(rows)
+    if missing or extra:
+        raise Drift(f"active Issue register mismatch: missing={sorted(missing)}, stale={sorted(extra)}")
+    for number, row in rows.items():
+        if actual.get(number) != "open":
+            raise Drift(f"active Roadmap row #{number} is not an open GitHub Issue")
     return tag, actual, expected
 
 
