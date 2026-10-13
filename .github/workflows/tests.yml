@@ -40,6 +40,15 @@ jobs:
         run: python3 scripts/check-release-scope.py
       - run: python -m pip install --require-hashes -r requirements.lock
       - run: python -m compileall -q .
+      - name: Documentation semantics
+        if: github.event_name == 'pull_request'
+        env:
+          DOCS_BASE: ${{ github.event.pull_request.base.sha }}
+          DOCS_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/check-documentation-semantics.py --base-sha "$DOCS_BASE" --head-sha "$DOCS_HEAD"
+      - name: Documentation semantics on main
+        if: github.event_name == 'push'
+        run: python3 scripts/check-documentation-semantics.py
       - run: python -m unittest discover -s tests -v
       - run: python3 scripts/check-telegram-command-catalog.py
       - run: python3 scripts/check-3xui-openapi-contract.py
