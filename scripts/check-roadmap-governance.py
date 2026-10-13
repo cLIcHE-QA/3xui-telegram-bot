@@ -93,7 +93,7 @@ def release_consistency(root:Path=ROOT)->list[str]:
             errors.append("Published tag must have corresponding CHANGELOG section")
     deployed=summary.split("**Deployed:**",1)[-1].split("**Accepted:**",1)[0]
     accepted=summary.split("**Accepted:**",1)[-1]
-    if "operator-reported" in deployed and not ("operator-reported" in deployed and ("не" in deployed or "без" in deployed)):
+    if "operator-reported" in deployed and not any(x in deployed for x in ("PENDING", "не подтверж", "без независимого")):
         errors.append("operator-reported deployment requires explicit evidence limitation")
     if "NOT PASS" in accepted and re.search(r"\bfull\s+acceptance\s+PASS\b",summary,re.I):
         errors.append("contradictory acceptance claim")
