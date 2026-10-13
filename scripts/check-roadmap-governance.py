@@ -102,7 +102,7 @@ def release_consistency(root:Path=ROOT)->list[str]:
     return errors
 
 def changed_files(base:str,head:str,root:Path=ROOT)->list[tuple[str,str]]:
-    result=subprocess.run(["git","diff","--name-status","--diff-filter=ACMR",base+"..."+head],
+    result=subprocess.run(["git","diff","--name-status","--diff-filter=ACMRD",base+"..."+head],
                           cwd=root,check=True,capture_output=True,text=True)
     return [(x.split("\t")[-1],x.split("\t")[0][0]) for x in result.stdout.splitlines()]
 
@@ -117,7 +117,9 @@ def validate(root:Path=ROOT, changed:list[tuple[str,str]]|None=None, previous:di
     if concept_changes and not any(p==REGISTRY for p,_ in changed or []):
         errors.append("mutable concept changes require same-PR lifecycle registry review")
     for path,kind in changed or []:
-        if path.startswith("docs/audits/roadmap-history/") and kind!="A":
+        if path.startswith("docs/audits/") and kind=="D":
+            errors.append(f"dated audit deletion forbidden: {path}")
+        elif path.startswith("docs/audits/roadmap-history/") and kind!="A":
             errors.append(f"immutable history modified: {path}")
         elif path.startswith("docs/audits/") and path.endswith(".md") and path!="docs/audits/AUDIT_TEMPLATE.md":
             errors.extend(check.audit_ok(root,path))
