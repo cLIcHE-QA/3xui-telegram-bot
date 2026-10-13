@@ -97,7 +97,7 @@ def release_consistency(root:Path=ROOT)->list[str]:
         errors.append("operator-reported deployment requires explicit evidence limitation")
     if "NOT PASS" in accepted and re.search(r"\bfull\s+acceptance\s+PASS\b",summary,re.I):
         errors.append("contradictory acceptance claim")
-    if "NOT PASS" not in text and "BLOCKED ON G-09 + D1" in text:
+    if "NOT PASS" not in accepted and "BLOCKED ON G-09 + D1" in text:
         errors.append("blocked gates cannot imply full acceptance PASS")
     return errors
 
