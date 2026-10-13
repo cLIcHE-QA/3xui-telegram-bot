@@ -97,7 +97,8 @@
 | [#507](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/507) | ⬜ Запланировано | — | TBD | Issue #507 (scope), implementation PENDING | выбор варианта срока тарифа при покупке: Issue criteria |
 | [#510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) | ⬜ Запланировано | — | TBD | Issue #510 (scope), implementation PENDING | определить жизненный цикл и безопасную очистку GitHub-веток: Issue criteria |
 | [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) | ⬜ Запланировано | — | TBD | Issue #564 (scope), implementation PENDING | скрыть legacy /create и /inbounds из актуального интерфейса: Issue criteria |
-| [#605](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/605) | ⬜ Запланировано | — | TBD | Issue #605 (scope), implementation PENDING | Docs governance hardening: Issue criteria |
+
+**✅ Документационное governance #605:** [Issue #605](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/605) CLOSED/completed по собственным docs/CI критериям; [PR #606](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/606) squash `7d879216bf232ea107b8417d2496c47f19ecf797`, required `test`/`title` PASS и postmerge [Python checks #38439409323](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38439409323) PASS. Machine-checked шестипольный Issue-реестр, concept lifecycle, changed-audit CI, release-state provenance; **живой запуск новой pagination-сверки PENDING observation**. Нет production acceptance.
 
 ## Завершённые этапы и исторические документы
 
