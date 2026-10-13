@@ -14,8 +14,8 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
     def test_current_register_and_release(self):
         rows=gov.roadmap_rows(ROOT)
         self.assertIn(433,rows)
-        self.assertIn(605,rows)
-        self.assertGreaterEqual(len(rows),32)
+        self.assertNotIn(605,rows)  # Closed docs-only issue removed after GitHub read-back
+        self.assertGreaterEqual(len(rows),31)
         self.assertEqual(gov.concepts_ok(ROOT),[])
         self.assertEqual(gov.release_consistency(ROOT),[])
     def test_registry_duplicate_rejected(self):
