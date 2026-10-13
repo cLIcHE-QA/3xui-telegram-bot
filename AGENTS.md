@@ -61,7 +61,7 @@
 Используй документы по их назначению:
 
 - `README.md` — текущая архитектура, module boundaries и карта документации;
-- `docs/ROADMAP.md` — product stages, acceptance scope и фактические статусы;
+- `docs/ROADMAP.md` — единственный компактный current-state product/acceptance реестр; полная история — `docs/roadmap/HISTORY_INDEX.md` и `docs/audits/**` (архив не редактировать задним числом);
 - `CHANGELOG.md` — пользовательские и операционные изменения по версиям;
 - `docs/GIT_WORKFLOW.md` — branches, commits, PR, merge, issues и roadmap workflow;
 - `docs/LIVING_DOCS.md` — living/historical docs boundary, diff triggers, waivers и external repository-state drift contract;
