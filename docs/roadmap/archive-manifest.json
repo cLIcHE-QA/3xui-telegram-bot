@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "source_commit": "65cf94e08bc32b8c83f192547962b87f97e1d4c3",
+  "source_blob": "7303286842241ee29b7cbefbabbe4780911043dd",
+  "source_line_count": 5803,
+  "segments": [
+    {
+      "path": "docs/audits/roadmap-history/v5-checkpoints.md",
+      "start_line": 1,
+      "end_line": 389
+    },
+    {
+      "path": "docs/audits/roadmap-history/github-and-rc-history.md",
+      "start_line": 390,
+      "end_line": 1169
+    },
+    {
+      "path": "docs/audits/roadmap-history/v4-foundation.md",
+      "start_line": 1170,
+      "end_line": 1590
+    },
+    {
+      "path": "docs/audits/roadmap-history/v4-monitoring.md",
+      "start_line": 1591,
+      "end_line": 2214
+    },
+    {
+      "path": "docs/audits/roadmap-history/v4-user-management.md",
+      "start_line": 2215,
+      "end_line": 3346
+    },
+    {
+      "path": "docs/audits/roadmap-history/v4-stabilization.md",
+      "start_line": 3347,
+      "end_line": 4123
+    },
+    {
+      "path": "docs/audits/roadmap-history/future-architecture.md",
+      "start_line": 4124,
+      "end_line": 5200
+    },
+    {
+      "path": "docs/audits/roadmap-history/client-portal-plans.md",
+      "start_line": 5201,
+      "end_line": 5803
+    }
+  ]
+}
