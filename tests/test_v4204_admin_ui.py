@@ -1,3 +1,4 @@
+from roadmap_history import historical_roadmap
 """v4.20.4 production-smoke regressions for Admin UI consolidation."""
 from __future__ import annotations
 
@@ -182,7 +183,7 @@ class V4204AdminUiTests(unittest.TestCase):
 
     def test_direct_node_display_contract_is_documented(self):
         ui_style = source("docs/UI_STYLE.md")
-        roadmap = source("docs/ROADMAP.md")
+        roadmap = historical_roadmap(ROOT)
 
         self.assertIn("## Отображение Master и direct nodes", ui_style)
         self.assertIn("`node_display_name()`", ui_style)
