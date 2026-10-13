@@ -56,7 +56,7 @@
 
 **Закрытый docs-only Issue:** [#593](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/593) — CLOSED/completed по PR #594/#595 и CI; не новый production/release acceptance.
 
-**✅ Завершено в docs/CI scope:** [#597](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/597) CLOSED/completed: маршрутизация документации, audit template + semantic tests, редактируемые concepts отдельно от immutable source (PR [#596](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/596), [#598](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/598); main `9b38246711f811cff63442738942fc5f3e8061ac`, required/postmerge CI PASS). Первый живой weekly/dispatch запуск read-only GitHub reconciliation **PENDING observation**, это не production/acceptance PASS. Общий v5 по-прежнему NOT PASS.
+**✅ Завершено в docs/CI scope:** [#597](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/597) CLOSED/completed: маршрутизация документации, audit template + semantic tests, редактируемые concepts отдельно от immutable source (PR [#596](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/596), [#598](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/598); main `9b38246711f811cff63442738942fc5f3e8061ac`, required/postmerge CI PASS). Первый реальный **manual workflow_dispatch PASS** 2026-10-13 19:41 EEST: [run #38432290724](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38432290724) на `main=1bd969bdeab8786fb90e79b6d2a06a73a8c142a4`, published rc.9 и 12 tracked Issues, [датированный audit](audits/2026-10-13-roadmap-github-first-dispatch.md). Weekly scheduled execution **PENDING observation**; full Issues/documents/production acceptance не подтверждён. Общий v5 по-прежнему NOT PASS.
 
 ## Завершённые этапы и исторические документы
 
