@@ -60,6 +60,45 @@
 
 **✅ Завершено в docs/CI scope:** [#601](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/601) CLOSED/completed по [PR #602](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/602), squash main `520dddd42a723015345a4d6967329b8de90226a3`, required `test`/`title` и postmerge [Python checks #38434463785](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38434463785) PASS. Новые audits, Markdown anchors и все напрямую связанные Issue URLs проверяются автоматикой; первый live run расширенной версии **PASS в GitHub-only scope** 2026-10-13 20:05 EEST: [Actions #38435743560](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38435743560), `main=fc50bbc3ba7d17703852fea067e3087ec7a46ae6`, 17 прямых Issue URLs / 13 status assertions, published rc.9, [audit](audits/2026-10-13-roadmap-github-expanded-dispatch.md). Weekly scheduled run **PENDING observation**; не production PASS. Первый ограниченный 12-Issue PASS от 2026-10-13 — [dated audit](audits/2026-10-13-roadmap-github-first-dispatch.md).
 
+## Активный Issue-реестр (machine-checked)
+
+Ровно одна строка на каждый открытый GitHub Issue; подробности остаются в Issue. `—` означает отсутствие PR, `TBD` — непublished target, не гарантированный release. Даты/свидетельства проверок — в отдельных audits.
+
+| Issue | Статус | PR | Target release | Evidence | Next / remaining |
+| --- | --- | --- | --- | --- | --- |
+| [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) | ⬜ Запланировано | — | TBD | Issue #336 (scope), implementation PENDING | внешний платёжный шлюз и СБП с уникальными ссылками: Issue criteria |
+| [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) | ⬜ Запланировано | — | rc.10 (plan) | Issue #433 (scope), implementation PENDING | 14-дневные возвраты Stars с отзывом оплаченного срока: Issue criteria |
+| [#434](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/434) | ⬜ Запланировано | — | TBD | Issue #434 (scope), implementation PENDING | ненавязчивые условия возврата в клиентском портале: Issue criteria |
+| [#436](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/436) | ⬜ Запланировано | — | TBD | Issue #436 (scope), implementation PENDING | подготовить правовую политику возвратов РФ для самозанятого: Issue criteria |
+| [#437](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/437) | ⬜ Запланировано | — | TBD | Issue #437 (scope), implementation PENDING | справочник возвратов для поддержки в админке: Issue criteria |
+| [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) | ⬜ Запланировано | — | TBD | Issue #466 (scope), implementation PENDING | Natural job_failed, passive: Issue criteria |
+| [#470](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/470) | ⬜ Запланировано | — | TBD | Issue #470 (scope), implementation PENDING | read-only просмотр Stars Orders в админке: Issue criteria |
+| [#471](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/471) | ⬜ Запланировано | — | TBD | Issue #471 (scope), implementation PENDING | компактный список и карточки устройств клиента: Issue criteria |
+| [#472](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/472) | ⬜ Запланировано | — | TBD | Issue #472 (scope), implementation PENDING | безопасное удаление одного собственного HWID клиентом: Issue criteria |
+| [#473](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/473) | ⬜ Запланировано | — | TBD | Issue #473 (scope), implementation PENDING | безопасные VPN-клиентские deep-link импорты: Issue criteria |
+| [#475](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/475) | ⬜ Запланировано | — | TBD | Issue #475 (scope), implementation PENDING | геометаданные страны для direct nodes: Issue criteria |
+| [#476](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/476) | ⬜ Запланировано | — | TBD | Issue #476 (scope), implementation PENDING | мультиформатные подписки raw, Xray JSON и Clash/Mihomo: Issue criteria |
+| [#477](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/477) | ⬜ Запланировано | — | TBD | Issue #477 (scope), implementation PENDING | provider-neutral control plane и поддержка Remnawave: Issue criteria |
+| [#478](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/478) | ⬜ Запланировано | — | TBD | Issue #478 (scope), implementation PENDING | региональная сеть Probe reporters для Cheburcheck: Issue criteria |
+| [#479](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/479) | ⬜ Запланировано | — | TBD | Issue #479 (scope), implementation PENDING | внешняя наблюдаемость, сервисный API и signed webhooks: Issue criteria |
+| [#482](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/482) | ⬜ Запланировано | — | TBD | Issue #482 (scope), implementation PENDING | ограничить нагрузку на 3x-ui API перед масштабированием: Issue criteria |
+| [#487](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) | ⬜ Запланировано | — | TBD | Issue #487 (scope), implementation PENDING | Master/Node sync: Issue criteria |
+| [#496](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/496) | ⬜ Запланировано | — | TBD | Issue #496 (scope), implementation PENDING | ограничивать видимость функций Client Portal через User Groups: Issue criteria |
+| [#497](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/497) | ⬜ Запланировано | — | TBD | Issue #497 (scope), implementation PENDING | полноценная карточка подписки и контекстные действия клиента: Issue criteria |
+| [#498](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/498) | ⬜ Запланировано | — | TBD | Issue #498 (scope), implementation PENDING | безопасная ручная синхронизация подписки клиентом: Issue criteria |
+| [#499](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/499) | ⬜ Запланировано | — | TBD | Issue #499 (scope), implementation PENDING | применение промокодов при покупке Stars в Client Portal: Issue criteria |
+| [#500](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/500) | ⬜ Запланировано | — | TBD | Issue #500 (scope), implementation PENDING | управляемое клиентом автопродление подписки: Issue criteria |
+| [#501](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/501) | ⬜ Запланировано | — | TBD | Issue #501 (scope), implementation PENDING | настройки клиентских уведомлений и напоминаний: Issue criteria |
+| [#502](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/502) | ⬜ Запланировано | — | TBD | Issue #502 (scope), implementation PENDING | выбор языка интерфейса Client Portal: Issue criteria |
+| [#503](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/503) | ⬜ Запланировано | — | TBD | Issue #503 (scope), implementation PENDING | статистика трафика клиента за сегодня, 7 и 30 дней: Issue criteria |
+| [#504](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/504) | ⬜ Запланировано | — | TBD | Issue #504 (scope), implementation PENDING | пользовательские названия собственных HWID-устройств: Issue criteria |
+| [#505](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/505) | ⬜ Запланировано | — | TBD | Issue #505 (scope), implementation PENDING | FAQ и общий контакт поддержки в Client Portal: Issue criteria |
+| [#506](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/506) | ⬜ Запланировано | — | TBD | Issue #506 (scope), implementation PENDING | собственная история заказов и платежей клиента: Issue criteria |
+| [#507](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/507) | ⬜ Запланировано | — | TBD | Issue #507 (scope), implementation PENDING | выбор варианта срока тарифа при покупке: Issue criteria |
+| [#510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) | ⬜ Запланировано | — | TBD | Issue #510 (scope), implementation PENDING | определить жизненный цикл и безопасную очистку GitHub-веток: Issue criteria |
+| [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) | ⬜ Запланировано | — | TBD | Issue #564 (scope), implementation PENDING | скрыть legacy /create и /inbounds из актуального интерфейса: Issue criteria |
+| [#605](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/605) | ⬜ Запланировано | — | TBD | Issue #605 (scope), implementation PENDING | Docs governance hardening: Issue criteria |
+
 ## Завершённые этапы и исторические документы
 
 v4.x: protected Admin Control Plane, RBAC, Host Control, backup/DR, self-update, monitoring, User Management и final security hardening (stable `v4.26.9`). v5 rc.1…rc.9: controlled canary с отдельными findings и scoped smoke; **не** общий v5 PASS. Подробная хронология: [CHANGELOG](../CHANGELOG.md), [Releases](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases), [исторический индекс](roadmap/HISTORY_INDEX.md).
