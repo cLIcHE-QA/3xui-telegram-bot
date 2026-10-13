@@ -159,7 +159,9 @@
         "docs/ROADMAP.md",
         "docs/roadmap/**",
         "docs/audits/roadmap-history/**",
-        "scripts/check-roadmap-structure.py"
+        "scripts/check-roadmap-structure.py",
+        "docs/roadmap/concept-registry.json",
+        "scripts/check-roadmap-governance.py"
       ],
       "documents": [
         "docs/GIT_WORKFLOW.md",
@@ -173,7 +175,9 @@
       "triggers": [
         "docs/audits/**",
         "docs/roadmap/concepts/**",
-        "docs/audits/AUDIT_TEMPLATE.md"
+        "docs/audits/AUDIT_TEMPLATE.md",
+        "docs/roadmap/concept-registry.json",
+        "tests/test_roadmap_final_governance.py"
       ],
       "documents": [
         "docs/ROADMAP.md",
