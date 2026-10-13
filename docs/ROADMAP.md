@@ -4,7 +4,7 @@
 
 ## Актуальная сводка проекта
 
-**GitHub baseline:** 13 октября 2026, protected `main=65cf94e08bc32b8c83f192547962b87f97e1d4c3` после [PR #592](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/592), required/postmerge `test` PASS. **Published:** immutable prerelease [`v5.0.0-rc.9`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.9), tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; last stable `v4.26.9`. **Deployed:** rc.9 только operator-reported (11 октября deploy; 12 октября host SHA/image read-back в [G-01 audit](audits/v5-g01-production-baseline-2026-10-12.md)), independent build/VPS attestation PENDING. **Accepted:** общий v5 **NOT PASS**, stable release, public rollout и expansion pilot allowlist **BLOCKED**. Docs-only refactoring [#593](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/593) **🟡 Реализовано в main** только после фактического merge/CI — до этого момента PR не смешивать с main; новый production deployment не выполнялся.
+**GitHub baseline:** 13 октября 2026, protected `main=65cf94e08bc32b8c83f192547962b87f97e1d4c3` после [PR #592](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/592), required/postmerge `test` PASS. **Published:** immutable prerelease [`v5.0.0-rc.9`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.9), tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; last stable `v4.26.9`. **Deployed:** rc.9 только operator-reported (11 октября deploy; 12 октября host SHA/image read-back в [G-01 audit](audits/v5-g01-production-baseline-2026-10-12.md)), independent build/VPS attestation PENDING. **Accepted:** общий v5 **NOT PASS**, stable release, public rollout и expansion pilot allowlist **BLOCKED**. Docs-only refactoring [#593](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/593) **PENDING до фактического merge/CI** — не приравнивать открытый PR к `main`; новый production deployment не выполнялся.
 
 ## Статусы дорожной карты
 
@@ -37,7 +37,7 @@
 | W-01 | Independent cross-host Master DR отсутствовал | **OPERATOR-WAIVED / NOT TESTED** — НЕ PASS |
 | W-02 | Live Telegram burst inconclusive | **OPERATOR-WAIVED / INCONCLUSIVE** — НЕ PASS |
 
-Полные исторические наблюдения, включая старые FAIL, тайминги, данные G-01…G-11 и правильную идентичность DR-хоста: [архив проверок v5](audits/roadmap-history/github-and-rc-history.md), [датированные audits](audits/), [карта переноса](roadmap/HISTORY_INDEX.md). Итоговые короткие строки не отменяют нормативные критерии [V5_PRODUCTION_ACCEPTANCE](V5_PRODUCTION_ACCEPTANCE.md).
+Полные исторические наблюдения, включая старые FAIL, тайминги, данные G-01…G-11 и правильную идентичность DR-хоста: [архив проверок v5](audits/roadmap-history/v5-gates.md), [датированные audits](audits/), [карта переноса](roadmap/HISTORY_INDEX.md). Итоговые короткие строки не отменяют нормативные критерии [V5_PRODUCTION_ACCEPTANCE](V5_PRODUCTION_ACCEPTANCE.md).
 
 ## Текущая очередь и блокировки
 
@@ -52,7 +52,7 @@
 
 **⬜ Запланировано, реализация ещё не подтверждена:** [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) 14-дневные voluntary Stars refunds с отзывом оплаченного срока (план rc.10, не опубликован), юридические и UI пункты [#436](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/436), [#434](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/434), [#437](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/437) PENDING. [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) natural jobs, [#482](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/482) future 3x-ui API budget, [#487](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) Master/Node sync, [#510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) GitHub branch lifecycle, [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) legacy command UI, [#593](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/593) Roadmap hygiene — собственные Issue criteria.
 
-**⬜ Отложенный backlog без обещанного релиза:** [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) external PSP/СБП с Telegram/legal compliance review; Client Portal features #496–#507, HWID #471–#473, multiformat/geo/Remnawave/Cheburcheck #475–#479. Точные acceptance criteria — в [GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues). Концепции не являются текущей реализацией: [архитектурное будущее](audits/roadmap-history/future-architecture.md), [Client Portal UX](audits/roadmap-history/client-portal-plans.md); нормативные детали — в [EXTERNAL_PAYMENT_LINKS](EXTERNAL_PAYMENT_LINKS.md), [CLIENT_SETUP](CLIENT_SETUP.md), [UI_STYLE](UI_STYLE.md).
+**⬜ Отложенный backlog без обещанного релиза:** [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) external PSP/СБП с Telegram/legal compliance review; Client Portal features #496–#507, HWID #471–#473, multiformat/geo/Remnawave/Cheburcheck #475–#479. Точные acceptance criteria — в [GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues). Концепции не являются текущей реализацией: [архитектурное будущее](roadmap/concepts/provider-neutral-remnawave.md), [Client Portal UX](roadmap/concepts/client-portal-ux.md); нормативные детали — в [EXTERNAL_PAYMENT_LINKS](EXTERNAL_PAYMENT_LINKS.md), [CLIENT_SETUP](CLIENT_SETUP.md), [UI_STYLE](UI_STYLE.md).
 
 ## Завершённые этапы и исторические документы
 
