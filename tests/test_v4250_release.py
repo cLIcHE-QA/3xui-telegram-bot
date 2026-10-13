@@ -1,6 +1,8 @@
 """Release contracts through v4.26.9 subscription browser hotfix."""
 from __future__ import annotations
 
+from roadmap_history import historical_roadmap
+
 from pathlib import Path
 import unittest
 
@@ -235,7 +237,7 @@ class V4269ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
     def test_roadmap_closes_full_v425_line_after_v4258_acceptance(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         self.assertIn("##### v4.25.4 — Streisand plain subscription compatibility", roadmap)
         self.assertIn("##### v4.25.5 — Streisand plain mode precedence", roadmap)
         self.assertIn("##### v4.25.6 — Streisand incompatibility / forward revert", roadmap)
@@ -250,7 +252,7 @@ class V4269ReleaseTests(unittest.TestCase):
         self.assertIn("issue #204 закрыт как `completed`", roadmap)
 
     def test_v425_line_is_closed_without_claiming_streisand_support(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         for patch_version in range(8):
             heading = f"##### v4.25.{patch_version} — "
             with self.subTest(release=heading):
@@ -271,7 +273,7 @@ class V4269ReleaseTests(unittest.TestCase):
         self.assertIn("**N/A production exception**", roadmap)
 
     def test_v4257_validation_patch_is_closed_after_production_acceptance(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         heading = "##### v4.25.7 — Inbound input validation"
         self.assertEqual(roadmap.count(heading), 1)
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
@@ -291,7 +293,7 @@ class V4269ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
     def test_v4258_production_acceptance_is_recorded(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         for needle in (
             "tag/GitHub Release `v4.25.8`",
             "768fc0e4b9a0c0d2e35508febf272709896c3e7f",
@@ -306,7 +308,7 @@ class V4269ReleaseTests(unittest.TestCase):
         self.assertIn("Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована", readme)
 
     def test_v4260_production_acceptance_is_recorded(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         heading = "##### v4.26.0 — Node Drain / graceful traffic evacuation"
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
         for needle in (
@@ -330,7 +332,7 @@ class V4269ReleaseTests(unittest.TestCase):
         self.assertIn("Controlled Node Drain production acceptance #208 завершён 2026-10-01", readme)
 
     def test_final_v4_feature_freeze_is_recorded(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         for needle in (
             "off-site recovery drill завершён 2026-10-05",
             "`backup.offsite` завершился `success`",
@@ -350,7 +352,7 @@ class V4269ReleaseTests(unittest.TestCase):
         self.assertNotIn("Единственный оставшийся обязательный pre-freeze gate", readme)
 
     def test_data_plane_hardening_219_is_closed(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         heading = "##### Data-plane address hardening — issue #219"
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
         for needle in (
@@ -366,7 +368,7 @@ class V4269ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
     def test_v4261_production_acceptance_is_recorded(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         heading = "##### v4.26.1 — Node Drain Cancel navigation"
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
         for needle in (
@@ -384,7 +386,7 @@ class V4269ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
     def test_v4262_production_acceptance_is_recorded(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         heading = "##### v4.26.2 — Dashboard Attention summary"
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
         for needle in (
@@ -400,7 +402,7 @@ class V4269ReleaseTests(unittest.TestCase):
 
 
     def test_v4264_production_acceptance_is_recorded(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         heading = "##### v4.26.4 — Permission-aware admin navigation fix"
         section = roadmap.split(heading, 1)[1].split("\n##### ", 1)[0]
         for needle in (

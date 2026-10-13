@@ -1,6 +1,8 @@
 """Historical release contract for v4.23.2."""
 from __future__ import annotations
 
+from roadmap_history import historical_roadmap
+
 from pathlib import Path
 import unittest
 
@@ -28,7 +30,7 @@ class V4232ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
     def test_v4232_production_finding_remains_documented(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         self.assertIn("Production smoke `v4.23.2` выполнен", roadmap)
         self.assertIn("findings `v4.23.2` закрыты hotfix-релизом `v4.23.3`", roadmap)
         self.assertIn("acceptance линии Cheburcheck `v4.23.x` завершён", roadmap)

@@ -1,6 +1,8 @@
 """Historical release contract for v4.24.1."""
 from __future__ import annotations
 
+from roadmap_history import historical_roadmap
+
 from pathlib import Path
 import unittest
 
@@ -12,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class V4241ReleaseTests(unittest.TestCase):
     def test_v4241_historical_release_notes_remain_present(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         self.assertIn("## v4.24.1 — Hotfix web diagnostics и IPv6", changelog)
         self.assertIn(
             "✅ Выполнено и принято в production в `v4.24.1`; acceptance линии `v4.24.x` закрыт.",
@@ -41,7 +43,7 @@ class V4241ReleaseTests(unittest.TestCase):
             self.assertIn(needle, section)
 
     def test_v424x_production_acceptance_is_closed(self):
-        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        roadmap = historical_roadmap(ROOT)
         self.assertIn(
             "✅ Выполнено и принято в production в `v4.24.1`; acceptance линии `v4.24.x` закрыт.",
             roadmap,

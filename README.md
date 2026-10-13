@@ -6,6 +6,10 @@ Telegram Control Plane для 3x-ui с защищённым `/admin` и pilot Cl
 
 > README — актуальная карта проекта и точка входа в runbook'и. Исторические upgrade-инструкции и release-by-release описание не дублируются здесь: для них используются `CHANGELOG.md`, GitHub Releases и специализированные документы в `docs/`.
 
+## Roadmap: текущие статусы и архив
+
+[Краткий Roadmap](docs/ROADMAP.md) — единственный актуальный источник product и acceptance statuses; [тематический архив старого Roadmap](docs/roadmap/HISTORY_INDEX.md) сохраняет исторические 5803 строки, включая FAIL/STOP, SHA и evidence. Новые проверки записываются в датированные `docs/audits/**`, а не в верхнюю сводку.
+
 ## План внешних платежей
 
 [Проектный контракт Platega и будущих PSP](docs/EXTERNAL_PAYMENT_LINKS.md) описывает согласованный сценарий персональной ссылки из бота, безопасную проверку webhook и идемпотентное продление. Это **планирование**, не подключение провайдера и не разрешение на запуск; действующий Stars-only platform risk отдельно отмечен.

@@ -148,6 +148,21 @@
         "docs/CLIENT_SETUP.md"
       ],
       "waiver": "Living Docs: v5-client-acceptance — изменений не требуется"
+    },
+    {
+      "id": "roadmap-structure",
+      "mode": "review",
+      "triggers": [
+        "docs/ROADMAP.md",
+        "docs/roadmap/**",
+        "docs/audits/roadmap-history/**",
+        "scripts/check-roadmap-structure.py"
+      ],
+      "documents": [
+        "docs/GIT_WORKFLOW.md",
+        "docs/LIVING_DOCS.md"
+      ],
+      "waiver": "Living Docs: roadmap-structure — изменений не требуется"
     }
   ],
   "repository_state": {
