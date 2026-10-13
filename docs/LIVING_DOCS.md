@@ -23,7 +23,7 @@ Living documents описывают текущее состояние проек
 
 `docs/audits/**` — historical evidence. Старый факт внутри audit artifact не переписывается только потому, что состояние позже изменилось. Вместо этого добавляется closure/revalidation evidence и актуальный итоговый status.
 
-## Маршрутизация и контроль новых audits (#596)
+## Маршрутизация и контроль новых audits (#597)
 
 Таблица типов изменений и destinations — `docs/GIT_WORKFLOW.md#маршрутизация-изменений-и-evidence-596`. Текущий Roadmap остаётся единственным статусным реестром; `docs/roadmap/concepts/**` — редактируемые проектные документы, а исходные концептуальные snapshots вынесены в immutable `docs/audits/roadmap-history/source-*.md`. `docs/roadmap/archive-manifest.json` воспроизводит исходный Git blob и запрещает изменения исторических свидетельств. Новые audits никогда не меняют старые FAIL.
 
