@@ -4,6 +4,12 @@
 
 Дорожная карта задаёт границы продуктовых этапов, но не заменяет перечень изменений конкретного релиза: перед публикацией состав релиза фиксируется в отдельных PR реализации и подготовки.
 
+## G05-A PENDING / G08-D,E operator-reported post-cycle PASS — 2026-10-13 09:39 EEST
+
+**Evidence:** сообщение оператора `2026-10-13 06:39:11 UTC / 09:39:11 EEST`: `G05-A: PENDING`, `G08-E: PASS`, `G08-D: PASS` — без timestamps самих проверок, подробных health/SQLite/3x-ui/UI/VPN output или image SHA. [Датированный audit и безопасный provenance check](audits/v5-g05a-g08-postcycle-operator-report-2026-10-13.md). Нового запуска smoke, restart, Stars toggle, refund, quota reset, deploy или иных production mutations агент не делал. **G08-D/E: OPERATOR-REPORTED PASS текущего состояния после ON / detail evidence PENDING**; не объявлять состояние во время OFF подтверждённым. **G05-A PENDING/REVIEW** до одного read-only сопоставления `schema_migrations.version=11` и создания одной legacy-записи до `v11.started_at`; миграционный механизм уже подтверждён в коде, но конкретная строка — нет.
+
+**Four states:** до данного docs PR `main=6922f0b348a72fb0845c1edfb27cff9981df4c1a`; Published immutable prerelease `v5.0.0-rc.9` tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; Deployed rc.9 ранее только operator-reported, отдельного build attestation в этом пакете нет; Accepted общий v5 **NOT PASS / public rollout BLOCKED**. G-04/G-05/G-08 **PARTIAL**, G-09/G-10/G-11 **PENDING**. #342/#317/#422 CLOSED по прежним критериям; #433/#466/#487/#510/#564 OPEN по собственным acceptance criteria. Следующий шаг: required-CI docs PR → squash merge → independent main/Issues read-back; только затем принять один обезличенный G05-A stdout. **ROADMAP SYNC PENDING до merge/read-back.**
+
 ## G-04/G-05/G-08 — review остаточных A–E, без новых production smoke (2026-10-13 02:33 EEST)
 
 **Scope/evidence:** read-only сопоставление уже полученных операторских трёх snapshots (2026-10-13 01:58:21/01:58:57/01:59:28 EEST) с кодом, migration contract и existing CI. [Датированный evidence-review](audits/v5-g04-g05-g08-residual-review-2026-10-13.md). Новых production действий или тестов нет. До PR protected `main=39991f00bb92503ad05599adbf33285ab09079f8`; Published immutable prerelease `v5.0.0-rc.9` tag `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; Deployed ранее operator-reported rc.9 (в этих данных нет свежего image SHA); Accepted overall v5 **NOT PASS**, public launch BLOCKED.
