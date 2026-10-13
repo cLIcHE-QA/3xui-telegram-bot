@@ -62,6 +62,10 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
             text=text.replace("**Accepted:** общий v5 **NOT PASS**","**Accepted:** full acceptance PASS")
             (root/"docs/ROADMAP.md").write_text(text,encoding="utf-8")
             self.assertTrue(gov.release_consistency(root))
+    def test_concept_change_requires_registry_review(self):
+        errors=gov.validate(ROOT,[("docs/roadmap/concepts/client-portal-ux.md","M")])
+        self.assertTrue(any("same-PR lifecycle registry" in error for error in errors))
+
     def test_changed_audit_invalid_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
