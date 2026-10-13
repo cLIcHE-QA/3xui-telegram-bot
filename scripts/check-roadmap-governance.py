@@ -113,6 +113,9 @@ def validate(root:Path=ROOT, changed:list[tuple[str,str]]|None=None, previous:di
     errors.extend(concepts_ok(root,previous))
     errors.extend(release_consistency(root))
     check=load_audit(root)
+    concept_changes=[p for p,_ in changed or [] if p.startswith("docs/roadmap/concepts/") and p.endswith(".md")]
+    if concept_changes and not any(p==REGISTRY for p,_ in changed or []):
+        errors.append("mutable concept changes require same-PR lifecycle registry review")
     for path,kind in changed or []:
         if path.startswith("docs/audits/roadmap-history/") and kind!="A":
             errors.append(f"immutable history modified: {path}")
