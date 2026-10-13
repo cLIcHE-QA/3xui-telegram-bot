@@ -19,6 +19,8 @@ Living documents описывают текущее состояние проек
 - `docs/CLIENT_SETUP.md` — настройки и безопасный rollback пилотного Client Portal; public launch до полного acceptance запрещён;
 - operational runbooks и schema/API/UI contracts, перечисленные в `docs/live-docs.json`.
 
+`docs/roadmap/HISTORY_INDEX.md` и `docs/audits/roadmap-history/**` — тематический исторический архив исходных 5803 строк Roadmap с точной проверкой Git blob. Это не второй living-state реестр; текущие gate и Issue statuses поддерживаются только в `docs/ROADMAP.md`. Новые подробные checks пишутся в датированные `docs/audits/**`; `scripts/check-roadmap-structure.py` проверяет архив/limiting и запускается через semantic living-doc tests.
+
 `docs/audits/**` — historical evidence. Старый факт внутри audit artifact не переписывается только потому, что состояние позже изменилось. Вместо этого добавляется closure/revalidation evidence и актуальный итоговый status.
 
 ## Diff-trigger rules
