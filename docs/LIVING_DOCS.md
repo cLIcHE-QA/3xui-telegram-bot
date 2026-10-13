@@ -29,6 +29,12 @@ Living documents описывают текущее состояние проек
 
 Новые `docs/audits/*.md` (кроме шаблона и неизменного `roadmap-history/**`) обязаны копировать `docs/audits/AUDIT_TEMPLATE.md` и содержать machine-checkable marker, timestamp с TZ, scope, target tag/SHA/N/A с причиной, status, evidence, limitations, Issue/next и четыре отдельных факта merged/published/deployed/accepted. Только новые файлы подвергаются строгому template CI; старые документы остаются нетронутыми. `scripts/check-documentation-semantics.py` проверяет текущее содержание Roadmap и локальные ссылки; `scripts/check-roadmap-github.py` отдельно сверяет Issues и последний Published Release по GitHub API. API outage означает UNKNOWN/PENDING, а не PASS; GitHub read-only проверка **не** подтверждает VPS deployment/acceptance.
 
+## Завершающий Roadmap governance contract (#605)
+
+`scripts/check-roadmap-governance.py` запускается в обязательном `Python checks` для каждого PR и push в main: проверяет шесть полей структурированного Issue-реестра, допустимые переходы концепций, самостоятельные поля Published/Deployed/Accepted и изменённые audits (в том числе уже созданные ранее). `scripts/check-roadmap-github.py` дополнительно получает с pagination все OPEN GitHub Issues и сравнивает exact set с активным реестром. Несовпадение — FAIL, недоступность GitHub — UNKNOWN/PENDING. Не считать этот read-only check production attestation, policy/acceptance PASS или подтверждением подлинности evidence.
+
+Concept lifecycle — `docs/roadmap/concept-registry.json`; оригинальные исходные файлы остаются в `docs/audits/roadmap-history/**`. Исторические archives не править ради обновления схемы. Новый результат оформлять отдельным датированным audit/addendum. При merge/version/release/deployment обновлять факты и evidence независимо, с Issue-closure checkpoint до следующего пакета.
+
 ## Diff-trigger rules
 
 `scripts/check-living-docs.py` проверяет PR diff относительно base SHA и применяет rules из `docs/live-docs.json`.
