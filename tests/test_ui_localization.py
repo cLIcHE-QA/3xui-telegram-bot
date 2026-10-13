@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from roadmap_history import historical_roadmap
 
+
 import unittest
 from pathlib import Path
 
