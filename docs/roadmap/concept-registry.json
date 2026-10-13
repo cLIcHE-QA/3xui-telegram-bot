@@ -12,7 +12,7 @@
       "path": "docs/roadmap/concepts/multiformat-subscriptions.md",
       "status": "DRAFT",
       "issues": [
-        477
+        476
       ],
       "decision_evidence": null,
       "implementation_pr": null,
@@ -24,7 +24,7 @@
       "path": "docs/roadmap/concepts/provider-neutral-remnawave.md",
       "status": "DRAFT",
       "issues": [
-        478
+        477
       ],
       "decision_evidence": null,
       "implementation_pr": null,
