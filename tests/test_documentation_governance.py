@@ -19,6 +19,15 @@ class DocumentationGovernanceTests(unittest.TestCase):
         self.assertEqual(sem.current_ok(ROOT),[])
         self.assertEqual(sem.check(ROOT,[]),[])
         self.assertTrue((ROOT/"docs/audits/roadmap-history/source-client-portal-ux.md").is_file())
+    def test_archive_manifest_uses_immutable_sources_not_mutable_concepts(self):
+        import json
+        manifest=json.loads((ROOT/"docs/roadmap/archive-manifest.json").read_text(encoding="utf-8"))
+        paths=[item["path"] for item in manifest["segments"]]
+        self.assertFalse(any(x.startswith("docs/roadmap/concepts/") for x in paths))
+        for source in ("source-client-portal-ux.md","source-multiformat-subscriptions.md",
+                       "source-provider-neutral-remnawave.md"):
+            self.assertTrue(any(x.endswith(source) for x in paths))
+
     def test_new_audit_requires_all_fields(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)
