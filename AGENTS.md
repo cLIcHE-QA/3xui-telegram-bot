@@ -264,6 +264,10 @@ PR diff автоматически проверяет `scripts/check-living-docs
 
 Перед изменением roadmap сверяй факты с `main`, GitHub Releases, Issues и acceptance evidence. Исторический audit trail сохраняй.
 
+## Автоматическая маршрутизация документации (#597)
+
+При новой feature, bugfix, проверке или release агент сам выбирает файл по таблице в `docs/GIT_WORKFLOW.md`; пользователь не обязан задавать путь. Для новой проверки — датированный `docs/audits/**` из `docs/audits/AUDIT_TEMPLATE.md`, один текущий gate в `docs/ROADMAP.md`, Issue evidence, обязательный PR/CI/main read-back. Закрытый Issue удаляется из active backlog. Исходный архив неизменяем, рабочие концепции `docs/roadmap/concepts/**` можно развивать через PR. Проверять `scripts/check-documentation-semantics.py` и независимый `scripts/check-roadmap-github.py`, когда есть GitHub API; UNKNOWN не PASS. Release publication/deployment/acceptance — отдельные события.
+
 ## 8. Git workflow
 
 Следуй `docs/GIT_WORKFLOW.md`.

@@ -226,6 +226,21 @@ Feature не считается полностью документирован�
 
 При обновлении руководства изменяется канонический текущий flow, а не добавляется исторический журнал. История версий остаётся в `CHANGELOG.md`.
 
+## Маршрутизация изменений и evidence (#597)
+
+Агент определяет правильные файлы **сам**, без указания путей пользователем. Перед работой проверяет GitHub Issue (без дубликата), действующие contracts и источник правды. Реестр в `docs/ROADMAP.md` содержит только status/Issue/PR/evidence/remaining/next; подробности не копируются в сводку.
+
+| Тип | Документы и правила |
+| --- | --- |
+| Feature / UX | Issue с acceptance → Roadmap planned → редактируемая концепция `docs/roadmap/concepts/**` при сложной архитектуре → implementation/tests/`docs/UI_STYLE.md` при изменении UI |
+| Bugfix / security | Issue, regression/safety tests, релевантный runtime contract; Roadmap только фактический переход, после release/deploy/smoke закрыть Issue по его критериям |
+| Verification / acceptance | Новый датированный `docs/audits/**` по `docs/audits/AUDIT_TEMPLATE.md`; обновить существующую строку gate в Roadmap и Issue evidence, PR+CI+main read-back перед следующим пакетом |
+| Release | `version.py`, `CHANGELOG.md`, штатный release-prep и `docs/RELEASES.md`; статус Published только после GitHub Release; Deployed и Accepted только по отдельному evidence |
+| Production/operator | `docs/ADMIN_SETUP.md`, `docs/CLIENT_SETUP.md` и профильные runbooks при изменении actual operator contract; production действия требуют отдельного разрешения |
+| Architecture / schema / API | редактируемая концепция → утверждённый профильный source of truth, migration/API tests, соответствующие `docs/SQLITE_MIGRATIONS.md`/`docs/3XUI_OPENAPI_CONTRACT.md` |
+
+Immutable `docs/audits/roadmap-history/**` не редактировать и не использовать как живой нормативный контракт. Концепции редактируемы PR, но только исходный snapshot остаётся в archive-manifest. Закрытый Issue убрать из active backlog, сохранить короткий итог и ссылку на evidence. `docs/ROADMAP.md` не переполнять подробной историей; release scope не считается опубликованным до реального tag/Release. Новый audit без обязательных полей или со сломанными ссылками запрещается CI. GitHub API discrepancy или недоступность в scheduled read-only аудите — FAIL/UNKNOWN, не acceptance PASS.
+
 ## Ведение roadmap
 
 `docs/ROADMAP.md` — living document и обязательный источник контекста для новых чатов/сессий.

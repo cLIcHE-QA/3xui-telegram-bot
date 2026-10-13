@@ -76,7 +76,10 @@
         ".github/workflows/repository-state-audit.yml",
         "scripts/check-living-docs.py",
         "scripts/check-repository-state.py",
-        "docs/live-docs.json"
+        "docs/live-docs.json",
+        ".github/workflows/roadmap-github-audit.yml",
+        "scripts/check-documentation-semantics.py",
+        "scripts/check-roadmap-github.py"
       ],
       "documents": [
         "docs/LIVING_DOCS.md",
@@ -163,6 +166,20 @@
         "docs/LIVING_DOCS.md"
       ],
       "waiver": "Living Docs: roadmap-structure — изменений не требуется"
+    },
+    {
+      "id": "audit-documentation",
+      "mode": "review",
+      "triggers": [
+        "docs/audits/**",
+        "docs/roadmap/concepts/**",
+        "docs/audits/AUDIT_TEMPLATE.md"
+      ],
+      "documents": [
+        "docs/ROADMAP.md",
+        "docs/LIVING_DOCS.md"
+      ],
+      "waiver": "Living Docs: audit-documentation — изменений не требуется"
     }
   ],
   "repository_state": {
