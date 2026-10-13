@@ -70,6 +70,10 @@ RC не означает PASS launch audit и не снимает allowlist. П�
 исправляются новым RC (`rc.2`, `rc.3`, ...); опубликованный RC tag не перемещается.
 Только после PASS acceptance готовится отдельный `release: v5.0.0`.
 
+## Release consistency и evidence (#605)
+
+Переходы происходят независимо: `planned` → (release-prep PR / CHANGELOG) → `merged` → `Published` (immutable tag SHA + GitHub Release) → `Deployed` (операторское или независимое VPS evidence с явной provenance) → `Accepted` (только требуемый acceptance scope и результат). `Published` не доказывает `Deployed` и тем более `Accepted`. `docs/ROADMAP.md` хранит три явных поля Published/Deployed/Accepted; `scripts/check-roadmap-governance.py` проверяет текущий Published tag/SHA и CHANGLELOG section, запрещает утверждать full acceptance PASS при BLOCKED gates и требует явного ограничения operator-reported deployment. Live GitHub reconciliation сравнивает последний опубликованный Release с Roadmap; отсутствие внешнего API = UNKNOWN, не PASS. Deploy/acceptance proof допускаются только из самостоятельных проверок, не из GitHub read-only checks.
+
 ## Стандартный release flow
 
 Feature/fix изменения сначала сливаются в `main`.
