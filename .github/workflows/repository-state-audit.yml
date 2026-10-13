@@ -2,6 +2,11 @@ name: Repository state audit
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/check-repository-state.py
+      - .github/workflows/repository-state-audit.yml
   schedule:
     - cron: "17 5 * * 1"
 
