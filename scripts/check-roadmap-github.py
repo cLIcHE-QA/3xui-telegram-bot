@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-"""Read-only GitHub-state reconciliation. Network failure is UNKNOWN, never PASS."""
+"""Read-only reconciliation of every directly referenced Roadmap Issue and published Release.
+
+Network/API failure is UNKNOWN (exit 2), never PASS. No production assertions.
+"""
 from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -10,48 +14,124 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-ROOT=Path(__file__).resolve().parents[1]
-API="https://api.github.com"
-ISSUES=(317,342,422,433,466,482,487,510,564,577,593,597)
-class Unknown(RuntimeError): pass
-class Drift(RuntimeError): pass
-def fetch(repo:str,suffix:str,token:str=""):
-    request=urllib.request.Request(f"{API}/repos/{repo}{suffix}",headers={
-       "Accept":"application/vnd.github+json","User-Agent":"roadmap-readonly-audit",
-       **({"Authorization":f"Bearer {token}"} if token else {})})
+ROOT = Path(__file__).resolve().parents[1]
+API = "https://api.github.com"
+ISSUE_URL = re.compile(
+    r"https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/(\d+)(?:\b|/)", re.I
+)
+RELEASE_TAG = re.compile(r"\bv\d+\.\d+\.\d+(?:-rc\.\d+)?\b")
+class Unknown(RuntimeError):
+    pass
+class Drift(RuntimeError):
+    pass
+
+
+def fetch(repo: str, suffix: str, token: str = ""):
+    request = urllib.request.Request(f"{API}/repos/{repo}{suffix}", headers={
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "roadmap-readonly-reconciliation",
+        **({"Authorization": f"Bearer {token}"} if token else {}),
+    })
     try:
-        with urllib.request.urlopen(request,timeout=15) as f:return json.load(f)
-    except (urllib.error.HTTPError,urllib.error.URLError,TimeoutError,ValueError) as e:
-        raise Unknown(f"GitHub unreachable/unreadable: {type(e).__name__}") from e
-def validate(roadmap:str,states:dict[int,str],release:str)->None:
-    if not re.fullmatch(r"v\d+\.\d+\.\d+(?:-rc\.\d+)?",release):raise Drift("invalid published tag")
-    if f"`{release}`" not in roadmap: raise Drift(f"published tag {release} absent from Roadmap")
-    for n,state in states.items():
-        if f"#{n}" not in roadmap: continue
-        if n in (317,342,422,577,593) and state!="closed":raise Drift(f"expected closed #{n}, actual {state}")
-        if n in (433,466,482,487,510,564) and state!="open":raise Drift(f"expected open #{n}, actual {state}; update Roadmap")
-    if states.get(597)=="closed" and "#597" not in roadmap:raise Drift("#597 closure missing")
-def audit(repo:str,root:Path=ROOT,token:str=""):
-    roadmap=(root/"docs/ROADMAP.md").read_text(encoding="utf-8")
-    states={n:fetch(repo,f"/issues/{n}",token)["state"] for n in ISSUES}
-    releases=fetch(repo,"/releases?per_page=30",token)
-    published=[x for x in releases if not x.get("draft") and x.get("published_at")]
-    if not published:raise Unknown("no published releases available")
-    tag=max(published,key=lambda x:x["published_at"])["tag_name"]
-    validate(roadmap,states,tag)
-    return tag,states
+        with urllib.request.urlopen(request, timeout=15) as response:
+            return json.load(response)
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError,
+            ValueError) as exc:
+        raise Unknown(f"GitHub API unavailable/unreadable: {type(exc).__name__}") from exc
+
+
+def expectations(roadmap: str) -> tuple[set[int], dict[int, str]]:
+    """Discover all linked Issues, classify explicit active/completed Roadmap paragraphs."""
+    referenced = {int(x) for x in ISSUE_URL.findall(roadmap)}
+    if not referenced:
+        raise Drift("Roadmap contains no directly linked Issues")
+    section = roadmap.split("## Реестр открытых задач и будущие релизы", 1)
+    if len(section) != 2:
+        raise Drift("cannot identify canonical backlog section")
+    section = section[1].split("\n## Завершённые этапы", 1)[0]
+    states: dict[int, str] = {}
+    for para in re.split(r"\n\s*\n", section):
+        content = para.strip()
+        if content.startswith(("**⬜ Запланировано", "**⬜ Отложенный")):
+            expected = "open"
+        elif content.startswith(("**Закрытый", "**✅ Завершено")):
+            expected = "closed"
+        else:
+            continue
+        for match in ISSUE_URL.finditer(content):
+            number = int(match.group(1))
+            if number in states and states[number] != expected:
+                raise Drift(f"Issue #{number} has contradictory Roadmap contexts")
+            states[number] = expected
+    if not states:
+        raise Drift("no explicit open/closed issue classifications found")
+    return referenced, states
+
+
+def declared_published(roadmap: str) -> str:
+    if "**Published:**" not in roadmap:
+        raise Drift("missing explicit Published field")
+    after = roadmap.split("**Published:**", 1)[1]
+    marker = RELEASE_TAG.search(after[:600])
+    if not marker:
+        raise Drift("Published field does not contain valid vX.Y.Z[-rc.N] tag")
+    return marker.group()
+
+
+def validate(roadmap: str, actual: dict[int, str], latest_published: str) -> None:
+    referenced, expected = expectations(roadmap)
+    declared = declared_published(roadmap)
+    if declared != latest_published:
+        raise Drift(f"latest Published release {latest_published} != Roadmap {declared}")
+    missing = referenced.difference(actual)
+    if missing:
+        raise Drift(f"unverified linked Issue IDs: {sorted(missing)}")
+    for number, state in actual.items():
+        if number in referenced and state not in ("open", "closed"):
+            raise Drift(f"unknown Issue state #{number}: {state}")
+    for number, state in expected.items():
+        if actual[number] != state:
+            raise Drift(f"Roadmap Issue #{number} expected {state}, GitHub {actual[number]}")
+    # The checker confirms all directly linked Issues are fetchable, but unclassified
+    # Issue references are observations, not invented status assertions.
+
+
+def audit(repo: str, root: Path = ROOT, token: str = ""):
+    roadmap = (root / "docs/ROADMAP.md").read_text(encoding="utf-8")
+    referenced, expected = expectations(roadmap)
+    actual = {}
+    for number in sorted(referenced):
+        obj = fetch(repo, f"/issues/{number}", token)
+        if "pull_request" in obj:
+            raise Drift(f"#{number} is a PR, not an Issue")
+        actual[number] = obj.get("state", "unknown")
+    releases = fetch(repo, "/releases?per_page=30", token)
+    published = [r for r in releases if not r.get("draft") and r.get("published_at")]
+    if not published:
+        raise Unknown("no published Releases returned")
+    tag = max(published, key=lambda r: r["published_at"])["tag_name"]
+    validate(roadmap, actual, tag)
+    return tag, actual, expected
+
+
 def main():
-    p=argparse.ArgumentParser()
-    p.add_argument("--repository",required=True)
-    args=p.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repository", required=True)
+    args = parser.parse_args()
     try:
-        tag,states=audit(args.repository,token=os.getenv("GITHUB_TOKEN",""))
+        tag, issues, classified = audit(
+            args.repository, token=os.getenv("GITHUB_TOKEN", ""))
     except Unknown as exc:
-        print(f"Roadmap GitHub reconciliation: UNKNOWN/PENDING — {exc}",file=sys.stderr)
+        print(f"Roadmap GitHub reconciliation: UNKNOWN/PENDING — {exc}", file=sys.stderr)
         return 2
-    except (Drift,KeyError,TypeError,OSError) as exc:
-        print(f"Roadmap GitHub reconciliation: FAIL — {exc}",file=sys.stderr)
+    except (Drift, KeyError, TypeError, OSError) as exc:
+        print(f"Roadmap GitHub reconciliation: FAIL — {exc}", file=sys.stderr)
         return 1
-    print(f"Roadmap GitHub reconciliation: PASS — published={tag}, issues={len(states)}; no production assertion")
+    print(f"Roadmap GitHub reconciliation: PASS — published={tag}, "
+          f"referenced_issues={len(issues)}, status_assertions={len(classified)}; "
+          "no production assertion")
     return 0
-if __name__=="__main__":raise SystemExit(main())
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
