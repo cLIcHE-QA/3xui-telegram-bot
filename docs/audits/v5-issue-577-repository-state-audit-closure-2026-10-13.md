@@ -1,0 +1,13 @@
+# Issue #577 — Repository state audit closure (2026-10-13)
+
+**Source:** GitHub #577 acceptance criteria, merged [PR #590](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/590), actual GitHub Actions check-runs (not inferred). **Environment:** public GitHub repository cLIcHE-QA/3xui-telegram-bot only; no VPS or production changes.
+
+**Cause:** old `/releases/latest` ignored controlled-canary prereleases; scheduled [run #38254198740](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38254198740) legitimately recorded `FAIL` because endpoint selected stable v4.26.9 instead of published v5.0.0-rc.9. Old FAIL remains historical.
+
+**Fix:** select latest `published_at` of non-draft Releases through bounded pages, including RC; fail-closed on none, tie, invalid data, tag/version mismatch, tagged version mismatch, non-ancestor tag and ruleset violation. Synthetic tests stable/RC, draft exclusion, missing/ambiguous, bad tagged version/ancestry included. Workflow's read-only audit runs when checker itself changes on main, in addition to existing schedule/manual dispatch.
+
+**Evidence:** [PR #590](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/590) required [test #38412360026](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38412360026) PASS, final [title #38412631635](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38412631635) PASS, PR [audit #38412360218](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38412360218) PASS. Squash merged protected `main=ad366684d55e801b579252fab73438a8ea232f25`. Independent read-back of `scripts/check-repository-state.py` in main confirmed new code. Postmerge [Python checks #38412710944](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38412710944) PASS; main [Repository state audit #38412711074](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38412711074) PASS and [#38412710498](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38412710498) PASS. Issue #577 comment #6147773553 records criteria; state read-back `closed/completed`.
+
+**Disposition: #577 5/5 criteria COMPLETE**, bounded to repository CI governance. No new release, tag move, production deployment, restart, Stars or state mutation.
+
+**Four-state baseline:** Merged main `ad366684d55e801b579252fab73438a8ea232f25` before closure docs PR; Published immutable `v5.0.0-rc.9` SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; Deployed rc.9 operator-reported; Accepted full v5 NOT PASS, public rollout BLOCKED. G-09 and D1 PENDING; G-11 BLOCKED ON both. Issue closure independently grounded, and current top Roadmap sync requires this docs-only PR followed by required test/title, squash merge, read-back and post-merge CI.
