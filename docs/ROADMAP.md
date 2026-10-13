@@ -4,6 +4,16 @@
 
 Дорожная карта задаёт границы продуктовых этапов, но не заменяет перечень изменений конкретного релиза: перед публикацией состав релиза фиксируется в отдельных PR реализации и подготовки.
 
+## A1–A4: новая сверка Docker image и Master/Node — 2026-10-13 13:10 EEST
+
+**Evidence:** обезличенный stdout оператора 2026-10-13 10:10:14 UTC (13:10:14 EEST), production Master Docker Compose и одна Node, release `v5.0.0-rc.9`, [датированный audit](audits/v5-a1-a4-master-node-readback-2026-10-13.md). До PR `main=0dc2496c76397885f06f9eb08d19ca2def9b1d58`, Published prerelease tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; host Git SHA совпадает с tag (operator-reported), но image build identity не подтверждена; Accepted overall v5 NOT PASS, public rollout BLOCKED.
+
+- **A1 REVIEW:** текущий контейнер `sha256:a82ce075cb35d71bc400863474e80efd9afd7ce307daceda3c7f0a2b1bf2de01` отличается от image в прежнем G01 audit `sha256:efb2fb9ea3dffac70a3ca344d7843cabff67ae737875b461464e0b0705483f4c`. Host `HEAD=tag=13fdbe8...`, но это не подтверждение происхождения нового Docker image. Причина отличия неизвестна; не объявлять runtime дефект и не пересобирать образ ради проверки.
+- **A2 PARTIAL:** скрипт сообщил `UNSET_OR_INVALID` для обоих env rate limits, но не различает отсутствие и некорректность. Код опубликованного rc.9 задаёт defaults `30/60`, если env отсутствуют, с валидацией диапазонов. **Effective runtime values PENDING** до отдельного read-only settings/UI evidence; limiter не считать выключенным.
+- **A3 scoped PASS:** операторский Master nodes API для одной Node: `inboundSyncMode=all`, online, Xray running, `configDirty=false`, panel 3.9.0, Xray 26.9.30; heartbeat 2026-10-13 10:09:20 UTC — приблизительно 54 секунды до сообщения. **Heartbeat не равен confirmed last successful sync**. Приватный адрес и Node GUID не переносить в docs.
+- **A4 scoped operator-reported PASS:** `NODE_GUID_MATCH=YES INBOUND_SET_MATCH=YES EXPIRY_MATCH=YES` у одного разрешённого клиента; `enabled` отдельно в выводе не показан. Полный node-side history/offline recovery PENDING.
+- **Issues:** [#487](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) OPEN, accepted только наблюдаемые read-only части; offline→return и quota/revoke postconditions не доказаны. #433/#466/#510/#564 остаются OPEN, #317/#342/#422 CLOSED по собственным scope. Общие G01/G02 full acceptance PARTIAL, ранее закрытые smoke не повторять. **Next:** текущий docs-only PR с required `test`/`title`, squash, independent main/Issues readback. До checkpoint следующий пакет STOP; без production changes.
+
 ## G05-A: историческая запись подтверждена; G08: post-cycle проверки пройдены — 2026-10-13 09:54 EEST
 
 **Источник и время:** обезличенный операторский отчёт 2026-10-13 06:54:39 UTC (09:54:39 EEST). Точное время выполнения отдельных команд не сообщено. [Датированный audit](audits/v5-g05a-g08-postcycle-closure-2026-10-13.md). Проверен production Master в ограниченном pilot; заявлены runtime `v5.0.0-rc.9` и Git SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`, соответствующий независимо опубликованному prerelease tag. До PR защищённый `main=17835ef05aaaef1a97b6e0f12970ccf0b873edae`. Развёртывание подтверждено оператором, но независимой аттестации container/image нет; весь v5 acceptance **NOT PASS**, публичный запуск **BLOCKED**.
