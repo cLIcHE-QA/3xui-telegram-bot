@@ -46,6 +46,15 @@ jobs:
           DOCS_BASE: ${{ github.event.pull_request.base.sha }}
           DOCS_HEAD: ${{ github.event.pull_request.head.sha }}
         run: python3 scripts/check-documentation-semantics.py --base-sha "$DOCS_BASE" --head-sha "$DOCS_HEAD"
+      - name: Roadmap governance contract
+        if: github.event_name == 'pull_request'
+        env:
+          DOCS_BASE: ${{ github.event.pull_request.base.sha }}
+          DOCS_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/check-roadmap-governance.py --base-sha "$DOCS_BASE" --head-sha "$DOCS_HEAD"
+      - name: Roadmap governance on main
+        if: github.event_name == 'push'
+        run: python3 scripts/check-roadmap-governance.py
       - name: Documentation semantics on main
         if: github.event_name == 'push'
         run: python3 scripts/check-documentation-semantics.py
