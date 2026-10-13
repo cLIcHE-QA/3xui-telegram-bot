@@ -23,13 +23,13 @@
 
 | Gate | Проверено в ограниченном объёме | Остаток и фактический статус |
 | --- | --- | --- |
-| G-01 | 5/5 health/source baseline, A1 source parity 7/7, rate limit 30/60 | Smoke CLOSED; independent image attestation PENDING, full acceptance PARTIAL |
+| G-01 | 5/5 базовый health/source, A1 совпадение исходников 7/7, лимит 30/60 | Проверенный smoke закрыт; независимая аттестация образа PENDING, полная приёмка PARTIAL |
 | G-02 | 5/5 ledger/Master read, B1 mismatches/orphans/duplicates 0, один Node match | Smoke CLOSED; full reconciliation/Node offline→return #487 PENDING |
 | G-03 | Existing Stars→VPN и архив B4 4/4 operator-reported PASS | Smoke CLOSED; independent payment→import provenance PARTIAL |
 | G-04 | Refund/Support journal scoped PASS | PARTIAL; provider/revoke postconditions, будущая policy #433 |
 | G-05 | Post-restart ledger/health, B3 nested provider read, C1 offline no-replay PASS | PARTIAL; interrupted paid-work и full no-replay PENDING |
 | G-06 | Offline limiter/concurrency; первый D1 healthy snapshot, D2 scheduled backup metadata | Smoke CLOSED; full soak PARTIAL, второй D1 snapshot PENDING |
-| G-07 | Normal A/B isolation, admin UI denies, C2 offline forged-callback cases | Smoke CLOSED; live adversarial transport proof PARTIAL |
+| G-07 | Обычная A/B-изоляция, отказ в Admin UI, C2 offline forged-callback cases | Проверенный smoke закрыт; live adversarial transport proof PARTIAL |
 | G-08 | Portal OFF→old callback deny→ON; Stars OFF/ON audit и health scoped PASS | PARTIAL; invoice/precheckout и уже paid event при OFF не подтверждены, toggle повторять нельзя |
 | G-09 | Natural expiry оплаченного entitlement НЕ наблюдался | **PENDING**: SQLite ↔ Master 3x-ui ↔ customer read-only только после natural expiry |
 | G-10 | QA synthetic 4/4 и main-bot Attention Center empty-UI smoke | **PENDING**: natural `job_failed` #466 NOT OBSERVED, passive/nonblocking |
