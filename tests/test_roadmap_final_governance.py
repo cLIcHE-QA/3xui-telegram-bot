@@ -24,7 +24,7 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
             (root/"docs").mkdir()
             t=(ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8")
             old=next(line for line in t.splitlines() if line.startswith("| [#433]"))
-            (root/"docs/ROADMAP.md").write_text(t+"\n"+old+"\n",encoding="utf-8")
+            (root/"docs/ROADMAP.md").write_text(t.replace("\n## Завершённые этапы", "\n"+old+"\n## Завершённые этапы", 1),encoding="utf-8")
             with self.assertRaisesRegex(ValueError,"duplicate"):
                 gov.roadmap_rows(root)
     def test_stage_must_not_claim_merged_without_pr(self):
