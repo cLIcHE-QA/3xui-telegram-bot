@@ -119,3 +119,31 @@ class DocumentationGovernanceTests(unittest.TestCase):
         future = text.replace("**Published:** immutable prerelease [`v" + APP_VERSION + "`]",
                               "**Published:** immutable prerelease [`v5.0.0-rc.42`]", 1)
         self.assertEqual(gh.declared_published(future), "v5.0.0-rc.42")
+
+    def test_full_reconciliation_uses_second_page_and_filters_prs(self):
+        from unittest.mock import patch
+        import importlib.util
+        spec=importlib.util.spec_from_file_location("governance_pagination",ROOT/"scripts/check-roadmap-governance.py")
+        gov=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gov)
+        open_ids=sorted(gov.roadmap_rows(ROOT))
+        self.assertEqual(len(open_ids),32)
+        page1=[{"number":n} for n in open_ids[:-1]]
+        page1 += [{"number":900000+i,"pull_request":{}} for i in range(100-len(page1))]
+        page2=[{"number":open_ids[-1]}]
+        requested=[]
+        def fake_fetch(repo,suffix,token=""):
+            requested.append(suffix)
+            if suffix.startswith("/issues/"):
+                n=int(suffix.split("/")[-1])
+                return {"state":"closed" if n in (317,342,422,577,593,597,601,605) else "open"}
+            if suffix.startswith("/releases?"):
+                return [{"tag_name":"v"+APP_VERSION,"published_at":"2026-10-11T11:24:04Z","draft":False}]
+            if suffix.endswith("page=1"):return page1
+            if suffix.endswith("page=2"):return page2
+            raise AssertionError("unexpected GitHub request "+suffix)
+        with patch.object(gh,"fetch",side_effect=fake_fetch):
+            tag,issues,classified,active_count=gh.audit("cLIcHE-QA/3xui-telegram-bot",ROOT)
+        self.assertEqual(tag,"v"+APP_VERSION)
+        self.assertEqual(active_count,32)
+        self.assertIn("/issues?state=open&per_page=100&page=2",requested)

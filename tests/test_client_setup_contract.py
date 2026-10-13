@@ -18,8 +18,9 @@ class ClientSetupContractTests(unittest.TestCase):
         self.assertIn("CLIENT_PAYMENT_ACCEPTANCE_ENABLED", setup)
         self.assertIn("ALLOWED_TELEGRAM_IDS", setup)
         self.assertIn("v5.0.0-rc.8", setup)
-        self.assertIn("rc.8 limitation", setup)
-        self.assertIn("не учитывает DB `portal=false`", setup)
+        self.assertIn("историческое ограничение rc.8", setup)
+        self.assertIn("Исправление опубликовано в immutable `v5.0.0-rc.9`", setup)
+        self.assertIn("не учитывали DB `portal=false`", setup)
         self.assertIn("unknown", setup)
 
     def test_living_docs_and_navigation(self):

@@ -66,6 +66,10 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
         errors=gov.validate(ROOT,[("docs/roadmap/concepts/client-portal-ux.md","M")])
         self.assertTrue(any("same-PR lifecycle registry" in error for error in errors))
 
+    def test_dated_audit_deletion_is_blocked(self):
+        errors=gov.validate(ROOT,[("docs/audits/2026-10-13-roadmap-github-first-dispatch.md","D")])
+        self.assertTrue(any("dated audit deletion forbidden" in x for x in errors))
+
     def test_changed_audit_invalid_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
