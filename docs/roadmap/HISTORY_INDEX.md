@@ -13,10 +13,12 @@
 | [v4-user-management.md](../audits/roadmap-history/v4-user-management.md) | 2215–3346 |
 | [v4-stabilization.md](../audits/roadmap-history/v4-stabilization.md) | 3347–4123 |
 | [future-geography.md](../audits/roadmap-history/future-geography.md) | 4124–4144 |
-| [multiformat-subscriptions.md](./concepts/multiformat-subscriptions.md) | 4145–4459 |
-| [provider-neutral-remnawave.md](./concepts/provider-neutral-remnawave.md) | 4460–5078 |
+| [multiformat-subscriptions.md](../audits/roadmap-history/source-multiformat-subscriptions.md) | 4145–4459 |
+| [provider-neutral-remnawave.md](../audits/roadmap-history/source-provider-neutral-remnawave.md) | 4460–5078 |
 | [future-cheburcheck-and-governance.md](../audits/roadmap-history/future-cheburcheck-and-governance.md) | 5079–5200 |
-| [client-portal-ux.md](./concepts/client-portal-ux.md) | 5201–5557 |
+| [client-portal-ux.md](../audits/roadmap-history/source-client-portal-ux.md) | 5201–5557 |
 | [v5-early-rc.md](../audits/roadmap-history/v5-early-rc.md) | 5558–5803 |
 
 Важное разграничение: архив и перспективные концепции **не** являются текущим состоянием. Единственный living-state реестр — `docs/ROADMAP.md`; новые фактические результаты — в отдельные датированные `docs/audits/**`, со ссылкой и обновлением соответствующей строки канонического Roadmap. CI восстанавливает исходный Git blob из сегментов и ограничивает объём текущего Roadmap.
+
+Рабочие, редактируемые концепции: [multi-format](concepts/multiformat-subscriptions.md), [Remnawave](concepts/provider-neutral-remnawave.md), [Client Portal UX](concepts/client-portal-ux.md). Оригинальные snapshot-фрагменты в `docs/audits/roadmap-history/source-*` остаются immutable.
