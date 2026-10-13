@@ -1,6 +1,7 @@
-from roadmap_history import historical_roadmap
 """Release contracts through v4.26.9 subscription browser hotfix."""
 from __future__ import annotations
+
+from roadmap_history import historical_roadmap
 
 from pathlib import Path
 import unittest
