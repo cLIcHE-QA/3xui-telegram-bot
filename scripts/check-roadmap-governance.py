@@ -77,6 +77,30 @@ def concepts_ok(root:Path=ROOT, previous:dict|None=None)->list[str]:
         errors.append("immutable archive references mutable concepts")
     return errors
 
+def release_consistency(root:Path=ROOT)->list[str]:
+    text=(root/"docs/ROADMAP.md").read_text(encoding="utf-8")
+    errors=[]
+    summary=text.split("## Актуальная сводка проекта",1)[-1].split("\n## ",1)[0]
+    for fact in ("**Published:**","**Deployed:**","**Accepted:**"):
+        if summary.count(fact)!=1: errors.append(f"missing/duplicate release state: {fact}")
+    published=re.search(r"\*\*Published:\*\*[^\n]*?releases/tag/(v\d+\.\d+\.\d+(?:-rc\.\d+)?)",summary)
+    if not published:errors.append("Published must link to real immutable GitHub tag")
+    else:
+        tag=published.group(1)
+        if not re.search(r"\b[0-9a-f]{40}\b",summary.split("**Published:**",1)[1].split("**Deployed:**",1)[0]):
+            errors.append("Published must provide 40-char tag SHA")
+        if ("## "+tag) not in (root/"CHANGELOG.md").read_text(encoding="utf-8"):
+            errors.append("Published tag must have corresponding CHANGELOG section")
+    deployed=summary.split("**Deployed:**",1)[-1].split("**Accepted:**",1)[0]
+    accepted=summary.split("**Accepted:**",1)[-1]
+    if "operator-reported" in deployed and not ("operator-reported" in deployed and ("не" in deployed or "без" in deployed)):
+        errors.append("operator-reported deployment requires explicit evidence limitation")
+    if "NOT PASS" in accepted and re.search(r"\bfull\s+acceptance\s+PASS\b",summary,re.I):
+        errors.append("contradictory acceptance claim")
+    if "NOT PASS" not in text and "BLOCKED ON G-09 + D1" in text:
+        errors.append("blocked gates cannot imply full acceptance PASS")
+    return errors
+
 def changed_files(base:str,head:str,root:Path=ROOT)->list[tuple[str,str]]:
     result=subprocess.run(["git","diff","--name-status","--diff-filter=ACMR",base+"..."+head],
                           cwd=root,check=True,capture_output=True,text=True)
@@ -87,6 +111,7 @@ def validate(root:Path=ROOT, changed:list[tuple[str,str]]|None=None, previous:di
     try:roadmap_rows(root)
     except ValueError as e:errors.append(str(e))
     errors.extend(concepts_ok(root,previous))
+    errors.extend(release_consistency(root))
     check=load_audit(root)
     for path,kind in changed or []:
         if path.startswith("docs/audits/roadmap-history/") and kind!="A":
