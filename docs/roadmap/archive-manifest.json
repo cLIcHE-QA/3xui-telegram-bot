@@ -10,8 +10,18 @@
       "end_line": 389
     },
     {
-      "path": "docs/audits/roadmap-history/github-and-rc-history.md",
+      "path": "docs/audits/roadmap-history/github-governance.md",
       "start_line": 390,
+      "end_line": 646
+    },
+    {
+      "path": "docs/audits/roadmap-history/v5-gates.md",
+      "start_line": 647,
+      "end_line": 858
+    },
+    {
+      "path": "docs/audits/roadmap-history/v5-rc-history.md",
+      "start_line": 859,
       "end_line": 1169
     },
     {
@@ -35,13 +45,33 @@
       "end_line": 4123
     },
     {
-      "path": "docs/audits/roadmap-history/future-architecture.md",
+      "path": "docs/audits/roadmap-history/future-geography.md",
       "start_line": 4124,
+      "end_line": 4144
+    },
+    {
+      "path": "docs/roadmap/concepts/multiformat-subscriptions.md",
+      "start_line": 4145,
+      "end_line": 4459
+    },
+    {
+      "path": "docs/roadmap/concepts/provider-neutral-remnawave.md",
+      "start_line": 4460,
+      "end_line": 5078
+    },
+    {
+      "path": "docs/audits/roadmap-history/future-cheburcheck-and-governance.md",
+      "start_line": 5079,
       "end_line": 5200
     },
     {
-      "path": "docs/audits/roadmap-history/client-portal-plans.md",
+      "path": "docs/roadmap/concepts/client-portal-ux.md",
       "start_line": 5201,
+      "end_line": 5557
+    },
+    {
+      "path": "docs/audits/roadmap-history/v5-early-rc.md",
+      "start_line": 5558,
       "end_line": 5803
     }
   ]
