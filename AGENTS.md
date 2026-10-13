@@ -268,6 +268,10 @@ PR diff автоматически проверяет `scripts/check-living-docs
 
 При новой feature, bugfix, проверке или release агент сам выбирает файл по таблице в `docs/GIT_WORKFLOW.md`; пользователь не обязан задавать путь. Для новой проверки — датированный `docs/audits/**` из `docs/audits/AUDIT_TEMPLATE.md`, один текущий gate в `docs/ROADMAP.md`, Issue evidence, обязательный PR/CI/main read-back. Закрытый Issue удаляется из active backlog. Исходный архив неизменяем, рабочие концепции `docs/roadmap/concepts/**` можно развивать через PR. Проверять `scripts/check-documentation-semantics.py` и независимый `scripts/check-roadmap-github.py`, когда есть GitHub API; UNKNOWN не PASS. Release publication/deployment/acceptance — отдельные события.
 
+## Структурированный Roadmap и concept lifecycle (#605)
+
+После чтения канонических документов обновляй `docs/ROADMAP.md` через таблицу `Активный Issue-реестр (machine-checked)` — одна строка на каждый OPEN Issue (Issue, статус, PR, target release, evidence, remaining/next). Не записывай merged до подтверждённого squash SHA. Если Issue закрывается, перенеси его из активной таблицы в краткий завершённый outcome только после GitHub read-back. Рабочие концепции зарегистрированы в `docs/roadmap/concept-registry.json`; продвижение DRAFT/APPROVED/IMPLEMENTED/INCORPORATED требует подтверждений и нормативного документа, не меняй immutable historical snapshots. Датированные audits, включая редактируемые ранее созданные, должны пройти `scripts/check-roadmap-governance.py`. Published, Deployed, Accepted не эквивалентны: CI/GitHub-only PASS не закрывает v5 production. Перед релизом выполняй release-scope gate и Release contract.
+
 ## 8. Git workflow
 
 Следуй `docs/GIT_WORKFLOW.md`.

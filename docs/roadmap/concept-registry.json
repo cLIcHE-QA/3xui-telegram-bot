@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "description": "Editable concept lifecycle; immutable snapshots remain independent in archive manifest.",
+  "states": [
+    "DRAFT",
+    "APPROVED",
+    "IMPLEMENTED",
+    "INCORPORATED"
+  ],
+  "concepts": [
+    {
+      "path": "docs/roadmap/concepts/multiformat-subscriptions.md",
+      "status": "DRAFT",
+      "issues": [
+        476
+      ],
+      "decision_evidence": null,
+      "implementation_pr": null,
+      "implementation_sha": null,
+      "tests_evidence": null,
+      "normative_document": null
+    },
+    {
+      "path": "docs/roadmap/concepts/provider-neutral-remnawave.md",
+      "status": "DRAFT",
+      "issues": [
+        477
+      ],
+      "decision_evidence": null,
+      "implementation_pr": null,
+      "implementation_sha": null,
+      "tests_evidence": null,
+      "normative_document": null
+    },
+    {
+      "path": "docs/roadmap/concepts/client-portal-ux.md",
+      "status": "DRAFT",
+      "issues": [
+        496
+      ],
+      "decision_evidence": null,
+      "implementation_pr": null,
+      "implementation_sha": null,
+      "tests_evidence": null,
+      "normative_document": null
+    }
+  ]
+}

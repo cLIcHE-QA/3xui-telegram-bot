@@ -241,6 +241,14 @@ Feature не считается полностью документирован�
 
 Immutable `docs/audits/roadmap-history/**` не редактировать и не использовать как живой нормативный контракт. Концепции редактируемы PR, но только исходный snapshot остаётся в archive-manifest. Закрытый Issue убрать из active backlog, сохранить короткий итог и ссылку на evidence. `docs/ROADMAP.md` не переполнять подробной историей; release scope не считается опубликованным до реального tag/Release. Новый audit без обязательных полей или со сломанными ссылками запрещается CI. GitHub API discrepancy или недоступность в scheduled read-only аудите — FAIL/UNKNOWN, не acceptance PASS.
 
+### Машинно проверяемый Issue-реестр и концепции (#605)
+
+В `docs/ROADMAP.md` обязательна таблица `Активный Issue-реестр (machine-checked)`: одна строка на каждый OPEN GitHub Issue; шесть полей: `Issue | Статус | PR | Target release | Evidence | Next / remaining`. До merge: `⬜ Запланировано`, PR `—`; после merge, только по проверенному SHA: `🟡 Реализовано в main` и номер PR. Прямые GitHub Issue URLs, без диапазонов в реестре. Закрытый Issue удалять из активной таблицы после фактического закрытия и независимой read-back сверки, сохраняя краткий итог. Новые Issues вносятся через PR; при незавершённом CI статус `ROADMAP SYNC: PENDING`.
+
+Рабочие концепции перечислены ровно один раз в `docs/roadmap/concept-registry.json`; допустимые статусы `DRAFT → APPROVED → IMPLEMENTED → INCORPORATED` только вперёд на одну ступень. `APPROVED` требует decision evidence; `IMPLEMENTED` требует PR, immutable merge SHA и test evidence; `INCORPORATED` требует существующего профильного нормативного документа. Архивные snapshot не редактировать. Сохранять в реестре ссылку на Issue и обновлять концепцию вместе с change.
+
+CI валидирует изменение новых и ранее созданных структурированных датированных audits (`docs/audits/**`, кроме неизменного `roadmap-history/**`), ссылок и semantic fields; для исправления legacy audits создавать новый dated addendum, не переписывать первоисточник. GitHub reconciliation сверяет все OPEN Issues, pagination и существующие status assertions, но НЕ подтверждает deployed/accepted. Последний Published сравнивается отдельно с GitHub Release, а `Deployed` и `Accepted` требуют собственное evidence; см. `docs/RELEASES.md`.
+
 ## Ведение roadmap
 
 `docs/ROADMAP.md` — living document и обязательный источник контекста для новых чатов/сессий.
