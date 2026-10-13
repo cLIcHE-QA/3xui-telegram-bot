@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 API="https://api.github.com"
-ISSUES=(317,342,422,433,466,482,487,510,564,577,593,596)
+ISSUES=(317,342,422,433,466,482,487,510,564,577,593,597)
 class Unknown(RuntimeError): pass
 class Drift(RuntimeError): pass
 def fetch(repo:str,suffix:str,token:str=""):
@@ -30,7 +30,7 @@ def validate(roadmap:str,states:dict[int,str],release:str)->None:
         if f"#{n}" not in roadmap: continue
         if n in (317,342,422,577,593) and state!="closed":raise Drift(f"expected closed #{n}, actual {state}")
         if n in (433,466,482,487,510,564) and state!="open":raise Drift(f"expected open #{n}, actual {state}; update Roadmap")
-    if states.get(596)=="closed" and "#596" not in roadmap:raise Drift("#596 closure missing")
+    if states.get(597)=="closed" and "#597" not in roadmap:raise Drift("#597 closure missing")
 def audit(repo:str,root:Path=ROOT,token:str=""):
     roadmap=(root/"docs/ROADMAP.md").read_text(encoding="utf-8")
     states={n:fetch(repo,f"/issues/{n}",token)["state"] for n in ISSUES}
