@@ -50,12 +50,12 @@
       "end_line": 4144
     },
     {
-      "path": "docs/roadmap/concepts/multiformat-subscriptions.md",
+      "path": "docs/audits/roadmap-history/source-multiformat-subscriptions.md",
       "start_line": 4145,
       "end_line": 4459
     },
     {
-      "path": "docs/roadmap/concepts/provider-neutral-remnawave.md",
+      "path": "docs/audits/roadmap-history/source-provider-neutral-remnawave.md",
       "start_line": 4460,
       "end_line": 5078
     },
@@ -65,7 +65,7 @@
       "end_line": 5200
     },
     {
-      "path": "docs/roadmap/concepts/client-portal-ux.md",
+      "path": "docs/audits/roadmap-history/source-client-portal-ux.md",
       "start_line": 5201,
       "end_line": 5557
     },
