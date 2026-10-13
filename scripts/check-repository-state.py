@@ -169,10 +169,44 @@ def tagged_version(repo: str, tag_name: str, token: str) -> str:
     return app_version_from_text(text)
 
 
+def latest_published_release(repo: str, token: str) -> dict[str, Any]:
+    """Choose by published_at, including RCs but never drafts or unpublished rows."""
+    published: list[dict[str, Any]] = []
+    for page in range(1, 11):
+        releases = api(repo, f"/releases?per_page=100&page={page}", token)
+        if not isinstance(releases, list):
+            raise AuditError("Release listing is not an array")
+        for release in releases:
+            if not isinstance(release, dict):
+                raise AuditError("Malformed GitHub release entry")
+            if release.get("draft"):
+                continue
+            timestamp = release.get("published_at")
+            if not isinstance(timestamp, str) or not re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", timestamp
+            ):
+                raise AuditError("Non-draft release has no valid published_at")
+            if not isinstance(release.get("tag_name"), str):
+                raise AuditError("Published release has no valid tag_name")
+            published.append(release)
+        if len(releases) < 100:
+            break
+    else:
+        raise AuditError("Release listing exceeded bounded pagination (1000 items)")
+    if not published:
+        raise AuditError("No published GitHub Releases found")
+
+    newest = max(item["published_at"] for item in published)
+    winners = [item for item in published if item["published_at"] == newest]
+    if len(winners) != 1:
+        raise AuditError("Ambiguous latest published Release timestamp")
+    return winners[0]
+
+
 def verify_release(repo: str, default_branch: str, token: str) -> None:
-    latest = api(repo, "/releases/latest", token)
+    latest = latest_published_release(repo, token)
     tag_name = str(latest.get("tag_name", ""))
-    if not re.fullmatch(r"v\d+\.\d+\.\d+", tag_name):
+    if not re.fullmatch(r"v\d+\.\d+\.\d+(?:-rc\.[1-9]\d*)?", tag_name):
         raise AuditError(f"Latest release has unexpected tag {tag_name!r}")
 
     local_version = app_version_from_text(
