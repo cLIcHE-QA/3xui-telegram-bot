@@ -136,7 +136,7 @@ def audit(repo: str, root: Path = ROOT, token: str = ""):
     for number, row in rows.items():
         if actual.get(number) != "open":
             raise Drift(f"active Roadmap row #{number} is not an open GitHub Issue")
-    return tag, actual, expected
+    return tag, actual, expected, len(open_ids)
 
 
 def main():
@@ -144,7 +144,7 @@ def main():
     parser.add_argument("--repository", required=True)
     args = parser.parse_args()
     try:
-        tag, issues, classified = audit(
+        tag, issues, classified, active_count = audit(
             args.repository, token=os.getenv("GITHUB_TOKEN", ""))
     except Unknown as exc:
         print(f"Roadmap GitHub reconciliation: UNKNOWN/PENDING — {exc}", file=sys.stderr)
@@ -153,7 +153,8 @@ def main():
         print(f"Roadmap GitHub reconciliation: FAIL — {exc}", file=sys.stderr)
         return 1
     print(f"Roadmap GitHub reconciliation: PASS — published={tag}, "
-          f"referenced_issues={len(issues)}, status_assertions={len(classified)}; "
+          f"referenced_issues={len(issues)}, status_assertions={len(classified)}, "
+          f"active_issues={active_count}; "
           "no production assertion")
     return 0
 
