@@ -1,6 +1,7 @@
-from roadmap_history import historical_roadmap
 """Historical release contract for v4.23.2."""
 from __future__ import annotations
+
+from roadmap_history import historical_roadmap
 
 from pathlib import Path
 import unittest
