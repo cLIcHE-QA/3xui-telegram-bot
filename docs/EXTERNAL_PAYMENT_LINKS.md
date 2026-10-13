@@ -1,6 +1,6 @@
 # Внешние платёжные ссылки: проектный контракт Platega и будущих PSP
 
-> **Статус на 2026-10-11, Europe/Helsinki: PLANNED / NOT IMPLEMENTED.** Это инженерная спецификация для [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336), **не инструкция по включению реальной оплаты**. Последний опубликованный GitHub prerelease — `v5.0.0-rc.9` (tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`); последнее operator-reported production deployment — `v5.0.0-rc.8` (tag SHA `af5d2c891174e32e36cb4f031fed2700ea783719`). Новый PSP ещё не подключён, merchant approval и production acceptance отсутствуют.
+> **Статус на 2026-10-11, Europe/Helsinki: PLANNED / NOT IMPLEMENTED.** Это инженерная спецификация для [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336), **не инструкция по включению реальной оплаты**. Последний опубликованный GitHub prerelease — `v5.0.0-rc.9` (tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`); последнее operator-reported production deployment — `v5.0.0-rc.9` (tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`, independent VPS/build attestation PENDING). Новый PSP ещё не подключён, merchant approval и production acceptance отсутствуют.
 
 ## 1. Принятое продуктовое решение
 
