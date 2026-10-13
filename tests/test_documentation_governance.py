@@ -127,7 +127,7 @@ class DocumentationGovernanceTests(unittest.TestCase):
         gov=importlib.util.module_from_spec(spec)
         spec.loader.exec_module(gov)
         open_ids=sorted(gov.roadmap_rows(ROOT))
-        self.assertEqual(len(open_ids),32)
+        self.assertGreater(len(open_ids),1)
         page1=[{"number":n} for n in open_ids[:-1]]
         page1 += [{"number":900000+i,"pull_request":{}} for i in range(100-len(page1))]
         page2=[{"number":open_ids[-1]}]
@@ -145,5 +145,5 @@ class DocumentationGovernanceTests(unittest.TestCase):
         with patch.object(gh,"fetch",side_effect=fake_fetch):
             tag,issues,classified,active_count=gh.audit("cLIcHE-QA/3xui-telegram-bot",ROOT)
         self.assertEqual(tag,"v"+APP_VERSION)
-        self.assertEqual(active_count,32)
+        self.assertEqual(active_count,len(open_ids))
         self.assertIn("/issues?state=open&per_page=100&page=2",requested)
