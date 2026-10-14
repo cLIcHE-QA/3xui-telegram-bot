@@ -166,7 +166,8 @@ class DocumentationGovernanceTests(unittest.TestCase):
         self.assertNotIn(597, expectations)  # Closed history is not a living Issue register
         actual = {n: expectations.get(n, "open") for n in references}
         version = gh.declared_published(text)
-        self.assertEqual(version, "v" + APP_VERSION)
+        # Release-prep APP_VERSION may advance before immutable prerelease publication.
+        self.assertIn("v" + APP_VERSION, text)
         gh.validate(text, actual, version)
         with self.assertRaises(gh.Drift):
             gh.validate(text, {k: v for k, v in actual.items() if k != 433}, version)
@@ -179,7 +180,7 @@ class DocumentationGovernanceTests(unittest.TestCase):
 
     def test_github_reconciliation_release_neutral(self):
         text = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        future = text.replace("**Published:** immutable prerelease [`v" + APP_VERSION + "`]",
+        future = text.replace("**Published:** immutable prerelease [`" + gh.declared_published(text) + "`]",
                               "**Published:** immutable prerelease [`v5.0.0-rc.42`]", 1)
         self.assertEqual(gh.declared_published(future), "v5.0.0-rc.42")
 
@@ -201,12 +202,12 @@ class DocumentationGovernanceTests(unittest.TestCase):
                 n=int(suffix.split("/")[-1])
                 return {"state":gh.expectations((ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8"))[1].get(n,"open")}
             if suffix.startswith("/releases?"):
-                return [{"tag_name":"v"+APP_VERSION,"published_at":"2026-10-11T11:24:04Z","draft":False}]
+                return [{"tag_name":gh.declared_published((ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")),"published_at":"2026-10-11T11:24:04Z","draft":False}]
             if suffix.endswith("page=1"):return page1
             if suffix.endswith("page=2"):return page2
             raise AssertionError("unexpected GitHub request "+suffix)
         with patch.object(gh,"fetch",side_effect=fake_fetch):
             tag,issues,classified,active_count=gh.audit("cLIcHE-QA/3xui-telegram-bot",ROOT)
-        self.assertEqual(tag,"v"+APP_VERSION)
+        self.assertEqual(tag,gh.declared_published((ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")))
         self.assertEqual(active_count,len(open_ids))
         self.assertIn("/issues?state=open&per_page=100&page=2",requested)
