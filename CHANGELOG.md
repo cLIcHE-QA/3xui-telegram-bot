@@ -6,6 +6,10 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Неопубликованные изменения — кандидат v5.0.0-rc.10
+
+- #627: read-only диагностика подписки различает доказанное совпадение сроков, недостаточные данные и расхождение. Отсутствующий `expiryTime` 3x-ui не принимается за подтверждённую бессрочность; предусмотрены offline tests. Изменений Stars/provisioning/remote 3x-ui mutations нет. Publication/deployment/production acceptance — PENDING.
+
 ## v5.0.0-rc.9 — Portal callbacks fail-closed и Host Groups 3x-ui
 
 - #342 / PR #420: существующие клиентские inline callbacks теперь проверяют effective `CLIENT_PORTAL_ENABLED` и persistent DB override через fail-closed gate, как `/start`; выключение портала не открывает обход через старые кнопки. Административный `/admin`, обработка уже полученного `successful_payment`, 3x-ui доступы и pilot allowlist не изменяются.
