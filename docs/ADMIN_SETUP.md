@@ -37,7 +37,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.9. Это опубликованный immutable prerelease `v5.0.0-rc.9` (tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`); production deployment этой версии сообщён оператором 2026-10-11 16:15 Europe/Helsinki с базовым health/DB/3x-ui PASS, без независимого VPS read-back. Это не независимый live read-back и не общий v5 acceptance PASS. RC включает #342 effective Portal callback OFF guard и #422 read-only Master Host Groups / GUID mapping поверх существующей SQLite schema v13. Перед возможным deployment обязателен отдельный operator approval, проверенный backup и preflight текущей schema v13; downgrade к более старой несовместимой schema запрещён. После controlled deployment сначала проверь точный tag/SHA, Health/SQLite/3x-ui, затем manual Full Backup, off-site download/decrypt/deep validation и следующий scheduled backup/off-site cycle; прошлый `rc.6` backup нельзя считать PASS. Не изменяй права DB/WAL/SHM, не запускай реальные payments/refunds ради проверки backup. Public launch и stable release остаются заблокированы до общего v5 acceptance. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v5.0.0-rc.10. Это release-prep candidate: read-only #627/#628, SQLite schema v13 без новых миграций; #433 deferred, реальная 14-дневная refund/revocation policy не включена. До отдельного штатного release workflow последний опубликованный immutable prerelease — `v5.0.0-rc.9` (tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`); production deployment этой версии сообщён оператором 2026-10-11 16:15 Europe/Helsinki с базовым health/DB/3x-ui PASS, без независимого VPS read-back. Это не независимый live read-back и не общий v5 acceptance PASS. Опубликованный rc.9 включает #342 effective Portal callback OFF guard и #422 read-only Master Host Groups / GUID mapping; кандидат rc.10 добавляет только #627/#628 read-only диагностику/ledger без новых миграций и без изменений refund policy. Для rc.10 targeted smoke только после отдельного Published/Deployed и с операторским согласованием; G-11 остаётся NO-GO. Перед возможным deployment обязателен отдельный operator approval, проверенный backup и preflight текущей schema v13; downgrade к более старой несовместимой schema запрещён. После controlled deployment сначала проверь точный tag/SHA, Health/SQLite/3x-ui, затем manual Full Backup, off-site download/decrypt/deep validation и следующий scheduled backup/off-site cycle; прошлый `rc.6` backup нельзя считать PASS. Не изменяй права DB/WAL/SHM, не запускай реальные payments/refunds ради проверки backup. Public launch и stable release остаются заблокированы до общего v5 acceptance. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -105,7 +105,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.9` исходный native API contract pinned к 3x-ui `v3.9.0` (operator-reported production). Pinned supported 3x-ui для текущего `main`: `v3.10.0`. Текущий **подготавливаемый в main** pinned OpenAPI — `v3.10.0` из `docs/3XUI_OPENAPI_CONTRACT.md`, 55/55 используемых методов структурно совместимы. **Это не означает**, что панель Master/ноды обновлены, что интеграция проверена в новой среде или что rollout разрешён. Перед отдельным разрешением: проверить полный Master/direct-node inventory, безопасный full backup/restore rollback с учётом одноразовых миграций конфигов, systemd sandbox/custom paths, TLS/CA, Xray/client cores, staging Master/Node sync и maintenance window. Все ноды требуют обновления для upstream Node fixes. [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
+Для bot release `v5.0.0-rc.10` исходный native API contract pinned к 3x-ui `v3.10.0`; для опубликованного rc.9 исходный native API contract pinned к `v3.9.0` (operator-reported production). Pinned supported 3x-ui для текущего `main`: `v3.10.0`. Текущий **подготавливаемый в main** pinned OpenAPI — `v3.10.0` из `docs/3XUI_OPENAPI_CONTRACT.md`, 55/55 используемых методов структурно совместимы. **Это не означает**, что панель Master/ноды обновлены, что интеграция проверена в новой среде или что rollout разрешён. Перед отдельным разрешением: проверить полный Master/direct-node inventory, безопасный full backup/restore rollback с учётом одноразовых миграций конфигов, systemd sandbox/custom paths, TLS/CA, Xray/client cores, staging Master/Node sync и maintenance window. Все ноды требуют обновления для upstream Node fixes. [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
 
 ## 2. Базовая подготовка Master VPS
 
@@ -141,7 +141,7 @@ git clone https://github.com/cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v5.0.0-rc.9
+git checkout --detach v5.0.0-rc.10
 ~~~
 
 Проверка release:
@@ -156,7 +156,7 @@ PY
 Ожидается:
 
 ~~~text
-5.0.0-rc.9
+5.0.0-rc.10
 ~~~
 
 ## 4. Создай local admin venv
@@ -668,15 +668,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v5.0.0-rc.9.tar.gz
+  /root/3xui-host-control-bundle-v5.0.0-rc.10.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v5.0.0-rc.9.tar.gz \
-  /root/3xui-host-control-bundle-v5.0.0-rc.9.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v5.0.0-rc.10.tar.gz \
+  /root/3xui-host-control-bundle-v5.0.0-rc.10.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -686,7 +686,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.9.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.10.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -695,7 +695,7 @@ sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.9.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.9.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.10.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
@@ -1136,10 +1136,10 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v5.0.0-rc.9
+Git tag: v5.0.0-rc.10
 Container: running
 RestartCount=0
-Bot version: 5.0.0-rc.9
+Bot version: 5.0.0-rc.10
 Health: ok
 DB: ok
 3x-ui connectivity: ok
