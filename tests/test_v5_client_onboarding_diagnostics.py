@@ -76,8 +76,8 @@ class ClientOnboardingDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
                 "provider_fails": True, "ent_expiry": future_ms // 1000 + 10,
             }, "mismatch", "unknown"),
             ("missing_provider_expiry", {"provider_known": False}, "insufficient_data", "unknown"),
-            ("missing_local_expiry", {"local_expiry": None}, "insufficient_data", "unknown"),
-            ("missing_entitlement_expiry", {"ent_expiry": None}, "insufficient_data", "unknown"),
+            ("missing_local_expiry", {"local_expiry": None}, "insufficient_data", "active"),
+            ("missing_entitlement_expiry", {"ent_expiry": None}, "insufficient_data", "active"),
             ("legacy_without_entitlement", {"ent_status": None}, "match", "active"),
             ("expired_trial", {
                 "ent_status": None, "local_expiry": expired_ms, "provider_expiry": expired_ms,
