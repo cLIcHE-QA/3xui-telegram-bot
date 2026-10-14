@@ -4,7 +4,7 @@
 
 ## Актуальная сводка проекта
 
-**Release-prep candidate:** `v5.0.0-rc.10` (PR #644, **not Published/Deployed/Accepted**, включает только #627/#628; #433 DEFERRED/TBD). **Published:** immutable prerelease [`v5.0.0-rc.9`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.9), tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; last stable `v4.26.9`. **Deployed:** rc.9 только operator-reported (11 октября deploy; 12 октября host SHA/image read-back в [G-01 audit](audits/v5-g01-production-baseline-2026-10-12.md)), independent build/VPS attestation PENDING. **Accepted:** общий v5 **NOT PASS**; stable release, public rollout и expansion pilot allowlist **BLOCKED**.
+**Release-prep candidate:** `v5.0.0-rc.10` (PR #644, CI/PUBLISHING PENDING, **not Published/Deployed/Accepted**, включает только #627/#628; #433 DEFERRED/TBD). **Published:** immutable prerelease [`v5.0.0-rc.9`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.9), tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; last stable `v4.26.9`. **Deployed:** rc.9 только operator-reported (11 октября deploy; 12 октября host SHA/image read-back в [G-01 audit](audits/v5-g01-production-baseline-2026-10-12.md)), independent build/VPS attestation PENDING. **Accepted:** общий v5 **NOT PASS**; stable release, public rollout и expansion pilot allowlist **BLOCKED**.
 
 ## Статусы дорожной карты
 
