@@ -104,6 +104,17 @@ class DocumentationGovernanceTests(unittest.TestCase):
                 "**✅ Завершено в docs/CI scope:**" + "длинный текст " * 120),encoding="utf-8")
             self.assertTrue(any("exceeds 1200" in x for x in sem.current_ok(root)))
 
+    def test_g11_stays_blocked_on_g09_after_d1_checkpoint(self):
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        self.assertIn("**BLOCKED ON G-09**", roadmap)
+        self.assertNotIn("**BLOCKED ON G-09 + D1**", roadmap)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "docs").mkdir()
+            path = root / "docs/ROADMAP.md"
+            path.write_text(roadmap.replace("**BLOCKED ON G-09**", "**PASS**"), encoding="utf-8")
+            self.assertTrue(any("G-11 dependency" in x for x in sem.current_ok(root)))
+
     def test_all_acceptance_gates_are_unique(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

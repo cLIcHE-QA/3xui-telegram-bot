@@ -34,7 +34,7 @@ def check(root=ROOT):
     assert "## Реестр acceptance-gates" in roadmap
     for name in ("G-01", "G-02", "G-03", "G-04", "G-05", "G-06", "G-07",
                  "G-08", "G-09", "G-10", "G-11", "D1", "W-01", "W-02",
-                 "BLOCKED ON G-09 + D1", "#466", "#487", "#593",
+                 "BLOCKED ON G-09", "#466", "#487", "#593",
                  "Published", "Deployed", "Accepted", "NOT PASS"):
         assert name in roadmap, name
     print("Roadmap structure PASS: lossless 5803-line historical blob; bounded current state")

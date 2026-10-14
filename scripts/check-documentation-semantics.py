@@ -162,7 +162,7 @@ def current_ok(root: Path) -> list[str]:
         count = len(re.findall(r"^\|\s*" + re.escape(g) + r"\s*\|", t, re.M))
         if count != 1:
             issues.append(f"missing/duplicate acceptance gate {g} ({count})")
-    if "BLOCKED ON G-09 + D1" not in t:
+    if not re.search(r"\|\s*G-11\s*\|[^\n]*\|\s*\*\*BLOCKED ON G-09(?: \+ D1)?\*\*", t):
         issues.append("G-11 dependency not confirmed")
     if re.search(r"\*\*⬜[^\n]*\]\([^)]*/issues/(?:593|597)\)", t):
         issues.append("closed docs-only issue listed as planned")

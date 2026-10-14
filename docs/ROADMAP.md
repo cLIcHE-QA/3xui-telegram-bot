@@ -28,12 +28,12 @@
 | G-03 | Existing Stars→VPN и архив B4 4/4 operator-reported PASS | Smoke CLOSED; independent payment→import provenance PARTIAL |
 | G-04 | Refund/Support journal scoped PASS | PARTIAL; provider/revoke postconditions, будущая policy #433 |
 | G-05 | Post-restart ledger/health, B3 nested provider read, C1 offline no-replay PASS | PARTIAL; interrupted paid-work и full no-replay PENDING |
-| G-06 | Offline limiter/concurrency; первый D1 healthy snapshot, D2 scheduled backup metadata | Smoke CLOSED; full soak PARTIAL, второй D1 snapshot PENDING |
+| G-06 | Offline limiter/concurrency; D1 два read-only snapshot после natural scheduled cycle 14.10, backup.daily/offsite success, D2 metadata | D1 limited follow-up scoped PASS (operator-reported); full V5-A-003 soak PARTIAL, queue NOT_INSTRUMENTED; [audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md) |
 | G-07 | Обычная A/B-изоляция, отказ в Admin UI, C2 offline forged-callback cases | Проверенный smoke закрыт; live adversarial transport proof PARTIAL |
 | G-08 | Portal OFF→old callback deny→ON; Stars OFF/ON audit и health scoped PASS | PARTIAL; invoice/precheckout и уже paid event при OFF не подтверждены, toggle повторять нельзя |
 | G-09 | Natural expiry оплаченного entitlement НЕ наблюдался | **PENDING**: SQLite ↔ Master 3x-ui ↔ customer read-only только после natural expiry |
 | G-10 | QA synthetic 4/4 и main-bot Attention Center empty-UI smoke | **PENDING**: natural `job_failed` #466 NOT OBSERVED, passive/nonblocking |
-| G-11 | Финальный v5 acceptance report отсутствует | **BLOCKED ON G-09 + D1** |
+| G-11 | Финальный v5 acceptance report отсутствует; D1 limited follow-up scoped PASS 14.10 | **BLOCKED ON G-09** (natural paid expiry + independent docs checkpoint PENDING); остальные acceptance residuals PARTIAL |
 | W-01 | Independent cross-host Master DR отсутствовал | **OPERATOR-WAIVED / NOT TESTED** — НЕ PASS |
 | W-02 | Live Telegram burst inconclusive | **OPERATOR-WAIVED / INCONCLUSIVE** — НЕ PASS |
 
@@ -42,8 +42,8 @@
 ## Текущая очередь и блокировки
 
 1. **G-09 PENDING:** только после естественного paid entitlement expiry — read-only SQLite / Master / client; датированный audit, затем Roadmap PR с required `test`/`title`, squash merge и Issue audit. Не менять срок вручную.
-2. **D1 PENDING:** второй resource snapshot после естественного scheduled cycle 14.10.2026 около 02:00 UTC / 05:00 EEST; отдельный checkpoint. Два снимка не full soak PASS; forced backup/restart не выполнять.
-3. **G-11 BLOCKED ON G-09 + D1:** оба checkpoints должны быть синхронизированы в main до итогового acceptance report. Stable/public rollout всё ещё BLOCKED.
+2. **D1 scoped PASS, 14.10.2026:** второй operator-reported read-only snapshot 09:37 UTC после естественного scheduled backup.daily/offsite 02:00 UTC (оба success), health 200, restarts/OOM 0, RAM 73.57 MiB vs 254.9 MiB 13.10; [dated audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md). Full G-06 soak **PARTIAL**, queue NOT_INSTRUMENTED; no forced backup/restart.
+3. **G-11 BLOCKED ON G-09:** D1 limited checkpoint verified and documented 14.10; требуется только фактическое G-09 natural expiry + самостоятельный docs/CI/main checkpoint перед итоговым acceptance report. Даже затем полный v5 acceptance не становится PASS автоматически; stable/public rollout BLOCKED.
 4. **G-10/#466:** пассивное ожидание естественного `job_failed` без срока, не блокирует старт G-11; [#487](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) offline→return/last sync OPEN.
 
 Уже пройденные scoped или waived проверки не повторять. На production — лишь 3–4 новых целевых smoke за пакет с обязательным PR+CI+Issue checkpoint; никакого deploy/restart/refund/Stars/DB/3x-ui mutations без отдельного согласия.
