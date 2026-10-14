@@ -166,6 +166,73 @@ def current_ok(root: Path) -> list[str]:
         issues.append("G-11 dependency not confirmed")
     if re.search(r"\*\*⬜[^\n]*\]\([^)]*/issues/(?:593|597)\)", t):
         issues.append("closed docs-only issue listed as planned")
+    # Current gate verdicts, waivers and actionable queue are distinct state axes.
+    section = t.split("## Реестр acceptance-gates rc.9", 1)
+    if len(section) != 2:
+        issues.append("missing canonical acceptance gate table")
+    else:
+        registry = section[1].split("## Текущая очередь и блокировки", 1)[0]
+        gate_part = registry.split("### Реестр принятых исключений", 1)
+        gate_lines = [line for line in gate_part[0].splitlines() if line.startswith("|")]
+        if len(gate_lines) < 2 or gate_lines[0].strip() != "| Gate | Что проверено | Итог gate | Осталось / риск |":
+            issues.append("acceptance gates require canonical four-column header")
+        expected = {f"G-{i:02d}" for i in range(1, 12)}
+        seen = set()
+        statuses = {"PASS", "PARTIAL", "PENDING", "FAIL", "BLOCKED"}
+        for line in gate_lines[2:]:
+            cells = [x.strip() for x in line.strip().strip("|").split("|")]
+            if len(cells) != 4:
+                issues.append("acceptance gate row requires four columns")
+                continue
+            gate, checked, status, remaining = cells
+            seen.add(gate)
+            if gate not in expected or not checked or not remaining or status not in statuses:
+                issues.append(f"invalid gate row or verdict: {gate}")
+            if re.search(r"\b(?:smoke\s+CLOSED|проверенный smoke закрыт|smoke закрыт)\b", line, re.I):
+                issues.append(f"ambiguous smoke closure in gate: {gate}")
+        if seen != expected:
+            issues.append("acceptance gate set mismatch")
+        if len(gate_part) != 2:
+            issues.append("missing separate waiver register")
+        else:
+            waiver_lines = [line for line in gate_part[1].splitlines() if line.startswith("|")]
+            if not waiver_lines or waiver_lines[0].strip() != "| Исключение | Решение оператора | Не проверено / остаточный риск |":
+                issues.append("waivers require canonical header")
+            actual = {}
+            for line in waiver_lines[2:]:
+                cells = [x.strip() for x in line.strip().strip("|").split("|")]
+                if len(cells) != 3:
+                    issues.append("waiver row requires three columns")
+                else:
+                    actual[cells[0]] = cells[1]
+                    if "не PASS" not in cells[2]:
+                        issues.append("waiver cannot be implied PASS")
+            if actual != {"W-01": "OPERATOR-WAIVED / NOT TESTED", "W-02": "OPERATOR-WAIVED / INCONCLUSIVE"}:
+                issues.append("waiver register mismatch")
+    queue_parts = t.split("## Текущая очередь и блокировки", 1)
+    if len(queue_parts) != 2:
+        issues.append("missing current active queue")
+    else:
+        queue = queue_parts[1].split("## Реестр открытых задач", 1)[0]
+        active_rows = [line for line in queue.splitlines() if re.match(r"^\d+\.\s", line)]
+        if not active_rows:
+            issues.append("empty current queue requires explicit decision")
+        for line in active_rows:
+            match = re.match(r"^\d+\.\s\*\*(G-\d{2})\s*/\s*(PENDING|PARTIAL|FAIL|BLOCKED):", line)
+            if not match:
+                issues.append("queue row must have active gate and unfinished status")
+                continue
+            if match.group(2) in {"PASS", "WAIVED"}:
+                issues.append("closed or waived item in active queue")
+            if match.group(1) == "G-09" and match.group(2) != "PENDING":
+                issues.append("G-09 natural expiry remains PENDING")
+            if match.group(1) == "G-11" and match.group(2) != "BLOCKED":
+                issues.append("G-11 remains BLOCKED")
+            if "PASS" in line or "WAIVED" in line:
+                issues.append("completed or waived work in active queue")
+        ids = [re.match(r"^\d+\.\s\*\*(G-\d{2})", x).group(1) for x in active_rows if re.match(r"^\d+\.\s\*\*(G-\d{2})", x)]
+        if ids != ["G-09", "G-11"]:
+            issues.append("queue must contain only active G-09 and G-11")
     if t.count("## Реестр открытых задач") != 1:
         issues.append("missing/duplicate backlog section")
     # Closed outcomes live in Issues/PRs/audits; the current roadmap is not a history log.
