@@ -24,9 +24,11 @@ class XuiCustomerProvider:
             client = obj.get("client", obj)
             if not isinstance(client, dict) or not isinstance(client.get("enable"), bool):
                 raise CustomerProviderUnavailable("customer provider access state unavailable")
+            raw_expiry = client.get("expiryTime")
             return CustomerProviderAccess(
                 enabled=client["enable"],
-                expiry_time=int(client.get("expiryTime") or 0),
+                expiry_time=int(raw_expiry or 0),
+                expiry_available=raw_expiry not in (None, ""),
             )
         except (XUIError, aiohttp.ClientError, asyncio.TimeoutError, OSError, TypeError, ValueError) as exc:
             raise CustomerProviderUnavailable("customer provider unavailable") from exc

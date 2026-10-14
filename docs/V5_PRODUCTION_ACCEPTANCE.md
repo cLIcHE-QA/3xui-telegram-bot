@@ -117,6 +117,7 @@ PASS: финальное состояние объяснимо, нет orphan/du
 - repeated customer callbacks;
 - command spam;
 - repeated `🛠 Проверить подписку`;
+- после отдельного согласования targeted read-only диагностика `Сроки`: `match` / `insufficient_data` / `mismatch`, включая provider unavailable, expired entitlement, legacy/trial и отсутствующий expiry; одиночный scoped PASS не является общим PASS V5-A-003;
 - invalid/oversized callback/input where applicable;
 - одновременные subscription refresh через canonical proxy limits.
 

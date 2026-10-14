@@ -791,6 +791,11 @@ async def diagnostics_cb(call: CallbackQuery):
             else "⚠️ временно недоступен" if result.provider_reachable is False
             else "—"
         )
+        expiry_labels = {
+            "match": "✅ Сроки совпадают",
+            "insufficient_data": "⚪ Недостаточно данных для сравнения",
+            "mismatch": "⚠️ Сроки не совпадают",
+        }
         text = (
             "🛠 Проверить подписку\n\n"
             f"Аккаунт: 🟢 найден\n"
@@ -798,7 +803,7 @@ async def diagnostics_cb(call: CallbackQuery):
             f"Subscription URL: {'🟢 сформирована' if result.subscription_available else '❌ отсутствует'}\n"
             f"Provider read: {provider}\n"
             f"VPN-доступ: {customer_access_label(result.vpn_access_status)}\n"
-            f"Сроки: {'⚠️ расхождение' if result.expiry_drift else 'согласованы / нет данных'}\n"
+            f"Сроки: {expiry_labels.get(result.expiry_comparison, expiry_labels['insufficient_data'])}\n"
         )
         if result.note:
             text += f"\nℹ️ {result.note}"

@@ -26,6 +26,7 @@ class CustomerProviderAccess:
 
     enabled: bool
     expiry_time: int  # ms; 0 means unlimited
+    expiry_available: bool = True  # False when expiryTime is omitted by provider.
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,7 @@ class CustomerProfile:
     entitlement_expiry_time: int = 0
     provider_expiry_time: int = 0
     expiry_drift: bool = False
+    expiry_comparison: str = "insufficient_data"
 
 
 @dataclass(frozen=True)
@@ -59,6 +61,7 @@ class CustomerDiagnostics:
     provider_reachable: bool | None = None
     vpn_access_status: str = "unknown"
     expiry_drift: bool = False
+    expiry_comparison: str = "insufficient_data"
     note: str = ""
 
 
@@ -105,6 +108,7 @@ class CustomerPortalService:
             await self.db.get_plan(user_profile.plan_id)
             if user_profile and user_profile.plan_id else None
         )
+        local_expiry_known = rec.expiry_time is not None
         local_expiry = int(rec.expiry_time or 0)
         now_ms = int(time.time() * 1000)
         local_expired = local_expiry > 0 and local_expiry <= now_ms
@@ -129,10 +133,11 @@ class CustomerPortalService:
             str(entitlement.status) if entitlement is not None
             else ("expired" if local_expired else "legacy")
         )
-        entitlement_expiry = (
-            int(getattr(entitlement, "expires_at", 0) or 0) * 1000
-            if entitlement is not None else 0
+        raw_entitlement_expiry = (
+            getattr(entitlement, "expires_at", None)
+            if entitlement is not None else None
         )
+        entitlement_expiry = int(raw_entitlement_expiry or 0) * 1000
         if (
             period_status in {"active", "suspended"}
             and entitlement_expiry > 0
@@ -142,33 +147,50 @@ class CustomerPortalService:
 
         provider_status = "unavailable"
         provider_expiry = 0
+        provider_expiry_known = False
         provider_access: CustomerProviderAccess | None = None
         try:
             provider_access = await self.provider.access(rec.email)
             provider_status = "enabled" if provider_access.enabled else "disabled"
             provider_expiry = int(provider_access.expiry_time)
+            provider_expiry_known = bool(provider_access.expiry_available)
         except CustomerProviderUnavailable:
             pass
 
-        # Ignore a pending purchase's unset entitlement expiry; only compare
-        # the established lifecycle's expiry to local/provider state.
+        # Pending purchases do not provide an established entitlement expiry.
+        # A missing expiry field is not the same as an explicit unlimited (0).
         relevant_entitlement = (
             entitlement is not None
             and str(entitlement.status) in {"active", "suspended", "expired"}
         )
-        expiry_drift = (
-            relevant_entitlement
-            and self._expiry_mismatch(local_expiry, entitlement_expiry)
+        entitlement_expiry_known = (
+            relevant_entitlement and raw_entitlement_expiry is not None
         )
-        if provider_access is not None:
-            expiry_drift = (
-                expiry_drift
-                or self._expiry_mismatch(local_expiry, provider_expiry)
-                or (
-                    relevant_entitlement
-                    and self._expiry_mismatch(entitlement_expiry, provider_expiry)
-                )
-            )
+        comparable_expiries: list[tuple[int, int]] = []
+        if local_expiry_known and entitlement_expiry_known:
+            comparable_expiries.append((local_expiry, entitlement_expiry))
+        if local_expiry_known and provider_expiry_known:
+            comparable_expiries.append((local_expiry, provider_expiry))
+        if entitlement_expiry_known and provider_expiry_known:
+            comparable_expiries.append((entitlement_expiry, provider_expiry))
+
+        # Contradictory evidence takes priority even if a third source is
+        # missing. MATCH requires every applicable established source.
+        expiry_drift = any(
+            self._expiry_mismatch(left, right)
+            for left, right in comparable_expiries
+        )
+        if expiry_drift:
+            expiry_comparison = "mismatch"
+        elif (
+            local_expiry_known
+            and provider_expiry_known
+            and (not relevant_entitlement or entitlement_expiry_known)
+            and period_status not in {"pending", "provisioning", "failed"}
+        ):
+            expiry_comparison = "match"
+        else:
+            expiry_comparison = "insufficient_data"
 
         if provider_status == "disabled":
             access_status = "disabled"
@@ -184,7 +206,7 @@ class CustomerPortalService:
             access_status = "unknown"
         elif period_status == "suspended":
             access_status = "suspended"
-        elif provider_access is None or expiry_drift:
+        elif provider_access is None or expiry_drift or not provider_expiry_known:
             access_status = "unknown"
         else:
             access_status = "active"
@@ -197,6 +219,7 @@ class CustomerPortalService:
             entitlement_expiry_time=entitlement_expiry,
             provider_expiry_time=provider_expiry,
             expiry_drift=bool(expiry_drift),
+            expiry_comparison=expiry_comparison,
         )
 
     async def subscription_url(self, telegram_id: int) -> str | None:
@@ -227,7 +250,7 @@ class CustomerPortalService:
         notes = []
         if profile.period_status == "legacy":
             notes.append("Для legacy-доступа entitlement journal может отсутствовать.")
-        if profile.expiry_drift:
+        if profile.expiry_comparison == "mismatch":
             notes.append(
                 "Сроки подписки и VPN-доступа не совпадают. "
                 "Обратитесь в поддержку; автоматическое исправление не выполняется."
@@ -243,6 +266,7 @@ class CustomerPortalService:
             provider_reachable=profile.provider_status != "unavailable",
             vpn_access_status=profile.access_status,
             expiry_drift=profile.expiry_drift,
+            expiry_comparison=profile.expiry_comparison,
             note="\n".join(notes),
         )
 
