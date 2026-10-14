@@ -14,6 +14,7 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
     def test_current_register_and_release(self):
         rows=gov.roadmap_rows(ROOT)
         self.assertIn(433,rows)
+        self.assertTrue(all(row["effort"] in gov.EFFORT for row in rows.values()))
         self.assertNotIn(605,rows)  # Closed docs-only issue removed after GitHub read-back
         self.assertGreaterEqual(len(rows),31)
         self.assertEqual(gov.concepts_ok(ROOT),[])
@@ -44,6 +45,28 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
                 any("G-11 must stay BLOCKED" in error
                     for error in checker.current_ok(root))
             )
+
+    def test_registry_effort_required_and_enum(self):
+        original=(ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8")
+        needle="| [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433)"
+        row=next(x for x in original.splitlines() if x.startswith(needle))
+        for replacement in (row.rsplit("|",2)[0]+"| |", row.rsplit("|",2)[0]+"| TBD |", row.rsplit("|",2)[0]+"| XXL |"):
+            with self.subTest(replacement=replacement):
+                with tempfile.TemporaryDirectory() as tmp:
+                    root=Path(tmp); (root/"docs").mkdir()
+                    (root/"docs/ROADMAP.md").write_text(original.replace(row,replacement),encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError,"effort|empty"):
+                        gov.roadmap_rows(root)
+
+    def test_registry_seven_columns_and_header(self):
+        original=(ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8")
+        row=next(x for x in original.splitlines() if x.startswith("| [#433]"))
+        for invalid in (original.replace(row,row.rsplit("|",2)[0]+"|",1), original.replace(" | Объём |"," |",1)):
+            with tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp); (root/"docs").mkdir()
+                (root/"docs/ROADMAP.md").write_text(invalid,encoding="utf-8")
+                with self.assertRaisesRegex(ValueError,"seven|header"):
+                    gov.roadmap_rows(root)
 
     def test_registry_duplicate_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
