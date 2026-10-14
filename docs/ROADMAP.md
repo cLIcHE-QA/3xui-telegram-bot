@@ -66,7 +66,7 @@
 | Issue | Статус | PR | Target release | Evidence | Next / remaining | Объём |
 | --- | --- | --- | --- | --- | --- | --- |
 | [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) | ⬜ Запланировано | — | TBD | Issue #336 (scope), implementation PENDING | внешний платёжный шлюз и СБП с уникальными ссылками: Issue criteria | XL|
-| [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) | ⬜ Запланировано | — | rc.10 (plan) | Issue #433 (scope), implementation PENDING | 14-дневные возвраты Stars с отзывом оплаченного срока: Issue criteria | XL|
+| [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) | ⬜ Запланировано | — | TBD | 2026-10-14 21:44 EEST: operator DEFERRED, Issue #433 resume-plan documented, no implementation | Вернуться только по новому решению: intake, immutable duration snapshot, manual historic review, journal/reconciliation, legal #436; rc.10 scope EXCLUDED; G-11 NO-GO | XL|
 | [#434](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/434) | ⬜ Запланировано | — | TBD | Issue #434 (scope), implementation PENDING | ненавязчивые условия возврата в клиентском портале: Issue criteria | S|
 | [#436](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/436) | ⬜ Запланировано | — | TBD | Issue #436 (scope), implementation PENDING | подготовить правовую политику возвратов РФ для самозанятого: Issue criteria | L|
 | [#437](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/437) | ⬜ Запланировано | — | TBD | Issue #437 (scope), implementation PENDING | справочник возвратов для поддержки в админке: Issue criteria | M|
