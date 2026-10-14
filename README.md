@@ -173,8 +173,8 @@ Native 3x-ui API используется через `xui.py` / `version_api.py`
 
 Текущий pinned compatibility contract:
 
-- 3x-ui: `v3.9.0`;
-- vendored OpenAPI: `contracts/3xui/v3.9.0/openapi.json`;
+- pinned OpenAPI для подготовки к 3x-ui: `v3.10.0` (**contract в main, не production deployment**);
+- vendored OpenAPI: `contracts/3xui/v3.10.0/openapi.json`;
 - используемый API surface: `contracts/3xui/contract.json`.
 
 CI проверяет route/method, Bearer auth, request/response contract и source parity fail-closed.
