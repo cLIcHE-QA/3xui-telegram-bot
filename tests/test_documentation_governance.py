@@ -98,7 +98,7 @@ class DocumentationGovernanceTests(unittest.TestCase):
                 "**✅ Завершено в docs/CI scope:** дубликат\\n\\n## Активный Issue-реестр"),encoding="utf-8")
             self.assertEqual(sem.current_ok(root), [])  # One optional aggregate is bounded and permitted
             path.write_text(roadmap.replace("## Активный Issue-реестр",
-                "**✅ Завершено a**\\n**✅ Завершено b**\\n\\n## Активный Issue-реестр"), encoding="utf-8")
+                "**✅ Завершено a**\n**✅ Завершено b**\n\n## Активный Issue-реестр"), encoding="utf-8")
             self.assertTrue(any("at most one aggregate" in x for x in sem.current_ok(root)))
             path.write_text(roadmap.replace("## Активный Issue-реестр",
                 "**✅ Документационное governance #999:** отдельный closure\\n\\n## Активный Issue-реестр"),encoding="utf-8")
