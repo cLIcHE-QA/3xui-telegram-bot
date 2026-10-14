@@ -50,7 +50,7 @@ class UserStarsPaymentsDbTests(unittest.IsolatedAsyncioTestCase):
                 "operation_id, payment_id, telegram_id, provider_payment_id, status,"
                 "requested_by, created_at, updated_at, error"
                 ") VALUES ('synthetic-refund', ?, 101, 'synthetic-stars-3',"
-                "'succeeded', 1, 100, 101, '')",
+                "'success', 1, 100, 101, '')",
                 (self.refunded.id,),
             )
         self.legacy_id = await self.db.create_payment(
@@ -68,7 +68,7 @@ class UserStarsPaymentsDbTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.db.count_user_stars_payments(101), 2)
         self.assertEqual(await self.db.count_user_stars_payments(202), 1)
         self.assertEqual(await self.db.count_user_payments(101), 1)
-        self.assertEqual((await self.db.get_user_stars_payment(101, self.refunded.id))["refund_status"], "succeeded")
+        self.assertEqual((await self.db.get_user_stars_payment(101, self.refunded.id))["refund_status"], "success")
         self.assertIsNone(await self.db.get_user_stars_payment(101, self.other.id))
         self.assertIsNone(await self.db.get_user_stars_payment(202, self.paid.id))
         self.assertIsNone(await self.db.get_user_stars_payment(101, 987654321))
@@ -109,7 +109,7 @@ class UserStarsPaymentsUiTests(unittest.IsolatedAsyncioTestCase):
                 dict(id=1, order_id=5, amount_minor=12, currency="XTR",
                      status="confirmed", refund_status=None, created_at=100, confirmed_at=100),
                 dict(id=2, order_id=6, amount_minor=8, currency="XTR",
-                     status="refunded", refund_status="succeeded", created_at=101, confirmed_at=100),
+                     status="refunded", refund_status="success", created_at=101, confirmed_at=100),
             ]),
             get_user_stars_payment=AsyncMock(return_value=None),
         )
@@ -120,7 +120,7 @@ class UserStarsPaymentsUiTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("⭐ Telegram Stars", text)
             self.assertIn("📒 Ручные платежи", text)
             self.assertIn("Возвращено: 1", text)
-            self.assertIn("refund: succeeded", text)
+            self.assertIn("refund: success", text)
             buttons = [button for row in keyboard.inline_keyboard for button in row]
             self.assertTrue(any(b.callback_data == "admin:u:starpayment:101:1:0" for b in buttons))
             self.assertTrue(any(b.callback_data == "admin:u:payments:101:manual:0" for b in buttons))
