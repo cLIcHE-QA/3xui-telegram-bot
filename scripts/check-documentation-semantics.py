@@ -167,6 +167,7 @@ def current_ok(root: Path) -> list[str]:
     if re.search(r"\*\*⬜[^\n]*\]\([^)]*/issues/(?:593|597)\)", t):
         issues.append("closed docs-only issue listed as planned")
     # Current gate verdicts, waivers and actionable queue are distinct state axes.
+    gate_statuses: dict[str, str] = {}
     section = t.split("## Реестр acceptance-gates rc.9", 1)
     if len(section) != 2:
         issues.append("missing canonical acceptance gate table")
@@ -186,6 +187,7 @@ def current_ok(root: Path) -> list[str]:
                 continue
             gate, checked, status, remaining = cells
             seen.add(gate)
+            gate_statuses[gate] = status
             if gate not in expected or not checked or not remaining or status not in statuses:
                 issues.append(f"invalid gate row or verdict: {gate}")
             if re.search(r"\b(?:smoke\s+CLOSED|проверенный smoke закрыт|smoke закрыт)\b", line, re.I):
@@ -215,24 +217,26 @@ def current_ok(root: Path) -> list[str]:
     else:
         queue = queue_parts[1].split("## Реестр открытых задач", 1)[0]
         active_rows = [line for line in queue.splitlines() if re.match(r"^\d+\.\s", line)]
-        if not active_rows:
+        if not active_rows and not re.search(r"очередь пуста|нет назначенных действий", queue, re.I):
             issues.append("empty current queue requires explicit decision")
+        queued_ids = []
         for line in active_rows:
             match = re.match(r"^\d+\.\s\*\*(G-\d{2})\s*/\s*(PENDING|PARTIAL|FAIL|BLOCKED):", line)
             if not match:
                 issues.append("queue row must have active gate and unfinished status")
                 continue
-            if match.group(2) in {"PASS", "WAIVED"}:
-                issues.append("closed or waived item in active queue")
-            if match.group(1) == "G-09" and match.group(2) != "PENDING":
-                issues.append("G-09 natural expiry remains PENDING")
-            if match.group(1) == "G-11" and match.group(2) != "BLOCKED":
-                issues.append("G-11 remains BLOCKED")
+            gate, queue_status = match.groups()
+            queued_ids.append(gate)
+            if gate_statuses.get(gate) != queue_status:
+                issues.append(f"queue status differs from gate register: {gate}")
             if "PASS" in line or "WAIVED" in line:
                 issues.append("completed or waived work in active queue")
-        ids = [re.match(r"^\d+\.\s\*\*(G-\d{2})", x).group(1) for x in active_rows if re.match(r"^\d+\.\s\*\*(G-\d{2})", x)]
-        if ids != ["G-09", "G-11"]:
-            issues.append("queue must contain only active G-09 and G-11")
+        if len(queued_ids) != len(set(queued_ids)):
+            issues.append("duplicate active gate in current queue")
+        if gate_statuses.get("G-09") == "PENDING" and "G-09" not in queued_ids:
+            issues.append("G-09 pending natural expiry missing from queue")
+        if gate_statuses.get("G-11") == "BLOCKED" and "G-11" not in queued_ids:
+            issues.append("G-11 blocked report missing from queue")
     if t.count("## Реестр открытых задач") != 1:
         issues.append("missing/duplicate backlog section")
     # Closed outcomes live in Issues/PRs/audits; the current roadmap is not a history log.
