@@ -35,9 +35,6 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
             self.assertEqual(checker.current_ok(root), [])
             # Regression: a pending/unobserved G-09 must never unblock G-11.
             stale = content.replace(
-                "| G-09 | Natural paid Stars entitlement:",
-                "| G-09 | Natural paid Stars entitlement:",
-            ).replace(
                 "| PASS | Независимая VPS/data-plane attestation отсутствует;",
                 "| PENDING | Независимая VPS/data-plane attestation отсутствует;",
                 1,
