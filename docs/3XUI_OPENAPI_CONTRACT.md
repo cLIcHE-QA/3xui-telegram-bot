@@ -6,16 +6,16 @@
 
 Текущий pinned contract:
 
-- 3x-ui: `v3.9.0`;
+- 3x-ui: `v3.10.0`;
 - upstream repository: `MHSanaei/3x-ui`;
-- upstream schema: `frontend/public/openapi.json` из тега `v3.9.0`;
-- upstream Git blob SHA: `298f96690c012a7fd80822aab9a91934c7dc4f79`;
-- vendored copy: `contracts/3xui/v3.9.0/openapi.json`;
+- upstream schema: `frontend/public/openapi.json` из тега `v3.10.0`;
+- upstream Git blob SHA: `b50cb368f43bd54583189453ce96ceebc431b2a5`;
+- vendored copy: `contracts/3xui/v3.10.0/openapi.json`;
 - manifest используемого bot API surface: `contracts/3xui/contract.json`.
 
 Schema берётся из immutable release tag, а не из upstream `main`. CI не скачивает OpenAPI из сети и поэтому не меняет compatibility contract самопроизвольно.
 
-Начиная с `v4.25.0` bot API surface включает reviewed client-connections routes: `POST /panel/api/clients/ips/{email}`, `POST /panel/api/clients/hwids/{email}` и `DELETE /panel/api/clients/hwids/{email}/{id}`. Текущий manifest содержит **55** endpoints, включая `GET /panel/api/hosts/list` (Issue #422 / PR #424). При переходе `v3.8.5 → v3.9.0` этот используемый surface сохранил route/method, Bearer auth, request body/media/mandatory fields и проверяемый JSON response envelope; runtime client changes для contract parity не потребовались.
+Начиная с `v4.25.0` bot API surface включает reviewed client-connections routes: `POST /panel/api/clients/ips/{email}`, `POST /panel/api/clients/hwids/{email}` и `DELETE /panel/api/clients/hwids/{email}/{id}`. Текущий manifest содержит **55** endpoints, включая `GET /panel/api/hosts/list` (Issue #422 / PR #424). При переходе `v3.9.0 → v3.10.0` этот используемый surface сохранил route/method, Bearer auth, request body/media/mandatory fields и проверяемый JSON response envelope; runtime client changes для contract parity не потребовались. Новая upstream schema имеет 184 paths; 55/55 используемых operation definitions byte-equivalent по структурному сравнению pinned v3.9.0/v3.10.0. Новые возможности v3.10.0 (MASQUE, XDRIVE, обновлённая Node sync) и изменение неиспользуемых операций не становятся автоматически поддержанными ботом.
 
 При изменении `contracts/3xui/contract.json` или vendored `contracts/3xui/**/openapi.json` Living Docs требует синхронного изменения этого документа в том же PR (`require_all`, без waiver). Изменения API-клиентов `xui.py` / `version_api.py` требуют review документа либо точного обоснованного waiver. Semantic test сверяет количество endpoints с manifest; это не требует обновления pinned upstream версии при расширении уже существующего API surface.
 
@@ -47,7 +47,7 @@ Vendored OpenAPI не используется runtime-кодом для авт�
 
 ## Исключение: `GET /panel/api/server/getDb`
 
-В OpenAPI 3x-ui v3.9.0 этот endpoint по-прежнему описан generic JSON response envelope, тогда как фактический endpoint выдаёт database backup как binary attachment.
+В OpenAPI 3x-ui v3.10.0 этот endpoint по-прежнему описан generic JSON response envelope, тогда как фактический endpoint выдаёт database backup как binary attachment.
 
 Поэтому для `GET /panel/api/server/getDb` OpenAPI gate проверяет route, HTTP method и Bearer auth, но не применяет общий JSON-response-envelope check. Binary download semantics отдельно покрываются runtime regression tests `XUIClient.download_database()`.
 
@@ -72,6 +72,10 @@ Vendored OpenAPI не используется runtime-кодом для авт�
 8. выполнить integration smoke против реальной панели поддерживаемой версии до production acceptance.
 
 Нельзя заставлять checker принимать новую schema удалением endpoint из manifest, если runtime всё ещё вызывает его. Source parity специально блокирует такой обход.
+
+## Переход v3.9.0 → v3.10.0: граница production rollout
+
+Обновление pinned schema в `main` — **CI/contract scope**, не установка панели и не релиз бота. У upstream `v3.10.0` изменены миграции Xray-конфигов (xdns/udpHop/Shadowsocks-2022), systemd sandbox и bundled CA roots; Node sync fixes требуют обновить **все** ноды, не только Master. Для клиентских port hopping/xdns нужен подходящий Xray-core. Preflight: backup с проверяемой restore-совместимостью, фактические версии Master/direct nodes, TLS/CA, custom `ReadWritePaths`, rollout/rollback/STOP и отдельное окно обслуживания. До production перехода необходимы изолированные интеграционные проверки и отдельное разрешение оператора; отсутствие этих evidence означает PENDING, не PASS. [Upstream release](https://github.com/MHSanaei/3x-ui/releases/tag/v3.10.0), [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
 
 ## Runtime boundary
 

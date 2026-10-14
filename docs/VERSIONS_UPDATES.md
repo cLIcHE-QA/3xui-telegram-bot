@@ -47,12 +47,14 @@ SQLite-копии проходят `PRAGMA quick_check`. Для PostgreSQL `.dum
 
 ## Контракты API и ограничения
 
-Поддерживаемый panel API фиксируется машинно через pinned OpenAPI contract 3x-ui `v3.9.0`:
+Поддерживаемый panel API для последующих code/release изменений фиксируется машинно через pinned OpenAPI contract 3x-ui `v3.10.0` (в `main`; это **не** подтверждение установленной production версии, для `rc.9` operator-reported v3.9.0):
 
 - manifest: `contracts/3xui/contract.json`;
-- vendored schema: `contracts/3xui/v3.9.0/openapi.json`;
+- vendored schema: `contracts/3xui/v3.10.0/openapi.json`;
 - checker: `python3 scripts/check-3xui-openapi-contract.py`;
 - подробный upgrade/exception contract: `docs/3XUI_OPENAPI_CONTRACT.md`.
+
+Production upgrade до `v3.10.0` — отдельная одобренная операция: full Master+node backup/recovery readiness, актуальные версии всех нод, миграции xdns/udpHop/Shadowsocks-2022, systemd `ReadWritePaths`, Xray CA roots/client compatibility, отдельный maintenance preflight и targeted read-only smoke. Нельзя считать обновление контракта разрешением обновить панель. [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
 
 CI сопоставляет OpenAPI с фактическими `/panel/api/...` routes в `xui.py` и `version_api.py`. Изменение route/method, request media type, mandatory fields, response envelope или добавление нового undeclared route блокирует merge до явного обновления contract. Runtime не выбирает неизвестную schema автоматически.
 

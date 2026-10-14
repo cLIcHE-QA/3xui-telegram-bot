@@ -75,7 +75,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
         )
 
         self.assertIn(f"- 3x-ui: `v{version}`;", readme)
-        self.assertIn(f"pinned к 3x-ui `v{version}`", admin_setup)
+        self.assertIn(f"Pinned supported 3x-ui для текущего `main`: `v{version}`", admin_setup)
         self.assertIn(f"- 3x-ui: `v{version}`;", contract_doc)
         declared_count = re.findall(r"Текущий manifest содержит \*\*(\d+)\*\* endpoints", contract_doc)
         self.assertEqual(len(declared_count), 1, "Manifest endpoint count must appear exactly once")

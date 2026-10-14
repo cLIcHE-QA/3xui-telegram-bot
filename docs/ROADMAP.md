@@ -95,6 +95,7 @@
 | [#617](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/617) | ⬜ Запланировано | — | TBD | Issue #617 (scope), implementation PENDING | одноразовая emoji-капча для новых клиентов, existing users без повтора: Issue criteria |
 | [#627](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/627) | ⬜ Запланировано | — | rc.10 (plan) | Код: `expiry_drift=False` объединяет match/нет данных; G-09 F-09 REVIEW | Разделить MATCH/INSUFFICIENT_DATA/MISMATCH и покрыть tests; implementation PENDING |
 | [#628](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/628) | ⬜ Запланировано | — | rc.10 (plan) | Карточка пользователя читает legacy `payments` без Stars `commerce_payments` | Добавить owner-scoped read-only Stars/refund + legacy history, RBAC/pagination tests; implementation PENDING |
+| [#630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630) | ⬜ Запланировано | — | rc.10 (preflight) | Upstream 3x-ui v3.10.0 OpenAPI 55/55 static parity; pinned contract PR PENDING, deployed Master/nodes v3.9.0 operator-reported | Contract CI + staging Master/Node integration PENDING; production upgrade только по отдельному разрешению |
 
 
 ## Завершённые этапы и исторические документы
