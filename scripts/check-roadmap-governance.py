@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 STAGES=("DRAFT","APPROVED","IMPLEMENTED","INCORPORATED")
 ROADMAP_STAGES=("⬜ Запланировано","🟡 Реализовано в main","🟠 Опубликовано; acceptance отложен")
+EFFORT=("XS","S","M","L","XL")
 ISSUE=re.compile(r"\[#(\d+)\]\(https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/\1\)")
 REGISTRY="docs/roadmap/concept-registry.json"
 AUDIT="scripts/check-documentation-semantics.py"
@@ -26,22 +27,27 @@ def roadmap_rows(root:Path=ROOT):
     anchor="## Активный Issue-реестр (machine-checked)"
     if text.count(anchor)!=1: raise ValueError("exactly one active Issue registry required")
     section=text.split(anchor,1)[1].split("\n## ",1)[0]
+    header="| Issue | Статус | PR | Target release | Evidence | Next / remaining | Объём |"
+    separator="| --- | --- | --- | --- | --- | --- | --- |"
+    if section.count(header)!=1 or section.count(separator)!=1:
+        raise ValueError("Issue registry requires canonical seven-column header and separator")
     rows={}
     for line in section.splitlines():
         if not line.startswith("| [#"): continue
         cells=[x.strip() for x in line.strip().strip("|").split("|")]
-        if len(cells)!=6:raise ValueError("Issue row must have six fields")
+        if len(cells)!=7:raise ValueError("Issue row must have seven fields")
         m=ISSUE.fullmatch(cells[0])
         if not m:raise ValueError("Issue row must use canonical URL")
         n=int(m.group(1))
         if n in rows:raise ValueError(f"duplicate Issue #{n}")
         if cells[1] not in ROADMAP_STAGES:raise ValueError(f"illegal status for #{n}")
         if any(not value for value in cells):raise ValueError(f"empty Issue cell #{n}")
+        if cells[6] not in EFFORT: raise ValueError(f"invalid effort #{n}: expected XS/S/M/L/XL")
         if cells[1]=="🟠 Опубликовано; acceptance отложен" and cells[3]=="TBD":
             raise ValueError(f"published status cannot have TBD tag #{n}")
         if cells[1]=="🟡 Реализовано в main" and cells[2]=="—":
             raise ValueError(f"merged status requires PR #{n}")
-        rows[n]=dict(zip(("issue","status","pr","target","evidence","next"),cells))
+        rows[n]=dict(zip(("issue","status","pr","target","evidence","next","effort"),cells))
     if not rows:raise ValueError("empty active Issue registry")
     return rows
 
