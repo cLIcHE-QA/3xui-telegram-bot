@@ -98,7 +98,7 @@
 | [#615](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/615) | ⬜ Запланировано | — | TBD | Issue #615 (scope), implementation PENDING | выбор RU Direct / Full VPN на подписку в Happ и Incy; Shadowrocket позже: Issue criteria | XL|
 | [#617](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/617) | ⬜ Запланировано | — | TBD | Issue #617 (scope), implementation PENDING | одноразовая emoji-капча для новых клиентов, existing users без повтора: Issue criteria | L|
 | [#627](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/627) | 🟡 Реализовано в main | [#639](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/639) | rc.10 (plan) | 2026-10-14 16:58 UTC: PR #639 squash merged `5b8ed677402af6575ce2a4b75e73fc8716c9ebe3`, required `test`/`title` PASS, GitHub main read-back PASS; offline scope PASS | Published rc.10 / Deployed / targeted operator smoke PENDING; Issue OPEN до own acceptance; 2026-10-14 docs-only checkpoint, никаких production операций; G-11 NO-GO | S|
-| [#628](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/628) | ⬜ Запланировано | — | rc.10 (plan) | Карточка пользователя читает legacy `payments` без Stars `commerce_payments` | Добавить owner-scoped read-only Stars/refund + legacy history, RBAC/pagination tests; implementation PENDING | M|
+| [#628](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/628) | 🟡 Реализовано в main | [#641](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/641) | rc.10 (plan) | 2026-10-14 UTC: PR #641 squash merge `c532f1619c3ddeded6ab145617349ec8af25891e`; CI `test`/`title` PASS; main GitHub read-back PASS | Published rc.10, Deployed, targeted operator smoke PENDING; Issue OPEN до own acceptance, read-only тесты PASS, G-11 NO-GO | M|
 
 
 ## Завершённые этапы и исторические документы
