@@ -115,6 +115,31 @@ class DocumentationGovernanceTests(unittest.TestCase):
             path.write_text(roadmap.replace("**BLOCKED ON G-09**", "**PASS**"), encoding="utf-8")
             self.assertTrue(any("G-11 dependency" in x for x in sem.current_ok(root)))
 
+    def test_canonical_gate_status_and_queue_lifecycle(self):
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        self.assertEqual(sem.current_ok(ROOT), [])
+        mutations = [
+            ("| G-01 |", "| G-99 |", "acceptance gate set mismatch"),
+            ("| PARTIAL | Независимая", "| CLOSED | Независимая", "invalid gate row or verdict"),
+            ("| G-02 |", "| G-02 |", None),
+            ("OPERATOR-WAIVED / NOT TESTED", "PASS", "waiver register mismatch"),
+            ("1. **G-09 / PENDING:", "1. **D1 / PASS:", "queue row must have active gate"),
+            ("2. **G-11 / BLOCKED:", "2. **G-11 / PASS:", "queue row must have active gate"),
+            ("| Gate | Что проверено | Итог gate | Осталось / риск |",
+             "| Gate | Checked | Status | Next |", "canonical four-column header"),
+        ]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "docs").mkdir()
+            path = root / "docs/ROADMAP.md"
+            for old, new, expected in mutations:
+                if expected is None:
+                    continue
+                self.assertIn(old, roadmap)
+                path.write_text(roadmap.replace(old, new, 1), encoding="utf-8")
+                errors = sem.current_ok(root)
+                self.assertTrue(any(expected in x for x in errors), (old, errors))
+
     def test_all_acceptance_gates_are_unique(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
