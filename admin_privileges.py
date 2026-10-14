@@ -157,7 +157,12 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         r"^admin:bulk:rungroup:\d+$",
     )
     + _rules("users.view", "exact", "admin:bulk:noop")
-    + _rules("payments.view", "regex", r"^admin:u:payments:\d+(?::\d+)?$", r"^admin:u:payment:\d+:\d+$")
+    + _rules(
+        "payments.view", "regex",
+        r"^admin:u:payments:\d+(?:(?::\d+)|(?::(?:stars|manual):\d+))?$",
+        r"^admin:u:starpayment:\d+:\d+:\d+$",
+        r"^admin:u:payment:\d+:\d+$",
+    )
     + _rules("monitoring.view", "regex", r"^admin:u:activity:\d+(?::\d+)?$")
     + _rules(
         "users.support",

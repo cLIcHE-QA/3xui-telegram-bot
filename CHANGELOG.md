@@ -8,6 +8,8 @@
 
 ## Неопубликованные изменения — кандидат v5.0.0-rc.10
 
+- #628: в карточке пользователя отдельная read-only история Stars (XTR) и ручных платежей, с owner-scoped detail, статусом refund journal, ограниченной пагинацией и разделением валют; без новых refund/payment/provider mutations. Release/deploy/targeted smoke PENDING.
+
 - #627: read-only диагностика подписки различает доказанное совпадение сроков, недостаточные данные и расхождение. Отсутствующий `expiryTime` 3x-ui не принимается за подтверждённую бессрочность; предусмотрены offline tests. Изменений Stars/provisioning/remote 3x-ui mutations нет. Publication/deployment/production acceptance — PENDING.
 
 ## v5.0.0-rc.9 — Portal callbacks fail-closed и Host Groups 3x-ui

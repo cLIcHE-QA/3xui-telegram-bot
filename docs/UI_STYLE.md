@@ -352,3 +352,9 @@ Owner-only список `/admin → Система → Администрато�
 ## Owner-only runtime switches (#342)
 
 `/admin → Система → Настройки → 👤 Клиентский портал`: просмотр effective portal/Stars, безопасного DB override и `.env` veto доступен admin roles в private chat; изменение доступно только Owner через `ask → run` с revision-bound callback. SQLite `runtime_settings` хранит точные `true`/`false` и отдельный revision, CAS и аудит пишутся атомарно. При сбое DB/invalid override оба флага закрыты. `effective_portal=env_portal AND db_portal`; `effective_stars=env_stars AND db_stars AND effective_portal`. Отсутствующий override означает разрешение. Кнопки не дают обойти `.env=false`, allowlist/ACL или rate limiting. Проверка выполняется на customer entry, invoice и pre-checkout, включая ранее выданный счёт; обработка пришедшего `successful_payment` не блокируется и остаётся идемпотентной. Не редактировать `.env`/tokens/host или клиентские entitlements через toggle. Меню показывает только количество пилотных аккаунтов (без ID), лимит и окно. `default_currency` теперь подписан «Валюта ручных платежей» и не относится к Stars.
+
+### Карточка пользователя: платежи (candidate rc.10 / #628)
+
+- `admin:u:payments` показывает два отдельных read-only ledger: `⭐ Telegram Stars (XTR)` и `📒 Ручные платежи (учёт)`. Суммы XTR/fiat не складываются, `confirmed` Stars не равен `paid` legacy.
+- Stars-detail открывается только при `commerce_payments.order_id → commerce_orders.telegram_id` совпадении с выбранным пользователем; отдельный callback namespace предотвращает пересечение ID. В карточке нет кнопок refund/status mutations, stale callback fail-closed.
+- Пагинация ограничена восемью операциями на страницу, выбор ledger и `Назад` сохраняют user context; общий Admin Stars ledger остаётся отдельным экраном.

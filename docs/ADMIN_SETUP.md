@@ -1435,3 +1435,7 @@ python3 scripts/qa352_telegram_delivery.py confirm 1 --observed YES
 не использовать для production incident simulation. Испытание доказывает
 только доставку **от отдельного тестового бота**, не работу основного
 production delivery и не объединение проекций в Attention Center.
+
+### История платежей конкретного пользователя (кандидат rc.10 / #628)
+
+В `/admin → Пользователи → карточка → 💳 Платежи` доступны раздельные read-only журналы `⭐ Telegram Stars (XTR)` и `📒 Ручные платежи (учёт)`. Stars берутся исключительно из `commerce_payments` с подтверждённой связью с owner в `commerce_orders`. Статусы `created/pending/confirmed/refunded/failed/unknown` и refund operation status показываются без отправки новых запросов к Telegram. Никаких валютных преобразований и суммирования разных ledger нет. Глобальные `/admin → 💳 Платежи` и Stars refund flow не изменены. Targeted production smoke — только после отдельного разрешённого релиза/деплоя.
