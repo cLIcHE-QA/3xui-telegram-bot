@@ -18,6 +18,36 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
         self.assertGreaterEqual(len(rows),31)
         self.assertEqual(gov.concepts_ok(ROOT),[])
         self.assertEqual(gov.release_consistency(ROOT),[])
+    def test_g09_pass_g11_pending_requires_completed_dependency(self):
+        from importlib.util import module_from_spec, spec_from_file_location
+        spec = spec_from_file_location(
+            "roadmap_docs_semantics",
+            ROOT / "scripts/check-documentation-semantics.py",
+        )
+        assert spec and spec.loader
+        checker = module_from_spec(spec)
+        spec.loader.exec_module(checker)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "docs").mkdir()
+            content = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+            (root / "docs/ROADMAP.md").write_text(content, encoding="utf-8")
+            self.assertEqual(checker.current_ok(root), [])
+            # Regression: a pending/unobserved G-09 must never unblock G-11.
+            stale = content.replace(
+                "| G-09 | Natural paid Stars entitlement:",
+                "| G-09 | Natural paid Stars entitlement:",
+            ).replace(
+                "| PASS | Независимая VPS/data-plane attestation отсутствует;",
+                "| PENDING | Независимая VPS/data-plane attestation отсутствует;",
+                1,
+            )
+            (root / "docs/ROADMAP.md").write_text(stale, encoding="utf-8")
+            self.assertTrue(
+                any("G-11 must stay BLOCKED" in error
+                    for error in checker.current_ok(root))
+            )
+
     def test_registry_duplicate_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
