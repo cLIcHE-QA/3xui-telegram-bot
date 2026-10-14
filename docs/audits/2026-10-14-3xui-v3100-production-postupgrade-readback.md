@@ -1,7 +1,7 @@
 # 3x-ui v3.10.0 — post-upgrade production read-back (2026-10-14)
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-14 18:05:55 UTC+03:00 (MSK; сообщение с итогом 2026-10-14T15:05:55Z; начальный отчёт об обновлении 2026-10-14T14:56:07Z)
+- **Дата/время и часовой пояс:** 2026-10-14 18:05 UTC+03:00 (MSK; сообщение с итогом 2026-10-14T15:05:55Z; начальный отчёт об обновлении 2026-10-14T14:56:07Z)
 - **Окружение:** controlled production 3x-ui Master и существующие direct nodes, bot Telegram Client Portal, операторская проверка после уже самостоятельно выполненного обновления; GitHub/CI read-back отдельно
 - **Цель:** [#630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630) — фактическое состояние Master/direct nodes после v3.9.0 → v3.10.0, доступность Xray и VPN/бота; отличить успешный operator-reported targeted smoke от полного Stage B/C и [#487](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) Node Sync acceptance
 - **Версия и immutable tag/SHA:** bot Published immutable `v5.0.0-rc.9`, tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; protected docs/source `main` до этого checkpoint `0160abac83147ba35ff0e469c36b4497ba467194` ([#631](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/631), [#632](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/632)); **deployed panel 3x-ui v3.10.0 и Xray-core v26.10.10 — operator-reported**, не независимый VPS image/tag attestation; upstream pinned schema Git blob `b50cb368f43bd54583189453ce96ceebc431b2a5`
