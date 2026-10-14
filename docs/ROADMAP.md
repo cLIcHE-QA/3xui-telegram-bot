@@ -49,7 +49,7 @@
 
 1. **G-11 / PENDING:** после G-09 [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md), D1 и принятого W-03 [audit](audits/2026-10-14-v5-g10-w03-natural-job-failed-risk-acceptance.md) подготовить final acceptance report по residuals G-01…G-08, G-10 и W-01/W-02/W-03. Итоговая оценка — только по фактам; stable/public rollout остаётся BLOCKED.
 
-Прочие незакрытые работы — в gate-реестре и [активных GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues); W-03/#466 отражает принятый оператором непроверенный риск и не входит в текущую очередь. Завершённые D1 [audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md) и G-09 [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md) не являются новыми задачами. Отдельные PASS/waivers не заменяют полного v5 acceptance; новых production mutations без согласования нет.
+Прочие незакрытые работы — в gate-реестре и [активных GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues); W-03 отражает принятое оператором исключение по закрытому как `not_planned` [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466); новый PASS не заявлен. Завершённые D1 [audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md) и G-09 [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md) не являются новыми задачами. Отдельные PASS/waivers не заменяют полного v5 acceptance; новых production mutations без согласования нет.
 
 ## Реестр открытых задач и будущие релизы
 
@@ -66,7 +66,6 @@
 | [#434](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/434) | ⬜ Запланировано | — | TBD | Issue #434 (scope), implementation PENDING | ненавязчивые условия возврата в клиентском портале: Issue criteria |
 | [#436](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/436) | ⬜ Запланировано | — | TBD | Issue #436 (scope), implementation PENDING | подготовить правовую политику возвратов РФ для самозанятого: Issue criteria |
 | [#437](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/437) | ⬜ Запланировано | — | TBD | Issue #437 (scope), implementation PENDING | справочник возвратов для поддержки в админке: Issue criteria |
-| [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) | ⬜ Запланировано | — | TBD | [W-03 operator risk decision](audits/2026-10-14-v5-g10-w03-natural-job-failed-risk-acceptance.md), natural incident NOT TESTED | Решить GitHub disposition `not_planned` после docs checkpoint; до закрытия Issue остаётся OPEN |
 | [#470](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/470) | ⬜ Запланировано | — | TBD | Issue #470 (scope), implementation PENDING | read-only просмотр Stars Orders в админке: Issue criteria |
 | [#471](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/471) | ⬜ Запланировано | — | TBD | Issue #471 (scope), implementation PENDING | компактный список и карточки устройств клиента: Issue criteria |
 | [#472](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/472) | ⬜ Запланировано | — | TBD | Issue #472 (scope), implementation PENDING | безопасное удаление одного собственного HWID клиентом: Issue criteria |
