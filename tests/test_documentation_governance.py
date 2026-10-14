@@ -86,6 +86,24 @@ class DocumentationGovernanceTests(unittest.TestCase):
             (root / "docs/index.md").write_text("```md\n[example](missing.md)\n```\n", encoding="utf-8")
             self.assertEqual(sem.links_ok(root, "docs/index.md"), [])
 
+    def test_completed_issue_summary_is_bounded(self):
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        self.assertFalse(any("completed" in x for x in sem.current_ok(ROOT)))
+        self.assertIn("**✅ Завершено в docs/CI scope:**", roadmap)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "docs").mkdir()
+            path = root / "docs/ROADMAP.md"
+            path.write_text(roadmap.replace("## Активный Issue-реестр",
+                "**✅ Завершено в docs/CI scope:** дубликат\\n\\n## Активный Issue-реестр"),encoding="utf-8")
+            self.assertTrue(any("at most one aggregate" in x for x in sem.current_ok(root)))
+            path.write_text(roadmap.replace("## Активный Issue-реестр",
+                "**✅ Документационное governance #999:** отдельный closure\\n\\n## Активный Issue-реестр"),encoding="utf-8")
+            self.assertTrue(any("individual completed" in x for x in sem.current_ok(root)))
+            path.write_text(roadmap.replace("**✅ Завершено в docs/CI scope:**",
+                "**✅ Завершено в docs/CI scope:**" + "длинный текст " * 120),encoding="utf-8")
+            self.assertTrue(any("exceeds 1200" in x for x in sem.current_ok(root)))
+
     def test_all_acceptance_gates_are_unique(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
