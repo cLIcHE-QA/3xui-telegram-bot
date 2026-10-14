@@ -15,7 +15,7 @@
 
 `PASS/PARTIAL/PENDING/FAIL/BLOCKED` — результаты проверок, не дополнительные статусы Roadmap. **Merged, Published, Deployed и Accepted — раздельные состояния.**
 
-**Infrastructure post-upgrade (2026-10-14):** оператор сообщил, что production Master и все direct nodes уже обновлены до **3x-ui v3.10.0**, Xray до **v26.10.10**; сервисы, Fleet UI, bot и доступный VPN-трафик — targeted operator-reported scoped PASS ([audit](audits/2026-10-14-3xui-v3100-production-postupgrade-readback.md)). Master↔Node client/expiry, active/expired VPN smoke на ВСЕХ нодах оператор сообщил PASS; restore/regression не выполнялись (см. [closure audit](audits/2026-10-14-3xui-v3100-issue630-targeted-smoke-closure.md)), #487 PENDING, [#630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630) остаётся OPEN. Это **не** изменение Published bot rc.9, не общий G-11 PASS и не разрешение на stable/public rollout.
+**Infrastructure post-upgrade (2026-10-14):** оператор сообщил, что production Master и все direct nodes уже обновлены до **3x-ui v3.10.0**, Xray до **v26.10.10**; сервисы, Fleet UI, bot и доступный VPN-трафик — targeted operator-reported scoped PASS ([audit](audits/2026-10-14-3xui-v3100-production-postupgrade-readback.md)). Master↔Node client/expiry, active/expired VPN smoke на ВСЕХ нодах оператор сообщил PASS; restore/regression не выполнялись (см. [closure audit](audits/2026-10-14-3xui-v3100-issue630-targeted-smoke-closure.md)), #487 PENDING, [#630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630) закрыт `completed` в revised smoke-only scope. Это **не** изменение Published bot rc.9, не общий G-11 PASS и не разрешение на stable/public rollout.
 
 ## Текущий этап: v5 Client Portal
 
@@ -97,7 +97,6 @@
 | [#617](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/617) | ⬜ Запланировано | — | TBD | Issue #617 (scope), implementation PENDING | одноразовая emoji-капча для новых клиентов, existing users без повтора: Issue criteria |
 | [#627](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/627) | ⬜ Запланировано | — | rc.10 (plan) | Код: `expiry_drift=False` объединяет match/нет данных; G-09 F-09 REVIEW | Разделить MATCH/INSUFFICIENT_DATA/MISMATCH и покрыть tests; implementation PENDING |
 | [#628](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/628) | ⬜ Запланировано | — | rc.10 (plan) | Карточка пользователя читает legacy `payments` без Stars `commerce_payments` | Добавить owner-scoped read-only Stars/refund + legacy history, RBAC/pagination tests; implementation PENDING |
-| [#630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630) | 🟡 Реализовано в main | [#631](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/631) | rc.10 (preflight) | Pinned OpenAPI v3.10.0 55/55 CI PASS; **production Master+direct nodes 3x-ui v3.10.0 / Xray v26.10.10 operator-reported**; [post-upgrade audit](audits/2026-10-14-3xui-v3100-production-postupgrade-readback.md): targeted smoke scoped PASS | Smoke ALL nodes PASS operator-reported: Master↔Node, active/expired access; documented [closure evidence](audits/2026-10-14-3xui-v3100-issue630-targeted-smoke-closure.md). #630 closure pending post-PR; staging/regression/restore OUT OF revised scope, #487 OPEN |
 
 
 ## Завершённые этапы и исторические документы
