@@ -31,9 +31,9 @@
 | G-06 | Offline limiter; D1 natural-cycle второй снимок и D2 backup — scoped PASS ([audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md)) | PARTIAL | Full V5-A-003 soak PENDING; queue NOT_INSTRUMENTED |
 | G-07 | Изоляция A/B, отказ админ-доступа, C2 offline forged callbacks — scoped PASS | PARTIAL | Live adversarial transport evidence PENDING |
 | G-08 | Portal OFF/ON, Stars toggle audit и health — scoped PASS | PARTIAL | Invoice/precheckout и paid event при OFF PENDING; повторять toggle нельзя |
-| G-09 | Natural paid entitlement expiry — NOT OBSERVED | PENDING | Только после естественного expiry: SQLite ↔ Master 3x-ui ↔ client read-only |
+| G-09 | Natural paid Stars entitlement: SQLite expired ↔ Master disabled/expiry ↔ Telegram/VPN — operator-reported scoped PASS ([audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md)) | PASS | Независимая VPS/data-plane attestation отсутствует; AWG RTT без интернета REVIEW; не full v5 acceptance |
 | G-10 | QA synthetic 4/4 и Attention Center UI — scoped PASS | PENDING | Natural main-bot `job_failed` [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) NOT OBSERVED; passive, nonblocking |
-| G-11 | Финальный v5 acceptance report отсутствует | BLOCKED | **BLOCKED ON G-09**: natural expiry + отдельный docs checkpoint; residuals G-01…G-08 PARTIAL |
+| G-11 | Final v5 acceptance report ещё не подготовлен; D1 и G-09 получили scoped operator evidence | PENDING | Отдельный финальный report PASS/CONDITIONAL/FAIL; G-01…G-08 PARTIAL, G-10 PENDING, W-01/W-02 waivers; public/stable BLOCKED |
 
 ### Реестр принятых исключений
 
@@ -46,10 +46,9 @@
 
 ## Текущая очередь и блокировки
 
-1. **G-09 / PENDING:** дождаться фактического natural paid entitlement expiry, затем SQLite ↔ Master ↔ client read-only, dated audit и Roadmap PR/CI/main checkpoint. Нельзя менять expiry вручную.
-2. **G-11 / BLOCKED:** после подтверждённого G-09 checkpoint подготовить final acceptance report с учётом всех неполных проверок и принятых исключений. Stable/public rollout остаётся BLOCKED.
+1. **G-11 / PENDING:** после отдельного G-09 natural paid expiry [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md) и завершённого D1 checkpoint подготовить final acceptance report по обязательным residuals G-01…G-08, G-10 и waivers. `PASS/CONDITIONAL/FAIL` только по фактам; stable/public rollout остаётся BLOCKED.
 
-Прочие незакрытые работы — в gate-реестре и [активных GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues); пассивный G-10/#466 не входит в текущую очередь. Завершённый D1 [сохранён в audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md), но не является новой задачей. Отдельные PASS/waivers не заменяют полного v5 acceptance; новых production mutations без согласования нет.
+Прочие незакрытые работы — в gate-реестре и [активных GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues); пассивный G-10/#466 не входит в текущую очередь. Завершённые D1 [audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md) и G-09 [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md) не являются новыми задачами. Отдельные PASS/waivers не заменяют полного v5 acceptance; новых production mutations без согласования нет.
 
 ## Реестр открытых задач и будущие релизы
 
