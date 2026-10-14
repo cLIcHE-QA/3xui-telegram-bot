@@ -168,6 +168,14 @@ def current_ok(root: Path) -> list[str]:
         issues.append("closed docs-only issue listed as planned")
     if t.count("## Реестр открытых задач") != 1:
         issues.append("missing/duplicate backlog section")
+    # Closed outcomes live in Issues/PRs/audits; the current roadmap is not a history log.
+    completed = [line for line in t.splitlines() if line.startswith("**✅ Завершено")]
+    if len(completed) > 1:
+        issues.append("completed history must use at most one aggregate summary")
+    if completed and len(completed[0]) > 1200:
+        issues.append("completed aggregate exceeds 1200 characters")
+    if any(line.startswith(("**Закрытый", "**✅ Документационное", "**✅ Docs/CI")) for line in t.splitlines()):
+        issues.append("individual completed Issue paragraphs forbidden")
     return issues
 
 
