@@ -45,26 +45,21 @@ def expectations(roadmap: str) -> tuple[set[int], dict[int, str]]:
     referenced = {int(x) for x in ISSUE_URL.findall(roadmap)}
     if not referenced:
         raise Drift("Roadmap contains no directly linked Issues")
-    section = roadmap.split("## Реестр открытых задач и будущие релизы", 1)
+    section = roadmap.split("## Активный Issue-реестр (machine-checked)", 1)
     if len(section) != 2:
-        raise Drift("cannot identify canonical backlog section")
-    section = section[1].split("\n## Завершённые этапы", 1)[0]
+        raise Drift("cannot identify canonical active Issue register")
+    section = section[1].split("\n## ", 1)[0]
     states: dict[int, str] = {}
-    for para in re.split(r"\n\s*\n", section):
-        content = para.strip()
-        if content.startswith(("**⬜ Запланировано", "**⬜ Отложенный")):
-            expected = "open"
-        elif content.startswith(("**Закрытый", "**✅ Завершено")):
-            expected = "closed"
-        else:
+    for line in section.splitlines():
+        match = re.match(r"^\|\s*\[#(\d+)\]\(https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/\1\)\s*\|", line)
+        if not match:
             continue
-        for match in ISSUE_URL.finditer(content):
-            number = int(match.group(1))
-            if number in states and states[number] != expected:
-                raise Drift(f"Issue #{number} has contradictory Roadmap contexts")
-            states[number] = expected
+        number = int(match.group(1))
+        if number in states:
+            raise Drift(f"duplicate active Issue #{number}")
+        states[number] = "open"
     if not states:
-        raise Drift("no explicit open/closed issue classifications found")
+        raise Drift("empty or missing canonical active Issue register")
     return referenced, states
 
 

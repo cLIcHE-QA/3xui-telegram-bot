@@ -17,44 +17,43 @@
 
 ## Текущий этап: v5 Client Portal
 
-**🟠 Опубликовано; acceptance отложен — controlled canary `v5.0.0-rc.9`**. Pilot Client Portal со Stars, idempotent commerce/entitlement, provisioning/quota-cycle, guarded callbacks и отдельный protected `/admin`; SQLite schema v13, pinned 3x-ui v3.9.0. **✅ Выполнено в v5.0.0-rc.9:** [#342](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/342) Portal stale-callback guard и [#422](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/422) Master Host Groups — CLOSED по собственным scoped operator-reported PASS. [#317](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/317) quota cycle CLOSED; [#577](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/577) GitHub governance audit CLOSED. Эти closure не закрывают полный v5 acceptance.
+**🟠 Опубликовано; acceptance отложен — controlled canary `v5.0.0-rc.9`**. Client Portal (Stars, idempotent entitlement, quota-cycle, guarded callbacks), protected `/admin`; schema v13, 3x-ui v3.9.0. **Общий v5 acceptance NOT PASS**. Действующие gate/risk outcomes — ниже, закрытые feature Issues и результаты — в [GitHub](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues?q=is%3Aissue+is%3Aclosed) и [dated audits](audits/).
 
 ## Реестр acceptance-gates rc.9
 
-| Gate | Проверено в ограниченном объёме | Остаток и фактический статус |
+| Gate | Что проверено | Итог gate | Осталось / риск |
+| --- | --- | --- | --- |
+| G-01 | Health/source smoke 5/5; A1 parity 7/7; лимит 30/60 — scoped PASS | PARTIAL | Независимая аттестация deployed image PENDING |
+| G-02 | Ledger/Master read 5/5, B1 mismatches/orphans/duplicates 0; Node match — scoped PASS | PARTIAL | Full reconciliation и Node offline→return [#487](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) PENDING |
+| G-03 | Stars→VPN и B4 архив 4/4 — PASS со слов оператора | PARTIAL | Independent payment→import provenance PENDING |
+| G-04 | Refund/Support journal — scoped PASS подтверждён | PARTIAL | Provider/revoke postconditions PENDING; policy [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) future |
+| G-05 | После перезапуска ledger/health, B3 provider read, C1 offline no-replay — scoped PASS | PARTIAL | Interrupted paid-work/full no-replay PENDING |
+| G-06 | Offline limiter; D1 natural-cycle второй снимок и D2 backup — scoped PASS ([audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md)) | PARTIAL | Full V5-A-003 soak PENDING; queue NOT_INSTRUMENTED |
+| G-07 | Изоляция A/B, отказ админ-доступа, C2 offline forged callbacks — scoped PASS | PARTIAL | Live adversarial transport evidence PENDING |
+| G-08 | Portal OFF/ON, Stars toggle audit и health — scoped PASS | PARTIAL | Invoice/precheckout и paid event при OFF PENDING; повторять toggle нельзя |
+| G-09 | Natural paid entitlement expiry — NOT OBSERVED | PENDING | Только после естественного expiry: SQLite ↔ Master 3x-ui ↔ client read-only |
+| G-10 | QA synthetic 4/4 и Attention Center UI — scoped PASS | PENDING | Natural main-bot `job_failed` [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) NOT OBSERVED; passive, nonblocking |
+| G-11 | Финальный v5 acceptance report отсутствует | BLOCKED | **BLOCKED ON G-09**: natural expiry + отдельный docs checkpoint; residuals G-01…G-08 PARTIAL |
+
+### Реестр принятых исключений
+
+| Исключение | Решение оператора | Не проверено / остаточный риск |
 | --- | --- | --- |
-| G-01 | 5/5 базовый health/source, A1 совпадение исходников 7/7, лимит 30/60 | Проверенный smoke закрыт; независимая аттестация образа PENDING, полная приёмка PARTIAL |
-| G-02 | 5/5 ledger/Master read, B1 mismatches/orphans/duplicates 0, один Node match | Smoke CLOSED; full reconciliation/Node offline→return #487 PENDING |
-| G-03 | Existing Stars→VPN и архив B4 4/4 operator-reported PASS | Smoke CLOSED; independent payment→import provenance PARTIAL |
-| G-04 | Refund/Support journal scoped PASS | PARTIAL; provider/revoke postconditions, будущая policy #433 |
-| G-05 | Post-restart ledger/health, B3 nested provider read, C1 offline no-replay PASS | PARTIAL; interrupted paid-work и full no-replay PENDING |
-| G-06 | Offline limiter/concurrency; D1 два read-only snapshot после natural scheduled cycle 14.10, backup.daily/offsite success, D2 metadata | D1 limited follow-up scoped PASS (operator-reported); full V5-A-003 soak PARTIAL, queue NOT_INSTRUMENTED; [audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md) |
-| G-07 | Обычная A/B-изоляция, отказ в Admin UI, C2 offline forged-callback cases | Проверенный smoke закрыт; live adversarial transport proof PARTIAL |
-| G-08 | Portal OFF→old callback deny→ON; Stars OFF/ON audit и health scoped PASS | PARTIAL; invoice/precheckout и уже paid event при OFF не подтверждены, toggle повторять нельзя |
-| G-09 | Natural expiry оплаченного entitlement НЕ наблюдался | **PENDING**: SQLite ↔ Master 3x-ui ↔ customer read-only только после natural expiry |
-| G-10 | QA synthetic 4/4 и main-bot Attention Center empty-UI smoke | **PENDING**: natural `job_failed` #466 NOT OBSERVED, passive/nonblocking |
-| G-11 | Финальный v5 acceptance report отсутствует; D1 limited follow-up scoped PASS 14.10 | **BLOCKED ON G-09** (natural paid expiry + independent docs checkpoint PENDING); остальные acceptance residuals PARTIAL |
-| W-01 | Independent cross-host Master DR отсутствовал | **OPERATOR-WAIVED / NOT TESTED** — НЕ PASS |
-| W-02 | Live Telegram burst inconclusive | **OPERATOR-WAIVED / INCONCLUSIVE** — НЕ PASS |
+| W-01 | OPERATOR-WAIVED / NOT TESTED | Independent cross-host Master DR не проводился; не PASS |
+| W-02 | OPERATOR-WAIVED / INCONCLUSIVE | Live Telegram burst не доказан; не PASS |
 
 Полные исторические наблюдения, включая старые FAIL, тайминги, данные G-01…G-11 и правильную идентичность DR-хоста: [архив проверок v5](audits/roadmap-history/v5-gates.md), [датированные audits](audits/), [карта переноса](roadmap/HISTORY_INDEX.md). Итоговые короткие строки не отменяют нормативные критерии [V5_PRODUCTION_ACCEPTANCE](V5_PRODUCTION_ACCEPTANCE.md).
 
 ## Текущая очередь и блокировки
 
-1. **G-09 PENDING:** только после естественного paid entitlement expiry — read-only SQLite / Master / client; датированный audit, затем Roadmap PR с required `test`/`title`, squash merge и Issue audit. Не менять срок вручную.
-2. **D1 scoped PASS, 14.10.2026:** второй operator-reported read-only snapshot 09:37 UTC после естественного scheduled backup.daily/offsite 02:00 UTC (оба success), health 200, restarts/OOM 0, RAM 73.57 MiB vs 254.9 MiB 13.10; [dated audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md). Full G-06 soak **PARTIAL**, queue NOT_INSTRUMENTED; no forced backup/restart.
-3. **G-11 BLOCKED ON G-09:** D1 limited checkpoint verified and documented 14.10; требуется только фактическое G-09 natural expiry + самостоятельный docs/CI/main checkpoint перед итоговым acceptance report. Даже затем полный v5 acceptance не становится PASS автоматически; stable/public rollout BLOCKED.
-4. **G-10/#466:** пассивное ожидание естественного `job_failed` без срока, не блокирует старт G-11; [#487](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) offline→return/last sync OPEN.
+1. **G-09 / PENDING:** дождаться фактического natural paid entitlement expiry, затем SQLite ↔ Master ↔ client read-only, dated audit и Roadmap PR/CI/main checkpoint. Нельзя менять expiry вручную.
+2. **G-11 / BLOCKED:** после подтверждённого G-09 checkpoint подготовить final acceptance report с учётом всех неполных проверок и принятых исключений. Stable/public rollout остаётся BLOCKED.
 
-Уже пройденные scoped или waived проверки не повторять. На production — лишь 3–4 новых целевых smoke за пакет с обязательным PR+CI+Issue checkpoint; никакого deploy/restart/refund/Stars/DB/3x-ui mutations без отдельного согласия.
+Прочие незакрытые работы — в gate-реестре и [активных GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues); пассивный G-10/#466 не входит в текущую очередь. Завершённый D1 [сохранён в audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md), но не является новой задачей. Отдельные PASS/waivers не заменяют полного v5 acceptance; новых production mutations без согласования нет.
 
 ## Реестр открытых задач и будущие релизы
 
-**⬜ Запланировано, реализация ещё не подтверждена:** [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) 14-дневные voluntary Stars refunds с отзывом оплаченного срока (план rc.10, не опубликован), юридические и UI пункты [#436](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/436), [#434](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/434), [#437](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/437) PENDING. [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) natural jobs, [#482](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/482) future 3x-ui API budget, [#487](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) Master/Node sync, [#510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) GitHub branch lifecycle, [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) legacy command UI — собственные Issue criteria. 
-
-**⬜ Отложенный backlog без обещанного релиза:** [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) external PSP/СБП с Telegram/legal compliance review; Client Portal features #496–#507, HWID #471–#473, multiformat/geo/Remnawave/Cheburcheck #475–#479. Точные acceptance criteria — в [GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues). Концепции не являются текущей реализацией: [архитектурное будущее](roadmap/concepts/provider-neutral-remnawave.md), [Client Portal UX](roadmap/concepts/client-portal-ux.md); нормативные детали — в [EXTERNAL_PAYMENT_LINKS](EXTERNAL_PAYMENT_LINKS.md), [CLIENT_SETUP](CLIENT_SETUP.md), [UI_STYLE](UI_STYLE.md).
-
-**✅ Завершено в docs/CI scope:** Roadmap governance [#593](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/593), [#597](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/597), [#601](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/601), [#605](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/605), [#609](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/609) — CLOSED по собственным docs/CI критериям, не v5 production acceptance. Evidence: [архив](roadmap/HISTORY_INDEX.md), [полная reconciliation](audits/2026-10-13-roadmap-github-full-register-dispatch.md), [hardening audit](audits/2026-10-13-issue609-governance-closure.md). Scheduled reconciliation остаётся PENDING observation.
+**Будущая работа:** единственный полный перечень OPEN задач — в реестре ниже; [GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues) содержат scope и acceptance. Не дублировать отдельные списки и завершённые outcomes в living Roadmap. Рабочие концепции: [provider-neutral](roadmap/concepts/provider-neutral-remnawave.md), [Client Portal UX](roadmap/concepts/client-portal-ux.md).
 
 ## Активный Issue-реестр (machine-checked)
 
@@ -95,6 +94,7 @@
 | [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) | ⬜ Запланировано | — | TBD | Issue #564 (scope), implementation PENDING | скрыть legacy /create и /inbounds из актуального интерфейса: Issue criteria |
 | [#615](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/615) | ⬜ Запланировано | — | TBD | Issue #615 (scope), implementation PENDING | выбор RU Direct / Full VPN на подписку в Happ и Incy; Shadowrocket позже: Issue criteria |
 | [#617](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/617) | ⬜ Запланировано | — | TBD | Issue #617 (scope), implementation PENDING | одноразовая emoji-капча для новых клиентов, existing users без повтора: Issue criteria |
+| [#620](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/620) | ⬜ Запланировано | — | TBD | Issue #620 governance scope, implementation PENDING | унифицировать gate statuses/очередь, проверить living docs: Issue criteria |
 
 
 ## Завершённые этапы и исторические документы
