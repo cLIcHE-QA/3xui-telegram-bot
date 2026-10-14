@@ -97,8 +97,8 @@ def release_consistency(root:Path=ROOT)->list[str]:
         errors.append("operator-reported deployment requires explicit evidence limitation")
     if "NOT PASS" in accepted and re.search(r"\bfull\s+acceptance\s+PASS\b",summary,re.I):
         errors.append("contradictory acceptance claim")
-    if "NOT PASS" not in accepted and re.search(r"\bBLOCKED ON G-09(?: \+ D1)?\b", text):
-        errors.append("blocked gates cannot imply full acceptance PASS")
+    if "NOT PASS" not in accepted and re.search(r"^\|\s*G-\d{2}\s*\|[^\n]*\|\s*(?:PARTIAL|PENDING|FAIL|BLOCKED)\s*\|", text, re.M):
+        errors.append("incomplete mandatory gates cannot imply full acceptance PASS")
     return errors
 
 def changed_files(base:str,head:str,root:Path=ROOT)->list[tuple[str,str]]:
