@@ -94,7 +94,6 @@
 | [#510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) | ⬜ Запланировано | — | TBD | Issue #510 (scope), implementation PENDING | определить жизненный цикл и безопасную очистку GitHub-веток: Issue criteria |
 | [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) | ⬜ Запланировано | — | TBD | Issue #564 (scope), implementation PENDING | скрыть legacy /create и /inbounds из актуального интерфейса: Issue criteria |
 
-| [#612](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/612) | ⬜ Запланировано | — | TBD | Issue #612 (scope), implementation PENDING | ограничить накопление закрытых entries в Roadmap: Issue criteria |
 
 ## Завершённые этапы и исторические документы
 
