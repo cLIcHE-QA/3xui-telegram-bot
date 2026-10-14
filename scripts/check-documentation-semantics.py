@@ -162,8 +162,11 @@ def current_ok(root: Path) -> list[str]:
         count = len(re.findall(r"^\|\s*" + re.escape(g) + r"\s*\|", t, re.M))
         if count != 1:
             issues.append(f"missing/duplicate acceptance gate {g} ({count})")
-    if not re.search(r"\|\s*G-11\s*\|[^\n]*\|\s*\*\*BLOCKED ON G-09(?: \+ D1)?\*\*", t):
-        issues.append("G-11 dependency not confirmed")
+    g09_pass = bool(re.search(r"^\|\s*G-09\s*\|[^\n]*\|\s*PASS\s*\|", t, re.M))
+    g11_pending = bool(re.search(r"^\|\s*G-11\s*\|[^\n]*\|\s*PENDING\s*\|", t, re.M))
+    g11_blocked = bool(re.search(r"^\|\s*G-11\s*\|[^\n]*\|\s*BLOCKED\s*\|\s*\*\*BLOCKED ON G-09(?: \+ D1)?\*\*", t, re.M))
+    if not (g09_pass and g11_pending or not g09_pass and g11_blocked):
+        issues.append("G-11 must stay BLOCKED until G-09 PASS, then become PENDING")
     if re.search(r"\*\*⬜[^\n]*\]\([^)]*/issues/(?:593|597)\)", t):
         issues.append("closed docs-only issue listed as planned")
     # Current gate verdicts, waivers and actionable queue are distinct state axes.
