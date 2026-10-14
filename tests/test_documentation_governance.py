@@ -107,16 +107,22 @@ class DocumentationGovernanceTests(unittest.TestCase):
                 "**✅ Завершено в docs/CI scope:**" + "длинный текст " * 120 + "\\n\\n## Активный Issue-реестр"),encoding="utf-8")
             self.assertTrue(any("exceeds 1200" in x for x in sem.current_ok(root)))
 
-    def test_g11_stays_blocked_on_g09_after_d1_checkpoint(self):
+    def test_g11_unblocked_only_after_g09_checkpoint(self):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn("**BLOCKED ON G-09**", roadmap)
-        self.assertNotIn("**BLOCKED ON G-09 + D1**", roadmap)
+        self.assertIn("| G-09 |", roadmap)
+        self.assertIn("| G-11 |", roadmap)
+        self.assertIn("**G-11 / PENDING:**", roadmap)
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "docs").mkdir()
             path = root / "docs/ROADMAP.md"
-            path.write_text(roadmap.replace("**BLOCKED ON G-09**", "**PASS**"), encoding="utf-8")
-            self.assertTrue(any("G-11 dependency" in x for x in sem.current_ok(root)))
+            path.write_text(
+                roadmap.replace("| G-09 | Natural paid Stars entitlement:", "| G-09 | Natural paid Stars entitlement:")
+                .replace("| PASS | Независимая VPS/data-plane attestation отсутствует;",
+                         "| PENDING | Независимая VPS/data-plane attestation отсутствует;", 1),
+                encoding="utf-8",
+            )
+            self.assertTrue(any("G-11 must stay BLOCKED" in x for x in sem.current_ok(root)))
 
     def test_canonical_gate_status_and_queue_lifecycle(self):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
@@ -126,8 +132,8 @@ class DocumentationGovernanceTests(unittest.TestCase):
             ("| PARTIAL | Независимая", "| CLOSED | Независимая", "invalid gate row or verdict"),
             ("| G-02 |", "| G-02 |", None),
             ("OPERATOR-WAIVED / NOT TESTED", "PASS", "waiver register mismatch"),
-            ("1. **G-09 / PENDING:", "1. **D1 / PASS:", "queue row must have active gate"),
-            ("2. **G-11 / BLOCKED:", "2. **G-11 / PASS:", "queue row must have active gate"),
+            ("1. **G-11 / PENDING:", "1. **D1 / PASS:", "queue row must have active gate"),
+            ("1. **G-11 / PENDING:", "1. **G-11 / PASS:", "queue row must have active gate"),
             ("| Gate | Что проверено | Итог gate | Осталось / риск |",
              "| Gate | Checked | Status | Next |", "canonical four-column header"),
         ]
