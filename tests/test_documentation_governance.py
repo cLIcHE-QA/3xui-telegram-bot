@@ -111,7 +111,7 @@ class DocumentationGovernanceTests(unittest.TestCase):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         self.assertIn("| G-09 |", roadmap)
         self.assertIn("| G-11 |", roadmap)
-        self.assertIn("**G-11 / PENDING:**", roadmap)
+        self.assertIn("**G-11 / PARTIAL:**", roadmap)
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "docs").mkdir()
@@ -132,8 +132,8 @@ class DocumentationGovernanceTests(unittest.TestCase):
             ("| PARTIAL | Независимая", "| CLOSED | Независимая", "invalid gate row or verdict"),
             ("| G-02 |", "| G-02 |", None),
             ("OPERATOR-WAIVED / NOT TESTED", "PASS", "waiver register mismatch"),
-            ("1. **G-11 / PENDING:", "1. **D1 / PASS:", "queue row must have active gate"),
-            ("1. **G-11 / PENDING:", "1. **G-11 / PASS:", "queue row must have active gate"),
+            ("1. **G-11 / PARTIAL:", "1. **D1 / PASS:", "queue row must have active gate"),
+            ("1. **G-11 / PARTIAL:", "1. **G-11 / PASS:", "queue row must have active gate"),
             ("| Gate | Что проверено | Итог gate | Осталось / риск |",
              "| Gate | Checked | Status | Next |", "canonical four-column header"),
         ]
