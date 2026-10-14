@@ -99,7 +99,6 @@
 | [#617](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/617) | ⬜ Запланировано | — | TBD | Issue #617 (scope), implementation PENDING | одноразовая emoji-капча для новых клиентов, existing users без повтора: Issue criteria | L|
 | [#627](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/627) | ⬜ Запланировано | — | rc.10 (plan) | Код: `expiry_drift=False` объединяет match/нет данных; G-09 F-09 REVIEW | Разделить MATCH/INSUFFICIENT_DATA/MISMATCH и покрыть tests; implementation PENDING | S|
 | [#628](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/628) | ⬜ Запланировано | — | rc.10 (plan) | Карточка пользователя читает legacy `payments` без Stars `commerce_payments` | Добавить owner-scoped read-only Stars/refund + legacy history, RBAC/pagination tests; implementation PENDING | M|
-| [#636](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/636) | ⬜ Запланировано | — | TBD | Issue #636: estimate/schema/governance docs-only PR PENDING | Ввести шкалу XS–XL, семь полей и CI для всех OPEN Issues; закрыть после merge/read-back | M |
 
 
 ## Завершённые этапы и исторические документы
