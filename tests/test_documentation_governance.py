@@ -89,7 +89,7 @@ class DocumentationGovernanceTests(unittest.TestCase):
     def test_completed_issue_summary_is_bounded(self):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         self.assertFalse(any("completed" in x for x in sem.current_ok(ROOT)))
-        self.assertIn("**✅ Завершено в docs/CI scope:**", roadmap)
+        self.assertNotIn("**✅ Завершено в docs/CI scope:**", roadmap)
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "docs").mkdir()
@@ -100,8 +100,8 @@ class DocumentationGovernanceTests(unittest.TestCase):
             path.write_text(roadmap.replace("## Активный Issue-реестр",
                 "**✅ Документационное governance #999:** отдельный closure\\n\\n## Активный Issue-реестр"),encoding="utf-8")
             self.assertTrue(any("individual completed" in x for x in sem.current_ok(root)))
-            path.write_text(roadmap.replace("**✅ Завершено в docs/CI scope:**",
-                "**✅ Завершено в docs/CI scope:**" + "длинный текст " * 120),encoding="utf-8")
+            path.write_text(roadmap.replace("## Активный Issue-реестр",
+                "**✅ Завершено в docs/CI scope:**" + "длинный текст " * 120 + "\\n\\n## Активный Issue-реестр"),encoding="utf-8")
             self.assertTrue(any("exceeds 1200" in x for x in sem.current_ok(root)))
 
     def test_g11_stays_blocked_on_g09_after_d1_checkpoint(self):
@@ -154,7 +154,7 @@ class DocumentationGovernanceTests(unittest.TestCase):
         self.assertGreater(len(references), 12)
         self.assertIn(433, expectations)
         self.assertEqual(expectations[433], "open")
-        self.assertEqual(expectations[597], "closed")
+        self.assertNotIn(597, expectations)  # Closed history is not a living Issue register
         actual = {n: expectations.get(n, "open") for n in references}
         version = gh.declared_published(text)
         self.assertEqual(version, "v" + APP_VERSION)
