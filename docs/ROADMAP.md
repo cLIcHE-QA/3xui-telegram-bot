@@ -25,14 +25,14 @@
 | --- | --- | --- | --- |
 | G-01 | Health/source smoke 5/5; A1 parity 7/7; лимит 30/60 — scoped PASS | PARTIAL | Независимая аттестация deployed image PENDING |
 | G-02 | Ledger/Master read 5/5, B1 mismatches/orphans/duplicates 0; Node match — scoped PASS | PARTIAL | Full reconciliation и Node offline→return [#487](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/487) PENDING |
-| G-03 | Existing Stars→VPN и B4 архив 4/4 — operator-reported scoped PASS | PARTIAL | Independent payment→import provenance PENDING |
-| G-04 | Refund/Support journal — scoped PASS | PARTIAL | Provider/revoke postconditions PENDING; policy [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) future |
+| G-03 | Stars→VPN и B4 архив 4/4 — PASS со слов оператора | PARTIAL | Independent payment→import provenance PENDING |
+| G-04 | Refund/Support journal — scoped PASS подтверждён | PARTIAL | Provider/revoke postconditions PENDING; policy [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) future |
 | G-05 | Post-restart ledger/health, B3 provider read, C1 offline no-replay — scoped PASS | PARTIAL | Interrupted paid-work/full no-replay PENDING |
-| G-06 | Offline limiter; D1 natural-cycle second snapshot и D2 backup — scoped PASS ([audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md)) | PARTIAL | Full V5-A-003 soak PENDING; queue NOT_INSTRUMENTED |
+| G-06 | Offline limiter; D1 natural-cycle второй снимок и D2 backup — scoped PASS ([audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md)) | PARTIAL | Full V5-A-003 soak PENDING; queue NOT_INSTRUMENTED |
 | G-07 | A/B isolation, Admin deny, C2 offline forged callbacks — scoped PASS | PARTIAL | Live adversarial transport evidence PENDING |
 | G-08 | Portal OFF/ON, Stars toggle audit и health — scoped PASS | PARTIAL | Invoice/precheckout и paid event при OFF PENDING; повторять toggle нельзя |
 | G-09 | Natural paid entitlement expiry — NOT OBSERVED | PENDING | Только после естественного expiry: SQLite ↔ Master 3x-ui ↔ client read-only |
-| G-10 | QA synthetic 4/4 и Attention Center empty UI — scoped PASS | PENDING | Natural main-bot `job_failed` [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) NOT OBSERVED; passive, nonblocking |
+| G-10 | QA synthetic 4/4 и Attention Center UI — scoped PASS | PENDING | Natural main-bot `job_failed` [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) NOT OBSERVED; passive, nonblocking |
 | G-11 | Финальный v5 acceptance report отсутствует | BLOCKED | **BLOCKED ON G-09**: natural expiry + отдельный docs checkpoint; residuals G-01…G-08 PARTIAL |
 
 ### Реестр принятых исключений
