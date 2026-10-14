@@ -93,6 +93,7 @@
 | [#507](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/507) | ⬜ Запланировано | — | TBD | Issue #507 (scope), implementation PENDING | выбор варианта срока тарифа при покупке: Issue criteria |
 | [#510](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/510) | ⬜ Запланировано | — | TBD | Issue #510 (scope), implementation PENDING | определить жизненный цикл и безопасную очистку GitHub-веток: Issue criteria |
 | [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) | ⬜ Запланировано | — | TBD | Issue #564 (scope), implementation PENDING | скрыть legacy /create и /inbounds из актуального интерфейса: Issue criteria |
+| [#615](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/615) | ⬜ Запланировано | — | TBD | Issue #615 (scope), implementation PENDING | выбор RU Direct / Full VPN на подписку в Happ и Incy; Shadowrocket позже: Issue criteria |
 
 
 ## Завершённые этапы и исторические документы
