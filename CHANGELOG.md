@@ -6,11 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Неопубликованные изменения — кандидат v5.0.0-rc.10
+## v5.0.0-rc.10 — Диагностика сроков и история Stars в карточке пользователя
 
-- #628: в карточке пользователя отдельная read-only история Stars (XTR) и ручных платежей, с owner-scoped detail, статусом refund journal, ограниченной пагинацией и разделением валют; без новых refund/payment/provider mutations. Release/deploy/targeted smoke PENDING.
+- #628 / PR #641: в карточке пользователя отдельные read-only журналы Stars (XTR) и ручных платежей, owner-scoped detail, refund journal status и ограниченная пагинация. Не смешиваются валюты/ledger; чужие payment IDs недоступны через callbacks.
 
-- #627: read-only диагностика подписки различает доказанное совпадение сроков, недостаточные данные и расхождение. Отсутствующий `expiryTime` 3x-ui не принимается за подтверждённую бессрочность; предусмотрены offline tests. Изменений Stars/provisioning/remote 3x-ui mutations нет. Publication/deployment/production acceptance — PENDING.
+- #627 / PR #639: read-only диагностика подписки показывает подтверждённое совпадение сроков, недостаточность данных или расхождение; отсутствующий `expiryTime` 3x-ui не выдаётся за подтверждённую бессрочность.
+- #433 **исключён из rc.10 решением оператора 2026-10-14**: добровольное 14-дневное eligibility/revocation и корректировка entitlement/3x-ui после Stars refund НЕ реализованы, Issue OPEN/DEFERRED, target TBD. Клиентские условия #434 и памятка #437 не активируются до юридической проверки #436. Existing refund accounting semantics rc.9 неизменны.
+- **Controlled canary only:** schema SQLite **v13** без новых migrations, pinned 3x-ui API contract main **v3.10.0**. Никаких новых Star refund mutations, изменений provider provisioning или customer allowlist. Immutable Published/Deployed/Accepted — отдельные gates; после разрешённого deployment провести targeted read-only smoke #627/#628 и базовый health, G-11 остаётся PARTIAL / NO-GO. Stable/public rollout BLOCKED.
 
 ## v5.0.0-rc.9 — Portal callbacks fail-closed и Host Groups 3x-ui
 
