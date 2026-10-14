@@ -976,6 +976,88 @@ class Database:
             rows = await cur.fetchall()
             return [PaymentRecord(**dict(r)) for r in rows]
 
+    async def count_user_stars_payments(self, telegram_id: int) -> int:
+        """Count actual Stars payments owned via commerce_orders, not invoices/orders."""
+        async with aiosqlite.connect(self.path) as conn:
+            cur = await conn.execute(
+                """
+                SELECT COUNT(*) FROM commerce_payments cp
+                JOIN commerce_orders co ON co.id = cp.order_id
+                WHERE co.telegram_id = ? AND cp.provider = 'telegram_stars'
+                  AND cp.currency = 'XTR'
+                """,
+                (int(telegram_id),),
+            )
+            row = await cur.fetchone()
+            return int(row[0] if row else 0)
+
+    async def list_user_stars_payments(
+        self, telegram_id: int, *, limit: int = 8, offset: int = 0,
+    ) -> list[dict]:
+        """Bounded owner-scoped read-only Stars rows with refund evidence."""
+        async with aiosqlite.connect(self.path) as conn:
+            conn.row_factory = aiosqlite.Row
+            cur = await conn.execute(
+                """
+                SELECT cp.id, cp.order_id, cp.amount_minor, cp.currency,
+                       cp.status, cp.created_at, cp.confirmed_at,
+                       sr.status AS refund_status
+                FROM commerce_payments cp
+                JOIN commerce_orders co ON co.id = cp.order_id
+                LEFT JOIN stars_refund_operations sr ON sr.payment_id = cp.id
+                WHERE co.telegram_id = ? AND cp.provider = 'telegram_stars'
+                  AND cp.currency = 'XTR'
+                ORDER BY cp.created_at DESC, cp.id DESC
+                LIMIT ? OFFSET ?
+                """,
+                (int(telegram_id), max(1, min(30, int(limit))), max(0, int(offset))),
+            )
+            return [dict(row) for row in await cur.fetchall()]
+
+    async def get_user_stars_payment(
+        self, telegram_id: int, payment_id: int,
+    ) -> dict | None:
+        """A forged payment ID must never expose another customer's ledger."""
+        async with aiosqlite.connect(self.path) as conn:
+            conn.row_factory = aiosqlite.Row
+            cur = await conn.execute(
+                """
+                SELECT cp.id, cp.order_id, cp.amount_minor, cp.currency,
+                       cp.status, cp.created_at, cp.confirmed_at,
+                       sr.status AS refund_status
+                FROM commerce_payments cp
+                JOIN commerce_orders co ON co.id = cp.order_id
+                LEFT JOIN stars_refund_operations sr ON sr.payment_id = cp.id
+                WHERE cp.id = ? AND co.telegram_id = ?
+                  AND cp.provider = 'telegram_stars' AND cp.currency = 'XTR'
+                """,
+                (int(payment_id), int(telegram_id)),
+            )
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
+    async def user_stars_payment_summary(self, telegram_id: int) -> dict:
+        """Per-status counts and independent XTR amounts; no fiat conversion."""
+        async with aiosqlite.connect(self.path) as conn:
+            cur = await conn.execute(
+                """
+                SELECT cp.status, COUNT(*), COALESCE(SUM(cp.amount_minor), 0)
+                FROM commerce_payments cp
+                JOIN commerce_orders co ON co.id = cp.order_id
+                WHERE co.telegram_id = ? AND cp.provider = 'telegram_stars'
+                  AND cp.currency = 'XTR'
+                GROUP BY cp.status
+                """,
+                (int(telegram_id),),
+            )
+            rows = await cur.fetchall()
+        counts = {str(status): int(count) for status, count, _ in rows}
+        return {
+            "counts": counts,
+            "confirmed_xtr": sum(int(amount) for status, _, amount in rows if status == "confirmed"),
+            "refunded_xtr": sum(int(amount) for status, _, amount in rows if status == "refunded"),
+        }
+
     async def count_user_payments(self, telegram_id: int) -> int:
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(

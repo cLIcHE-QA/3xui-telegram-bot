@@ -215,6 +215,15 @@ PAYMENT_STATUS_LABELS = {
     "cancelled": "⚪ Отменён",
 }
 
+STARS_PAYMENT_STATUS_LABELS = {
+    "created": "⚪ Создан",
+    "pending": "🟡 Ожидает",
+    "confirmed": "🟢 Подтверждён",
+    "refunded": "↩️ Возвращён",
+    "failed": "❌ Ошибка",
+    "unknown": "⚠️ Неизвестен",
+}
+
 USER_AUDIT_LABELS = {
     "user.extend": "⏳ Продлён срок",
     "user.expiry.set": "📅 Изменён срок",
@@ -1147,52 +1156,91 @@ async def user_ips(call: CallbackQuery):
 
 
 
-async def _user_payments_view(tg_id: int, offset: int = 0) -> tuple[str, InlineKeyboardMarkup]:
+async def _user_payments_view(
+    tg_id: int, offset: int = 0, ledger: str = "stars",
+) -> tuple[str, InlineKeyboardMarkup]:
     rec = await db.get(tg_id)
     if not rec:
         return "Пользователь не найден.", users_back()
     page_size = 8
-    total = await db.count_user_payments(tg_id)
-    offset = max(0, min(int(offset), max(0, total - 1))) if total else 0
-    items = await db.list_user_payments(tg_id, limit=page_size, offset=offset)
-    totals = await db.paid_user_totals_by_currency(tg_id)
-    paid_count = await db.count_user_payments_by_status(tg_id, "paid")
-    paid_text = ", ".join(money_text(value, currency) for currency, value in sorted(totals.items())) or "—"
+    ledger = ledger if ledger in {"stars", "manual"} else "stars"
+    stars_total = await db.count_user_stars_payments(tg_id)
+    manual_total = await db.count_user_payments(tg_id)
+    total = stars_total if ledger == "stars" else manual_total
+    offset = max(0, min(max(0, int(offset)), max(0, total - 1))) if total else 0
     lines = [
-        f"💳 Платежи · {await _display_label(rec)}",
-        "",
-        f"Всего: {total}",
-        f"Оплачено: {paid_count}",
-        f"Суммы оплаченных: {paid_text}",
-        "",
-        "Последние операции:",
+        f"💳 Платежи · {await _display_label(rec)}", "",
+        f"⭐ Telegram Stars (XTR): {stars_total}",
+        f"📒 Ручные платежи (учёт): {manual_total}", "",
     ]
-    rows: list[list[InlineKeyboardButton]] = []
-    if items:
+    rows: list[list[InlineKeyboardButton]] = [
+        [
+            InlineKeyboardButton(
+                text="⭐ Telegram Stars" + (" ✓" if ledger == "stars" else ""),
+                callback_data=f"admin:u:payments:{tg_id}:stars:0",
+            ),
+            InlineKeyboardButton(
+                text="📒 Ручные" + (" ✓" if ledger == "manual" else ""),
+                callback_data=f"admin:u:payments:{tg_id}:manual:0",
+            ),
+        ]
+    ]
+    if ledger == "stars":
+        summary = await db.user_stars_payment_summary(tg_id)
+        counts = summary["counts"]
+        lines += [
+            "⭐ Telegram Stars · XTR (не RUB)",
+            f"Подтверждено: {counts.get('confirmed', 0)} · ⭐ {summary['confirmed_xtr']}",
+            f"Возвращено: {counts.get('refunded', 0)} · ⭐ {summary['refunded_xtr']}",
+            f"Ожидают: {counts.get('created', 0) + counts.get('pending', 0)}",
+            f"Неизвестно: {counts.get('unknown', 0)} · Ошибки: {counts.get('failed', 0)}", "",
+        ]
+        items = await db.list_user_stars_payments(tg_id, limit=page_size, offset=offset)
+        for item in items:
+            status = STARS_PAYMENT_STATUS_LABELS.get(item["status"], item["status"])
+            lines.append(
+                f"{status} · {format_timestamp(item['created_at'])} · ⭐ {item['amount_minor']}"
+                + (f" · refund: {item['refund_status']}" if item["refund_status"] else "")
+            )
+            rows.append([InlineKeyboardButton(
+                text=f"⭐ #{item['id']} · {status}",
+                callback_data=f"admin:u:starpayment:{tg_id}:{item['id']}:{offset}",
+            )])
+    else:
+        totals = await db.paid_user_totals_by_currency(tg_id)
+        paid_count = await db.count_user_payments_by_status(tg_id, "paid")
+        paid_text = ", ".join(
+            money_text(value, currency) for currency, value in sorted(totals.items())
+        ) or "—"
+        lines += [
+            "📒 Ручные платежи (учёт)",
+            f"Оплачено: {paid_count} · суммы: {paid_text}", "",
+        ]
+        items = await db.list_user_payments(tg_id, limit=page_size, offset=offset)
         for item in items:
             plan = await db.get_plan(item.plan_id) if item.plan_id else None
             lines.append(
                 f"{PAYMENT_STATUS_LABELS.get(item.status, item.status)} · "
-                f"{format_timestamp(item.created_at)} · {money_text(item.amount_minor, item.currency)} · "
+                f"{format_timestamp(item.created_at)} · "
+                f"{money_text(item.amount_minor, item.currency)} · "
                 f"{plan.name if plan else 'без тарифа'}"
             )
             rows.append([InlineKeyboardButton(
-                text=f"💳 #{item.id} · {money_text(item.amount_minor, item.currency)}",
+                text=f"📒 #{item.id} · {money_text(item.amount_minor, item.currency)}",
                 callback_data=f"admin:u:payment:{tg_id}:{item.id}",
             )])
-    else:
-        lines.append("— платежей пока нет")
-
+    if not items:
+        lines.append("— операций нет")
     nav: list[InlineKeyboardButton] = []
     if offset > 0:
         nav.append(InlineKeyboardButton(
             text="⬅ Новее",
-            callback_data=f"admin:u:payments:{tg_id}:{max(0, offset - page_size)}",
+            callback_data=f"admin:u:payments:{tg_id}:{ledger}:{max(0, offset - page_size)}",
         ))
     if offset + page_size < total:
         nav.append(InlineKeyboardButton(
             text="➡ Старее",
-            callback_data=f"admin:u:payments:{tg_id}:{offset + page_size}",
+            callback_data=f"admin:u:payments:{tg_id}:{ledger}:{offset + page_size}",
         ))
     if nav:
         rows.append(nav)
@@ -1200,21 +1248,61 @@ async def _user_payments_view(tg_id: int, offset: int = 0) -> tuple[str, InlineK
     return "\n".join(lines)[:3900], InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:payments:\d+(?::\d+)?$"))
+@advanced_users_router.callback_query(
+    F.data.regexp(r"^admin:u:payments:\d+(?:(?::\d+)|(?::(?:stars|manual):\d+))?$")
+)
 async def user_payments_view(call: CallbackQuery):
-    if not await guard(call):
+    if not await guard(call, minimum="read_only"):
         return
     parts = (call.data or "").split(":")
     tg_id = int(parts[3])
-    offset = int(parts[4]) if len(parts) > 4 else 0
-    text, kb = await _user_payments_view(tg_id, offset)
+    ledger = parts[4] if len(parts) > 4 and parts[4] in {"stars", "manual"} else "manual"
+    offset = int(parts[5] if len(parts) > 5 else parts[4]) if len(parts) > 4 and (
+        len(parts) > 5 or parts[4].isdigit()
+    ) else 0
+    # Old callbacks refer to the legacy manual page; newly entered cards
+    # default to Stars and always use explicit typed pagination callbacks.
+    if len(parts) == 4:
+        ledger = "stars"
+    text, kb = await _user_payments_view(tg_id, offset, ledger)
     await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:starpayment:\d+:\d+:\d+$"))
+async def user_stars_payment_detail(call: CallbackQuery):
+    if not await guard(call, minimum="read_only"):
+        return
+    parts = (call.data or "").split(":")
+    tg_id, payment_id, offset = (int(v) for v in parts[3:])
+    rec = await db.get(tg_id)
+    item = await db.get_user_stars_payment(tg_id, payment_id)
+    if not rec or not item:
+        await call.answer("Stars-платёж не найден для этого пользователя.", show_alert=True)
+        return
+    text = (
+        f"⭐ Telegram Stars · платёж #{item['id']} · {await _display_label(rec)}\n\n"
+        f"Заказ: #{item['order_id']}\n"
+        f"Сумма: ⭐ {item['amount_minor']} XTR\n"
+        f"Статус: {STARS_PAYMENT_STATUS_LABELS.get(item['status'], item['status'])}\n"
+        f"Возврат: {item['refund_status'] or '—'}\n"
+        f"Создан: {format_timestamp(item['created_at'])}\n"
+        f"Подтверждён: {format_timestamp(item['confirmed_at']) if item['confirmed_at'] else '—'}"
+    )
+    await render_callback(
+        call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(
+                text="⬅ Платежи",
+                callback_data=f"admin:u:payments:{tg_id}:stars:{max(0, offset)}",
+            )
+        ]]),
+    )
     await call.answer()
 
 
 @advanced_users_router.callback_query(F.data.regexp(r"^admin:u:payment:\d+:\d+$"))
 async def user_payment_detail(call: CallbackQuery):
-    if not await guard(call):
+    if not await guard(call, minimum="read_only"):
         return
     parts = (call.data or "").split(":")
     tg_id, payment_id = int(parts[-2]), int(parts[-1])
@@ -1225,7 +1313,7 @@ async def user_payment_detail(call: CallbackQuery):
         return
     plan = await db.get_plan(item.plan_id) if item.plan_id else None
     text = (
-        f"💳 Платёж #{item.id} · {await _display_label(rec)}\n\n"
+        f"📒 Ручной платёж #{item.id} · {await _display_label(rec)}\n\n"
         f"Тариф: {plan.name if plan else 'не привязан'}\n"
         f"Сумма: {money_text(item.amount_minor, item.currency)}\n"
         f"Статус: {PAYMENT_STATUS_LABELS.get(item.status, item.status)}\n"
@@ -1233,10 +1321,10 @@ async def user_payment_detail(call: CallbackQuery):
         f"Дата: {format_timestamp(item.created_at)}"
     )
     await render_callback(
-        call,
-        text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="⬅ Платежи", callback_data=f"admin:u:payments:{tg_id}")
+        call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(
+                text="⬅ Платежи", callback_data=f"admin:u:payments:{tg_id}:manual:0",
+            )
         ]]),
     )
     await call.answer()
