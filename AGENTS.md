@@ -260,7 +260,7 @@ PR diff автоматически проверяет `scripts/check-living-docs
 
 Сохраняй **четыре** установленных статуса без переименований: `⬜ Запланировано`, `🟡 Реализовано в main`, `🟠 Опубликовано; acceptance отложен`, `✅ Выполнено в vX.Y.Z`.
 
-Для значимого изменения документируй связанные Issue/PR, факт merge/release/deployment, подтверждённые проверки с evidence, незакрытые gates и следующий шаг. До merge не утверждай, что merge состоялся; после merge обнови актуальную сводку в установленном workflow. Не путай зелёный CI, published release и завершённый production acceptance; `PASS/PARTIAL/PENDING/FAIL/BLOCKED` — только результаты отдельных проверок.
+Для значимого изменения документируй связанные Issue/PR, факт merge/release/deployment, подтверждённые проверки с evidence, незакрытые gates и следующий шаг. До merge не утверждай, что merge состоялся; после merge обнови актуальную сводку в установленном workflow. Не путай зелёный CI, published release и завершённый production acceptance; `PASS/PARTIAL/PENDING/FAIL/BLOCKED` — только результаты отдельных проверок и acceptance gates: каждое поле gate имеет ровно один итог; `CLOSED` относится к Issue, `OPERATOR-WAIVED` к отдельному risk decision, не к успешной проверке. В текущей очереди только незавершённые действия/блокеры (никогда D1 scoped PASS или waived); детали сохранены в dated audits.
 
 Перед изменением roadmap сверяй факты с `main`, GitHub Releases, Issues и acceptance evidence. Исторический audit trail сохраняй.
 
