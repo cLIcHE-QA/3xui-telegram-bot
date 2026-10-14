@@ -158,7 +158,7 @@ def current_ok(root: Path) -> list[str]:
     issues = []
     if t.count("## Актуальная сводка проекта") != 1:
         issues.append("missing or duplicate current-state section")
-    for g in [f"G-{i:02d}" for i in range(1, 12)] + ["W-01", "W-02"]:
+    for g in [f"G-{i:02d}" for i in range(1, 12)] + ["W-01", "W-02", "W-03"]:
         count = len(re.findall(r"^\|\s*" + re.escape(g) + r"\s*\|", t, re.M))
         if count != 1:
             issues.append(f"missing/duplicate acceptance gate {g} ({count})")
@@ -212,7 +212,7 @@ def current_ok(root: Path) -> list[str]:
                     actual[cells[0]] = cells[1]
                     if "не PASS" not in cells[2]:
                         issues.append("waiver cannot be implied PASS")
-            if actual != {"W-01": "OPERATOR-WAIVED / NOT TESTED", "W-02": "OPERATOR-WAIVED / INCONCLUSIVE"}:
+            if actual != {"W-01": "OPERATOR-WAIVED / NOT TESTED", "W-02": "OPERATOR-WAIVED / INCONCLUSIVE", "W-03": "OPERATOR-WAIVED / NOT TESTED"}:
                 issues.append("waiver register mismatch")
     queue_parts = t.split("## Текущая очередь и блокировки", 1)
     if len(queue_parts) != 2:

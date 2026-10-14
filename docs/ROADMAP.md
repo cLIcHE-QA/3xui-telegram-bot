@@ -32,8 +32,8 @@
 | G-07 | Изоляция A/B, отказ админ-доступа, C2 offline forged callbacks — scoped PASS | PARTIAL | Live adversarial transport evidence PENDING |
 | G-08 | Portal OFF/ON, Stars toggle audit и health — scoped PASS | PARTIAL | Invoice/precheckout и paid event при OFF PENDING; повторять toggle нельзя |
 | G-09 | Natural paid Stars entitlement: SQLite expired ↔ Master disabled/expiry ↔ Telegram/VPN — operator-reported scoped PASS ([audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md)) | PASS | Независимая VPS/data-plane attestation отсутствует; AWG RTT без интернета REVIEW; не full v5 acceptance |
-| G-10 | QA synthetic 4/4 и Attention Center UI — scoped PASS | PENDING | Natural main-bot `job_failed` [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) NOT OBSERVED; passive, nonblocking |
-| G-11 | Final v5 acceptance report ещё не подготовлен; D1 и G-09 получили scoped operator evidence | PENDING | Отдельный финальный report PASS/CONDITIONAL/FAIL; G-01…G-08 PARTIAL, G-10 PENDING, W-01/W-02 waivers; public/stable BLOCKED |
+| G-10 | QA synthetic 4/4 и Attention Center UI — scoped PASS; natural main-bot `job_failed` NOT TESTED ([W-03 audit](audits/2026-10-14-v5-g10-w03-natural-job-failed-risk-acceptance.md)) | PARTIAL | W-03 operator-waived для [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466), не PASS; live notification/cooldown/recovery и две проекции не доказаны |
+| G-11 | Final v5 acceptance report ещё не подготовлен; D1 и G-09 получили scoped operator evidence | PENDING | Отдельный final report PASS/CONDITIONAL/FAIL; G-01…G-08 и G-10 PARTIAL, W-01/W-02/W-03 waivers; public/stable BLOCKED |
 
 ### Реестр принятых исключений
 
@@ -41,14 +41,15 @@
 | --- | --- | --- |
 | W-01 | OPERATOR-WAIVED / NOT TESTED | Independent cross-host Master DR не проводился; не PASS |
 | W-02 | OPERATOR-WAIVED / INCONCLUSIVE | Live Telegram burst не доказан; не PASS |
+| W-03 | OPERATOR-WAIVED / NOT TESTED | Natural main-bot `job_failed` [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466): new/reminder/recovery/cooldown и две проекции Attention Center не наблюдались ([audit](audits/2026-10-14-v5-g10-w03-natural-job-failed-risk-acceptance.md)); не PASS |
 
 Полные исторические наблюдения, включая старые FAIL, тайминги, данные G-01…G-11 и правильную идентичность DR-хоста: [архив проверок v5](audits/roadmap-history/v5-gates.md), [датированные audits](audits/), [карта переноса](roadmap/HISTORY_INDEX.md). Итоговые короткие строки не отменяют нормативные критерии [V5_PRODUCTION_ACCEPTANCE](V5_PRODUCTION_ACCEPTANCE.md).
 
 ## Текущая очередь и блокировки
 
-1. **G-11 / PENDING:** после отдельного G-09 natural paid expiry [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md) и завершённого D1 checkpoint подготовить final acceptance report по обязательным residuals G-01…G-08, G-10 и waivers. Итоговая оценка — только по фактам; stable/public rollout остаётся BLOCKED.
+1. **G-11 / PENDING:** после G-09 [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md), D1 и принятого W-03 [audit](audits/2026-10-14-v5-g10-w03-natural-job-failed-risk-acceptance.md) подготовить final acceptance report по residuals G-01…G-08, G-10 и W-01/W-02/W-03. Итоговая оценка — только по фактам; stable/public rollout остаётся BLOCKED.
 
-Прочие незакрытые работы — в gate-реестре и [активных GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues); пассивный G-10/#466 не входит в текущую очередь. Завершённые D1 [audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md) и G-09 [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md) не являются новыми задачами. Отдельные PASS/waivers не заменяют полного v5 acceptance; новых production mutations без согласования нет.
+Прочие незакрытые работы — в gate-реестре и [активных GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues); W-03/#466 отражает принятый оператором непроверенный риск и не входит в текущую очередь. Завершённые D1 [audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md) и G-09 [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md) не являются новыми задачами. Отдельные PASS/waivers не заменяют полного v5 acceptance; новых production mutations без согласования нет.
 
 ## Реестр открытых задач и будущие релизы
 
@@ -65,7 +66,7 @@
 | [#434](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/434) | ⬜ Запланировано | — | TBD | Issue #434 (scope), implementation PENDING | ненавязчивые условия возврата в клиентском портале: Issue criteria |
 | [#436](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/436) | ⬜ Запланировано | — | TBD | Issue #436 (scope), implementation PENDING | подготовить правовую политику возвратов РФ для самозанятого: Issue criteria |
 | [#437](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/437) | ⬜ Запланировано | — | TBD | Issue #437 (scope), implementation PENDING | справочник возвратов для поддержки в админке: Issue criteria |
-| [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) | ⬜ Запланировано | — | TBD | Issue #466 (scope), implementation PENDING | Natural job_failed, passive: Issue criteria |
+| [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466) | ⬜ Запланировано | — | TBD | [W-03 operator risk decision](audits/2026-10-14-v5-g10-w03-natural-job-failed-risk-acceptance.md), natural incident NOT TESTED | Решить GitHub disposition `not_planned` после docs checkpoint; до закрытия Issue остаётся OPEN |
 | [#470](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/470) | ⬜ Запланировано | — | TBD | Issue #470 (scope), implementation PENDING | read-only просмотр Stars Orders в админке: Issue criteria |
 | [#471](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/471) | ⬜ Запланировано | — | TBD | Issue #471 (scope), implementation PENDING | компактный список и карточки устройств клиента: Issue criteria |
 | [#472](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/472) | ⬜ Запланировано | — | TBD | Issue #472 (scope), implementation PENDING | безопасное удаление одного собственного HWID клиентом: Issue criteria |

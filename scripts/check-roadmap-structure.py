@@ -33,7 +33,7 @@ def check(root=ROOT):
     assert roadmap.count("## Статусы дорожной карты") == 1
     assert "## Реестр acceptance-gates" in roadmap
     for name in ("G-01", "G-02", "G-03", "G-04", "G-05", "G-06", "G-07",
-                 "G-08", "G-09", "G-10", "G-11", "D1", "W-01", "W-02",
+                 "G-08", "G-09", "G-10", "G-11", "D1", "W-01", "W-02", "W-03",
                  "#466", "#487",
                  "Published", "Deployed", "Accepted", "NOT PASS"):
         assert name in roadmap, name
