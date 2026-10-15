@@ -2382,7 +2382,7 @@ async def user_provisioning_strict_ask(call: CallbackQuery):
         "⚠️ Строгое согласование не только добавит отсутствующие Inbounds, но и отключит управляемые Inbounds, которых нет в целевой политике.\n\nПродолжить?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Да, строгое согласование", callback_data=f"admin:u:provrun:{tg_id}:strict")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:prov:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:more:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -2663,7 +2663,7 @@ async def user_reset_ask(call: CallbackQuery):
         f"Сбросить накопленный трафик {await _display_label(rec)} до 0?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Сбросить трафик", callback_data=f"admin:u:resetrun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:trafficview:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:more:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -2733,7 +2733,7 @@ async def user_sub_rotate_ask(call: CallbackQuery):
         "но обновлять их по старому URL будет нельзя.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="⚠️ Сгенерировать новый subId", callback_data=f"admin:u:subrotaterun:{tg_id}")],
-            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:subview:{tg_id}")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:more:{tg_id}")],
         ]),
     )
     await call.answer()
@@ -4329,9 +4329,11 @@ async def bulk_close(call: CallbackQuery, state: FSMContext):
     if not await guard(call, minimum="support"):
         return
     await state.clear()
-    await render_callback(call, "Выбор для массовых действий закрыт.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")]
-    ]))
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    text, kb = await _users_page_view(0, role)
+    await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
 
