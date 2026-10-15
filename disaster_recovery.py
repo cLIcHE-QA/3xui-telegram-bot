@@ -591,7 +591,7 @@ async def restore_history(call: CallbackQuery):
     ok, _ = await authorize_callback(db, settings, call, minimum="owner")
     if not ok:
         return
-    bid = (call.data or "").split(":", 3)[3] if (call.data or "").startswith("admin:restore:history:") else None
+    bid = (call.data or "").rsplit(":", 1)[-1] if (call.data or "").startswith("admin:restore:history:") else None
     if bid is not None:
         try:
             _backup_by_id(bid)
