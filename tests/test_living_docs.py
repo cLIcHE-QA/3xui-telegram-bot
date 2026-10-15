@@ -137,12 +137,12 @@ class LivingDocsSemanticTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         source = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn("| [#669]", source)
+        self.assertIn("| [#663]", source)
         with TemporaryDirectory() as folder:
             temp_root = Path(folder)
             (temp_root / "docs").mkdir()
             (temp_root / "docs/ROADMAP.md").write_text(
-                source.replace("\n| [#669]", "\n\n| [#669]", 1),
+                source.replace("\n| [#663]", "\n\n| [#663]", 1),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "contiguous"):
