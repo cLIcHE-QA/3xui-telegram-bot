@@ -1305,7 +1305,7 @@ async def hosts_discover(call: CallbackQuery):
     await render_callback(call, 
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⬅ Хосты", callback_data="admin:hosts")],
+            [InlineKeyboardButton(text="⬅ Адреса инфраструктуры", callback_data="admin:hosts:local")],
         ]),
     )
     await call.answer()

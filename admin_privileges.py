@@ -431,6 +431,8 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     )
     + _rules("administrators.manage", "regex", r"^admin:administrator:\d+$")
     + _rules("restore.manage", "exact", "admin:restore:history")
+    + _rules("restore.manage", "prefix", "admin:restore:history:")
+    + _rules("restore.manage", "regex", r"^admin:restore:history:[A-Za-z0-9._-]+$")
     + _rules(
         "restore.manage",
         "regex",

@@ -122,7 +122,7 @@ def system_menu(role: str | None = None) -> InlineKeyboardMarkup:
 def confirm_delete_keyboard(tg_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⚠️ Да, удалить", callback_data=f"admindel:{tg_id}")],
-        [InlineKeyboardButton(text="✖ Отмена", callback_data=f"adminuser:{tg_id}")],
+        [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:more:{tg_id}")],
     ])
 
 
