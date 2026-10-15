@@ -14,6 +14,41 @@ MAX_EDIT_NODES = 8
 MAX_CALLBACK_ID = 2147483647
 CONFIRM_TTL = 90.0
 
+# Fixed, non-sensitive operator categories: never surface API payloads or client fields.
+_PREFLIGHT_REASONS = {
+    "Identity клиента не совпадает": "CLIENT_IDENTITY",
+    "Telegram identity не совпадает": "CLIENT_IDENTITY",
+    "Master UUID отсутствует": "CLIENT_IDENTITY",
+    "Неполный общий record": "CLIENT_RECORD",
+    "Общий record содержит непроверенные поля другого протокола": "CLIENT_RECORD",
+    "Непроверенные reverse settings": "CLIENT_RECORD",
+    "Некорректный ответ Master": "MASTER_RESPONSE",
+    "Недопустимый список Inbounds": "INBOUND_MEMBERSHIP",
+    "Некорректный Inbound ID": "INBOUND_MEMBERSHIP",
+    "Дублированный Inbound ID": "INBOUND_MEMBERSHIP",
+    "Inbound identity mismatch": "INBOUND_IDENTITY",
+    "Нет проверенных настроек Inbound": "INBOUND_SETTINGS",
+    "Некорректные настройки Inbound": "INBOUND_SETTINGS",
+    "Список клиентов Inbound не подтверждён": "INBOUND_CLIENT",
+    "Привязка клиента отсутствует или неоднозначна": "INBOUND_CLIENT",
+    "Неизвестное значение Flow": "INBOUND_FLOW",
+    "Inbound tag не подтверждён": "INBOUND_TAG",
+    "Неоднозначный tag": "INBOUND_TAG",
+    "Недопустимая identity ноды": "NODE_IDENTITY",
+    "Inbound origin ноды не определён": "NODE_IDENTITY",
+    "Слишком много нод": "BOUNDED_LIMIT",
+}
+
+
+def preflight_reason(exc: Exception) -> str:
+    """Fail closed with a constant public diagnostic, never upstream details."""
+    if isinstance(exc, FlowEditRejected):
+        return _PREFLIGHT_REASONS.get(str(exc), "MASTER_VALIDATION")
+    if isinstance(exc, asyncio.TimeoutError):
+        return "UPSTREAM_TIMEOUT"
+    return "MASTER_API_UNAVAILABLE"
+
+
 class FlowEditRejected(ValueError):
     """Target or source evidence is unavailable or ambiguous."""
 

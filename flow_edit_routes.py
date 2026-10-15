@@ -9,7 +9,7 @@ from admin_auth import authorize_callback
 from admin_ui import render_callback
 from audit import audit_from_call
 from flow_diagnostics import inspect_node_flow
-from flow_edit import FLOW_CHOICES, FlowConfirmation, FlowEditRejected, discover_flow_targets, pop_confirmation, read_target_outcome
+from flow_edit import FLOW_CHOICES, FlowConfirmation, FlowEditRejected, discover_flow_targets, pop_confirmation, preflight_reason, read_target_outcome
 from xui import XUIError, XUIMutationError
 
 def node_label(node_id: int) -> str:
@@ -36,8 +36,8 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
         try:
             snap = await discover_flow_targets(xui, rec.email, tg_id)
             return rec, snap
-        except (FlowEditRejected, XUIError, asyncio.TimeoutError, TypeError, ValueError):
-            await call.answer("Master/Inbounds не подтверждены; изменений нет.", show_alert=True)
+        except (FlowEditRejected, XUIError, asyncio.TimeoutError, TypeError, ValueError) as exc:
+            await call.answer(f"Master/Inbounds не подтверждены ({preflight_reason(exc)}); изменений нет.", show_alert=True)
             return None
 
     @router.callback_query(F.data.regexp(r"^admin:u:flowedit:\d+$"))
