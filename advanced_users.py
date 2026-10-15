@@ -1371,19 +1371,25 @@ async def user_activity_view(call: CallbackQuery):
     await call.answer()
 
 
-@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:flowcheck:\d+$"))
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:flowcheck(?::cfg)?:\d+$"))
 async def user_flow_check(call: CallbackQuery):
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
         return
     tg_id = int((call.data or "").rsplit(":", 1)[-1])
+    from_access_config = (call.data or "").startswith("admin:u:flowcheck:cfg:")
     rec = await db.get(tg_id)
     if rec is None:
         await call.answer("Пользователь не найден.", show_alert=True)
         return
     rows = [
-        [InlineKeyboardButton(text="🔄 Повторить проверку", callback_data=f"admin:u:flowcheck:{tg_id}")],
-        [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
+        [InlineKeyboardButton(text="🔄 Повторить проверку", callback_data=(
+            f"admin:u:flowcheck:cfg:{tg_id}" if from_access_config else f"admin:u:flowcheck:{tg_id}"
+        ))],
+        [InlineKeyboardButton(
+            text="⬅ Параметры доступа" if from_access_config else "⬅ Пользователь",
+            callback_data=f"admin:u:accesscfg:{tg_id}" if from_access_config else f"admin:u:{tg_id}",
+        )],
     ]
     try:
         obj = await xui.get_client(rec.email)
@@ -1625,7 +1631,7 @@ async def user_access_config(call: CallbackQuery, state: FSMContext):
                 text="🔄 Синхронизировать VLESS Flow",
                 callback_data=f"admin:u:flowask:{tg_id}",
             )])
-    rows.append([InlineKeyboardButton(text="🔎 Проверить Flow", callback_data=f"admin:u:flowcheck:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="🔎 Проверить Flow", callback_data=f"admin:u:flowcheck:cfg:{tg_id}")])
     rows.append([InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")])
     await render_callback(
         call,
