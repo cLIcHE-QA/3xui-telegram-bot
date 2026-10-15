@@ -184,6 +184,35 @@
         "docs/LIVING_DOCS.md"
       ],
       "waiver": "Living Docs: audit-documentation — изменений не требуется"
+    },
+    {
+      "id": "agent-mode",
+      "mode": "review",
+      "triggers": [
+        "AGENTS.md",
+        "scripts/check-project-language.py",
+        "scripts/check_pr_checklist.py"
+      ],
+      "documents": [
+        "docs/GIT_WORKFLOW.md",
+        "docs/LIVING_DOCS.md"
+      ],
+      "waiver": "Living Docs: agent-mode — изменений не требуется"
+    },
+    {
+      "id": "telegram-ui-language",
+      "mode": "review",
+      "triggers": [
+        "advanced_users.py",
+        "admin_ui.py",
+        "admin_navigation.py",
+        "flow_edit_routes.py",
+        "client_access.py"
+      ],
+      "documents": [
+        "docs/UI_STYLE.md"
+      ],
+      "waiver": "Living Docs: telegram-ui-language — изменений не требуется"
     }
   ],
   "repository_state": {
