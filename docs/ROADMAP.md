@@ -97,6 +97,9 @@
 | [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) | ⬜ Запланировано | — | TBD | Issue #564 (scope), implementation PENDING | скрыть legacy /create и /inbounds из актуального интерфейса: Issue criteria | S|
 | [#615](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/615) | ⬜ Запланировано | — | TBD | Issue #615 (scope), implementation PENDING | выбор RU Direct / Full VPN на подписку в Happ и Incy; Shadowrocket позже: Issue criteria | XL|
 | [#617](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/617) | ⬜ Запланировано | — | TBD | Issue #617 (scope), implementation PENDING | одноразовая emoji-капча для новых клиентов, existing users без повтора: Issue criteria | L|
+| [#648](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/648) | ⬜ Запланировано | — | v5.0.0-rc.11 (candidate) | 2026-10-15: operator-reported Flow loss on nodes; static upstream/bot hypothesis; offline reproduction PENDING | VLESS Reality `xtls-rprx-vision` сохраняется на direct nodes при смене тарифа, покупке/продлении; regression и targeted node read-back PENDING | M|
+| [#649](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/649) | ⬜ Запланировано | — | v5.0.0-rc.11 (candidate) | 2026-10-15: 8/8 callback paths static-confirmed; operator-reported UX; live smoke PENDING | восемь Cancel/Back переходов, source context, FSM и резервная копия; обновить UI_STYLE и regression coverage | S|
+| [#650](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/650) | ⬜ Запланировано | — | v5.0.0-rc.11 (candidate) | 2026-10-15 11:11:46 UTC operator traceback NameError; admin_observability.py:168 static confirmed; fix/CI PENDING | role-aware auth и регрессионная проверка экрана Мониторинг → Трафик (success/error/denied), targeted production PENDING | XS|
 
 
 ## Завершённые этапы и исторические документы
