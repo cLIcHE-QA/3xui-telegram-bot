@@ -19,9 +19,10 @@ _PREFLIGHT_REASONS = {
     "Identity клиента не совпадает": "CLIENT_IDENTITY",
     "Telegram identity не совпадает": "CLIENT_IDENTITY",
     "Master UUID отсутствует": "CLIENT_IDENTITY",
-    "Неполный общий record": "CLIENT_RECORD",
-    "Общий record содержит непроверенные поля другого протокола": "CLIENT_RECORD",
-    "Непроверенные reverse settings": "CLIENT_RECORD",
+    "Неполный общий record": "CLIENT_RECORD_MISSING",
+    "Пустое обязательное значение общего record": "CLIENT_RECORD_NULL",
+    "Общий record содержит непроверенные поля другого протокола": "CLIENT_RECORD_PROTOCOL",
+    "Непроверенные reverse settings": "CLIENT_RECORD_REVERSE",
     "Некорректный ответ Master": "MASTER_RESPONSE",
     "Недопустимый список Inbounds": "INBOUND_MEMBERSHIP",
     "Некорректный Inbound ID": "INBOUND_MEMBERSHIP",
@@ -122,7 +123,7 @@ async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnap
     if not isinstance(client.get("uuid"), str) or not client["uuid"]:
         raise FlowEditRejected("Master UUID отсутствует")
     if any(client[k] is None for k in ("subId", "expiryTime", "totalGB", "limitIp", "limitHwid", "enable", "tgId")):
-        raise FlowEditRejected("Неполный общий record")
+        raise FlowEditRejected("Пустое обязательное значение общего record")
     if any(client[k] not in ("", None, 0, "[]", []) for k in (
         "privateKey", "publicKey", "allowedIPs", "preSharedKey",
         "keepAlive", "forwardedPorts", "secret", "adTag"
