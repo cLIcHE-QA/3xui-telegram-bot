@@ -102,6 +102,7 @@
 | [#650](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/650) | 🟡 Реализовано в main | [#652](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/652) | v5.0.0-rc.11 (candidate) | 2026-10-15: merged b28efd4e6c1ffc937211f24c45af13c9deb0c8e8; required test/title PASS; main handler read-back PASS; production PENDING | NameError role устранён offline; Published/Deployed остаются rc.10, targeted production Traffic/Refresh/Back + health PENDING, issue OPEN | XS|
 
 | [#659](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/659) | 🟡 Реализовано в main | [#661](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/661) | v5.0.0-rc.11 (candidate) | 2026-10-15: read-only Flow Master/Node diagnostics merged 8533ef64107872a863038fd2031664fc3745f7d3; required test/title PASS, offline MATCH/MISMATCH/UNKNOWN regression PASS; independent main read-back PASS | Source-separated Master Flow and explicit direct Panel GET per exact node_id; no automatic node queries on card open; missing binding = UNKNOWN. Published/Deployed rc.10, scoped direct-node read-back PENDING, Issue OPEN | S|
+| [#663](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/663) | ⬜ Запланировано | — | v5.0.0-rc.11 (candidate) | 2026-10-15 operator requested node-specific Flow picker incl none; upstream API filtering inspected; implementation/CI PENDING | Node → inbound → three Flow choices → confirmation, Master scoped update and independent Node GET, safeguard legacy bulkAdjust | S|
 
 ## Завершённые этапы и исторические документы
 
