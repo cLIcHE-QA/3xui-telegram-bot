@@ -25,6 +25,7 @@ from user_ui import display_name_from_profile, user_label
 from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine, ProvisioningUnknown
+from flow_diagnostics import inspect_node_flow
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -572,7 +573,9 @@ async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, 
             f"📊 Трафик: {human_bytes(up + down)} / {human_bytes(total) if total else 'без лимита'}",
             f"🌐 Доступ: {group_name} · Inbounds {len(inbound_ids)}",
             provisioning_line,
-            f"📱 Лимит IP: {limit_ip if limit_ip else 'без лимита'} · Flow: {flow}",
+            f"📱 Лимит IP: {limit_ip if limit_ip else 'без лимита'}",
+            f"🖥 Flow Master: {flow}",
+            "🌐 Flow Nodes: ⚪ не проверено",
         ]
         if note:
             lines += ["", f"📝 Заметка: {note}"]
@@ -610,6 +613,7 @@ async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, 
             InlineKeyboardButton(text="✏️ Профиль", callback_data=f"admin:u:profile:{tg_id}"),
         ],
         [InlineKeyboardButton(text="👥 Группы", callback_data=f"admin:u:audgroups:{tg_id}")],
+        [InlineKeyboardButton(text="🔎 Проверить Flow", callback_data=f"admin:u:flowcheck:{tg_id}")],
         [InlineKeyboardButton(text="⚙️ Ещё действия", callback_data=f"admin:u:more:{tg_id}")],
         [InlineKeyboardButton(text="⬅ Пользователи", callback_data="admin:users")],
     ]
@@ -1382,6 +1386,53 @@ async def user_activity_view(call: CallbackQuery):
     offset = int(parts[4]) if len(parts) > 4 else 0
     text, kb = await _user_activity_view(tg_id, offset)
     await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:flowcheck:\d+$"))
+async def user_flow_check(call: CallbackQuery):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    tg_id = int((call.data or "").rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if rec is None:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    rows = [
+        [InlineKeyboardButton(text="🔄 Повторить проверку", callback_data=f"admin:u:flowcheck:{tg_id}")],
+        [InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")],
+    ]
+    try:
+        obj = await xui.get_client(rec.email)
+        client = obj.get("client", obj)
+        master_flow = str(client.get("flow") or "none")
+        ids = [int(v) for v in (obj.get("inboundIds") or []) if str(v).isdigit()]
+        observations, omitted = await inspect_node_flow(xui, settings.node_backup_targets, rec.email, ids)
+        lines = [
+            f"🔎 Проверка Flow · {await _display_label(rec)}", "",
+            f"🖥 Master API: {master_flow}",
+            "🌐 Direct Node Panel API (read-only):",
+        ]
+        if not observations:
+            lines.append("⚪ UNKNOWN · нет подтверждённых VLESS Reality inbound на direct nodes")
+        for item in observations:
+            icon = {"MATCH": "🟢", "MISMATCH": "🔴", "UNKNOWN": "⚪"}[item.state]
+            # Stable identifiers only: do not expose raw tag, UUID or email.
+            node_text = f"Node #{item.node_id}"
+            if item.state == "UNKNOWN":
+                lines.append(f"{icon} {node_text}: UNKNOWN · {item.reason}")
+            else:
+                lines.append(f"{icon} {node_text}: {item.state} · Master {item.master_flow or 'none'} / Node {item.node_flow or 'none'}")
+        if omitted:
+            lines.append(f"⚪ Не проверено Inbounds: {omitted}")
+        lines.extend(["", "Данные Node Panel, не аттестация работающего Xray. Нет node-side read-back = UNKNOWN."])
+    except (XUIError, ValueError, TypeError):
+        lines = ["🔎 Проверка Flow", "", "⚪ UNKNOWN · Master API недоступен; ноды не проверены"]
+    await render_callback(
+        call, "\n".join(lines)[:3600],
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
     await call.answer()
 
 
