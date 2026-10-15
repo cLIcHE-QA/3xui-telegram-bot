@@ -190,7 +190,7 @@
       "mode": "review",
       "triggers": [
         "AGENTS.md",
-        "scripts/check-project-language.py",
+        "scripts/check_project_language.py",
         "scripts/check_pr_checklist.py"
       ],
       "documents": [
