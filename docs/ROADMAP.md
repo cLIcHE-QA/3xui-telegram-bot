@@ -97,7 +97,6 @@
 | [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) | ⬜ Запланировано | — | TBD | Issue #564 (scope), implementation PENDING | скрыть legacy /create и /inbounds из актуального интерфейса: Issue criteria | S|
 | [#615](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/615) | ⬜ Запланировано | — | TBD | Issue #615 (scope), implementation PENDING | выбор RU Direct / Full VPN на подписку в Happ и Incy; Shadowrocket позже: Issue criteria | XL|
 | [#617](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/617) | ⬜ Запланировано | — | TBD | Issue #617 (scope), implementation PENDING | одноразовая emoji-капча для новых клиентов, existing users без повтора: Issue criteria | L|
-| [#628](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/628) | 🟠 Опубликовано; acceptance отложен | [#641](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/641) | v5.0.0-rc.10 | PR #641 merged `c532f1619c3ddeded6ab145617349ec8af25891e`, CI `test`/`title` PASS; immutable Published `ef7e655fed6818053ceff1818b64a852c83638ec`; Deployed and targeted scope PASS operator-reported 2026-10-15, [audit](audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md) | Issue closure audit + next Roadmap sync PENDING; no independent VPS attestation, G-11 NO-GO | M|
 
 
 ## Завершённые этапы и исторические документы
