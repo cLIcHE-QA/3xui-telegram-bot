@@ -10,6 +10,8 @@ from version_api import VersionAPIMixin
 
 DEFAULT_HWID_LIMIT = 5
 
+SCOPED_FLOW_REQUIRED_CLIENT_FIELDS = frozenset(("email", "uuid", "subId", "password", "auth", "flow", "security", "totalGB", "expiryTime", "limitIp", "limitHwid", "tgId", "enable", "group", "comment", "reset", "resetDay", "resetWeekday", "resetMax", "trafficReset", "trafficResetDay", "privateKey", "publicKey", "allowedIPs", "preSharedKey", "keepAlive", "forwardedPorts", "secret", "adTag", "reverse"))
+
 
 class XUIError(RuntimeError):
     pass
@@ -125,6 +127,7 @@ class XUIClient(VersionAPIMixin):
         method: str = "POST",
         json_payload: dict[str, Any] | None = None,
         data_payload: Any | None = None,
+        params: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         """Send one state-changing request without redirects or automatic retry."""
         if json_payload is not None and data_payload is not None:
@@ -145,6 +148,8 @@ class XUIClient(VersionAPIMixin):
                     request_kwargs["json"] = json_payload
                 elif data_payload is not None:
                     request_kwargs["data"] = data_payload
+                if params is not None:
+                    request_kwargs["params"] = params
                 async with session.request(
                     method,
                     f"{self.base_url}{path}",
@@ -615,6 +620,48 @@ class XUIClient(VersionAPIMixin):
         payload = self._full_update_payload(client, **changes)
         return await self._mutation_request(
             f"/panel/api/clients/update/{quote(email, safe='')}", json_payload=payload
+        )
+
+    async def update_client_inbound_flow(
+        self, email: str, inbound_id: int, flow: str, *, client: dict[str, Any]
+    ) -> dict[str, Any]:
+        """One scoped Master update without Node write or blind retry.
+
+        The inboundIds query filter is verified on pinned upstream 3x-ui
+        v3.10.0. The calling preflight must validate identity and fields.
+        """
+        if isinstance(inbound_id, bool) or not isinstance(inbound_id, int) or not 0 < inbound_id <= 2147483647:
+            raise ValueError("Invalid inbound ID")
+        if flow not in {"", "xtls-rprx-vision", "xtls-rprx-vision-udp443"}:
+            raise ValueError("Unsupported Reality Flow")
+        if not isinstance(client, dict) or client.get("email") != email or not email:
+            raise ValueError("Client identity changed during Flow preflight")
+        # The pinned v3.10.0 GET returns all of these ClientRecord columns.
+        # The update endpoint binds model.Client (full-row replacement), so
+        # missing values must never silently become empty credentials/limits.
+        if SCOPED_FLOW_REQUIRED_CLIENT_FIELDS.difference(client):
+            raise ValueError("Incomplete Master client record for scoped Flow update")
+        if not isinstance(client.get("uuid"), str) or not client["uuid"]:
+            raise ValueError("Client credential is not verified")
+        # Shared WireGuard/AmneziaWG/other protocol-specific identity fields
+        # need separate serialization review; do not erase those on VLESS edit.
+        protocol_fields = ("privateKey", "publicKey", "allowedIPs", "preSharedKey",
+                           "keepAlive", "forwardedPorts", "secret", "adTag")
+        if any(client[key] not in ("", None, 0, "[]", []) for key in protocol_fields):
+            raise ValueError("Shared client has unsupported protocol-specific fields")
+        if client["reverse"] is not None and not isinstance(client["reverse"], dict):
+            raise ValueError("Unverified client reverse settings")
+        payload = self._full_update_payload(client, flow=flow)
+        # Retain the exact shared fields even when an empty value is valid.
+        for field in ("password", "auth", "security", "group", "comment",
+                      "trafficReset", "trafficResetDay"):
+            payload[field] = client[field]
+        payload["resetWeekday"] = client["resetWeekday"]
+        if client["reverse"] is not None:
+            payload["reverse"] = client["reverse"]
+        return await self._mutation_request(
+            f"/panel/api/clients/update/{quote(email, safe='')}",
+            json_payload=payload, params={"inboundIds": inbound_id},
         )
 
     async def attach_client(self, email: str, inbound_ids: list[int]) -> dict[str, Any]:

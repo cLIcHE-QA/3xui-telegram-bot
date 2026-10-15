@@ -26,6 +26,7 @@ STATE_CHANGING_METHODS = (
     "inbound_reset_traffic",
     "create_client",
     "update_client",
+    "update_client_inbound_flow",
     "attach_client",
     "detach_client",
     "bulk_attach_clients",
@@ -159,13 +160,6 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
                 "await xui.get_client(rec.email)",
                 "user.traffic_limit.set.unknown",
             ),
-            (
-                "advanced_users.py",
-                "async def user_flow_sync_run(call: CallbackQuery):",
-                "await xui.bulk_adjust_clients([rec.email], flow=settings.vless_flow)",
-                "await xui.get_client(rec.email)",
-                "user.flow.sync.unknown",
-            ),
         )
         for filename, signature, mutation_call, readback_call, unknown_marker in cases:
             with self.subTest(filename=filename, signature=signature):
@@ -199,11 +193,12 @@ class XuiMutationCertaintyAuditTests(unittest.IsolatedAsyncioTestCase):
 
         membership_helper = users[
             users.index("async def _membership_with_readback"):
-            users.index("async def _flow_with_readback")
+            users.index("class EditUserStates")
         ]
         self.assertIn("except XUIMutationError as exc:", membership_helper)
         self.assertIn("await xui.get_client(email)", membership_helper)
         self.assertIn("mutation_not_retried=true", membership_helper)
+        self.assertNotIn("async def _flow_with_readback", users)
 
         bulk = users[users.index("async def bulk_run(call: CallbackQuery"):]
         self.assertIn("except XUIMutationError as exc:", bulk)

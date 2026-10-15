@@ -41,7 +41,10 @@ class V4250FinalUiContractTests(unittest.TestCase):
         handler = source.split("async def user_access_config", 1)[1].split(
             "async def user_flow_sync_ask", 1
         )[0]
-        self.assertIn('"не настроен" if not settings.vless_flow', handler)
+        self.assertIn('flow = "недоступно"', handler)
+        self.assertIn('flow = str(client.get("flow") or "none")', handler)
+        self.assertIn("🖥 Flow Master:", handler)
+        self.assertIn("🌐 Flow Nodes: ⚪ не проверено", handler)
         self.assertIn("if settings.vless_flow:", handler)
 
     def test_detail_back_helpers_match_canonical_parents(self):
