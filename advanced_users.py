@@ -105,26 +105,6 @@ async def _membership_with_readback(
         return True, "readback=match; uncertain_resolved=success"
 
 
-async def _flow_with_readback(email: str, flow: str) -> tuple[bool, str]:
-    try:
-        await xui.bulk_adjust_clients([email], flow=flow)
-        return True, "direct"
-    except XUIMutationError as exc:
-        if not exc.uncertain:
-            raise
-        try:
-            readback = await xui.get_client(email)
-        except XUIError as read_exc:
-            return False, (
-                f"code={exc.code}; mutation_not_retried=true; "
-                f"readback=unavailable:{type(read_exc).__name__}"
-            )
-        client = readback.get("client", readback)
-        if not isinstance(client, dict) or str(client.get("flow") or "") != flow:
-            return False, f"code={exc.code}; mutation_not_retried=true; readback=mismatch"
-        return True, "readback=match; uncertain_resolved=success"
-
-
 class EditUserStates(StatesGroup):
     expiry = State()
     traffic = State()

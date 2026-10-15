@@ -1,18 +1,16 @@
 """Regression for Issue #663: no production traffic."""
 from __future__ import annotations
-import asyncio
 import copy
 import json
 import unittest
-from types import SimpleNamespace
 from flow_edit import FLOW_CHOICES, FlowEditRejected, discover_flow_targets, FlowConfirmation, pop_confirmation, read_target_outcome
 
 class FakeMaster:
     def __init__(self):
-        self.client = {"client":{"email":"qa@example.invalid","tgId":1001,"uuid":"fake-id","subId":"fake-sub","totalGB":1234,"expiryTime":150000,"limitIp":5,"limitHwid":6,"enable":True,"flow":""},"inboundIds":[1,2,3]}
+        self.client = {"client":{"email":"qa@example.invalid","tgId":1001,"uuid":"fake-id","subId":"fake-sub","password":"","auth":"","security":"auto","totalGB":1234,"expiryTime":150000,"limitIp":5,"limitHwid":6,"enable":True,"flow":"","group":"","comment":"","reset":0,"resetDay":0,"resetWeekday":4,"resetMax":0,"trafficReset":"never","trafficResetDay":1,"privateKey":"","publicKey":"","allowedIPs":"","preSharedKey":"","keepAlive":0,"forwardedPorts":"","secret":"","adTag":"","reverse":None},"inboundIds":[1,2,3]}
         self.inbounds = {}
         for iid,node,proto,flow in [(1,11,"tcp","xtls-rprx-vision"),(2,11,"tcp","xtls-rprx-vision"),(3,12,"ws","")]:
-            self.inbounds[iid] = {"id":iid,"nodeId":node,"tag":f"test-{iid}","protocol":"vless","streamSettings":json.dumps({"security":"reality" if proto=="tcp" else "none","network":proto}),"settings":json.dumps({"clients":[{"email":"qa@example.invalid","flow":flow}]})}
+            self.inbounds[iid] = {"id":iid,"nodeId":node,"tag":f"test-{iid}","disableFlow":False,"protocol":"vless","streamSettings":json.dumps({"security":"reality" if proto=="tcp" else "none","network":proto}),"settings":json.dumps({"clients":[{"email":"qa@example.invalid","flow":flow}]})}
         self.writes=[]
     async def get_client(self,email):
         return copy.deepcopy(self.client)
@@ -60,6 +58,31 @@ class FlowEditTests(unittest.IsolatedAsyncioTestCase):
         self.master.client["client"]["expiryTime"]+=1
         after=await discover_flow_targets(self.master,"qa@example.invalid",1001)
         self.assertNotEqual(before.fingerprint,after.fingerprint)
+    async def test_shared_flow_change_invalidates_confirmation(self):
+        before=await discover_flow_targets(self.master,"qa@example.invalid",1001)
+        self.master.client["client"]["flow"]="xtls-rprx-vision"
+        after=await discover_flow_targets(self.master,"qa@example.invalid",1001)
+        self.assertNotEqual(before.fingerprint, after.fingerprint)
+    async def test_explicit_disable_flow_not_eligible(self):
+        self.master.inbounds[1]["disableFlow"]=True
+        snap=await discover_flow_targets(self.master,"qa@example.invalid",1001)
+        with self.assertRaises(FlowEditRejected):
+            snap.select(11,1)
+    async def test_local_master_is_explicit(self):
+        self.master.inbounds[1].pop("nodeId")
+        snap=await discover_flow_targets(self.master,"qa@example.invalid",1001)
+        self.assertEqual(snap.select(0,1).inbound_id,1)
+        self.master.inbounds[1]["originNodeGuid"]="remote-origin"
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(self.master,"qa@example.invalid",1001)
+    async def test_invalid_node_id_fails_closed(self):
+        self.master.inbounds[1]["nodeId"]=0
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(self.master,"qa@example.invalid",1001)
+    async def test_incomplete_master_record_fails_closed(self):
+        del self.master.client["client"]["resetWeekday"]
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(self.master,"qa@example.invalid",1001)
 
 class ConfirmationTests(unittest.TestCase):
     def test_nonce_replay_and_expiry(self):

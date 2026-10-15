@@ -6,6 +6,7 @@ import json
 import secrets
 from dataclasses import dataclass
 from typing import Any
+from xui import SCOPED_FLOW_REQUIRED_CLIENT_FIELDS
 
 FLOW_CHOICES = {"n": "", "v": "xtls-rprx-vision", "u": "xtls-rprx-vision-udp443"}
 MAX_EDIT_INBOUNDS = 32
@@ -46,7 +47,9 @@ def _settings_obj(value: Any) -> dict[str, Any]:
     return value
 
 def _node_id(raw: Any) -> int:
-    if raw in (None, "", 0, "0"):
+    # Pinned v3.10.0 uses nodeId,omitempty: null/missing means local Master.
+    # Explicit zero/empty/boolean must not be interpreted as a valid Node.
+    if raw is None:
         return 0
     if isinstance(raw, bool) or not str(raw).isdigit():
         raise FlowEditRejected("Недопустимая identity ноды")
@@ -68,8 +71,8 @@ def _scoped_flow(inbound: dict[str, Any], email: str) -> str:
     return flow
 
 def client_fingerprint(client: dict[str, Any]) -> str:
-    protected = {k: v for k, v in client.items() if k != "flow"}
-    return hashlib.sha256(json.dumps(protected, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+    # Include shared Flow and all other fields: concurrent edits invalidate TTL confirmation.
+    return hashlib.sha256(json.dumps(client, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnapshot:
     payload = await asyncio.wait_for(master.get_client(email), timeout=12)
@@ -78,9 +81,19 @@ async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnap
     client = payload.get("client", payload)
     if not isinstance(client, dict) or client.get("email") != email:
         raise FlowEditRejected("Identity клиента не совпадает")
-    mandatory = ("subId", "expiryTime", "totalGB", "limitIp", "limitHwid", "enable", "tgId")
-    if any(k not in client or client[k] is None for k in mandatory) or not (client.get("uuid") or client.get("id")):
+    if SCOPED_FLOW_REQUIRED_CLIENT_FIELDS.difference(client):
         raise FlowEditRejected("Неполный общий record")
+    if not isinstance(client.get("uuid"), str) or not client["uuid"]:
+        raise FlowEditRejected("Master UUID отсутствует")
+    if any(client[k] is None for k in ("subId", "expiryTime", "totalGB", "limitIp", "limitHwid", "enable", "tgId")):
+        raise FlowEditRejected("Неполный общий record")
+    if any(client[k] not in ("", None, 0, "[]", []) for k in (
+        "privateKey", "publicKey", "allowedIPs", "preSharedKey",
+        "keepAlive", "forwardedPorts", "secret", "adTag"
+    )):
+        raise FlowEditRejected("Общий record содержит непроверенные поля другого протокола")
+    if client["reverse"] is not None and not isinstance(client["reverse"], dict):
+        raise FlowEditRejected("Непроверенные reverse settings")
     try:
         valid_tg = int(client["tgId"]) == tg_id
     except (TypeError, ValueError):
@@ -105,10 +118,18 @@ async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnap
         stream = _settings_obj(inbound.get("streamSettings"))
         if inbound.get("protocol") != "vless" or stream.get("security") != "reality" or stream.get("network", "tcp") != "tcp":
             continue
+        # disableFlow is always an explicit boolean in pinned upstream; do
+        # not offer an inbound where upstream policy suppresses client Flow.
+        if inbound.get("disableFlow") is not False:
+            continue
         tag = inbound.get("tag")
         if not isinstance(tag, str) or not tag:
             raise FlowEditRejected("Inbound tag не подтверждён")
-        targets.append(FlowTarget(_node_id(inbound.get("nodeId")), iid, tag, _scoped_flow(inbound, email)))
+        node_id = _node_id(inbound.get("nodeId"))
+        # A remote origin with no stable Master nodeId is not local Master.
+        if node_id == 0 and inbound.get("originNodeGuid"):
+            raise FlowEditRejected("Inbound origin ноды не определён")
+        targets.append(FlowTarget(node_id, iid, tag, _scoped_flow(inbound, email)))
     if len({t.node_id for t in targets}) > MAX_EDIT_NODES:
         raise FlowEditRejected("Слишком много нод")
     if len({(t.node_id, t.inbound_tag) for t in targets}) != len(targets):
