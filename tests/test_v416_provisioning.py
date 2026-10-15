@@ -145,6 +145,42 @@ class ProvisioningRegressionTests(unittest.IsolatedAsyncioTestCase):
             node_id=node_id,
         )
 
+    async def test_reality_flow_already_on_master_never_triggers_redundant_bulk_adjust(self):
+        # A no-op v3.10.0 bulkAdjust may send stale common flow to direct nodes.
+        # This offline test protects against issuing that dangerous no-op.
+        db = FakeProvisioningDB()
+        xui = FakeProvisioningXUI(
+            [self.inbound(10, node_id=2)],
+            client_ids={"one@example.test": {10}},
+        )
+        xui.client_fields["one@example.test"]["flow"] = "xtls-rprx-vision"
+        engine = ProvisioningEngine(db, xui, settings(vless_flow="xtls-rprx-vision"))
+
+        await engine.sync_user(1)
+        await engine.sync_user(1)
+
+        self.assertEqual(xui.flow_calls, [])
+
+    async def test_reality_flow_missing_on_master_is_still_applied(self):
+        db = FakeProvisioningDB()
+        xui = FakeProvisioningXUI(
+            [self.inbound(10, node_id=2)],
+            client_ids={"one@example.test": {10}},
+        )
+        xui.client_fields["one@example.test"]["flow"] = ""
+        original_bulk = xui.bulk_adjust_clients
+
+        async def adjusting_bulk(emails, **kwargs):
+            await original_bulk(emails, **kwargs)
+            xui.client_fields["one@example.test"]["flow"] = kwargs["flow"]
+
+        xui.bulk_adjust_clients = adjusting_bulk
+        engine = ProvisioningEngine(db, xui, settings(vless_flow="xtls-rprx-vision"))
+
+        await engine.sync_user(1)
+
+        self.assertEqual(xui.flow_calls, [(["one@example.test"], {"flow": "xtls-rprx-vision"})])
+
     async def test_safe_reconcile_is_idempotent_and_never_detaches_extra(self):
         db = FakeProvisioningDB()
         xui = FakeProvisioningXUI(
