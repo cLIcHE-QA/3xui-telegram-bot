@@ -10,7 +10,7 @@
 
 - #663: Support+ адресно выбирает Node → Reality Inbound → Flow (`none`, `xtls-rprx-vision`, `xtls-rprx-vision-udp443`) и подтверждает одноразовую Master mutation; результат отделяет Master от независимого Node Panel read-back.
 - #648/#663: старая кнопка массовой синхронизации Flow остаётся доступной для навигации, но опасный `bulkAdjust` заменён выбором конкретного Inbound; устаревшие run callbacks не выполняют mutation.
-- Кандидат находится только в рабочем PR до merge/CI; это не новый Published/Deployed release и не production PASS. Общий v5 G-11 по-прежнему PARTIAL / NO-GO.
+- #663: исправлена предварительная проверка совместимости с pinned v3.10.0 — пустой строковый `reverse` допустим, непустой блокируется; отсутствующий `flow` в Reality Inbound означает `none`. Regression-тесты без live mutations.\n- Изменения #648/#649/#650/#659/#663 уже слиты в `main`; rc.11 пока не Published/Deployed, targeted production acceptance PENDING, G-11 PARTIAL / NO-GO.
 
 ## v5.0.0-rc.10 — Диагностика сроков и история Stars в карточке пользователя
 
