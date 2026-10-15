@@ -2,6 +2,7 @@ package service
 
 import (
     "context"
+    "encoding/json"
     "sync"
     "testing"
 
@@ -172,7 +173,9 @@ func TestRC11ScopedFlowEditDoesNotTouchAnotherInbound(t *testing.T) {
         t.Helper()
         raw, err := inboundSvc.GetInbound(ib.Id)
         if err != nil { t.Fatal(err) }
-        current := raw.GetClients()
+        var settings struct { Clients []model.Client `json:"clients"` }
+        if err := json.Unmarshal([]byte(raw.Settings), &settings); err != nil { t.Fatal(err) }
+        current := settings.Clients
         if len(current) != 1 || current[0].Email != email || current[0].Flow != want {
             t.Fatalf("inbound %d (%s) Flow=%v; want %q", ib.Id, ib.Tag, current, want)
         }
