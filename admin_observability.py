@@ -90,7 +90,8 @@ def system_back() -> InlineKeyboardMarkup:
 
 @observability_router.callback_query(F.data == "admin:traffic")
 async def traffic_view(call: CallbackQuery):
-    if not await guard(call):
+    ok, role = await authorize_callback(db, settings, call)
+    if not ok or role is None:
         return
     await call.answer("Собираю трафик…")
     try:
