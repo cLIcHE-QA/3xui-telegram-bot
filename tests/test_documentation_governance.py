@@ -180,8 +180,9 @@ class DocumentationGovernanceTests(unittest.TestCase):
 
     def test_github_reconciliation_release_neutral(self):
         text = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        future = text.replace("**Published:** immutable prerelease [`" + gh.declared_published(text) + "`]",
-                              "**Published:** immutable prerelease [`v5.0.0-rc.42`]", 1)
+        current = gh.declared_published(text)
+        # Test version discovery independently of the surrounding canary wording.
+        future = text.replace(f"[`{current}`]", "[`v5.0.0-rc.42`]", 1)
         self.assertEqual(gh.declared_published(future), "v5.0.0-rc.42")
 
     def test_full_reconciliation_uses_second_page_and_filters_prs(self):
