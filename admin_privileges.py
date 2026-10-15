@@ -179,7 +179,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         r"^admin:u:flowset:\d+:\d+:\d+:[nvu]$",
         r"^admin:u:flowcommit:\d+:[a-f0-9]{16}$",
     )
-    + _rules("users.view", "regex", r"^admin:u:flowcheck:\d+$")
+    + _rules("users.view", "regex", r"^admin:u:flowcheck(?::cfg)?:\d+$")
     + _rules("users.view", "regex", r"^admin:u:device:\d+:\d+$")
     + _rules("users.support", "regex", r"^admin:u:devdelask:\d+:\d+$", r"^admin:u:devdel:\d+:\d+$")
     + _rules(
