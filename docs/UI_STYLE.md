@@ -158,6 +158,7 @@ Operator-facing термин `membership` в обычных экранах не 
 Основные правила:
 
 - каждый экран имеет очевидного родителя и предсказуемую кнопку возврата;
+- `✖ Отмена` и контекстная кнопка `⬅ Назад` возвращают на **непосредственный экран входа**, сохраняя проверенную identity выбранного пользователя, bulk selection или резервной копии. Если экран доступен из разных мест, callback явно и безопасно сохраняет источник; устаревшие и неизвестные источники fail closed, без произвольных адресов/переходов и без mutation;
 - одинаковые сущности не дублируются в разных top-level разделах без явной причины;
 - read-only просмотр и state-changing действия визуально и логически разделены;
 - destructive actions не должны выглядеть как обычная навигация;
@@ -207,7 +208,7 @@ Operator-facing термин `membership` в обычных экранах не 
 - callback-screen после результата или обычной ошибки сохраняет явный путь назад/дальше; в односообщенческой admin-панели вызов `render_callback(...)` без `reply_markup` не должен создавать dead end;
 - временный progress screen во время уже запущенной state-changing/fail-closed операции может намеренно скрывать навигацию, если повторный клик или параллельное действие создают риск replay/неопределённого outcome;
 - FSM prompt и validation error сохраняют `✖ Отмена` или явный возврат к родителю; после завершения/отмены FSM state очищается и оператор возвращается к исходной сущности или её списку;
-- после destructive action результат ведёт в список удалённой сущности, а confirmation Cancel — обратно в её карточку.
+- после успешного destructive action результат ведёт в список удалённой сущности; confirmation Cancel возвращает к непосредственному экрану входа без mutation (например, `⚙️ Ещё действия` для удаления пользователя оттуда);
 - в карточке пользователя `💳 Платежи` является read-only filtered view существующего payment ledger: кнопки изменения статуса/создания платежа не дублируются, суммы оплаченных не объединяют разные валюты, detail callback сохраняет user context;
 - `🧾 Активность` пользователя является filtered view существующего audit log, а не новым журналом: фильтр использует machine identity, timestamps отображаются в MSK, Back возвращает в карточку пользователя, secret-like subscription/device details скрываются;
 - `➕ Создать` в `Пользователи` доступен Support+ и ведёт через явный FSM с `✖ Отмена`: Telegram ID → machine email → optional display name → Plan/compatibility → preview → confirm; callback identity не использует display name;
@@ -219,7 +220,7 @@ Operator-facing термин `membership` в обычных экранах не 
 - `🔄 Сбросить клиентскую сессию` в `Пользователи → карточка → Ещё действия` доступен только Owner при наличии активного in-memory окна customer rate limiter: отдельное подтверждение с указанным Telegram ID, одноразовым token и сроком действия, очистка только этого limiter bucket в работающем процессе; customer FSM в текущем Client Portal отсутствует, административный FSM не очищается. Это **не** сброс 3x-ui/VPN/платежей и не обход ограничений доставки Telegram; отсутствие состояния показывается как no-op, результат аудитируется;
 - bulk selection сохраняет выбранные `telegram_id` в FSM и не использует display name как identity; Plan/Server Group assignment меняют только profile state, а provisioning выполняется отдельно через `🚀 Согласовать`;
 - bulk custom expiry/traffic сначала валидируют bounded input и показывают preview с количеством targets; `+30`, enable/disable/reset/reconcile также имеют отдельный confirmation, а audit summary не содержит список email;
-- user detail mutations возвращаются в свой canonical parent: Plan → `💎 Тариф`, expiry/+30 → `📅 Срок`, traffic/reset → `📊 Трафик`, IP limit → `⚙️ Параметры доступа`, subscription rotation/QR → `🔗 Подписка`, name/note → `✏️ Профиль`; переход из FSM назад в detail screen очищает state;
+- после **выполненной** user detail mutation итоговый экран может вести в canonical раздел: Plan → `💎 Тариф`, expiry/+30 → `📅 Срок`, traffic/reset → `📊 Трафик`, IP limit → `⚙️ Параметры доступа`, subscription rotation/QR → `🔗 Подписка`, name/note → `✏️ Профиль`; **до mutation** `✖ Отмена` из `⚙️ Ещё действия` возвращает именно туда (reset, strict reconcile, subscription rotation, delete), не в другой раздел; возврат из FSM очищает только операционный input-state, а bulk selection сохраняется до выхода из bulk flow;
 - subscription summary показывает только masked `sub_id`; полный URL доступен только отдельным read-only действием/URL button, а audit/log contract по-прежнему не допускает credential reconstruction;
 
 Изменение структуры меню требует проверки соседних переходов, Back/Refresh/Cancel flows и callback routing, а не только нового экрана.

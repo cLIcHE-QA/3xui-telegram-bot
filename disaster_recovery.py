@@ -133,7 +133,7 @@ def _backup_actions(info: BackupInspection) -> InlineKeyboardMarkup:
     if export_row:
         rows.append(export_row)
     rows += [
-        [InlineKeyboardButton(text="🕘 История восстановления", callback_data="admin:restore:history")],
+        [InlineKeyboardButton(text="🕘 История восстановления", callback_data=f"admin:restore:history:{bid}")],
         [InlineKeyboardButton(text="⬅ Аварийное восстановление", callback_data="admin:restore")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
@@ -586,10 +586,18 @@ async def restore_export_nginx(call: CallbackQuery):
 
 
 @disaster_recovery_router.callback_query(F.data == "admin:restore:history")
+@disaster_recovery_router.callback_query(F.data.regexp(r"^admin:restore:history:[A-Za-z0-9._-]+$"))
 async def restore_history(call: CallbackQuery):
     ok, _ = await authorize_callback(db, settings, call, minimum="owner")
     if not ok:
         return
+    bid = (call.data or "").rsplit(":", 1)[-1] if (call.data or "").startswith("admin:restore:history:") else None
+    if bid is not None:
+        try:
+            _backup_by_id(bid)
+        except Exception:
+            await call.answer("Резервная копия недоступна", show_alert=True)
+            return
     items = await asyncio.to_thread(restore_manager.recent_history, 12)
     lines = ["🕘 История восстановления", ""]
     if not items:
@@ -606,7 +614,7 @@ async def restore_history(call: CallbackQuery):
         if item.get("error"):
             lines.append(f"   {str(item.get('error'))[:180]}")
     await call.answer()
-    await render_callback(call, "\n".join(lines), reply_markup=_restore_list_back())
+    await render_callback(call, "\n".join(lines), reply_markup=_restore_back(bid) if bid else _restore_list_back())
 
 
 async def send_boot_restore_notice(bot) -> None:
