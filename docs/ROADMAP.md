@@ -21,7 +21,7 @@
 
 **🟠 Опубликовано; общий v5 acceptance отложен — controlled canary `v5.0.0-rc.10`**. Client Portal (Stars, idempotent entitlement, quota-cycle, guarded callbacks), protected `/admin`; schema v13, 3x-ui **v3.10.0 operator-reported deployed** (исторический rc.9 pinned 3x-ui v3.9.0; rc.10 pinned 3x-ui v3.10.0). **Общий v5 acceptance NOT PASS**. Действующие gate/risk outcomes — ниже, закрытые feature Issues и результаты — в [GitHub](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues?q=is%3Aissue+is%3Aclosed) и [dated audits](audits/).
 
-## Реестр acceptance-gates v5 (rc.9 baseline; rc.10 scoped smoke отдельно)
+## Реестр acceptance-gates rc.9
 
 | Gate | Что проверено | Итог gate | Осталось / риск |
 | --- | --- | --- | --- |
