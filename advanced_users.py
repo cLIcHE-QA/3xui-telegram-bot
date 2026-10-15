@@ -4063,15 +4063,8 @@ def _bulk_confirmation_keyboard(confirm_callback: str) -> InlineKeyboardMarkup:
     ])
 
 
-@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:actions")
-async def bulk_actions(call: CallbackQuery, state: FSMContext):
-    if not await guard(call, minimum="support"):
-        return
-    selected = (await state.get_data()).get("selected", [])
-    if not selected:
-        await call.answer("Сначала выбери пользователей.", show_alert=True)
-        return
-    kb = InlineKeyboardMarkup(inline_keyboard=[
+def _bulk_actions_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="💎 Назначить тариф", callback_data="admin:bulk:plan"),
             InlineKeyboardButton(text="🗂 Назначить группу", callback_data="admin:bulk:group"),
@@ -4091,6 +4084,17 @@ async def bulk_actions(call: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="♻️ Сбросить трафик", callback_data="admin:bulk:ask:reset")],
         [InlineKeyboardButton(text="⬅ К выбору", callback_data="admin:bulk:back")],
     ])
+
+
+@advanced_users_router.callback_query(BulkUserStates.selecting, F.data == "admin:bulk:actions")
+async def bulk_actions(call: CallbackQuery, state: FSMContext):
+    if not await guard(call, minimum="support"):
+        return
+    selected = (await state.get_data()).get("selected", [])
+    if not selected:
+        await call.answer("Сначала выбери пользователей.", show_alert=True)
+        return
+    kb = _bulk_actions_keyboard()
     await render_callback(
         call,
         f"⚙️ Массовые действия\n\nВыбрано: {len(selected)}",
@@ -4310,8 +4314,8 @@ async def bulk_input_cancel(call: CallbackQuery, state: FSMContext):
         return
     await state.set_state(BulkUserStates.selecting)
     await state.update_data(bulk_expiry=None, bulk_traffic_bytes=None)
-    text, kb = await _bulk_render(state)
-    await render_callback(call, text, reply_markup=kb)
+    selected = (await state.get_data()).get("selected", [])
+    await render_callback(call, f"⚙️ Массовые действия\n\nВыбрано: {len(selected)}", reply_markup=_bulk_actions_keyboard())
     await call.answer()
 
 
