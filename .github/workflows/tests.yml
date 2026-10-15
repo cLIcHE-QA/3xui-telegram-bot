@@ -29,6 +29,12 @@ jobs:
             --base-sha "$LIVING_DOCS_BASE_SHA" \
             --head-sha "$LIVING_DOCS_HEAD_SHA" \
             --pr-body "$LIVING_DOCS_PR_BODY"
+      - name: Language of changed Markdown
+        if: github.event_name == 'pull_request'
+        env:
+          DOCS_BASE: ${{ github.event.pull_request.base.sha }}
+          DOCS_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/check-project-language.py --base-sha "$DOCS_BASE" --head-sha "$DOCS_HEAD"
       - name: Release scope completeness
         if: github.event_name == 'pull_request'
         env:
