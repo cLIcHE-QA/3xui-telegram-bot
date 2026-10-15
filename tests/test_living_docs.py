@@ -128,6 +128,26 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("#510", roadmap)
         self.assertIn("⬜ Запланировано", roadmap)
 
+    def test_roadmap_registry_must_be_contiguous(self):
+        import importlib.util
+        from tempfile import TemporaryDirectory
+        spec = importlib.util.spec_from_file_location(
+            "roadmap_registry_guard", ROOT / "scripts/check-roadmap-governance.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        source = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        self.assertIn("| [#669]", source)
+        with TemporaryDirectory() as folder:
+            temp_root = Path(folder)
+            (temp_root / "docs").mkdir()
+            (temp_root / "docs/ROADMAP.md").write_text(
+                source.replace("\n| [#669]", "\n\n| [#669]", 1),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "contiguous"):
+                module.roadmap_rows(temp_root)
+
     def test_roadmap_archive_is_lossless(self):
         import importlib.util
         path = ROOT / "scripts" / "check-roadmap-structure.py"
