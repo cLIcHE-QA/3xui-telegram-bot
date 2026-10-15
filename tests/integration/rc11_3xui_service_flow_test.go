@@ -95,6 +95,22 @@ func TestRC11RealityFlowNoopBulkAdjustOnUpstreamService(t *testing.T) {
         t.Fatalf("Update itself sent wrong Reality Flow=%q", got)
     }
 
+    // Multi-inbound SyncInbound may complete in either order during Update.
+    // Recreate deterministically the upstream #4792 state: a non-Flow inbound
+    // synchronized last, so shared clients.flow is blank while the Reality
+    // per-inbound override remains Vision. This is a disposable SQLite row.
+    if err := db.Model(&model.ClientRecord{}).Where("email = ?", email).
+        Update("flow", "").Error; err != nil {
+        t.Fatalf("seed stale shared flow after Update: %v", err)
+    }
+    check, err := svc.GetRecordByEmail(nil, email)
+    if err != nil { t.Fatal(err) }
+    if check.Flow != "" { t.Fatalf("stale shared flow not seeded: %q", check.Flow) }
+    beforeBulk, err := svc.EffectiveFlow(nil, check.Id)
+    if err != nil || beforeBulk != vision {
+        t.Fatalf("Reality override must remain Vision: flow=%q err=%v", beforeBulk, err)
+    }
+
     // Current rc.10 bot ALWAYS calls this even if Master reports Vision.
     if _, _, err := svc.BulkAdjust(inboundSvc, []string{email}, 0, 0, vision, nil, ""); err != nil {
         t.Fatalf("BulkAdjust failed: %v", err)
