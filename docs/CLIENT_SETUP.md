@@ -1,6 +1,6 @@
 # Client Portal v5 — настройка контролируемого пилота
 
-> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Последняя operator-reported production версия — immutable `v5.0.0-rc.11`, tag SHA `5f0576417ef3274b92adefa0c9c0932c7a359fd5`, `DEPLOY_OK`/Health/DB/3XUI_TCP `ok`, отчёт получен 2026-10-15T18:07:06Z; independent VPS/image attestation, SQLite quick_check и #648/#649/#650/#659/#663 targeted acceptance **PENDING**. Предыдущие #627/#628 scoped PASS относятся к rc.10, не доказывают rc.11 smoke. Общий v5 acceptance **NOT PASS / G-11 PARTIAL / NO-GO**; расширение пилотного allowlist запрещено. Подробности: [rc.11 checkpoint](audits/2026-10-15-v5-rc11-operator-deployment-checkpoint.md), [ROADMAP.md](ROADMAP.md), [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md).
+> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Опубликован GitHub prerelease `v5.0.0-rc.12`, immutable SHA `a88fd6947f04d40570413e792cda7150e738abbd`; production deployment того же tag **operator-reported** 2026-10-15T20:59:01Z: `DEPLOY_OK`, Health/DB/3XUI_TCP `ok`, container running/restarts 0. Независимой VPS/image attestation, SQLite quick_check, Node Flow A2, preflight A6 и navigation #679 acceptance ещё нет — **PENDING**. Общий v5 G-11 PARTIAL / NO-GO, pilot allowlist не расширять. См. [датированный deployment audit](audits/2026-10-15-v5-rc12-operator-deployment-checkpoint.md) и [ROADMAP](ROADMAP.md).
 
 ## Исторический operator-reported deployment rc.9 (2026-10-11)
 
