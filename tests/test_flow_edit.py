@@ -7,7 +7,7 @@ from flow_edit import FLOW_CHOICES, FlowEditRejected, discover_flow_targets, Flo
 
 class FakeMaster:
     def __init__(self):
-        self.client = {"client":{"email":"qa@example.invalid","tgId":1001,"uuid":"fake-id","subId":"fake-sub","password":"","auth":"","security":"auto","totalGB":1234,"expiryTime":150000,"limitIp":5,"limitHwid":6,"enable":True,"flow":"","group":"","comment":"","reset":0,"resetDay":0,"resetWeekday":4,"resetMax":0,"trafficReset":"never","trafficResetDay":1,"privateKey":"","publicKey":"","allowedIPs":"","preSharedKey":"","keepAlive":0,"forwardedPorts":"","secret":"","adTag":"","reverse":None},"inboundIds":[1,2,3]}
+        self.client = {"client":{"email":"qa@example.invalid","tgId":1001,"uuid":"fake-id","subId":"fake-sub","password":"","auth":"","security":"auto","totalGB":1234,"expiryTime":150000,"limitIp":5,"limitHwid":6,"enable":True,"flow":"","group":"","comment":"","reset":0,"resetDay":0,"resetWeekday":4,"resetMax":0,"trafficReset":"never","trafficResetDay":1,"privateKey":"","publicKey":"","allowedIPs":"","preSharedKey":"","keepAlive":0,"forwardedPorts":"","secret":"","adTag":"","reverse":""},"inboundIds":[1,2,3]}
         self.inbounds = {}
         for iid,node,proto,flow in [(1,11,"tcp","xtls-rprx-vision"),(2,11,"tcp","xtls-rprx-vision"),(3,12,"ws","")]:
             self.inbounds[iid] = {"id":iid,"nodeId":node,"tag":f"test-{iid}","disableFlow":False,"protocol":"vless","streamSettings":json.dumps({"security":"reality" if proto=="tcp" else "none","network":proto}),"settings":json.dumps({"clients":[{"email":"qa@example.invalid","flow":flow}]})}
@@ -77,6 +77,18 @@ class FlowEditTests(unittest.IsolatedAsyncioTestCase):
             await discover_flow_targets(self.master,"qa@example.invalid",1001)
     async def test_invalid_node_id_fails_closed(self):
         self.master.inbounds[1]["nodeId"]=0
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(self.master,"qa@example.invalid",1001)
+    async def test_empty_reverse_and_omitted_inbound_flow(self):
+        self.assertEqual(self.master.client["client"]["reverse"], "")
+        inbound=self.master.inbounds[1]
+        settings=json.loads(inbound["settings"])
+        settings["clients"][0].pop("flow")
+        inbound["settings"]=json.dumps(settings)
+        snap=await discover_flow_targets(self.master,"qa@example.invalid",1001)
+        self.assertEqual(snap.select(11,1).current_flow,"")
+    async def test_nonempty_reverse_is_rejected(self):
+        self.master.client["client"]["reverse"]='{"tag":"fixture"}'
         with self.assertRaises(FlowEditRejected):
             await discover_flow_targets(self.master,"qa@example.invalid",1001)
     async def test_incomplete_master_record_fails_closed(self):
