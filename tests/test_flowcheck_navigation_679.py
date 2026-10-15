@@ -10,6 +10,10 @@ class FlowCheckNavigationTests(unittest.TestCase):
         for callback in ("admin:u:flowcheck:123", "admin:u:flowcheck:cfg:123"):
             self.assertEqual(required_role_for_callback(callback), "read_only")
             self.assertLessEqual(len(callback.encode()), 64)
+        biggest_id = 9_223_372_036_854_775_807
+        contextual = f"admin:u:flowcheck:cfg:{biggest_id}"
+        self.assertLessEqual(len(contextual.encode("utf-8")), 64)
+        self.assertEqual(required_role_for_callback(contextual), "read_only")
         for callback in ("admin:u:flowcheck:cfg:abc", "admin:u:flowcheck:other:123", "admin:u:flowcheck:cfg:-2"):
             self.assertIsNone(required_role_for_callback(callback))
 
