@@ -1,7 +1,7 @@
 # v5.0.0-rc.12 — публикация GitHub prerelease (2026-10-15)
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-15 23:43:58 UTC+03:00 (EEST), публикация GitHub Release 2026-10-15T20:43:58Z; дата разрешения оператора 2026-10-15T20:35:38Z
+- **Дата/время и часовой пояс:** 2026-10-15 23:43 UTC+03:00 (EEST), публикация GitHub Release 2026-10-15T20:43:58Z; дата разрешения оператора 2026-10-15T20:35:38Z
 - **Окружение:** GitHub repository, protected `main`, immutable release tag, GitHub Actions. Прямого доступа к production VPS/containers нет
 - **Цель:** зафиксировать publication provenance rc.12 независимо от production deployment и acceptance
 - **Версия и immutable tag/SHA:** `v5.0.0-rc.12` / `a88fd6947f04d40570413e792cda7150e738abbd` (GitHub `refs/tags/v5.0.0-rc.12` == `main` == merged release-prep PR #681 SHA)
