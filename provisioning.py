@@ -334,7 +334,14 @@ class ProvisioningEngine:
                         "plan_limits: outcome=unknown; mutation_not_retried=true; readback=mismatch"
                     ) from exc
 
-        if self.settings.vless_flow:
+        # 3x-ui v3.10.0 can forward a stale common clients.flow to direct nodes
+        # during a no-op bulkAdjust even when Master EffectiveFlow is correct.
+        # Do not trigger the risky remote update when the requested flow is already
+        # present on Master. This is a no-op guard, NOT node-side attestation.
+        flow_needs_change = bool(self.settings.vless_flow) and (
+            str(self._client_payload(obj).get("flow") or "") != self.settings.vless_flow
+        )
+        if flow_needs_change:
             try:
                 await self.xui.bulk_adjust_clients([rec.email], flow=self.settings.vless_flow)
             except XUIMutationError as exc:
