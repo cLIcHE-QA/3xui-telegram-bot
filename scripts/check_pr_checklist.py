@@ -13,6 +13,8 @@ import re
 import sys
 
 
+from scripts.check_project_language import check_pr
+
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / ".github" / "pull_request_template.md"
 CHECKBOX = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+\[([ xX])\]\s+(.+?)\s*$")
@@ -99,6 +101,11 @@ def main() -> int:
     if errors:
         for message in errors:
             print(f"PR checklist: {message}", file=sys.stderr)
+        return 1
+    errors = check_pr(os.environ.get("PR_TITLE", ""), body)
+    if errors:
+        for error in errors:
+            print("PR language: "+error, file=sys.stderr)
         return 1
     print("PR checklist: PASS — все обязательные пункты найдены и отмечены.")
     return 0
