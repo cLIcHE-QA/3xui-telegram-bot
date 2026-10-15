@@ -4,7 +4,7 @@
 
 ## Актуальная сводка проекта
 
-**Release-prep candidate:** `v5.0.0-rc.10` (PR #644, CI/PUBLISHING PENDING, **not Published/Deployed/Accepted**, включает только #627/#628; #433 DEFERRED/TBD). **Published:** immutable prerelease [`v5.0.0-rc.9`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.9), tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`; last stable `v4.26.9`. **Deployed:** rc.9 только operator-reported (11 октября deploy; 12 октября host SHA/image read-back в [G-01 audit](audits/v5-g01-production-baseline-2026-10-12.md)), independent build/VPS attestation PENDING. **Accepted:** общий v5 **NOT PASS**; stable release, public rollout и expansion pilot allowlist **BLOCKED**.
+**Published:** immutable prerelease [`v5.0.0-rc.10`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.10), tag SHA `ef7e655fed6818053ceff1818b64a852c83638ec`, GitHub Release published 2026-10-14 19:41:35 UTC, [post-merge CI](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38625491972) и [Publish release](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38625748104) PASS; last stable `v4.26.9`. **Deployed:** `v5.0.0-rc.10` same tag/SHA **operator-reported** 2026-10-14T19:48:49Z, `DEPLOY_OK`, container running/restarts 0, Health/DB/3XUI TCP ok, independent VPS/image attestation **PENDING**. **Accepted:** общий v5 **NOT PASS**, G-11 PARTIAL / CONDITIONAL / NO-GO; #627/#628 release-targeted **operator-reported scoped PASS** 2026-10-15T09:52:57Z ([dated audit](audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md)); stable, public rollout и expansion pilot allowlist **BLOCKED**. **Excluded:** #433 DEFERRED/TBD, customer-facing refund policy #434/#436/#437 не активирована.
 
 ## Статусы дорожной карты
 
@@ -19,7 +19,7 @@
 
 ## Текущий этап: v5 Client Portal
 
-**🟠 Опубликовано; acceptance отложен — controlled canary `v5.0.0-rc.9`**. Client Portal (Stars, idempotent entitlement, quota-cycle, guarded callbacks), protected `/admin`; schema v13, 3x-ui **v3.10.0 operator-reported deployed** (исходный published rc.9 pinned 3x-ui v3.9.0; новый main OpenAPI v3.10.0). **Общий v5 acceptance NOT PASS**. Действующие gate/risk outcomes — ниже, закрытые feature Issues и результаты — в [GitHub](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues?q=is%3Aissue+is%3Aclosed) и [dated audits](audits/).
+**🟠 Опубликовано; общий v5 acceptance отложен — controlled canary `v5.0.0-rc.10`**. Client Portal (Stars, idempotent entitlement, quota-cycle, guarded callbacks), protected `/admin`; schema v13, 3x-ui **v3.10.0 operator-reported deployed** (исторический rc.9 pinned 3x-ui v3.9.0; rc.10 pinned 3x-ui v3.10.0). **Общий v5 acceptance NOT PASS**. Действующие gate/risk outcomes — ниже, закрытые feature Issues и результаты — в [GitHub](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues?q=is%3Aissue+is%3Aclosed) и [dated audits](audits/).
 
 ## Реестр acceptance-gates rc.9
 
@@ -97,8 +97,7 @@
 | [#564](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/564) | ⬜ Запланировано | — | TBD | Issue #564 (scope), implementation PENDING | скрыть legacy /create и /inbounds из актуального интерфейса: Issue criteria | S|
 | [#615](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/615) | ⬜ Запланировано | — | TBD | Issue #615 (scope), implementation PENDING | выбор RU Direct / Full VPN на подписку в Happ и Incy; Shadowrocket позже: Issue criteria | XL|
 | [#617](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/617) | ⬜ Запланировано | — | TBD | Issue #617 (scope), implementation PENDING | одноразовая emoji-капча для новых клиентов, existing users без повтора: Issue criteria | L|
-| [#627](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/627) | 🟡 Реализовано в main | [#639](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/639) | rc.10 (plan) | 2026-10-14 16:58 UTC: PR #639 squash merged `5b8ed677402af6575ce2a4b75e73fc8716c9ebe3`, required `test`/`title` PASS, GitHub main read-back PASS; offline scope PASS | Published rc.10 / Deployed / targeted operator smoke PENDING; Issue OPEN до own acceptance; 2026-10-14 docs-only checkpoint, никаких production операций; G-11 NO-GO | S|
-| [#628](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/628) | 🟡 Реализовано в main | [#641](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/641) | rc.10 (plan) | 2026-10-14 UTC: PR #641 squash merge `c532f1619c3ddeded6ab145617349ec8af25891e`; CI `test`/`title` PASS; main GitHub read-back PASS | Published rc.10, Deployed, targeted operator smoke PENDING; Issue OPEN до own acceptance, read-only тесты PASS, G-11 NO-GO | M|
+| [#628](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/628) | 🟠 Опубликовано; acceptance отложен | [#641](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/641) | v5.0.0-rc.10 | PR #641 merged `c532f1619c3ddeded6ab145617349ec8af25891e`, CI `test`/`title` PASS; immutable Published `ef7e655fed6818053ceff1818b64a852c83638ec`; Deployed and targeted scope PASS operator-reported 2026-10-15, [audit](audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md) | Issue closure audit + next Roadmap sync PENDING; no independent VPS attestation, G-11 NO-GO | M|
 
 
 ## Завершённые этапы и исторические документы

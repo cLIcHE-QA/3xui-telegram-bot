@@ -1,12 +1,16 @@
 # Client Portal v5 — настройка контролируемого пилота
 
-> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Последняя operator-reported production версия — immutable `v5.0.0-rc.9` (tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`, сообщение 2026-10-11 16:15 Europe/Helsinki), без независимого VPS read-back. Частичные targeted smoke пройдены, но общий v5 production acceptance **NOT PASS** и пилотный allowlist остаётся. Состояние и незакрытые gates: [ROADMAP.md](ROADMAP.md), [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md).
+> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Последняя production версия — immutable `v5.0.0-rc.10`, tag SHA `ef7e655fed6818053ceff1818b64a852c83638ec`, **operator-reported** deployment 2026-10-14T19:48:49Z и targeted #627/#628 PASS по сообщению оператора 2026-10-15T09:52:57Z; независимой VPS/image аттестации нет. Общий v5 acceptance **NOT PASS / G-11 PARTIAL / NO-GO**; пилотный allowlist неизменен. Подробные evidence и ограничения: [dated rc.10 audit](audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md), [ROADMAP.md](ROADMAP.md), [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md).
 
-## Operator-reported deployment rc.9 (2026-10-11)
+## Исторический operator-reported deployment rc.9 (2026-10-11)
 
-Предыдущая операторская production baseline — `v5.0.0-rc.8` (2026-10-10 23:13 UTC); текущая — rc.9, как указано выше.
+Историческая операторская production baseline rc.9 сменила `v5.0.0-rc.8` (2026-10-10 23:13 UTC); после 2026-10-14 актуальная operator-reported production версия — rc.10, см. отдельный аудит.
 
 По сообщению оператора в 16:15 EEST production развёрнут на immutable `v5.0.0-rc.9` (`13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`). Контейнер running, restart count 0, `Health=ok`, `DB=ok`, `3XUI_TCP=ok`; backup path предоставлен только в приватном отчёте, restore не проверялся. **Нет независимого VPS read-back.** Исправление старых клиентских callbacks (#342) вошло в этот релиз. Оператор 2026-10-11 17:25–17:30 EEST подтвердил targeted **Portal OFF → старая inline-кнопка blocked → Portal ON → /start и /admin доступны**, Stars override без изменений (operator-reported scoped PASS, независимого read-back нет). Для #342 production read-only reconciliation **PENDING**, поэтому полный acceptance и emergency stop за пределами проверенного scope не подтверждены. `.env` veto остаётся доступным по управляемой оператором процедуре. Targeted Hosts API #422 завершён и Issue закрыт; общий v5 acceptance NOT PASS. Public launch и общий v5 acceptance остаются BLOCKED/NOT PASS.
+
+## Operator-reported rc.10 post-deploy targeted acceptance (2026-10-14/15)
+
+Оператор 2026-10-14T19:48:49Z сообщил `DEPLOY_OK` для `v5.0.0-rc.10`, immutable SHA `ef7e655fed6818053ceff1818b64a852c83638ec`, container running, `RestartCount=0`, `Health/DB/3XUI_TCP=ok`, subnet `172.19.0.0/16` и наличие pre-deploy backup. 2026-10-15T09:52:57Z сообщил **PASS** для schema v13/SQLite quick_check, трёх исходов диагностики #627 и её Refresh/Back/no-mutations, раздельных Stars/manual ledger и refund/owner isolation/Back #628, no financial mutations, post-smoke Health и Full Backup/off-site; discrepancies не выявлены в отчёте. Это **operator-reported scoped PASS**, без независимого VPS или детальных raw SQL/API/Telegram артефактов; G-11 остаётся `PARTIAL / NO-GO`. Подробности в [rc.10 audit](audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md). Новая добровольная 14-дневная refund policy #433 отложена и не входит в rc.10. Не проводить реальные refund или перепровижининг ради read-only smoke.
 
 ## Плановая внешняя оплата
 
