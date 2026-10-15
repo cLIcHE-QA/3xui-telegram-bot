@@ -1377,7 +1377,7 @@ async def user_flow_check(call: CallbackQuery):
     if not ok:
         return
     tg_id = int((call.data or "").rsplit(":", 1)[-1])
-    from_access_config = (call.data or "").startswith("admin:u:flowcheck:cfg:")
+    from_access_config = (call.data or "").split(":")[3:4] == ["cfg"]
     rec = await db.get(tg_id)
     if rec is None:
         await call.answer("Пользователь не найден.", show_alert=True)
