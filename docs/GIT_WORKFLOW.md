@@ -93,6 +93,12 @@ PR body должен кратко фиксировать:
 
 ### Язык GitHub-коммуникации
 
+**Русский — язык новых авторских пояснений** в Markdown living docs, Issue, PR, release notes и audits. Точные кодовые имена, API routes, CLI, названия технологий, английские статусы, внешние цитаты, log output, URL и code fences не переводить. Не переписывать старые исторические snapshots ради языкового gate. Заголовки шаблона PR могут сохранять фиксированный English label.
+
+Рабочий процесс AI coding agents — repository-first: при доступном GitHub connector нельзя ограничиваться ZIP/патчем для ручного применения; перед первым выводом «GitHub недоступен» проверить GitHub API actions на чтение и запись. После изменений нужен PR и CI, merge/release/deployment — по отдельному разрешению. `AGENTS.md` содержит короткую точку входа, этот документ — процессный contract.
+
+
+
 Рабочий язык repository discussions — **русский**.
 
 По-русски оформляются:
