@@ -13,7 +13,8 @@ import re
 import sys
 
 
-from check_project_language import check_pr
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.check_project_language import check_pr
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / ".github" / "pull_request_template.md"
