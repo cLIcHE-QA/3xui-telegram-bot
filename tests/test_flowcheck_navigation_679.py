@@ -28,7 +28,7 @@ class FlowCheckNavigationTests(unittest.TestCase):
         src = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
         check = src.split("async def user_flow_check", 1)[1].split("async def user_advanced_card", 1)[0]
         for needle in (
-            'from_access_config = (call.data or "").startswith("admin:u:flowcheck:cfg:")',
+            'from_access_config = (call.data or "").split(":")[3:4] == ["cfg"]',
             'f"admin:u:flowcheck:cfg:{tg_id}" if from_access_config else f"admin:u:flowcheck:{tg_id}"',
             'text="⬅ Параметры доступа" if from_access_config else "⬅ Пользователь"',
             'callback_data=f"admin:u:accesscfg:{tg_id}" if from_access_config else f"admin:u:{tg_id}"',
