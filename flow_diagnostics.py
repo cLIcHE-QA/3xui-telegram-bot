@@ -107,13 +107,15 @@ async def inspect_node_flow(
         else:
             reality.append(FlowObservation(node_id, tag, master_flow, None, "UNKNOWN"))
 
-    node_ids = sorted({r.node_id for r in reality if not r.reason})
+    node_ids = sorted({r.node_id for r in reality})
     selected = set(node_ids[:MAX_NODE_CHECKS])
     omitted += sum(1 for x in reality if x.node_id not in selected)
     gathered: dict[int, list[dict[str, Any]] | None] = {}
     limiter = asyncio.Semaphore(3)
 
     async def load_node(node_id: int) -> None:
+        if not any(r.node_id == node_id and not r.reason for r in reality):
+            return
         target = _exact_target(targets, node_id)
         if target is None:
             return
