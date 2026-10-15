@@ -35,6 +35,12 @@ Living documents описывают текущее состояние проек
 
 Concept lifecycle — `docs/roadmap/concept-registry.json`; оригинальные исходные файлы остаются в `docs/audits/roadmap-history/**`. Исторические archives не править ради обновления схемы. Новый результат оформлять отдельным датированным audit/addendum. При merge/version/release/deployment обновлять факты и evidence независимо, с Issue-closure checkpoint до следующего пакета.
 
+## Карта чтения контекста и языковой review
+
+Каждый агент перед задачей читает `AGENTS.md` и актуальный `main`, затем `docs/GIT_WORKFLOW.md`, `docs/LIVING_DOCS.md`, верх `docs/ROADMAP.md` и `CHANGELOG.md`. До изменения Telegram UI читается `docs/UI_STYLE.md`, до API — `docs/3XUI_OPENAPI_CONTRACT.md`, до SQLite — `docs/SQLITE_MIGRATIONS.md`, до setup/deploy — `docs/ADMIN_SETUP.md` и профильные runbooks, до релиза — `docs/RELEASES.md`. Для новых областей и diff-триггеров первичен `docs/live-docs.json`.
+
+Язык новых авторских пояснений — русский. Технические идентификаторы, исходные тексты внешних систем, code fences и исторические audits не переводятся автоматически. CI проверяет очевидную англоязычную прозу в changed Markdown и PR title/body; эта проверка не заменяет семантический review и не обещает полноценную языковую классификацию.
+
 ## Diff-trigger rules
 
 `scripts/check-living-docs.py` проверяет PR diff относительно base SHA и применяет rules из `docs/live-docs.json`.
