@@ -649,7 +649,9 @@ class XUIClient(VersionAPIMixin):
                            "keepAlive", "forwardedPorts", "secret", "adTag")
         if any(client[key] not in ("", None, 0, "[]", []) for key in protocol_fields):
             raise ValueError("Shared client has unsupported protocol-specific fields")
-        if client["reverse"] is not None and not isinstance(client["reverse"], dict):
+        # Pinned 3x-ui ClientRecord.reverse is a string, normally "".
+        # Unknown non-empty settings must not be lost on a full-row update.
+        if client["reverse"] not in ("", None):
             raise ValueError("Unverified client reverse settings")
         payload = self._full_update_payload(client, flow=flow)
         # Retain the exact shared fields even when an empty value is valid.
@@ -657,8 +659,8 @@ class XUIClient(VersionAPIMixin):
                       "trafficReset", "trafficResetDay"):
             payload[field] = client[field]
         payload["resetWeekday"] = client["resetWeekday"]
-        if client["reverse"] is not None:
-            payload["reverse"] = client["reverse"]
+        # Empty/unset reverse remains omitted; a non-empty value was
+        # rejected above, so credentials/settings cannot be coerced.
         return await self._mutation_request(
             f"/panel/api/clients/update/{quote(email, safe='')}",
             json_payload=payload, params={"inboundIds": inbound_id},

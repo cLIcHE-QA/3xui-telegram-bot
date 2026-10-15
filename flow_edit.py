@@ -65,7 +65,8 @@ def _scoped_flow(inbound: dict[str, Any], email: str) -> str:
     found = [x for x in clients if isinstance(x, dict) and x.get("email") == email]
     if len(found) != 1:
         raise FlowEditRejected("Привязка клиента отсутствует или неоднозначна")
-    flow = found[0].get("flow")
+    # Upstream model.Client declares flow with omitempty: absent == none.
+    flow = found[0].get("flow", "")
     if not isinstance(flow, str) or flow not in FLOW_CHOICES.values():
         raise FlowEditRejected("Неизвестное значение Flow")
     return flow
@@ -92,7 +93,9 @@ async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnap
         "keepAlive", "forwardedPorts", "secret", "adTag"
     )):
         raise FlowEditRejected("Общий record содержит непроверенные поля другого протокола")
-    if client["reverse"] is not None and not isinstance(client["reverse"], dict):
+    # Pinned ClientRecord.reverse is a raw string, normally "". Never
+    # coerce a non-empty reverse payload on an unrelated scoped update.
+    if client["reverse"] not in ("", None):
         raise FlowEditRejected("Непроверенные reverse settings")
     try:
         valid_tg = int(client["tgId"]) == tg_id
