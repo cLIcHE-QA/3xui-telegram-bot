@@ -1389,7 +1389,7 @@ async def user_activity_view(call: CallbackQuery):
     await call.answer()
 
 
-@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:flowcheck:\\d+$"))
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:flowcheck:\d+$"))
 async def user_flow_check(call: CallbackQuery):
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
@@ -1430,7 +1430,7 @@ async def user_flow_check(call: CallbackQuery):
     except (XUIError, ValueError, TypeError):
         lines = ["🔎 Проверка Flow", "", "⚪ UNKNOWN · Master API недоступен; ноды не проверены"]
     await render_callback(
-        call, "\\n".join(lines)[:3600],
+        call, "\n".join(lines)[:3600],
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
