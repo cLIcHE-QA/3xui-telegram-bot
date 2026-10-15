@@ -26,12 +26,14 @@ from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine, ProvisioningUnknown
 from flow_diagnostics import inspect_node_flow
+from flow_edit_routes import register_flow_edit_handlers
 
 settings = load_settings()
 db = Database(settings.db_path)
 xui = XUIClient(settings.panel_url, settings.panel_api_token, settings.verify_tls)
 advanced_users_router = Router(name="advanced_users")
 provisioner = ProvisioningEngine(db, xui, settings)
+register_flow_edit_handlers(advanced_users_router, db=db, xui=xui, settings=settings)
 
 # In-process confirmations only. No persistent customer/payment/provider mutation.
 _session_reset_challenges: dict[int, tuple[int, str, float]] = {}
@@ -1622,7 +1624,7 @@ async def user_access_config(call: CallbackQuery, state: FSMContext):
         return
     limit_ip = "недоступно"
     limit_hwid = "недоступно"
-    flow = "не настроен" if not settings.vless_flow else "недоступно"
+    flow = "недоступно"
     try:
         obj = await xui.get_client(rec.email)
         client = obj.get("client", obj)
@@ -1630,26 +1632,28 @@ async def user_access_config(call: CallbackQuery, state: FSMContext):
         limit_ip = str(value) if value else "без лимита"
         hwid_value = int(client.get("limitHwid") or 0)
         limit_hwid = str(hwid_value) if hwid_value else "отключён"
-        if settings.vless_flow:
-            flow = str(client.get("flow") or "none")
+        flow = str(client.get("flow") or "none")
     except XUIError:
         pass
     rows: list[list[InlineKeyboardButton]] = []
     if _role_can_support(role):
         rows.append([InlineKeyboardButton(text="📱 Изменить лимит IP", callback_data=f"admin:u:ip:{tg_id}")])
         rows.append([InlineKeyboardButton(text="🧩 Изменить HWID limit", callback_data=f"admin:u:hwid:{tg_id}")])
+        rows.append([InlineKeyboardButton(text="✏️ Изменить Flow", callback_data=f"admin:u:flowedit:{tg_id}")])
         if settings.vless_flow:
             rows.append([InlineKeyboardButton(
                 text="🔄 Синхронизировать VLESS Flow",
                 callback_data=f"admin:u:flowask:{tg_id}",
             )])
+    rows.append([InlineKeyboardButton(text="🔎 Проверить Flow", callback_data=f"admin:u:flowcheck:{tg_id}")])
     rows.append([InlineKeyboardButton(text="⬅ Доступ", callback_data=f"admin:u:access:{tg_id}")])
     await render_callback(
         call,
         f"⚙️ Параметры доступа · {await _display_label(rec)}\n\n"
         f"Лимит IP: {limit_ip}\n"
         f"HWID limit: {limit_hwid}\n"
-        f"VLESS Flow: {flow}",
+        f"🖥 Flow Master: {flow}\n"
+        "🌐 Flow Nodes: ⚪ не проверено",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -1660,19 +1664,18 @@ async def user_flow_sync_ask(call: CallbackQuery):
     if not await guard(call, minimum="support"):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
-    rec = await db.get(tg_id)
-    if not rec:
+    if not await db.get(tg_id):
         await call.answer("Пользователь не найден.", show_alert=True)
         return
-    if not settings.vless_flow:
-        await call.answer("VLESS Flow не настроен.", show_alert=True)
-        return
+    # The v3.10.0 bulkAdjust no-op may clear Node Reality Flow (#648).
+    # Keep the old button but turn it into navigation to scoped inbound selection.
     await render_callback(
         call,
-        f"🔄 Синхронизировать VLESS Flow?\n\n{await _display_label(rec)}\n\n"
-        "Будет обновлён только Flow. Inbounds не подключаются и не отключаются.",
+        "🔄 Синхронизировать VLESS Flow\n\n"
+        "Массовая операция отключена: 3x-ui v3.10.0 может сбросить Flow "
+        "соседних Inbounds. Выберите точную ноду и Inbound.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="✅ Синхронизировать Flow", callback_data=f"admin:u:flowrun:{tg_id}")],
+            [InlineKeyboardButton(text="✏️ Выбрать ноду и Inbound", callback_data=f"admin:u:flowedit:{tg_id}")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:accesscfg:{tg_id}")],
         ]),
     )
@@ -1684,108 +1687,23 @@ async def user_flow_sync_run(call: CallbackQuery):
     if not await guard(call, minimum="support"):
         return
     tg_id = int(call.data.rsplit(":", 1)[-1])
-    rec = await db.get(tg_id)
-    if not rec:
+    if not await db.get(tg_id):
         await call.answer("Пользователь не найден.", show_alert=True)
         return
-    if not settings.vless_flow:
-        await call.answer("VLESS Flow не настроен.", show_alert=True)
-        return
-    try:
-        await xui.bulk_adjust_clients([rec.email], flow=settings.vless_flow)
-        await audit_from_call(
-            db,
-            call,
-            "user.flow.sync",
-            target_type="user",
-            target_id=rec.email,
-            details="flow_configured=true; inbound_mutation=false",
-        )
-        await render_callback(
-            call,
-            "✅ VLESS Flow синхронизирован. Inbounds не изменялись.",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
-            ]]),
-        )
-    except XUIMutationError as exc:
-        if not exc.uncertain:
-            await audit_from_call(
-                db, call, "user.flow.sync", target_type="user", target_id=rec.email,
-                details=f"code={exc.code}; certainty=failed", success=False,
-            )
-            await render_callback(
-                call, f"🔴 Не удалось синхронизировать Flow: {exc}",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                    InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
-                ]]),
-            )
-            await call.answer()
-            return
-        try:
-            readback = await xui.get_client(rec.email)
-        except XUIError as read_exc:
-            await audit_from_call(
-                db, call, "user.flow.sync.unknown", target_type="user", target_id=rec.email,
-                details=(
-                    f"code={exc.code}; mutation_not_retried=true; "
-                    f"readback=unavailable:{type(read_exc).__name__}"
-                ),
-                success=False,
-            )
-            await render_callback(
-                call,
-                "🟡 Итог синхронизации Flow неизвестен. Mutation не повторялась; проверь пользователя после восстановления связи.",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                    InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
-                ]]),
-            )
-            await call.answer()
-            return
-        read_client = readback.get("client", readback)
-        if str(read_client.get("flow") or "") != settings.vless_flow:
-            await audit_from_call(
-                db, call, "user.flow.sync.unknown", target_type="user", target_id=rec.email,
-                details=f"code={exc.code}; mutation_not_retried=true; readback=mismatch",
-                success=False,
-            )
-            await render_callback(
-                call,
-                "🟡 Итог синхронизации Flow неизвестен. Mutation не повторялась; read-back не подтвердил значение.",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                    InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
-                ]]),
-            )
-            await call.answer()
-            return
-        await audit_from_call(
-            db, call, "user.flow.sync", target_type="user", target_id=rec.email,
-            details="flow_configured=true; inbound_mutation=false; readback=match; uncertain_resolved=success",
-        )
-        await render_callback(
-            call,
-            "✅ VLESS Flow синхронизирован. Результат подтверждён read-back.",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
-            ]]),
-        )
-    except XUIError as exc:
-        await audit_from_call(
-            db,
-            call,
-            "user.flow.sync",
-            target_type="user",
-            target_id=rec.email,
-            details=f"error={type(exc).__name__}",
-            success=False,
-        )
-        await render_callback(
-            call,
-            f"🔴 Не удалось синхронизировать Flow: {exc}",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")
-            ]]),
-        )
+    # Old one-click confirmation is blocked, even for previously sent buttons.
+    await audit_from_call(
+        db, call, "user.flow.legacy_blocked", target_type="user", target_id=tg_id,
+        details="unsafe_bulk_adjust_disabled=true; mutation=false", success=False,
+    )
+    await render_callback(
+        call,
+        "⚪ Прежнее массовое подтверждение Flow недействительно. "
+        "Изменения не выполнялись. Выберите ноду и Inbound.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✏️ Изменить Flow", callback_data=f"admin:u:flowedit:{tg_id}")],
+            [InlineKeyboardButton(text="⬅ Параметры доступа", callback_data=f"admin:u:accesscfg:{tg_id}")],
+        ]),
+    )
     await call.answer()
 
 

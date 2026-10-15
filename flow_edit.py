@@ -1,0 +1,153 @@
+"""Fail-closed discovery for one VLESS Reality Flow change."""
+from __future__ import annotations
+import asyncio
+import hashlib
+import json
+import secrets
+from dataclasses import dataclass
+from typing import Any
+
+FLOW_CHOICES = {"n": "", "v": "xtls-rprx-vision", "u": "xtls-rprx-vision-udp443"}
+MAX_EDIT_INBOUNDS = 32
+MAX_EDIT_NODES = 8
+MAX_CALLBACK_ID = 2147483647
+CONFIRM_TTL = 90.0
+
+class FlowEditRejected(ValueError):
+    """Target or source evidence is unavailable or ambiguous."""
+
+@dataclass(frozen=True)
+class FlowTarget:
+    node_id: int
+    inbound_id: int
+    inbound_tag: str
+    current_flow: str
+
+@dataclass(frozen=True)
+class FlowSnapshot:
+    client: dict[str, Any]
+    targets: tuple[FlowTarget, ...]
+    fingerprint: str
+
+    def select(self, node_id: int, inbound_id: int) -> FlowTarget:
+        found = [t for t in self.targets if (t.node_id, t.inbound_id) == (node_id, inbound_id)]
+        if len(found) != 1:
+            raise FlowEditRejected("Недоступный или неоднозначный Inbound")
+        return found[0]
+
+def _settings_obj(value: Any) -> dict[str, Any]:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except (TypeError, ValueError) as exc:
+            raise FlowEditRejected("Некорректные настройки Inbound") from exc
+    if not isinstance(value, dict):
+        raise FlowEditRejected("Нет проверенных настроек Inbound")
+    return value
+
+def _node_id(raw: Any) -> int:
+    if raw in (None, "", 0, "0"):
+        return 0
+    if isinstance(raw, bool) or not str(raw).isdigit():
+        raise FlowEditRejected("Недопустимая identity ноды")
+    value = int(raw)
+    if not 0 < value <= MAX_CALLBACK_ID:
+        raise FlowEditRejected("Недопустимая identity ноды")
+    return value
+
+def _scoped_flow(inbound: dict[str, Any], email: str) -> str:
+    clients = _settings_obj(inbound.get("settings")).get("clients")
+    if not isinstance(clients, list):
+        raise FlowEditRejected("Список клиентов Inbound не подтверждён")
+    found = [x for x in clients if isinstance(x, dict) and x.get("email") == email]
+    if len(found) != 1:
+        raise FlowEditRejected("Привязка клиента отсутствует или неоднозначна")
+    flow = found[0].get("flow")
+    if not isinstance(flow, str) or flow not in FLOW_CHOICES.values():
+        raise FlowEditRejected("Неизвестное значение Flow")
+    return flow
+
+def client_fingerprint(client: dict[str, Any]) -> str:
+    protected = {k: v for k, v in client.items() if k != "flow"}
+    return hashlib.sha256(json.dumps(protected, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+
+async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnapshot:
+    payload = await asyncio.wait_for(master.get_client(email), timeout=12)
+    if not isinstance(payload, dict):
+        raise FlowEditRejected("Некорректный ответ Master")
+    client = payload.get("client", payload)
+    if not isinstance(client, dict) or client.get("email") != email:
+        raise FlowEditRejected("Identity клиента не совпадает")
+    mandatory = ("subId", "expiryTime", "totalGB", "limitIp", "limitHwid", "enable", "tgId")
+    if any(k not in client or client[k] is None for k in mandatory) or not (client.get("uuid") or client.get("id")):
+        raise FlowEditRejected("Неполный общий record")
+    try:
+        valid_tg = int(client["tgId"]) == tg_id
+    except (TypeError, ValueError):
+        valid_tg = False
+    if not valid_tg:
+        raise FlowEditRejected("Telegram identity не совпадает")
+    raw = payload.get("inboundIds")
+    if not isinstance(raw, list) or len(raw) > MAX_EDIT_INBOUNDS:
+        raise FlowEditRejected("Недопустимый список Inbounds")
+    ids = []
+    for value in raw:
+        if isinstance(value, bool) or not str(value).isdigit() or not 0 < int(value) <= MAX_CALLBACK_ID:
+            raise FlowEditRejected("Некорректный Inbound ID")
+        ids.append(int(value))
+    if len(ids) != len(set(ids)):
+        raise FlowEditRejected("Дублированный Inbound ID")
+    targets = []
+    for iid in sorted(ids):
+        inbound = await asyncio.wait_for(master.inbound_get(iid), timeout=9)
+        if not isinstance(inbound, dict) or inbound.get("id") != iid:
+            raise FlowEditRejected("Inbound identity mismatch")
+        stream = _settings_obj(inbound.get("streamSettings"))
+        if inbound.get("protocol") != "vless" or stream.get("security") != "reality" or stream.get("network", "tcp") != "tcp":
+            continue
+        tag = inbound.get("tag")
+        if not isinstance(tag, str) or not tag:
+            raise FlowEditRejected("Inbound tag не подтверждён")
+        targets.append(FlowTarget(_node_id(inbound.get("nodeId")), iid, tag, _scoped_flow(inbound, email)))
+    if len({t.node_id for t in targets}) > MAX_EDIT_NODES:
+        raise FlowEditRejected("Слишком много нод")
+    if len({(t.node_id, t.inbound_tag) for t in targets}) != len(targets):
+        raise FlowEditRejected("Неоднозначный tag")
+    return FlowSnapshot(client, tuple(sorted(targets, key=lambda t: (t.node_id, t.inbound_id))), client_fingerprint(client))
+
+@dataclass(frozen=True)
+class FlowConfirmation:
+    actor: int
+    tg_id: int
+    nonce: str
+    node_id: int
+    inbound_id: int
+    tag: str
+    old_flow: str
+    new_flow: str
+    client_fingerprint: str
+    issued_at: float
+
+def pop_confirmation(challenges: dict[int, FlowConfirmation], actor: int, tg_id: int, nonce: str, *, now: float) -> FlowConfirmation | None:
+    challenge = challenges.pop(actor, None)
+    if not challenge or challenge.actor != actor or challenge.tg_id != tg_id or not secrets.compare_digest(challenge.nonce, nonce) or not 0 <= now - challenge.issued_at <= CONFIRM_TTL:
+        return None
+    return challenge
+
+async def read_target_outcome(master: Any, targets: tuple, email: str, tg_id: int, node_id: int, inbound_id: int, expected_flow: str, *, inspect) -> tuple[str, str]:
+    try:
+        snap = await discover_flow_targets(master, email, tg_id)
+        target = snap.select(node_id, inbound_id)
+        master_result = "MATCH" if target.current_flow == expected_flow else "MISMATCH"
+    except (FlowEditRejected, asyncio.TimeoutError, ValueError, TypeError, RuntimeError):
+        return "UNKNOWN", "UNKNOWN"
+    if node_id == 0:
+        return master_result, "N/A"
+    try:
+        observations, omitted = await inspect(master, targets, email, [inbound_id])
+        matches = [x for x in observations if x.node_id == node_id and x.inbound_tag == target.inbound_tag]
+        if omitted or len(matches) != 1 or matches[0].node_flow is None:
+            return master_result, "UNKNOWN"
+        return master_result, "MATCH" if matches[0].node_flow == expected_flow else "MISMATCH"
+    except (asyncio.TimeoutError, ValueError, TypeError, RuntimeError):
+        return master_result, "UNKNOWN"

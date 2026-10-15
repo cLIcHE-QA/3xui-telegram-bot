@@ -125,6 +125,7 @@ class XUIClient(VersionAPIMixin):
         method: str = "POST",
         json_payload: dict[str, Any] | None = None,
         data_payload: Any | None = None,
+        params: dict[str, int] | None = None,
     ) -> dict[str, Any]:
         """Send one state-changing request without redirects or automatic retry."""
         if json_payload is not None and data_payload is not None:
@@ -145,6 +146,8 @@ class XUIClient(VersionAPIMixin):
                     request_kwargs["json"] = json_payload
                 elif data_payload is not None:
                     request_kwargs["data"] = data_payload
+                if params is not None:
+                    request_kwargs["params"] = params
                 async with session.request(
                     method,
                     f"{self.base_url}{path}",
@@ -615,6 +618,26 @@ class XUIClient(VersionAPIMixin):
         payload = self._full_update_payload(client, **changes)
         return await self._mutation_request(
             f"/panel/api/clients/update/{quote(email, safe='')}", json_payload=payload
+        )
+
+    async def update_client_inbound_flow(
+        self, email: str, inbound_id: int, flow: str, *, client: dict[str, Any]
+    ) -> dict[str, Any]:
+        """One scoped Master update without Node write or blind retry.
+
+        The inboundIds query filter is verified on pinned upstream 3x-ui
+        v3.10.0. The calling preflight must validate identity and fields.
+        """
+        if isinstance(inbound_id, bool) or not isinstance(inbound_id, int) or not 0 < inbound_id <= 2147483647:
+            raise ValueError("Invalid inbound ID")
+        if flow not in {"", "xtls-rprx-vision", "xtls-rprx-vision-udp443"}:
+            raise ValueError("Unsupported Reality Flow")
+        if not isinstance(client, dict) or client.get("email") != email or not email:
+            raise ValueError("Client identity changed during Flow preflight")
+        payload = self._full_update_payload(client, flow=flow)
+        return await self._mutation_request(
+            f"/panel/api/clients/update/{quote(email, safe='')}",
+            json_payload=payload, params={"inboundIds": inbound_id},
         )
 
     async def attach_client(self, email: str, inbound_ids: list[int]) -> dict[str, Any]:

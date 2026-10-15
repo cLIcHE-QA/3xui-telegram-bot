@@ -58,10 +58,11 @@ class V4250UserSafetySubscriptionTests(unittest.TestCase):
             '@advanced_users_router.callback_query(F.data.startswith("admin:u:expiry:"))',
             1,
         )[0]
-        self.assertIn("bulk_adjust_clients([rec.email], flow=settings.vless_flow)", run)
+        self.assertNotIn("bulk_adjust_clients", run)
+        self.assertIn("user.flow.legacy_blocked", run)
         self.assertNotIn("attach_client(", run)
         self.assertNotIn("detach_client(", run)
-        self.assertIn("inbound_mutation=false", run)
+        self.assertIn("mutation=false", run)
 
     def test_disable_enable_are_confirmation_first(self):
         self.assertEqual(required_role_for_callback("admindisable:101"), "support")
