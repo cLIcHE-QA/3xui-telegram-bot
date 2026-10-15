@@ -6,11 +6,15 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Неопубликованные изменения — кандидат v5.0.0-rc.11
+## v5.0.0-rc.11 — Адресный Reality Flow и стабилизация административного интерфейса
 
-- #663: Support+ адресно выбирает Node → Reality Inbound → Flow (`none`, `xtls-rprx-vision`, `xtls-rprx-vision-udp443`) и подтверждает одноразовую Master mutation; результат отделяет Master от независимого Node Panel read-back.
-- #648/#663: старая кнопка массовой синхронизации Flow остаётся доступной для навигации, но опасный `bulkAdjust` заменён выбором конкретного Inbound; устаревшие run callbacks не выполняют mutation.
-- #663: исправлена предварительная проверка совместимости с pinned v3.10.0 — пустой строковый `reverse` допустим, непустой блокируется; отсутствующий `flow` в Reality Inbound означает `none`. Regression-тесты без live mutations.\n- Изменения #648/#649/#650/#659/#663 уже слиты в `main`; rc.11 пока не Published/Deployed, targeted production acceptance PENDING, G-11 PARTIAL / NO-GO.
+- [PR #652](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/652) / #650: исправлено падение «📈 Мониторинг → 📊 Трафик» из-за неопределённой `role`; role-aware доступ и кнопки сохраняют RBAC.
+- [PR #653](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/653) / #649: восстановлены восемь маршрутов «Назад»/«Отмена» в Admin UI, включая bulk actions, карточку пользователя, import SQLite metadata и историю восстановления конкретной резервной копии.
+- [PR #655](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/655) / #648: при «Тариф + согласование» убран избыточный no-op `bulkAdjust`, когда Master уже показывает требуемый Reality Flow; предотвращается известный путь отправки пустого Flow на direct Node.
+- [PR #661](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/661) / #659: read-only диагностика раздельно показывает Master EffectiveFlow и результат прямого Node Panel GET по точному `node_id`; отсутствие привязки/связи помечается `UNKNOWN`, не `MATCH`.
+- [PR #667](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/667) / #663: Support+ адресно выбирает Node → Reality Inbound → Flow (`none`, `xtls-rprx-vision`, `xtls-rprx-vision-udp443`) с отдельным одноразовым подтверждением и scoped Master `inboundIds` update. Нет прямой Node mutation, небезопасного повтора или legacy `flowrun` `bulkAdjust`; Master/Node postcondition читаются отдельно.
+- [PR #673](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/673) / #663: устранено ложное отклонение валидного `ClientRecord.reverse=""` и отсутствие `flow` (`omitempty`) в pinned 3x-ui v3.10.0; непустой reverse по-прежнему fail closed. Исправление уже слито в `main` (`2df0ff893d94fdae045077424c432346c1d434b4`), его post-merge evidence — PR #675. Regression tests PASS на fix branch; required CI релизного PR, публикация и Node/Xray acceptance являются отдельными проверками.
+- **Controlled canary only:** pinned 3x-ui `v3.10.0`, SQLite schema **v13** без новых migrations, пилотный allowlist прежний; Stars/refund semantics и #433 не изменяются. Новый RC сам по себе не означает Deployed/Accepted. После отдельного разрешённого deployment обязательны targeted Node Reality Flow #648/#659/#663, навигация #649, мониторинг трафика #650 и базовый health; опасный production reproducer и live mutations не повторять без явного согласования. Общий G-11 остаётся **PARTIAL / NO-GO**, stable/public rollout BLOCKED.
 
 ## v5.0.0-rc.10 — Диагностика сроков и история Stars в карточке пользователя
 
