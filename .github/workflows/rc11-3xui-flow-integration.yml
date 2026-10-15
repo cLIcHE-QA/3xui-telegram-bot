@@ -1,0 +1,37 @@
+name: rc11 3x-ui Flow integration
+on:
+  pull_request:
+    paths:
+      - 'tests/integration/rc11_3xui_service_flow_test.go'
+      - '.github/workflows/rc11-3xui-flow-integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  upstream-flow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.2'
+      - name: Fetch immutable upstream 3x-ui v3.10.0
+        env:
+          UPSTREAM_SHA: 74c3cc38821cabd66ad316ea562851422d0b0063
+        run: |
+          set -euo pipefail
+          git clone --no-checkout --filter=blob:none https://github.com/MHSanaei/3x-ui.git /tmp/rc11-upstream
+          cd /tmp/rc11-upstream
+          git -c advice.detachedHead=false checkout --detach "$UPSTREAM_SHA"
+          test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"
+      - name: Run real upstream service and SQLite Flow regression
+        run: |
+          set -euo pipefail
+          cp tests/integration/rc11_3xui_service_flow_test.go /tmp/rc11-upstream/internal/web/service/rc11_flow_integration_test.go
+          cd /tmp/rc11-upstream
+          mkdir -p internal/web/dist
+          touch internal/web/dist/.gitkeep
+          go test -count=1 -timeout 10m -run '^TestRC11RealityFlowNoopBulkAdjustOnUpstreamService$' -v ./internal/web/service
