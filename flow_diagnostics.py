@@ -60,6 +60,24 @@ def _inbound_client_flow(inbound: dict[str, Any], email: str) -> tuple[bool, str
     return False, None
 
 
+def _node_tag_matches(inbounds: list[dict[str, Any]], node_id: int, master_tag: str) -> list[dict[str, Any]]:
+    """Match one node-scoped tag or pinned v3.10.0 n<id>- alias, never fuzzy.
+
+    Both aliases present (including exact plus alternate) are ambiguous.
+    A non-positive node identity cannot authorize an alias.
+    """
+    if not isinstance(node_id, int) or isinstance(node_id, bool) or node_id <= 0:
+        return []
+    if not isinstance(master_tag, str) or not master_tag:
+        return []
+    prefix = f"n{node_id}-"
+    alias = master_tag[len(prefix):] if master_tag.startswith(prefix) else prefix + master_tag
+    tags = {master_tag}
+    if alias and alias != master_tag:
+        tags.add(alias)
+    return [ib for ib in inbounds if isinstance(ib, dict) and ib.get("tag") in tags]
+
+
 def _exact_target(targets: tuple, node_id: int):
     matches = [t for t in targets if getattr(t, "node_id", None) == node_id]
     return matches[0] if len(matches) == 1 else None
@@ -142,7 +160,7 @@ async def inspect_node_flow(
         if r.node_id not in gathered or gathered[r.node_id] is None:
             output.append(FlowObservation(r.node_id, r.inbound_tag, r.master_flow, None, "UNKNOWN", "Direct API недоступен"))
             continue
-        matches = [x for x in gathered[r.node_id] if isinstance(x, dict) and x.get("tag") == r.inbound_tag]
+        matches = _node_tag_matches(gathered[r.node_id], r.node_id, r.inbound_tag)
         if len(matches) != 1:
             output.append(FlowObservation(r.node_id, r.inbound_tag, r.master_flow, None, "UNKNOWN", "Node inbound tag не найден/неоднозначен"))
             continue

@@ -21,6 +21,8 @@ Schema берётся из immutable release tag, а не из upstream `main`. 
 
 При изменении `contracts/3xui/contract.json` или vendored `contracts/3xui/**/openapi.json` Living Docs требует синхронного изменения этого документа в том же PR (`require_all`, без waiver). Изменения API-клиентов `xui.py` / `version_api.py` требуют review документа либо точного обоснованного waiver. Semantic test сверяет количество endpoints с manifest; это не требует обновления pinned upstream версии при расширении уже существующего API surface.
 
+Для #659 read-only сопоставление Node inbound tags учитывает строго одну native alias-форму `n<node_id>-` в соответствии с закреплённым [upstream v3.10.0 remote tag cache](https://github.com/MHSanaei/3x-ui/blob/v3.10.0/internal/web/runtime/remote.go). API endpoints и schema не меняются. Дубли/коллизии остаются `UNKNOWN`, Node Panel не аттестует работающий Xray. Для #663 отказ preflight теперь выдаёт ограниченный фиксированный код причины, не сырой API response; full-row/identity/membership/nonce проверки, POST и запрет прямого Node write не меняются.
+
 ## Что проверяет CI
 
 `python3 scripts/check-3xui-openapi-contract.py` сопоставляет три источника истины:
