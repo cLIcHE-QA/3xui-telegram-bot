@@ -35,7 +35,7 @@ class V4250UserBulkCompletionTests(unittest.TestCase):
 
     def test_bulk_actions_cover_roadmap_and_confirm_simple_mutations(self):
         source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
-        actions = source.split("async def bulk_actions", 1)[1].split(
+        actions = source.split("def _bulk_actions_keyboard", 1)[1].split(
             "async def bulk_ask", 1
         )[0]
         for label in (
