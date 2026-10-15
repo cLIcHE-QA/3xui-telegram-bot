@@ -141,7 +141,9 @@ git clone https://github.com/cLIcHE-QA/3xui-telegram-bot.git
 cd 3xui-telegram-bot
 
 git fetch --tags --prune
-git checkout --detach v5.0.0-rc.10
+# Только после отдельного разрешённого merge release-prep,
+# появления immutable published tag и проверки его SHA:
+git checkout --detach v5.0.0-rc.11
 ~~~
 
 Проверка release:
@@ -156,7 +158,7 @@ PY
 Ожидается:
 
 ~~~text
-5.0.0-rc.10
+5.0.0-rc.11
 ~~~
 
 ## 4. Создай local admin venv
