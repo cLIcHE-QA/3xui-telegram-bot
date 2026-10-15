@@ -19,6 +19,8 @@
 
 Текущая версия схемы определяется последним элементом каталога, а не версией приложения.
 
+**Release-prep `v5.0.0-rc.12`:** SQLite schema остаётся **v13**, новых migrations нет. Изменяются только read-only Reality Flow tag alias, код отказа preflight и Telegram навигация; существующие backup/rollback/schema compatibility правила для published/deployed `v5.0.0-rc.11` остаются прежними. Release candidate ещё не Published/Deployed; независимый production SQLite `quick_check` после будущего разрешённого deployment PENDING.
+
 ## Migration journal
 
 В каждой bot DB создаётся служебная таблица `schema_migrations`.

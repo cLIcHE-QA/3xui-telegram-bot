@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.12 — Безопасная проверка Reality Flow и возврат в параметры доступа
+
+- [PR #678](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/678) / #659: независимая read-only проверка direct Node Panel теперь сопоставляет однозначный Reality Inbound по точному `tag` или допустимому alias `n<node_id>-` закреплённого 3x-ui v3.10.0; несовпадение/неоднозначность сохраняет `UNKNOWN`, не выдаёт неподтверждённый `MATCH`, не изменяет Node.
+- [PR #678](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/678) / #663: fail-closed preflight редактора Flow вместо общей причины отказа показывает фиксированный безопасный код (например, `INBOUND_TAG`, `CLIENT_RECORD`, `UPSTREAM_TIMEOUT`); identity, full-row validation, inbound membership, RBAC, nonce и запрет опасных повторов сохранены. Реальная причина production A6 после выпуска должна быть подтверждена отдельно, preflight не обходится.
+- [PR #680](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/680) / #679: `🔎 Проверить Flow` сохраняет точку входа: из `⚙️ Параметры доступа` кнопка «⬅» возвращает к параметрам, из карточки пользователя — к пользователю; «🔄 Повторить проверку» сохраняет исходный контекст, включая `UNKNOWN` и ошибки API. Старый callback и `users.view` поддерживаются.
+- **Controlled canary only:** pinned 3x-ui `v3.10.0`, SQLite schema **v13**, без миграций и изменений Stars/refund, платежей, pilot allowlist или production конфигурации. Это только release-prep candidate: до отдельного merge, успешной публикации и разрешённого deployment версия **не** является Published или Deployed. После release/deploy нужны targeted read-only A2/A6, UI refresh/back #679 и повторный health; A7/A8/A10 остаются PENDING/BLOCKED до подтверждения preflight и отдельного разрешения на state-changing A10. Node Panel не аттестует работающий Xray; общий v5 G-11 **PARTIAL / NO-GO**, stable/public rollout **BLOCKED**.
+
 ## v5.0.0-rc.11 — Адресный Reality Flow и стабилизация административного интерфейса
 
 - [PR #652](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/652) / #650: исправлено падение «📈 Мониторинг → 📊 Трафик» из-за неопределённой `role`; role-aware доступ и кнопки сохраняют RBAC.
