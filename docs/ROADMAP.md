@@ -101,6 +101,7 @@
 | [#649](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/649) | 🟡 Реализовано в main | [#653](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/653) | v5.0.0-rc.11 (candidate) | 2026-10-15: merged b4fad69f01fb10281ce7488ce4ad4fe278f61c0f, required test/title PASS; docs/UI_STYLE.md origin-aware contract and history callback independent main read-back PASS; production PENDING | 8 Cancel/Back flows merged, #649 reopened after automatic closure; published/deployed rc.10, targeted production UI smoke PENDING; Issue OPEN | S|
 | [#650](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/650) | 🟡 Реализовано в main | [#652](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/652) | v5.0.0-rc.11 (candidate) | 2026-10-15: merged b28efd4e6c1ffc937211f24c45af13c9deb0c8e8; required test/title PASS; main handler read-back PASS; production PENDING | NameError role устранён offline; Published/Deployed остаются rc.10, targeted production Traffic/Refresh/Back + health PENDING, issue OPEN | XS|
 
+| [#659](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/659) | ⬜ Запланировано | — | v5.0.0-rc.11 (candidate) | 2026-10-15 operator requested source-separated VLESS Flow; issue-first registered, implementation and CI PENDING | Read-only Master/Node Flow by stable node_id + actual direct node API, UNKNOWN for unavailable/unbound, no mutation and no false PASS | S|
 
 ## Завершённые этапы и исторические документы
 
