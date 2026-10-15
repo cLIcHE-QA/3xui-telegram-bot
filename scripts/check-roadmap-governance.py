@@ -32,7 +32,15 @@ def roadmap_rows(root:Path=ROOT):
     if section.count(header)!=1 or section.count(separator)!=1:
         raise ValueError("Issue registry requires canonical seven-column header and separator")
     rows={}
-    for line in section.splitlines():
+    table=section.split(separator,1)[1]
+    started=False
+    finished=False
+    for line in table.splitlines():
+        if line.startswith("| [#"):
+            if finished: raise ValueError("Issue registry must be one contiguous Markdown table")
+            started=True
+        elif started:
+            finished=True
         if not line.startswith("| [#"): continue
         cells=[x.strip() for x in line.strip().strip("|").split("|")]
         if len(cells)!=7:raise ValueError("Issue row must have seven fields")
