@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.13 — Уточнение безопасной диагностики Flow
+
+- [PR #683](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/683) / #663: общий отказ `CLIENT_RECORD` в `✏️ Изменить Flow` разделён на фиксированные безопасные коды `CLIENT_RECORD_MISSING`, `CLIENT_RECORD_NULL`, `CLIENT_RECORD_PROTOCOL`, `CLIENT_RECORD_REVERSE`; поля и их значения, raw Master API и секреты не выводятся.
+- Не ослаблены условия full-row Master client record preflight; forbidden/unknown значения по-прежнему блокируют scoped Flow POST. Не меняются API surface, inbound membership, nonce, RBAC, Node mutations, платежи, pilot allowlist и SQLite schema **v13**; новых migrations нет.
+- **Controlled canary only:** это release-prep candidate, не Published и не Deployed до отдельно разрешённого merge/publish/deploy. После deployment безопасно повторить только A6.1/A6.2 и прислать новый код; это **не** автоматическое исправление фактического Master client record и не разрешение на Flow POST/A10. A6.4–A6.9, N6/R3 остаются BLOCKED до успешного preflight, общий G-11 PARTIAL / NO-GO, stable/public rollout BLOCKED.
+
 ## v5.0.0-rc.12 — Безопасная проверка Reality Flow и возврат в параметры доступа
 
 - [PR #678](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/678) / #659: независимая read-only проверка direct Node Panel теперь сопоставляет однозначный Reality Inbound по точному `tag` или допустимому alias `n<node_id>-` закреплённого 3x-ui v3.10.0; несовпадение/неоднозначность сохраняет `UNKNOWN`, не выдаёт неподтверждённый `MATCH`, не изменяет Node.
