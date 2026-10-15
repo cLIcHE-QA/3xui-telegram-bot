@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 from flow_edit import FlowEditRejected, discover_flow_targets, preflight_reason
-from tests.test_flow_edit import FakeMaster
+from test_flow_edit import FakeMaster
 
 
 class ClientRecordReasonTests(unittest.IsolatedAsyncioTestCase):
