@@ -2,6 +2,7 @@ package service
 
 import (
     "context"
+    "encoding/json"
     "sync"
     "testing"
 
@@ -124,4 +125,67 @@ func TestRC11RealityFlowNoopBulkAdjustOnUpstreamService(t *testing.T) {
         t.Fatalf("Expected v3.10.0 no-op BulkAdjust to send empty Flow, got %q (upstream may be fixed)", afterBulk)
     }
     t.Log("RC11_ROOT_PATH_CONFIRMED: no-op bulkAdjust pushes empty shared clients.flow to Reality Node")
+}
+
+
+func TestRC11ScopedFlowEditDoesNotTouchAnotherInbound(t *testing.T) {
+    setupBulkDB(t)
+    startSerializedWriter(t)
+    nodeID, _ := setupNodeRuntime(t)
+    probe := &rc11FlowRecorder{byTag: make(map[string]string)}
+    runtime.GetManager().SetRuntimeOverride(nodeID, probe)
+
+    const email = "scoped-flow@example.com"
+    const originalFlow = "xtls-rprx-vision"
+    client := model.Client{
+        Email: email, ID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+        SubID: "scoped-flow-sub", Flow: originalFlow, Enable: true,
+        ExpiryTime: 2000000000000, TotalGB: 107374182400, LimitIP: 10,
+    }
+    db := database.GetDB()
+    mk := func(tag string, port int) *model.Inbound {
+        return &model.Inbound{
+            UserId: 1, NodeID: &nodeID, Tag: tag, Enable: true,
+            Port: port, Protocol: model.VLESS,
+            StreamSettings: `{"network":"tcp","security":"reality"}`,
+            Settings: clientsSettings(t, []model.Client{client}),
+        }
+    }
+    chosen, other := mk("rc11-scoped-chosen", 47831), mk("rc11-scoped-other", 47832)
+    if err := db.Create(chosen).Error; err != nil { t.Fatal(err) }
+    if err := db.Create(other).Error; err != nil { t.Fatal(err) }
+    svc := &ClientService{}
+    inboundSvc := &InboundService{}
+    if err := svc.SyncInbound(nil, chosen.Id, []model.Client{client}); err != nil { t.Fatal(err) }
+    if err := svc.SyncInbound(nil, other.Id, []model.Client{client}); err != nil { t.Fatal(err) }
+
+    before, err := svc.GetRecordByEmail(nil, email)
+    if err != nil { t.Fatal(err) }
+    updated := *before.ToClient()
+    updated.Flow = ""
+    updated.TotalGB = 107374182400
+    updated.ExpiryTime = 2000000000000
+    updated.LimitIP = 10
+    if _, err := svc.Update(inboundSvc, before.Id, updated, 0, chosen.Id); err != nil {
+        t.Fatalf("single inbound scoped Update: %v", err)
+    }
+    checkInbound := func(ib *model.Inbound, want string) {
+        t.Helper()
+        raw, err := inboundSvc.GetInbound(ib.Id)
+        if err != nil { t.Fatal(err) }
+        var settings struct { Clients []model.Client `json:"clients"` }
+        if err := json.Unmarshal([]byte(raw.Settings), &settings); err != nil { t.Fatal(err) }
+        current := settings.Clients
+        if len(current) != 1 || current[0].Email != email || current[0].Flow != want {
+            t.Fatalf("inbound %d (%s) Flow=%v; want %q", ib.Id, ib.Tag, current, want)
+        }
+    }
+    checkInbound(chosen, "")
+    checkInbound(other, originalFlow)
+    if got := probe.flow(other.Tag); got != "" {
+        // The recorder starts empty and captures only pushes after the
+        // filtered Update. A nonempty value implies an unwanted push.
+        t.Fatalf("unselected inbound received an unexpected Node update: %q", got)
+    }
+    t.Logf("SCOPED_FLOW_FILTER_PASS chosen=%d flow=none other=%d flow=%s", chosen.Id, other.Id, originalFlow)
 }

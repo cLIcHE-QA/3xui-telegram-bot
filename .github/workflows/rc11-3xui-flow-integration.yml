@@ -34,4 +34,4 @@ jobs:
           cd /tmp/rc11-upstream
           mkdir -p internal/web/dist
           touch internal/web/dist/.gitkeep
-          go test -count=1 -timeout 10m -run '^TestRC11RealityFlowNoopBulkAdjustOnUpstreamService$' -v ./internal/web/service
+          go test -count=1 -timeout 10m -run '^TestRC11(RealityFlowNoopBulkAdjustOnUpstreamService|ScopedFlowEditDoesNotTouchAnotherInbound)$' -v ./internal/web/service
