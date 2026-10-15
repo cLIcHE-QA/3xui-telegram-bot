@@ -91,7 +91,7 @@ class NodeTagAliasTests(unittest.IsolatedAsyncioTestCase):
 class PreflightCodeTests(unittest.TestCase):
     def test_categories_are_fixed_and_safe(self):
         self.assertEqual(preflight_reason(FlowEditRejected("Неоднозначный tag")), "INBOUND_TAG")
-        self.assertEqual(preflight_reason(FlowEditRejected("Неполный общий record")), "CLIENT_RECORD")
+        self.assertEqual(preflight_reason(FlowEditRejected("Неполный общий record")), "CLIENT_RECORD_MISSING")
         self.assertEqual(preflight_reason(FlowEditRejected("Привязка клиента отсутствует или неоднозначна")), "INBOUND_CLIENT")
         self.assertEqual(preflight_reason(FlowEditRejected("Inbound origin ноды не определён")), "NODE_IDENTITY")
         self.assertEqual(preflight_reason(asyncio.TimeoutError()), "UPSTREAM_TIMEOUT")
