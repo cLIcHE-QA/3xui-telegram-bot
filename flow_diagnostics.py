@@ -107,7 +107,7 @@ async def inspect_node_flow(
         else:
             reality.append(FlowObservation(node_id, tag, master_flow, None, "UNKNOWN"))
 
-    node_ids = sorted({r.node_id for r in reality})
+    node_ids = sorted({r.node_id for r in reality if not r.reason})
     selected = set(node_ids[:MAX_NODE_CHECKS])
     omitted += sum(1 for x in reality if x.node_id not in selected)
     gathered: dict[int, list[dict[str, Any]] | None] = {}
