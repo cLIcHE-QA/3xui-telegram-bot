@@ -261,10 +261,11 @@ async def plan_detail(call: CallbackQuery):
         f"💎 {plan.name}\n\n"
         f"Статус: {status}\n"
         f"По умолчанию для новых пользователей: {'⭐ да' if is_default else 'нет'}\n"
-        f"Срок: {plan.duration_days} дней\n"
+        f"Срок: {'Бессрочно' if plan.duration_days == 0 else str(plan.duration_days) + ' дней'}\n"
         f"Трафик: {traffic}\n"
         f"Лимит IP: {ip_limit}\n"
-        f"Цена: {_money(plan)}\n"
+        f"Цена RUB: {_money(plan) if plan.rub_price_enabled else 'не настроена'}\n"
+        f"Видимость: {plan.visibility}\n"
         f"Telegram Stars: {plan.stars_price if plan.stars_price else 'не настроено'}\n"
         f"Группа серверов: {group_name}\n"
         f"Цели согласования: {target_text}"
@@ -442,7 +443,11 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
         return
     await state.update_data(server_group_id=group_id)
     data = await state.get_data()
-    if int(data["duration_days"]) == 0 and (int(data["price_minor"]) > 0 or int(data.get("stars_price") or 0) > 0):
+    if int(data["duration_days"]) == 0 and (
+        int(data["price_minor"]) > 0 or int(data.get("stars_price") or 0) > 0
+        or int(data["traffic_gb"]) > 0 or int(data["ip_limit"]) > 0
+        or data.get("visibility") != "admin_only"
+    ):
         await call.answer("Бессрочный тариф разрешён только для ручной бесплатной выдачи.", show_alert=True)
         return
     await state.set_state(AddPlanStates.review)
@@ -557,6 +562,10 @@ async def plan_rub_price_save(message: Message, state: FSMContext):
         minor = _parse_price(raw)[0] if raw != "-" else 0
     except ValueError:
         await render_input(message, "Укажите RUB, например 540.00, или «-».",
+            reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
+        return
+    if plan.duration_days == 0 and minor:
+        await render_input(message, "Бессрочный технический тариф не поддерживает RUB-платежи.",
             reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
         return
     await db.update_plan_catalog(plan_id, price_minor=minor, rub_price_enabled=bool(minor))
