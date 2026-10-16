@@ -347,6 +347,10 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
         "id", "telegram_id", "order_id", "plan_id", "status", "starts_at",
         "expires_at", "created_at", "updated_at", "quota_reset_status",
     ),
+    "manual_entitlements": (
+        "id", "telegram_id", "plan_id", "actor_id", "previous_plan_id",
+        "status", "started_at", "confirmed_at", "updated_at", "result_code",
+    ),
     "customer_terms_acceptance": (
         "telegram_id", "terms_version", "accepted_at",
     ),
@@ -376,6 +380,8 @@ _EXPECTED_INDEXES = {
     "idx_payment_webhook_processing",
     "idx_entitlements_user_status",
     "idx_entitlements_order",
+    "idx_manual_entitlements_user_status",
+    "idx_manual_entitlements_one_live",
     "idx_stars_refund_status_created",
 }
 
@@ -421,6 +427,8 @@ async def _validate_current_schema(
         })
     if not include_bot_update_acknowledgments:
         skipped_tables.add("bot_update_acknowledgments")
+    if not include_plan_audience:
+        skipped_tables.add("manual_entitlements")
     for table, expected in _EXPECTED_COLUMNS.items():
         if table in skipped_tables:
             continue
@@ -485,6 +493,9 @@ async def _validate_current_schema(
             "idx_entitlements_user_status",
             "idx_entitlements_order",
         }
+    if not include_plan_audience:
+        expected_indexes.discard("idx_manual_entitlements_user_status")
+        expected_indexes.discard("idx_manual_entitlements_one_live")
     missing_indexes = sorted(expected_indexes - actual_indexes)
     if missing_indexes:
         raise DatabaseMigrationError(
@@ -500,7 +511,7 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
             "website_incidents", "website_incident_notifications",
             "commerce_orders", "commerce_payments", "payment_webhook_events", "entitlements",
             "customer_terms_acceptance", "stars_refund_operations",
-            "bot_update_acknowledgments",
+            "bot_update_acknowledgments", "manual_entitlements",
         }:
             continue
         if table == "user_profiles":
@@ -1060,6 +1071,33 @@ async def _migration_0014_plan_audience_v5_0_0(db: aiosqlite.Connection) -> None
     for name, definition in additions:
         if name not in columns:
             await db.execute(f"ALTER TABLE plans ADD COLUMN {name} {definition}")
+    # Техническая выдача не имитирует заказ или платеж: отдельный журнал,
+    # необратимый in_flight/unknown без автоматического remote replay.
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS manual_entitlements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER NOT NULL REFERENCES users(telegram_id),
+            plan_id INTEGER NOT NULL REFERENCES plans(id),
+            actor_id INTEGER NOT NULL,
+            previous_plan_id INTEGER,
+            status TEXT NOT NULL CHECK(
+                status IN ('in_flight', 'active', 'unknown', 'failed', 'superseded')
+            ),
+            started_at INTEGER NOT NULL,
+            confirmed_at INTEGER NOT NULL DEFAULT 0,
+            updated_at INTEGER NOT NULL,
+            result_code TEXT NOT NULL DEFAULT ''
+        )
+    """)
+    await db.execute("""
+        CREATE INDEX IF NOT EXISTS idx_manual_entitlements_user_status
+        ON manual_entitlements(telegram_id, status, id DESC)
+    """)
+    await db.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_manual_entitlements_one_live
+        ON manual_entitlements(telegram_id)
+        WHERE status IN ('in_flight', 'active', 'unknown')
+    """)
     # Исторические планы сохраняют прежнее поведение; выключение — явное действие.
     await _validate_current_schema(
         db, include_bot_update_acknowledgments=True, include_plan_audience=True
