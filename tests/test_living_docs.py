@@ -140,6 +140,13 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertNotIn(f"Release-prep candidate `{current}`", readme)
         self.assertNotIn("Текущий опубликованный `rc.7`", readme)
 
+    def test_roadmap_active_issues_have_russian_explanations(self):
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        register = roadmap.split("## Активный Issue-реестр (machine-checked)", 1)[1].split("## Завершённые этапы", 1)[0]
+        self.assertNotIn("Issue criteria", register)
+        self.assertNotIn("implementation PENDING", register)
+        self.assertNotIn("(scope)", register)
+
     def test_roadmap_registry_must_be_contiguous(self):
         import importlib.util
         from tempfile import TemporaryDirectory
