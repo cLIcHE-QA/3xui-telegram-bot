@@ -128,6 +128,40 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("#510", roadmap)
         self.assertIn("⬜ Запланировано", roadmap)
 
+    def test_published_release_matches_readme_and_roadmap(self):
+        """Контролировать один релизный статус, не привязываясь к номеру RC."""
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        intro = readme.split("\n## ", 1)[0]
+        summary = roadmap.split("## Актуальная сводка проекта", 1)[1].split(
+            "\n## ", 1
+        )[0]
+
+        def published(text):
+            match = re.search(
+                r"\\*\\*Published:\\*\\*[^\\n]*?releases/tag/"
+                r"(v\\d+\\.\\d+\\.\\d+(?:-rc\\.\\d+)?)[^\\n]*?"
+                r"`([0-9a-f]{40})`",
+                text,
+            )
+            self.assertIsNotNone(match, "Published требует tag и SHA")
+            return match.groups()
+
+        self.assertEqual(published(intro), published(summary))
+        for section in (intro, summary):
+            self.assertEqual(section.count("**Merged:**"), 1)
+            self.assertEqual(section.count("**Published:**"), 1)
+            self.assertEqual(section.count("**Deployed:**"), 1)
+            self.assertEqual(section.count("**Accepted:**"), 1)
+            self.assertIn("operator-reported", section)
+            self.assertIn("PENDING", section)
+            self.assertIn("NO-GO", section)
+        active = roadmap.split(
+            "## Активный Issue-реестр (machine-checked)", 1
+        )[1].split("\n## ", 1)[0]
+        self.assertNotIn("Issue criteria", active)
+        self.assertNotIn("implementation PENDING", active)
+
     def test_roadmap_registry_must_be_contiguous(self):
         import importlib.util
         from tempfile import TemporaryDirectory
@@ -137,12 +171,15 @@ class LivingDocsSemanticTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         source = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn("| [#663]", source)
+        rows = module.roadmap_rows(ROOT)
+        first_issue = min(rows)
+        first_row = f"\n| [#{first_issue}]"
+        self.assertIn(first_row, source)
         with TemporaryDirectory() as folder:
             temp_root = Path(folder)
             (temp_root / "docs").mkdir()
             (temp_root / "docs/ROADMAP.md").write_text(
-                source.replace("\n| [#663]", "\n\n| [#663]", 1),
+                source.replace(first_row, "\n" + first_row, 1),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "contiguous"):
