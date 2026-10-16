@@ -82,8 +82,8 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertEqual(int(declared_count[0]), len(manifest["endpoints"]))
         vendored = ROOT / manifest["vendored_schema"]
         self.assertTrue(vendored.is_file())
-        # Upstream v3.10.0 and v3.10.2 have the exact same immutable
-        # OpenAPI blob. Its SHA (not its parent directory name) is the pin.
+        # Upstream v3.10.0 и v3.10.2 используют один immutable blob.
+        # Проверяем SHA содержимого, а не имя каталога с vendored JSON.
         import hashlib
         payload = vendored.read_bytes()
         raw_blob = b"blob " + str(len(payload)).encode() + b"\0" + payload
@@ -135,6 +135,36 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("#510", roadmap)
         self.assertIn("⬜ Запланировано", roadmap)
 
+    def test_current_release_status_in_readme_and_roadmap(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        current = "v" + APP_VERSION
+        self.assertIn(f"**Published:** immutable [`{current}`]", readme)
+        self.assertIn(f"**Published:** immutable [Тег `{current}`]", roadmap)
+        for document in (readme, roadmap):
+            self.assertIn("**Deployed:**", document)
+            self.assertIn("**Accepted:**", document)
+        self.assertNotIn(f"Release-prep candidate `{current}`", readme)
+        self.assertNotIn("Текущий опубликованный `rc.7`", readme)
+
+    def test_roadmap_active_issues_have_russian_explanations(self):
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        register = roadmap.split("## Активный Issue-реестр (machine-checked)", 1)[1].split("## Завершённые этапы", 1)[0]
+        self.assertNotIn("Issue criteria", register)
+        self.assertNotIn("implementation PENDING", register)
+        self.assertNotIn("(scope)", register)
+
+    def test_required_ci_reconciles_roadmap_with_github(self):
+        """OPEN Issues и Published сверяются с GitHub в обязательном CI."""
+        workflow = (ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+        living = (ROOT / "docs/LIVING_DOCS.md").read_text(encoding="utf-8")
+        self.assertIn("  issues: read", workflow)
+        self.assertIn(
+            'python3 scripts/check-roadmap-github.py --repository "$GITHUB_REPOSITORY"',
+            workflow,
+        )
+        self.assertIn("обязательном PR CI", living)
+
     def test_roadmap_registry_must_be_contiguous(self):
         import importlib.util
         from tempfile import TemporaryDirectory
@@ -144,12 +174,17 @@ class LivingDocsSemanticTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         source = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn("| [#691]", source)
+        # Проверяем динамически вторую строку: первая строка таблицы не
+        # выявляет разрыв реестра; закрытие Issue не ломает этот тест.
+        open_rows = module.roadmap_rows(ROOT)
+        self.assertGreaterEqual(len(open_rows), 2)
+        anchor = f"| [#{list(open_rows)[1]}]"
+        self.assertIn("\n" + anchor, source)
         with TemporaryDirectory() as folder:
             temp_root = Path(folder)
             (temp_root / "docs").mkdir()
             (temp_root / "docs/ROADMAP.md").write_text(
-                source.replace("\n| [#691]", "\n\n| [#691]", 1),
+                source.replace("\n" + anchor, "\n\n" + anchor, 1),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "contiguous"):
@@ -169,14 +204,14 @@ class LivingDocsSemanticTests(unittest.TestCase):
         fence = False
         violations = []
         for number, original in enumerate(roadmap.splitlines(), 1):
-            if re.match(r"^\\s*\x60\x60\x60", original):
+            if original.lstrip().startswith(("```", "~~~")):
                 fence = not fence
                 continue
             if fence:
                 continue
-            prose = re.sub(r"\x60[^\x60]*\x60", "", original)
-            prose = re.sub(r"\\]\\([^)]+\\)", "]", prose)
-            prose = re.sub(r"https?://\\S+", "", prose)
+            prose = re.sub(r"`[^`]*`", "", original)
+            prose = re.sub(r"\]\([^)]+\)", "]", prose)
+            prose = re.sub(r"https?://\S+", "", prose)
             latin = len(re.findall(r"[A-Za-z]", prose))
             cyrillic = len(re.findall(r"[А-Яа-яЁё]", prose))
             # English-only explanatory blocks are not valid Russian docs.

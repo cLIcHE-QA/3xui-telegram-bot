@@ -1,14 +1,10 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.15
 
-**Release-prep candidate `v5.0.0-rc.15` (только PR, ещё не Published/Deployed).** Включает безопасный WG/AWG-scoped Flow из PR #689: exact Master `panelVersion=3.10.2`, подтверждение всех туннельных inbound и сохранение WG-секретов вне VLESS payload. UI масштабируется постранично (до 64 нод / 256 inbound). Для 3x-ui v3.10.0, неизвестных версий и неоднозначных связей остаётся fail-closed. Следующий этап — отдельное разрешение на merge/publication, затем отдельный deploy и scoped acceptance; production Flow POST без разрешения не выполнять.
+**Текущая версия приложения:** `v5.0.0-rc.15` (`version.py`). Адресный VLESS Reality Flow при WG/AWG из [PR #689](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/689) требует точный Master `panelVersion=3.10.2`; неполные и неоднозначные данные обрабатываются fail-closed. Списки Node/Inbound постраничные, до 64 нод / 256 inbound.
 
-Telegram Control Plane для 3x-ui с защищённым `/admin` и pilot Client Portal v5. **Published:** immutable [`v5.0.0-rc.14`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.14) (`e5df7faa40439402afe65d35f9b5bd407706871b`); **Deployed:** rc.14 только по сообщению оператора 2026-10-16T11:22:07Z, независимая проверка VPS/image PENDING. **Accepted:** A6 `CLIENT_RECORD_PROTOCOL_WG` BLOCKED, G-11 PARTIAL/NO-GO. PR #689 исправил WG-scoped Flow с проверкой 3x-ui v3.10.2 и масштабирование в `main`, но **не** входит в опубликованный rc.14. Кандидат rc.15 до отдельного разрешённого merge/publish/deploy не Published, не Deployed и не Accepted.
+**Published:** immutable [`v5.0.0-rc.15`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.15), SHA `9c9245899c7ca949254df92d95f8015e65989645`, `2026-10-16T12:53:58Z` (GitHub). **Deployed:** rc.15 только по сообщению оператора от `2026-10-16T13:16:00Z`; независимая VPS/image/Xray проверка **PENDING**. **Accepted:** targeted A6/N6/R3 и scoped Flow POST — PASS со слов оператора; полный v5 **NOT PASS**, G-11 **PARTIAL / NO-GO**, публичный запуск **BLOCKED**.
 
-**`v5.0.0-rc.12` опубликован как immutable controlled-canary prerelease и operator-reported Deployed 2026-10-15T20:59:01Z** на SHA `a88fd6947f04d40570413e792cda7150e738abbd`: `DEPLOY_OK`, container running/restarts 0, Health/DB/3XUI TCP `ok`; independent VPS/image attestation и targeted A2/A6/#679 production acceptance PENDING. Реализованы #659/#663/#679 (read-only Node tag alias, безопасный код preflight и корректный Back/Refresh). Общий v5 G-11 PARTIAL/NO-GO, public launch BLOCKED.
-
- **`v5.0.0-rc.11` — предыдущий controlled-canary выпуск; факт Published подтверждает immutable tag и GitHub Release, а факт Deployed — отдельная проверка VPS. Публикация сама по себе не обновляет production.** Оператор сообщил `DEPLOY_OK` production `v5.0.0-rc.11` на immutable tag SHA `5f0576417ef3274b92adefa0c9c0932c7a359fd5` (сообщение 2026-10-15T18:07:06Z): container running/restarts 0 и Health/DB/3XUI_TCP `ok`; independent VPS/image read-back и targeted acceptance #648/#649/#650/#659/#663 остаются PENDING. Предыдущий `v5.0.0-rc.10` включал read-only диагностику доказанности сроков (#627 / PR #639) и раздельные журналы Stars (XTR) и ручных платежей (#628 / PR #641) поверх SQLite schema v13. Новый 14-дневный refund/revocation flow #433 ОТЛОЖЕН, target TBD, в релиз не входит; прежняя обработка Stars refund не изменяется. Для rc.10 оператор ранее сообщил scoped targeted #627/#628 smoke PASS 2026-10-14/15; этот результат не заменяет smoke rc.11. Публикация и CI сами по себе не равны общему production acceptance. **Публикация RC сама по себе не означает завершения production acceptance:** необходимы manual/scheduled/off-site/DR проверки; до общего PASS `/start` остаётся ограничен pilot allowlist, stable `v5.0.0` и широкий customer launch заблокированы.
-
-После выпуска rc.11 отдельно проверяются #648/#659/#663 (scoped Reality Flow и Node read-back), #649 (Back/Cancel) и #650 (Traffic), без нового публичного rollout и без опасных live mutations. Подробный release scope — в `CHANGELOG.md`; замена версии сама по себе не запускает VPS deploy.
+**После rc.15:** [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691) / [PR #692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) уже в `main`, но не в опубликованном релизе; новый Release/deploy/targeted UI smoke **PENDING**. Общий OpenAPI contract закреплён на `v3.10.2` ([PR #693](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/693)); тот же immutable OpenAPI blob размещён по прежнему vendored пути `v3.10.0` и не означает обновления production. Production mutations, расширение pilot allowlist и stable rollout не разрешены.
 
 Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
 
@@ -169,8 +165,6 @@ Client Portal развивается поверх отдельного commerce 
 
 Линия `v4.25.x` (`v4.25.0–v4.25.8`) полностью опубликована, развёрнута, проверена и закрыта в production. Финальные patch findings закрыты в `v4.25.8`: Clone Inbound сохраняет source parent при `✖ Отмена`, а DB-backed Owner подтверждает self-demotion отдельным fail-closed confirmation flow. Subscription proxy сохраняет принятый контракт `v4.25.3`; временные Streisand workarounds из `v4.25.4–v4.25.5` удалены. Известное ограничение: Streisand не передаёт совместимый `X-HWID`, поэтому при включённом HWID limit 3x-ui отклоняет raw subscription как `hwid_not_supported`.
 
-Предыдущий опубликованный immutable prerelease — [`v5.0.0-rc.10`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.10): tag SHA `ef7e655fed6818053ceff1818b64a852c83638ec`, GitHub Release от 2026-10-14; версия приложения `5.0.0-rc.10`, SQLite schema **v13**, pinned 3x-ui OpenAPI **v3.10.0**. Production deployment того же tag/SHA и targeted read-only smoke #627/#628 подтверждены **только сообщением оператора** (2026-10-14/15, scoped PASS); независимый VPS/image read-back **PENDING**. Targeted #342 Portal callback и #422 Host Groups закрыты по собственным критериям; это не общий production acceptance. Общий v5 G-11 **PARTIAL / CONDITIONAL / NO-GO**, stable/public rollout и расширение pilot allowlist **BLOCKED**. Независимый cross-host DR — `OPERATOR-WAIVED / NOT TESTED`, не PASS. Точные timestamps и границы evidence: [Roadmap](docs/ROADMAP.md), [rc.10 targeted acceptance audit](docs/audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md).
-
 Historical v4 acceptance остаётся закрытым и документированным: Controlled Node Drain production acceptance #208 завершён 2026-10-01. Encrypted off-site backup/restore drill завершён 2026-10-05 и подтвердил `OFFSITE_RECOVERY_OK`. **Final v4 feature freeze действует с 2026-10-05**; `v4.26.9` является post-freeze operational hotfix для subscription compatibility и публикации уже слитого pilot v5 foundation, а не новым v4 product scope; до закрытия repository/public-release audit после freeze разрешались только narrowly-scoped security/reliability/data-integrity fixes, regression changes и production acceptance; сам audit теперь закрыт PASS.
 
 Линия `v4.24.x` реализована, опубликована и принята в production: `website_monitoring.py` содержит SQLite repository/state machine и SSRF-safe outbound boundary, `website_monitoring_runtime.py` — bounded scheduler/incident notifications, `website_monitoring_admin.py` — persistent monitoring UI, а `website_diagnostics.py` / `website_diagnostics_admin.py` — one-off DNS/WHOIS/HTTP/redirect/CMS/SEO/PageSpeed/Sitemap/URL-list/QR diagnostics. Production smoke `v4.24.0` выявил targeted findings WHOIS MSK, bounded Cheburcheck detail и public IPv6 literal validation; они закрыты в `v4.24.1`, после чего smoke/acceptance линии завершён.
@@ -181,7 +175,7 @@ Native 3x-ui API используется через `xui.py` / `version_api.py`
 
 Текущий pinned compatibility contract:
 
-- 3x-ui: `v3.10.2`; pinned OpenAPI для подготовки rc.10 (**contract в main, не production deployment**);
+- 3x-ui: `v3.10.2`; поддерживаемый OpenAPI contract (PR #693; vendored schema от `v3.10.0` с идентичным immutable Git blob), отдельно от строгой проверки Flow `panelVersion=3.10.2`;
 - vendored OpenAPI: `contracts/3xui/v3.10.0/openapi.json`;
 - используемый API surface: `contracts/3xui/contract.json`.
 
@@ -347,7 +341,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 
 ## Telegram surfaces
 
-Текущий опубликованный `rc.7` содержит два отдельных UI/authorization boundary.
+Актуальный controlled canary `rc.15` сохраняет два отдельных UI/authorization boundary.
 
 Client Portal (pilot allowlist, `CLIENT_PORTAL_ENABLED`):
 
