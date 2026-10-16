@@ -35,7 +35,8 @@ class ManualEntitlementService:
                 target_expiry_ms=0,
                 persist_local_expiry=False,
             )
-            if not result.limits_applied or result.remaining_missing_ids:
+            if (not result.limits_applied or result.remaining_missing_ids
+                    or not result.policy.desired_inbound_ids):
                 raise RuntimeError("provisioning postcondition is incomplete")
             if result.policy.plan is None or int(result.policy.plan.id) != int(plan_id):
                 raise RuntimeError("plan changed during manual provisioning")
