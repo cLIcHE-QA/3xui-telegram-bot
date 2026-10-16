@@ -43,6 +43,7 @@ _SESSION_RESET_TTL = 90.0
 # Один короткоживущий одноразовый confirm на оператора; журнал выдачи в SQLite.
 _manual_grant_challenges: dict[int, tuple[int, int, str, float]] = {}
 _MANUAL_GRANT_TTL = 90.0
+_plan_assign_challenges: dict[int, tuple[int, int, str, float]] = {}
 
 
 def _client_field_matches(actual: object, expected: object) -> bool:
@@ -635,11 +636,11 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
     if plan:
         lines += [
             f"Стоимость: {money_text(plan.price_minor, plan.currency)}",
-            f"Период: {plan.duration_days} дн.",
+            f"Период: {'Бессрочно' if plan.duration_days == 0 else str(plan.duration_days) + ' дн.'}",
             "",
             "Параметры тарифа:",
             f"📦 Трафик: {plan.traffic_gb} GB" if plan.traffic_gb else "📦 Трафик: без лимита",
-            f"📱 IP limit: {plan.ip_limit}" if plan.ip_limit else "📱 IP limit: без лимита",
+            f"📱 Лимит IP: {plan.ip_limit}" if plan.ip_limit else "📱 IP limit: без лимита",
             f"🗂 Группа серверов: {plan_group.name if plan_group else 'не назначена'}",
             "",
             "Текущие параметры пользователя:",
@@ -658,7 +659,7 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
         )])
     if _role_can_support(role):
         rows.append([InlineKeyboardButton(text="💎 Сменить тариф", callback_data=f"admin:u:plan:{tg_id}")])
-        if plan:
+        if plan and plan.duration_days > 0:
             rows.append([InlineKeyboardButton(text="▶ Применить параметры тарифа", callback_data=f"admin:u:planapplyask:{tg_id}")])
             rows.append([InlineKeyboardButton(text="🚀 Тариф + согласование", callback_data=f"admin:u:planprovask:{tg_id}")])
     rows.append([InlineKeyboardButton(text="⬅ Пользователь", callback_data=f"admin:u:{tg_id}")])
@@ -2137,7 +2138,7 @@ async def user_plan_menu(call: CallbackQuery):
         )])
     rows.append([InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:u:planview:{tg_id}")])
     await render_callback(call, 
-        "💎 Тариф\n\nНазначение здесь — административные метаданные. Лимиты 3x-ui не меняются автоматически.",
+        "💎 Тариф\n\nОбычный тариф назначается после подтверждения и проверки применения в 3x-ui. Бессрочный бесплатный тариф выдаётся отдельно администратором.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -2174,11 +2175,11 @@ async def user_plan_set(call: CallbackQuery):
         )
         await render_callback(
             call,
-            f"♾ Ручная бессрочная выдача\\n\\n"
-            f"Получатель: {await _display_label(rec)}\\n"
-            f"Тариф: {plan.name} (#{plan.id})\\n"
-            "Срок: Бессрочно; трафик/IP: без лимита.\\n"
-            "Оплата RUB/Stars НЕ создаётся. Будут изменены параметры 3x-ui.\\n\\n"
+            f"♾ Ручная бессрочная выдача\n\n"
+            f"Получатель: {await _display_label(rec)}\n"
+            f"Тариф: {plan.name} (#{plan.id})\n"
+            "Срок: Бессрочно; трафик/IP: без лимита.\n"
+            "Оплата RUB/Stars не создаётся. Будут изменены параметры 3x-ui.\n\n"
             "Подтверждение одноразовое. При неизвестном результате повтор заблокирован.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(
@@ -2196,8 +2197,25 @@ async def user_plan_set(call: CallbackQuery):
     if live:
         await call.answer("У пользователя активная/неопределённая ручная выдача; требуется отдельный ручной review.", show_alert=True)
         return
-    await db.set_user_plan(tg_id, plan_id or None)
-    plan = await db.get_plan(plan_id) if plan_id else None
+    if plan_id:
+        nonce = secrets.token_hex(8)
+        _plan_assign_challenges[int(call.from_user.id)] = (
+            tg_id, plan_id, nonce, time.monotonic() + _MANUAL_GRANT_TTL,
+        )
+        await render_callback(call,
+            f"💎 Назначить и применить тариф «{plan.name}»?\n\n"
+            f"Пользователь: {await _display_label(rec)}\n"
+            f"Срок: {plan.duration_days} дней с момента применения.\n"
+            "После подтверждения обновятся параметры 3x-ui и профиль пользователя. "
+            "Неизвестный результат нельзя автоматически повторять.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Назначить и применить", callback_data=f"admin:u:planassign:{nonce}")],
+                [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:plan:{tg_id}")],
+            ]))
+        await call.answer()
+        return
+    await db.set_user_plan(tg_id, None)
+    plan = None
     await audit_from_call(
         db, call, "user.plan.set", target_type="user", target_id=rec.email if rec else str(tg_id),
         details=f"plan_id={plan_id or None}; name={plan.name if plan else ''}",
@@ -2205,6 +2223,50 @@ async def user_plan_set(call: CallbackQuery):
     await render_callback(call, 
         f"✅ Тариф: {plan.name if plan else 'не назначен'}", reply_markup=back_plan(tg_id)
     )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:planassign:[a-f0-9]{16}$"))
+async def user_plan_assign_run(call: CallbackQuery):
+    if not await guard(call, minimum="support"):
+        return
+    actor = int(call.from_user.id)
+    challenge = _plan_assign_challenges.pop(actor, None)
+    nonce = (call.data or "").rsplit(":", 1)[-1]
+    if challenge is None or challenge[2] != nonce or time.monotonic() >= challenge[3]:
+        await call.answer("Подтверждение истекло или уже использовано.", show_alert=True)
+        return
+    tg_id, plan_id = challenge[0], challenge[1]
+    rec = await db.get(tg_id)
+    plan = await db.get_plan(plan_id)
+    if rec is None or plan is None or not plan.active or plan.duration_days == 0:
+        await call.answer("Пользователь или тариф недоступен.", show_alert=True)
+        return
+    if await db.get_live_manual_entitlement(tg_id):
+        await call.answer("Есть ручная выдача; смена тарифа заблокирована.", show_alert=True)
+        return
+    try:
+        await provisioner.assign_finite_plan(tg_id, plan_id)
+    except Exception as exc:
+        await audit_from_call(
+            db, call, "user.plan.assign.unknown", target_type="user",
+            target_id=rec.email, details=f"plan_id={plan_id}; error={type(exc).__name__}",
+            success=False,
+        )
+        await render_callback(call,
+            "🟡 Назначение не подтверждено полностью. Изменения в 3x-ui возможны; "
+            "проверьте профиль и Inbounds перед новым действием.",
+            reply_markup=back_plan(tg_id),
+        )
+    else:
+        await audit_from_call(
+            db, call, "user.plan.assign", target_type="user",
+            target_id=rec.email, details=f"plan_id={plan_id}; applied=true",
+        )
+        await render_callback(call,
+            f"✅ Тариф «{plan.name}» назначен и применён к 3x-ui.",
+            reply_markup=back_plan(tg_id),
+        )
     await call.answer()
 
 
@@ -2238,7 +2300,7 @@ async def manual_plan_grant_run(call: CallbackQuery):
             success=False,
         )
         await render_callback(
-            call, f"🟡 Ручная выдача НЕ подтверждена. {exc}\\n"
+            call, f"🟡 Ручная выдача не подтверждена. {exc}\n"
             "Проверьте статус и 3x-ui вручную; новый confirm не повторяет mutation.",
             reply_markup=back_plan(tg_id),
         )
@@ -4255,7 +4317,7 @@ async def bulk_plan_menu(call: CallbackQuery, state: FSMContext):
     if not records:
         await call.answer("Нет выбранных пользователей.", show_alert=True)
         return
-    plans = [plan for plan in await db.list_plans() if plan.active]
+    plans = [plan for plan in await db.list_plans() if plan.active and plan.duration_days > 0]
     rows = [[InlineKeyboardButton(
         text=f"💎 {plan.name}",
         callback_data=f"admin:bulk:plan:{plan.id}",
@@ -4503,7 +4565,7 @@ async def bulk_run_plan(call: CallbackQuery, state: FSMContext):
     plan_id = int(call.data.rsplit(":", 1)[-1])
     plan = await db.get_plan(plan_id)
     records = await _bulk_records(state)
-    if not plan or not plan.active or not records:
+    if not plan or not plan.active or plan.duration_days == 0 or not records:
         await call.answer("Тариф или выбранные пользователи недоступны.", show_alert=True)
         return
     ok = 0

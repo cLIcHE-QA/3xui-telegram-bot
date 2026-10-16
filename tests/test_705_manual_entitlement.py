@@ -90,6 +90,50 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
     async def _grant(self):
         return await self.svc.grant(telegram_id=101, plan_id=self.manual, actor_id=1)
 
+    async def test_empty_inbounds_rejected_before_grant(self):
+        async def empty_inbounds():
+            return []
+        self.xui.inbound_options = empty_inbounds
+        with self.assertRaisesRegex(ValueError, "нет доступных Inbounds"):
+            await self._grant()
+        self.assertIsNone(await self.db.get_live_manual_entitlement(101))
+        self.assertEqual((await self.db.get_user_profile(101)).plan_id, self.finite)
+        self.assertEqual(self.xui.update_calls, 0)
+
+    async def test_finite_assignment_verifies_remote_before_local_commit(self):
+        result = await self.engine.assign_finite_plan(101, self.finite)
+        self.assertTrue(result.limits_applied)
+        self.assertEqual((await self.db.get_user_profile(101)).plan_id, self.finite)
+        self.assertEqual(self.xui.update_calls, 1)
+        self.assertGreater((await self.db.get(101)).expiry_time, 0)
+
+    async def test_finite_assignment_failure_preserves_local_plan_and_expiry(self):
+        second = await self.db.create_plan(
+            name="another finite", duration_days=90, traffic_gb=5, ip_limit=1,
+            price_minor=54000, currency="RUB", stars_price=80,
+        )
+        self.xui.omit_expiry = True
+        with self.assertRaises(Exception):
+            await self.engine.assign_finite_plan(101, second)
+        self.assertEqual((await self.db.get_user_profile(101)).plan_id, self.finite)
+        self.assertEqual((await self.db.get(101)).expiry_time, 1_900_000_000_000)
+        self.assertEqual(self.xui.update_calls, 1)
+
+    async def test_finite_assignment_rejects_empty_policy_before_mutation(self):
+        async def no_inbounds():
+            return []
+        self.xui.inbound_options = no_inbounds
+        with self.assertRaises(ValueError):
+            await self.engine.assign_finite_plan(101, self.finite)
+        self.assertEqual(self.xui.update_calls, 0)
+
+    async def test_bulk_manual_plan_callback_does_not_reach_mutations(self):
+        source = (Path(__file__).resolve().parents[1] / "advanced_users.py").read_text()
+        bulk = source.split("async def bulk_run_plan(", 1)[1].split(
+            "async def bulk_run_group(", 1
+        )[0]
+        self.assertIn("plan.duration_days == 0", bulk)
+
     async def test_grant_updates_provider_then_readback_once_without_payments(self):
         record, created = await self._grant()
         self.assertTrue(created)

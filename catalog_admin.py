@@ -133,6 +133,13 @@ def cancel_keyboard(callback: str) -> InlineKeyboardMarkup:
     ])
 
 
+VISIBILITY_LABELS = {"all": "Всем клиентам", "groups": "Выбранным группам пользователей", "admin_only": "Скрыт (только администратору)"}
+
+
+def visibility_label(value: str) -> str:
+    return VISIBILITY_LABELS.get(value, "Неизвестный режим (доступ закрыт)")
+
+
 def _money(plan: PlanRecord) -> str:
     value = Decimal(plan.price_minor) / Decimal(100)
     if value == value.to_integral():
@@ -210,7 +217,7 @@ async def plans_list(call: CallbackQuery):
         icon = "🟢" if plan.active else "⚪"
         default_icon = "⭐ " if plan.id == default_plan_id else ""
         rows.append([InlineKeyboardButton(
-            text=f"{default_icon}{icon} {plan.name} · {_money(plan)}",
+            text=f"{default_icon}{icon} {plan.name} · {(_money(plan) if plan.rub_price_enabled else (str(plan.stars_price) + ' Stars' if plan.stars_price else 'без оплаты'))}",
             callback_data=f"admin:plan:{plan.id}",
         )])
     rows += [
@@ -265,7 +272,7 @@ async def plan_detail(call: CallbackQuery):
         f"Трафик: {traffic}\n"
         f"Лимит IP: {ip_limit}\n"
         f"Цена RUB: {_money(plan) if plan.rub_price_enabled else 'не настроена'}\n"
-        f"Видимость: {plan.visibility}\n"
+        f"Видимость: {visibility_label(plan.visibility)}\n"
         f"Telegram Stars: {plan.stars_price if plan.stars_price else 'не настроено'}\n"
         f"Группа серверов: {group_name}\n"
         f"Цели согласования: {target_text}"
@@ -277,7 +284,7 @@ async def plan_detail(call: CallbackQuery):
         [InlineKeyboardButton(text="⭐ Цена в Telegram Stars", callback_data=f"admin:plan:stars:{plan.id}")],
         [InlineKeyboardButton(text="💰 Цена RUB", callback_data=f"admin:plan:rub:{plan.id}")],
         [InlineKeyboardButton(text="👁 Видимость", callback_data=f"admin:plan:visibility:{plan.id}")],
-        [InlineKeyboardButton(text="👥 Аудитория", callback_data=f"admin:plan:audience:{plan.id}")],
+        [InlineKeyboardButton(text="👥 Группы пользователей", callback_data=f"admin:plan:audience:{plan.id}")],
         [InlineKeyboardButton(text="🗂 Выбрать группу серверов", callback_data=f"admin:plan:groups:{plan.id}")],
         [InlineKeyboardButton(text="🚀 Предпросмотр согласования", callback_data=f"admin:plan:preview:{plan.id}")],
         [InlineKeyboardButton(text=default_text, callback_data=f"admin:plan:default:{plan.id}")],
@@ -424,12 +431,26 @@ async def plan_add_visibility(call: CallbackQuery, state: FSMContext):
             text=f"🗂 {group.name}",
             callback_data=f"admin:planadd:group:{group.id}",
         )])
-    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")])
+    rows.append([InlineKeyboardButton(text="⬅ Назад", callback_data="admin:planadd:backvis")])
     await render_callback(call, 
         "Выбери группу серверов для тарифа.\n"
         "Можно оставить без группы и назначить позже.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
+
+
+@catalog_router.callback_query(AddPlanStates.group, F.data == "admin:planadd:backvis")
+async def plan_add_back_visibility(call: CallbackQuery, state: FSMContext):
+    if not await guard_call(call):
+        return
+    await state.set_state(AddPlanStates.visibility)
+    await render_callback(call, "👁 Видимость тарифа: выберите режим.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌐 Всем клиентам", callback_data="admin:planadd:visibility:all")],
+            [InlineKeyboardButton(text="🔒 Только администратору", callback_data="admin:planadd:visibility:admin_only")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")],
+        ]))
+    await call.answer()
 
 
 @catalog_router.callback_query(AddPlanStates.group, F.data.startswith("admin:planadd:group:"))
@@ -464,7 +485,7 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
         f"Лимит IP: {ips}\n"
         f"Цена RUB: {price_text if data['price_minor'] else 'не настроено'}\n"
         f"Цена Stars: {data.get('stars_price') or 'не настроено'}\n"
-        f"Видимость: {data.get('visibility', 'all')}\n"
+        f"Видимость: {visibility_label(str(data.get('visibility', 'all')))}\n"
         f"Группа серверов: {group_name}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Создать", callback_data="admin:planadd:save")],
@@ -489,7 +510,7 @@ async def plan_add_back(call: CallbackQuery, state: FSMContext):
             text=f"🗂 {group.name}", callback_data=f"admin:planadd:group:{group.id}",
         )])
     rows.append([InlineKeyboardButton(
-        text="✖ Отмена", callback_data="admin:planadd:cancel",
+        text="⬅ Назад", callback_data="admin:planadd:backvis",
     )])
     await render_callback(call, "⬅ Вернитесь к выбору группы серверов.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
@@ -584,7 +605,9 @@ async def plan_rub_price_save(message: Message, state: FSMContext):
         minor = _parse_price(raw)[0] if raw != "-" else 0
     except ValueError:
         await render_input(message, "Укажите RUB, например 540.00, или «-».",
-            reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")
+        ]]))
         return
     if plan.duration_days == 0 and minor:
         await render_input(message, "Бессрочный технический тариф не поддерживает RUB-платежи.",
@@ -595,7 +618,9 @@ async def plan_rub_price_save(message: Message, state: FSMContext):
                              target_id=str(plan_id), details=f"rub_price_enabled={bool(minor)}")
     await state.clear()
     await render_input(message, "✅ Цена RUB обновлена; платежи через Telegram не менялись.",
-        reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")
+        ]]))
 
 
 @catalog_router.callback_query(F.data.startswith("admin:plan:visibility:"))
@@ -607,10 +632,10 @@ async def plan_visibility_select(call: CallbackQuery):
     if not plan:
         await call.answer("Тариф не найден.", show_alert=True)
         return
-    await render_callback(call, f"👁 Видимость · {plan.name}\n\nСейчас: {plan.visibility}",
+    await render_callback(call, f"👁 Видимость · {plan.name}\n\nСейчас: {visibility_label(plan.visibility)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🌐 Всем", callback_data=f"admin:plan:visset:all:{plan_id}")],
-            [InlineKeyboardButton(text="👥 Локальные User Groups", callback_data=f"admin:plan:visset:groups:{plan_id}")],
+            [InlineKeyboardButton(text="👥 Группы пользователей", callback_data=f"admin:plan:visset:groups:{plan_id}")],
             [InlineKeyboardButton(text="🔒 Только администратору", callback_data=f"admin:plan:visset:admin_only:{plan_id}")],
             [InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")],
         ]))
@@ -633,8 +658,10 @@ async def plan_visibility_save(call: CallbackQuery):
     await db.update_plan_catalog(plan_id, visibility=visibility)
     await audit_from_call(db, call, "plan.visibility", target_type="plan",
                           target_id=str(plan_id), details=f"visibility={visibility}")
-    await render_callback(call, f"✅ Видимость: {visibility}",
-        reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
+    await render_callback(call, f"✅ Видимость: {visibility_label(visibility)}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")
+        ]]))
     await call.answer()
 
 
@@ -648,8 +675,16 @@ async def plan_audience_view(call: CallbackQuery):
         await call.answer("Тариф не найден.", show_alert=True)
         return
     groups = await db.list_user_groups()
-    include = set(json.loads(plan.include_group_ids))
-    exclude = set(json.loads(plan.exclude_group_ids))
+    try:
+        include = set(json.loads(plan.include_group_ids))
+        exclude = set(json.loads(plan.exclude_group_ids))
+    except (ValueError, TypeError):
+        await render_callback(call, "⚠️ Правила групп повреждены. Доступ закрыт; проверьте настройки.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")
+            ]]))
+        await call.answer()
+        return
     rows = []
     for group in groups[:30]:
         marker = "✅" if group.id in include else "⛔" if group.id in exclude else "⚪"
@@ -657,8 +692,8 @@ async def plan_audience_view(call: CallbackQuery):
             callback_data=f"admin:plan:audset:{plan.id}:{group.id}")])
     rows.append([InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan.id}")])
     await render_callback(call,
-        "👥 Аудитория тарифа\n\nНажатие переключает: не выбрана → разрешена → запрещена → не выбрана. "
-        "Запрет приоритетнее разрешения. Пустой список включений скрывает groups-only тариф.",
+        "👥 Группы пользователей · видимость тарифа\n\nНажатие переключает: не выбрана → разрешена → запрещена → не выбрана. "
+        "Запрет приоритетнее разрешения. Если разрешённых групп нет, тариф скрыт от клиентов.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
@@ -685,12 +720,14 @@ async def plan_audience_toggle(call: CallbackQuery):
         await db.update_plan_catalog(plan_id,
             include_group_ids=sorted(include), exclude_group_ids=sorted(exclude))
     except (ValueError, TypeError):
-        await call.answer("Правила аудитории некорректны, изменение отменено.", show_alert=True)
+        await call.answer("Правила групп пользователей некорректны, изменение отменено.", show_alert=True)
         return
     await audit_from_call(db, call, "plan.audience", target_type="plan",
                           target_id=str(plan_id), details=f"group_id={group_id}; rule=updated")
-    await render_callback(call, "✅ Правило аудитории сохранено.",
-        reply_markup=cancel_keyboard(f"admin:plan:audience:{plan_id}"))
+    await render_callback(call, "✅ Правило для группы пользователей сохранено.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="⬅ Группы пользователей", callback_data=f"admin:plan:audience:{plan_id}")
+        ]]))
     await call.answer()
 
 

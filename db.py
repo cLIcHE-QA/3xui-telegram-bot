@@ -451,6 +451,57 @@ class Database:
             )
             await db.commit()
 
+    async def confirm_finite_plan_assignment(
+        self, *, telegram_id: int, plan: PlanRecord,
+        expected_previous_plan_id: int | None, expiry_ms: int,
+    ) -> None:
+        """Commit local assignment only after verified remote limits, rejecting stale profiles."""
+        now = int(time.time())
+        async with aiosqlite.connect(self.path, timeout=15) as conn:
+            conn.row_factory = aiosqlite.Row
+            await conn.execute("BEGIN IMMEDIATE")
+            try:
+                live = await (await conn.execute(
+                    "SELECT 1 FROM manual_entitlements WHERE telegram_id=? "
+                    "AND status IN ('active','unknown','in_flight') LIMIT 1",
+                    (int(telegram_id),),
+                )).fetchone()
+                profile = await (await conn.execute(
+                    "SELECT plan_id FROM user_profiles WHERE telegram_id=?",
+                    (int(telegram_id),),
+                )).fetchone()
+                current_plan_id = profile["plan_id"] if profile else None
+                current = await (await conn.execute(
+                    "SELECT * FROM plans WHERE id=?", (int(plan.id),),
+                )).fetchone()
+                if (live or current_plan_id != expected_previous_plan_id
+                        or not current or not current["active"]
+                        or current["duration_days"] <= 0
+                        or int(current["traffic_gb"]) != plan.traffic_gb
+                        or int(current["ip_limit"]) != plan.ip_limit
+                        or current["server_group_id"] != plan.server_group_id):
+                    raise RuntimeError("Профиль или тариф изменились; требуется ручная сверка.")
+                await conn.execute(
+                    """INSERT INTO user_profiles(telegram_id,plan_id,server_group_id,note,updated_at,display_name)
+                       VALUES (?,?,NULL,'',?,'')
+                       ON CONFLICT(telegram_id) DO UPDATE SET
+                           plan_id=excluded.plan_id, updated_at=excluded.updated_at""",
+                    (int(telegram_id), int(plan.id), now),
+                )
+                if plan.server_group_id:
+                    await conn.execute(
+                        "UPDATE user_profiles SET server_group_id=? WHERE telegram_id=?",
+                        (int(plan.server_group_id), int(telegram_id)),
+                    )
+                await conn.execute(
+                    "UPDATE users SET expiry_time=? WHERE telegram_id=?",
+                    (int(expiry_ms), int(telegram_id)),
+                )
+                await conn.commit()
+            except Exception:
+                await conn.rollback()
+                raise
+
     async def set_user_plan(self, telegram_id: int, plan_id: int | None) -> None:
         manual = await self.get_live_manual_entitlement(telegram_id)
         if manual is not None and (plan_id is None or int(plan_id) != manual.plan_id):

@@ -17,6 +17,17 @@ class ManualEntitlementService:
     async def grant(
         self, *, telegram_id: int, plan_id: int, actor_id: int,
     ) -> tuple[ManualEntitlementRecord, bool]:
+        # Read-only preflight: не создавать in_flight при заведомо непригодном Inbound.
+        plan = await self.db.get_plan(plan_id)
+        if plan is None or not (plan.active and plan.duration_days == 0
+                and plan.traffic_gb == 0 and plan.ip_limit == 0
+                and plan.price_minor == 0 and not plan.rub_price_enabled
+                and plan.stars_price == 0 and plan.visibility == "admin_only"
+                and plan.currency == "RUB"):
+            raise ValueError("invalid free technical plan")
+        policy = await self.provisioner.policy_for_plan(plan)
+        if not policy.desired_inbound_ids or not policy.actionable_inbound_ids:
+            raise ValueError("для ручной выдачи нет доступных Inbounds")
         record, created = await self.db.begin_manual_entitlement(
             telegram_id=telegram_id, plan_id=plan_id, actor_id=actor_id,
         )
