@@ -44,8 +44,8 @@ class FlowUiViewsTests(unittest.TestCase):
         self.assertEqual(inbound_label(5, "VLESS Reality"), "VLESS Reality (#5)")
         self.assertEqual(inbound_label(5, ""), "Inbound #5")
         self.assertEqual(node_label(0, {0: "Other"}), "🖥 Master")
-        self.assertNotIn("\\n", clean_label("a\\nb", "missing"))
-        self.assertNotIn("\\u202e", clean_label("a\\u202eb", "missing"))
+        self.assertNotIn("\n", clean_label("a\nb", "missing"))
+        self.assertNotIn("\u202e", clean_label("a\u202eb", "missing"))
 
     def test_editor_uses_stable_id_not_label_as_callback(self):
         source = (ROOT / "flow_edit_routes.py").read_text()
