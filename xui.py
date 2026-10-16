@@ -672,20 +672,11 @@ class XUIClient(VersionAPIMixin):
                       "trafficReset", "trafficResetDay"):
             payload[field] = client[field]
         payload["resetWeekday"] = client["resetWeekday"]
-        if wg_present:
-            # model.Client expects []string, while ClientRecord uses CSV.
-            # Copying the original peer values prevents scalar merge/zeroing;
-            # the inbound-filtered upstream service must *still* prove it does
-            # not rewrite any unrelated tunnel or node before rollout.
-            raw_ips = client["allowedIPs"]
-            if raw_ips not in ("", "[]"):
-                ips = [piece.strip() for piece in raw_ips.split(",")]
-                if any(not piece for piece in ips):
-                    raise ValueError("Invalid WireGuard allowedIPs")
-                payload["allowedIPs"] = ips
-            for field in ("privateKey", "publicKey", "preSharedKey", "forwardedPorts"):
-                payload[field] = client[field]
-            payload["keepAlive"] = client["keepAlive"]
+        # Deliberately do not send WG/AWG peer fields to a VLESS inbound.
+        # Pinned upstream client_link.go::keepLinkOwnedFields preserves
+        # existing peer columns when syncing a non-tunnel inbound. Sending
+        # them would expose private keys to the selected VLESS Node; this
+        # omission must be verified by the real Go/SQLite integration test.
         # Empty/unset reverse remains omitted; a non-empty value was
         # rejected above, so credentials/settings cannot be coerced.
         return await self._mutation_request(
