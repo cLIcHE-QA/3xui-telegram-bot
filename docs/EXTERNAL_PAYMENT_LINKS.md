@@ -1,3 +1,17 @@
+## Решение оператора от 2026-10-16: два раздельных платёжных канала
+
+**Действующее продуктовое решение (заменяет прежние UX-формулировки ниже):**
+
+- **Telegram Bot / Mini App — только Telegram Stars (`XTR`).** Внутри Telegram не предлагать RUB, не создавать RUB checkout-ордер, не выдавать уникальные ссылки на Platega и не добавлять кнопку альтернативной рублёвой оплаты.
+- **Самостоятельный внешний сайт — только рубли (`RUB`)**: собственная web-витрина и защищённая аутентификация покупателя; RUB-заказ инициирует сервер сайта, PSP hosted checkout открывается на web-сайте, а не как путь оплаты внутри Telegram. Первый потенциальный PSP — Platega, [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) OPEN/DEFERRED.
+- **Общий VPN-доступ, отдельные финансовые каналы:** сайт и бот могут использовать общие тарифы и единый механизм `Order → Payment → Entitlement → ProvisioningEngine`, но раздельные snapshot цены/валюты, origin `web_rub`/`telegram_xtr`, idempotent provider read-back и проверенную авторизацию клиентского account binding. Не принимать Telegram ID из query, redirect, имени профиля либо callback без серверной проверки.
+- **Без автоматического перенаправления из бота к рублёвой оплате.** Сам по себе отдельный сайт не означает положительного заключения по Telegram platform requirements, PSP merchant eligibility, налоговым чекам или правовой допустимости услуги. Эти проверки **PENDING** до implementation/release/rollout.
+- Функция раздельных цен и visibility — [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705); PSP-сайт — #336. **Это только проектный контракт**: сайт, credentials, реальные платежи и deployment в рамках этой актуализации не создаются.
+
+**Исторический материал ниже** отражает отклонённый ранний вариант, при котором бот создавал RUB-платёжную ссылку и показывал её в Telegram. Такой путь **не реализовывать**; применять действующее решение выше. Прежние конкретные требования безопасности (webhook/read-back, exact amount, refund, SSRF, журнал событий) сохраняются в той мере, в какой подходят отдельному web-каналу.
+
+---
+
 # Внешние платёжные ссылки: проектный контракт Platega и будущих PSP
 
 > **Статус на 2026-10-11, Europe/Helsinki: PLANNED / NOT IMPLEMENTED.** Это инженерная спецификация для [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336), **не инструкция по включению реальной оплаты**. Последний опубликованный GitHub prerelease — `v5.0.0-rc.9` (tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`); последнее operator-reported production deployment — `v5.0.0-rc.9` (tag SHA `13fdbe8bccfbe92cffc4117b79083bbdcad5a8db`, independent VPS/build attestation PENDING). Новый PSP ещё не подключён, merchant approval и production acceptance отсутствуют.
