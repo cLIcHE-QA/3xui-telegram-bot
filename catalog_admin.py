@@ -276,6 +276,7 @@ async def plan_detail(call: CallbackQuery):
         [InlineKeyboardButton(text="⭐ Цена в Telegram Stars", callback_data=f"admin:plan:stars:{plan.id}")],
         [InlineKeyboardButton(text="₽ Цена RUB", callback_data=f"admin:plan:rub:{plan.id}")],
         [InlineKeyboardButton(text="👁 Видимость", callback_data=f"admin:plan:visibility:{plan.id}")],
+        [InlineKeyboardButton(text="👥 Аудитория", callback_data=f"admin:plan:audience:{plan.id}")],
         [InlineKeyboardButton(text="🗂 Выбрать группу серверов", callback_data=f"admin:plan:groups:{plan.id}")],
         [InlineKeyboardButton(text="🚀 Предпросмотр согласования", callback_data=f"admin:plan:preview:{plan.id}")],
         [InlineKeyboardButton(text=default_text, callback_data=f"admin:plan:default:{plan.id}")],
@@ -603,6 +604,62 @@ async def plan_visibility_save(call: CallbackQuery):
                           target_id=str(plan_id), details=f"visibility={visibility}")
     await render_callback(call, f"✅ Видимость: {visibility}",
         reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
+    await call.answer()
+
+
+@catalog_router.callback_query(F.data.regexp(r"^admin:plan:audience:\\d+$"))
+async def plan_audience_view(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
+    if not plan:
+        await call.answer("Тариф не найден.", show_alert=True)
+        return
+    groups = await db.list_user_groups()
+    include = set(json.loads(plan.include_group_ids))
+    exclude = set(json.loads(plan.exclude_group_ids))
+    rows = []
+    for group in groups[:30]:
+        marker = "✅" if group.id in include else "⛔" if group.id in exclude else "⚪"
+        rows.append([InlineKeyboardButton(text=f"{marker} {group.name} · #{group.id}",
+            callback_data=f"admin:plan:audset:{plan.id}:{group.id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan.id}")])
+    await render_callback(call,
+        "👥 Аудитория тарифа\\n\\nНажатие переключает: не выбрана → разрешена → запрещена → не выбрана. "
+        "Запрет приоритетнее разрешения. Пустой список включений скрывает groups-only тариф.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await call.answer()
+
+
+@catalog_router.callback_query(F.data.regexp(r"^admin:plan:audset:\\d+:\\d+$"))
+async def plan_audience_toggle(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    plan_id, group_id = map(int, (call.data or "").split(":")[-2:])
+    plan = await db.get_plan(plan_id)
+    if not plan or not await db.get_user_group(group_id):
+        await call.answer("Тариф или локальная группа уже не существуют.", show_alert=True)
+        return
+    try:
+        include = set(json.loads(plan.include_group_ids))
+        exclude = set(json.loads(plan.exclude_group_ids))
+        if group_id in include:
+            include.remove(group_id)
+            exclude.add(group_id)
+        elif group_id in exclude:
+            exclude.remove(group_id)
+        else:
+            include.add(group_id)
+        await db.update_plan_catalog(plan_id,
+            include_group_ids=sorted(include), exclude_group_ids=sorted(exclude))
+    except (ValueError, TypeError):
+        await call.answer("Правила аудитории некорректны, изменение отменено.", show_alert=True)
+        return
+    await audit_from_call(db, call, "plan.audience", target_type="plan",
+                          target_id=str(plan_id), details=f"group_id={group_id}; rule=updated")
+    await render_callback(call, "✅ Правило аудитории сохранено.",
+        reply_markup=cancel_keyboard(f"admin:plan:audience:{plan_id}"))
     await call.answer()
 
 
