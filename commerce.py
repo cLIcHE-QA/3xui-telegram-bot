@@ -294,6 +294,9 @@ class EntitlementProvisioningService:
             raise ProvisioningUnknown(
                 "entitlement is already provisioning; automatic mutation replay is blocked"
             )
+        manual = await self.db.get_live_manual_entitlement(entitlement.telegram_id)
+        if manual is not None:
+            raise CommerceIntegrityError("manual entitlement requires operator review before paid renewal")
         validate_transition(
             entitlement.status, "provisioning",
             ENTITLEMENT_TRANSITIONS, kind="entitlement",

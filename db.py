@@ -42,6 +42,10 @@ class PlanRecord:
     active: int
     created_at: int
     stars_price: int
+    rub_price_enabled: int = 1
+    visibility: str = 'all'
+    include_group_ids: str = '[]'
+    exclude_group_ids: str = '[]'
 
 
 @dataclass
@@ -159,6 +163,20 @@ class CommercePaymentRecord:
     confirmed_at: int
     checkout_url: str
     idempotency_key: str
+
+
+@dataclass(frozen=True)
+class ManualEntitlementRecord:
+    id: int
+    telegram_id: int
+    plan_id: int
+    actor_id: int
+    previous_plan_id: int | None
+    status: str
+    started_at: int
+    confirmed_at: int
+    updated_at: int
+    result_code: str
 
 
 @dataclass
@@ -434,6 +452,9 @@ class Database:
             await db.commit()
 
     async def set_user_plan(self, telegram_id: int, plan_id: int | None) -> None:
+        manual = await self.get_live_manual_entitlement(telegram_id)
+        if manual is not None and (plan_id is None or int(plan_id) != manual.plan_id):
+            raise ValueError("manual entitlement must be resolved before changing plan")
         current = await self.get_user_profile(int(telegram_id))
         await self.upsert_user_profile(
             int(telegram_id),
@@ -514,28 +535,102 @@ class Database:
         currency: str,
         server_group_id: int | None = None,
         stars_price: int = 0,
+        rub_price_enabled: bool = True,
+        visibility: str = 'all',
     ) -> int:
+        if currency.strip().upper() != 'RUB':
+            raise ValueError('новые тарифы поддерживают только RUB и XTR')
+        if visibility not in {'all', 'groups', 'admin_only'}:
+            raise ValueError('invalid visibility')
+        if not 0 <= int(duration_days) <= 3650 or not 0 <= int(traffic_gb) <= 1_000_000 or not 0 <= int(ip_limit) <= 1000:
+            raise ValueError('invalid plan limits')
+        if not 0 <= int(price_minor) <= 10_000_000_000 or not 0 <= int(stars_price) <= 10_000_000:
+            raise ValueError('invalid plan price')
+        if (int(duration_days) == 0 and (
+            int(price_minor) or int(stars_price) or visibility != 'admin_only'
+            or int(traffic_gb) or int(ip_limit) or bool(rub_price_enabled)
+        )):
+            raise ValueError('indefinite plan must be free, unlimited and admin-only')
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
                 """
                 INSERT INTO plans(
                     name, duration_days, traffic_gb, ip_limit,
                     price_minor, currency, server_group_id, active, created_at,
-                    stars_price
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    stars_price, rub_price_enabled, visibility
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
                 """,
                 (
                     name.strip(), int(duration_days), int(traffic_gb), int(ip_limit),
                     int(price_minor), currency.strip().upper(), server_group_id,
-                    int(time.time()), max(0, int(stars_price)),
+                    int(time.time()), int(stars_price), int(bool(rub_price_enabled)), visibility,
                 ),
             )
             await db.commit()
             return int(cur.lastrowid)
 
-    async def set_plan_stars_price(self, plan_id: int, stars_price: int) -> None:
-        value = max(0, int(stars_price))
+    async def update_plan_catalog(self, plan_id: int, *, price_minor: int | None = None,
+                                  rub_price_enabled: bool | None = None,
+                                  visibility: str | None = None,
+                                  include_group_ids: list[int] | None = None,
+                                  exclude_group_ids: list[int] | None = None) -> None:
+        import json
+        if visibility is not None and visibility not in {'all', 'groups', 'admin_only'}:
+            raise ValueError('invalid visibility')
+        if price_minor is not None and not 0 <= int(price_minor) <= 10_000_000_000:
+            raise ValueError('invalid RUB price')
+        ids = [include_group_ids, exclude_group_ids]
+        for values in ids:
+            if values is not None and (len(values) > 100 or any(type(i) is not int or i <= 0 for i in values)):
+                raise ValueError('invalid audience ids')
+        updates = {}
+        for name, value in [('price_minor', price_minor), ('rub_price_enabled', int(bool(rub_price_enabled)) if rub_price_enabled is not None else None),
+                            ('visibility', visibility), ('include_group_ids', json.dumps(include_group_ids) if include_group_ids is not None else None),
+                            ('exclude_group_ids', json.dumps(exclude_group_ids) if exclude_group_ids is not None else None)]:
+            if value is not None:
+                updates[name] = value
+        if not updates:
+            return
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            current = await (await db.execute(
+                """SELECT duration_days, traffic_gb, ip_limit, price_minor,
+                          stars_price, rub_price_enabled, visibility, currency
+                   FROM plans WHERE id=?""", (int(plan_id),),
+            )).fetchone()
+            if current is None:
+                raise ValueError("plan not found")
+            if str(current[7]) != "RUB" and (price_minor is not None or rub_price_enabled is not None):
+                raise ValueError("legacy currency cannot be repriced")
+            if int(current[0]) == 0:
+                next_price = int(price_minor) if price_minor is not None else int(current[3])
+                next_enabled = bool(rub_price_enabled) if rub_price_enabled is not None else bool(current[5])
+                next_visibility = visibility if visibility is not None else str(current[6])
+                if (next_price or int(current[4]) or next_enabled
+                        or next_visibility != "admin_only" or int(current[1]) or int(current[2])):
+                    raise ValueError("indefinite plan may only be hidden, free and unlimited")
+            if include_group_ids is not None or exclude_group_ids is not None:
+                for group_id in set((include_group_ids or []) + (exclude_group_ids or [])):
+                    row = await (await db.execute('SELECT 1 FROM user_groups WHERE id=?', (group_id,))).fetchone()
+                    if row is None:
+                        raise ValueError('unknown audience group')
+            query = 'UPDATE plans SET ' + ', '.join(f'{key}=?' for key in updates) + ' WHERE id=?'
+            await db.execute(query, (*updates.values(), int(plan_id)))
+            await db.commit()
+
+    async def set_plan_stars_price(self, plan_id: int, stars_price: int) -> None:
+        value = int(stars_price)
+        if not 0 <= value <= 10_000_000:
+            raise ValueError("invalid Stars price")
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            plan = await (await db.execute(
+                "SELECT duration_days, currency FROM plans WHERE id = ?", (int(plan_id),)
+            )).fetchone()
+            if plan is None:
+                raise ValueError("plan not found")
+            if value > 0 and (int(plan[0]) == 0 or str(plan[1]) != "RUB"):
+                raise ValueError("legacy or indefinite plan cannot be sold for Stars")
             await db.execute(
                 "UPDATE plans SET stars_price = ? WHERE id = ?",
                 (value, int(plan_id)),
@@ -560,12 +655,179 @@ class Database:
 
     async def delete_plan(self, plan_id: int):
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            history = await (await db.execute(
+                "SELECT 1 FROM manual_entitlements WHERE plan_id=? LIMIT 1",
+                (int(plan_id),),
+            )).fetchone()
+            if history:
+                raise ValueError("cannot delete a plan referenced by manual entitlement history")
             await db.execute(
                 "UPDATE user_profiles SET plan_id = NULL, updated_at = ? WHERE plan_id = ?",
                 (int(time.time()), int(plan_id)),
             )
             await db.execute("DELETE FROM plans WHERE id = ?", (int(plan_id),))
             await db.commit()
+
+    async def get_live_manual_entitlement(
+        self, telegram_id: int,
+    ) -> ManualEntitlementRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            row = await (await db.execute(
+                """SELECT * FROM manual_entitlements WHERE telegram_id=?
+                   AND status IN ('in_flight','active','unknown')
+                   ORDER BY id DESC LIMIT 1""", (int(telegram_id),),
+            )).fetchone()
+            return ManualEntitlementRecord(**dict(row)) if row else None
+
+    async def begin_manual_entitlement(
+        self, *, telegram_id: int, plan_id: int, actor_id: int,
+    ) -> tuple[ManualEntitlementRecord, bool]:
+        """Идемпотентный durable grant: журнал и plan profile в одной транзакции.
+
+        Remote 3x-ui mutation проводится ПОСЛЕ коммита in_flight. После сбоя
+        результат остаётся неопределённым и никогда не повторяется автоматически.
+        """
+        if int(telegram_id) <= 0 or int(plan_id) <= 0 or int(actor_id) <= 0:
+            raise ValueError("invalid manual grant identity")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path, timeout=15) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                user = await (await db.execute(
+                    "SELECT 1 FROM users WHERE telegram_id=?", (int(telegram_id),),
+                )).fetchone()
+                plan = await (await db.execute(
+                    "SELECT * FROM plans WHERE id=?", (int(plan_id),),
+                )).fetchone()
+                if user is None:
+                    raise ValueError("user not found")
+                open_order = await (await db.execute(
+                    """SELECT 1 FROM commerce_orders WHERE telegram_id=?
+                       AND status IN ('created', 'awaiting_payment') LIMIT 1""",
+                    (int(telegram_id),),
+                )).fetchone()
+                pending_paid = await (await db.execute(
+                    """SELECT 1 FROM entitlements WHERE telegram_id=?
+                       AND status IN ('pending', 'provisioning') LIMIT 1""",
+                    (int(telegram_id),),
+                )).fetchone()
+                if open_order is not None or pending_paid is not None:
+                    raise ValueError("pending commerce must be resolved before manual grant")
+                if plan is None or not (
+                    int(plan["active"]) == 1 and int(plan["duration_days"]) == 0
+                    and int(plan["traffic_gb"]) == 0 and int(plan["ip_limit"]) == 0
+                    and int(plan["price_minor"]) == 0 and int(plan["stars_price"]) == 0
+                    and int(plan["rub_price_enabled"]) == 0
+                    and str(plan["visibility"]) == "admin_only"
+                    and str(plan["currency"]) == "RUB"
+                ):
+                    raise ValueError("not an active free hidden unlimited technical plan")
+                row = await (await db.execute(
+                    """SELECT * FROM manual_entitlements WHERE telegram_id=?
+                       AND status IN ('in_flight','active','unknown')
+                       ORDER BY id DESC LIMIT 1""", (int(telegram_id),),
+                )).fetchone()
+                if row is not None:
+                    await db.commit()
+                    result = ManualEntitlementRecord(**dict(row))
+                    if result.plan_id == int(plan_id) and result.status == "active":
+                        return result, False
+                    raise ValueError("manual grant is already active or unresolved")
+                profile = await (await db.execute(
+                    "SELECT plan_id FROM user_profiles WHERE telegram_id=?",
+                    (int(telegram_id),),
+                )).fetchone()
+                previous = profile["plan_id"] if profile is not None else None
+                cur = await db.execute(
+                    """INSERT INTO manual_entitlements (
+                        telegram_id, plan_id, actor_id, previous_plan_id,
+                        status, started_at, confirmed_at, updated_at
+                    ) VALUES (?, ?, ?, ?, 'in_flight', ?, 0, ?)""",
+                    (int(telegram_id), int(plan_id), int(actor_id), previous, now, now),
+                )
+                await db.execute(
+                    """INSERT INTO user_profiles(
+                        telegram_id,plan_id,server_group_id,note,updated_at,display_name
+                    ) VALUES(?,?,NULL,'',?,'')
+                    ON CONFLICT(telegram_id) DO UPDATE SET
+                        plan_id=excluded.plan_id, updated_at=excluded.updated_at""",
+                    (int(telegram_id), int(plan_id), now),
+                )
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?", (int(cur.lastrowid),),
+                )).fetchone()
+                await db.commit()
+                return ManualEntitlementRecord(**dict(row)), True
+            except Exception:
+                await db.rollback()
+                raise
+
+    async def finish_manual_entitlement(
+        self, entitlement_id: int, *, status: str, result_code: str,
+    ) -> ManualEntitlementRecord:
+        if status not in {"active", "unknown"}:
+            raise ValueError("invalid manual entitlement transition")
+        if not result_code or len(result_code) > 96:
+            raise ValueError("invalid manual grant evidence")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?",
+                    (int(entitlement_id),),
+                )).fetchone()
+                if row is None or str(row["status"]) != "in_flight":
+                    raise RuntimeError("manual grant not in_flight")
+                await db.execute(
+                    """UPDATE manual_entitlements
+                       SET status=?, result_code=?, updated_at=?,
+                           confirmed_at=CASE WHEN ?='active' THEN ? ELSE 0 END
+                       WHERE id=?""",
+                    (status, result_code, now, status, now, int(entitlement_id)),
+                )
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?",
+                    (int(entitlement_id),),
+                )).fetchone()
+                await db.commit()
+                return ManualEntitlementRecord(**dict(row))
+            except Exception:
+                await db.rollback()
+                raise
+
+    async def confirm_manual_entitlement_readback(
+        self, entitlement_id: int,
+    ) -> ManualEntitlementRecord:
+        """Только after operator-authorized read-only 3x-ui postcondition."""
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?", (int(entitlement_id),),
+                )).fetchone()
+                if row is None or str(row["status"]) not in {"in_flight", "unknown"}:
+                    raise ValueError("manual entitlement is not reviewable")
+                await db.execute(
+                    """UPDATE manual_entitlements SET status='active',
+                       result_code='operator_readback_match', confirmed_at=?,
+                       updated_at=? WHERE id=?""",
+                    (now, now, int(entitlement_id)),
+                )
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?", (int(entitlement_id),),
+                )).fetchone()
+                await db.commit()
+                return ManualEntitlementRecord(**dict(row))
+            except Exception:
+                await db.rollback()
+                raise
 
     # --- Server groups -------------------------------------------------
 
@@ -1261,8 +1523,18 @@ class Database:
         self, *, telegram_id: int, plan_id: int, amount_minor: int,
         currency: str, promo_code_id: int | None = None,
     ) -> int:
+        if str(currency).upper() == "XTR" and int(amount_minor) <= 0:
+            raise ValueError("zero or negative Stars orders are forbidden")
         now = int(time.time())
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            manual = await (await db.execute(
+                """SELECT 1 FROM manual_entitlements WHERE telegram_id=?
+                   AND status IN ('in_flight', 'unknown', 'active') LIMIT 1""",
+                (int(telegram_id),),
+            )).fetchone()
+            if manual:
+                raise ValueError("manual entitlement blocks paid order")
             cur = await db.execute(
                 """
                 INSERT INTO commerce_orders(
@@ -1303,10 +1575,19 @@ class Database:
         now = int(time.time())
         amount_value = max(0, int(amount_minor))
         currency_value = str(currency).upper()
+        if currency_value == "XTR" and int(amount_minor) <= 0:
+            raise ValueError("zero or negative Stars orders are forbidden")
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             await db.execute("BEGIN IMMEDIATE")
             try:
+                manual = await (await db.execute(
+                    """SELECT 1 FROM manual_entitlements WHERE telegram_id=?
+                       AND status IN ('in_flight', 'unknown', 'active') LIMIT 1""",
+                    (int(telegram_id),),
+                )).fetchone()
+                if manual:
+                    raise ValueError("manual entitlement blocks paid order")
                 cur = await db.execute(
                     """
                     SELECT * FROM commerce_orders

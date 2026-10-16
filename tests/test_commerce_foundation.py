@@ -31,8 +31,8 @@ class CommerceFoundationTests(unittest.IsolatedAsyncioTestCase):
         self.tmp.cleanup()
 
     async def test_schema_v11_contains_entitlement_quota_journal(self):
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 13)
-        self.assertEqual(await current_schema_version(str(self.path)), 13)
+        self.assertEqual(CURRENT_SCHEMA_VERSION, 14)
+        self.assertEqual(await current_schema_version(str(self.path)), 14)
         with sqlite3.connect(self.path) as conn:
             tables = {row[0] for row in conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'"
