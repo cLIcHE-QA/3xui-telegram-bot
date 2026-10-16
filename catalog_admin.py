@@ -596,7 +596,7 @@ async def plan_visibility_save(call: CallbackQuery):
     if not plan:
         await call.answer("Тариф не найден.", show_alert=True)
         return
-    if visibility == "all" and plan.duration_days == 0 and not plan.stars_price:
+    if visibility != "admin_only" and plan.duration_days == 0 and not plan.stars_price:
         await call.answer("Бессрочный бесплатный тариф не может стать публичным.", show_alert=True)
         return
     await db.update_plan_catalog(plan_id, visibility=visibility)
@@ -704,7 +704,7 @@ async def plan_stars_price_save(message: Message, state: FSMContext):
         return
     try:
         value = int((message.text or "").strip())
-        if not 0 <= value <= 10_000_000:
+        if not 0 <= value <= 10_000_000 or (plan.duration_days == 0 and value > 0):
             raise ValueError
     except ValueError:
         await render_input(
