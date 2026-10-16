@@ -274,7 +274,8 @@ class CustomerPortalService:
         """Текущие memberships; ошибка БД или битые правила закрывают доступ."""
         import json
         from audience import audience_matches_group_ids
-        if not plan.active or int(plan.stars_price or 0) <= 0 or plan.currency != "RUB":
+        if (not plan.active or int(plan.stars_price or 0) <= 0
+                or plan.currency != "RUB" or plan.duration_days <= 0):
             return False
         visibility = getattr(plan, "visibility", "all")
         if visibility == "admin_only":
@@ -331,7 +332,10 @@ class CustomerPortalService:
     async def get_or_create_stars_order(
         self, *, telegram_id: int, plan: PlanRecord,
     ):
-        if not await self._plan_visible(plan, telegram_id):
+        # Never trust the PlanRecord supplied by a prior callback: pricing, visibility
+        # and membership may have changed since the card was rendered.
+        current_plan = await self.db.get_plan(plan.id)
+        if current_plan is None or not await self._plan_visible(current_plan, telegram_id):
             raise ValueError("plan is not purchasable for this customer")
         profile = await self.profile(telegram_id, read_access=False)
         if not profile.exists:
@@ -339,7 +343,7 @@ class CustomerPortalService:
         order, created = await self.commerce.get_or_create_order(
             telegram_id=telegram_id,
             plan_id=plan.id,
-            amount_minor=int(plan.stars_price),
+            amount_minor=int(current_plan.stars_price),
             currency="XTR",
         )
         order = await self.commerce.mark_order_awaiting_payment(order.id)
