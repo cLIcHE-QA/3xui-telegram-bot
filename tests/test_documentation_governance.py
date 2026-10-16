@@ -161,8 +161,8 @@ class DocumentationGovernanceTests(unittest.TestCase):
         text = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         references, expectations = gh.expectations(text)
         self.assertGreater(len(references), 12)
-        self.assertIn(433, expectations)
-        self.assertEqual(expectations[433], "open")
+        self.assertIn(499, expectations)
+        self.assertEqual(expectations[499], "open")
         self.assertNotIn(597, expectations)  # Closed history is not a living Issue register
         actual = {n: expectations.get(n, "open") for n in references}
         version = gh.declared_published(text)
@@ -170,9 +170,9 @@ class DocumentationGovernanceTests(unittest.TestCase):
         self.assertIn("v" + APP_VERSION, text)
         gh.validate(text, actual, version)
         with self.assertRaises(gh.Drift):
-            gh.validate(text, {k: v for k, v in actual.items() if k != 433}, version)
+            gh.validate(text, {k: v for k, v in actual.items() if k != 499}, version)
         modified = dict(actual)
-        modified[433] = "closed"
+        modified[499] = "closed"
         with self.assertRaises(gh.Drift):
             gh.validate(text, modified, version)
         with self.assertRaises(gh.Drift):

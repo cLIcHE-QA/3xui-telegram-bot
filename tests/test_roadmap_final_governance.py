@@ -13,7 +13,7 @@ spec.loader.exec_module(gov)
 class RoadmapFinalGovernanceTests(unittest.TestCase):
     def test_current_register_and_release(self):
         rows=gov.roadmap_rows(ROOT)
-        self.assertIn(433,rows)
+        self.assertIn(499,rows)
         self.assertTrue(all(row["effort"] in gov.EFFORT for row in rows.values()))
         self.assertNotIn(605,rows)  # Closed docs-only issue removed after GitHub read-back
         self.assertGreaterEqual(len(rows),31)
@@ -48,7 +48,7 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
 
     def test_registry_effort_required_and_enum(self):
         original=(ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8")
-        needle="| [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433)"
+        needle="| [#499](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/499)"
         row=next(x for x in original.splitlines() if x.startswith(needle))
         for replacement in (row.rsplit("|",2)[0]+"| |", row.rsplit("|",2)[0]+"| TBD |", row.rsplit("|",2)[0]+"| XXL |"):
             with self.subTest(replacement=replacement):
@@ -60,7 +60,7 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
 
     def test_registry_seven_columns_and_header(self):
         original=(ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8")
-        row=next(x for x in original.splitlines() if x.startswith("| [#433]"))
+        row=next(x for x in original.splitlines() if x.startswith("| [#499]"))
         for invalid in (original.replace(row,row.rsplit("|",2)[0]+"|",1), original.replace(" | Объём |"," |",1)):
             with tempfile.TemporaryDirectory() as tmp:
                 root=Path(tmp); (root/"docs").mkdir()
@@ -73,7 +73,7 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
             root=Path(tmp)
             (root/"docs").mkdir()
             t=(ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8")
-            old=next(line for line in t.splitlines() if line.startswith("| [#433]"))
+            old=next(line for line in t.splitlines() if line.startswith("| [#499]"))
             (root/"docs/ROADMAP.md").write_text(t.replace("\n## Завершённые этапы", old+"\n## Завершённые этапы", 1),encoding="utf-8")
             with self.assertRaisesRegex(ValueError,"duplicate"):
                 gov.roadmap_rows(root)
@@ -82,8 +82,8 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
             root=Path(tmp)
             (root/"docs").mkdir()
             t=(ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8")
-            t=t.replace("| [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) | ⬜ Запланировано | — |",
-                        "| [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) | 🟡 Реализовано в main | — |")
+            t=t.replace("| [#499](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/499) | ⬜ Запланировано | — |",
+                        "| [#499](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/499) | 🟡 Реализовано в main | — |")
             (root/"docs/ROADMAP.md").write_text(t,encoding="utf-8")
             with self.assertRaisesRegex(ValueError,"requires PR"):
                 gov.roadmap_rows(root)
