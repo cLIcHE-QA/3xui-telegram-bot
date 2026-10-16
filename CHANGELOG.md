@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.15 — Адресный Flow при действующем AmneziaWG и росте нод
+
+- [PR #689](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/689) / #663: `✏️ Изменить Flow` допускает выбор конкретного VLESS TCP Reality inbound у многопротокольного клиента с WG/AmneziaWG **только** после read-only проверки ownership всех tunnel attachments, совпадения `tunnelAllowedIPs` и точного `Master panelVersion=3.10.2`. Неполные/неоднозначные данные, MTProto/reverse и другие/неизвестные версии остаются BLOCKED. Запрос scoped `inboundIds` через Master не включает WG/AWG private keys, адреса или peer поля и не выполняет прямых Node writes.
+- [PR #689](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/689) / #663: UI выбора нод и inbound постраничный (8 элементов), bounded discovery до 64 нод / 256 inbound, параллелизм не выше 8, общий timeout 30s; при превышении лимитов или неудаче проверки — fail closed, без частичного списка. RBAC и одноразовый nonce сохраняются.
+- Offline Python/CI, реальный upstream Go service + временная SQLite для v3.10.0 и v3.10.2: подтверждено, что v3.10.0 **небезопасен** для WG-scoped VLESS update, а v3.10.2 в проверенном сценарии сохраняет peer поля и соседние VLESS/XHTTP/Hysteria2/AWG inbound без утечки WG credentials в VLESS. Общий pinned 3x-ui API contract `v3.10.0`, SQLite schema v13, платежи и pilot allowlist не изменены.
+- **Controlled canary / release-prep only:** rc.15 не является Published/Deployed до отдельного разрешения на merge release-prep и успешной штатной публикации; deployment проводится отдельно по immutable tag. До операторского targeted read-only A6 и разрешённого отдельного Flow POST **A6/N6/R3 BLOCKED, G-11 PARTIAL/NO-GO**, stable/public rollout запрещён. Никакие клиентские WG-поля в production не удалять и не очищать.
+
 ## v5.0.0-rc.14 — Групповая диагностика общих полей Flow
 
 - [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686) / #663: read-only preflight `✏️ Изменить Flow` безопасно различает наличие непустых полей WireGuard/AmneziaWG (`CLIENT_RECORD_PROTOCOL_WG`), MTProto (`CLIENT_RECORD_PROTOCOL_MTPROTO`) либо обеих групп (`CLIENT_RECORD_PROTOCOL_MIXED`); значения, имена конкретных заполненных полей, API payload, UUID и credentials не выводятся. Неизвестная причина не трактуется как PASS.
