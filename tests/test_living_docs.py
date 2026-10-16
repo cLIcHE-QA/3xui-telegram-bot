@@ -128,6 +128,18 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("#510", roadmap)
         self.assertIn("⬜ Запланировано", roadmap)
 
+    def test_current_release_status_in_readme_and_roadmap(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        current = "v" + APP_VERSION
+        self.assertIn(f"**Published:** immutable [`{current}`]", readme)
+        self.assertIn(f"**Published:** immutable [Тег `{current}`]", roadmap)
+        for document in (readme, roadmap):
+            self.assertIn("**Deployed:**", document)
+            self.assertIn("**Accepted:**", document)
+        self.assertNotIn(f"Release-prep candidate `{current}`", readme)
+        self.assertNotIn("Текущий опубликованный `rc.7`", readme)
+
     def test_roadmap_registry_must_be_contiguous(self):
         import importlib.util
         from tempfile import TemporaryDirectory
@@ -137,12 +149,12 @@ class LivingDocsSemanticTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         source = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn("| [#663]", source)
+        self.assertIn("| [#691]", source)
         with TemporaryDirectory() as folder:
             temp_root = Path(folder)
             (temp_root / "docs").mkdir()
             (temp_root / "docs/ROADMAP.md").write_text(
-                source.replace("\n| [#663]", "\n\n| [#663]", 1),
+                source.replace("\n| [#691]", "\n\n| [#691]", 1),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "contiguous"):
