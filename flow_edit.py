@@ -115,9 +115,11 @@ def _scoped_flow(inbound: dict[str, Any], email: str) -> str:
         raise FlowEditRejected("Неизвестное значение Flow")
     return flow
 
-def client_fingerprint(client: dict[str, Any]) -> str:
-    # Include shared Flow and all other fields: concurrent edits invalidate TTL confirmation.
-    return hashlib.sha256(json.dumps(client, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+def client_fingerprint(client: dict[str, Any], *, tunnel_ips: Any = None) -> str:
+    # Include the shared record AND per-tunnel peer mapping: neither an
+    # attachment/address change nor a shared-record edit can reuse a nonce.
+    data = {"client": client, "tunnelAllowedIPs": tunnel_ips}
+    return hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnapshot:
     payload = await asyncio.wait_for(master.get_client(email), timeout=12)
@@ -237,7 +239,7 @@ async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnap
         raise FlowEditRejected("Неоднозначный tag")
     return FlowSnapshot(
         client, tuple(sorted(targets, key=lambda t: (t.node_id, t.inbound_id))),
-        client_fingerprint(client), wg_verified=wg_present and bool(verified_wg_ids)
+        client_fingerprint(client, tunnel_ips=wg_addresses if wg_present else None), wg_verified=wg_present and bool(verified_wg_ids)
     )
 
 @dataclass(frozen=True)
