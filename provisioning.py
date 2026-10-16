@@ -239,6 +239,47 @@ class ProvisioningEngine:
         client = obj.get("client", obj)
         return client if isinstance(client, dict) else {}
 
+    @staticmethod
+    def _limits_match(client: dict[str, object], expected: dict[str, int]) -> bool:
+        # Missing/malformed provider field is never proof of an unlimited (zero) limit.
+        try:
+            return all(
+                key in client and client[key] is not None
+                and int(client[key]) == int(value)
+                for key, value in expected.items()
+            )
+        except (ValueError, TypeError, OverflowError):
+            return False
+
+    async def assign_finite_plan(self, telegram_id: int, plan_id: int) -> ProvisioningResult:
+        """Одноразовое ручное назначение: сначала удалённый read-back, затем локальный commit."""
+        plan = await self.db.get_plan(plan_id)
+        user = await self.db.get(telegram_id)
+        if user is None or plan is None or not plan.active or plan.duration_days <= 0:
+            raise ValueError("Пользователь или тариф недоступен для назначения.")
+        if await self.db.get_live_manual_entitlement(telegram_id) is not None:
+            raise ValueError("Ручная выдача активна или не разрешена; смена тарифа запрещена.")
+        profile = await self.db.get_user_profile(telegram_id)
+        previous_id = profile.plan_id if profile else None
+        policy = await self.policy_for_plan(plan) if plan.server_group_id else await self.resolve_group(
+            profile.server_group_id if profile else None, plan=plan, source=f"plan:{plan.id}",
+        )
+        if not policy.desired_inbound_ids or set(policy.desired_inbound_ids) != set(policy.actionable_inbound_ids):
+            raise ValueError("Для тарифа нет полного набора доступных Inbounds.")
+        expiry = int((time.time() + plan.duration_days * 86400) * 1000)
+        result = await self.sync_user(
+            telegram_id, strict=False, apply_plan_limits=True,
+            target_expiry_ms=expiry, persist_local_expiry=False, plan_override=plan,
+        )
+        if not result.limits_applied or result.remaining_missing_ids:
+            raise ProvisioningUnknown("Результат назначения или доступ к Inbounds не подтверждён.")
+        # SQLite выполняет одной транзакцией проверку исходного профиля/тарифа и запись.
+        await self.db.confirm_finite_plan_assignment(
+            telegram_id=telegram_id, plan=plan, expected_previous_plan_id=previous_id,
+            expiry_ms=expiry,
+        )
+        return result
+
     async def sync_user(
         self,
         telegram_id: int,
@@ -248,6 +289,7 @@ class ProvisioningEngine:
         target_expiry_ms: int | None = None,
         persist_local_expiry: bool = True,
         manual_operation: bool = False,
+        plan_override: PlanRecord | None = None,
     ) -> ProvisioningResult:
         # Никакие фоновые reconciliation/jobs не должны повторять mutation
         # при in_flight/unknown ручной выдаче; только её первый scoped вызов.
@@ -264,11 +306,18 @@ class ProvisioningEngine:
         if not rec:
             raise ProvisioningError("Пользователь не найден в БД бота")
         profile = await self.db.get_user_profile(telegram_id)
-        plan = await self.db.get_plan(profile.plan_id) if profile and profile.plan_id else None
+        plan = plan_override if plan_override is not None else (
+            await self.db.get_plan(profile.plan_id) if profile and profile.plan_id else None
+        )
+        if plan_override is not None and not apply_plan_limits:
+            raise ValueError("plan_override requires apply_plan_limits")
         if apply_plan_limits and plan and plan.server_group_id:
             policy = await self.resolve_group(
                 plan.server_group_id, plan=plan, source=f"plan:{plan.id}"
             )
+        elif plan_override is not None:
+            group_id = profile.server_group_id if profile else None
+            policy = await self.resolve_group(group_id, plan=plan, source=f"plan:{plan.id}")
         else:
             policy = await self.policy_for_user(telegram_id)
 
@@ -341,7 +390,7 @@ class ProvisioningEngine:
                     raise
                 readback = await self._mutation_readback(rec.email, exc, operation="plan_limits")
                 client = self._client_payload(readback)
-                if any(int(client.get(key) or 0) != int(value) for key, value in expected_limits.items()):
+                if not self._limits_match(client, expected_limits):
                     raise ProvisioningUnknown(
                         "plan_limits: outcome=unknown; mutation_not_retried=true; readback=mismatch"
                     ) from exc
@@ -369,10 +418,7 @@ class ProvisioningEngine:
         updated = await self.xui.get_client(rec.email)
         updated_ids = self._client_ids(updated)
         updated_client = self._client_payload(updated)
-        if expected_limits and any(
-            int(updated_client.get(key) or 0) != int(value)
-            for key, value in expected_limits.items()
-        ):
+        if expected_limits and not self._limits_match(updated_client, expected_limits):
             raise ProvisioningError("plan_limits: readback=mismatch")
         if self.settings.vless_flow and (
             str(updated_client.get("flow") or "") != self.settings.vless_flow
@@ -382,7 +428,7 @@ class ProvisioningEngine:
         if expected_limits and plan:
             if persist_local_expiry:
                 await self.db.update_expiry(telegram_id, expiry)
-            if plan.server_group_id:
+            if plan.server_group_id and plan_override is None:
                 await self.db.set_user_server_group(telegram_id, plan.server_group_id)
             limits_applied = True
 
