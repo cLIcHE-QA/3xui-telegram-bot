@@ -42,6 +42,8 @@ class ScopedXUITests(unittest.IsolatedAsyncioTestCase):
 
 class FlowPrivilegeTests(unittest.TestCase):
     def test_admin_callback_scope(self):
+        self.assertEqual(required_role_for_callback("admin:u:flowedit:123:5"),"support")
+        self.assertEqual(required_role_for_callback("admin:u:flowib:123:11:7"),"support")
         self.assertEqual(required_role_for_callback("admin:u:flowedit:123"),"support")
         self.assertEqual(required_role_for_callback("admin:u:flowcommit:123:"+"a"*16),"support")
         self.assertEqual(required_role_for_callback("admin:u:flowcheck:123"),"read_only")
