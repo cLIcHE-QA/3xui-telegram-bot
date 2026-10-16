@@ -4,6 +4,8 @@
 
 Scope документа — только **Admin Control Plane**. Client Portal v5 уже реализован для ограниченного pilot allowlist, но полный production acceptance ещё не завершён; этот runbook не является инструкцией по публичному запуску клиентского интерфейса или приёму новых реальных платежей. Условия контролируемой приёмки описаны в [v5 Production Acceptance](V5_PRODUCTION_ACCEPTANCE.md). Пилотная настройка client-facing функции описана в [CLIENT_SETUP.md](CLIENT_SETUP.md) и **не** разрешает общедоступный rollout; административный deployment flow здесь не смешивается с клиентским.
 
+**Контекст release-prep `v5.0.0-rc.15`:** приложение готовится отдельным PR после #689; новых пакетов, сервисов, параметров `.env`, schema migrations или шагов установки нет. При будущей отдельно разрешённой публикации и deployment требуется отдельная targeted проверка A6: WG-scoped Flow допускается только при доказанной Master panel версии `3.10.2` и проверенных tunnel attachments; неизвестные версии остаются BLOCKED. Текущий immutable Published/операторский Deployed — `v5.0.0-rc.14`; кандидат rc.15 ещё не Published/Deployed, G-11 NO-GO.
+
 ## Как поддерживать это руководство
 
 `docs/ADMIN_SETUP.md` — канонический runbook установки и настройки Admin Control Plane. Если новая функция или изменение требует от оператора дополнительных действий, это руководство обновляется одновременно с соответствующим PR.
