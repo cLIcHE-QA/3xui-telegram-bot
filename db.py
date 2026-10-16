@@ -655,6 +655,13 @@ class Database:
 
     async def delete_plan(self, plan_id: int):
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            history = await (await db.execute(
+                "SELECT 1 FROM manual_entitlements WHERE plan_id=? LIMIT 1",
+                (int(plan_id),),
+            )).fetchone()
+            if history:
+                raise ValueError("cannot delete a plan referenced by manual entitlement history")
             await db.execute(
                 "UPDATE user_profiles SET plan_id = NULL, updated_at = ? WHERE plan_id = ?",
                 (int(time.time()), int(plan_id)),
