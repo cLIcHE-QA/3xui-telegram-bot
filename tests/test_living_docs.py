@@ -86,7 +86,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
         # OpenAPI blob. Its SHA (not its parent directory name) is the pin.
         import hashlib
         payload = vendored.read_bytes()
-        raw_blob = b"blob " + str(len(payload)).encode() + b"\\0" + payload
+        raw_blob = b"blob " + str(len(payload)).encode() + b"\0" + payload
         self.assertEqual(
             hashlib.sha1(raw_blob).hexdigest(),
             manifest["upstream"]["schema_blob_sha"],
@@ -144,12 +144,12 @@ class LivingDocsSemanticTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         source = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn("| [#663]", source)
+        self.assertIn("| [#691]", source)
         with TemporaryDirectory() as folder:
             temp_root = Path(folder)
             (temp_root / "docs").mkdir()
             (temp_root / "docs/ROADMAP.md").write_text(
-                source.replace("\n| [#663]", "\n\n| [#663]", 1),
+                source.replace("\n| [#691]", "\n\n| [#691]", 1),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "contiguous"):
