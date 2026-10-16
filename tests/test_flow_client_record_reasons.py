@@ -22,7 +22,7 @@ class ClientRecordReasonTests(unittest.IsolatedAsyncioTestCase):
         await self.check_reason(lambda c: c.__setitem__("limitIp", None), "CLIENT_RECORD_NULL")
 
     async def test_foreign_protocol_field(self):
-        await self.check_reason(lambda c: c.__setitem__("privateKey", "fixture-sensitive"), "CLIENT_RECORD_PROTOCOL")
+        await self.check_reason(lambda c: c.__setitem__("privateKey", "fixture-sensitive"), "CLIENT_RECORD_PROTOCOL_WG")
 
     async def test_wireguard_group_is_blocked(self):
         for key, value in (
