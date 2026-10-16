@@ -2137,9 +2137,16 @@ async def user_plan_set(call: CallbackQuery):
     parts = call.data.split(":")
     tg_id, plan_id = int(parts[-2]), int(parts[-1])
     rec = await db.get(tg_id)
-    if plan_id and not await db.get_plan(plan_id):
+    plan = await db.get_plan(plan_id) if plan_id else None
+    if plan_id and not plan:
         await call.answer("Тариф не найден.", show_alert=True)
         return
+    if plan and plan.duration_days == 0:
+        if not await guard(call, minimum="admin"):
+            return
+        if plan.visibility != "admin_only" or plan.price_minor or plan.stars_price or plan.traffic_gb or plan.ip_limit:
+            await call.answer("Для ручной бессрочной выдачи требуется скрытый бесплатный безлимитный тариф.", show_alert=True)
+            return
     await db.set_user_plan(tg_id, plan_id or None)
     plan = await db.get_plan(plan_id) if plan_id else None
     await audit_from_call(
@@ -4124,6 +4131,9 @@ async def bulk_plan_ask(call: CallbackQuery, state: FSMContext):
     records = await _bulk_records(state)
     if not plan or not plan.active or not records:
         await call.answer("Тариф или выбранные пользователи недоступны.", show_alert=True)
+        return
+    if plan.duration_days == 0:
+        await call.answer("Бессрочный технический тариф назначается только индивидуально администратором.", show_alert=True)
         return
     await render_callback(
         call,
