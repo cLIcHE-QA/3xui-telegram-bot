@@ -282,7 +282,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
         "plans.manage",
         "exact",
         "admin:planadd:start", "admin:planadd:save", "admin:planadd:cancel",
-        "admin:planadd:back",
+        "admin:planadd:back", "admin:planadd:backvis",
     )
     + _rules("plans.manage", "prefix", "admin:planadd:group:", "admin:plan:stars:", "admin:plan:toggle:", "admin:plan:setgroup:", "admin:plan:default:", "admin:plan:deleteask:", "admin:plan:delete:")
 
