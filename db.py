@@ -165,6 +165,20 @@ class CommercePaymentRecord:
     idempotency_key: str
 
 
+@dataclass(frozen=True)
+class ManualEntitlementRecord:
+    id: int
+    telegram_id: int
+    plan_id: int
+    actor_id: int
+    previous_plan_id: int | None
+    status: str
+    started_at: int
+    confirmed_at: int
+    updated_at: int
+    result_code: str
+
+
 @dataclass
 class PaymentWebhookEventRecord:
     id: int
@@ -622,6 +636,125 @@ class Database:
             )
             await db.execute("DELETE FROM plans WHERE id = ?", (int(plan_id),))
             await db.commit()
+
+    async def get_live_manual_entitlement(
+        self, telegram_id: int,
+    ) -> ManualEntitlementRecord | None:
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            row = await (await db.execute(
+                """SELECT * FROM manual_entitlements WHERE telegram_id=?
+                   AND status IN ('in_flight','active','unknown')
+                   ORDER BY id DESC LIMIT 1""", (int(telegram_id),),
+            )).fetchone()
+            return ManualEntitlementRecord(**dict(row)) if row else None
+
+    async def begin_manual_entitlement(
+        self, *, telegram_id: int, plan_id: int, actor_id: int,
+    ) -> tuple[ManualEntitlementRecord, bool]:
+        """Идемпотентный durable grant: журнал и plan profile в одной транзакции.
+
+        Remote 3x-ui mutation проводится ПОСЛЕ коммита in_flight. После сбоя
+        результат остаётся неопределённым и никогда не повторяется автоматически.
+        """
+        if int(telegram_id) <= 0 or int(plan_id) <= 0 or int(actor_id) <= 0:
+            raise ValueError("invalid manual grant identity")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path, timeout=15) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                user = await (await db.execute(
+                    "SELECT 1 FROM users WHERE telegram_id=?", (int(telegram_id),),
+                )).fetchone()
+                plan = await (await db.execute(
+                    "SELECT * FROM plans WHERE id=?", (int(plan_id),),
+                )).fetchone()
+                if user is None:
+                    raise ValueError("user not found")
+                if plan is None or not (
+                    int(plan["active"]) == 1 and int(plan["duration_days"]) == 0
+                    and int(plan["traffic_gb"]) == 0 and int(plan["ip_limit"]) == 0
+                    and int(plan["price_minor"]) == 0 and int(plan["stars_price"]) == 0
+                    and int(plan["rub_price_enabled"]) == 0
+                    and str(plan["visibility"]) == "admin_only"
+                    and str(plan["currency"]) == "RUB"
+                ):
+                    raise ValueError("not an active free hidden unlimited technical plan")
+                row = await (await db.execute(
+                    """SELECT * FROM manual_entitlements WHERE telegram_id=?
+                       AND status IN ('in_flight','active','unknown')
+                       ORDER BY id DESC LIMIT 1""", (int(telegram_id),),
+                )).fetchone()
+                if row is not None:
+                    await db.commit()
+                    result = ManualEntitlementRecord(**dict(row))
+                    if result.plan_id == int(plan_id) and result.status == "active":
+                        return result, False
+                    raise ValueError("manual grant is already active or unresolved")
+                profile = await (await db.execute(
+                    "SELECT plan_id FROM user_profiles WHERE telegram_id=?",
+                    (int(telegram_id),),
+                )).fetchone()
+                previous = profile["plan_id"] if profile is not None else None
+                cur = await db.execute(
+                    """INSERT INTO manual_entitlements (
+                        telegram_id, plan_id, actor_id, previous_plan_id,
+                        status, started_at, confirmed_at, updated_at
+                    ) VALUES (?, ?, ?, ?, 'in_flight', ?, 0, ?)""",
+                    (int(telegram_id), int(plan_id), int(actor_id), previous, now, now),
+                )
+                await db.execute(
+                    """INSERT INTO user_profiles(
+                        telegram_id,plan_id,server_group_id,note,updated_at,display_name
+                    ) VALUES(?,?,NULL,'',?,'')
+                    ON CONFLICT(telegram_id) DO UPDATE SET
+                        plan_id=excluded.plan_id, updated_at=excluded.updated_at""",
+                    (int(telegram_id), int(plan_id), now),
+                )
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?", (int(cur.lastrowid),),
+                )).fetchone()
+                await db.commit()
+                return ManualEntitlementRecord(**dict(row)), True
+            except Exception:
+                await db.rollback()
+                raise
+
+    async def finish_manual_entitlement(
+        self, entitlement_id: int, *, status: str, result_code: str,
+    ) -> ManualEntitlementRecord:
+        if status not in {"active", "unknown"}:
+            raise ValueError("invalid manual entitlement transition")
+        if not result_code or len(result_code) > 96:
+            raise ValueError("invalid manual grant evidence")
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?",
+                    (int(entitlement_id),),
+                )).fetchone()
+                if row is None or str(row["status"]) != "in_flight":
+                    raise RuntimeError("manual grant not in_flight")
+                await db.execute(
+                    """UPDATE manual_entitlements
+                       SET status=?, result_code=?, updated_at=?,
+                           confirmed_at=CASE WHEN ?='active' THEN ? ELSE 0 END
+                       WHERE id=?""",
+                    (status, result_code, now, status, now, int(entitlement_id)),
+                )
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?",
+                    (int(entitlement_id),),
+                )).fetchone()
+                await db.commit()
+                return ManualEntitlementRecord(**dict(row))
+            except Exception:
+                await db.rollback()
+                raise
 
     # --- Server groups -------------------------------------------------
 
