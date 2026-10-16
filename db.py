@@ -793,6 +793,35 @@ class Database:
                 await db.rollback()
                 raise
 
+    async def confirm_manual_entitlement_readback(
+        self, entitlement_id: int,
+    ) -> ManualEntitlementRecord:
+        """Только after operator-authorized read-only 3x-ui postcondition."""
+        now = int(time.time())
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            try:
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?", (int(entitlement_id),),
+                )).fetchone()
+                if row is None or str(row["status"]) not in {"in_flight", "unknown"}:
+                    raise ValueError("manual entitlement is not reviewable")
+                await db.execute(
+                    """UPDATE manual_entitlements SET status='active',
+                       result_code='operator_readback_match', confirmed_at=?,
+                       updated_at=? WHERE id=?""",
+                    (now, now, int(entitlement_id)),
+                )
+                row = await (await db.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?", (int(entitlement_id),),
+                )).fetchone()
+                await db.commit()
+                return ManualEntitlementRecord(**dict(row))
+            except Exception:
+                await db.rollback()
+                raise
+
     # --- Server groups -------------------------------------------------
 
     async def list_server_groups(self) -> list[ServerGroupRecord]:
