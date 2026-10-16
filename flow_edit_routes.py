@@ -164,7 +164,7 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
         certainty = "not_required"
         if target.current_flow != challenge.new_flow:
             try:
-                await xui.update_client_inbound_flow(rec.email, challenge.inbound_id, challenge.new_flow, client=snap.client)
+                await xui.update_client_inbound_flow(rec.email, challenge.inbound_id, challenge.new_flow, client=snap.client, wg_verified=snap.wg_verified)
                 certainty = "response_success"
             except XUIMutationError as exc:
                 certainty = "unknown" if exc.uncertain else "failed"
