@@ -4,6 +4,10 @@
 
 После этого deployment [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686) был слит только в `main`: диагностики `CLIENT_RECORD_PROTOCOL_WG/MTPROTO/MIXED` **нет** в опубликованном `rc.13` и подтверждённом оператором production. Проверка нового кода A6 допустима лишь после отдельно разрешённых Release и deployment; Flow POST не выполнять.
 
+## Проект тарифов #705 / rc.16 (не Deployed)
+
+Client Portal должен предоставлять в Telegram только active, разрешённые правилами локальной аудитории планы с положительным Stars/XTR. RUB-сумма не создаёт Telegram checkout. Group-only с include/exclude и admin_only применяются на серверных entrypoints; недоступность правил не открывает публичный доступ. Бесплатные бессрочные планы доступны только ручному админскому назначению. Изменения PR #710 ещё не в Published rc.15 и не подтверждены live smoke.
+
 ## Исторический operator-reported deployment rc.9 (2026-10-11)
 
 Историческая операторская production baseline rc.9 сменила `v5.0.0-rc.8` (2026-10-10 23:13 UTC); в период с 2026-10-14 до обновления 2026-10-15 operator-reported production версией была rc.10, см. отдельный аудит.
