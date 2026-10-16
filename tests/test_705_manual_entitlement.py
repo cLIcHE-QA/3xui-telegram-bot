@@ -90,6 +90,16 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
     async def _grant(self):
         return await self.svc.grant(telegram_id=101, plan_id=self.manual, actor_id=1)
 
+    async def test_empty_inbounds_rejected_before_grant(self):
+        async def empty_inbounds():
+            return []
+        self.xui.inbound_options = empty_inbounds
+        with self.assertRaisesRegex(ValueError, "нет доступных Inbounds"):
+            await self._grant()
+        self.assertIsNone(await self.db.get_live_manual_entitlement(101))
+        self.assertEqual((await self.db.get_user_profile(101)).plan_id, self.finite)
+        self.assertEqual(self.xui.update_calls, 0)
+
     async def test_grant_updates_provider_then_readback_once_without_payments(self):
         record, created = await self._grant()
         self.assertTrue(created)
