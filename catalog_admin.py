@@ -586,7 +586,7 @@ async def plan_visibility_select(call: CallbackQuery):
     await call.answer()
 
 
-@catalog_router.callback_query(F.data.regexp(r"^admin:plan:visset:(?:all|groups|admin_only):\\d+$"))
+@catalog_router.callback_query(F.data.regexp(r"^admin:plan:visset:(?:all|groups|admin_only):\d+$"))
 async def plan_visibility_save(call: CallbackQuery):
     if not await guard_call(call):
         return
@@ -607,7 +607,7 @@ async def plan_visibility_save(call: CallbackQuery):
     await call.answer()
 
 
-@catalog_router.callback_query(F.data.regexp(r"^admin:plan:audience:\\d+$"))
+@catalog_router.callback_query(F.data.regexp(r"^admin:plan:audience:\d+$"))
 async def plan_audience_view(call: CallbackQuery):
     if not await guard_call(call):
         return
@@ -632,7 +632,7 @@ async def plan_audience_view(call: CallbackQuery):
     await call.answer()
 
 
-@catalog_router.callback_query(F.data.regexp(r"^admin:plan:audset:\\d+:\\d+$"))
+@catalog_router.callback_query(F.data.regexp(r"^admin:plan:audset:\d+:\d+$"))
 async def plan_audience_toggle(call: CallbackQuery):
     if not await guard_call(call):
         return
