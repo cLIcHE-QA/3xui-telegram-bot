@@ -80,9 +80,16 @@ class LivingDocsSemanticTests(unittest.TestCase):
         declared_count = re.findall(r"Текущий manifest содержит \*\*(\d+)\*\* endpoints", contract_doc)
         self.assertEqual(len(declared_count), 1, "Manifest endpoint count must appear exactly once")
         self.assertEqual(int(declared_count[0]), len(manifest["endpoints"]))
-        self.assertIn(
-            f"contracts/3xui/v{version}/openapi.json",
-            manifest["vendored_schema"],
+        vendored = ROOT / manifest["vendored_schema"]
+        self.assertTrue(vendored.is_file())
+        # Upstream v3.10.0 и v3.10.2 используют один immutable blob.
+        # Проверяем SHA содержимого, а не имя каталога с vendored JSON.
+        import hashlib
+        payload = vendored.read_bytes()
+        raw_blob = b"blob " + str(len(payload)).encode() + b"\0" + payload
+        self.assertEqual(
+            hashlib.sha1(raw_blob).hexdigest(),
+            manifest["upstream"]["schema_blob_sha"],
         )
 
     def test_3xui_living_docs_trigger_contract(self):

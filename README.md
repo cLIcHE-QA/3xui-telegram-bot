@@ -4,7 +4,7 @@
 
 **Published:** immutable [`v5.0.0-rc.15`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.15), SHA `9c9245899c7ca949254df92d95f8015e65989645`, `2026-10-16T12:53:58Z` (GitHub). **Deployed:** rc.15 только по сообщению оператора от `2026-10-16T13:16:00Z`; независимая VPS/image/Xray проверка **PENDING**. **Accepted:** targeted A6/N6/R3 и scoped Flow POST — PASS со слов оператора; полный v5 **NOT PASS**, G-11 **PARTIAL / NO-GO**, публичный запуск **BLOCKED**.
 
-**После rc.15:** [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691) / [PR #692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) уже в `main`, но не в опубликованном релизе; новый Release/deploy/targeted UI smoke **PENDING**. [PR #693](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/693) ещё OPEN: общий pinned 3x-ui OpenAPI в `main` остаётся `v3.10.0`. Production mutations, расширение pilot allowlist и stable rollout не разрешены.
+**После rc.15:** [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691) / [PR #692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) уже в `main`, но не в опубликованном релизе; новый Release/deploy/targeted UI smoke **PENDING**. Общий OpenAPI contract закреплён на `v3.10.2` ([PR #693](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/693)); тот же immutable OpenAPI blob размещён по прежнему vendored пути `v3.10.0` и не означает обновления production. Production mutations, расширение pilot allowlist и stable rollout не разрешены.
 
 Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
 
@@ -175,7 +175,7 @@ Native 3x-ui API используется через `xui.py` / `version_api.py`
 
 Текущий pinned compatibility contract:
 
-- 3x-ui: `v3.10.0`; текущий общий OpenAPI contract в `main` до merge PR #693, отдельно от точной Flow-проверки `panelVersion=3.10.2`;
+- 3x-ui: `v3.10.2`; поддерживаемый OpenAPI contract (PR #693; vendored schema от `v3.10.0` с идентичным immutable Git blob), отдельно от строгой проверки Flow `panelVersion=3.10.2`;
 - vendored OpenAPI: `contracts/3xui/v3.10.0/openapi.json`;
 - используемый API surface: `contracts/3xui/contract.json`.
 
