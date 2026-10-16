@@ -277,6 +277,11 @@ class CustomerPortalService:
         if (not plan.active or int(plan.stars_price or 0) <= 0
                 or plan.currency != "RUB" or plan.duration_days <= 0):
             return False
+        try:
+            if await self.db.get_live_manual_entitlement(telegram_id) is not None:
+                return False
+        except Exception:
+            return False
         visibility = getattr(plan, "visibility", "all")
         if visibility == "admin_only":
             return False
