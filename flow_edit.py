@@ -233,6 +233,17 @@ async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnap
     ):
         # No proven WG owner or a stale/extra tunnel attachment: fail closed.
         raise FlowEditRejected("Непроверенные поля WireGuard")
+    if wg_present:
+        # Service-level Go/SQLite tests show 3.10.0 clears shared WG fields
+        # even on inbound-filtered VLESS update, while 3.10.2 preserves them.
+        # This is not a semver >= gate: every later upstream revision needs
+        # its own proof. Unknown/absent/malformed version is a hard denial.
+        try:
+            status = await asyncio.wait_for(master.server_status(), timeout=5)
+        except (asyncio.TimeoutError, AttributeError, RuntimeError, ValueError) as exc:
+            raise FlowEditRejected("Непроверенные поля WireGuard") from exc
+        if not isinstance(status, dict) or status.get("panelVersion") not in ("3.10.2", "v3.10.2"):
+            raise FlowEditRejected("Непроверенные поля WireGuard")
     if len({t.node_id for t in targets}) > MAX_EDIT_NODES:
         raise FlowEditRejected("Слишком много нод")
     if len({(t.node_id, t.inbound_tag) for t in targets}) != len(targets):
