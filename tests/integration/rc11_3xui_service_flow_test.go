@@ -231,6 +231,7 @@ func TestRC11MultiProtocolScopedFlowPreservesTunnelRecord(t *testing.T) {
     hysteria:=makeInbound(nodeB,"mp-hysteria",46006,model.Hysteria,"",false)
     untouched:=[]*model.Inbound{tunnelA,tunnelB,xhttp,hysteria,other}
     for _,ib:=range untouched {
+        if ib.Id==other.Id {continue} // SyncInbound already added this link.
         if err:=db.Create(&model.ClientInbound{ClientId:record.Id,InboundId:ib.Id}).Error;err!=nil {t.Fatal(err)}
     }
     // Populate the shared peer fields exactly as the upstream model stores
