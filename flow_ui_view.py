@@ -25,7 +25,7 @@ _views: OrderedDict[int, LastFlowView] = OrderedDict()
 def clean_label(value: object, fallback: str, *, limit: int = 42) -> str:
     if not isinstance(value, str):
         return fallback
-    label = re.sub(r"[\\x00-\\x1f\\x7f\\u202a-\\u202e\\u2066-\\u2069]", " ", value)
+    label = "".join(" " if ord(c) < 32 or ord(c) == 127 or 0x202A <= ord(c) <= 0x202E or 0x2066 <= ord(c) <= 0x2069 else c for c in value)
     label = " ".join(label.split())
     return label[:limit] if label else fallback
 
