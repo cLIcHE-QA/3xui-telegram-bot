@@ -15,6 +15,8 @@ class FakeMaster:
         self.calls=0
     async def get_client(self,email):
         return copy.deepcopy(self.client)
+    async def server_status(self):
+        return {"panelVersion":getattr(self,"panel_version","3.10.2")}
     async def inbound_get(self,iid):
         self.calls+=1
         return copy.deepcopy(self.inbounds[iid])
@@ -160,6 +162,20 @@ class MultiProtocolFleetTests(unittest.IsolatedAsyncioTestCase):
         old=client_fingerprint(m.client["client"],tunnel_ips={"4":"10.0.0.1/32"})
         new=client_fingerprint(m.client["client"],tunnel_ips={"4":"10.0.0.2/32"})
         self.assertNotEqual(old,new)
+
+    async def test_old_or_unknown_upstream_version_blocks_wg(self):
+        for ver in ("3.10.0","3.10.3","",None):
+            m=FakeMaster()
+            m.panel_version=ver
+            m.client["client"]["privateKey"]="fixture-private"
+            m.client["client"]["allowedIPs"]="10.8.1.5/32"
+            m.client["inboundIds"].append(4)
+            m.client["tunnelAllowedIPs"]={"4":"10.8.1.5/32"}
+            m.inbounds[4]={"id":4,"protocol":"amneziawg",
+                "settings":json.dumps({"clients":[{"email":"qa@example.invalid","allowedIPs":["10.8.1.5/32"]}]})}
+            with self.subTest(version=ver), self.assertRaises(FlowEditRejected):
+                await discover_flow_targets(m,"qa@example.invalid",1001)
+            self.assertEqual(m.writes,[])
 
     async def test_missing_tunnel_ownership_fails_closed(self):
         m=FakeMaster()
