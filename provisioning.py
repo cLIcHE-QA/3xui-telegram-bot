@@ -247,7 +247,19 @@ class ProvisioningEngine:
         apply_plan_limits: bool = False,
         target_expiry_ms: int | None = None,
         persist_local_expiry: bool = True,
+        manual_operation: bool = False,
     ) -> ProvisioningResult:
+        # Никакие фоновые reconciliation/jobs не должны повторять mutation
+        # при in_flight/unknown ручной выдаче; только её первый scoped вызов.
+        lookup = getattr(self.db, "get_live_manual_entitlement", None)
+        manual = await lookup(telegram_id) if lookup is not None else None
+        if manual is not None:
+            if manual_operation and manual.status != "in_flight":
+                raise ProvisioningUnknown("manual entitlement is not in_flight")
+            if not manual_operation and manual.status in {"in_flight", "unknown"}:
+                raise ProvisioningUnknown("manual entitlement is unresolved; no auto retry")
+        elif manual_operation:
+            raise ProvisioningUnknown("manual entitlement journal missing")
         rec = await self.db.get(telegram_id)
         if not rec:
             raise ProvisioningError("Пользователь не найден в БД бота")
