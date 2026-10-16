@@ -8,7 +8,7 @@
 
 Client Portal должен предоставлять в Telegram только active, разрешённые правилами локальной аудитории планы с положительным Stars/XTR. RUB-сумма не создаёт Telegram checkout. Group-only с include/exclude и admin_only применяются на серверных entrypoints; недоступность правил не открывает публичный доступ. Бесплатные бессрочные планы доступны только ручному админскому назначению. Изменения PR #710 ещё не в Published rc.15 и не подтверждены live smoke.
 
-## Исторический operator-reported deployment rc.9 (2026-10-11)
+Ручная бессрочная выдача на этапе реализации #705 сохраняется отдельно от финансового `Order → Payment`; нулевых Stars invoice, RUB заказов или промокодов нет. `active` в журнале требует доказанного 3x-ui read-back; `unknown/in_flight` — только ручной recovery, без повторного provisioning. Действующие pilot allowlist, Terms и flags не снимаются.\n\n## Исторический operator-reported deployment rc.9 (2026-10-11)
 
 Историческая операторская production baseline rc.9 сменила `v5.0.0-rc.8` (2026-10-10 23:13 UTC); в период с 2026-10-14 до обновления 2026-10-15 operator-reported production версией была rc.10, см. отдельный аудит.
 
