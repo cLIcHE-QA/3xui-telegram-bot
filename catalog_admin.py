@@ -217,7 +217,7 @@ async def plans_list(call: CallbackQuery):
         icon = "🟢" if plan.active else "⚪"
         default_icon = "⭐ " if plan.id == default_plan_id else ""
         rows.append([InlineKeyboardButton(
-            text=f"{default_icon}{icon} {plan.name} · {_money(plan)}",
+            text=f"{default_icon}{icon} {plan.name} · {(_money(plan) if plan.rub_price_enabled else (str(plan.stars_price) + ' Stars' if plan.stars_price else 'без оплаты'))}",
             callback_data=f"admin:plan:{plan.id}",
         )])
     rows += [
@@ -618,7 +618,9 @@ async def plan_rub_price_save(message: Message, state: FSMContext):
                              target_id=str(plan_id), details=f"rub_price_enabled={bool(minor)}")
     await state.clear()
     await render_input(message, "✅ Цена RUB обновлена; платежи через Telegram не менялись.",
-        reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")
+        ]]))
 
 
 @catalog_router.callback_query(F.data.startswith("admin:plan:visibility:"))
@@ -657,7 +659,9 @@ async def plan_visibility_save(call: CallbackQuery):
     await audit_from_call(db, call, "plan.visibility", target_type="plan",
                           target_id=str(plan_id), details=f"visibility={visibility}")
     await render_callback(call, f"✅ Видимость: {visibility_label(visibility)}",
-        reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")
+        ]]))
     await call.answer()
 
 
@@ -671,8 +675,16 @@ async def plan_audience_view(call: CallbackQuery):
         await call.answer("Тариф не найден.", show_alert=True)
         return
     groups = await db.list_user_groups()
-    include = set(json.loads(plan.include_group_ids))
-    exclude = set(json.loads(plan.exclude_group_ids))
+    try:
+        include = set(json.loads(plan.include_group_ids))
+        exclude = set(json.loads(plan.exclude_group_ids))
+    except (ValueError, TypeError):
+        await render_callback(call, "⚠️ Правила групп повреждены. Доступ закрыт; проверьте настройки.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")
+            ]]))
+        await call.answer()
+        return
     rows = []
     for group in groups[:30]:
         marker = "✅" if group.id in include else "⛔" if group.id in exclude else "⚪"
