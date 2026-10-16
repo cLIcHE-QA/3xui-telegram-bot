@@ -79,7 +79,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           version="$(python3 -c 'from version import APP_VERSION; print(APP_VERSION)')"
-          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+(\.[0-9]+)?)?$ ]]
           release_commit="$(git log --format='%H' -G "^APP_VERSION = \"$version\"$" -- version.py | head -n 1)"
           [[ "$release_commit" =~ ^[0-9a-f]{40}$ ]] || { echo "Cannot resolve release commit for APP_VERSION=$version" >&2; exit 1; }
           git merge-base --is-ancestor "$release_commit" "$TESTED_SHA"
@@ -89,7 +89,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
           echo "commit=$release_commit" >> "$GITHUB_OUTPUT"
-          if [[ "$version" =~ -rc\.[0-9]+$ ]]; then
+          if [[ "$version" =~ -rc\.[0-9]+(\.[0-9]+)?$ ]]; then
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
           else
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
