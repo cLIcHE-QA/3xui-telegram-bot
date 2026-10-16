@@ -142,6 +142,42 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.status, "active")
         self.assertEqual(self.xui.update_calls, 1)
 
+    async def test_existing_checkout_blocks_new_manual_grant(self):
+        await self.db.create_commerce_order(
+            telegram_id=101, plan_id=self.finite, amount_minor=50, currency="XTR",
+        )
+        with self.assertRaisesRegex(ValueError, "pending commerce"):
+            await self._grant()
+        self.assertIsNone(await self.db.get_live_manual_entitlement(101))
+        self.assertEqual(self.xui.update_calls, 0)
+
+    async def test_indefinite_direct_edit_rejected_and_finite_unchanged(self):
+        with self.assertRaises(ValueError):
+            await self.db.update_plan_catalog(self.manual, price_minor=100)
+        with self.assertRaises(ValueError):
+            await self.db.update_plan_catalog(self.manual, visibility="all")
+        with self.assertRaises(ValueError):
+            await self.db.set_plan_stars_price(self.manual, 3)
+        unchanged = await self.db.get_plan(self.manual)
+        self.assertEqual((unchanged.duration_days, unchanged.price_minor,
+                          unchanged.stars_price, unchanged.visibility), (0, 0, 0, "admin_only"))
+        finite = await self.db.get_plan(self.finite)
+        self.assertEqual((finite.duration_days, finite.stars_price), (30, 50))
+
+    async def test_live_manual_grant_hides_new_paid_purchases(self):
+        from commerce import CommerceService
+        from customer_service import CustomerPortalService
+        await self._grant()
+        portal = CustomerPortalService(
+            self.db, CommerceService(self.db), provider=None,
+            subscription_url_template="https://sub.example.invalid/{sub_id}",
+        )
+        self.assertEqual(await portal.active_plans(101), [])
+        with self.assertRaises(ValueError):
+            await portal.get_or_create_stars_order(
+                telegram_id=101, plan=await self.db.get_plan(self.finite),
+            )
+
     async def test_invalid_target_is_rejected_before_remote_mutation(self):
         with self.assertRaises(ValueError):
             await self.svc.grant(telegram_id=101, plan_id=self.finite, actor_id=1)
