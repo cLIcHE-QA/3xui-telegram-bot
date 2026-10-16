@@ -259,6 +259,15 @@ func TestRC11MultiProtocolScopedFlowPreservesTunnelRecord(t *testing.T) {
     before,err:=svc.GetRecordByEmail(nil,email);if err!=nil {t.Fatal(err)}
     updated:=*before.ToClient()
     updated.Flow=""
+    // Mirror the bot's VLESS-only POST: omit every WG/AWG peer field. The
+    // REAL upstream service must retain those fields and never copy them
+    // to VLESS settings or Node payload.
+    updated.PrivateKey=""
+    updated.PublicKey=""
+    updated.AllowedIPs=nil
+    updated.PreSharedKey=""
+    updated.KeepAlive=nil
+    updated.ForwardedPorts=""
     if _,err:=svc.Update(inboundSvc,before.Id,updated,before.LimitHwid,chosen.Id);err!=nil {
         t.Fatalf("scoped Update: %v",err)
     }
@@ -280,4 +289,9 @@ func TestRC11MultiProtocolScopedFlowPreservesTunnelRecord(t *testing.T) {
     var parsed struct{Clients []model.Client `json:"clients"`}
     if err:=json.Unmarshal([]byte(chosenAfter.Settings),&parsed);err!=nil {t.Fatal(err)}
     if len(parsed.Clients)!=1 || parsed.Clients[0].Flow!="" {t.Fatal("chosen inbound flow not cleared")}
+    vless:=parsed.Clients[0]
+    if vless.PrivateKey!="" || vless.PublicKey!="" || vless.PreSharedKey!="" ||
+       len(vless.AllowedIPs)!=0 || vless.KeepAlive!=nil || vless.ForwardedPorts!="" {
+        t.Fatal("WG/AWG peer material leaked into selected VLESS settings")
+    }
 }
