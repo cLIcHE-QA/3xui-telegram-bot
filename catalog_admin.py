@@ -144,7 +144,7 @@ def _parse_price(raw: str, default_currency: str = "RUB") -> tuple[int, str]:
     currency = "RUB" if len(parts) == 1 else parts[1]
     if currency != "RUB":
         raise ValueError("currency")
-    if not re.fullmatch(r"[0-9]+(?:\\.[0-9]{1,2})?", parts[0]):
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]{1,2})?", parts[0]):
         raise ValueError("amount")
     try:
         value = Decimal(parts[0])
@@ -351,7 +351,7 @@ async def plan_add_ip_limit(message: Message, state: FSMContext):
     await state.update_data(ip_limit=value)
     await state.set_state(AddPlanStates.price)
     await render_input(message, 
-        "💎 Новый тариф · 5/5\n\nЦена, например:\n499\n499.90 RUB\n5 EUR\n\n0 = бесплатно.",
+        "💎 Новый тариф · 5/5\n\nЦена в RUB, например:\n499\n499.90 RUB\n\n0 = нет RUB-платежа.",
         reply_markup=cancel_keyboard("admin:planadd:cancel"),
     )
 
