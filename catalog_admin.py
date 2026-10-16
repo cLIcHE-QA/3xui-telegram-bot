@@ -137,20 +137,22 @@ def _money(plan: PlanRecord) -> str:
 
 
 def _parse_price(raw: str, default_currency: str = "RUB") -> tuple[int, str]:
-    text = raw.strip().upper().replace(",", ".")
-    parts = text.split()
-    if not parts:
-        raise ValueError("empty")
-    currency = default_currency.upper() if len(parts) == 1 else parts[1]
-    if not re.fullmatch(r"[A-Z]{3}", currency):
+    """Строгий ввод RUB для новых тарифов; старые валюты остаются в БД."""
+    parts = raw.strip().upper().replace(",", ".").split()
+    if not 1 <= len(parts) <= 2:
+        raise ValueError("amount")
+    currency = "RUB" if len(parts) == 1 else parts[1]
+    if currency != "RUB":
         raise ValueError("currency")
+    if not re.fullmatch(r"[0-9]+(?:\\.[0-9]{1,2})?", parts[0]):
+        raise ValueError("amount")
     try:
         value = Decimal(parts[0])
     except InvalidOperation as exc:
         raise ValueError("amount") from exc
-    if value < 0 or value > Decimal("100000000"):
+    if not value.is_finite() or value < 0 or value > Decimal("100000000"):
         raise ValueError("range")
-    minor = int((value * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    minor = int(value * 100)
     return minor, currency
 
 
@@ -359,10 +361,9 @@ async def plan_add_price(message: Message, state: FSMContext):
     if not await guard_message(message, state):
         return
     try:
-        default_currency = str(await db.get_runtime_setting("default_currency", "RUB") or "RUB").upper()
-        price_minor, currency = _parse_price(message.text or "", default_currency)
+        price_minor, currency = _parse_price(message.text or "")
     except ValueError:
-        await render_input(message, "Не понял цену. Пример: 499 RUB, 4.99 EUR или 0.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
+        await render_input(message, "Цена должна быть в RUB (например, 499 или 499.90 RUB). До 2 знаков после запятой.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(price_minor=price_minor, currency=currency)
     await state.set_state(AddPlanStates.group)
