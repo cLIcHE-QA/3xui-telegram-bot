@@ -19,7 +19,7 @@
 
 Текущая версия схемы определяется последним элементом каталога, а не версией приложения.
 
-**Рабочая ветка #705 (не Published):** текущая bot schema version — **14**; добавляется schema **v14** `plan_audience_v5_0_0`: `plans.rub_price_enabled`, `visibility`, `include_group_ids`, `exclude_group_ids`. Все изменения additive, legacy-строки сохраняют первоначальную публичную видимость `all` и RUB-настройку. Это лишь структура; полный #705 и rc.16 ещё PENDING.
+**Рабочая ветка #705 (не Published):** текущая bot schema version — **14**; добавляется schema **v14** `plan_audience_v5_0_0`: `plans.rub_price_enabled`, `visibility`, `include_group_ids`, `exclude_group_ids`, плюс журнал `manual_entitlements` и индексы `idx_manual_entitlements_user_status`/`idx_manual_entitlements_one_live`. Все изменения additive, legacy-строки сохраняют первоначальную публичную видимость `all` и RUB-настройку. Это лишь структура; полный #705 и rc.16 ещё PENDING.
 
 **Историческое планирование `v5.0.0-rc.15`:** SQLite schema остаётся **v13**, новых migrations нет. Кандидат включает scoped Flow safety #689 для многопротокольного клиента с точной проверкой `panelVersion=3.10.2`; миграции/backup/rollback contract бота не изменяются. Текущий Published и операторский Deployed — `v5.0.0-rc.14`; rc.15 **не Published и не Deployed**, независимый production SQLite `quick_check` после отдельного разрешённого deployment PENDING. G-11 NO-GO.
 
@@ -65,7 +65,7 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 13. `v13 stars_invoice_cleanup_v5_0_0` — additive `stars_invoice_messages` (order/chat/message identity, `pending/attempted/success/unknown`) для one-shot косметического удаления оплаченных Stars invoices. `attempted` фиксируется до Telegram API; неопределённый результат не повторяется автоматически. Никаких финансовых статусов это не меняет.
 
 
-14. `v14 plan_audience_v5_0_0` — независимый флаг наличия RUB-цены и правила видимости локальных User Groups; старые планы мигрируют без удаления валют/истории и без автоматических назначений.
+14. `v14 plan_audience_v5_0_0` — независимый флаг наличия RUB-цены, правила видимости локальных User Groups и таблица `manual_entitlements` со статусами `in_flight/active/unknown/failed/superseded`. Старые планы мигрируют без удаления валют/истории и без автоматических назначений. Уникальный partial index запрещает вторую live/unknown выдачу одному пользователю.
 
 Commerce write contract поверх schema v6: authenticated `payment.confirmed` применяется одной SQLite transaction (`BEGIN IMMEDIATE`). В одной commit boundary фиксируются `commerce_payments.status=confirmed`, `commerce_orders.status=paid`, exactly-one `entitlements` row и `payment_webhook_events.processing_status=applied`. Исключение до commit откатывает весь набор изменений; повтор того же provider event с тем же payload безопасно возвращает уже применённый результат, а повтор event id с другим payload fail-closed.
 
@@ -82,7 +82,7 @@ Migration v2–v14 имеют `requires_backup=False`: они additive, не у�
 
 `rub_price_enabled=0` выключает лишь будущий RUB-канал, не меняет `price_minor` исторических заказов. `stars_price=0` означает отсутствие продажи в Telegram; RUB-цена не преобразуется в XTR. `visibility` принимает `all`, `groups` или `admin_only`. `include_group_ids` / `exclude_group_ids` — JSON-массивы идентификаторов **локальных** User Groups; `groups` без include deny-by-default, exclude имеет приоритет и при ошибке SQLite/неизвестной группе пользовательская продажа закрывается. Исторические plans получают `all` и сохранённый RUB-признак; существующие `EUR` не переоцениваются и не конвертируются.
 
-Технический профиль (`duration_days=0`, `traffic_gb=0`, `ip_limit=0`, отсутствие двух цен) допускается только для ручной административной выдачи. Миграция не создаёт ни назначений, ни Orders, ни entitlements, ни PSP checkout. Применение schema v14 на production требует отдельного разрешённого release/deployment и pre-migration backup. Rollback после применения v14 через downgrade без восстановления совместимой DB не поддерживается.
+Журнал ручных выдач фиксирует идентичность admin actor, план, предыдущий план, временные поля и bounded result_code, но **не** создаёт ни Orders, ни Payments. Успех подтверждается отдельным 3x-ui read-back; `in_flight/unknown` требуют ручного review и блокируют automatic replay после restart. Повтор уже `active` — идемпотентен.\n\nТехнический профиль (`duration_days=0`, `traffic_gb=0`, `ip_limit=0`, отсутствие двух цен) допускается только для ручной административной выдачи. Миграция не создаёт ни назначений, ни Orders, ни entitlements, ни PSP checkout. Применение schema v14 на production требует отдельного разрешённого release/deployment и pre-migration backup. Rollback после применения v14 через downgrade без восстановления совместимой DB не поддерживается.
 
 ## Startup semantics
 
