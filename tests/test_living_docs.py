@@ -147,6 +147,17 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertNotIn("implementation PENDING", register)
         self.assertNotIn("(scope)", register)
 
+    def test_required_ci_reconciles_roadmap_with_github(self):
+        """OPEN Issues и Published сверяются с GitHub в обязательном CI."""
+        workflow = (ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+        living = (ROOT / "docs/LIVING_DOCS.md").read_text(encoding="utf-8")
+        self.assertIn("  issues: read", workflow)
+        self.assertIn(
+            'python3 scripts/check-roadmap-github.py --repository "$GITHUB_REPOSITORY"',
+            workflow,
+        )
+        self.assertIn("обязательном PR CI", living)
+
     def test_roadmap_registry_must_be_contiguous(self):
         import importlib.util
         from tempfile import TemporaryDirectory
