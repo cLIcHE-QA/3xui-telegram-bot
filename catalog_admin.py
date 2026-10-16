@@ -46,6 +46,10 @@ class PlanStarsStates(StatesGroup):
     price = State()
 
 
+class PlanRubStates(StatesGroup):
+    price = State()
+
+
 class AddServerGroupStates(StatesGroup):
     name = State()
     description = State()
@@ -270,6 +274,8 @@ async def plan_detail(call: CallbackQuery):
     default_text = "⭐ Убрать тариф по умолчанию" if is_default else "⭐ Сделать тарифом по умолчанию для новых пользователей"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⭐ Цена в Telegram Stars", callback_data=f"admin:plan:stars:{plan.id}")],
+        [InlineKeyboardButton(text="₽ Цена RUB", callback_data=f"admin:plan:rub:{plan.id}")],
+        [InlineKeyboardButton(text="👁 Видимость", callback_data=f"admin:plan:visibility:{plan.id}")],
         [InlineKeyboardButton(text="🗂 Выбрать группу серверов", callback_data=f"admin:plan:groups:{plan.id}")],
         [InlineKeyboardButton(text="🚀 Предпросмотр согласования", callback_data=f"admin:plan:preview:{plan.id}")],
         [InlineKeyboardButton(text=default_text, callback_data=f"admin:plan:default:{plan.id}")],
@@ -506,6 +512,97 @@ async def plan_add_cancel(call: CallbackQuery, state: FSMContext):
         return
     await state.clear()
     await render_callback(call, "Создание тарифа отменено.", reply_markup=plans_back())
+    await call.answer()
+
+
+@catalog_router.callback_query(F.data.startswith("admin:plan:rub:"))
+async def plan_rub_price_start(call: CallbackQuery, state: FSMContext):
+    if not await guard_call(call):
+        return
+    plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
+    if not plan:
+        await call.answer("Тариф не найден.", show_alert=True)
+        return
+    if plan.currency != "RUB":
+        await call.answer("Legacy currency: изменение заблокировано до ручной миграции.", show_alert=True)
+        return
+    await state.clear()
+    await state.update_data(plan_id=plan_id)
+    await state.set_state(PlanRubStates.price)
+    await render_callback(call,
+        f"₽ Цена RUB · {plan.name}\\n\\n"
+        f"Сейчас: {_money(plan) if plan.rub_price_enabled else 'не настроена'}\\n"
+        "Введите сумму в RUB с точностью до копейки или «-» для отключения. "
+        "RUB checkout в Telegram отсутствует.",
+        reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"),
+    )
+    await call.answer()
+
+
+@catalog_router.message(PlanRubStates.price)
+async def plan_rub_price_save(message: Message, state: FSMContext):
+    if not await guard_message(message, state):
+        return
+    data = await state.get_data()
+    plan_id = int(data.get("plan_id") or 0)
+    plan = await db.get_plan(plan_id)
+    if not plan or plan.currency != "RUB":
+        await state.clear()
+        await render_input(message, "Тариф недоступен для изменения RUB.", reply_markup=plans_back())
+        return
+    raw = (message.text or "").strip()
+    try:
+        minor = _parse_price(raw)[0] if raw != "-" else 0
+    except ValueError:
+        await render_input(message, "Укажите RUB, например 540.00, или «-».",
+            reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
+        return
+    await db.update_plan_catalog(plan_id, price_minor=minor, rub_price_enabled=bool(minor))
+    await audit_from_message(db, message, "plan.rub_price", target_type="plan",
+                             target_id=str(plan_id), details=f"rub_price_enabled={bool(minor)}")
+    await state.clear()
+    await render_input(message, "✅ Цена RUB обновлена; платежи через Telegram не менялись.",
+        reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
+
+
+@catalog_router.callback_query(F.data.startswith("admin:plan:visibility:"))
+async def plan_visibility_select(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    plan_id = int(call.data.rsplit(":", 1)[-1])
+    plan = await db.get_plan(plan_id)
+    if not plan:
+        await call.answer("Тариф не найден.", show_alert=True)
+        return
+    await render_callback(call, f"👁 Видимость · {plan.name}\\n\\nСейчас: {plan.visibility}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌐 Всем", callback_data=f"admin:plan:visset:all:{plan_id}")],
+            [InlineKeyboardButton(text="👥 Локальные User Groups", callback_data=f"admin:plan:visset:groups:{plan_id}")],
+            [InlineKeyboardButton(text="🔒 Только администратору", callback_data=f"admin:plan:visset:admin_only:{plan_id}")],
+            [InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan_id}")],
+        ]))
+    await call.answer()
+
+
+@catalog_router.callback_query(F.data.regexp(r"^admin:plan:visset:(?:all|groups|admin_only):\\d+$"))
+async def plan_visibility_save(call: CallbackQuery):
+    if not await guard_call(call):
+        return
+    fields = (call.data or "").split(":")
+    visibility, plan_id = fields[3], int(fields[4])
+    plan = await db.get_plan(plan_id)
+    if not plan:
+        await call.answer("Тариф не найден.", show_alert=True)
+        return
+    if visibility == "all" and plan.duration_days == 0 and not plan.stars_price:
+        await call.answer("Бессрочный бесплатный тариф не может стать публичным.", show_alert=True)
+        return
+    await db.update_plan_catalog(plan_id, visibility=visibility)
+    await audit_from_call(db, call, "plan.visibility", target_type="plan",
+                          target_id=str(plan_id), details=f"visibility={visibility}")
+    await render_callback(call, f"✅ Видимость: {visibility}",
+        reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"))
     await call.answer()
 
 
