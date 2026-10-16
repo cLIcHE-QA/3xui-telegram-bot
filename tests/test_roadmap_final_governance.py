@@ -109,7 +109,11 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
             (root/"docs").mkdir()
             (root/"CHANGELOG.md").write_text((ROOT/"CHANGELOG.md").read_text(encoding="utf-8"),encoding="utf-8")
             text=(ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8")
-            text=text.replace("**Accepted:** общий v5 **NOT PASS**","**Accepted:** full acceptance PASS")
+            # Мутируем фактическую сводку, не закрепляя устаревающий текст.
+            summary=text.split("## Актуальная сводка проекта",1)[1].split("\n## ",1)[0]
+            accepted=summary.split("**Accepted:**",1)[1].split("\n",1)[0]
+            self.assertIn("NOT PASS",accepted)
+            text=text.replace("**Accepted:**"+accepted,"**Accepted:** full acceptance PASS",1)
             (root/"docs/ROADMAP.md").write_text(text,encoding="utf-8")
             self.assertTrue(gov.release_consistency(root))
     def test_concept_change_requires_registry_review(self):
