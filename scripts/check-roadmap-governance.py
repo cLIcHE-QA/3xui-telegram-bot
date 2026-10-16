@@ -97,7 +97,7 @@ def release_consistency(root:Path=ROOT)->list[str]:
     summary=text.split("## Актуальная сводка проекта",1)[-1].split("\n## ",1)[0]
     for fact in ("**Published:**","**Deployed:**","**Accepted:**"):
         if summary.count(fact)!=1: errors.append(f"missing/duplicate release state: {fact}")
-    published=re.search(r"\*\*Published:\*\*[^\n]*?releases/tag/(v\d+\.\d+\.\d+(?:-rc\.\d+)?)",summary)
+    published=re.search(r"\*\*Published:\*\*[^\n]*?releases/tag/(v\d+\.\d+\.\d+(?:-rc\.\d+(?:\.\d+)?)?)",summary)
     if not published:errors.append("Published must link to real immutable GitHub tag")
     else:
         tag=published.group(1)

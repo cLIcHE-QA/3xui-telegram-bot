@@ -27,6 +27,16 @@ class ReleaseScopeTests(unittest.TestCase):
         self.assertNotIn("PR #12", release_notes(md, "5.0.0-rc.8"))
         self.assertEqual(release_notes(md, "5.0.0-rc.9"), "")
 
+    def test_patch_rc_release_scope(self):
+        self.assertIn("PR #714", release_notes(
+            "## v5.0.0-rc.16.1 — Исправления\n- PR #714\n\n## v5.0.0-rc.16 — Предыдущий\n- PR #710\n",
+            "5.0.0-rc.16.1",
+        ))
+        self.assertNotIn("PR #710", release_notes(
+            "## v5.0.0-rc.16.1 — Исправления\n- PR #714\n\n## v5.0.0-rc.16 — Предыдущий\n- PR #710\n",
+            "5.0.0-rc.16.1",
+        ))
+
     def test_missing_pr_blocks(self):
         self.assertEqual(missing_prs([361, 362], "PR #361", ""), [362])
 

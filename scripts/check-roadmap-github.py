@@ -19,7 +19,7 @@ API = "https://api.github.com"
 ISSUE_URL = re.compile(
     r"https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/(\d+)(?:\b|/)", re.I
 )
-RELEASE_TAG = re.compile(r"\bv\d+\.\d+\.\d+(?:-rc\.\d+)?\b")
+RELEASE_TAG = re.compile(r"\bv\d+\.\d+\.\d+(?:-rc\.\d+(?:\.\d+)?)?\b")
 class Unknown(RuntimeError):
     pass
 class Drift(RuntimeError):

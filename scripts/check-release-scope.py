@@ -79,7 +79,7 @@ def main() -> int:
         return 1
     tags = git("tag", "--merged", base, "--sort=-version:refname").splitlines()
     previous = next(
-        (t for t in tags if re.fullmatch(r"v\d+\.\d+\.\d+(?:-rc\.\d+)?", t)),
+        (t for t in tags if re.fullmatch(r"v\d+\.\d+\.\d+(?:-rc\.\d+(?:\.\d+)?)?", t)),
         "",
     )
     if not previous:

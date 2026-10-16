@@ -166,3 +166,7 @@ Framework является forward-only: автоматических down migra
 ### v12 — bot_update_unknown_ack_v5_0_0
 
 Owner подтверждает исторический `bot.update` unknown двухшаговым UI после read-only GET correlation. Одна SQLite transaction атомарно фиксирует acknowledgment и audit event; duplicate noop. Migration не меняет `job_runs.status`, не вызывает Deploy Agent. Attention Center исключает лишь конкретный подтверждённый run ID; новые сбои по тому же job name продолжают отображаться. Откат на `rc.7` после schema v12 требует совместимого pre-migration DB restore.
+
+## Release-prep `v5.0.0-rc.16.1` (2026-10-17)
+
+Это выпуск исправлений #705 поверх опубликованного `v5.0.0-rc.16`. Версия SQLite остаётся **v14**: новых миграций нет, ручной журнал выдачи и существующие платёжные записи не меняются. Точечный release candidate не означает production deployment или успешную приёмку; до отдельно разрешённого развёртывания нужны штатный backup и `PRAGMA quick_check`/read-back.

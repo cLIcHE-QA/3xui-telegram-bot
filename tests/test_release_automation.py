@@ -46,6 +46,14 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertEqual(title, "v5.0.0-rc.1 — Client Portal canary")
         self.assertIn("./scripts/deploy-release.sh v5.0.0-rc.1", body)
 
+    def test_patch_rc_renders_immutable_release_notes(self):
+        changelog = "## v5.0.0-rc.16.1 — Исправление тарифов\n- PR #714: исправлено назначение.\n"
+        title, body = release_notes.render_release_notes(changelog, "5.0.0-rc.16.1", "a" * 40)
+        self.assertIn("v5.0.0-rc.16.1", title)
+        self.assertIn("deploy-release.sh v5.0.0-rc.16.1", body)
+        with self.assertRaises(SystemExit):
+            release_notes.render_release_notes(changelog, "5.0.0-rc.16.1.2", "a" * 40)
+
     def test_rc15_release_notes_cover_wg_scoped_canary_without_acceptance_claim(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         title, body = release_notes.render_release_notes(changelog, "5.0.0-rc.15", "a" * 40)

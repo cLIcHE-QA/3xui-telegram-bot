@@ -1,12 +1,12 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.16
+# Telegram-бот для 3x-ui v5.0.0-rc.16.1
 
-**Текущая опубликованная версия:** `v5.0.0-rc.16` (`version.py`, immutable GitHub prerelease); это **не** подтверждение deployment. Адресный VLESS Reality Flow при WG/AWG из [PR #689](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/689) требует точный Master `panelVersion=3.10.2`; неполные и неоднозначные данные обрабатываются fail-closed. Списки Node/Inbound постраничные, до 64 нод / 256 inbound.
+**Текущая опубликованная версия:** `v5.0.0-rc.16` (immutable GitHub prerelease); кандидат release-prep: `v5.0.0-rc.16.1` (`version.py`), пока не Published; это **не** подтверждение deployment. Адресный VLESS Reality Flow при WG/AWG из [PR #689](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/689) требует точный Master `panelVersion=3.10.2`; неполные и неоднозначные данные обрабатываются fail-closed. Списки Node/Inbound постраничные, до 64 нод / 256 inbound.
 
 **Published:** immutable [`v5.0.0-rc.16`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16), SHA `18920b195baa378e9bf561868c4495067e1f3f45`, `2026-10-16T22:33:04Z` (GitHub). **Deployed:** rc.15 только по сообщению оператора от `2026-10-16T13:16:00Z`; независимая VPS/image/Xray проверка **PENDING**. **Accepted:** targeted A6/N6/R3 и scoped Flow POST — PASS со слов оператора; полный v5 **NOT PASS**, G-11 **PARTIAL / NO-GO**, публичный запуск **BLOCKED**.
 
 **Опубликованный rc.16:** [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691) / [PR #692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) и [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) / [PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) входят в Published rc.16 после merge PR #712 и успешного publish workflow. Deployment и targeted UI/schema/manual entitlement smoke — **PENDING**. Общий OpenAPI contract закреплён на `v3.10.2` ([PR #693](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/693)); тот же immutable OpenAPI blob размещён по прежнему vendored пути `v3.10.0` и не означает обновления production. Production mutations, расширение pilot allowlist и stable rollout не разрешены.
 
-Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
+**Release-prep:** `v5.0.0-rc.16.1` включает исправления тарифов PR #714; опубликовать как отдельный immutable patch-RC после required CI и merge, без production deployment. Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
 
 > README — актуальная карта проекта и точка входа в runbook'и. Исторические upgrade-инструкции и release-by-release описание не дублируются здесь: для них используются `CHANGELOG.md`, GitHub Releases и специализированные документы в `docs/`.
 

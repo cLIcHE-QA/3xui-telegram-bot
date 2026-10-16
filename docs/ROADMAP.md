@@ -4,6 +4,8 @@
 
 ## Актуальная сводка проекта
 
+**Release-prep `v5.0.0-rc.16.1` (2026-10-17, решение оператора):** точечный prerelease-кандидат для merged исправлений #705 из PR #714 / #715 без занятия запланированных `rc.17+`; поддержка `rc.N.M` и релизные заметки готовятся через отдельный PR. **Published остаётся `v5.0.0-rc.16` до tag/Release read-back GitHub**, Deployed только operator-reported rc.15, targeted #705 и общий G-11 PENDING/NO-GO. Публикация не запускает deployment автоматически, #705 OPEN.
+
 **Исправления по #705 (2026-10-17, GitHub read-back 02:33 EEST):** после сообщения оператора о дефектах Published rc.16 [PR #714](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/714) слит squash commit `f9e47ed6c0a239d16a15f8a67c1518ff7b96ac74` (исходный HEAD `ea524b6de192f4e4d7086a8d625ebabe0d098da0`); required `test`/`title` PASS на HEAD, независимый read-back подтвердил `main` SHA и merged PR. Перепроверены назначение обычных тарифов после read-back, запрет bulk бессрочной выдачи, ручной preflight, русские UI-тексты, навигация и fail-closed группы. **Merged: PASS; Published нового fix: PENDING; Deployed: PENDING; Accepted: PENDING.** `v5.0.0-rc.16` остаётся опубликованной неизменной версией без исправлений PR #714. #705 OPEN до отдельно разрешённых release/deployment и targeted smoke.
 
 
