@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import NoReturn
 
 
-VERSION_PATTERN = r"\d+\.\d+\.\d+(?:-rc\.\d+)?"
+VERSION_PATTERN = r"\d+\.\d+\.\d+(?:-rc\.\d+(?:\.\d+)?)?"
 HEADING_RE = re.compile(rf"^## v(?P<version>{VERSION_PATTERN}) — (?P<title>.+?)\s*$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
 
