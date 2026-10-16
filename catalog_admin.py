@@ -532,8 +532,8 @@ async def plan_rub_price_start(call: CallbackQuery, state: FSMContext):
     await state.update_data(plan_id=plan_id)
     await state.set_state(PlanRubStates.price)
     await render_callback(call,
-        f"💰 Цена RUB · {plan.name}\\n\\n"
-        f"Сейчас: {_money(plan) if plan.rub_price_enabled else 'не настроена'}\\n"
+        f"💰 Цена RUB · {plan.name}\n\n"
+        f"Сейчас: {_money(plan) if plan.rub_price_enabled else 'не настроена'}\n"
         "Введите сумму в RUB с точностью до копейки или «-» для отключения. "
         "RUB checkout в Telegram отсутствует.",
         reply_markup=cancel_keyboard(f"admin:plan:{plan_id}"),
@@ -576,7 +576,7 @@ async def plan_visibility_select(call: CallbackQuery):
     if not plan:
         await call.answer("Тариф не найден.", show_alert=True)
         return
-    await render_callback(call, f"👁 Видимость · {plan.name}\\n\\nСейчас: {plan.visibility}",
+    await render_callback(call, f"👁 Видимость · {plan.name}\n\nСейчас: {plan.visibility}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🌐 Всем", callback_data=f"admin:plan:visset:all:{plan_id}")],
             [InlineKeyboardButton(text="👥 Локальные User Groups", callback_data=f"admin:plan:visset:groups:{plan_id}")],
@@ -626,7 +626,7 @@ async def plan_audience_view(call: CallbackQuery):
             callback_data=f"admin:plan:audset:{plan.id}:{group.id}")])
     rows.append([InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:plan:{plan.id}")])
     await render_callback(call,
-        "👥 Аудитория тарифа\\n\\nНажатие переключает: не выбрана → разрешена → запрещена → не выбрана. "
+        "👥 Аудитория тарифа\n\nНажатие переключает: не выбрана → разрешена → запрещена → не выбрана. "
         "Запрет приоритетнее разрешения. Пустой список включений скрывает groups-only тариф.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
