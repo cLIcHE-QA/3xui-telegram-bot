@@ -697,6 +697,18 @@ class Database:
                 )).fetchone()
                 if user is None:
                     raise ValueError("user not found")
+                open_order = await (await db.execute(
+                    """SELECT 1 FROM commerce_orders WHERE telegram_id=?
+                       AND status IN ('created', 'awaiting_payment') LIMIT 1""",
+                    (int(telegram_id),),
+                )).fetchone()
+                pending_paid = await (await db.execute(
+                    """SELECT 1 FROM entitlements WHERE telegram_id=?
+                       AND status IN ('pending', 'provisioning') LIMIT 1""",
+                    (int(telegram_id),),
+                )).fetchone()
+                if open_order is not None or pending_paid is not None:
+                    raise ValueError("pending commerce must be resolved before manual grant")
                 if plan is None or not (
                     int(plan["active"]) == 1 and int(plan["duration_days"]) == 0
                     and int(plan["traffic_gb"]) == 0 and int(plan["ip_limit"]) == 0
