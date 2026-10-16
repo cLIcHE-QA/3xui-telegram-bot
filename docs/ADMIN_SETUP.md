@@ -10,7 +10,7 @@ Scope документа — только **Admin Control Plane**. Client Portal
 
 Draft PR #710 предусматривает forward-only schema v14 с rub_price_enabled, visibility и локальными include/exclude User Groups. Дополнительные env-параметры, системные пакеты или credentials не требуются. Перед отдельно разрешённым deployment обязателен совместимый backup SQLite; после обновления — штатные schema/quick_check. Legacy валюты не конвертируются, RUB checkout/PSP через Telegram не появляется. Публикация rc.16 и acceptance PENDING.
 
-## Как поддерживать это руководство
+Ручная бессрочная выдача: `/admin → Пользователи → Тариф` → выбрать скрытый бесплатный технический план → одноразово подтвердить Owner/Administrator. Сначала записывается `manual_entitlements.in_flight` и user profile, затем `ProvisioningEngine` меняет срок/лимиты, затем независимый provider read-back; только после этого `active`. `unknown/in_flight` после сетевой ошибки или restart нельзя повторять из Telegram: нужна read-only сверка 3x-ui, SQLite и audit, без автоматического повторного mutation. Массовая выдача запрещена.\n\n## Как поддерживать это руководство
 
 `docs/ADMIN_SETUP.md` — канонический runbook установки и настройки Admin Control Plane. Если новая функция или изменение требует от оператора дополнительных действий, это руководство обновляется одновременно с соответствующим PR.
 
