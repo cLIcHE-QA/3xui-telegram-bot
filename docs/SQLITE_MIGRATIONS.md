@@ -19,9 +19,9 @@
 
 Текущая версия схемы определяется последним элементом каталога, а не версией приложения.
 
-**Schema v14 в реализации #705 (не Published):** текущая bot schema version — **14**; добавляется schema **v14** `plan_audience_v5_0_0`: `plans.rub_price_enabled`, `visibility`, `include_group_ids`, `exclude_group_ids`, плюс журнал `manual_entitlements` и индексы `idx_manual_entitlements_user_status`/`idx_manual_entitlements_one_live`. Все изменения additive, legacy-строки сохраняют первоначальную публичную видимость `all` и RUB-настройку. Это лишь структура; полный #705 и rc.16 ещё PENDING.
+**Release-prep `v5.0.0-rc.16` (не Published):** текущая bot schema version — **14**; additive migration **v14** `plan_audience_v5_0_0` добавляет в `plans` флаг `rub_price_enabled`, `visibility`, `include_group_ids`, `exclude_group_ids`, журнал `manual_entitlements` и индексы `idx_manual_entitlements_user_status`/`idx_manual_entitlements_one_live`. #705 уже реализован в main (PR #710), но schema v14 ещё **не Deployed/не Accepted**. До отдельно разрешённого deployment необходим совместимый SQLite backup, затем schema journal/`PRAGMA quick_check` и targeted read-only восстановление manual grant без повторной mutation. Legacy валюты/заказы/платежи не переписываются. Downgrade без восстановления совместимой DB запрещён.
 
-**Историческое планирование `v5.0.0-rc.15`:** SQLite schema остаётся **v13**, новых migrations нет. Кандидат включает scoped Flow safety #689 для многопротокольного клиента с точной проверкой `panelVersion=3.10.2`; миграции/backup/rollback contract бота не изменяются. Текущий Published и операторский Deployed — `v5.0.0-rc.14`; rc.15 **не Published и не Deployed**, независимый production SQLite `quick_check` после отдельного разрешённого deployment PENDING. G-11 NO-GO.
+**Published `v5.0.0-rc.15`:** runtime bot SQLite schema **v13**, без новой migration (Flow safety #689, pinned 3x-ui v3.10.2). Immutable GitHub Release опубликован `2026-10-16T12:53:58Z`; deployment rc.15 только operator-reported `2026-10-16T13:16:00Z`, независимый production DB quick_check read-back PENDING. Schema v14 находится только в main/release-prep rc.16 до отдельного выпуска; G-11 NO-GO.
 
 ## Migration journal
 

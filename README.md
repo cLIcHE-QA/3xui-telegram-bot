@@ -1,10 +1,10 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.15
+# Telegram-бот для 3x-ui v5.0.0-rc.16
 
-**Текущая версия приложения:** `v5.0.0-rc.15` (`version.py`). Адресный VLESS Reality Flow при WG/AWG из [PR #689](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/689) требует точный Master `panelVersion=3.10.2`; неполные и неоднозначные данные обрабатываются fail-closed. Списки Node/Inbound постраничные, до 64 нод / 256 inbound.
+**Текущая версия в release-prep:** `v5.0.0-rc.16` (`version.py`); это код кандидата, **не** факт публикации или deployment. Адресный VLESS Reality Flow при WG/AWG из [PR #689](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/689) требует точный Master `panelVersion=3.10.2`; неполные и неоднозначные данные обрабатываются fail-closed. Списки Node/Inbound постраничные, до 64 нод / 256 inbound.
 
 **Published:** immutable [`v5.0.0-rc.15`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.15), SHA `9c9245899c7ca949254df92d95f8015e65989645`, `2026-10-16T12:53:58Z` (GitHub). **Deployed:** rc.15 только по сообщению оператора от `2026-10-16T13:16:00Z`; независимая VPS/image/Xray проверка **PENDING**. **Accepted:** targeted A6/N6/R3 и scoped Flow POST — PASS со слов оператора; полный v5 **NOT PASS**, G-11 **PARTIAL / NO-GO**, публичный запуск **BLOCKED**.
 
-**После rc.15:** [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691) / [PR #692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) уже в `main`, но не в опубликованном релизе; новый Release/deploy/targeted UI smoke **PENDING**. Общий OpenAPI contract закреплён на `v3.10.2` ([PR #693](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/693)); тот же immutable OpenAPI blob размещён по прежнему vendored пути `v3.10.0` и не означает обновления production. Production mutations, расширение pilot allowlist и stable rollout не разрешены.
+**Планируемый rc.16:** [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691) / [PR #692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) и [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) / [PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) уже в `main`, но **не входят в Published rc.15**. Merge release-prep, новый GitHub Release, deployment и targeted UI/schema/manual entitlement smoke — **PENDING**. Общий OpenAPI contract закреплён на `v3.10.2` ([PR #693](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/693)); тот же immutable OpenAPI blob размещён по прежнему vendored пути `v3.10.0` и не означает обновления production. Production mutations, расширение pilot allowlist и stable rollout не разрешены.
 
 Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
 
@@ -14,13 +14,13 @@
 
 [Краткий Roadmap](docs/ROADMAP.md) — единственный актуальный источник product и acceptance statuses; [тематический архив старого Roadmap](docs/roadmap/HISTORY_INDEX.md) сохраняет исторические 5803 строки, включая FAIL/STOP, SHA и evidence. Новые проверки записываются в датированные `docs/audits/**`, а не в верхнюю сводку.
 
-## Тарифная модель #705 — реализация до релиза
+## Тарифная модель #705 — кандидат rc.16
 
-Issue #705 реализуется через PR #710: независимые RUB и Stars/XTR, правила видимости локальных User Groups, бессрочные технические планы и SQLite schema v14. До отдельного release-prep и публикации эта реализация не является частью Published rc.15, не Deployed и не Accepted. RUB-PSP — отдельный #336, вне scope #705.
+Issue #705 реализован в `main` через PR #710: независимые RUB и Stars/XTR, правила видимости локальных User Groups, ручная бессрочная выдача с durable read-back и SQLite schema v14. В release-prep rc.16 этот scope лишь подготовлен к контролируемому выпуску: текущий Published rc.15 не содержит schema v14; Deployed и Accepted rc.16 — PENDING. RUB-PSP — отдельный #336, вне scope #705.
 
 ## План внешних платежей
 
-[Проектный контракт Platega и будущих PSP](docs/EXTERNAL_PAYMENT_LINKS.md) описывает согласованный сценарий персональной ссылки из бота, безопасную проверку webhook и идемпотентное продление. Это **планирование**, не подключение провайдера и не разрешение на запуск; действующий Stars-only platform risk отдельно отмечен.
+[Исторический проектный контракт внешних платежей](docs/EXTERNAL_PAYMENT_LINKS.md) описывает отдельный отложенный PSP scope #336. Действующее продуктовое решение #705 имеет приоритет: **в Telegram только Stars/XTR**, RUB-карты/СБП допустимы в будущем лишь на **самостоятельном авторизованном внешнем сайте**, не через персональную RUB-ссылку из бота. Этот релиз не создаёт веб-сайт, не подключает PSP и не разрешает публичные платежи.
 
 ## Текущий production path
 

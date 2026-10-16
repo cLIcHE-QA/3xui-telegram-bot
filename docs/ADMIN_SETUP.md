@@ -4,7 +4,7 @@
 
 Scope документа — только **Admin Control Plane**. Client Portal v5 уже реализован для ограниченного pilot allowlist, но полный production acceptance ещё не завершён; этот runbook не является инструкцией по публичному запуску клиентского интерфейса или приёму новых реальных платежей. Условия контролируемой приёмки описаны в [v5 Production Acceptance](V5_PRODUCTION_ACCEPTANCE.md). Пилотная настройка client-facing функции описана в [CLIENT_SETUP.md](CLIENT_SETUP.md) и **не** разрешает общедоступный rollout; административный deployment flow здесь не смешивается с клиентским.
 
-**Контекст release-prep `v5.0.0-rc.15`:** приложение готовится отдельным PR после #689; новых пакетов, сервисов, параметров `.env`, schema migrations или шагов установки нет. При будущей отдельно разрешённой публикации и deployment требуется отдельная targeted проверка A6: WG-scoped Flow допускается только при доказанной Master panel версии `3.10.2` и проверенных tunnel attachments; неизвестные версии остаются BLOCKED. Текущий immutable Published/операторский Deployed — `v5.0.0-rc.14`; кандидат rc.15 ещё не Published/Deployed, G-11 NO-GO.
+**Контекст release-prep `v5.0.0-rc.16` (не Published):** после merge #692/#710 в `main` подготовлен controlled canary c read-only Flow UI #691, административными независимыми RUB/Stars ценами и SQLite schema v14 / manual entitlement #705. Дополнительных системных пакетов, `.env`, сетевых сервисов или PSP нет. **Published:** immutable `v5.0.0-rc.15` SHA `9c9245899c7ca949254df92d95f8015e65989645`; **Deployed:** rc.15 лишь operator-reported. Для rc.16 отдельные публикация, разрешённый deployment, DB backup/migration/read-back, targeted Flow UI и ручная проверка 3x-ui **PENDING**; G-11 NO-GO, публичный запуск BLOCKED.
 
 ## Тарифная миграция #705 — проект, не развёрнуто
 
@@ -43,7 +43,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.15. Это только release-prep candidate: не Published/Deployed до отдельного merge и GitHub Release. Текущий опубликованный и operator-reported Deployed release — v5.0.0-rc.14. Выпуск проверяется по immutable GitHub tag/Release, а production deployment отдельно по VPS status; до подтверждения нельзя объявлять Deployed/Accepted. Исторический опубликованный baseline — v5.0.0-rc.10, immutable controlled-canary prerelease (tag SHA `ef7e655fed6818053ceff1818b64a852c83638ec`): read-only #627/#628, SQLite schema v13 без новых миграций; #433 deferred, реальная 14-дневная refund/revocation policy не включена. Production deploy 2026-10-14 и targeted smoke 2026-10-15 **operator-reported scoped PASS**, independent VPS/image attestation PENDING; см. [dated acceptance audit](audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md). Исторический rc.9 имел #342 effective Portal callback OFF guard и #422 read-only Master Host Groups / GUID mapping; rc.10 добавил только диагностику/ledger без изменения refund policy. Общий G-11 остаётся PARTIAL/NO-GO, pilot allowlist неизменен, stable/public rollout запрещён. После controlled deployment проверены tag/SHA, Health/SQLite/3x-ui и Full Backup/off-site согласно сообщению оператора; прошлый rc.6 backup не является ретроактивным PASS. Не изменять права DB/WAL/SHM и не выполнять реальные платежи/refunds ради дополнительного smoke. Для следующего релиза нужны отдельные approval и preflight; downgrade к более старой несовместимой schema запрещён. Все privileged connections используют отдельные credentials и stable node_id binding.
+Guide ориентирован на release v5.0.0-rc.16. Это лишь release-prep candidate до отдельно разрешённого merge и GitHub Release; Published immutable rc.15 и operator-reported Deployed rc.15 сохраняются как текущий runtime. Реальный rc.16 deployment и target acceptance PENDING. Исторический опубликованный baseline — v5.0.0-rc.10, immutable controlled-canary prerelease (tag SHA `ef7e655fed6818053ceff1818b64a852c83638ec`): read-only #627/#628, SQLite schema v13 без новых миграций; #433 deferred, реальная 14-дневная refund/revocation policy не включена. Production deploy 2026-10-14 и targeted smoke 2026-10-15 **operator-reported scoped PASS**, independent VPS/image attestation PENDING; см. [dated acceptance audit](audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md). Исторический rc.9 имел #342 effective Portal callback OFF guard и #422 read-only Master Host Groups / GUID mapping; rc.10 добавил только диагностику/ledger без изменения refund policy. Общий G-11 остаётся PARTIAL/NO-GO, pilot allowlist неизменен, stable/public rollout запрещён. После controlled deployment проверены tag/SHA, Health/SQLite/3x-ui и Full Backup/off-site согласно сообщению оператора; прошлый rc.6 backup не является ретроактивным PASS. Не изменять права DB/WAL/SHM и не выполнять реальные платежи/refunds ради дополнительного smoke. Для следующего релиза нужны отдельные approval и preflight; downgrade к более старой несовместимой schema запрещён. Все privileged connections используют отдельные credentials и stable node_id binding.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -111,7 +111,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.15` исходный native API contract pinned к 3x-ui `v3.10.2` (только release-prep candidate, не Published/Deployed) (controlled canary; production Node/Xray E2E требует отдельного evidence). Для опубликованного bot release `v5.0.0-rc.14` также pinned `v3.10.0` (изменение WG-scoped Flow проверено отдельно только с Master panel `v3.10.2`); для опубликованного bot release `v5.0.0-rc.13` также pinned `v3.10.0`; для опубликованного `v5.0.0-rc.10` также pinned `v3.10.0`; для опубликованного rc.9 исходный native API contract pinned к `v3.9.0` (operator-reported production). Pinned supported 3x-ui для текущего `main`: `v3.10.2`. Текущий pinned OpenAPI в опубликованном `rc.10` — `v3.10.0` из `docs/3XUI_OPENAPI_CONTRACT.md`, 55/55 используемых методов структурно совместимы. **Это не означает**, что панель Master/ноды обновлены, что интеграция проверена в новой среде или что rollout разрешён. Перед отдельным разрешением: проверить полный Master/direct-node inventory, безопасный full backup/restore rollback с учётом одноразовых миграций конфигов, systemd sandbox/custom paths, TLS/CA, Xray/client cores, staging Master/Node sync и maintenance window. Все ноды требуют обновления для upstream Node fixes. [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
+Для bot release `v5.0.0-rc.16` исходный native API contract pinned к 3x-ui `v3.10.2` (release-prep) (кандидат не Published/Deployed; опубликованный rc.15 использует тот же pinned contract) (controlled canary; production Node/Xray E2E требует отдельного evidence). Для опубликованного bot release `v5.0.0-rc.14` также pinned `v3.10.0` (изменение WG-scoped Flow проверено отдельно только с Master panel `v3.10.2`); для опубликованного bot release `v5.0.0-rc.13` также pinned `v3.10.0`; для опубликованного `v5.0.0-rc.10` также pinned `v3.10.0`; для опубликованного rc.9 исходный native API contract pinned к `v3.9.0` (operator-reported production). Pinned supported 3x-ui для текущего `main`: `v3.10.2`. Текущий pinned OpenAPI в опубликованном `rc.10` — `v3.10.0` из `docs/3XUI_OPENAPI_CONTRACT.md`, 55/55 используемых методов структурно совместимы. **Это не означает**, что панель Master/ноды обновлены, что интеграция проверена в новой среде или что rollout разрешён. Перед отдельным разрешением: проверить полный Master/direct-node inventory, безопасный full backup/restore rollback с учётом одноразовых миграций конфигов, systemd sandbox/custom paths, TLS/CA, Xray/client cores, staging Master/Node sync и maintenance window. Все ноды требуют обновления для upstream Node fixes. [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
 
 ## 2. Базовая подготовка Master VPS
 
@@ -149,7 +149,7 @@ cd 3xui-telegram-bot
 git fetch --tags --prune
 # Только после отдельного разрешённого merge release-prep,
 # появления immutable published tag и проверки его SHA:
-git checkout --detach v5.0.0-rc.15
+git checkout --detach v5.0.0-rc.16
 ~~~
 
 Проверка release:
@@ -164,7 +164,7 @@ PY
 Ожидается **только после публикации и отдельного разрешённого deployment**:
 
 ~~~text
-5.0.0-rc.15
+5.0.0-rc.16
 ~~~
 
 ## 4. Создай local admin venv
@@ -676,15 +676,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v5.0.0-rc.15.tar.gz
+  /root/3xui-host-control-bundle-v5.0.0-rc.16.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v5.0.0-rc.15.tar.gz \
-  /root/3xui-host-control-bundle-v5.0.0-rc.15.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v5.0.0-rc.16.tar.gz \
+  /root/3xui-host-control-bundle-v5.0.0-rc.16.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -694,7 +694,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.15.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.16.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -703,7 +703,7 @@ sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.15.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.15.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.16.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
@@ -1144,10 +1144,10 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v5.0.0-rc.15
+Git tag: v5.0.0-rc.16
 Container: running
 RestartCount=0
-Bot version: 5.0.0-rc.15
+Bot version: 5.0.0-rc.16
 Health: ok
 DB: ok
 3x-ui connectivity: ok
