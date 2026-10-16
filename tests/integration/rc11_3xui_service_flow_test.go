@@ -2,6 +2,7 @@ package service
 
 import (
     "context"
+    "os"
     "encoding/json"
     "sync"
     "testing"
@@ -272,10 +273,18 @@ func TestRC11MultiProtocolScopedFlowPreservesTunnelRecord(t *testing.T) {
         t.Fatalf("scoped Update: %v",err)
     }
     after,err:=svc.GetRecordByEmail(nil,email);if err!=nil {t.Fatal(err)}
-    if after.PrivateKey!=before.PrivateKey || after.PublicKey!=before.PublicKey ||
-        after.AllowedIPs!=before.AllowedIPs || after.PreSharedKey!=before.PreSharedKey ||
-        after.KeepAlive!=before.KeepAlive || after.ForwardedPorts!=before.ForwardedPorts {
-        t.Fatal("scoped VLESS Flow corrupted shared WG/AWG peer fields")
+    preserved := after.PrivateKey==before.PrivateKey && after.PublicKey==before.PublicKey &&
+        after.AllowedIPs==before.AllowedIPs && after.PreSharedKey==before.PreSharedKey &&
+        after.KeepAlive==before.KeepAlive && after.ForwardedPorts==before.ForwardedPorts
+    switch os.Getenv("FLOW_WG_SAFE") {
+    case "true":
+        if !preserved {t.Fatal("3.10.2 scoped VLESS Flow corrupted shared WG/AWG peer fields")}
+    case "false":
+        // Negative upstream proof: 3.10.0 is UNSAFE even with inboundIds;
+        // bot must never enable WG-scoped Flow on this version.
+        if preserved {t.Fatal("3.10.0 unexpectedly preserved fields; revisit version gate")}
+    default:
+        t.Fatal("integration CI must explicitly declare FLOW_WG_SAFE")
     }
     for _,ib:=range untouched {
         actual,err:=inboundSvc.GetInbound(ib.Id);if err!=nil {t.Fatal(err)}
