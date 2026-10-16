@@ -24,7 +24,7 @@ class ScopedXUITests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 await client.update_client_inbound_flow(fields["email"],2,"",client=fields)
         request.assert_not_awaited()
-    async def test_verified_awg_payload_preserves_fields(self):
+    async def test_verified_awg_payload_omits_all_peer_secrets(self):
         client=XUIClient("https://panel.example.invalid","fixture-token")
         rec={"email":"qa@example.invalid","uuid":"fixture-uuid","subId":"fixture-sub",
              "password":"","auth":"", "security":"auto","flow":"","totalGB":12,
@@ -37,9 +37,8 @@ class ScopedXUITests(unittest.IsolatedAsyncioTestCase):
         with patch.object(client,"_mutation_request",new_callable=AsyncMock) as request:
             await client.update_client_inbound_flow(rec["email"],2,"xtls-rprx-vision",client=rec,wg_verified=True)
         payload=request.await_args.kwargs["json_payload"]
-        for name in ("privateKey","publicKey","preSharedKey","keepAlive","forwardedPorts"):
-            self.assertEqual(payload[name],rec[name])
-        self.assertEqual(payload["allowedIPs"],["10.8.1.5/32"])
+        for name in ("privateKey","publicKey","preSharedKey","allowedIPs","keepAlive","forwardedPorts"):
+            self.assertNotIn(name,payload)
         self.assertEqual(request.await_args.kwargs["params"],{"inboundIds":2})
 
     async def test_nonempty_reverse_fails_without_mutation(self):
