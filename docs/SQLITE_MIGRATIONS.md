@@ -19,7 +19,7 @@
 
 Текущая версия схемы определяется последним элементом каталога, а не версией приложения.
 
-**Release-prep `v5.0.0-rc.13`:** SQLite schema остаётся **v13**, новых migrations нет. В новом candidate уточняются только фиксированные коды отказа Master preflight; существующие backup/rollback/schema compatibility правила для published/deployed `v5.0.0-rc.12` остаются прежними. Release candidate ещё не Published/Deployed; независимый production SQLite `quick_check` после будущего разрешённого deployment PENDING.
+**Release-prep `v5.0.0-rc.14`:** SQLite schema остаётся **v13**, новых migrations нет. В новом candidate добавлена только безопасная группировка read-only preflight причин WG/MTProto/MIXED без снятия fail-closed; существующие backup/rollback/schema compatibility правила для published/deployed `v5.0.0-rc.13` остаются прежними. Release candidate ещё не Published/Deployed; независимый production SQLite `quick_check` после будущего разрешённого deployment PENDING.
 
 ## Migration journal
 
