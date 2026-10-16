@@ -1,8 +1,8 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.14
+# Telegram-бот для 3x-ui v5.0.0-rc.15
 
-**Release-prep candidate `v5.0.0-rc.14` (только ветка PR, не Published/Deployed).** Включает групповые безопасные коды `CLIENT_RECORD_PROTOCOL_WG/MTPROTO/MIXED` из PR #686; полей/секретов не показывает, Flow POST по-прежнему заблокирован fail-closed. После отдельного merge/publish/deploy проверять только targeted read-only A6, без mutations. A6 BLOCKED, G-11 NO-GO.
+**Release-prep candidate `v5.0.0-rc.15` (только PR, ещё не Published/Deployed).** Включает безопасный WG/AWG-scoped Flow из PR #689: exact Master `panelVersion=3.10.2`, подтверждение всех туннельных inbound и сохранение WG-секретов вне VLESS payload. UI масштабируется постранично (до 64 нод / 256 inbound). Для 3x-ui v3.10.0, неизвестных версий и неоднозначных связей остаётся fail-closed. Следующий этап — отдельное разрешение на merge/publication, затем отдельный deploy и scoped acceptance; production Flow POST без разрешения не выполнять.
 
-Telegram Control Plane для 3x-ui с защищённым `/admin` и pilot Client Portal v5. **`v5.0.0-rc.13` Published** как immutable prerelease (`fbe2cafc3ace3aa54ec2398ddf5ec15cb0c4e9f5`) и **operator-reported Deployed** 2026-10-15T23:02:48Z (`DEPLOY_OK`, container running/restarts 0, Health/DB/3XUI_TCP `ok`). На read-only UI preflight A6 `CLIENT_RECORD_PROTOCOL` BLOCKED; не PASS, значения общих полей Master не собирать и Flow не изменять. G-11 PARTIAL/NO-GO, public launch BLOCKED.
+Telegram Control Plane для 3x-ui с защищённым `/admin` и pilot Client Portal v5. **`v5.0.0-rc.13` исторически Published** как immutable prerelease (`fbe2cafc3ace3aa54ec2398ddf5ec15cb0c4e9f5`) и **operator-reported Deployed** 2026-10-15T23:02:48Z (`DEPLOY_OK`, container running/restarts 0, Health/DB/3XUI_TCP `ok`). На read-only UI preflight A6 `CLIENT_RECORD_PROTOCOL` BLOCKED; не PASS, значения общих полей Master не собирать и Flow не изменять. G-11 PARTIAL/NO-GO, public launch BLOCKED.
 
 **После публикации rc.13:** [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686) добавил классификацию `CLIENT_RECORD_PROTOCOL_WG/MTPROTO/MIXED` только в `main` (merge `f251b3e072f440e82708c4c4c7e863b5d89e7d5b`); эти изменения **не входят** в immutable Published/Deployed `v5.0.0-rc.13`. A6 остаётся BLOCKED до отдельного выпуска, deployment и targeted read-only проверки.
 
