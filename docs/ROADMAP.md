@@ -70,9 +70,6 @@
 | Issue | Статус | PR | Target release | Evidence | Next / remaining | Объём |
 | --- | --- | --- | --- | --- | --- | --- |
 | [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) | ⬜ Запланировано | — | TBD | Issue #336: объём определён, реализация PENDING | внешний платёжный шлюз и СБП с уникальными ссылками: критерии приёмки | XL|
-| [#433](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/433) | ⬜ Запланировано | — | TBD | 2026-10-14 21:44 EEST: оператор отложил реализацию, план возобновления зафиксирован в #433 | Вернуться только по новому решению: intake, immutable duration snapshot, manual historic review, journal/reconciliation, legal #436; rc.10 scope EXCLUDED; G-11 NO-GO | XL|
-| [#434](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/434) | ⬜ Запланировано | — | TBD | Issue #434: объём определён, реализация PENDING | ненавязчивые условия возврата в клиентском портале: критерии приёмки | S|
-| [#436](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/436) | ⬜ Запланировано | — | TBD | Issue #436: объём определён, реализация PENDING | подготовить правовую политику возвратов РФ для самозанятого: критерии приёмки | L|
 | [#437](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/437) | ⬜ Запланировано | — | TBD | Issue #437: объём определён, реализация PENDING | справочник возвратов для поддержки в админке: критерии приёмки | M|
 | [#470](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/470) | ⬜ Запланировано | — | TBD | Issue #470: объём определён, реализация PENDING | read-only просмотр Stars Orders в админке: критерии приёмки | M|
 | [#471](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/471) | ⬜ Запланировано | — | TBD | Issue #471: объём определён, реализация PENDING | компактный список и карточки устройств клиента: критерии приёмки | M|
@@ -107,10 +104,18 @@
 | [#701](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/701) | ⬜ Запланировано | — | TBD | 2026-10-16: новый Issue; Host Groups 3x-ui read-only уже по закрытому #422, локальные User Groups — отдельная модель | Группы **клиентов 3x-ui**: read-only Master API, позднее guarded membership/CRUD; не смешивать Telegram audience и Host/Server Groups; #496 отдельно | L|
 | [#702](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/702) | ⬜ Запланировано | — | TBD | 2026-10-16: новый Issue, пример `page-mascot`; собственной страницы подписки пока нет | После появления custom subscription page: optional mascot, лицензия/ассеты, reduced-motion, privacy и мобильная доступность; действующий proxy не менять | M|
 | [#703](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/703) | ⬜ Запланировано | — | TBD | 2026-10-16: новый Issue, пример iwtsy.com; публичный API третьей стороны не подтверждён | Только свои/разрешённые адреса: региональные TCP/SSH probes, различать connect/RST/banner/timeout; consent, SSRF, rate limits, внешний API или собственные probes; #478 — отдельная система | XL|
+| [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) | ⬜ Запланировано | — | TBD | 2026-10-16: проверены форма создания тарифов, SQLite `stars_price`, локальные User Groups и отложенный PSP #336 | Раздельные необязательные цены: Telegram только Stars/XTR, независимый сайт только RUB (без RUB checkout/ссылок из бота); общая авторизованная выдача entitlement с раздельным учётом; активность ≠ видимость/продаваемость, группы User Groups; скрытый бесплатный бессрочный (`duration_days=0`) безлимитный план только для ручной выдачи; #336/#496/#507, безопасная миграция и тесты | XL|
+| [#707](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/707) | ⬜ Запланировано | — | TBD | 2026-10-16: утверждены предоставленные оператором Terms/Privacy и правила возвратов | Раздел `📄 Документы и условия` с `/legal/terms`, `/legal/privacy`, `/legal/tariffs`; публичные web URLs, версионированный явный акцепт перед Stars/RUB checkout; не публиковать тестовую ссылку и черновики; #433/#434/#436 superseded/not_planned | L|
 
 ## Завершённые этапы и исторические документы
 
 v4.x: protected Admin Control Plane, RBAC, Host Control, backup/DR, self-update, monitoring, User Management и final security hardening (stable `v4.26.9`). v5 rc.1…rc.9: controlled canary с отдельными findings и scoped smoke; **не** общий v5 PASS. Подробная хронология: [CHANGELOG](../CHANGELOG.md), [Releases](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases), [исторический индекс](roadmap/HISTORY_INDEX.md).
+
+## План размещения юридических документов (#707)
+
+**План:** Client Portal → `📄 Документы и условия` → `/legal/terms` (Пользовательское соглашение), `/legal/privacy` (Политика конфиденциальности), `/legal/tariffs` (Тарифы и лимиты). Web-сайт показывает те же постоянные ссылки без авторизации и оплаты. В Telegram после publication доступ через клиентский раздел в рамках действующего pilot gate; до публикации — не показывать недоступные URL как рабочие.
+
+**Акцепт:** перед Stars invoice и перед RUB checkout на отдельном сайте нужно явное подтверждение действующей редакции, зафиксированное сервером с version/time/account/order; один `/start` не считается явно подтверждённым согласием. **Возвраты:** утверждённые оператором условия раздела 9 юристом подготовленного соглашения, без дополнительной добровольной 14-дневной опции. #433/#434/#436 — Closed/`not_planned` (заменены, не выполнены). **Связи:** #336 (RUB только на самостоятельном сайте), #705 (RUB/XTR тарифы), #437 (памятка поддержки). Юридические HTML-файлы, тестовый enrollment URL и незаполненные реквизиты не публиковать без позднейшего решения.
 
 ## Правило дальнейшего ведения
 
