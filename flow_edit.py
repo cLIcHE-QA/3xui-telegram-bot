@@ -22,6 +22,10 @@ _PREFLIGHT_REASONS = {
     "Неполный общий record": "CLIENT_RECORD_MISSING",
     "Пустое обязательное значение общего record": "CLIENT_RECORD_NULL",
     "Общий record содержит непроверенные поля другого протокола": "CLIENT_RECORD_PROTOCOL",
+    "Непроверенные поля WireGuard": "CLIENT_RECORD_PROTOCOL_WG",
+    "Непроверенные поля MTProto": "CLIENT_RECORD_PROTOCOL_MTPROTO",
+    "Непроверенные поля нескольких протоколов": "CLIENT_RECORD_PROTOCOL_MIXED",
+    "Неопределённые поля другого протокола": "CLIENT_RECORD_PROTOCOL_UNKNOWN",
     "Непроверенные reverse settings": "CLIENT_RECORD_REVERSE",
     "Некорректный ответ Master": "MASTER_RESPONSE",
     "Недопустимый список Inbounds": "INBOUND_MEMBERSHIP",
@@ -124,11 +128,23 @@ async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnap
         raise FlowEditRejected("Master UUID отсутствует")
     if any(client[k] is None for k in ("subId", "expiryTime", "totalGB", "limitIp", "limitHwid", "enable", "tgId")):
         raise FlowEditRejected("Пустое обязательное значение общего record")
-    if any(client[k] not in ("", None, 0, "[]", []) for k in (
-        "privateKey", "publicKey", "allowedIPs", "preSharedKey",
-        "keepAlive", "forwardedPorts", "secret", "adTag"
-    )):
-        raise FlowEditRejected("Общий record содержит непроверенные поля другого протокола")
+    # Never inspect or serialize credential values beyond bounded emptiness checks.
+    # Unknown types also fail closed, without leaking raw fields into errors.
+    def _populated_protocol_field(value: Any) -> bool:
+        if value is None or value == "" or value == "[]" or value == [] or value == 0:
+            return False
+        return True
+
+    wg_fields = ("privateKey", "publicKey", "allowedIPs", "preSharedKey", "keepAlive", "forwardedPorts")
+    mtproto_fields = ("secret", "adTag")
+    wg_present = any(_populated_protocol_field(client[k]) for k in wg_fields)
+    mtproto_present = any(_populated_protocol_field(client[k]) for k in mtproto_fields)
+    if wg_present and mtproto_present:
+        raise FlowEditRejected("Непроверенные поля нескольких протоколов")
+    if wg_present:
+        raise FlowEditRejected("Непроверенные поля WireGuard")
+    if mtproto_present:
+        raise FlowEditRejected("Непроверенные поля MTProto")
     # Pinned ClientRecord.reverse is a raw string, normally "". Never
     # coerce a non-empty reverse payload on an unrelated scoped update.
     if client["reverse"] not in ("", None):
