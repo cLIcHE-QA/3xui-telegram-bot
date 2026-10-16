@@ -34,6 +34,7 @@ class ManualEntitlementService:
                 apply_plan_limits=True,
                 target_expiry_ms=0,
                 persist_local_expiry=False,
+                manual_operation=True,
             )
             if (not result.limits_applied or result.remaining_missing_ids
                     or not result.policy.desired_inbound_ids):
