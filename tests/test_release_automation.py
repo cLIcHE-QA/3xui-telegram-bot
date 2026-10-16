@@ -48,8 +48,8 @@ class ReleaseNotesTests(unittest.TestCase):
 
     def test_rc14_release_notes_capture_protocol_groups_without_acceptance_claim(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-        title, body = release_notes.render_release_notes(changelog, "5.0.0-rc.14", "a" * 40)
-        self.assertIn("v5.0.0-rc.14", title)
+        title, body = release_notes.render_release_notes(changelog, "5.0.0-rc.15", "a" * 40)
+        self.assertIn("v5.0.0-rc.15", title)
         self.assertIn("PR #686", body)
         for reason in ("CLIENT_RECORD_PROTOCOL_WG", "CLIENT_RECORD_PROTOCOL_MTPROTO", "CLIENT_RECORD_PROTOCOL_MIXED"):
             self.assertIn(reason, body)
