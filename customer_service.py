@@ -274,7 +274,7 @@ class CustomerPortalService:
         """Текущие memberships; ошибка БД или битые правила закрывают доступ."""
         import json
         from audience import audience_matches_group_ids
-        if not plan.active or int(plan.stars_price or 0) <= 0:
+        if not plan.active or int(plan.stars_price or 0) <= 0 or plan.currency != "RUB":
             return False
         visibility = getattr(plan, "visibility", "all")
         if visibility == "admin_only":
