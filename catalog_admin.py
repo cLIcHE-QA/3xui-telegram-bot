@@ -304,7 +304,7 @@ async def plan_add_name(message: Message, state: FSMContext):
         return
     await state.update_data(name=name)
     await state.set_state(AddPlanStates.duration)
-    await render_input(message, "💎 Новый тариф · 2/5\n\nСрок действия в днях, например 30:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
+    await render_input(message, "💎 Новый тариф · 2/5\n\nСрок действия в днях: 30 или 0 — бессрочно:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
 
 
 @catalog_router.message(AddPlanStates.duration)
@@ -313,10 +313,10 @@ async def plan_add_duration(message: Message, state: FSMContext):
         return
     try:
         value = int((message.text or "").strip())
-        if not 1 <= value <= 3650:
+        if not 0 <= value <= 3650:
             raise ValueError
     except ValueError:
-        await render_input(message, "Введите целое число от 1 до 3650.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
+        await render_input(message, "Введите целое число от 0 до 3650 (0 — бессрочно).", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(duration_days=value)
     await state.set_state(AddPlanStates.traffic)
@@ -435,6 +435,9 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
         return
     await state.update_data(server_group_id=group_id)
     data = await state.get_data()
+    if int(data["duration_days"]) == 0 and (int(data["price_minor"]) > 0 or int(data.get("stars_price") or 0) > 0):
+        await call.answer("Бессрочный тариф разрешён только для ручной бесплатной выдачи.", show_alert=True)
+        return
     await state.set_state(AddPlanStates.review)
     price_value = Decimal(int(data["price_minor"])) / Decimal(100)
     price_text = str(int(price_value)) if price_value == price_value.to_integral() else f"{price_value:.2f}"
@@ -444,10 +447,12 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         "💎 Проверь тариф\n\n"
         f"Название: {data['name']}\n"
-        f"Срок: {data['duration_days']} дней\n"
+        f"Срок: {'Бессрочно' if data['duration_days'] == 0 else str(data['duration_days']) + ' дней'}\n"
         f"Трафик: {traffic}\n"
         f"Лимит IP: {ips}\n"
-        f"Цена: {price_text} {data['currency']}\n"
+        f"Цена RUB: {price_text if data['price_minor'] else 'не настроено'}\n"
+        f"Цена Stars: {data.get('stars_price') or 'не настроено'}\n"
+        f"Видимость: {data.get('visibility', 'all')}\n"
         f"Группа серверов: {group_name}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Создать", callback_data="admin:planadd:save")],
