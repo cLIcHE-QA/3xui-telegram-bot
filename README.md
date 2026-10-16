@@ -181,7 +181,7 @@ Native 3x-ui API используется через `xui.py` / `version_api.py`
 
 Текущий pinned compatibility contract:
 
-- 3x-ui: `v3.10.0`; pinned OpenAPI для подготовки rc.10 (**contract в main, не production deployment**);
+- 3x-ui: `v3.10.2`; pinned OpenAPI для подготовки rc.10 (**contract в main, не production deployment**);
 - vendored OpenAPI: `contracts/3xui/v3.10.0/openapi.json`;
 - используемый API surface: `contracts/3xui/contract.json`.
 
