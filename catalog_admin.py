@@ -468,9 +468,31 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
         f"Группа серверов: {group_name}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✅ Создать", callback_data="admin:planadd:save")],
+            [InlineKeyboardButton(text="⬅ Назад", callback_data="admin:planadd:back")],
             [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")],
         ]),
     )
+    await call.answer()
+
+
+@catalog_router.callback_query(AddPlanStates.review, F.data == "admin:planadd:back")
+async def plan_add_back(call: CallbackQuery, state: FSMContext):
+    if not await guard_call(call):
+        return
+    await state.set_state(AddPlanStates.group)
+    groups = await db.list_server_groups()
+    rows = [[InlineKeyboardButton(
+        text="🚫 Без группы", callback_data="admin:planadd:group:none",
+    )]]
+    for group in groups[:30]:
+        rows.append([InlineKeyboardButton(
+            text=f"🗂 {group.name}", callback_data=f"admin:planadd:group:{group.id}",
+        )])
+    rows.append([InlineKeyboardButton(
+        text="✖ Отмена", callback_data="admin:planadd:cancel",
+    )])
+    await render_callback(call, "⬅ Вернитесь к выбору группы серверов.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
 
@@ -712,7 +734,10 @@ async def plan_stars_price_save(message: Message, state: FSMContext):
         )
         return
     try:
-        value = int((message.text or "").strip())
+        raw = (message.text or "").strip()
+        if not re.fullmatch(r"[0-9]{1,8}", raw):
+            raise ValueError
+        value = int(raw)
         if not 0 <= value <= 10_000_000 or (plan.duration_days == 0 and value > 0):
             raise ValueError
     except ValueError:
