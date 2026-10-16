@@ -19,7 +19,7 @@
 
 Текущая версия схемы определяется последним элементом каталога, а не версией приложения.
 
-**Рабочая ветка #705 (не Published):** текущая bot schema version — **14**; добавляется schema **v14** `plan_audience_v5_0_0`: `plans.rub_price_enabled`, `visibility`, `include_group_ids`, `exclude_group_ids`, плюс журнал `manual_entitlements` и индексы `idx_manual_entitlements_user_status`/`idx_manual_entitlements_one_live`. Все изменения additive, legacy-строки сохраняют первоначальную публичную видимость `all` и RUB-настройку. Это лишь структура; полный #705 и rc.16 ещё PENDING.
+**Schema v14 в реализации #705 (не Published):** текущая bot schema version — **14**; добавляется schema **v14** `plan_audience_v5_0_0`: `plans.rub_price_enabled`, `visibility`, `include_group_ids`, `exclude_group_ids`, плюс журнал `manual_entitlements` и индексы `idx_manual_entitlements_user_status`/`idx_manual_entitlements_one_live`. Все изменения additive, legacy-строки сохраняют первоначальную публичную видимость `all` и RUB-настройку. Это лишь структура; полный #705 и rc.16 ещё PENDING.
 
 **Историческое планирование `v5.0.0-rc.15`:** SQLite schema остаётся **v13**, новых migrations нет. Кандидат включает scoped Flow safety #689 для многопротокольного клиента с точной проверкой `panelVersion=3.10.2`; миграции/backup/rollback contract бота не изменяются. Текущий Published и операторский Deployed — `v5.0.0-rc.14`; rc.15 **не Published и не Deployed**, независимый production SQLite `quick_check` после отдельного разрешённого deployment PENDING. G-11 NO-GO.
 
