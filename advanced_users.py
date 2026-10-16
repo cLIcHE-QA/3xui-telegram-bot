@@ -26,6 +26,7 @@ from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine, ProvisioningUnknown
 from flow_diagnostics import inspect_node_flow
+from flow_ui_view import last_flow_view, store_flow_view, load_node_names, node_label, inbound_label
 from flow_edit_routes import register_flow_edit_handlers
 
 settings = load_settings()
@@ -556,8 +557,8 @@ async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, 
             f"🌐 Доступ: {group_name} · Inbounds {len(inbound_ids)}",
             provisioning_line,
             f"📱 Лимит IP: {limit_ip if limit_ip else 'без лимита'}",
-            f"🖥 Flow Master: {flow}",
-            "🌐 Flow Nodes: ⚪ не проверено",
+            f"🖥 Общий Flow клиента (не Flow конкретного Inbound): {flow}",
+            last_flow_view(tg_id),
         ]
         if note:
             lines += ["", f"📝 Заметка: {note}"]
@@ -1397,9 +1398,10 @@ async def user_flow_check(call: CallbackQuery):
         master_flow = str(client.get("flow") or "none")
         ids = [int(v) for v in (obj.get("inboundIds") or []) if str(v).isdigit()]
         observations, omitted = await inspect_node_flow(xui, settings.node_backup_targets, rec.email, ids)
+        names = await load_node_names(xui)
         lines = [
             f"🔎 Проверка Flow · {await _display_label(rec)}", "",
-            f"🖥 Master API: {master_flow}",
+            f"🖥 Общий Flow клиента (не Flow Inbound): {master_flow}",
             "🌐 Direct Node Panel API (read-only):",
         ]
         if not observations:
@@ -1407,7 +1409,7 @@ async def user_flow_check(call: CallbackQuery):
         for item in observations:
             icon = {"MATCH": "🟢", "MISMATCH": "🔴", "UNKNOWN": "⚪"}[item.state]
             # Stable identifiers only: do not expose raw tag, UUID or email.
-            node_text = f"Node #{item.node_id}"
+            node_text = node_label(item.node_id, names)
             if item.state == "UNKNOWN":
                 lines.append(f"{icon} {node_text}: UNKNOWN · {item.reason}")
             else:
@@ -1415,6 +1417,14 @@ async def user_flow_check(call: CallbackQuery):
         if omitted:
             lines.append(f"⚪ Не проверено Inbounds: {omitted}")
         lines.extend(["", "Данные Node Panel, не аттестация работающего Xray. Нет node-side read-back = UNKNOWN."])
+        summary = " / ".join(
+            f"#{item.node_id}: Master Inbound {item.master_flow or 'none'} / "
+            f"Node Panel {item.node_flow if item.node_flow is not None else 'UNKNOWN'} ({item.state})"
+            for item in observations[:8]
+        )
+        if omitted:
+            summary += f" · не проверено: {omitted}"
+        store_flow_view(tg_id, summary or "UNKNOWN")
     except (XUIError, ValueError, TypeError):
         lines = ["🔎 Проверка Flow", "", "⚪ UNKNOWN · Master API недоступен; ноды не проверены"]
     await render_callback(
@@ -1638,8 +1648,8 @@ async def user_access_config(call: CallbackQuery, state: FSMContext):
         f"⚙️ Параметры доступа · {await _display_label(rec)}\n\n"
         f"Лимит IP: {limit_ip}\n"
         f"HWID limit: {limit_hwid}\n"
-        f"🖥 Flow Master: {flow}\n"
-        "🌐 Flow Nodes: ⚪ не проверено",
+        f"🖥 Общий Flow клиента (не Flow конкретного Inbound): {flow}\n"
+        + last_flow_view(tg_id),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()

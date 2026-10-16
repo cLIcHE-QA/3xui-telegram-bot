@@ -43,8 +43,8 @@ class V4250FinalUiContractTests(unittest.TestCase):
         )[0]
         self.assertIn('flow = "недоступно"', handler)
         self.assertIn('flow = str(client.get("flow") or "none")', handler)
-        self.assertIn("🖥 Flow Master:", handler)
-        self.assertIn("🌐 Flow Nodes: ⚪ не проверено", handler)
+        self.assertIn("Общий Flow клиента (не Flow конкретного Inbound):", handler)
+        self.assertIn("last_flow_view(tg_id)", handler)
         self.assertIn("if settings.vless_flow:", handler)
 
     def test_detail_back_helpers_match_canonical_parents(self):

@@ -66,6 +66,7 @@ class FlowTarget:
     inbound_id: int
     inbound_tag: str
     current_flow: str
+    remark: str = ""  # read-only UI label; never used for identity or writes
 
 @dataclass(frozen=True)
 class FlowSnapshot:
@@ -225,7 +226,7 @@ async def discover_flow_targets(master: Any, email: str, tg_id: int) -> FlowSnap
         node_id = _node_id(inbound.get("nodeId"))
         if node_id == 0 and inbound.get("originNodeGuid"):
             raise FlowEditRejected("Inbound origin ноды не определён")
-        targets.append(FlowTarget(node_id, iid, tag, _scoped_flow(inbound, email)))
+        targets.append(FlowTarget(node_id, iid, tag, _scoped_flow(inbound, email), inbound.get("remark", "")))
 
     if wg_present and (
         not verified_wg_ids
