@@ -452,6 +452,9 @@ class Database:
             await db.commit()
 
     async def set_user_plan(self, telegram_id: int, plan_id: int | None) -> None:
+        manual = await self.get_live_manual_entitlement(telegram_id)
+        if manual is not None and (plan_id is None or int(plan_id) != manual.plan_id):
+            raise ValueError("manual entitlement must be resolved before changing plan")
         current = await self.get_user_profile(int(telegram_id))
         await self.upsert_user_profile(
             int(telegram_id),
