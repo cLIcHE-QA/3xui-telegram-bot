@@ -167,12 +167,17 @@ class LivingDocsSemanticTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         source = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn("| [#691]", source)
+        # Проверяем динамически вторую строку: первая строка таблицы не
+        # выявляет разрыв реестра; закрытие Issue не ломает этот тест.
+        open_rows = module.roadmap_rows(ROOT)
+        self.assertGreaterEqual(len(open_rows), 2)
+        anchor = f"| [#{list(open_rows)[1]}]"
+        self.assertIn("\n" + anchor, source)
         with TemporaryDirectory() as folder:
             temp_root = Path(folder)
             (temp_root / "docs").mkdir()
             (temp_root / "docs/ROADMAP.md").write_text(
-                source.replace("\n| [#691]", "\n\n| [#691]", 1),
+                source.replace("\n" + anchor, "\n\n" + anchor, 1),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "contiguous"):
@@ -192,14 +197,14 @@ class LivingDocsSemanticTests(unittest.TestCase):
         fence = False
         violations = []
         for number, original in enumerate(roadmap.splitlines(), 1):
-            if re.match(r"^\\s*\x60\x60\x60", original):
+            if original.lstrip().startswith(("```", "~~~")):
                 fence = not fence
                 continue
             if fence:
                 continue
-            prose = re.sub(r"\x60[^\x60]*\x60", "", original)
-            prose = re.sub(r"\\]\\([^)]+\\)", "]", prose)
-            prose = re.sub(r"https?://\\S+", "", prose)
+            prose = re.sub(r"`[^`]*`", "", original)
+            prose = re.sub(r"\]\([^)]+\)", "]", prose)
+            prose = re.sub(r"https?://\S+", "", prose)
             latin = len(re.findall(r"[A-Za-z]", prose))
             cyrillic = len(re.findall(r"[А-Яа-яЁё]", prose))
             # English-only explanatory blocks are not valid Russian docs.
