@@ -507,7 +507,10 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
             expected = ("telegram_id", "plan_id", "server_group_id", "note", "updated_at")
         elif table == "plans":
             expected = tuple(
-                column for column in expected_current if column != "stars_price"
+                column for column in expected_current if column not in {
+                    "stars_price", "rub_price_enabled", "visibility",
+                    "include_group_ids", "exclude_group_ids",
+                }
             )
         else:
             expected = expected_current
