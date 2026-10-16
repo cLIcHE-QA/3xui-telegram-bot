@@ -47,6 +47,35 @@ class CatalogAudienceTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await self.db.update_plan_catalog(plan_id, include_group_ids=[gid])
 
+    async def test_no_public_invoice_for_rub_only_or_hidden(self):
+        pid = await self.db.create_plan(name="rub-only", duration_days=30, traffic_gb=0,
+                  ip_limit=0, price_minor=54000, currency="RUB", stars_price=0)
+        plan = await self.db.get_plan(pid)
+        self.assertIsNone(await self.svc.active_plan(pid, telegram_id=51))
+        with self.assertRaises(ValueError):
+            await self.svc.get_or_create_stars_order(telegram_id=51, plan=plan)
+        await self.db.set_plan_stars_price(pid, 100)
+        await self.db.update_plan_catalog(pid, visibility="admin_only")
+        plan = await self.db.get_plan(pid)
+        self.assertIsNone(await self.svc.active_plan(pid, telegram_id=51))
+        with self.assertRaises(ValueError):
+            await self.svc.get_or_create_stars_order(telegram_id=51, plan=plan)
+
+    async def test_invalid_audience_rules_fail_closed(self):
+        gid = await self.db.create_user_group(name="Группа")
+        pid = await self.db.create_plan(name="protected", duration_days=30, traffic_gb=0,
+                     ip_limit=0, price_minor=0, currency="RUB", stars_price=10)
+        await self.db.update_plan_catalog(pid, visibility="groups", include_group_ids=[gid])
+        with self.assertRaises(ValueError):
+            await self.db.update_plan_catalog(pid, include_group_ids=[999999])
+        with self.assertRaises(ValueError):
+            await self.db.update_plan_catalog(pid, visibility="invalid")
+        # Даже повреждённый JSON не делает hidden/groups тариф публичным.
+        with sqlite3.connect(self.path) as conn:
+            conn.execute("UPDATE plans SET include_group_ids=? WHERE id=?", ("[bad", pid))
+            conn.commit()
+        self.assertIsNone(await self.svc.active_plan(pid, telegram_id=51))
+
     async def test_no_free_stars_invoice(self):
         pid = await self.db.create_plan(name="manual", duration_days=0,
                      traffic_gb=0, ip_limit=0, price_minor=0, currency="RUB",
