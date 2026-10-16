@@ -266,6 +266,7 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     "plans": (
         "id", "name", "duration_days", "traffic_gb", "ip_limit", "price_minor",
         "currency", "server_group_id", "active", "created_at", "stars_price",
+        "rub_price_enabled", "visibility", "include_group_ids", "exclude_group_ids",
     ),
     "hosts": ("id", "label", "hostname", "role", "enabled", "created_at"),
     "audit_log": (
@@ -392,6 +393,7 @@ async def _validate_current_schema(
     include_stars_hardening: bool = True,
     include_entitlement_quota_cycle: bool = True,
     include_bot_update_acknowledgments: bool = False,
+    include_plan_audience: bool = False,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -436,9 +438,11 @@ async def _validate_current_schema(
                 if column not in {"checkout_url", "idempotency_key"}
             )
         if table == "plans" and not include_plan_stars_price:
-            expected = tuple(
-                column for column in expected if column != "stars_price"
-            )
+            expected = tuple(column for column in expected if column != "stars_price")
+        if table == "plans" and not include_plan_audience:
+            expected = tuple(column for column in expected if column not in {
+                "rub_price_enabled", "visibility", "include_group_ids", "exclude_group_ids",
+            })
         if table == "entitlements" and not include_entitlement_quota_cycle:
             expected = tuple(
                 column for column in expected if column != "quota_reset_status"
@@ -1040,6 +1044,25 @@ async def _migration_0013_stars_invoice_cleanup_v5_0_0(
     )
 
 
+async def _migration_0014_plan_audience_v5_0_0(db: aiosqlite.Connection) -> None:
+    """Добавить независимое присутствие RUB и безопасные правила витрины."""
+    cursor = await db.execute('PRAGMA table_info("plans")')
+    columns = {str(row[1]) for row in await cursor.fetchall()}
+    additions = (
+        ("rub_price_enabled", "INTEGER NOT NULL DEFAULT 1 CHECK(rub_price_enabled IN (0, 1))"),
+        ("visibility", "TEXT NOT NULL DEFAULT 'all' CHECK(visibility IN ('all','groups','admin_only'))"),
+        ("include_group_ids", "TEXT NOT NULL DEFAULT '[]'"),
+        ("exclude_group_ids", "TEXT NOT NULL DEFAULT '[]'"),
+    )
+    for name, definition in additions:
+        if name not in columns:
+            await db.execute(f"ALTER TABLE plans ADD COLUMN {name} {definition}")
+    # Исторические планы сохраняют прежнее поведение; выключение — явное действие.
+    await _validate_current_schema(
+        db, include_bot_update_acknowledgments=True, include_plan_audience=True
+    )
+
+
 MIGRATIONS: tuple[MigrationStep, ...] = (
     MigrationStep(
         version=1,
@@ -1117,6 +1140,10 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         name="stars_invoice_cleanup_v5_0_0",
         apply=_migration_0013_stars_invoice_cleanup_v5_0_0,
         requires_backup=False,
+    ),
+    MigrationStep(
+        version=14, name="plan_audience_v5_0_0",
+        apply=_migration_0014_plan_audience_v5_0_0, requires_backup=False,
     ),
 )
 
@@ -1311,7 +1338,9 @@ async def run_migrations(
                 ) from exc
 
         if steps == MIGRATIONS:
-            await _validate_current_schema(db, include_bot_update_acknowledgments=True)
+            await _validate_current_schema(
+                db, include_bot_update_acknowledgments=True, include_plan_audience=True
+            )
         await _quick_check(db)
         return current_version
 
