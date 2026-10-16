@@ -542,9 +542,14 @@ class Database:
             raise ValueError('новые тарифы поддерживают только RUB и XTR')
         if visibility not in {'all', 'groups', 'admin_only'}:
             raise ValueError('invalid visibility')
-        if int(price_minor) < 0 or int(stars_price) < 0:
-            raise ValueError('negative price')
-        if duration_days == 0 and (int(price_minor) or int(stars_price) or visibility != 'admin_only' or int(traffic_gb) or int(ip_limit)):
+        if not 0 <= int(duration_days) <= 3650 or not 0 <= int(traffic_gb) <= 1_000_000 or not 0 <= int(ip_limit) <= 1000:
+            raise ValueError('invalid plan limits')
+        if not 0 <= int(price_minor) <= 10_000_000_000 or not 0 <= int(stars_price) <= 10_000_000:
+            raise ValueError('invalid plan price')
+        if (int(duration_days) == 0 and (
+            int(price_minor) or int(stars_price) or visibility != 'admin_only'
+            or int(traffic_gb) or int(ip_limit) or bool(rub_price_enabled)
+        )):
             raise ValueError('indefinite plan must be free, unlimited and admin-only')
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
@@ -587,6 +592,23 @@ class Database:
         if not updates:
             return
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            current = await (await db.execute(
+                """SELECT duration_days, traffic_gb, ip_limit, price_minor,
+                          stars_price, rub_price_enabled, visibility, currency
+                   FROM plans WHERE id=?""", (int(plan_id),),
+            )).fetchone()
+            if current is None:
+                raise ValueError("plan not found")
+            if str(current[7]) != "RUB" and (price_minor is not None or rub_price_enabled is not None):
+                raise ValueError("legacy currency cannot be repriced")
+            if int(current[0]) == 0:
+                next_price = int(price_minor) if price_minor is not None else int(current[3])
+                next_enabled = bool(rub_price_enabled) if rub_price_enabled is not None else bool(current[5])
+                next_visibility = visibility if visibility is not None else str(current[6])
+                if (next_price or int(current[4]) or next_enabled
+                        or next_visibility != "admin_only" or int(current[1]) or int(current[2])):
+                    raise ValueError("indefinite plan may only be hidden, free and unlimited")
             if include_group_ids is not None or exclude_group_ids is not None:
                 for group_id in set((include_group_ids or []) + (exclude_group_ids or [])):
                     row = await (await db.execute('SELECT 1 FROM user_groups WHERE id=?', (group_id,))).fetchone()
