@@ -15,9 +15,11 @@ jobs:
         include:
           - upstream_sha: 74c3cc38821cabd66ad316ea562851422d0b0063
             upstream_version: v3.10.0
+            wg_safe: 'false'
             test_pattern: '^TestRC11(RealityFlowNoopBulkAdjustOnUpstreamService|ScopedFlowEditDoesNotTouchAnotherInbound|MultiProtocolScopedFlowPreservesTunnelRecord)$'
           - upstream_sha: 608ef4e4010bf83e2e78328e08f77efc051ad4d7
             upstream_version: v3.10.2
+            wg_safe: 'true'
             test_pattern: '^TestRC11(ScopedFlowEditDoesNotTouchAnotherInbound|MultiProtocolScopedFlowPreservesTunnelRecord)$'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -38,6 +40,8 @@ jobs:
           git -c advice.detachedHead=false checkout --detach "$UPSTREAM_SHA"
           test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"
       - name: Run real upstream service and SQLite Flow regression
+        env:
+          FLOW_WG_SAFE: ${{ matrix.wg_safe }}
         run: |
           set -euo pipefail
           cp tests/integration/rc11_3xui_service_flow_test.go /tmp/rc11-upstream/internal/web/service/rc11_flow_integration_test.go
