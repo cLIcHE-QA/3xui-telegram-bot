@@ -71,6 +71,20 @@ class TelegramStarsCommerceTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(created_again)
         self.assertEqual(same.id, order.id)
 
+    async def test_stale_plan_record_cannot_bypass_updated_catalog(self):
+        stale = await self.db.get_plan(self.plan_id)
+        await self.db.update_plan_catalog(self.plan_id, visibility="admin_only")
+        with self.assertRaises(ValueError):
+            await self.customer.get_or_create_stars_order(telegram_id=7001, plan=stale)
+        await self.db.update_plan_catalog(self.plan_id, visibility="all")
+        await self.db.set_plan_stars_price(self.plan_id, 300)
+        order, created = await self.customer.get_or_create_stars_order(
+            telegram_id=7001, plan=stale,
+        )
+        self.assertTrue(created)
+        self.assertEqual((order.currency, order.amount_minor), ("XTR", 300))
+        self.assertEqual(stale.stars_price, 250)
+
     async def test_stars_order_does_not_reuse_legacy_fiat_quote(self):
         fiat_order, fiat_created = await self.commerce.get_or_create_order(
             telegram_id=7001,
