@@ -61,6 +61,27 @@ class CatalogAudienceTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await self.svc.get_or_create_stars_order(telegram_id=51, plan=plan)
 
+    async def test_group_member_add_remove_and_exclude_override(self):
+        gid = await self.db.create_user_group(name="Выбранные")
+        denied = await self.db.create_user_group(name="Запрет")
+        pid = await self.db.create_plan(name="pilot", duration_days=30, traffic_gb=0,
+                         ip_limit=0, price_minor=20000, currency="RUB", stars_price=30)
+        await self.db.update_plan_catalog(pid, visibility="groups",
+                                          include_group_ids=[gid], exclude_group_ids=[denied])
+        with sqlite3.connect(self.path) as conn:
+            conn.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?)",
+                         (11001, "pilot@example.invalid", "sub-11001", 0, 123))
+            conn.commit()
+        self.assertIsNone(await self.svc.active_plan(pid, telegram_id=11001))
+        await self.db.set_user_group_member(gid, 11001, True)
+        self.assertIsNotNone(await self.svc.active_plan(pid, telegram_id=11001))
+        await self.db.set_user_group_member(denied, 11001, True)
+        self.assertIsNone(await self.svc.active_plan(pid, telegram_id=11001))
+        await self.db.set_user_group_member(denied, 11001, False)
+        self.assertIsNotNone(await self.svc.active_plan(pid, telegram_id=11001))
+        await self.db.set_user_group_member(gid, 11001, False)
+        self.assertIsNone(await self.svc.active_plan(pid, telegram_id=11001))
+
     async def test_invalid_audience_rules_fail_closed(self):
         gid = await self.db.create_user_group(name="Группа")
         pid = await self.db.create_plan(name="protected", duration_days=30, traffic_gb=0,
