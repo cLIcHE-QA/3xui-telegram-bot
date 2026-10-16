@@ -46,16 +46,17 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertEqual(title, "v5.0.0-rc.1 — Client Portal canary")
         self.assertIn("./scripts/deploy-release.sh v5.0.0-rc.1", body)
 
-    def test_rc14_release_notes_capture_protocol_groups_without_acceptance_claim(self):
+    def test_rc15_release_notes_cover_wg_scoped_canary_without_acceptance_claim(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         title, body = release_notes.render_release_notes(changelog, "5.0.0-rc.15", "a" * 40)
         self.assertIn("v5.0.0-rc.15", title)
-        self.assertIn("PR #686", body)
-        for reason in ("CLIENT_RECORD_PROTOCOL_WG", "CLIENT_RECORD_PROTOCOL_MTPROTO", "CLIENT_RECORD_PROTOCOL_MIXED"):
-            self.assertIn(reason, body)
-        self.assertIn("fail closed", body)
-        self.assertIn("не означает production deployment", body)
+        self.assertIn("PR #689", body)
+        self.assertIn("panelVersion=3.10.2", body)
+        self.assertIn("64 нод", body)
+        self.assertIn("256 inbound", body)
+        self.assertIn("A6/N6/R3 BLOCKED", body)
         self.assertIn("G-11", body)
+        self.assertIn("deployment", body)
 
     def test_release_workflow_marks_rc_as_prerelease(self):
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
