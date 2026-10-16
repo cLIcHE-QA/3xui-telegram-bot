@@ -57,6 +57,14 @@ class ClientRecordReasonTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(result.targets), 2)
         self.assertEqual(master.writes, [])
 
+    async def test_legacy_empty_list_spellings_do_not_block(self):
+        master = FakeMaster()
+        master.client["client"]["allowedIPs"] = "[]"
+        master.client["client"]["forwardedPorts"] = []
+        snap = await discover_flow_targets(master, "qa@example.invalid", 1001)
+        self.assertEqual(len(snap.targets), 2)
+        self.assertEqual(master.writes, [])
+
     async def test_unknown_diagnostics_never_leak_credentials(self):
         secret = "fake-sensitive-payload"
         self.assertEqual(preflight_reason(FlowEditRejected(secret)), "MASTER_VALIDATION")
