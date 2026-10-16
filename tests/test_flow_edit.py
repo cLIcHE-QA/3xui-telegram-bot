@@ -116,6 +116,51 @@ class MultiProtocolFleetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(m.calls,5)
         self.assertEqual(m.writes,[])
 
+    async def test_32_nodes_four_protocols_each(self):
+        m=FakeMaster()
+        m.client["client"]["privateKey"]="fixture-key"
+        m.client["client"]["allowedIPs"]="10.8.1.5/32"
+        m.client["inboundIds"]=[]
+        m.client["tunnelAllowedIPs"]={}
+        m.inbounds={}
+        for node in range(1,33):
+            for kind in range(4):
+                iid=node*4+kind
+                m.client["inboundIds"].append(iid)
+                proto=("vless","vless","hysteria","amneziawg")[kind]
+                network=("tcp","xhttp","tcp","")[kind]
+                if kind==3:
+                    addr=f"10.9.{node}.5/32"
+                    settings={"clients":[{"email":"qa@example.invalid","allowedIPs":[addr]}]}
+                    m.client["tunnelAllowedIPs"][str(iid)]=addr
+                else:
+                    settings={"clients":[{"email":"qa@example.invalid","flow":""}]}
+                m.inbounds[iid]={"id":iid,"nodeId":node,"tag":f"fleet-{iid}",
+                    "protocol":proto,"disableFlow":False,
+                    "streamSettings":{"network":network,"security":"reality"},
+                    "settings":settings}
+        snap=await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertEqual(len(snap.targets),32)
+        self.assertEqual(len({t.node_id for t in snap.targets}),32)
+        self.assertTrue(snap.wg_verified)
+        self.assertEqual(m.calls,128)
+        self.assertEqual(m.writes,[])
+
+    async def test_above_bounded_inbound_count_fails_before_inbound_calls(self):
+        m=FakeMaster()
+        m.client["inboundIds"]=list(range(1,258))
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertEqual(m.calls,0)
+        self.assertEqual(m.writes,[])
+
+    async def test_tunnel_mapping_change_invalidates_confirmation(self):
+        from flow_edit import client_fingerprint
+        m=FakeMaster()
+        old=client_fingerprint(m.client["client"],tunnel_ips={"4":"10.0.0.1/32"})
+        new=client_fingerprint(m.client["client"],tunnel_ips={"4":"10.0.0.2/32"})
+        self.assertNotEqual(old,new)
+
     async def test_missing_tunnel_ownership_fails_closed(self):
         m=FakeMaster()
         m.client["client"]["privateKey"]="fixture-key"
