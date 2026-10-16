@@ -42,6 +42,10 @@ class PlanRecord:
     active: int
     created_at: int
     stars_price: int
+    rub_price_enabled: int = 1
+    visibility: str = 'all'
+    include_group_ids: str = '[]'
+    exclude_group_ids: str = '[]'
 
 
 @dataclass
@@ -514,24 +518,64 @@ class Database:
         currency: str,
         server_group_id: int | None = None,
         stars_price: int = 0,
+        rub_price_enabled: bool = True,
+        visibility: str = 'all',
     ) -> int:
+        if currency.strip().upper() != 'RUB':
+            raise ValueError('новые тарифы поддерживают только RUB и XTR')
+        if visibility not in {'all', 'groups', 'admin_only'}:
+            raise ValueError('invalid visibility')
+        if int(price_minor) < 0 or int(stars_price) < 0:
+            raise ValueError('negative price')
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
                 """
                 INSERT INTO plans(
                     name, duration_days, traffic_gb, ip_limit,
                     price_minor, currency, server_group_id, active, created_at,
-                    stars_price
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    stars_price, rub_price_enabled, visibility
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
                 """,
                 (
                     name.strip(), int(duration_days), int(traffic_gb), int(ip_limit),
                     int(price_minor), currency.strip().upper(), server_group_id,
-                    int(time.time()), max(0, int(stars_price)),
+                    int(time.time()), int(stars_price), int(bool(rub_price_enabled)), visibility,
                 ),
             )
             await db.commit()
             return int(cur.lastrowid)
+
+    async def update_plan_catalog(self, plan_id: int, *, price_minor: int | None = None,
+                                  rub_price_enabled: bool | None = None,
+                                  visibility: str | None = None,
+                                  include_group_ids: list[int] | None = None,
+                                  exclude_group_ids: list[int] | None = None) -> None:
+        import json
+        if visibility is not None and visibility not in {'all', 'groups', 'admin_only'}:
+            raise ValueError('invalid visibility')
+        if price_minor is not None and not 0 <= int(price_minor) <= 10_000_000_000:
+            raise ValueError('invalid RUB price')
+        ids = [include_group_ids, exclude_group_ids]
+        for values in ids:
+            if values is not None and (len(values) > 100 or any(type(i) is not int or i <= 0 for i in values)):
+                raise ValueError('invalid audience ids')
+        updates = {}
+        for name, value in [('price_minor', price_minor), ('rub_price_enabled', int(bool(rub_price_enabled)) if rub_price_enabled is not None else None),
+                            ('visibility', visibility), ('include_group_ids', json.dumps(include_group_ids) if include_group_ids is not None else None),
+                            ('exclude_group_ids', json.dumps(exclude_group_ids) if exclude_group_ids is not None else None)]:
+            if value is not None:
+                updates[name] = value
+        if not updates:
+            return
+        async with aiosqlite.connect(self.path) as db:
+            if include_group_ids is not None or exclude_group_ids is not None:
+                for group_id in set((include_group_ids or []) + (exclude_group_ids or [])):
+                    row = await (await db.execute('SELECT 1 FROM user_groups WHERE id=?', (group_id,))).fetchone()
+                    if row is None:
+                        raise ValueError('unknown audience group')
+            query = 'UPDATE plans SET ' + ', '.join(f'{key}=?' for key in updates) + ' WHERE id=?'
+            await db.execute(query, (*updates.values(), int(plan_id)))
+            await db.commit()
 
     async def set_plan_stars_price(self, plan_id: int, stars_price: int) -> None:
         value = max(0, int(stars_price))
