@@ -527,6 +527,8 @@ class Database:
             raise ValueError('invalid visibility')
         if int(price_minor) < 0 or int(stars_price) < 0:
             raise ValueError('negative price')
+        if duration_days == 0 and (int(price_minor) or int(stars_price) or visibility != 'admin_only'):
+            raise ValueError('indefinite plan must be free and admin-only')
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
                 """
