@@ -97,6 +97,42 @@ class CatalogAudienceTests(unittest.IsolatedAsyncioTestCase):
             conn.commit()
         self.assertIsNone(await self.svc.active_plan(pid, telegram_id=51))
 
+    async def test_four_price_combinations_and_purchase_channel(self):
+        cases = [(20000, 0, True, False), (0, 50, False, True),
+                 (20000, 50, True, True), (0, 0, False, False)]
+        for i, (rub, stars, rub_enabled, purchase_stars) in enumerate(cases):
+            pid = await self.db.create_plan(
+                name=f"matrix-{i}", duration_days=30, traffic_gb=0, ip_limit=0,
+                price_minor=rub, currency="RUB", stars_price=stars,
+                rub_price_enabled=rub_enabled,
+                visibility="all" if (rub or stars) else "admin_only",
+            )
+            plan = await self.db.get_plan(pid)
+            self.assertEqual((plan.price_minor, plan.stars_price), (rub, stars))
+            self.assertEqual(bool(plan.rub_price_enabled), rub_enabled)
+            self.assertEqual(bool(await self.svc.active_plan(pid, telegram_id=55)),
+                             purchase_stars)
+
+    async def test_group_revocation_blocks_existing_order_precheckout(self):
+        from db import UserRecord
+        await self.db.put(UserRecord(telegram_id=55, email="user@example.invalid",
+                                     sub_id="one", expiry_time=0, created_at=1))
+        gid = await self.db.create_user_group(name="Пилот")
+        await self.db.set_user_group_member(gid, 55, True)
+        pid = await self.db.create_plan(
+            name="pilot-paid", duration_days=30, traffic_gb=0, ip_limit=0,
+            price_minor=0, currency="RUB", stars_price=40,
+        )
+        await self.db.update_plan_catalog(pid, visibility="groups", include_group_ids=[gid])
+        plan = await self.db.get_plan(pid)
+        order, _ = await self.svc.get_or_create_stars_order(telegram_id=55, plan=plan)
+        await self.db.set_user_group_member(gid, 55, False)
+        self.assertFalse(await self.svc.validate_stars_precheckout(
+            telegram_id=55, order_id=order.id, amount=40,
+        ))
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM commerce_payments").fetchone()[0], 0)
+
     async def test_no_free_stars_invoice(self):
         pid = await self.db.create_plan(name="manual", duration_days=0,
                      traffic_gb=0, ip_limit=0, price_minor=0, currency="RUB",
