@@ -1645,7 +1645,7 @@ async def user_access_config(call: CallbackQuery, state: FSMContext):
         f"Лимит IP: {limit_ip}\n"
         f"HWID limit: {limit_hwid}\n"
         f"🖥 Общий Flow клиента (не Flow конкретного Inbound): {flow}\n"
-        + last_flow_view(tg_id)
+        + last_flow_view(tg_id),
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
