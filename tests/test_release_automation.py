@@ -54,7 +54,7 @@ class ReleaseNotesTests(unittest.TestCase):
         for reason in ("CLIENT_RECORD_PROTOCOL_WG", "CLIENT_RECORD_PROTOCOL_MTPROTO", "CLIENT_RECORD_PROTOCOL_MIXED"):
             self.assertIn(reason, body)
         self.assertIn("fail closed", body)
-        self.assertIn("не Published/Deployed", body)
+        self.assertIn("не означает production deployment", body)
         self.assertIn("G-11", body)
 
     def test_release_workflow_marks_rc_as_prerelease(self):
