@@ -2138,7 +2138,7 @@ async def user_plan_menu(call: CallbackQuery):
         )])
     rows.append([InlineKeyboardButton(text="⬅ Тариф", callback_data=f"admin:u:planview:{tg_id}")])
     await render_callback(call, 
-        "💎 Тариф\n\nНазначение здесь — административные метаданные. Лимиты 3x-ui не меняются автоматически.",
+        "💎 Тариф\n\nОбычный тариф назначается после подтверждения и проверки применения в 3x-ui. Бессрочный бесплатный тариф выдаётся отдельно администратором.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
@@ -2246,14 +2246,7 @@ async def user_plan_assign_run(call: CallbackQuery):
         await call.answer("Есть ручная выдача; смена тарифа заблокирована.", show_alert=True)
         return
     try:
-        policy = await provisioner.policy_for_plan(plan)
-        if not policy.desired_inbound_ids or not policy.actionable_inbound_ids:
-            await call.answer("Для тарифа нет доступных Inbounds. Проверьте группу серверов.", show_alert=True)
-            return
-        await db.set_user_plan(tg_id, plan_id)
-        result = await provisioner.sync_user(tg_id, strict=False, apply_plan_limits=True)
-        if not result.limits_applied or result.remaining_missing_ids:
-            raise ProvisioningUnknown("Применение или подключение Inbounds не подтверждено")
+        await provisioner.assign_finite_plan(tg_id, plan_id)
     except Exception as exc:
         await audit_from_call(
             db, call, "user.plan.assign.unknown", target_type="user",
@@ -4324,7 +4317,7 @@ async def bulk_plan_menu(call: CallbackQuery, state: FSMContext):
     if not records:
         await call.answer("Нет выбранных пользователей.", show_alert=True)
         return
-    plans = [plan for plan in await db.list_plans() if plan.active]
+    plans = [plan for plan in await db.list_plans() if plan.active and plan.duration_days > 0]
     rows = [[InlineKeyboardButton(
         text=f"💎 {plan.name}",
         callback_data=f"admin:bulk:plan:{plan.id}",
@@ -4572,7 +4565,7 @@ async def bulk_run_plan(call: CallbackQuery, state: FSMContext):
     plan_id = int(call.data.rsplit(":", 1)[-1])
     plan = await db.get_plan(plan_id)
     records = await _bulk_records(state)
-    if not plan or not plan.active or not records:
+    if not plan or not plan.active or plan.duration_days == 0 or not records:
         await call.answer("Тариф или выбранные пользователи недоступны.", show_alert=True)
         return
     ok = 0
