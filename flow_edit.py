@@ -9,8 +9,9 @@ from typing import Any
 from xui import SCOPED_FLOW_REQUIRED_CLIENT_FIELDS
 
 FLOW_CHOICES = {"n": "", "v": "xtls-rprx-vision", "u": "xtls-rprx-vision-udp443"}
-MAX_EDIT_INBOUNDS = 32
-MAX_EDIT_NODES = 8
+MAX_EDIT_INBOUNDS = 256
+MAX_EDIT_NODES = 64
+# Finite read bounds; the UI paginates and cannot truncate unseen targets.
 MAX_CALLBACK_ID = 2147483647
 CONFIRM_TTL = 90.0
 
