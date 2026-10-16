@@ -527,8 +527,8 @@ class Database:
             raise ValueError('invalid visibility')
         if int(price_minor) < 0 or int(stars_price) < 0:
             raise ValueError('negative price')
-        if duration_days == 0 and (int(price_minor) or int(stars_price) or visibility != 'admin_only'):
-            raise ValueError('indefinite plan must be free and admin-only')
+        if duration_days == 0 and (int(price_minor) or int(stars_price) or visibility != 'admin_only' or int(traffic_gb) or int(ip_limit)):
+            raise ValueError('indefinite plan must be free, unlimited and admin-only')
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
                 """
@@ -580,8 +580,18 @@ class Database:
             await db.commit()
 
     async def set_plan_stars_price(self, plan_id: int, stars_price: int) -> None:
-        value = max(0, int(stars_price))
+        value = int(stars_price)
+        if not 0 <= value <= 10_000_000:
+            raise ValueError("invalid Stars price")
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            plan = await (await db.execute(
+                "SELECT duration_days, currency FROM plans WHERE id = ?", (int(plan_id),)
+            )).fetchone()
+            if plan is None:
+                raise ValueError("plan not found")
+            if value > 0 and (int(plan[0]) == 0 or str(plan[1]) != "RUB"):
+                raise ValueError("legacy or indefinite plan cannot be sold for Stars")
             await db.execute(
                 "UPDATE plans SET stars_price = ? WHERE id = ?",
                 (value, int(plan_id)),
