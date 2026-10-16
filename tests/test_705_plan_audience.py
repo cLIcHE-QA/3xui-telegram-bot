@@ -18,7 +18,7 @@ class CatalogAudienceTests(unittest.IsolatedAsyncioTestCase):
         self.db = Database(self.path)
         await self.db.init()
         self.commerce = CommerceService(self.db)
-        self.svc = CustomerPortalService(self.db, self.commerce, provider=None)
+        self.svc = CustomerPortalService(self.db, self.commerce, provider=None, subscription_url_template="https://example.invalid/{sub_id}")
 
     async def asyncTearDown(self):
         self.tmp.cleanup()
