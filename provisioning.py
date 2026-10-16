@@ -84,7 +84,7 @@ class ProvisioningEngine:
         if not plan_id:
             return None
         plan = await self.db.get_plan(plan_id)
-        if not plan or not plan.active:
+        if not plan or not plan.active or plan.visibility != 'all' or plan.duration_days == 0:
             return None
         return plan
 
