@@ -1523,8 +1523,18 @@ class Database:
         self, *, telegram_id: int, plan_id: int, amount_minor: int,
         currency: str, promo_code_id: int | None = None,
     ) -> int:
+        if str(currency).upper() == "XTR" and int(amount_minor) <= 0:
+            raise ValueError("zero or negative Stars orders are forbidden")
         now = int(time.time())
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("BEGIN IMMEDIATE")
+            manual = await (await db.execute(
+                """SELECT 1 FROM manual_entitlements WHERE telegram_id=?
+                   AND status IN ('in_flight', 'unknown', 'active') LIMIT 1""",
+                (int(telegram_id),),
+            )).fetchone()
+            if manual:
+                raise ValueError("manual entitlement blocks paid order")
             cur = await db.execute(
                 """
                 INSERT INTO commerce_orders(
@@ -1565,10 +1575,19 @@ class Database:
         now = int(time.time())
         amount_value = max(0, int(amount_minor))
         currency_value = str(currency).upper()
+        if currency_value == "XTR" and int(amount_minor) <= 0:
+            raise ValueError("zero or negative Stars orders are forbidden")
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             await db.execute("BEGIN IMMEDIATE")
             try:
+                manual = await (await db.execute(
+                    """SELECT 1 FROM manual_entitlements WHERE telegram_id=?
+                       AND status IN ('in_flight', 'unknown', 'active') LIMIT 1""",
+                    (int(telegram_id),),
+                )).fetchone()
+                if manual:
+                    raise ValueError("manual entitlement blocks paid order")
                 cur = await db.execute(
                     """
                     SELECT * FROM commerce_orders
