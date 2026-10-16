@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.13
+# Telegram-бот для 3x-ui v5.0.0-rc.14
+
+**Release-prep candidate `v5.0.0-rc.14` (только ветка PR, не Published/Deployed).** Включает групповые безопасные коды `CLIENT_RECORD_PROTOCOL_WG/MTPROTO/MIXED` из PR #686; полей/секретов не показывает, Flow POST по-прежнему заблокирован fail-closed. После отдельного merge/publish/deploy проверять только targeted read-only A6, без mutations. A6 BLOCKED, G-11 NO-GO.
 
 Telegram Control Plane для 3x-ui с защищённым `/admin` и pilot Client Portal v5. **`v5.0.0-rc.13` Published** как immutable prerelease (`fbe2cafc3ace3aa54ec2398ddf5ec15cb0c4e9f5`) и **operator-reported Deployed** 2026-10-15T23:02:48Z (`DEPLOY_OK`, container running/restarts 0, Health/DB/3XUI_TCP `ok`). На read-only UI preflight A6 `CLIENT_RECORD_PROTOCOL` BLOCKED; не PASS, значения общих полей Master не собирать и Flow не изменять. G-11 PARTIAL/NO-GO, public launch BLOCKED.
 
