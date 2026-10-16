@@ -19,7 +19,7 @@
 
 Текущая версия схемы определяется последним элементом каталога, а не версией приложения.
 
-**Release-prep `v5.0.0-rc.14`:** SQLite schema остаётся **v13**, новых migrations нет. В новом candidate добавлена только безопасная группировка read-only preflight причин WG/MTProto/MIXED без снятия fail-closed; существующие backup/rollback/schema compatibility правила для published/deployed `v5.0.0-rc.13` остаются прежними. Release candidate ещё не Published/Deployed; независимый production SQLite `quick_check` после будущего разрешённого deployment PENDING.
+**Release-prep `v5.0.0-rc.15`:** SQLite schema остаётся **v13**, новых migrations нет. Кандидат включает scoped Flow safety #689 для многопротокольного клиента с точной проверкой `panelVersion=3.10.2`; миграции/backup/rollback contract бота не изменяются. Текущий Published и операторский Deployed — `v5.0.0-rc.14`; rc.15 **не Published и не Deployed**, независимый production SQLite `quick_check` после отдельного разрешённого deployment PENDING. G-11 NO-GO.
 
 ## Migration journal
 
