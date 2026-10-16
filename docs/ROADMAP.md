@@ -114,6 +114,8 @@
 | [#615](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/615) | ⬜ Запланировано | — | TBD | Issue #615 (scope), implementation PENDING | выбор RU Direct / Full VPN на подписку в Happ и Incy; Shadowrocket позже: Issue criteria | XL|
 | [#617](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/617) | ⬜ Запланировано | — | TBD | Issue #617 (scope), implementation PENDING | одноразовая emoji-капча для новых клиентов, existing users без повтора: Issue criteria | L|
 
+| [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691) | 🟡 Реализовано в main | [#692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) | TBD | UI-only исправление summary/scoped Flow, historical Node MATCH и подписей Node/Inbound, PR #692 squash merged `235ed3835c0de1ba9f326c90476e491b5afb00e9`; required CI и post-merge PASS | Published/Deployed rc.15 НЕ включает #692; targeted operator UI smoke только после отдельно разрешённого release/deploy, затем closure audit. Остальной Flow/глобальный G-11 без новых PASS | S|
+
 ## Завершённые этапы и исторические документы
 
 v4.x: protected Admin Control Plane, RBAC, Host Control, backup/DR, self-update, monitoring, User Management и final security hardening (stable `v4.26.9`). v5 rc.1…rc.9: controlled canary с отдельными findings и scoped smoke; **не** общий v5 PASS. Подробная хронология: [CHANGELOG](../CHANGELOG.md), [Releases](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases), [исторический индекс](roadmap/HISTORY_INDEX.md).
