@@ -12,9 +12,11 @@ class FakeMaster:
         for iid,node,proto,flow in [(1,11,"tcp","xtls-rprx-vision"),(2,11,"tcp","xtls-rprx-vision"),(3,12,"ws","")]:
             self.inbounds[iid] = {"id":iid,"nodeId":node,"tag":f"test-{iid}","disableFlow":False,"protocol":"vless","streamSettings":json.dumps({"security":"reality" if proto=="tcp" else "none","network":proto}),"settings":json.dumps({"clients":[{"email":"qa@example.invalid","flow":flow}]})}
         self.writes=[]
+        self.calls=0
     async def get_client(self,email):
         return copy.deepcopy(self.client)
     async def inbound_get(self,iid):
+        self.calls+=1
         return copy.deepcopy(self.inbounds[iid])
     async def update_client_inbound_flow(self,email,iid,flow,*,client):
         self.writes.append((iid,flow))
@@ -95,6 +97,42 @@ class FlowEditTests(unittest.IsolatedAsyncioTestCase):
         del self.master.client["client"]["resetWeekday"]
         with self.assertRaises(FlowEditRejected):
             await discover_flow_targets(self.master,"qa@example.invalid",1001)
+
+class MultiProtocolFleetTests(unittest.IsolatedAsyncioTestCase):
+    async def test_two_nodes_awg_and_non_flow_inbounds(self):
+        m=FakeMaster()
+        m.client["client"]["privateKey"]="fixture-key"
+        m.client["client"]["publicKey"]="fixture-public"
+        m.client["client"]["allowedIPs"]="10.8.1.5/32"
+        m.client["client"]["keepAlive"]=25
+        m.client["inboundIds"]=[1,2,3,4,5]
+        m.client["tunnelAllowedIPs"]={"4":"10.8.1.5/32","5":"10.9.1.5/32"}
+        for iid,node,addr in ((4,11,"10.8.1.5/32"),(5,12,"10.9.1.5/32")):
+            m.inbounds[iid]={"id":iid,"nodeId":node,"tag":f"awg-{iid}","protocol":"amneziawg",
+                "settings":json.dumps({"clients":[{"email":"qa@example.invalid","allowedIPs":[addr]}]})}
+        snap=await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertTrue(snap.wg_verified)
+        self.assertEqual([(t.node_id,t.inbound_id) for t in snap.targets],[(11,1),(11,2)])
+        self.assertEqual(m.calls,5)
+        self.assertEqual(m.writes,[])
+
+    async def test_missing_tunnel_ownership_fails_closed(self):
+        m=FakeMaster()
+        m.client["client"]["privateKey"]="fixture-key"
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertEqual(m.writes,[])
+
+    async def test_mismatched_awg_mapping_fails_closed(self):
+        m=FakeMaster()
+        m.client["client"]["privateKey"]="fixture-key"
+        m.client["inboundIds"].append(4)
+        m.client["tunnelAllowedIPs"]={"4":"10.8.1.8/32"}
+        m.inbounds[4]={"id":4,"protocol":"amneziawg","settings":json.dumps({"clients":[{"email":"qa@example.invalid","allowedIPs":["10.8.1.5/32"]}]})}
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertEqual(m.writes,[])
+
 
 class FleetPaginationTests(unittest.TestCase):
     def test_many_nodes_have_navigation(self):
