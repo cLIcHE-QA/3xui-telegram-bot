@@ -942,10 +942,14 @@ async def plan_delete(call: CallbackQuery):
         return
     plan_id = int(call.data.rsplit(":", 1)[-1])
     plan = await db.get_plan(plan_id)
+    try:
+        await db.delete_plan(plan_id)
+    except ValueError:
+        await call.answer("Тариф содержит историю ручной выдачи и не может быть удалён.", show_alert=True)
+        return
     raw_default = await db.get_runtime_setting("default_plan_id", "")
     if str(raw_default or "") == str(plan_id):
         await db.delete_runtime_setting("default_plan_id")
-    await db.delete_plan(plan_id)
     await audit_from_call(
         db, call, "plan.delete", target_type="plan", target_id=str(plan_id),
         details=f"name={plan.name if plan else ''}",
