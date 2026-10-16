@@ -11,9 +11,7 @@ from audit import audit_from_call
 from flow_diagnostics import inspect_node_flow
 from flow_edit import FLOW_CHOICES, FlowConfirmation, FlowEditRejected, discover_flow_targets, pop_confirmation, preflight_reason, read_target_outcome
 from xui import XUIError, XUIMutationError
-
-def node_label(node_id: int) -> str:
-    return "🖥 Master" if node_id == 0 else f"🌐 Node #{node_id}"
+from flow_ui_view import node_label, inbound_label, load_node_names
 
 def flow_label(value: str) -> str:
     return value or "none"
@@ -67,7 +65,8 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
             return
         _, snap = prepared
         ids = sorted({t.node_id for t in snap.targets})
-        rows = [(node_label(i), f"admin:u:flowib:{tg_id}:{i}") for i in ids]
+        names = await load_node_names(xui)
+        rows = [(node_label(i, names), f"admin:u:flowib:{tg_id}:{i}") for i in ids]
         try:
             markup = page_keyboard(rows, page, route_prefix=f"admin:u:flowedit:{tg_id}", back=("✖ Отмена", f"admin:u:accesscfg:{tg_id}"))
         except ValueError:
@@ -91,13 +90,14 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
         if not targets:
             await call.answer("Inbounds недоступны.", show_alert=True)
             return
-        rows = [(f"Inbound #{t.inbound_id}", f"admin:u:flowval:{tg_id}:{node_id}:{t.inbound_id}") for t in targets]
+        names = await load_node_names(xui)
+        rows = [(inbound_label(t.inbound_id, t.remark), f"admin:u:flowval:{tg_id}:{node_id}:{t.inbound_id}") for t in targets]
         try:
             markup = page_keyboard(rows, page, route_prefix=f"admin:u:flowib:{tg_id}:{node_id}", back=("⬅ Ноды", f"admin:u:flowedit:{tg_id}"))
         except ValueError:
             await call.answer("Страница недоступна.", show_alert=True)
             return
-        await render_callback(call, f"✏️ Изменить Flow · {node_label(node_id)}\n\nВыберите Inbound.", reply_markup=markup)
+        await render_callback(call, f"✏️ Изменить Flow · {node_label(node_id, names)}\n\nВыберите Inbound.", reply_markup=markup)
         await call.answer()
 
     @router.callback_query(F.data.regexp(r"^admin:u:flowval:\d+:\d+:\d+$"))
@@ -114,9 +114,10 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
         except FlowEditRejected:
             await call.answer("Inbound изменился.", show_alert=True)
             return
+        names = await load_node_names(xui)
         rows = [(("✅ " if target.current_flow == flow else "▫️ ") + flow_label(flow), f"admin:u:flowset:{tg_id}:{node_id}:{iid}:{code}") for code, flow in FLOW_CHOICES.items()]
         rows.append(("⬅ Inbounds", f"admin:u:flowib:{tg_id}:{node_id}"))
-        await render_callback(call, f"✏️ Flow · {node_label(node_id)} / Inbound #{iid}\n\nMaster: {flow_label(target.current_flow)}\nNode Panel: ⚪ не проверено\n\nВыберите значение:", reply_markup=keyboard(*rows))
+        await render_callback(call, f"✏️ Flow · {node_label(node_id, names)} / {inbound_label(iid, target.remark)}\n\nMaster Inbound: {flow_label(target.current_flow)}\nNode Panel: ⚪ не проверено\n\nВыберите значение:", reply_markup=keyboard(*rows))
         await call.answer()
 
     @router.callback_query(F.data.regexp(r"^admin:u:flowset:\d+:\d+:\d+:[nvu]$"))
@@ -134,9 +135,10 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
         except FlowEditRejected:
             await call.answer("Inbound изменился.", show_alert=True)
             return
+        names = await load_node_names(xui)
         nonce = secrets.token_hex(8)
         challenges[call.from_user.id] = FlowConfirmation(call.from_user.id, tg_id, nonce, node_id, iid, target.inbound_tag, target.current_flow, FLOW_CHOICES[code], snap.fingerprint, time.monotonic())
-        await render_callback(call, f"⚠️ Подтвердить Flow · {node_label(node_id)} / Inbound #{iid}\n\nСейчас: {flow_label(target.current_flow)}\nБудет: {flow_label(FLOW_CHOICES[code])}\n\nТолько выбранный Inbound через Master.", reply_markup=keyboard(("✅ Применить Flow", f"admin:u:flowcommit:{tg_id}:{nonce}"), ("✖ Отмена", f"admin:u:flowval:{tg_id}:{node_id}:{iid}")))
+        await render_callback(call, f"⚠️ Подтвердить Flow · {node_label(node_id, names)} / {inbound_label(iid, target.remark)}\n\nСейчас: {flow_label(target.current_flow)}\nБудет: {flow_label(FLOW_CHOICES[code])}\n\nТолько выбранный Inbound через Master.", reply_markup=keyboard(("✅ Применить Flow", f"admin:u:flowcommit:{tg_id}:{nonce}"), ("✖ Отмена", f"admin:u:flowval:{tg_id}:{node_id}:{iid}")))
         await call.answer()
 
     @router.callback_query(F.data.regexp(r"^admin:u:flowcommit:\d+:[a-f0-9]{16}$"))
@@ -177,6 +179,7 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
         elif master_result == "MISMATCH" or node_result == "MISMATCH":
             result = "PARTIAL" if master_result == "MATCH" else "FAIL"
         await audit_from_call(db, call, "user.flow.scoped", target_type="user", target_id=tg_id, details=f"node_id={challenge.node_id}; inbound_id={challenge.inbound_id}; mutation={certainty}; no_retry=true; master={master_result}; node={node_result}; scope={result}", success=result == "PASS")
+        names = await load_node_names(xui)
         visual = {"MATCH": "🟢 MATCH", "MISMATCH": "🔴 MISMATCH", "UNKNOWN": "⚪ UNKNOWN", "N/A": "— Master"}
-        await render_callback(call, f"✏️ Flow · {node_label(challenge.node_id)} / Inbound #{challenge.inbound_id}\n\nЗапрошено: {flow_label(challenge.new_flow)}\nИзменение: {certainty}\nMaster inbound: {visual[master_result]}\nNode Panel: {visual[node_result]}\nИтог проверки: {result}\n\nNode Panel не аттестует Xray. При UNKNOWN/MISMATCH нет автоматического повтора.", reply_markup=keyboard(("🔎 Проверить Flow", f"admin:u:flowcheck:cfg:{tg_id}"), ("⬅ Параметры доступа", f"admin:u:accesscfg:{tg_id}")))
+        await render_callback(call, f"✏️ Flow · {node_label(challenge.node_id, names)} / {inbound_label(challenge.inbound_id, target.remark)}\n\nЗапрошено: {flow_label(challenge.new_flow)}\nИзменение: {certainty}\nMaster inbound: {visual[master_result]}\nNode Panel: {visual[node_result]}\nИтог проверки: {result}\n\nNode Panel не аттестует Xray. При UNKNOWN/MISMATCH нет автоматического повтора.", reply_markup=keyboard(("🔎 Проверить Flow", f"admin:u:flowcheck:cfg:{tg_id}"), ("⬅ Параметры доступа", f"admin:u:accesscfg:{tg_id}")))
         await call.answer()
