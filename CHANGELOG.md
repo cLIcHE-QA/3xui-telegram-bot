@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.14 — Групповая диагностика общих полей Flow
+
+- [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686) / #663: read-only preflight `✏️ Изменить Flow` безопасно различает наличие непустых полей WireGuard/AmneziaWG (`CLIENT_RECORD_PROTOCOL_WG`), MTProto (`CLIENT_RECORD_PROTOCOL_MTPROTO`) либо обеих групп (`CLIENT_RECORD_PROTOCOL_MIXED`); значения, имена конкретных заполненных полей, API payload, UUID и credentials не выводятся. Неизвестная причина не трактуется как PASS.
+- Все группы продолжают **fail closed** блокировку изменения Flow: общую Master client record не обнулять и не преобразовывать; существующие full-row/identity/membership, RBAC, одноразовый nonce и запрет прямых Node mutations сохраняются. Регрессионные тесты покрывают WG, MTProto, MIXED, пустые значения, неизвестные сообщения, отсутствие write/POST и утечек.
+- **Controlled canary only:** release-prep candidate, **не Published/Deployed до отдельного разрешённого merge и штатного GitHub Publish release**, production deployment выполняется отдельно. API surface, 3x-ui pinned v3.10.0, SQLite schema **v13**, платежи, pilot allowlist и migrations не меняются. После отдельно разрешённого deployment нужен только targeted **read-only** A6.1/A6.2 UI smoke с сообщением безопасной категории; A6/N6/R3 **BLOCKED/PENDING**, G-11 **PARTIAL / NO-GO**, Flow POST/A10 и stable/public rollout **не разрешены**.
+
 ## v5.0.0-rc.13 — Уточнение безопасной диагностики Flow
 
 - [PR #683](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/683) / #663: общий отказ `CLIENT_RECORD` в `✏️ Изменить Flow` разделён на фиксированные безопасные коды `CLIENT_RECORD_MISSING`, `CLIENT_RECORD_NULL`, `CLIENT_RECORD_PROTOCOL`, `CLIENT_RECORD_REVERSE`; поля и их значения, raw Master API и секреты не выводятся.
