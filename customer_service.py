@@ -299,7 +299,7 @@ class CustomerPortalService:
                 return False
             members = await self.db.list_user_group_ids_for_user(telegram_id)
             return audience_matches_group_ids(members, include_group_ids=include, exclude_group_ids=exclude)
-        except (ValueError, TypeError, RuntimeError, OSError, Exception):
+        except Exception:  # Fail closed: не показывать тариф при отказе storage
             return False
 
     async def active_plans(self, telegram_id: int | None = None) -> list[PlanRecord]:
