@@ -230,6 +230,13 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
         record, _ = await self._grant()
         with self.assertRaises(ValueError):
             await self.db.set_user_plan(101, self.finite)
+        with self.assertRaises(ValueError):
+            await self.db.delete_plan(self.manual)
+        with self.assertRaises(ValueError):
+            await self.db.create_or_get_open_commerce_order(
+                telegram_id=101, plan_id=self.finite, amount_minor=50, currency="XTR",
+            )
+        self.assertIsNotNone(await self.db.get_plan(self.manual))
         self.assertEqual((await self.db.get_live_manual_entitlement(101)).id, record.id)
         # Paid renewal bridge must not overwrite unlimited expiry with an old order.
         with sqlite3.connect(self.path) as conn:
