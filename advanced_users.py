@@ -25,6 +25,7 @@ from user_ui import display_name_from_profile, user_label
 from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine, ProvisioningUnknown
+from manual_entitlements import ManualEntitlementService, ManualEntitlementUnknown
 from flow_diagnostics import inspect_node_flow
 from flow_ui_view import last_flow_view, store_flow_view, load_node_names, node_label, inbound_label
 from flow_edit_routes import register_flow_edit_handlers
@@ -39,6 +40,9 @@ register_flow_edit_handlers(advanced_users_router, db=db, xui=xui, settings=sett
 # In-process confirmations only. No persistent customer/payment/provider mutation.
 _session_reset_challenges: dict[int, tuple[int, str, float]] = {}
 _SESSION_RESET_TTL = 90.0
+# Один короткоживущий одноразовый confirm на оператора; журнал выдачи в SQLite.
+_manual_grant_challenges: dict[int, tuple[int, int, str, float]] = {}
+_MANUAL_GRANT_TTL = 90.0
 
 
 def _client_field_matches(actual: object, expected: object) -> bool:
@@ -2141,12 +2145,48 @@ async def user_plan_set(call: CallbackQuery):
     if plan_id and not plan:
         await call.answer("Тариф не найден.", show_alert=True)
         return
+    if not rec:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
     if plan and plan.duration_days == 0:
         if not await guard(call, minimum="admin"):
             return
-        if plan.visibility != "admin_only" or plan.price_minor or plan.stars_price or plan.traffic_gb or plan.ip_limit:
-            await call.answer("Для ручной бессрочной выдачи требуется скрытый бесплатный безлимитный тариф.", show_alert=True)
+        if (not plan.active or plan.visibility != "admin_only"
+                or plan.price_minor or plan.rub_price_enabled or plan.stars_price
+                or plan.traffic_gb or plan.ip_limit):
+            await call.answer(
+                "Для выдачи требуется активный скрытый бесплатный безлимитный тариф.",
+                show_alert=True,
+            )
             return
+        nonce = secrets.token_hex(8)
+        _manual_grant_challenges[int(call.from_user.id)] = (
+            tg_id, plan_id, nonce, time.monotonic() + _MANUAL_GRANT_TTL,
+        )
+        await render_callback(
+            call,
+            f"♾ Ручная бессрочная выдача\\n\\n"
+            f"Получатель: {await _display_label(rec)}\\n"
+            f"Тариф: {plan.name} (#{plan.id})\\n"
+            "Срок: Бессрочно; трафик/IP: без лимита.\\n"
+            "Оплата RUB/Stars НЕ создаётся. Будут изменены параметры 3x-ui.\\n\\n"
+            "Подтверждение одноразовое. При неизвестном результате повтор заблокирован.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="✅ Подтвердить ручную выдачу",
+                    callback_data=f"admin:u:manualrun:{nonce}",
+                )],
+                [InlineKeyboardButton(
+                    text="✖ Отмена", callback_data=f"admin:u:planview:{tg_id}",
+                )],
+            ]),
+        )
+        await call.answer()
+        return
+    live = await db.get_live_manual_entitlement(tg_id)
+    if live:
+        await call.answer("У пользователя активная/неопределённая ручная выдача; требуется отдельный ручной review.", show_alert=True)
+        return
     await db.set_user_plan(tg_id, plan_id or None)
     plan = await db.get_plan(plan_id) if plan_id else None
     await audit_from_call(
@@ -2156,6 +2196,55 @@ async def user_plan_set(call: CallbackQuery):
     await render_callback(call, 
         f"✅ Тариф: {plan.name if plan else 'не назначен'}", reply_markup=back_plan(tg_id)
     )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:manualrun:[a-f0-9]{16}$"))
+async def manual_plan_grant_run(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    actor = int(call.from_user.id)
+    challenge = _manual_grant_challenges.pop(actor, None)
+    nonce = (call.data or "").rsplit(":", 1)[-1]
+    if (
+        challenge is None or challenge[2] != nonce
+        or time.monotonic() >= challenge[3]
+    ):
+        await call.answer("Подтверждение истекло или уже использовано.", show_alert=True)
+        return
+    tg_id, plan_id = challenge[0], challenge[1]
+    rec = await db.get(tg_id)
+    if rec is None:
+        await call.answer("Пользователь больше не существует.", show_alert=True)
+        return
+    service = ManualEntitlementService(db, provisioner)
+    try:
+        result, created = await service.grant(
+            telegram_id=tg_id, plan_id=plan_id, actor_id=actor,
+        )
+    except (ManualEntitlementUnknown, ValueError) as exc:
+        await audit_from_call(
+            db, call, "user.plan.manual.unknown", target_type="user",
+            target_id=rec.email, details=f"plan_id={plan_id}; status=requires_review",
+            success=False,
+        )
+        await render_callback(
+            call, f"🟡 Ручная выдача НЕ подтверждена. {exc}\\n"
+            "Проверьте статус и 3x-ui вручную; новый confirm не повторяет mutation.",
+            reply_markup=back_plan(tg_id),
+        )
+    else:
+        await audit_from_call(
+            db, call, "user.plan.manual.granted", target_type="user",
+            target_id=rec.email,
+            details=f"plan_id={plan_id}; manual_entitlement_id={result.id}; "
+                    f"status={result.status}; created={created}",
+        )
+        await render_callback(
+            call, "✅ Бессрочная ручная выдача подтверждена независимым "
+            f"3x-ui read-back. Журнал #{result.id}.",
+            reply_markup=back_plan(tg_id),
+        )
     await call.answer()
 
 
@@ -2194,6 +2283,9 @@ async def user_plan_apply_run(call: CallbackQuery):
     plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
     if not rec or not plan:
         await call.answer("Тариф не найден.", show_alert=True)
+        return
+    if plan.duration_days == 0:
+        await call.answer("Бессрочный доступ применяется только подтверждённой ручной выдачей.", show_alert=True)
         return
     expiry = int((time.time() + max(0, plan.duration_days) * 86400) * 1000) if plan.duration_days else 0
     changes = {
@@ -2450,6 +2542,11 @@ async def user_plan_provision_run(call: CallbackQuery):
     rec = await db.get(tg_id)
     if not rec:
         await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    profile = await db.get_user_profile(tg_id)
+    plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
+    if plan and plan.duration_days == 0:
+        await call.answer("Бессрочный доступ требует подтверждённого manual entitlement.", show_alert=True)
         return
     try:
         result = await provisioner.sync_user(tg_id, strict=False, apply_plan_limits=True)
