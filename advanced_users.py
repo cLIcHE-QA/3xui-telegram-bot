@@ -1417,7 +1417,11 @@ async def user_flow_check(call: CallbackQuery):
         if omitted:
             lines.append(f"⚪ Не проверено Inbounds: {omitted}")
         lines.extend(["", "Данные Node Panel, не аттестация работающего Xray. Нет node-side read-back = UNKNOWN."])
-        summary = " / ".join(f"#{item.node_id}: {item.state}" for item in observations[:8])
+        summary = " / ".join(
+            f"#{item.node_id}: Master Inbound {item.master_flow or 'none'} / "
+            f"Node Panel {item.node_flow if item.node_flow is not None else 'UNKNOWN'} ({item.state})"
+            for item in observations[:8]
+        )
         if omitted:
             summary += f" · не проверено: {omitted}"
         store_flow_view(tg_id, summary or "UNKNOWN")
