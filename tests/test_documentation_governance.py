@@ -182,7 +182,11 @@ class DocumentationGovernanceTests(unittest.TestCase):
         text = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         current = gh.declared_published(text)
         # Test version discovery independently of the surrounding canary wording.
-        future = text.replace(f"[`{current}`]", "[`v5.0.0-rc.42`]", 1)
+        # Не зависим от оформления Markdown-ссылки вокруг опубликованного тега.
+        prefix, marker, published = text.partition("**Published:**")
+        self.assertTrue(marker)
+        self.assertIn(current, published[:600])
+        future = prefix + marker + published.replace(current, "v5.0.0-rc.42", 1)
         self.assertEqual(gh.declared_published(future), "v5.0.0-rc.42")
 
     def test_full_reconciliation_uses_second_page_and_filters_prs(self):
