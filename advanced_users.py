@@ -613,6 +613,7 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
         return "Пользователь не найден.", users_back()
     profile = await db.get_user_profile(tg_id)
     plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
+    manual = await db.get_live_manual_entitlement(tg_id)
     current_group = await db.get_server_group(profile.server_group_id) if profile and profile.server_group_id else None
     plan_group = await db.get_server_group(plan.server_group_id) if plan and plan.server_group_id else None
     current_traffic = "недоступно"
@@ -646,7 +647,15 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
             f"📱 IP limit: {current_ip}",
             f"🗂 Группа серверов: {current_group.name if current_group else 'не назначена'}",
         ]
+    if manual is not None:
+        lines += ["", f"♾ Ручная выдача: #{manual.id} · {manual.status}"]
+        if manual.status in {"unknown", "in_flight"}:
+            lines.append("⚠️ Исход не подтверждён: запрещён автоматический повтор.")
     rows: list[list[InlineKeyboardButton]] = []
+    if manual and manual.status in {"unknown", "in_flight"} and role in {"admin", "owner"}:
+        rows.append([InlineKeyboardButton(
+            text="🔎 Сверить ручную выдачу", callback_data=f"admin:u:manualcheck:{tg_id}",
+        )])
     if _role_can_support(role):
         rows.append([InlineKeyboardButton(text="💎 Сменить тариф", callback_data=f"admin:u:plan:{tg_id}")])
         if plan:
@@ -2243,6 +2252,42 @@ async def manual_plan_grant_run(call: CallbackQuery):
         await render_callback(
             call, "✅ Бессрочная ручная выдача подтверждена независимым "
             f"3x-ui read-back. Журнал #{result.id}.",
+            reply_markup=back_plan(tg_id),
+        )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:manualcheck:\d+$"))
+async def manual_plan_grant_review(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    tg_id = int((call.data or "").rsplit(":", 1)[-1])
+    rec = await db.get(tg_id)
+    if rec is None:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    service = ManualEntitlementService(db, provisioner)
+    try:
+        record = await service.review(telegram_id=tg_id, actor_id=int(call.from_user.id))
+    except (ManualEntitlementUnknown, ValueError) as exc:
+        await audit_from_call(
+            db, call, "user.plan.manual.review", target_type="user",
+            target_id=rec.email, details="readback=not_proven; mutation_not_retried=true",
+            success=False,
+        )
+        await render_callback(
+            call, f"🟡 Ручная выдача не подтверждена. {exc}",
+            reply_markup=back_plan(tg_id),
+        )
+    else:
+        await audit_from_call(
+            db, call, "user.plan.manual.review", target_type="user",
+            target_id=rec.email, details=f"manual_entitlement_id={record.id}; "
+            f"readback={record.result_code}; mutation_not_retried=true",
+        )
+        await render_callback(
+            call, f"✅ Ручная выдача #{record.id} подтверждена read-only 3x-ui "
+            "сверкой без повторного применения лимитов.",
             reply_markup=back_plan(tg_id),
         )
     await call.answer()
