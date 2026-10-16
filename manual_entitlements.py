@@ -72,3 +72,42 @@ class ManualEntitlementService:
                 "Ручная выдача: исход не подтверждён. "
                 "Автоматический повтор заблокирован; нужен ручной read-back."
             ) from exc
+
+    async def review(
+        self, *, telegram_id: int, actor_id: int,
+    ) -> ManualEntitlementRecord:
+        """Read-only operator recovery; никаких повторных update/attach вызовов."""
+        if int(actor_id) <= 0:
+            raise ValueError("invalid reviewing actor")
+        record = await self.db.get_live_manual_entitlement(telegram_id)
+        if record is None:
+            raise ValueError("no live manual entitlement")
+        if record.status == "active":
+            return record
+        if record.status not in {"unknown", "in_flight"}:
+            raise ValueError("manual entitlement is not reviewable")
+        user = await self.db.get(telegram_id)
+        profile = await self.db.get_user_profile(telegram_id)
+        if (user is None or profile is None
+                or int(profile.plan_id or 0) != record.plan_id):
+            raise ManualEntitlementUnknown("Изменён профиль: нужна ручная сверка.")
+        try:
+            policy = await self.provisioner.policy_for_user(telegram_id)
+            if (policy.plan is None or int(policy.plan.id) != record.plan_id
+                    or not policy.desired_inbound_ids):
+                raise RuntimeError("manual policy no longer matches")
+            readback = await self.provisioner.xui.get_client(user.email)
+            payload = readback.get("client", readback)
+            inbounds = readback.get("inboundIds")
+            if (not isinstance(payload, dict) or not isinstance(inbounds, list)
+                    or not set(policy.desired_inbound_ids) <= set(map(int, inbounds))
+                    or any(key not in payload or payload[key] is None
+                           or int(payload[key]) != 0
+                           for key in ("expiryTime", "totalGB", "limitIp"))):
+                raise RuntimeError("manual grant read-back missing or mismatched")
+        except Exception as exc:
+            raise ManualEntitlementUnknown(
+                "Ручная выдача не подтверждена; удалённые mutation не повторялись."
+            ) from exc
+        await self.db.update_expiry(telegram_id, 0)
+        return await self.db.confirm_manual_entitlement_readback(record.id)
