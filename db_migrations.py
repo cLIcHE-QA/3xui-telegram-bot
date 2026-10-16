@@ -556,6 +556,8 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
                 "idx_entitlements_user_status",
                 "idx_entitlements_order",
                 "idx_stars_refund_status_created",
+                "idx_manual_entitlements_user_status",
+                "idx_manual_entitlements_one_live",
             }
         ) - actual_indexes
     )
