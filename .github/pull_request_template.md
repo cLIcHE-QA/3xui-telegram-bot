@@ -45,7 +45,7 @@
 
 - [ ] PR title соответствует `<type>: <краткое описание>`.
 - [ ] Тип — один из: `feat`, `fix`, `security`, `docs`, `test`, `chore`, `refactor`, `release`.
-- [ ] Для release-prep title строго `release: vX.Y.Z[-rc.N]`, иначе указано N/A.
+- [ ] Для release-prep title строго `release: vX.Y.Z[-rc.N[.M]]`, иначе указано N/A.
 - [ ] В PR нет secrets, tokens, private keys, backup/enrollment contents.
 - [ ] `CHANGELOG.md` обновлён, если изменение заметно пользователю или оператору.
 - [ ] Living Docs impact проверен по `docs/LIVING_DOCS.md`.
