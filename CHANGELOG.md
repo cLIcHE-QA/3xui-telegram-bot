@@ -6,11 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Не опубликовано — исправления #705 после rc.16
+## v5.0.0-rc.16.1 — Исправления назначения тарифов после rc.16
 
-- Назначение обычного тарифа: одноразовое подтверждение и проверяемое применение в 3x-ui; read-only preflight до бессрочной ручной выдачи.
+- [PR #714](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/714) / [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705): назначение обычного тарифа: одноразовое подтверждение и проверяемое применение в 3x-ui; read-only preflight до бессрочной ручной выдачи.
 - Русские подписи видимости и групп пользователей, навигация «Назад», отображение бессрочности и сообщения подтверждения.
-- Изменения пока не Published, не Deployed и не Accepted; targeted production smoke PENDING.
+- Подготовлена поддержка точечного RC `rc.N.M` в release notes, GitHub CI и controlled deploy helper; `rc.17+` не затрагиваются. PR #715 синхронизировал Roadmap после merge исправлений.
+- **Controlled canary candidate:** публикация только через отдельный release-prep PR, required CI и GitHub Actions. Deployed/Accepted #705 и общий G-11 — PENDING / NO-GO; нет автоматического production deployment, RUB checkout/PSP и нового public rollout.
 
 ## v5.0.0-rc.16 — Достоверный Flow и управляемые тарифы RUB/Stars
 
