@@ -12,6 +12,8 @@
 
 **A6 rc.13 targeted operator report (2026-10-15T22:11:41Z):** `Master/Inbounds не подтверждены (CLIENT_RECORD_PROTOCOL); изменений нет.` — `BLOCKED`; deployed rc.13 tag/SHA отдельно подтверждены оператором 2026-10-15T23:02:48Z, поэтому это не независимая rc.13 deployment attestation. Pinned upstream 3x-ui v3.10.0 допускает поля других протоколов в общем ClientRecord; нельзя удалять/обнулять поля, раскрывать значения или обходить preflight. Диагностика групп WG/MTProto/MIXED реализована [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686) только в `main` (`f251b3e072f440e82708c4c4c7e863b5d89e7d5b`), ещё не Published/Deployed; проверка нового кода требует отдельно разрешённого Release/deploy и targeted read-only A6 smoke. [dated audit](audits/2026-10-16-v5-rc13-client-record-protocol-smoke.md). #663/N6/R3 OPEN/BLOCKED; G-11 NO-GO.
 
+**Release-prep `v5.0.0-rc.14` (candidate; PR #688):** в отдельной ветке готовится пакет read-only диагностики WG/MTProto/MIXED из merged #686. Это **не Published и не Deployed**: текущий immutable Published `v5.0.0-rc.13` (`fbe2cafc3ace3aa54ec2398ddf5ec15cb0c4e9f5`), Deployed `rc.13` только operator-reported; независимый VPS read-back PENDING. Required PR CI `test`/`title` PASS на проверенном head PR (после изменений повторно перепроверить), merge/publish `rc.14` PENDING; A6 `CLIENT_RECORD_PROTOCOL` BLOCKED, новый targeted read-only smoke PENDING после отдельно разрешённых Release/deploy, N6/R3 BLOCKED, G-11 PARTIAL / NO-GO. Flow POST, удаление чужепротокольных полей, stable/public rollout запрещены без отдельного разрешения.
+
 ## Статусы дорожной карты
 
 - `⬜ Запланировано` — работа ещё не завершена в `main`;
