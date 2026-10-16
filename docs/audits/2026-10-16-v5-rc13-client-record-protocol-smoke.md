@@ -22,6 +22,6 @@
 
 ## Последующий GitHub checkpoint (2026-10-16, после 11:16 EEST / UTC+03:00)
 
-- **Источник:** GitHub [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686), merge SHA `f251b3e072f440e82708c4c7e863b5d89e7d5b`, независимый read-back файлов `flow_edit.py`, `tests/test_flow_client_record_reasons.py` и protected `main`.
+- **Источник:** GitHub [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686), merge SHA `f251b3e072f440e82708c4c4c7e863b5d89e7d5b`, независимый read-back файлов `flow_edit.py`, `tests/test_flow_client_record_reasons.py` и protected `main`.
 - **Результат:** безопасная диагностика `CLIENT_RECORD_PROTOCOL_WG`, `CLIENT_RECORD_PROTOCOL_MTPROTO`, `CLIENT_RECORD_PROTOCOL_MIXED` с fail-closed блокировкой и регрессионными тестами присутствует **только в `main`**. Required PR `test`/`title` и post-merge `test` PASS.
 - **Статус новых диагностических кодов после #686:** Published `v5.0.0-rc.13` immutable tag SHA `fbe2cafc3ace3aa54ec2398ddf5ec15cb0c4e9f5`, Deployed `rc.13` только operator-reported. Новая диагностика не опубликована и не развёрнута; post-deploy targeted A6 smoke **PENDING**, последний результат A6 `CLIENT_RECORD_PROTOCOL` **BLOCKED**, N6/R3 BLOCKED, G-11 NO-GO. Flow POST/rewrite shared client record запрещены без отдельного разрешения.
