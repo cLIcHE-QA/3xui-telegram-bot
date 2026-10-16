@@ -140,8 +140,10 @@ class LivingDocsSemanticTests(unittest.TestCase):
         # Выбираем живую строку реестра, не привязывая тест к Issue,
         # который впоследствии может быть закрыт.
         current_rows = module.roadmap_rows(ROOT)
-        self.assertTrue(current_rows)
-        marker = f"\n| [#{next(iter(current_rows))}]"
+        self.assertGreaterEqual(len(current_rows), 2)
+        # Разрываем таблицу перед второй строкой: пустая строка перед
+        # первой строкой таблицы не является нарушением непрерывности.
+        marker = f"\n| [#{list(current_rows)[1]}]"
         self.assertIn(marker, source)
         with TemporaryDirectory() as folder:
             temp_root = Path(folder)
@@ -172,7 +174,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertEqual(declared[0], declared[1])
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         self.assertIn(f"## {declared[0]} ", changelog)
-        self.assertNotIn(f"Release-prep candidate \`{declared[0]}\`", readme)
+        self.assertNotIn(f"Release-prep candidate `{declared[0]}`", readme)
 
     def test_roadmap_active_registry_uses_russian_explanations(self):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
