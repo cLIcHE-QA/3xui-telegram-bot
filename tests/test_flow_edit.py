@@ -96,6 +96,23 @@ class FlowEditTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(FlowEditRejected):
             await discover_flow_targets(self.master,"qa@example.invalid",1001)
 
+class FleetPaginationTests(unittest.TestCase):
+    def test_many_nodes_have_navigation(self):
+        from flow_edit_routes import PAGE_SIZE, page_keyboard
+        from flow_edit import MAX_EDIT_NODES, MAX_EDIT_INBOUNDS
+        self.assertGreaterEqual(MAX_EDIT_NODES, 32)
+        self.assertGreaterEqual(MAX_EDIT_INBOUNDS, 128)
+        options = [(f"Node {i}", f"node:{i}") for i in range(40)]
+        markup = page_keyboard(options, 2, route_prefix="admin:u:flowedit:1001", back=("Отмена", "cancel"))
+        labels = [row[0].text for row in markup.inline_keyboard]
+        self.assertEqual(labels[:PAGE_SIZE], [f"Node {i}" for i in range(16, 24)])
+        self.assertIn("▶️ Далее", labels)
+        self.assertIn("◀️ Назад", labels)
+        self.assertEqual(labels[-1], "Отмена")
+        with self.assertRaises(ValueError):
+            page_keyboard(options, 5, route_prefix="x", back=("Back", "back"))
+
+
 class ConfirmationTests(unittest.TestCase):
     def test_nonce_replay_and_expiry(self):
         c=FlowConfirmation(7,1001,"a"*16,11,1,"test-1","xtls-rprx-vision","","f"*64,100.)
