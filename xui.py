@@ -623,7 +623,8 @@ class XUIClient(VersionAPIMixin):
         )
 
     async def update_client_inbound_flow(
-        self, email: str, inbound_id: int, flow: str, *, client: dict[str, Any]
+        self, email: str, inbound_id: int, flow: str, *, client: dict[str, Any],
+        wg_verified: bool = False
     ) -> dict[str, Any]:
         """One scoped Master update without Node write or blind retry.
 
@@ -643,12 +644,24 @@ class XUIClient(VersionAPIMixin):
             raise ValueError("Incomplete Master client record for scoped Flow update")
         if not isinstance(client.get("uuid"), str) or not client["uuid"]:
             raise ValueError("Client credential is not verified")
-        # Shared WireGuard/AmneziaWG/other protocol-specific identity fields
-        # need separate serialization review; do not erase those on VLESS edit.
-        protocol_fields = ("privateKey", "publicKey", "allowedIPs", "preSharedKey",
-                           "keepAlive", "forwardedPorts", "secret", "adTag")
-        if any(client[key] not in ("", None, 0, "[]", []) for key in protocol_fields):
+        # MTProto has its own shared credentials; keep blocking until the
+        # protocol's scoped update semantics have separate upstream proof.
+        populated = lambda v: v not in ("", None, 0, "[]", [])
+        if any(populated(client[key]) for key in ("secret", "adTag")):
             raise ValueError("Shared client has unsupported protocol-specific fields")
+        wg_fields = ("privateKey", "publicKey", "allowedIPs", "preSharedKey",
+                     "keepAlive", "forwardedPorts")
+        wg_present = any(populated(client[key]) for key in wg_fields)
+        if wg_present and not wg_verified:
+            raise ValueError("Unverified WireGuard/AmneziaWG ownership")
+        # Never coerce an unexpected input type or silently erase a peer.
+        if wg_present:
+            if any(not isinstance(client[k], str) for k in wg_fields if k != "keepAlive"):
+                raise ValueError("Invalid WireGuard record field")
+            if (isinstance(client["keepAlive"], bool)
+                    or not isinstance(client["keepAlive"], int)
+                    or client["keepAlive"] < 0):
+                raise ValueError("Invalid WireGuard keepAlive")
         # Pinned 3x-ui ClientRecord.reverse is a string, normally "".
         # Unknown non-empty settings must not be lost on a full-row update.
         if client["reverse"] not in ("", None):
@@ -659,6 +672,20 @@ class XUIClient(VersionAPIMixin):
                       "trafficReset", "trafficResetDay"):
             payload[field] = client[field]
         payload["resetWeekday"] = client["resetWeekday"]
+        if wg_present:
+            # model.Client expects []string, while ClientRecord uses CSV.
+            # Copying the original peer values prevents scalar merge/zeroing;
+            # the inbound-filtered upstream service must *still* prove it does
+            # not rewrite any unrelated tunnel or node before rollout.
+            raw_ips = client["allowedIPs"]
+            if raw_ips not in ("", "[]"):
+                ips = [piece.strip() for piece in raw_ips.split(",")]
+                if any(not piece for piece in ips):
+                    raise ValueError("Invalid WireGuard allowedIPs")
+                payload["allowedIPs"] = ips
+            for field in ("privateKey", "publicKey", "preSharedKey", "forwardedPorts"):
+                payload[field] = client[field]
+            payload["keepAlive"] = client["keepAlive"]
         # Empty/unset reverse remains omitted; a non-empty value was
         # rejected above, so credentials/settings cannot be coerced.
         return await self._mutation_request(
