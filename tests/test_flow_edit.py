@@ -12,9 +12,13 @@ class FakeMaster:
         for iid,node,proto,flow in [(1,11,"tcp","xtls-rprx-vision"),(2,11,"tcp","xtls-rprx-vision"),(3,12,"ws","")]:
             self.inbounds[iid] = {"id":iid,"nodeId":node,"tag":f"test-{iid}","disableFlow":False,"protocol":"vless","streamSettings":json.dumps({"security":"reality" if proto=="tcp" else "none","network":proto}),"settings":json.dumps({"clients":[{"email":"qa@example.invalid","flow":flow}]})}
         self.writes=[]
+        self.calls=0
     async def get_client(self,email):
         return copy.deepcopy(self.client)
+    async def server_status(self):
+        return {"panelVersion":getattr(self,"panel_version","3.10.2")}
     async def inbound_get(self,iid):
+        self.calls+=1
         return copy.deepcopy(self.inbounds[iid])
     async def update_client_inbound_flow(self,email,iid,flow,*,client):
         self.writes.append((iid,flow))
@@ -95,6 +99,118 @@ class FlowEditTests(unittest.IsolatedAsyncioTestCase):
         del self.master.client["client"]["resetWeekday"]
         with self.assertRaises(FlowEditRejected):
             await discover_flow_targets(self.master,"qa@example.invalid",1001)
+
+class MultiProtocolFleetTests(unittest.IsolatedAsyncioTestCase):
+    async def test_two_nodes_awg_and_non_flow_inbounds(self):
+        m=FakeMaster()
+        m.client["client"]["privateKey"]="fixture-key"
+        m.client["client"]["publicKey"]="fixture-public"
+        m.client["client"]["allowedIPs"]="10.8.1.5/32"
+        m.client["client"]["keepAlive"]=25
+        m.client["inboundIds"]=[1,2,3,4,5]
+        m.client["tunnelAllowedIPs"]={"4":"10.8.1.5/32","5":"10.9.1.5/32"}
+        for iid,node,addr in ((4,11,"10.8.1.5/32"),(5,12,"10.9.1.5/32")):
+            m.inbounds[iid]={"id":iid,"nodeId":node,"tag":f"awg-{iid}","protocol":"amneziawg",
+                "settings":json.dumps({"clients":[{"email":"qa@example.invalid","allowedIPs":[addr]}]})}
+        snap=await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertTrue(snap.wg_verified)
+        self.assertEqual([(t.node_id,t.inbound_id) for t in snap.targets],[(11,1),(11,2)])
+        self.assertEqual(m.calls,5)
+        self.assertEqual(m.writes,[])
+
+    async def test_32_nodes_four_protocols_each(self):
+        m=FakeMaster()
+        m.client["client"]["privateKey"]="fixture-key"
+        m.client["client"]["allowedIPs"]="10.8.1.5/32"
+        m.client["inboundIds"]=[]
+        m.client["tunnelAllowedIPs"]={}
+        m.inbounds={}
+        for node in range(1,33):
+            for kind in range(4):
+                iid=node*4+kind
+                m.client["inboundIds"].append(iid)
+                proto=("vless","vless","hysteria","amneziawg")[kind]
+                network=("tcp","xhttp","tcp","")[kind]
+                if kind==3:
+                    addr=f"10.9.{node}.5/32"
+                    settings={"clients":[{"email":"qa@example.invalid","allowedIPs":[addr]}]}
+                    m.client["tunnelAllowedIPs"][str(iid)]=addr
+                else:
+                    settings={"clients":[{"email":"qa@example.invalid","flow":""}]}
+                m.inbounds[iid]={"id":iid,"nodeId":node,"tag":f"fleet-{iid}",
+                    "protocol":proto,"disableFlow":False,
+                    "streamSettings":{"network":network,"security":"reality"},
+                    "settings":settings}
+        snap=await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertEqual(len(snap.targets),32)
+        self.assertEqual(len({t.node_id for t in snap.targets}),32)
+        self.assertTrue(snap.wg_verified)
+        self.assertEqual(m.calls,128)
+        self.assertEqual(m.writes,[])
+
+    async def test_above_bounded_inbound_count_fails_before_inbound_calls(self):
+        m=FakeMaster()
+        m.client["inboundIds"]=list(range(1,258))
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertEqual(m.calls,0)
+        self.assertEqual(m.writes,[])
+
+    async def test_tunnel_mapping_change_invalidates_confirmation(self):
+        from flow_edit import client_fingerprint
+        m=FakeMaster()
+        old=client_fingerprint(m.client["client"],tunnel_ips={"4":"10.0.0.1/32"})
+        new=client_fingerprint(m.client["client"],tunnel_ips={"4":"10.0.0.2/32"})
+        self.assertNotEqual(old,new)
+
+    async def test_old_or_unknown_upstream_version_blocks_wg(self):
+        for ver in ("3.10.0","3.10.3","",None):
+            m=FakeMaster()
+            m.panel_version=ver
+            m.client["client"]["privateKey"]="fixture-private"
+            m.client["client"]["allowedIPs"]="10.8.1.5/32"
+            m.client["inboundIds"].append(4)
+            m.client["tunnelAllowedIPs"]={"4":"10.8.1.5/32"}
+            m.inbounds[4]={"id":4,"protocol":"amneziawg",
+                "settings":json.dumps({"clients":[{"email":"qa@example.invalid","allowedIPs":["10.8.1.5/32"]}]})}
+            with self.subTest(version=ver), self.assertRaises(FlowEditRejected):
+                await discover_flow_targets(m,"qa@example.invalid",1001)
+            self.assertEqual(m.writes,[])
+
+    async def test_missing_tunnel_ownership_fails_closed(self):
+        m=FakeMaster()
+        m.client["client"]["privateKey"]="fixture-key"
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertEqual(m.writes,[])
+
+    async def test_mismatched_awg_mapping_fails_closed(self):
+        m=FakeMaster()
+        m.client["client"]["privateKey"]="fixture-key"
+        m.client["inboundIds"].append(4)
+        m.client["tunnelAllowedIPs"]={"4":"10.8.1.8/32"}
+        m.inbounds[4]={"id":4,"protocol":"amneziawg","settings":json.dumps({"clients":[{"email":"qa@example.invalid","allowedIPs":["10.8.1.5/32"]}]})}
+        with self.assertRaises(FlowEditRejected):
+            await discover_flow_targets(m,"qa@example.invalid",1001)
+        self.assertEqual(m.writes,[])
+
+
+class FleetPaginationTests(unittest.TestCase):
+    def test_many_nodes_have_navigation(self):
+        from flow_edit_routes import PAGE_SIZE, page_keyboard
+        from flow_edit import MAX_EDIT_NODES, MAX_EDIT_INBOUNDS
+        self.assertGreaterEqual(MAX_EDIT_NODES, 32)
+        self.assertGreaterEqual(MAX_EDIT_INBOUNDS, 128)
+        options = [(f"Node {i}", f"node:{i}") for i in range(40)]
+        markup = page_keyboard(options, 2, route_prefix="admin:u:flowedit:1001", back=("Отмена", "cancel"))
+        labels = [row[0].text for row in markup.inline_keyboard]
+        self.assertEqual(labels[:PAGE_SIZE], [f"Node {i}" for i in range(16, 24)])
+        self.assertIn("▶️ Далее", labels)
+        self.assertIn("◀️ Назад", labels)
+        self.assertEqual(labels[-1], "Отмена")
+        with self.assertRaises(ValueError):
+            page_keyboard(options, 5, route_prefix="x", back=("Back", "back"))
+
 
 class ConfirmationTests(unittest.TestCase):
     def test_nonce_replay_and_expiry(self):

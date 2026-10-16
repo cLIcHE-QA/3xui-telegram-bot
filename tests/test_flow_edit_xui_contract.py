@@ -24,6 +24,23 @@ class ScopedXUITests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError):
                 await client.update_client_inbound_flow(fields["email"],2,"",client=fields)
         request.assert_not_awaited()
+    async def test_verified_awg_payload_omits_all_peer_secrets(self):
+        client=XUIClient("https://panel.example.invalid","fixture-token")
+        rec={"email":"qa@example.invalid","uuid":"fixture-uuid","subId":"fixture-sub",
+             "password":"","auth":"", "security":"auto","flow":"","totalGB":12,
+             "expiryTime":123456,"limitIp":1,"limitHwid":2,"tgId":42,"enable":True,
+             "group":"","comment":"","reset":0,"resetDay":0,"resetWeekday":0,
+             "resetMax":0,"trafficReset":"never","trafficResetDay":1,
+             "privateKey":"test-key","publicKey":"test-pub","allowedIPs":"10.8.1.5/32",
+             "preSharedKey":"test-psk","keepAlive":25,"forwardedPorts":"",
+             "secret":"","adTag":"","reverse":""}
+        with patch.object(client,"_mutation_request",new_callable=AsyncMock) as request:
+            await client.update_client_inbound_flow(rec["email"],2,"xtls-rprx-vision",client=rec,wg_verified=True)
+        payload=request.await_args.kwargs["json_payload"]
+        for name in ("privateKey","publicKey","preSharedKey","allowedIPs","keepAlive","forwardedPorts"):
+            self.assertNotIn(name,payload)
+        self.assertEqual(request.await_args.kwargs["params"],{"inboundIds":2})
+
     async def test_nonempty_reverse_fails_without_mutation(self):
         from xui import SCOPED_FLOW_REQUIRED_CLIENT_FIELDS
         client=XUIClient("https://panel.example.invalid","fixture-token")
@@ -42,6 +59,8 @@ class ScopedXUITests(unittest.IsolatedAsyncioTestCase):
 
 class FlowPrivilegeTests(unittest.TestCase):
     def test_admin_callback_scope(self):
+        self.assertEqual(required_role_for_callback("admin:u:flowedit:123:5"),"support")
+        self.assertEqual(required_role_for_callback("admin:u:flowib:123:11:7"),"support")
         self.assertEqual(required_role_for_callback("admin:u:flowedit:123"),"support")
         self.assertEqual(required_role_for_callback("admin:u:flowcommit:123:"+"a"*16),"support")
         self.assertEqual(required_role_for_callback("admin:u:flowcheck:123"),"read_only")

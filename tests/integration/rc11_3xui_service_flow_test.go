@@ -2,6 +2,7 @@ package service
 
 import (
     "context"
+    "os"
     "encoding/json"
     "sync"
     "testing"
@@ -188,4 +189,118 @@ func TestRC11ScopedFlowEditDoesNotTouchAnotherInbound(t *testing.T) {
         t.Fatalf("unselected inbound received an unexpected Node update: %q", got)
     }
     t.Logf("SCOPED_FLOW_FILTER_PASS chosen=%d flow=none other=%d flow=%s", chosen.Id, other.Id, originalFlow)
+}
+
+
+// This test exercises the actual upstream Go ClientService with two different
+// Node identities and mixed VLESS/AmneziaWG/Hysteria/XHTTP attachments. A
+// chosen VLESS update must not write ANY other inbound or peer credential.
+// All fixtures use temporary SQLite; no network panel is contacted.
+func TestRC11MultiProtocolScopedFlowPreservesTunnelRecord(t *testing.T) {
+    setupBulkDB(t)
+    startSerializedWriter(t)
+    nodeA, _ := setupNodeRuntime(t)
+    db := database.GetDB()
+    second := &model.Node{Name:"rc11-multiprotocol-node-two", Address:"127.0.0.1", Port:2097, ApiToken:"fixture-token", Enable:true, Status:"online"}
+    if err:=db.Create(second).Error; err!=nil {t.Fatal(err)}
+    nodeB:=second.Id
+    recorder:=&rc11FlowRecorder{byTag:make(map[string]string)}
+    runtime.GetManager().SetRuntimeOverride(nodeA,recorder)
+    runtime.GetManager().SetRuntimeOverride(nodeB,recorder)
+    const email="scoped-multiprotocol@example.invalid"
+    const vision="xtls-rprx-vision"
+    common:=model.Client{Email:email,ID:"aaaa1111-bbbb-4ccc-8ddd-eeeeeeeeeeee",SubID:"test-mp-sub",
+      Enable:true,ExpiryTime:2000000000000,TotalGB:10737418240,LimitIP:2,Flow:vision}
+    inboundSvc:=&InboundService{}
+    svc:=&ClientService{}
+    makeInbound:=func(node int,tag string,port int,proto model.Protocol,network string,withClient bool) *model.Inbound {
+        clients:=[]model.Client{}
+        if withClient {clients=[]model.Client{common}}
+        ib:=&model.Inbound{UserId:1,NodeID:&node,Tag:tag,Port:port,Protocol:proto,Enable:true,
+          StreamSettings:`{"network":"`+network+`","security":"reality"}`,Settings:clientsSettings(t,clients)}
+        if err:=db.Create(ib).Error;err!=nil {t.Fatal(err)}
+        return ib
+    }
+    chosen:=makeInbound(nodeA,"mp-vless-reality-a",46001,model.VLESS,"tcp",true)
+    other:=makeInbound(nodeB,"mp-vless-reality-b",46002,model.VLESS,"tcp",true)
+    if err:=svc.SyncInbound(nil,chosen.Id,[]model.Client{common});err!=nil {t.Fatal(err)}
+    if err:=svc.SyncInbound(nil,other.Id,[]model.Client{common});err!=nil {t.Fatal(err)}
+    record,err:=svc.GetRecordByEmail(nil,email);if err!=nil {t.Fatal(err)}
+    tunnelA:=makeInbound(nodeA,"mp-awg-a",46003,model.AmneziaWG,"",false)
+    tunnelB:=makeInbound(nodeB,"mp-awg-b",46004,model.AmneziaWG,"",false)
+    // Keep different active peer settings on both nodes; a shared record
+    // cannot represent both AWG addresses or credentials simultaneously.
+    for i,ib:=range []*model.Inbound{tunnelA,tunnelB} {
+        peer:=common
+        peer.Flow=""
+        peer.PrivateKey=[]string{"fixture-peer-private-a","fixture-peer-private-b"}[i]
+        peer.PublicKey=[]string{"fixture-peer-public-a","fixture-peer-public-b"}[i]
+        peer.PreSharedKey=[]string{"fixture-peer-psk-a","fixture-peer-psk-b"}[i]
+        peer.AllowedIPs=[]string{[]string{"10.8.1.5/32","10.9.1.5/32"}[i]}
+        peer.KeepAlive=model.KeepAlivePtr(25)
+        peer.ForwardedPorts="443"
+        ib.Settings=clientsSettings(t,[]model.Client{peer})
+        if err:=db.Model(&model.Inbound{}).Where("id = ?",ib.Id).Update("settings",ib.Settings).Error;err!=nil {t.Fatal(err)}
+    }
+    xhttp:=makeInbound(nodeA,"mp-xhttp",46005,model.VLESS,"xhttp",false)
+    hysteria:=makeInbound(nodeB,"mp-hysteria",46006,model.Hysteria,"",false)
+    untouched:=[]*model.Inbound{tunnelA,tunnelB,xhttp,hysteria,other}
+    for _,ib:=range untouched {
+        if ib.Id==other.Id {continue} // SyncInbound already added this link.
+        if err:=db.Create(&model.ClientInbound{ClientId:record.Id,InboundId:ib.Id}).Error;err!=nil {t.Fatal(err)}
+    }
+    // Populate the shared peer fields exactly as the upstream model stores
+    // them. The chosen VLESS update must not clear even a single field.
+    wgValues:=map[string]any{"wg_private_key":"fixture-private","wg_public_key":"fixture-public",
+      "wg_allowed_ips":"10.9.1.5/32","wg_pre_shared_key":"fixture-psk","wg_keep_alive":25,
+      "wg_forwarded_ports":"443"}
+    if err:=db.Model(&model.ClientRecord{}).Where("id = ?",record.Id).Updates(wgValues).Error;err!=nil {t.Fatal(err)}
+    oldSettings:=make(map[int]string)
+    for _,ib:=range untouched {oldSettings[ib.Id]=ib.Settings}
+    before,err:=svc.GetRecordByEmail(nil,email);if err!=nil {t.Fatal(err)}
+    updated:=*before.ToClient()
+    updated.Flow=""
+    // Mirror the bot's VLESS-only POST: omit every WG/AWG peer field. The
+    // REAL upstream service must retain those fields and never copy them
+    // to VLESS settings or Node payload.
+    updated.PrivateKey=""
+    updated.PublicKey=""
+    updated.AllowedIPs=nil
+    updated.PreSharedKey=""
+    updated.KeepAlive=nil
+    updated.ForwardedPorts=""
+    if _,err:=svc.Update(inboundSvc,before.Id,updated,before.LimitHwid,chosen.Id);err!=nil {
+        t.Fatalf("scoped Update: %v",err)
+    }
+    after,err:=svc.GetRecordByEmail(nil,email);if err!=nil {t.Fatal(err)}
+    preserved := after.PrivateKey==before.PrivateKey && after.PublicKey==before.PublicKey &&
+        after.AllowedIPs==before.AllowedIPs && after.PreSharedKey==before.PreSharedKey &&
+        after.KeepAlive==before.KeepAlive && after.ForwardedPorts==before.ForwardedPorts
+    switch os.Getenv("FLOW_WG_SAFE") {
+    case "true":
+        if !preserved {t.Fatal("3.10.2 scoped VLESS Flow corrupted shared WG/AWG peer fields")}
+    case "false":
+        // Negative upstream proof: 3.10.0 is UNSAFE even with inboundIds;
+        // bot must never enable WG-scoped Flow on this version.
+        if preserved {t.Fatal("3.10.0 unexpectedly preserved fields; revisit version gate")}
+    default:
+        t.Fatal("integration CI must explicitly declare FLOW_WG_SAFE")
+    }
+    for _,ib:=range untouched {
+        actual,err:=inboundSvc.GetInbound(ib.Id);if err!=nil {t.Fatal(err)}
+        if actual.Settings!=oldSettings[ib.Id] {t.Fatalf("other inbound changed: %d",ib.Id)}
+    }
+    // Only the selected node/inbound gets an outbound runtime UpdateUser.
+    // A shared ClientRecord DB mutation can dirty node sync state; that does
+    // not authorize a direct unselected Node mutation.
+    if recorder.flow(other.Tag)!="" {t.Fatal("unselected node got Flow payload")}
+    chosenAfter,err:=inboundSvc.GetInbound(chosen.Id);if err!=nil {t.Fatal(err)}
+    var parsed struct{Clients []model.Client `json:"clients"`}
+    if err:=json.Unmarshal([]byte(chosenAfter.Settings),&parsed);err!=nil {t.Fatal(err)}
+    if len(parsed.Clients)!=1 || parsed.Clients[0].Flow!="" {t.Fatal("chosen inbound flow not cleared")}
+    vless:=parsed.Clients[0]
+    if vless.PrivateKey!="" || vless.PublicKey!="" || vless.PreSharedKey!="" ||
+       len(vless.AllowedIPs)!=0 || vless.KeepAlive!=nil || vless.ForwardedPorts!="" {
+        t.Fatal("WG/AWG peer material leaked into selected VLESS settings")
+    }
 }

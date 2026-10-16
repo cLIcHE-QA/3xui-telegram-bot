@@ -18,6 +18,22 @@ def node_label(node_id: int) -> str:
 def flow_label(value: str) -> str:
     return value or "none"
 
+PAGE_SIZE = 8
+
+def page_keyboard(items, page: int, *, route_prefix: str, back):
+    """Render one bounded page, never silently omit navigation to later nodes."""
+    pages = max(1, (len(items) + PAGE_SIZE - 1) // PAGE_SIZE)
+    if not 0 <= page < pages:
+        raise ValueError("Invalid page")
+    result = list(items[page * PAGE_SIZE:(page + 1) * PAGE_SIZE])
+    if page > 0:
+        result.append(("◀️ Назад", f"{route_prefix}:{page - 1}"))
+    if page + 1 < pages:
+        result.append(("▶️ Далее", f"{route_prefix}:{page + 1}"))
+    result.append(back)
+    return keyboard(*result)
+
+
 def keyboard(*items):
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=label, callback_data=route)] for label, route in items])
 
@@ -40,26 +56,33 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
             await call.answer(f"Master/Inbounds не подтверждены ({preflight_reason(exc)}); изменений нет.", show_alert=True)
             return None
 
-    @router.callback_query(F.data.regexp(r"^admin:u:flowedit:\d+$"))
+    @router.callback_query(F.data.regexp(r"^admin:u:flowedit:\d+(?::\d+)?$"))
     async def flow_edit_nodes(call: CallbackQuery):
         if not await auth(call):
             return
-        tg_id = int(call.data.split(":")[3])
+        parts = call.data.split(":")
+        tg_id, page = int(parts[3]), int(parts[4]) if len(parts) == 5 else 0
         prepared = await preflight(call, tg_id)
         if prepared is None:
             return
         _, snap = prepared
         ids = sorted({t.node_id for t in snap.targets})
         rows = [(node_label(i), f"admin:u:flowib:{tg_id}:{i}") for i in ids]
-        rows.append(("✖ Отмена", f"admin:u:accesscfg:{tg_id}"))
-        await render_callback(call, "✏️ Изменить Flow · выберите ноду\n\nИзменения только после подтверждения." if ids else "✏️ Изменить Flow\n\nПодходящих Reality Inbounds нет.", reply_markup=keyboard(*rows))
+        try:
+            markup = page_keyboard(rows, page, route_prefix=f"admin:u:flowedit:{tg_id}", back=("✖ Отмена", f"admin:u:accesscfg:{tg_id}"))
+        except ValueError:
+            await call.answer("Страница недоступна.", show_alert=True)
+            return
+        await render_callback(call, "✏️ Изменить Flow · выберите ноду\n\nИзменения только после подтверждения." if ids else "✏️ Изменить Flow\n\nПодходящих Reality Inbounds нет.", reply_markup=markup)
         await call.answer()
 
-    @router.callback_query(F.data.regexp(r"^admin:u:flowib:\d+:\d+$"))
+    @router.callback_query(F.data.regexp(r"^admin:u:flowib:\d+:\d+(?::\d+)?$"))
     async def flow_edit_inbounds(call: CallbackQuery):
         if not await auth(call):
             return
-        tg_id, node_id = map(int, call.data.split(":")[3:])
+        parts = call.data.split(":")
+        tg_id, node_id = map(int, parts[3:5])
+        page = int(parts[5]) if len(parts) == 6 else 0
         prepared = await preflight(call, tg_id)
         if prepared is None:
             return
@@ -69,8 +92,12 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
             await call.answer("Inbounds недоступны.", show_alert=True)
             return
         rows = [(f"Inbound #{t.inbound_id}", f"admin:u:flowval:{tg_id}:{node_id}:{t.inbound_id}") for t in targets]
-        rows.append(("⬅ Ноды", f"admin:u:flowedit:{tg_id}"))
-        await render_callback(call, f"✏️ Изменить Flow · {node_label(node_id)}\n\nВыберите Inbound.", reply_markup=keyboard(*rows))
+        try:
+            markup = page_keyboard(rows, page, route_prefix=f"admin:u:flowib:{tg_id}:{node_id}", back=("⬅ Ноды", f"admin:u:flowedit:{tg_id}"))
+        except ValueError:
+            await call.answer("Страница недоступна.", show_alert=True)
+            return
+        await render_callback(call, f"✏️ Изменить Flow · {node_label(node_id)}\n\nВыберите Inbound.", reply_markup=markup)
         await call.answer()
 
     @router.callback_query(F.data.regexp(r"^admin:u:flowval:\d+:\d+:\d+$"))
@@ -137,7 +164,7 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
         certainty = "not_required"
         if target.current_flow != challenge.new_flow:
             try:
-                await xui.update_client_inbound_flow(rec.email, challenge.inbound_id, challenge.new_flow, client=snap.client)
+                await xui.update_client_inbound_flow(rec.email, challenge.inbound_id, challenge.new_flow, client=snap.client, wg_verified=snap.wg_verified)
                 certainty = "response_success"
             except XUIMutationError as exc:
                 certainty = "unknown" if exc.uncertain else "failed"
