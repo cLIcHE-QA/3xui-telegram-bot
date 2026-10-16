@@ -498,7 +498,7 @@ async def terms_accept_cb(call: CallbackQuery):
     except (TypeError, ValueError):
         await call.answer("Некорректный тариф.", show_alert=True)
         return
-    plan = await _service().active_plan(plan_id)
+    plan = await _service().active_plan(plan_id, call.from_user.id)
     if plan is None or int(plan.stars_price or 0) <= 0:
         await call.answer("Тариф недоступен.", show_alert=True)
         return
