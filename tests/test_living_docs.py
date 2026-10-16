@@ -137,16 +137,50 @@ class LivingDocsSemanticTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         source = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn("| [#663]", source)
+        # Выбираем живую строку реестра, не привязывая тест к Issue,
+        # который впоследствии может быть закрыт.
+        current_rows = module.roadmap_rows(ROOT)
+        self.assertTrue(current_rows)
+        marker = f"\n| [#{next(iter(current_rows))}]"
+        self.assertIn(marker, source)
         with TemporaryDirectory() as folder:
             temp_root = Path(folder)
             (temp_root / "docs").mkdir()
             (temp_root / "docs/ROADMAP.md").write_text(
-                source.replace("\n| [#663]", "\n\n| [#663]", 1),
+                source.replace(marker, "\n" + marker, 1),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "contiguous"):
                 module.roadmap_rows(temp_root)
+
+    def test_readme_and_roadmap_share_current_published_release(self):
+        # Новый release-prep в version.py может опережать публикацию; сравниваем
+        # именно подтверждённое поле Published двух living docs.
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        tag_pattern = re.compile(
+            r"\*\*Published:\*\*[^\n]*?releases/tag/"
+            r"(v\d+\.\d+\.\d+(?:-rc\.\d+)?)"
+        )
+        declared = []
+        for source in (readme, roadmap):
+            match = tag_pattern.search(source)
+            self.assertIsNotNone(match, "Требуется актуальный Published tag")
+            declared.append(match.group(1))
+            self.assertIn("**Deployed:**", source)
+            self.assertIn("**Accepted:**", source)
+        self.assertEqual(declared[0], declared[1])
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn(f"## {declared[0]} ", changelog)
+        self.assertNotIn(f"Release-prep candidate \`{declared[0]}\`", readme)
+
+    def test_roadmap_active_registry_uses_russian_explanations(self):
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        active = roadmap.split(
+            "## Активный Issue-реестр (machine-checked)", 1
+        )[1].split("\n## ", 1)[0]
+        self.assertNotIn("Issue criteria", active)
+        self.assertNotIn("implementation PENDING", active)
 
     def test_roadmap_archive_is_lossless(self):
         import importlib.util
@@ -162,14 +196,14 @@ class LivingDocsSemanticTests(unittest.TestCase):
         fence = False
         violations = []
         for number, original in enumerate(roadmap.splitlines(), 1):
-            if re.match(r"^\\s*\x60\x60\x60", original):
+            if original.lstrip().startswith(("```", "~~~")):
                 fence = not fence
                 continue
             if fence:
                 continue
-            prose = re.sub(r"\x60[^\x60]*\x60", "", original)
-            prose = re.sub(r"\\]\\([^)]+\\)", "]", prose)
-            prose = re.sub(r"https?://\\S+", "", prose)
+            prose = re.sub(r"`[^`]*`", "", original)
+            prose = re.sub(r"\]\([^)]+\)", "]", prose)
+            prose = re.sub(r"https?://\S+", "", prose)
             latin = len(re.findall(r"[A-Za-z]", prose))
             cyrillic = len(re.findall(r"[А-Яа-яЁё]", prose))
             # English-only explanatory blocks are not valid Russian docs.
