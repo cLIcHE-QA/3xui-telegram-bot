@@ -712,7 +712,7 @@ async def plan_audience_toggle(call: CallbackQuery):
         return
     await audit_from_call(db, call, "plan.audience", target_type="plan",
                           target_id=str(plan_id), details=f"group_id={group_id}; rule=updated")
-    await render_callback(call, "✅ Правило аудитории сохранено.",
+    await render_callback(call, "✅ Правило для группы пользователей сохранено.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="⬅ Группы пользователей", callback_data=f"admin:plan:audience:{plan_id}")
         ]]))
