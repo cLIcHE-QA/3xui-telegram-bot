@@ -135,6 +135,45 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
             ).grant(telegram_id=101, plan_id=self.manual, actor_id=1)
         self.assertEqual(self.xui.update_calls, before)
 
+    async def test_read_only_review_recovers_unknown_after_restart(self):
+        self.xui.omit_expiry = True
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self._grant()
+        self.assertEqual((await self.db.get_live_manual_entitlement(101)).status, "unknown")
+        before = self.xui.update_calls
+        self.xui.omit_expiry = False
+        restarted = Database(self.path)
+        await restarted.init()
+        svc = ManualEntitlementService(
+            restarted, ProvisioningEngine(restarted, self.xui, settings()),
+        )
+        result = await svc.review(telegram_id=101, actor_id=2)
+        self.assertEqual((result.status, result.result_code),
+                         ("active", "operator_readback_match"))
+        self.assertEqual(self.xui.update_calls, before)
+        self.assertEqual((await restarted.get(101)).expiry_time, 0)
+
+    async def test_unresolved_grant_blocks_background_sync_after_restart(self):
+        from provisioning import ProvisioningUnknown
+        self.xui.omit_expiry = True
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self._grant()
+        before = self.xui.update_calls
+        with self.assertRaises(ProvisioningUnknown):
+            await self.engine.sync_user(101, apply_plan_limits=True)
+        self.assertEqual(self.xui.update_calls, before)
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self.svc.review(telegram_id=101, actor_id=1)
+
+    def test_manual_callbacks_need_admin_rbac(self):
+        from admin_privileges import required_role_for_callback
+        self.assertEqual(required_role_for_callback(
+            "admin:u:manualrun:0123456789abcdef"), "admin")
+        self.assertEqual(required_role_for_callback(
+            "admin:u:manualcheck:101"), "admin")
+        self.assertIsNone(required_role_for_callback(
+            "admin:u:manualrun:forged"))
+
     async def test_uncertain_provider_ack_is_resolved_by_readback_without_replay(self):
         self.xui.uncertain_update = True
         result, created = await self._grant()
