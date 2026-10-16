@@ -227,6 +227,20 @@ func TestRC11MultiProtocolScopedFlowPreservesTunnelRecord(t *testing.T) {
     record,err:=svc.GetRecordByEmail(nil,email);if err!=nil {t.Fatal(err)}
     tunnelA:=makeInbound(nodeA,"mp-awg-a",46003,model.AmneziaWG,"",false)
     tunnelB:=makeInbound(nodeB,"mp-awg-b",46004,model.AmneziaWG,"",false)
+    // Keep different active peer settings on both nodes; a shared record
+    // cannot represent both AWG addresses or credentials simultaneously.
+    for i,ib:=range []*model.Inbound{tunnelA,tunnelB} {
+        peer:=common
+        peer.Flow=""
+        peer.PrivateKey=[]string{"fixture-peer-private-a","fixture-peer-private-b"}[i]
+        peer.PublicKey=[]string{"fixture-peer-public-a","fixture-peer-public-b"}[i]
+        peer.PreSharedKey=[]string{"fixture-peer-psk-a","fixture-peer-psk-b"}[i]
+        peer.AllowedIPs=[]string{[]string{"10.8.1.5/32","10.9.1.5/32"}[i]}
+        peer.KeepAlive=model.KeepAlivePtr(25)
+        peer.ForwardedPorts="443"
+        ib.Settings=clientsSettings(t,[]model.Client{peer})
+        if err:=db.Model(&model.Inbound{}).Where("id = ?",ib.Id).Update("settings",ib.Settings).Error;err!=nil {t.Fatal(err)}
+    }
     xhttp:=makeInbound(nodeA,"mp-xhttp",46005,model.VLESS,"xhttp",false)
     hysteria:=makeInbound(nodeB,"mp-hysteria",46006,model.Hysteria,"",false)
     untouched:=[]*model.Inbound{tunnelA,tunnelB,xhttp,hysteria,other}
