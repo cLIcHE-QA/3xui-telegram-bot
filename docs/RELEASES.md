@@ -7,17 +7,17 @@
 ## Источник правды
 
 Для стабильного релиза `vX.Y.Z` и controlled-canary release candidate
-`vX.Y.Z-rc.N` используются три связанных источника:
+`vX.Y.Z-rc.N` и точечный `vX.Y.Z-rc.N.M` используются три связанных источника:
 
 1. `version.py` — точная версия приложения: `APP_VERSION = "X.Y.Z"` либо
-   `APP_VERSION = "X.Y.Z-rc.N"` для canary RC;
+   `APP_VERSION = "X.Y.Z-rc.N[.M]"` для canary RC;
 2. `CHANGELOG.md` — канонический заголовок и список изменений;
 3. merge commit release-prep PR — commit, на который должен указывать tag.
 
 Раздел CHANGELOG обязан иметь вид:
 
 ~~~markdown
-## vX.Y.Z[-rc.N] — Краткое название релиза
+## vX.Y.Z[-rc.N[.M]] — Краткое название релиза
 - Первое существенное изменение.
 - Второе существенное изменение.
 - Ограничения/совместимость, если они важны.
@@ -61,13 +61,13 @@ Release не должен иметь пустой `name` или пустой `bo
 ## Release candidate для controlled canary
 
 Когда production acceptance является обязательным gate **до** финального stable release,
-используется immutable RC вида `v5.0.0-rc.1`. RC проходит тот же release-prep PR,
+используется immutable RC вида `v5.0.0-rc.1`; для исправления уже Published RC возможна отдельная версия `v5.0.0-rc.16.1`, не изменяющая назначенные `rc.17+`. RC проходит тот же release-prep PR,
 required CI, provenance validation и immutable tag flow, но GitHub Release публикуется
 как **prerelease**. Production deploy разрешён только этим опубликованным RC tag через
 `scripts/deploy-release.sh`.
 
 RC не означает PASS launch audit и не снимает allowlist. После acceptance findings
-исправляются новым RC (`rc.2`, `rc.3`, ...); опубликованный RC tag не перемещается.
+исправляются новым immutable RC (`rc.2`, `rc.3`, ...), либо согласованным точечным RC (`rc.16.1`); опубликованный RC tag не перемещается.
 Только после PASS acceptance готовится отдельный `release: v5.0.0`.
 
 ## Release consistency и evidence (#605)
