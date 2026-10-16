@@ -136,16 +136,41 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("⬜ Запланировано", roadmap)
 
     def test_current_release_status_in_readme_and_roadmap(self):
+        """APP_VERSION при release-prep может опережать immutable Published tag.
+
+        GitHub Published tag дополнительно сверяет read-only governance CI.
+        """
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        current = "v" + APP_VERSION
-        self.assertIn(f"**Published:** immutable [`{current}`]", readme)
-        self.assertIn(f"**Published:** immutable [Тег `{current}`]", roadmap)
+        roadmap = (ROOT / "docs" / "ROADMAP.md").read_text(encoding="utf-8")
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        candidate = "v" + APP_VERSION
+        readme_line = next((
+            line for line in readme.splitlines()
+            if line.startswith("**Published:** immutable [`")
+        ), None)
+        roadmap_line = next((
+            line for line in roadmap.splitlines()
+            if line.startswith("**Published:** immutable [Тег `")
+        ), None)
+        self.assertIsNotNone(readme_line)
+        self.assertIsNotNone(roadmap_line)
+        published_readme = readme_line.split("`")[1]
+        published_roadmap = roadmap_line.split("`")[1]
+        self.assertTrue(published_readme.startswith("v"))
+        self.assertEqual(published_readme, published_roadmap)
+        self.assertIn(f"## {candidate} ", changelog)
+        self.assertIn(candidate, readme)
+        self.assertIn(candidate, roadmap)
         for document in (readme, roadmap):
             self.assertIn("**Deployed:**", document)
             self.assertIn("**Accepted:**", document)
-        self.assertNotIn(f"Release-prep candidate `{current}`", readme)
+        if published_readme != candidate:
+            self.assertIn("release-prep", readme.lower())
+            self.assertNotIn(f"**Published:** immutable [`{candidate}`]", readme)
+            self.assertNotIn(f"**Published:** immutable [Тег `{candidate}`]", roadmap)
+            self.assertIn("PENDING", roadmap)
         self.assertNotIn("Текущий опубликованный `rc.7`", readme)
+
 
     def test_roadmap_active_issues_have_russian_explanations(self):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
