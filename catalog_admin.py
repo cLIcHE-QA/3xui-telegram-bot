@@ -625,8 +625,8 @@ async def plan_set_default(call: CallbackQuery):
         await audit_from_call(db, call, "plan.default", target_type="plan", target_id=str(plan_id), details="enabled=False")
         await call.answer("Тариф по умолчанию для новых пользователей снят.")
     else:
-        if not plan.active:
-            await call.answer("Сначала включи тариф.", show_alert=True)
+        if not plan.active or plan.visibility != "all" or plan.duration_days == 0:
+            await call.answer("По умолчанию доступен только активный публичный тариф с конечным сроком.", show_alert=True)
             return
         try:
             policy = await provisioner.policy_for_plan(plan)
