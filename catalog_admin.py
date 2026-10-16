@@ -36,6 +36,8 @@ class AddPlanStates(StatesGroup):
     traffic = State()
     ip_limit = State()
     price = State()
+    stars = State()
+    visibility = State()
     group = State()
     review = State()
 
@@ -366,6 +368,46 @@ async def plan_add_price(message: Message, state: FSMContext):
         await render_input(message, "Цена должна быть в RUB (например, 499 или 499.90 RUB). До 2 знаков после запятой.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(price_minor=price_minor, currency=currency)
+    await state.set_state(AddPlanStates.stars)
+    await render_input(message,
+        "⭐ Цена в Telegram Stars (целое положительное число; 0 = не продавать через Telegram):",
+        reply_markup=cancel_keyboard("admin:planadd:cancel"),
+    )
+
+
+@catalog_router.message(AddPlanStates.stars)
+async def plan_add_stars(message: Message, state: FSMContext):
+    if not await guard_message(message, state):
+        return
+    raw = (message.text or "").strip()
+    if not re.fullmatch(r"[0-9]{1,8}", raw) or int(raw) > 10_000_000:
+        await render_input(message, "Введите целое число Stars от 0 до 10000000.",
+            reply_markup=cancel_keyboard("admin:planadd:cancel"))
+        return
+    await state.update_data(stars_price=int(raw))
+    await state.set_state(AddPlanStates.visibility)
+    await render_input(message,
+        "👁 Видимость тарифа: выберите режим.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌐 Всем клиентам", callback_data="admin:planadd:visibility:all")],
+            [InlineKeyboardButton(text="🔒 Только администратору", callback_data="admin:planadd:visibility:admin_only")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")],
+        ]),
+    )
+
+
+@catalog_router.callback_query(AddPlanStates.visibility, F.data.startswith("admin:planadd:visibility:"))
+async def plan_add_visibility(call: CallbackQuery, state: FSMContext):
+    if not await guard_call(call):
+        return
+    visibility = (call.data or "").rsplit(":", 1)[-1]
+    if visibility not in {"all", "admin_only"}:
+        await call.answer("Некорректный режим видимости.", show_alert=True)
+        return
+    data = await state.get_data()
+    if int(data.get("price_minor") or 0) == 0 and int(data.get("stars_price") or 0) == 0:
+        visibility = "admin_only"
+    await state.update_data(visibility=visibility)
     await state.set_state(AddPlanStates.group)
     groups = await db.list_server_groups()
     rows = [[InlineKeyboardButton(text="🚫 Без группы", callback_data="admin:planadd:group:none")]]
@@ -375,7 +417,7 @@ async def plan_add_price(message: Message, state: FSMContext):
             callback_data=f"admin:planadd:group:{group.id}",
         )])
     rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")])
-    await render_input(message, 
+    await render_callback(call, 
         "Выбери группу серверов для тарифа.\n"
         "Можно оставить без группы и назначить позже.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -429,6 +471,9 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
             price_minor=int(data["price_minor"]),
             currency=str(data["currency"]),
             server_group_id=data.get("server_group_id"),
+            stars_price=int(data.get("stars_price") or 0),
+            rub_price_enabled=bool(int(data["price_minor"])),
+            visibility=str(data.get("visibility", "all")),
         )
     except sqlite3.IntegrityError:
         await render_callback(call, "Тариф с таким названием уже существует.", reply_markup=plans_back())
