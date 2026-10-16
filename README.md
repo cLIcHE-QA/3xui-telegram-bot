@@ -14,9 +14,9 @@
 
 [Краткий Roadmap](docs/ROADMAP.md) — единственный актуальный источник product и acceptance statuses; [тематический архив старого Roadmap](docs/roadmap/HISTORY_INDEX.md) сохраняет исторические 5803 строки, включая FAIL/STOP, SHA и evidence. Новые проверки записываются в датированные `docs/audits/**`, а не в верхнюю сводку.
 
-## Тарифная модель #705 — draft implementation
+## Тарифная модель #705 — реализация до релиза
 
-Issue #705 развивается в draft PR #710: независимые RUB и Stars/XTR, правила видимости локальных User Groups, бессрочные технические планы и SQLite schema v14. До merge, отдельного release-prep и публикации эти изменения не являются частью rc.15, не Deployed и не Accepted. RUB-PSP — отдельный #336, вне scope #705.
+Issue #705 реализуется через PR #710: независимые RUB и Stars/XTR, правила видимости локальных User Groups, бессрочные технические планы и SQLite schema v14. До отдельного release-prep и публикации эта реализация не является частью Published rc.15, не Deployed и не Accepted. RUB-PSP — отдельный #336, вне scope #705.
 
 ## План внешних платежей
 
