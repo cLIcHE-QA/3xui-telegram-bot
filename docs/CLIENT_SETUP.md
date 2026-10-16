@@ -2,6 +2,8 @@
 
 > **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Опубликован GitHub prerelease `v5.0.0-rc.13`, immutable SHA `fbe2cafc3ace3aa54ec2398ddf5ec15cb0c4e9f5`; оператор подтвердил deployment 2026-10-15T23:02:48Z (`DEPLOY_OK`, Health/DB/3XUI_TCP `ok`, container running/restarts 0). Telegram Flow preflight отдельно вернул `CLIENT_RECORD_PROTOCOL` (A6 BLOCKED, изменений нет по сообщению оператора); точное заполненное поле неизвестно. Независимых VPS/image read-back и полноценного v5 acceptance нет. См. [audit](audits/2026-10-16-v5-rc13-client-record-protocol-smoke.md) и [ROADMAP](ROADMAP.md).
 
+После этого deployment [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686) был слит только в `main`: диагностики `CLIENT_RECORD_PROTOCOL_WG/MTPROTO/MIXED` **нет** в опубликованном `rc.13` и подтверждённом оператором production. Проверка нового кода A6 допустима лишь после отдельно разрешённых Release и deployment; Flow POST не выполнять.
+
 ## Исторический operator-reported deployment rc.9 (2026-10-11)
 
 Историческая операторская production baseline rc.9 сменила `v5.0.0-rc.8` (2026-10-10 23:13 UTC); в период с 2026-10-14 до обновления 2026-10-15 operator-reported production версией была rc.10, см. отдельный аудит.
