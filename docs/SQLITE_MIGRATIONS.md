@@ -19,7 +19,9 @@
 
 Текущая версия схемы определяется последним элементом каталога, а не версией приложения.
 
-**Release-prep `v5.0.0-rc.15`:** SQLite schema остаётся **v13**, новых migrations нет. Кандидат включает scoped Flow safety #689 для многопротокольного клиента с точной проверкой `panelVersion=3.10.2`; миграции/backup/rollback contract бота не изменяются. Текущий Published и операторский Deployed — `v5.0.0-rc.14`; rc.15 **не Published и не Deployed**, независимый production SQLite `quick_check` после отдельного разрешённого deployment PENDING. G-11 NO-GO.
+**Рабочая ветка #705 (не Published):** добавляется schema **v14** `plan_audience_v5_0_0`: `plans.rub_price_enabled`, `visibility`, `include_group_ids`, `exclude_group_ids`. Все изменения additive, legacy-строки сохраняют первоначальную публичную видимость `all` и RUB-настройку. Это лишь структура; полный #705 и rc.16 ещё PENDING.
+
+**Историческое планирование `v5.0.0-rc.15`:** SQLite schema остаётся **v13**, новых migrations нет. Кандидат включает scoped Flow safety #689 для многопротокольного клиента с точной проверкой `panelVersion=3.10.2`; миграции/backup/rollback contract бота не изменяются. Текущий Published и операторский Deployed — `v5.0.0-rc.14`; rc.15 **не Published и не Deployed**, независимый production SQLite `quick_check` после отдельного разрешённого deployment PENDING. G-11 NO-GO.
 
 ## Migration journal
 
@@ -62,6 +64,8 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 12. `v12 bot_update_unknown_ack_v5_0_0` — отдельная append-only таблица `bot_update_acknowledgments` по `job_run_id`, с безопасным read-only evidence, owner actor, reason, timestamp и SQLite triggers против UPDATE/DELETE.
 13. `v13 stars_invoice_cleanup_v5_0_0` — additive `stars_invoice_messages` (order/chat/message identity, `pending/attempted/success/unknown`) для one-shot косметического удаления оплаченных Stars invoices. `attempted` фиксируется до Telegram API; неопределённый результат не повторяется автоматически. Никаких финансовых статусов это не меняет.
 
+
+14. `v14 plan_audience_v5_0_0` — независимый флаг наличия RUB-цены и правила видимости локальных User Groups; старые планы мигрируют без удаления валют/истории и без автоматических назначений.
 
 Commerce write contract поверх schema v6: authenticated `payment.confirmed` применяется одной SQLite transaction (`BEGIN IMMEDIATE`). В одной commit boundary фиксируются `commerce_payments.status=confirmed`, `commerce_orders.status=paid`, exactly-one `entitlements` row и `payment_webhook_events.processing_status=applied`. Исключение до commit откатывает весь набор изменений; повтор того же provider event с тем же payload безопасно возвращает уже применённый результат, а повтор event id с другим payload fail-closed.
 
