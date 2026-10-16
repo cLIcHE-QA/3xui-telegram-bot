@@ -2259,6 +2259,9 @@ async def user_plan_apply_ask(call: CallbackQuery):
     if not rec or not plan:
         await call.answer("Сначала назначь пользователю тариф.", show_alert=True)
         return
+    if plan.duration_days == 0:
+        await call.answer("Используйте ручное одноразовое подтверждение выдачи в выборе тарифа.", show_alert=True)
+        return
     await render_callback(call, 
         f"Применить тариф «{plan.name}» к {await _display_label(rec)}?\n\n"
         f"Срок станет: сейчас + {plan.duration_days} дней\n"
@@ -2522,6 +2525,9 @@ async def user_plan_provision_ask(call: CallbackQuery):
     plan = await db.get_plan(profile.plan_id) if profile and profile.plan_id else None
     if not plan:
         await call.answer("Сначала назначь тариф.", show_alert=True)
+        return
+    if plan.duration_days == 0:
+        await call.answer("Бессрочный технический тариф выдаётся только через manual grant.", show_alert=True)
         return
     await render_callback(call, 
         f"Применить тариф «{plan.name}» к лимитам и выполнить безопасное согласование?\n\n"
