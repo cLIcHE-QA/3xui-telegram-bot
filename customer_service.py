@@ -270,12 +270,51 @@ class CustomerPortalService:
             note="\n".join(notes),
         )
 
-    async def active_plans(self) -> list[PlanRecord]:
-        return [plan for plan in await self.db.list_plans() if plan.active]
+    async def _plan_visible(self, plan: PlanRecord, telegram_id: int) -> bool:
+        """Текущие memberships; ошибка БД или битые правила закрывают доступ."""
+        import json
+        from audience import audience_matches_group_ids
+        if not plan.active or int(plan.stars_price or 0) <= 0:
+            return False
+        visibility = getattr(plan, "visibility", "all")
+        if visibility == "admin_only":
+            return False
+        if visibility == "all":
+            return True
+        if visibility != "groups":
+            return False
+        try:
+            include = json.loads(getattr(plan, "include_group_ids", "[]"))
+            exclude = json.loads(getattr(plan, "exclude_group_ids", "[]"))
+            if not isinstance(include, list) or not include:
+                return False
+            if not isinstance(exclude, list):
+                return False
+            all_ids = include + exclude
+            if any(type(i) is not int or i <= 0 for i in all_ids):
+                return False
+            groups = await self.db.list_user_groups()
+            valid = {g.id for g in groups}
+            if not set(all_ids) <= valid:
+                return False
+            members = await self.db.list_user_group_ids_for_user(telegram_id)
+            return audience_matches_group_ids(members, include_group_ids=include, exclude_group_ids=exclude)
+        except (ValueError, TypeError, RuntimeError, OSError, Exception):
+            return False
 
-    async def active_plan(self, plan_id: int) -> PlanRecord | None:
+    async def active_plans(self, telegram_id: int | None = None) -> list[PlanRecord]:
+        plans = [plan for plan in await self.db.list_plans() if plan.active]
+        if telegram_id is None:
+            return plans
+        return [plan for plan in plans if await self._plan_visible(plan, telegram_id)]
+
+    async def active_plan(self, plan_id: int, telegram_id: int | None = None) -> PlanRecord | None:
         plan = await self.db.get_plan(plan_id)
-        return plan if plan is not None and plan.active else None
+        if plan is None or not plan.active:
+            return None
+        if telegram_id is not None and not await self._plan_visible(plan, telegram_id):
+            return None
+        return plan
 
     async def has_accepted_terms(self, telegram_id: int, terms_version: str) -> bool:
         return await self.db.has_customer_accepted_terms(
@@ -292,8 +331,8 @@ class CustomerPortalService:
     async def get_or_create_stars_order(
         self, *, telegram_id: int, plan: PlanRecord,
     ):
-        if int(plan.stars_price or 0) <= 0:
-            raise ValueError("plan has no Telegram Stars price")
+        if not await self._plan_visible(plan, telegram_id):
+            raise ValueError("plan is not purchasable for this customer")
         profile = await self.profile(telegram_id, read_access=False)
         if not profile.exists:
             raise ValueError("customer account does not exist")
@@ -311,6 +350,9 @@ class CustomerPortalService:
     ) -> bool:
         order = await self.commerce.get_order(order_id)
         if order is None:
+            return False
+        plan = await self.db.get_plan(order.plan_id)
+        if plan is None or not await self._plan_visible(plan, telegram_id):
             return False
         return (
             int(order.telegram_id) == int(telegram_id)
