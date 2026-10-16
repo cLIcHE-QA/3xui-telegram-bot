@@ -274,7 +274,7 @@ async def plan_detail(call: CallbackQuery):
     default_text = "⭐ Убрать тариф по умолчанию" if is_default else "⭐ Сделать тарифом по умолчанию для новых пользователей"
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⭐ Цена в Telegram Stars", callback_data=f"admin:plan:stars:{plan.id}")],
-        [InlineKeyboardButton(text="₽ Цена RUB", callback_data=f"admin:plan:rub:{plan.id}")],
+        [InlineKeyboardButton(text="💰 Цена RUB", callback_data=f"admin:plan:rub:{plan.id}")],
         [InlineKeyboardButton(text="👁 Видимость", callback_data=f"admin:plan:visibility:{plan.id}")],
         [InlineKeyboardButton(text="👥 Аудитория", callback_data=f"admin:plan:audience:{plan.id}")],
         [InlineKeyboardButton(text="🗂 Выбрать группу серверов", callback_data=f"admin:plan:groups:{plan.id}")],
@@ -532,7 +532,7 @@ async def plan_rub_price_start(call: CallbackQuery, state: FSMContext):
     await state.update_data(plan_id=plan_id)
     await state.set_state(PlanRubStates.price)
     await render_callback(call,
-        f"₽ Цена RUB · {plan.name}\\n\\n"
+        f"💰 Цена RUB · {plan.name}\\n\\n"
         f"Сейчас: {_money(plan) if plan.rub_price_enabled else 'не настроена'}\\n"
         "Введите сумму в RUB с точностью до копейки или «-» для отключения. "
         "RUB checkout в Telegram отсутствует.",
