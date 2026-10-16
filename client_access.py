@@ -357,7 +357,7 @@ async def buy_cb(call: CallbackQuery):
         await call.answer()
         return
 
-    plans = await _service().active_plans()
+    plans = await _service().active_plans(call.from_user.id)
     if not plans:
         await render_callback(
             call,
@@ -403,7 +403,7 @@ async def plan_cb(call: CallbackQuery):
     except (TypeError, ValueError):
         await call.answer("Некорректный тариф.", show_alert=True)
         return
-    plan = await _service().active_plan(plan_id)
+    plan = await _service().active_plan(plan_id, call.from_user.id)
     if plan is None:
         await call.answer("Тариф недоступен.", show_alert=True)
         return
