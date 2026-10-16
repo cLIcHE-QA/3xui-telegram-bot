@@ -128,6 +128,33 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("#510", roadmap)
         self.assertIn("⬜ Запланировано", roadmap)
 
+    def test_readme_and_roadmap_published_release_match(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        expression = r"\*\*Published:\*\*[^\n]*?\[`(v\d+\.\d+\.\d+(?:-rc\.\d+)?)`\]"
+        versions = []
+        for document in (readme, roadmap):
+            match = re.search(expression, document)
+            self.assertIsNotNone(match, "нет текущего опубликованного Release")
+            versions.append(match.group(1))
+            self.assertIn("**Deployed:**", document)
+            self.assertIn("**Accepted:**", document)
+            self.assertIn("NOT PASS", document)
+        self.assertEqual(versions[0], versions[1], "README/Roadmap: разные Published Releases")
+        # Во время release-prep будущая APP_VERSION может ещё не быть Published.
+        if versions[0] == "v" + APP_VERSION:
+            self.assertNotIn("Release-prep candidate", readme[:1800])
+            stage = roadmap.split("## Текущий этап: v5 Client Portal", 1)[1].split("\n## ", 1)[0]
+            self.assertIn(versions[0], stage)
+
+    def test_required_ci_reconciles_roadmap_with_github(self):
+        workflow = (ROOT / ".github/workflows/tests.yml").read_text(encoding="utf-8")
+        self.assertIn("issues: read", workflow)
+        self.assertIn(
+            'python3 scripts/check-roadmap-github.py --repository "$GITHUB_REPOSITORY"',
+            workflow,
+        )
+
     def test_roadmap_registry_must_be_contiguous(self):
         import importlib.util
         from tempfile import TemporaryDirectory
@@ -137,12 +164,16 @@ class LivingDocsSemanticTests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         source = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
-        self.assertIn("| [#663]", source)
+        section = source.split("## Активный Issue-реестр (machine-checked)", 1)[1]
+        row_match = re.search(r"(?m)^\| \[#(\d+)\]", section)
+        self.assertIsNotNone(row_match, "ожидается хотя бы один открытый Issue")
+        # Тест не должен зависеть от номера Issue, который позже будет закрыт.
+        active_row = "| [#" + row_match.group(1) + "]"
         with TemporaryDirectory() as folder:
             temp_root = Path(folder)
             (temp_root / "docs").mkdir()
             (temp_root / "docs/ROADMAP.md").write_text(
-                source.replace("\n| [#663]", "\n\n| [#663]", 1),
+                source.replace("\n" + active_row, "\n\n" + active_row, 1),
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ValueError, "contiguous"):
