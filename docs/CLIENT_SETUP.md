@@ -1,6 +1,8 @@
 # Client Portal v5 — настройка контролируемого пилота
 
-> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Опубликован GitHub prerelease `v5.0.0-rc.12`, immutable SHA `a88fd6947f04d40570413e792cda7150e738abbd`; production deployment того же tag **operator-reported** 2026-10-15T20:59:01Z: `DEPLOY_OK`, Health/DB/3XUI_TCP `ok`, container running/restarts 0. Независимой VPS/image attestation, SQLite quick_check, Node Flow A2, preflight A6 и navigation #679 acceptance ещё нет — **PENDING**. Общий v5 G-11 PARTIAL / NO-GO, pilot allowlist не расширять. См. [датированный deployment audit](audits/2026-10-15-v5-rc12-operator-deployment-checkpoint.md) и [ROADMAP](ROADMAP.md).
+> **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** Опубликован GitHub prerelease `v5.0.0-rc.13`, immutable SHA `fbe2cafc3ace3aa54ec2398ddf5ec15cb0c4e9f5`; оператор подтвердил deployment 2026-10-15T23:02:48Z (`DEPLOY_OK`, Health/DB/3XUI_TCP `ok`, container running/restarts 0). Telegram Flow preflight отдельно вернул `CLIENT_RECORD_PROTOCOL` (A6 BLOCKED, изменений нет по сообщению оператора); точное заполненное поле неизвестно. Независимых VPS/image read-back и полноценного v5 acceptance нет. См. [audit](audits/2026-10-16-v5-rc13-client-record-protocol-smoke.md) и [ROADMAP](ROADMAP.md).
+
+После этого deployment [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686) был слит только в `main`: диагностики `CLIENT_RECORD_PROTOCOL_WG/MTPROTO/MIXED` **нет** в опубликованном `rc.13` и подтверждённом оператором production. Проверка нового кода A6 допустима лишь после отдельно разрешённых Release и deployment; Flow POST не выполнять.
 
 ## Исторический operator-reported deployment rc.9 (2026-10-11)
 

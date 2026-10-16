@@ -1,6 +1,8 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.13
 
-Telegram Control Plane для 3x-ui с защищённым `/admin` и pilot Client Portal v5. **`v5.0.0-rc.13` — подготовленный, не опубликованный и не развёрнутый release candidate** с четырьмя безопасными причинами `CLIENT_RECORD` (#663 / PR #683). Текущий Published и operator-reported Deployed: `v5.0.0-rc.12`. Общее v5 acceptance G-11 PARTIAL / NO-GO.
+Telegram Control Plane для 3x-ui с защищённым `/admin` и pilot Client Portal v5. **`v5.0.0-rc.13` Published** как immutable prerelease (`fbe2cafc3ace3aa54ec2398ddf5ec15cb0c4e9f5`) и **operator-reported Deployed** 2026-10-15T23:02:48Z (`DEPLOY_OK`, container running/restarts 0, Health/DB/3XUI_TCP `ok`). На read-only UI preflight A6 `CLIENT_RECORD_PROTOCOL` BLOCKED; не PASS, значения общих полей Master не собирать и Flow не изменять. G-11 PARTIAL/NO-GO, public launch BLOCKED.
+
+**После публикации rc.13:** [PR #686](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/686) добавил классификацию `CLIENT_RECORD_PROTOCOL_WG/MTPROTO/MIXED` только в `main` (merge `f251b3e072f440e82708c4c4c7e863b5d89e7d5b`); эти изменения **не входят** в immutable Published/Deployed `v5.0.0-rc.13`. A6 остаётся BLOCKED до отдельного выпуска, deployment и targeted read-only проверки.
 
 **`v5.0.0-rc.12` опубликован как immutable controlled-canary prerelease и operator-reported Deployed 2026-10-15T20:59:01Z** на SHA `a88fd6947f04d40570413e792cda7150e738abbd`: `DEPLOY_OK`, container running/restarts 0, Health/DB/3XUI TCP `ok`; independent VPS/image attestation и targeted A2/A6/#679 production acceptance PENDING. Реализованы #659/#663/#679 (read-only Node tag alias, безопасный код preflight и корректный Back/Refresh). Общий v5 G-11 PARTIAL/NO-GO, public launch BLOCKED.
 
