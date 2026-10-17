@@ -23,6 +23,8 @@
 
 **Исторический Published, текущий operator-reported Deployed `v5.0.0-rc.15`:** runtime bot SQLite schema **v13**, без новой migration (Flow safety #689, pinned 3x-ui v3.10.2). Immutable GitHub Release опубликован `2026-10-16T12:53:58Z`; deployment rc.15 только operator-reported `2026-10-16T13:16:00Z`, независимый production DB quick_check read-back PENDING. Schema v14 включена в Published rc.16, но отсутствует в operator-reported Deployed rc.15; G-11 NO-GO.
 
+**Кандидат rc.16.2 / #724:** текущая bot schema version — **15**; вперед-only schema **v15** `plan_hwid_limit_v5_0_0`: `plans.hwid_limit INTEGER NULL DEFAULT NULL CHECK(0..1000)`. Старые планы остаются `NULL` и не меняют HWID у уже существующих пользователей; новые получают явный лимит через мастер. Не переинтерпретировать `NULL` как `0`. Перед deployment требуется pre-deploy backup, journal/schema read-back, затем targeted read-back 3x-ui `limitIp` и `limitHwid`.
+
 ## Migration journal
 
 В каждой bot DB создаётся служебная таблица `schema_migrations`.
@@ -78,7 +80,7 @@ Migration v2–v14 имеют `requires_backup=False`: они additive, не у�
 После успешного применения более новой schema старый application release, который её не знает, обязан остановиться как `DatabaseSchemaTooNewError`. Поэтому downgrade приложения через обычную смену tag без восстановления совместимой pre-migration DB не поддерживается.
 
 
-## Тарифный каталог #705 — границы schema v14
+## Тарифный каталог #705 — границы schema v14 (и additive v15 / #724)
 
 `rub_price_enabled=0` выключает лишь будущий RUB-канал, не меняет `price_minor` исторических заказов. `stars_price=0` означает отсутствие продажи в Telegram; RUB-цена не преобразуется в XTR. `visibility` принимает `all`, `groups` или `admin_only`. `include_group_ids` / `exclude_group_ids` — JSON-массивы идентификаторов **локальных** User Groups; `groups` без include deny-by-default, exclude имеет приоритет и при ошибке SQLite/неизвестной группе пользовательская продажа закрывается. Исторические plans получают `all` и сохранённый RUB-признак; существующие `EUR` не переоцениваются и не конвертируются.
 
