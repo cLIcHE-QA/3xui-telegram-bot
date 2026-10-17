@@ -144,6 +144,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (11, "entitlement_quota_cycle_v5_0_0", "success"),
                         (12, "bot_update_unknown_ack_v5_0_0", "success"),
                         (13, "stars_invoice_cleanup_v5_0_0", "success"),
+                        (14, "plan_audience_v5_0_0", "success"),
                         (15, "plan_hwid_limit_v5_0_0", "success"),
                     ],
                 )
@@ -195,6 +196,7 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                         (11, "entitlement_quota_cycle_v5_0_0", "success"),
                         (12, "bot_update_unknown_ack_v5_0_0", "success"),
                         (13, "stars_invoice_cleanup_v5_0_0", "success"),
+                        (14, "plan_audience_v5_0_0", "success"),
                         (15, "plan_hwid_limit_v5_0_0", "success"),
                     ],
                 )
