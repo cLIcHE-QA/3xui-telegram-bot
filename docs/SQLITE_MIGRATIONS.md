@@ -86,7 +86,7 @@ Migration v2–v14 имеют `requires_backup=False`: они additive, не у�
 
 Журнал ручных выдач фиксирует идентичность admin actor, план, предыдущий план, временные поля и bounded result_code, но **не** создаёт ни Orders, ни Payments. Успех подтверждается отдельным 3x-ui read-back; `in_flight/unknown` требуют ручного review и блокируют automatic replay после restart. Повтор уже `active` — идемпотентен.
 
-Технический профиль (`duration_days=0`, `traffic_gb=0`, `ip_limit=0`, отсутствие двух цен) допускается только для ручной административной выдачи. Миграция не создаёт ни назначений, ни Orders, ни entitlements, ни PSP checkout. Применение schema v14 на production требует отдельного разрешённого release/deployment и pre-migration backup. Rollback после применения v14 через downgrade без восстановления совместимой DB не поддерживается.
+Технический профиль (`duration_days=0`, `traffic_gb=0`, отсутствие двух цен, `rub_price_enabled=0`, `visibility=admin_only`) допускается только для ручной административной выдачи. IP и HWID независимо задаются в диапазоне `0…1000`; для старых тарифов `hwid_limit=NULL` означает сохранить индивидуальный HWID (не равен 0). Ненулевой трафик бессрочных тарифов запрещён до отдельного решения о политике сброса квоты. Миграция не создаёт ни назначений, ни Orders, ни entitlements, ни PSP checkout. Применение schema v14 на production требует отдельного разрешённого release/deployment и pre-migration backup. Rollback после применения v14 через downgrade без восстановления совместимой DB не поддерживается.
 
 ## Startup semantics
 
