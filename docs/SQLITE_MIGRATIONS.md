@@ -23,7 +23,7 @@
 
 **Исторический Published, текущий operator-reported Deployed `v5.0.0-rc.15`:** runtime bot SQLite schema **v13**, без новой migration (Flow safety #689, pinned 3x-ui v3.10.2). Immutable GitHub Release опубликован `2026-10-16T12:53:58Z`; deployment rc.15 только operator-reported `2026-10-16T13:16:00Z`, независимый production DB quick_check read-back PENDING. Schema v14 включена в Published rc.16, но отсутствует в operator-reported Deployed rc.15; G-11 NO-GO.
 
-**Кандидат rc.16.2 / #724:** текущая bot schema version — **15**; вперед-only schema **v15** `plan_hwid_limit_v5_0_0`: `plans.hwid_limit INTEGER NULL DEFAULT NULL CHECK(0..1000)`. Старые планы остаются `NULL` и не меняют HWID у уже существующих пользователей; новые получают явный лимит через мастер. Не переинтерпретировать `NULL` как `0`. Перед deployment требуется pre-deploy backup, journal/schema read-back, затем targeted read-back 3x-ui `limitIp` и `limitHwid`.
+**Release-prep `v5.0.0-rc.16.2` / #724 (не Published/Deployed):** текущая bot schema version — **15**; вперед-only schema **v15** `plan_hwid_limit_v5_0_0`: `plans.hwid_limit INTEGER NULL DEFAULT NULL CHECK(0..1000)`. Старые планы остаются `NULL` и не меняют HWID у уже существующих пользователей; новые получают явный лимит через мастер. Не переинтерпретировать `NULL` как `0`. Перед deployment требуется pre-deploy backup, journal/schema read-back, затем targeted read-back 3x-ui `limitIp` и `limitHwid`.
 
 ## Migration journal
 
