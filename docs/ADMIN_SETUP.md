@@ -10,6 +10,8 @@ Scope документа — только **Admin Control Plane**. Client Portal
 
 **Schema v15 / #724 (`v5.0.0-rc.16.2` release-prep, не Published/Deployed):** перед deployment штатный pre-deploy backup; SQLite добавляет nullable `plans.hwid_limit`, старые планы получают `NULL`, чтобы сохранять индивидуальный `limitHwid` без silent reset. Мастер нового тарифа запрашивает отдельно IP и HWID (0 = без ограничения); read-back обоих полей обязателен. Проверить журнал schema_migrations, `PRAGMA quick_check` и targeted 3x-ui/Telegram smoke; не менять действующий production rc.16.1 до разрешения.
 
+**Операторский smoke 2026-10-17 / `v5.0.0-rc.16.2`:** S1–S9, targeted Flow, HWID/IP, ручная выдача, active→finite, платёжные журналы, post-health — PASS со слов оператора; B5 (клиентский каталог) BLOCKED. Это не независимый read-back VPS; #705 и G-11 не Accepted. В планируемом `rc.16.3` (#730, PR #732) после утверждения разрешены индивидуальные IP/HWID 0…1000 для бессрочного бесплатного admin-only ручного плана при трафике 0; только после отдельного merge/release/deploy, не текущий runtime. Schema v15 не меняется.
+
 ## Тарифная миграция #705 — operator-reported deployment, acceptance PENDING
 
 PR #710 предусматривает forward-only schema v14 с rub_price_enabled, visibility и локальными include/exclude User Groups. Дополнительные env-параметры, системные пакеты или credentials не требуются. Перед отдельно разрешённым deployment обязателен совместимый backup SQLite; после обновления — штатные schema/quick_check. Legacy валюты не конвертируются, RUB checkout/PSP через Telegram не появляется. Публикация rc.16 подтверждена GitHub; deployment и acceptance PENDING.

@@ -252,7 +252,7 @@ async def plan_detail(call: CallbackQuery):
     group_name = await _group_name(plan.server_group_id)
     traffic = "без лимита" if plan.traffic_gb == 0 else f"{plan.traffic_gb} GB"
     ip_limit = "без лимита" if plan.ip_limit == 0 else str(plan.ip_limit)
-    hwid_limit = ("сохраняется индивидуальный лимит (legacy)" if plan.hwid_limit is None
+    hwid_limit = ("не задан в тарифе — сохраняется текущий лимит пользователя" if plan.hwid_limit is None
                   else ("без лимита" if plan.hwid_limit == 0 else str(plan.hwid_limit)))
     status = "🟢 активен" if plan.active else "⚪ отключён"
     raw_default = await db.get_runtime_setting("default_plan_id", "")
@@ -274,7 +274,7 @@ async def plan_detail(call: CallbackQuery):
         f"Срок: {'Бессрочно' if plan.duration_days == 0 else str(plan.duration_days) + ' дней'}\n"
         f"Трафик: {traffic}\n"
         f"Лимит IP: {ip_limit}\n"
-        f"Лимит HWID (устройств): {hwid_limit}\n"
+        f"Лимит HWID: {hwid_limit}\n"
         f"Цена RUB: {_money(plan) if plan.rub_price_enabled else 'не настроена'}\n"
         f"Видимость: {visibility_label(plan.visibility)}\n"
         f"Telegram Stars: {plan.stars_price if plan.stars_price else 'не настроено'}\n"
