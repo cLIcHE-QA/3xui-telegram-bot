@@ -2411,8 +2411,7 @@ async def manual_plan_grant_review(call: CallbackQuery):
             f"readback={record.result_code}; mutation_not_retried=true",
         )
         await render_callback(
-            call, f"✅ Ручная выдача #{record.id} подтверждена read-only 3x-ui "
-            "сверкой без повторного применения лимитов.",
+            call, (f"✅ Переход #{record.id} завершён по read-only 3x-ui сверке." if record.status == "superseded" else f"✅ Ручная выдача #{record.id} подтверждена read-only 3x-ui сверкой без повторного применения лимитов."),
             reply_markup=back_plan(tg_id),
         )
     await call.answer()
