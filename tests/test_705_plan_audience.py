@@ -24,7 +24,7 @@ class CatalogAudienceTests(unittest.IsolatedAsyncioTestCase):
         self.tmp.cleanup()
 
     async def test_additive_schema_and_default_legacy_visibility(self):
-        self.assertEqual(CURRENT_SCHEMA_VERSION, 14)
+        self.assertEqual(CURRENT_SCHEMA_VERSION, 15)
         self.assertEqual(await self.db.create_plan(name="legacy", duration_days=30, traffic_gb=0,
                             ip_limit=0, price_minor=20000, currency="RUB", stars_price=30), 1)
         plan = await self.db.get_plan(1)
