@@ -149,6 +149,23 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
             for table in ("commerce_orders", "commerce_payments", "entitlements", "payments"):
                 self.assertEqual(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0], 0)
 
+    def test_indefinite_wizard_skips_payment_and_enforces_limits_early(self):
+        source = (Path(__file__).resolve().parents[1] / "catalog_admin.py").read_text(encoding="utf-8")
+        duration = source.split("async def plan_add_duration(", 1)[1].split(
+            "async def plan_add_traffic(", 1
+        )[0]
+        self.assertIn('if value == 0:', duration)
+        self.assertIn('stars_price=0, visibility="admin_only"', duration)
+        self.assertIn('traffic_gb=0, price_minor=0, currency="RUB"', duration)
+        hwid = source.split("async def plan_add_hwid_limit(", 1)[1].split(
+            "async def plan_add_price(", 1
+        )[0]
+        self.assertIn('if int(data["duration_days"]) == 0:', hwid)
+        self.assertIn("await _plan_add_group_keyboard()", hwid)
+        self.assertIn("admin:planadd:backip", source)
+        self.assertIn("int(data[\"hwid_limit\"])", source)
+        self.assertIn("int(data[\"ip_limit\"])", source)
+
     async def test_bounded_indefinite_grant_readback_and_switch(self):
         bounded = await self.db.create_plan(
             name="indefinite-limits", duration_days=0, traffic_gb=0, ip_limit=2,
