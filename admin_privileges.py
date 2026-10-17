@@ -207,7 +207,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("users.admin", "regex", r"^admin:u:provrun:\d+:strict$")
     + _rules("users.support", "regex", r"^admin:u:planassign:[a-f0-9]{16}$")
     + _rules("users.admin", "regex", r"^admin:u:manualrun:[a-f0-9]{16}$")
-    + _rules("users.admin", "regex", r"^admin:u:manualcheck:\d+$")
+    + _rules("users.admin", "regex", r"^admin:u:manualcheck:\d+$", r"^admin:u:manualswitch:[a-f0-9]{16}$")
     + _rules(
         "user_groups.view",
         "exact",
