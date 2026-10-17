@@ -352,6 +352,7 @@ async def _create_user_context(plan_id: int) -> dict[str, object]:
             "duration_days": max(0, int(plan.duration_days)),
             "traffic_gb": max(0, int(plan.traffic_gb)),
             "ip_limit": max(0, int(plan.ip_limit)),
+            "hwid_limit": plan.hwid_limit,
             "inbound_ids": inbound_ids,
             "unavailable_members": list(policy.unavailable_members),
         }
@@ -368,6 +369,7 @@ async def _create_user_context(plan_id: int) -> dict[str, object]:
         "duration_days": days,
         "traffic_gb": traffic,
         "ip_limit": ip_limit,
+        "hwid_limit": DEFAULT_HWID_LIMIT,
         "inbound_ids": [int(item.id) for item in chosen],
         "unavailable_members": [],
     }
@@ -405,6 +407,7 @@ async def _create_preview(data: dict[str, object], plan_id: int) -> tuple[str, I
     expiry = int((time.time() + days * 86400) * 1000) if days else 0
     traffic_gb = int(ctx["traffic_gb"])
     ip_limit = int(ctx["ip_limit"])
+    hwid_limit = ctx["hwid_limit"]
     inbound_ids = list(ctx["inbound_ids"])
     lines = [
         "➕ Новый пользователь",
@@ -417,7 +420,7 @@ async def _create_preview(data: dict[str, object], plan_id: int) -> tuple[str, I
         f"Срок: {fmt_date(expiry)}",
         f"Лимит трафика: {traffic_gb} GB" if traffic_gb else "Лимит трафика: без лимита",
         f"IP limit: {ip_limit}" if ip_limit else "IP limit: без лимита",
-        f"HWID limit: {DEFAULT_HWID_LIMIT}",
+        f"HWID limit: {hwid_limit if hwid_limit is not None else 'сохранить индивидуальный (legacy)'}",
         f"Целевые Inbounds: {len(inbound_ids)}",
     ]
     unavailable = list(ctx.get("unavailable_members") or [])
@@ -619,6 +622,7 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
     plan_group = await db.get_server_group(plan.server_group_id) if plan and plan.server_group_id else None
     current_traffic = "недоступно"
     current_ip = "недоступно"
+    current_hwid = "недоступно"
     try:
         obj = await xui.get_client(rec.email)
         client = obj.get("client", obj)
@@ -626,6 +630,8 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
         limit_ip = int(client.get("limitIp") or 0)
         current_traffic = human_bytes(total) if total else "без лимита"
         current_ip = str(limit_ip) if limit_ip else "без лимита"
+        limit_hwid = int(client.get("limitHwid") or 0)
+        current_hwid = str(limit_hwid) if limit_hwid else "без лимита"
     except XUIError:
         pass
     lines = [
@@ -640,12 +646,15 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
             "",
             "Параметры тарифа:",
             f"📦 Трафик: {plan.traffic_gb} GB" if plan.traffic_gb else "📦 Трафик: без лимита",
-            f"📱 Лимит IP: {plan.ip_limit}" if plan.ip_limit else "📱 IP limit: без лимита",
+            f"📱 Лимит IP: {plan.ip_limit}" if plan.ip_limit else "📱 Лимит IP: без лимита",
+            ("🧩 Лимит HWID: индивидуальный (legacy)" if plan.hwid_limit is None
+             else (f"🧩 Лимит HWID: {plan.hwid_limit}" if plan.hwid_limit else "🧩 Лимит HWID: без лимита")),
             f"🗂 Группа серверов: {plan_group.name if plan_group else 'не назначена'}",
             "",
             "Текущие параметры пользователя:",
             f"📦 Трафик: {current_traffic}",
-            f"📱 IP limit: {current_ip}",
+            f"📱 Лимит IP: {current_ip}",
+            f"🧩 Лимит HWID: {current_hwid}",
             f"🗂 Группа серверов: {current_group.name if current_group else 'не назначена'}",
         ]
     if manual is not None:
@@ -3379,6 +3388,7 @@ async def admin_users_create_run(call: CallbackQuery, state: FSMContext):
     duration_days = int(ctx["duration_days"])
     traffic_gb = int(ctx["traffic_gb"])
     ip_limit = int(ctx["ip_limit"])
+    hwid_limit = ctx["hwid_limit"]
     inbound_ids = list(ctx["inbound_ids"])
     now = int(time.time())
     expiry = int((now + duration_days * 86400) * 1000) if duration_days else 0
@@ -3394,7 +3404,7 @@ async def admin_users_create_run(call: CallbackQuery, state: FSMContext):
             total_bytes=traffic_gb * 1024**3,
             expiry_time_ms=expiry,
             limit_ip=ip_limit,
-            limit_hwid=DEFAULT_HWID_LIMIT,
+            limit_hwid=(int(hwid_limit) if hwid_limit is not None else DEFAULT_HWID_LIMIT),
             comment=f"Создано Admin Control Plane · {ctx['plan_name']}",
             flow=settings.vless_flow,
         )

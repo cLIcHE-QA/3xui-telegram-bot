@@ -266,7 +266,7 @@ _EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
     "plans": (
         "id", "name", "duration_days", "traffic_gb", "ip_limit", "price_minor",
         "currency", "server_group_id", "active", "created_at", "stars_price",
-        "rub_price_enabled", "visibility", "include_group_ids", "exclude_group_ids",
+        "rub_price_enabled", "visibility", "include_group_ids", "exclude_group_ids", "hwid_limit",
     ),
     "hosts": ("id", "label", "hostname", "role", "enabled", "created_at"),
     "audit_log": (
@@ -400,6 +400,7 @@ async def _validate_current_schema(
     include_entitlement_quota_cycle: bool = True,
     include_bot_update_acknowledgments: bool = False,
     include_plan_audience: bool = False,
+    include_plan_hwid: bool = False,
 ) -> None:
     skipped_tables: set[str] = set()
     if not include_user_groups:
@@ -445,6 +446,8 @@ async def _validate_current_schema(
                 column for column in expected
                 if column not in {"checkout_url", "idempotency_key"}
             )
+        if table == "plans" and not include_plan_hwid:
+            expected = tuple(column for column in expected if column != "hwid_limit")
         if table == "plans" and not include_plan_stars_price:
             expected = tuple(column for column in expected if column != "stars_price")
         if table == "plans" and not include_plan_audience:
@@ -520,7 +523,7 @@ async def _validate_baseline_v1_schema(db: aiosqlite.Connection) -> None:
             expected = tuple(
                 column for column in expected_current if column not in {
                     "stars_price", "rub_price_enabled", "visibility",
-                    "include_group_ids", "exclude_group_ids",
+                    "include_group_ids", "exclude_group_ids", "hwid_limit",
                 }
             )
         else:
@@ -1106,6 +1109,20 @@ async def _migration_0014_plan_audience_v5_0_0(db: aiosqlite.Connection) -> None
     )
 
 
+async def _migration_0015_plan_hwid_limit_v5_0_0(db: aiosqlite.Connection) -> None:
+    """NULL сохраняет прежний per-user HWID для существующих тарифов."""
+    columns = {str(row[1]) for row in await (await db.execute('PRAGMA table_info("plans")')).fetchall()}
+    if "hwid_limit" not in columns:
+        await db.execute(
+            "ALTER TABLE plans ADD COLUMN hwid_limit INTEGER DEFAULT NULL "
+            "CHECK(hwid_limit IS NULL OR (hwid_limit BETWEEN 0 AND 1000))"
+        )
+    await _validate_current_schema(
+        db, include_bot_update_acknowledgments=True, include_plan_audience=True,
+        include_plan_hwid=True,
+    )
+
+
 MIGRATIONS: tuple[MigrationStep, ...] = (
     MigrationStep(
         version=1,
@@ -1188,6 +1205,8 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
         version=14, name="plan_audience_v5_0_0",
         apply=_migration_0014_plan_audience_v5_0_0, requires_backup=False,
     ),
+    MigrationStep(version=15, name="plan_hwid_limit_v5_0_0",
+                  apply=_migration_0015_plan_hwid_limit_v5_0_0, requires_backup=False),
 )
 
 CURRENT_SCHEMA_VERSION = MIGRATIONS[-1].version
@@ -1382,7 +1401,8 @@ async def run_migrations(
 
         if steps == MIGRATIONS:
             await _validate_current_schema(
-                db, include_bot_update_acknowledgments=True, include_plan_audience=True
+                db, include_bot_update_acknowledgments=True, include_plan_audience=True,
+                include_plan_hwid=True,
             )
         await _quick_check(db)
         return current_version
