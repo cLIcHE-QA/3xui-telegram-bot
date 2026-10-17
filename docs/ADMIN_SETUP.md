@@ -8,6 +8,8 @@ Scope документа — только **Admin Control Plane**. Client Portal
 
 **Deployment checkpoint 2026-10-17:** оператор сообщил `DEPLOY_OK` для `v5.0.0-rc.16.1` / `31401e81e3f02d1220fc55a55eb8e3b3d61499a0`, `DB/3XUI_TCP=ok`, `RestartCount=0`. Это **operator-reported deployment**, не independent VPS/SQLite/3x-ui attestation и не acceptance #705. Отдельный operator-reported `--status` PASS (2026-10-17T05:34:10Z); schema v14/journal, UX и лимиты через безопасный targeted smoke — PENDING; [audit](audits/2026-10-17-v5-rc16-1-operator-deployment-checkpoint.md).
 
+**Schema v15 / #724 (только кандидат rc.16.2):** перед deployment штатный pre-deploy backup; SQLite добавляет nullable `plans.hwid_limit`, старые планы получают `NULL`, чтобы сохранять индивидуальный `limitHwid` без silent reset. Мастер нового тарифа запрашивает отдельно IP и HWID (0 = без ограничения); read-back обоих полей обязателен. Проверить журнал schema_migrations, `PRAGMA quick_check` и targeted 3x-ui/Telegram smoke; не менять действующий production rc.16.1 до разрешения.
+
 ## Тарифная миграция #705 — operator-reported deployment, acceptance PENDING
 
 PR #710 предусматривает forward-only schema v14 с rub_price_enabled, visibility и локальными include/exclude User Groups. Дополнительные env-параметры, системные пакеты или credentials не требуются. Перед отдельно разрешённым deployment обязателен совместимый backup SQLite; после обновления — штатные schema/quick_check. Legacy валюты не конвертируются, RUB checkout/PSP через Telegram не появляется. Публикация rc.16 подтверждена GitHub; deployment и acceptance PENDING.
