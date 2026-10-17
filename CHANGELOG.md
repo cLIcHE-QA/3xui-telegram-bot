@@ -8,8 +8,8 @@
 
 ## Не опубликовано — исправления для v5.0.0-rc.16.2
 
-- [#724](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/724): независимые значения IP и HWID в мастере создания, карточке и назначении тарифа, включая создание пользователя; добавлена schema v15. Для старых планов `hwid_limit=NULL` сохраняет действующий персональный HWID, новые тарифы явно задают число (0 = без ограничения). Remote `limitHwid` проверяется отдельно; неопределённый outcome остаётся fail-closed.
-- `rc.16.2` не Published/Deployed/Accepted, требуется отдельный выпуск и targeted smoke.
+- [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691): в редакторе scoped Flow для Master Inbound больше не показывается ошибочное `Node Panel: не проверено`, вместо этого — `не требуется (Master)`. Для direct node экран явно сообщает, что новую адресную проверку не выполнял. Исторический кэш TTL 180 секунд, provider mutations и ограничения безопасности не меняются.
+- Выпуск и targeted production acceptance PENDING; текущий Published/Deployed остаётся `v5.0.0-rc.16.1`.
 
 ## v5.0.0-rc.16.1 — Исправления назначения тарифов после rc.16
 

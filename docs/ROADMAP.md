@@ -4,6 +4,9 @@
 
 ## Актуальная сводка проекта
 
+**#691 / Flow UI (кандидат rc.16.2, 2026-10-17):** оператор подтвердил на rc.16.1, что `✏️ Изменить Flow` показывает `Node Panel: не проверено` даже для Master Inbound; это некорректная подпись, так как direct Node Panel для Master не требуется. Готовится отдельный UI-only PR: для Master `не требуется`, для direct Node `не проверено на этом экране`. Исторический read-only Flow TTL 180 секунд остаётся отдельным источником без elevation в provider evidence. **Не Merged/Published/Deployed/Accepted; #691 OPEN, targeted smoke PENDING, G-11 NO-GO.**
+
+
 **#724 / кандидат rc.16.2 (2026-10-17):** обнаружено смешение IP и HWID в создании тарифа и неприменение HWID в provisioning. В отдельной ветке готовятся два независимых поля и additive SQLite v15 с сохранением legacy `NULL`. Issue #724 OPEN, merge/CI/release/deployment/acceptance пока PENDING; production остаётся `v5.0.0-rc.16.1`.
 
 **Deployment checkpoint 2026-10-17 08:27 EEST:** оператор сообщил `DEPLOY_OK` для [`v5.0.0-rc.16.1`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.1) / `31401e81e3f02d1220fc55a55eb8e3b3d61499a0`, `APP_VERSION` совпала, `DB=ok`, `3XUI_TCP=ok`, Docker subnet `172.19.0.0/16`, `RestartCount=0`, pre-deploy backup path сообщён приватно. **Deployed: operator-reported PASS только для штатного deployment baseline**, независимый VPS/image read-back PENDING. [Датированный audit](audits/2026-10-17-v5-rc16-1-operator-deployment-checkpoint.md). Отдельный operator-reported `--status` 2026-10-17T05:34:10Z **PASS**: Git tag/SHA, container running, restart 0, bot version, Health/DB/3x-ui connectivity ok, subnet совпал. SQLite schema v14/journal, targeted Telegram/3x-ui #705/#691 и финальный post-smoke health **PENDING**. Issue #705/#691 остаются OPEN, G-11 PARTIAL/NO-GO, public rollout BLOCKED.

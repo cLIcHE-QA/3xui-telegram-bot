@@ -16,6 +16,13 @@ from flow_ui_view import node_label, inbound_label, load_node_names
 def flow_label(value: str) -> str:
     return value or "none"
 
+
+def node_panel_editor_label(node_id: int) -> str:
+    """Информационная подпись: статус edit-экрана не берётся из исторического кэша."""
+    if node_id == 0:
+        return "Node Panel: — не требуется (Master)"
+    return "Node Panel: ⚪ не проверено на этом экране (прошлая проверка не live)"
+
 PAGE_SIZE = 8
 
 def page_keyboard(items, page: int, *, route_prefix: str, back):
@@ -117,7 +124,7 @@ def register_flow_edit_handlers(router: Router, *, db, xui, settings) -> None:
         names = await load_node_names(xui)
         rows = [(("✅ " if target.current_flow == flow else "▫️ ") + flow_label(flow), f"admin:u:flowset:{tg_id}:{node_id}:{iid}:{code}") for code, flow in FLOW_CHOICES.items()]
         rows.append(("⬅ Inbounds", f"admin:u:flowib:{tg_id}:{node_id}"))
-        await render_callback(call, f"✏️ Flow · {node_label(node_id, names)} / {inbound_label(iid, target.remark)}\n\nMaster Inbound: {flow_label(target.current_flow)}\nNode Panel: ⚪ не проверено\n\nВыберите значение:", reply_markup=keyboard(*rows))
+        await render_callback(call, f"✏️ Flow · {node_label(node_id, names)} / {inbound_label(iid, target.remark)}\n\nMaster Inbound: {flow_label(target.current_flow)}\n{node_panel_editor_label(node_id)}\n\nВыберите значение:", reply_markup=keyboard(*rows))
         await call.answer()
 
     @router.callback_query(F.data.regexp(r"^admin:u:flowset:\d+:\d+:\d+:[nvu]$"))
