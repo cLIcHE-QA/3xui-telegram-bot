@@ -42,6 +42,24 @@ class DatabaseMigrationTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("quota_reset_status", entitlement_columns)
                 self.assertEqual(conn.execute("PRAGMA quick_check").fetchone()[0], "ok")
 
+    async def test_v14_to_v15_preserves_existing_plan_without_hwid_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bot.sqlite3"
+            await run_migrations(str(path), migrations=MIGRATIONS[:14])
+            with sqlite3.connect(path) as conn:
+                conn.execute(
+                    "INSERT INTO plans(name,duration_days,traffic_gb,ip_limit,price_minor,currency,active,created_at) "
+                    "VALUES ('Старый',30,1,2,10000,'RUB',1,100)"
+                )
+                conn.commit()
+            await run_migrations(str(path))
+            with sqlite3.connect(path) as conn:
+                self.assertIsNone(conn.execute(
+                    "SELECT hwid_limit FROM plans WHERE name='Старый'"
+                ).fetchone()[0])
+                self.assertEqual(conn.execute("PRAGMA quick_check").fetchone()[0], "ok")
+                self.assertEqual(conn.execute("SELECT MAX(version) FROM schema_migrations WHERE status='success'").fetchone()[0], 15)
+
     async def test_legacy_database_without_journal_is_upgraded_in_place(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "bot.sqlite3"
