@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Не опубликовано — исправления для v5.0.0-rc.16.2
+
+- [#721](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/721): для `active` ручной бессрочной выдачи добавлен отдельный Admin-only переход на обычный тариф с одноразовым подтверждением, 3x-ui read-back, SQLite CAS и read-only recovery без повторной mutation. При `unknown/in_flight` отмена ограничения не производится; результат не считается подтверждённым до provider postcondition.
+- Предстоящий RC не опубликован и не развернут, production acceptance PENDING.
+
 ## v5.0.0-rc.16.1 — Исправления назначения тарифов после rc.16
 
 - [PR #714](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/714) / [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705): назначение обычного тарифа: одноразовое подтверждение и проверяемое применение в 3x-ui; read-only preflight до бессрочной ручной выдачи.
