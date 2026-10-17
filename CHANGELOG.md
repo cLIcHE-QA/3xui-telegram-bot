@@ -6,6 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.16.3 — Понятный HWID, ограниченные бессрочные тарифы и объяснение покупки
+
+- [PR #729](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/729) / [#734](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/734): в карточке старого тарифа вместо `legacy` показано «Лимит HWID: не задан в тарифе — сохраняется текущий лимит пользователя». Семантика `NULL`/0 и действующие ограничения 3x-ui не меняются.
+- [PR #732](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/732) / [#730](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/730): у скрытого бесплатного бессрочного ручного тарифа разрешены независимые IP/HWID 0…1000; трафик и цены RUB/Stars остаются 0, видимость admin_only. Мастер объясняет ограничения сразу и пропускает неприменимые шаги; независимый read-back и защита unknown/no-replay сохраняются.
+- [PR #733](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/733) / [#731](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/731): при действующей или неопределённой ручной выдаче Client Portal объясняет блокировку самостоятельной покупки, вместо ошибочного впечатления о пропавшем каталоге; backend Stars/group/visibility остаётся fail-closed.
+- **Ограничение B5:** конкретная причина отсутствия тарифов в текущем pilot пока не доказана; UI-объяснение ручной выдачи не гарантирует устранения всех причин пустого каталога. #705/#731 OPEN, G-11 PARTIAL / NO-GO, public rollout BLOCKED.
+- **Controlled canary:** требуется отдельное разрешение на deployment по immutable tag, post-deploy health и targeted smoke в Telegram/3x-ui (IP=2, HWID=5, отсутствие платежей, исторический NULL, Back/Cancel и причина недоступности покупок). Schema остаётся v15; дополнительных миграций нет. Published не означает Deployed/Accepted.
+
 ## v5.0.0-rc.16.2 — Раздельные IP/HWID, безопасная смена тарифа и журналы платежей
 
 - [PR #725](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/725) / [#724](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/724): раздельные IP/HWID лимиты при настройке тарифа, в карточке и provisioning; additive SQLite v15 `plans.hwid_limit` с сохранением legacy `NULL`, независимый 3x-ui read-back `limitIp` и `limitHwid`.
