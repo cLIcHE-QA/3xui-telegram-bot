@@ -155,6 +155,8 @@ class ManualEntitlementService:
             ids = readback.get("inboundIds")
             expected = {"expiryTime": expiry, "totalGB": plan.traffic_gb * 1024**3,
                         "limitIp": plan.ip_limit}
+            if getattr(plan, "hwid_limit", None) is not None:
+                expected["limitHwid"] = int(plan.hwid_limit)
             if (not policy.desired_inbound_ids or not isinstance(ids, list)
                     or not set(policy.desired_inbound_ids) <= set(map(int, ids))
                     or not isinstance(payload, dict)
