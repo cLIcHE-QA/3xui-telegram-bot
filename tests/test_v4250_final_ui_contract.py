@@ -24,6 +24,25 @@ class V4250FinalUiContractTests(unittest.TestCase):
         self.assertIn("money_text(plan.price_minor, plan.currency)", view)
         self.assertIn("xui.get_client(rec.email)", view)
 
+    def test_existing_plan_hwid_limit_copy_is_clear_and_null_safe(self):
+        label = "не задан в тарифе — сохраняется текущий лимит пользователя"
+        catalog = (ROOT / "catalog_admin.py").read_text(encoding="utf-8")
+        detail = catalog.split("async def plan_detail", 1)[1].split(
+            "@catalog_router.", 1
+        )[0]
+        self.assertIn(f'"{label}" if plan.hwid_limit is None', detail)
+        self.assertIn('f"Лимит HWID: {hwid_limit}\\n"', detail)
+        self.assertIn("plan.hwid_limit == 0", detail)
+        self.assertNotIn("сохраняется индивидуальный лимит (legacy)", detail)
+
+        users = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
+        view = users.split("async def _user_plan_view", 1)[1].split(
+            "async def _user_expiry_view", 1
+        )[0]
+        self.assertIn(f'"🧩 Лимит HWID: {label}" if plan.hwid_limit is None', view)
+        self.assertIn("🧩 Лимит HWID: без лимита", view)
+        self.assertNotIn("индивидуальный (legacy)", view)
+
     def test_subscription_masks_identity_and_presents_state(self):
         source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
         view = source.split("async def _user_subscription_view", 1)[1].split(
