@@ -6,7 +6,9 @@ Scope документа — только **Admin Control Plane**. Client Portal
 
 **Контекст Published `v5.0.0-rc.16` (ещё не Deployed):** после merge #692/#710 в `main` подготовлен controlled canary c read-only Flow UI #691, административными независимыми RUB/Stars ценами и SQLite schema v14 / manual entitlement #705. Дополнительных системных пакетов, `.env`, сетевых сервисов или PSP нет. **Published:** immutable `v5.0.0-rc.16` SHA `18920b195baa378e9bf561868c4495067e1f3f45`; **Deployed:** rc.15 лишь operator-reported. Для rc.16 отдельные разрешённый deployment, DB backup/migration/read-back, targeted Flow UI и ручная проверка 3x-ui **PENDING**; G-11 NO-GO, публичный запуск BLOCKED.
 
-## Тарифная миграция #705 — проект, не развёрнуто
+**Deployment checkpoint 2026-10-17:** оператор сообщил `DEPLOY_OK` для `v5.0.0-rc.16.1` / `31401e81e3f02d1220fc55a55eb8e3b3d61499a0`, `DB/3XUI_TCP=ok`, `RestartCount=0`. Это **operator-reported deployment**, не independent VPS/SQLite/3x-ui attestation и не acceptance #705. Отдельный operator-reported `--status` PASS (2026-10-17T05:34:10Z); schema v14/journal, UX и лимиты через безопасный targeted smoke — PENDING; [audit](audits/2026-10-17-v5-rc16-1-operator-deployment-checkpoint.md).
+
+## Тарифная миграция #705 — operator-reported deployment, acceptance PENDING
 
 PR #710 предусматривает forward-only schema v14 с rub_price_enabled, visibility и локальными include/exclude User Groups. Дополнительные env-параметры, системные пакеты или credentials не требуются. Перед отдельно разрешённым deployment обязателен совместимый backup SQLite; после обновления — штатные schema/quick_check. Legacy валюты не конвертируются, RUB checkout/PSP через Telegram не появляется. Публикация rc.16 подтверждена GitHub; deployment и acceptance PENDING.
 
