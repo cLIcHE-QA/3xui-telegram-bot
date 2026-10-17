@@ -46,6 +46,7 @@ class PlanRecord:
     visibility: str = 'all'
     include_group_ids: str = '[]'
     exclude_group_ids: str = '[]'
+    hwid_limit: int | None = None
 
 
 @dataclass
@@ -479,7 +480,8 @@ class Database:
                         or current["duration_days"] <= 0
                         or int(current["traffic_gb"]) != plan.traffic_gb
                         or int(current["ip_limit"]) != plan.ip_limit
-                        or current["server_group_id"] != plan.server_group_id):
+                        or current["server_group_id"] != plan.server_group_id
+                        or current["hwid_limit"] != plan.hwid_limit):
                     raise RuntimeError("Профиль или тариф изменились; требуется ручная сверка.")
                 await conn.execute(
                     """INSERT INTO user_profiles(telegram_id,plan_id,server_group_id,note,updated_at,display_name)
@@ -588,18 +590,21 @@ class Database:
         stars_price: int = 0,
         rub_price_enabled: bool = True,
         visibility: str = 'all',
+        hwid_limit: int | None = None,
     ) -> int:
         if currency.strip().upper() != 'RUB':
             raise ValueError('новые тарифы поддерживают только RUB и XTR')
         if visibility not in {'all', 'groups', 'admin_only'}:
             raise ValueError('invalid visibility')
-        if not 0 <= int(duration_days) <= 3650 or not 0 <= int(traffic_gb) <= 1_000_000 or not 0 <= int(ip_limit) <= 1000:
+        if (not 0 <= int(duration_days) <= 3650 or not 0 <= int(traffic_gb) <= 1_000_000
+                or not 0 <= int(ip_limit) <= 1000
+                or (hwid_limit is not None and (type(hwid_limit) is not int or not 0 <= hwid_limit <= 1000))):
             raise ValueError('invalid plan limits')
         if not 0 <= int(price_minor) <= 10_000_000_000 or not 0 <= int(stars_price) <= 10_000_000:
             raise ValueError('invalid plan price')
         if (int(duration_days) == 0 and (
             int(price_minor) or int(stars_price) or visibility != 'admin_only'
-            or int(traffic_gb) or int(ip_limit) or bool(rub_price_enabled)
+            or int(traffic_gb) or int(ip_limit) or bool(hwid_limit) or bool(rub_price_enabled)
         )):
             raise ValueError('indefinite plan must be free, unlimited and admin-only')
         async with aiosqlite.connect(self.path) as db:
@@ -608,13 +613,13 @@ class Database:
                 INSERT INTO plans(
                     name, duration_days, traffic_gb, ip_limit,
                     price_minor, currency, server_group_id, active, created_at,
-                    stars_price, rub_price_enabled, visibility
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+                    stars_price, rub_price_enabled, visibility, hwid_limit
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
                 """,
                 (
                     name.strip(), int(duration_days), int(traffic_gb), int(ip_limit),
                     int(price_minor), currency.strip().upper(), server_group_id,
-                    int(time.time()), int(stars_price), int(bool(rub_price_enabled)), visibility,
+                    int(time.time()), int(stars_price), int(bool(rub_price_enabled)), visibility, hwid_limit,
                 ),
             )
             await db.commit()
@@ -646,7 +651,7 @@ class Database:
             await db.execute("BEGIN IMMEDIATE")
             current = await (await db.execute(
                 """SELECT duration_days, traffic_gb, ip_limit, price_minor,
-                          stars_price, rub_price_enabled, visibility, currency
+                          stars_price, rub_price_enabled, visibility, currency, hwid_limit
                    FROM plans WHERE id=?""", (int(plan_id),),
             )).fetchone()
             if current is None:
@@ -658,7 +663,8 @@ class Database:
                 next_enabled = bool(rub_price_enabled) if rub_price_enabled is not None else bool(current[5])
                 next_visibility = visibility if visibility is not None else str(current[6])
                 if (next_price or int(current[4]) or next_enabled
-                        or next_visibility != "admin_only" or int(current[1]) or int(current[2])):
+                        or next_visibility != "admin_only" or int(current[1]) or int(current[2])
+                        or bool(current[8])):
                     raise ValueError("indefinite plan may only be hidden, free and unlimited")
             if include_group_ids is not None or exclude_group_ids is not None:
                 for group_id in set((include_group_ids or []) + (exclude_group_ids or [])):
@@ -770,6 +776,7 @@ class Database:
                 if plan is None or not (
                     int(plan["active"]) == 1 and int(plan["duration_days"]) == 0
                     and int(plan["traffic_gb"]) == 0 and int(plan["ip_limit"]) == 0
+                    and plan["hwid_limit"] in (None, 0)
                     and int(plan["price_minor"]) == 0 and int(plan["stars_price"]) == 0
                     and int(plan["rub_price_enabled"]) == 0
                     and str(plan["visibility"]) == "admin_only"
