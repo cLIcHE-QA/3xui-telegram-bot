@@ -196,7 +196,7 @@ async def payments_list(call: CallbackQuery):
         label = user_label(user, profile) if user else f"TG {item.telegram_id}"
         rows.append([InlineKeyboardButton(
             text=f"{icon} #{item.id} · {label} · {money(item.amount_minor, item.currency)}",
-            callback_data=f"admin:payment:{item.id}",
+            callback_data=f"admin:payment:{item.id}:{offset}",
         )])
     nav = []
     if offset:
@@ -233,11 +233,13 @@ async def payments_list(call: CallbackQuery):
     await call.answer()
 
 
-@business_router.callback_query(F.data.regexp(r"^admin:payment:\d+$"))
+@business_router.callback_query(F.data.regexp(r"^admin:payment:\d+(?::\d+)?$"))
 async def payment_detail(call: CallbackQuery):
     if not await guard(call):
         return
-    payment_id = int(call.data.rsplit(":", 1)[-1])
+    parts = (call.data or "").split(":")
+    payment_id = int(parts[2])
+    offset = int(parts[3]) if len(parts) == 4 else 0
     item = await db.get_payment(payment_id)
     if not item:
         await call.answer("Платёж не найден.", show_alert=True)
@@ -267,7 +269,7 @@ async def payment_detail(call: CallbackQuery):
             InlineKeyboardButton(text="↩️ Возвращён", callback_data=f"admin:payment:status:{item.id}:refunded"),
             InlineKeyboardButton(text="⚪ Отменён", callback_data=f"admin:payment:status:{item.id}:cancelled"),
         ],
-        [InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")],
+        [InlineKeyboardButton(text="⬅ Платежи", callback_data=f"admin:payments:{offset}")],
     ]
     await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
