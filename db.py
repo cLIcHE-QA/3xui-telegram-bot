@@ -880,6 +880,109 @@ class Database:
                 await db.rollback()
                 raise
 
+    async def begin_manual_switch(
+        self, *, telegram_id: int, target_plan_id: int, expiry_ms: int,
+    ) -> ManualEntitlementRecord:
+        """Одноразово резервирует переход, блокируя повтор до read-back."""
+        now = int(time.time())
+        async with aiosqlite.connect(self.path, timeout=15) as conn:
+            conn.row_factory = aiosqlite.Row
+            await conn.execute("BEGIN IMMEDIATE")
+            try:
+                row = await (await conn.execute(
+                    "SELECT * FROM manual_entitlements WHERE telegram_id=? AND status='active'",
+                    (int(telegram_id),),
+                )).fetchone()
+                profile = await (await conn.execute(
+                    "SELECT plan_id FROM user_profiles WHERE telegram_id=?",
+                    (int(telegram_id),),
+                )).fetchone()
+                target = await (await conn.execute(
+                    "SELECT * FROM plans WHERE id=?", (int(target_plan_id),),
+                )).fetchone()
+                pending = await (await conn.execute(
+                    "SELECT 1 FROM commerce_orders WHERE telegram_id=? AND status IN ('created','awaiting_payment') LIMIT 1",
+                    (int(telegram_id),),
+                )).fetchone()
+                if (row is None or profile is None or profile["plan_id"] != row["plan_id"]
+                        or target is None or not target["active"] or target["duration_days"] <= 0
+                        or int(expiry_ms) <= now * 1000 or pending is not None):
+                    raise ValueError("Переход недоступен: требуется проверка выдачи, тарифа и заказов.")
+                evidence = f"switch:{int(target_plan_id)}:{int(expiry_ms)}"
+                await conn.execute(
+                    "UPDATE manual_entitlements SET status='in_flight', result_code=?, updated_at=? WHERE id=? AND status='active'",
+                    (evidence, now, int(row["id"])),
+                )
+                updated = await (await conn.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?", (int(row["id"]),),
+                )).fetchone()
+                await conn.commit()
+                return ManualEntitlementRecord(**dict(updated))
+            except Exception:
+                await conn.rollback()
+                raise
+
+    async def mark_manual_switch_unknown(self, entitlement_id: int) -> None:
+        """Не снимает блокировку после частичной или неопределённой mutation."""
+        async with aiosqlite.connect(self.path) as conn:
+            await conn.execute(
+                "UPDATE manual_entitlements SET status='unknown', updated_at=? "
+                "WHERE id=? AND status='in_flight' AND result_code LIKE 'switch:%'",
+                (int(time.time()), int(entitlement_id)),
+            )
+            await conn.commit()
+
+    async def finish_manual_switch(
+        self, *, entitlement_id: int, target_plan_id: int, expiry_ms: int,
+    ) -> ManualEntitlementRecord:
+        """CAS: provider read-back уже подтверждён вызывающей стороной."""
+        now = int(time.time())
+        evidence = f"switch:{int(target_plan_id)}:{int(expiry_ms)}"
+        async with aiosqlite.connect(self.path, timeout=15) as conn:
+            conn.row_factory = aiosqlite.Row
+            await conn.execute("BEGIN IMMEDIATE")
+            try:
+                rec = await (await conn.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?", (int(entitlement_id),),
+                )).fetchone()
+                profile = await (await conn.execute(
+                    "SELECT plan_id FROM user_profiles WHERE telegram_id=?",
+                    (int(rec["telegram_id"]) if rec else -1,),
+                )).fetchone()
+                plan = await (await conn.execute(
+                    "SELECT * FROM plans WHERE id=?", (int(target_plan_id),),
+                )).fetchone()
+                if (rec is None or rec["status"] not in ("in_flight", "unknown")
+                        or rec["result_code"] != evidence or profile is None
+                        or profile["plan_id"] != rec["plan_id"]
+                        or plan is None or not plan["active"] or plan["duration_days"] <= 0):
+                    raise ValueError("Состояние ручной выдачи изменилось; требуется сверка.")
+                await conn.execute(
+                    "UPDATE manual_entitlements SET status='superseded', result_code='switch_readback_match', updated_at=? WHERE id=?",
+                    (now, int(entitlement_id)),
+                )
+                await conn.execute(
+                    "UPDATE user_profiles SET plan_id=?, updated_at=? WHERE telegram_id=?",
+                    (int(target_plan_id), now, int(rec["telegram_id"])),
+                )
+                if plan["server_group_id"] is not None:
+                    await conn.execute(
+                        "UPDATE user_profiles SET server_group_id=? WHERE telegram_id=?",
+                        (plan["server_group_id"], int(rec["telegram_id"])),
+                    )
+                await conn.execute(
+                    "UPDATE users SET expiry_time=? WHERE telegram_id=?",
+                    (int(expiry_ms), int(rec["telegram_id"])),
+                )
+                updated = await (await conn.execute(
+                    "SELECT * FROM manual_entitlements WHERE id=?", (int(entitlement_id),),
+                )).fetchone()
+                await conn.commit()
+                return ManualEntitlementRecord(**dict(updated))
+            except Exception:
+                await conn.rollback()
+                raise
+
     # --- Server groups -------------------------------------------------
 
     async def list_server_groups(self) -> list[ServerGroupRecord]:
