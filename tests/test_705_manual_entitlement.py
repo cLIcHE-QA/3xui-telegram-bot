@@ -225,6 +225,55 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.status, "active")
         self.assertEqual(self.xui.update_calls, 1)
 
+    async def test_active_manual_switch_to_finite_is_verified_and_atomic(self):
+        active, _ = await self._grant()
+        result = await self.svc.switch_to_finite(
+            telegram_id=101, plan_id=self.finite, actor_id=1,
+        )
+        self.assertEqual(result.status, "superseded")
+        self.assertEqual((await self.db.get_user_profile(101)).plan_id, self.finite)
+        self.assertGreater((await self.db.get(101)).expiry_time, 0)
+        self.assertIsNone(await self.db.get_live_manual_entitlement(101))
+        self.assertEqual(self.xui.update_calls, 2)
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(conn.execute(
+                "SELECT status FROM manual_entitlements WHERE id=?", (active.id,)
+            ).fetchone()[0], "superseded")
+
+    async def test_switch_unknown_keeps_journal_and_read_only_recovery(self):
+        await self._grant()
+        self.xui.omit_expiry = True
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self.svc.switch_to_finite(
+                telegram_id=101, plan_id=self.finite, actor_id=1,
+            )
+        record = await self.db.get_live_manual_entitlement(101)
+        self.assertEqual(record.status, "active")
+        self.xui.omit_expiry = False
+        self.xui.uncertain_update = True
+        self.xui.limits = {"expiryTime": 0, "totalGB": 0, "limitIp": 0}
+        switched = await self.svc.switch_to_finite(
+            telegram_id=101, plan_id=self.finite, actor_id=1,
+        )
+        self.assertEqual(switched.status, "superseded")
+
+    async def test_switch_after_unknown_remote_readback_never_replays(self):
+        await self._grant()
+        self.xui.uncertain_update = True
+        self.xui.omit_expiry = True
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self.svc.switch_to_finite(
+                telegram_id=101, plan_id=self.finite, actor_id=1,
+            )
+        self.assertEqual((await self.db.get_live_manual_entitlement(101)).status, "active")
+
+    def test_switch_callback_requires_admin(self):
+        from admin_privileges import required_role_for_callback
+        self.assertEqual(required_role_for_callback(
+            "admin:u:manualswitch:0123456789abcdef"), "admin")
+        self.assertIsNone(required_role_for_callback(
+            "admin:u:manualswitch:forged"))
+
     async def test_existing_checkout_blocks_new_manual_grant(self):
         await self.db.create_commerce_order(
             telegram_id=101, plan_id=self.finite, amount_minor=50, currency="XTR",
