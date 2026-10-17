@@ -102,9 +102,36 @@ class AdminStarsTotalsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sum(v.startswith("admin:starspayment:") for v in vals), 1)
         self.assertNotIn("admin:starspayments:24", vals)
 
+    async def test_manual_ledger_has_eight_entries_and_bounded_back_navigation(self):
+        for i in range(17):
+            await self.db.create_payment(
+                telegram_id=1001, plan_id=None, amount_minor=100 + i,
+                currency="RUB", status="paid",
+            )
+        async def render(data):
+            renderer = AsyncMock()
+            call = SimpleNamespace(data=data, answer=AsyncMock())
+            with (patch.object(self.admin, "db", self.db),
+                  patch.object(self.admin, "guard", new=AsyncMock(return_value=True)),
+                  patch.object(self.admin, "render_callback", new=renderer)):
+                await self.admin.payments_list(call)
+            return renderer.await_args.kwargs["reply_markup"]
+        first = await render("admin:payments")
+        callbacks = [b.callback_data for row in first.inline_keyboard for b in row]
+        self.assertEqual(sum(v.startswith("admin:payment:") for v in callbacks), 8)
+        self.assertIn("admin:payments:8", callbacks)
+        second = await render("admin:payments:8")
+        callbacks = [b.callback_data for row in second.inline_keyboard for b in row]
+        self.assertIn("admin:payments:0", callbacks)
+        self.assertIn("admin:payments:16", callbacks)
+        self.assertTrue(any(v.endswith(":8") and v.startswith("admin:payment:") for v in callbacks))
+        final = await render("admin:payments:99999")
+        callbacks = [b.callback_data for row in final.inline_keyboard for b in row]
+        self.assertEqual(sum(v.startswith("admin:payment:") for v in callbacks), 1)
+
     async def test_read_only_payment_paging_callbacks(self):
         from admin_privileges import required_role_for_callback
-        for callback in ("admin:payments:8", "admin:starspayments:8", "admin:starspayment:123:8"):
+        for callback in ("admin:payments:8", "admin:payment:123:8", "admin:starspayments:8", "admin:starspayment:123:8"):
             self.assertEqual(required_role_for_callback(callback), "read_only")
         self.assertIsNone(required_role_for_callback("admin:starspayments:-1"))
 
