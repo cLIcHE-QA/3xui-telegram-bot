@@ -8,11 +8,11 @@
 
 **Опубликованный `v5.0.0-rc.16.1`:** исправления тарифов [PR #714](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/714) включены в новый immutable patch-RC; [release-prep PR #716](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/716), публикация GitHub Actions PASS. Production deployment operator-reported PASS; targeted acceptance #705 — PENDING. Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
 
-**Опубликованный `v5.0.0-rc.16.2`:** в `main` уже merged [#725](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/725) (IP/HWID, SQLite v15), [#722](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/722) (безопасный active→finite), [#720](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/720) (пагинация платежей) и [#723](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/723) (Master Flow UI). `Published` — `v5.0.0-rc.16.2`, operator-reported `Deployed` остаётся `v5.0.0-rc.16.1` до отдельного deployment; targeted acceptance PENDING, G-11 NO-GO. Перед schema v15 на production обязателен совместимый backup; live changes в этот PR не входят.
+**Опубликованный `v5.0.0-rc.16.2`:** в `main` уже merged [#725](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/725) (IP/HWID, SQLite v15), [#722](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/722) (безопасный active→finite), [#720](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/720) (пагинация платежей) и [#723](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/723) (Master Flow UI). `Published` — `v5.0.0-rc.16.2`, operator-reported `Deployed` — `v5.0.0-rc.16.2`; scoped #691/#719/#721/#724 закрыты после targeted PASS, но #705/B5 BLOCKED, G-11 NO-GO. Перед schema v15 на production обязателен совместимый backup; live changes в этот PR не входят.
 
 **Release-prep `v5.0.0-rc.16.3`:** PR #729/#733/#732 MERGED, выпускается исправление подписи HWID (#734), управляемые лимиты бесплатного бессрочного тарифа (#730) и объяснение блокировки покупки (#731). Ни B5, ни #705, ни G-11 не получили PASS; целевой выпуск не означает production deployment. Последний operator-reported deployed остаётся rc.16.2.
 
-**Acceptance checkpoint 2026-10-17:** operator-reported scoped smoke `rc.16.2`: #691/#719/#721/#724 CLOSED/completed; #705 OPEN (B5 BLOCKED: тарифы отсутствуют в Client Portal). Глобальный G-11 PARTIAL/NO-GO, публичный rollout BLOCKED. Следующий **планируемый, не опубликованный** `v5.0.0-rc.16.3`: PR #729 (Issue #734, подпись HWID старого тарифа), PR #732 (Issue #730, IP/HWID бессрочного тарифа), PR #733 (Issue #731, понятная причина блокировки покупки). Все эти PR OPEN и не входят в текущий published/deployed release.
+**Acceptance checkpoint 2026-10-17:** operator-reported scoped smoke `rc.16.2`: #691/#719/#721/#724 CLOSED/completed; #705 OPEN (B5 BLOCKED: тарифы отсутствуют в Client Portal). Глобальный G-11 PARTIAL/NO-GO, публичный rollout BLOCKED. Следующий **планируемый, не опубликованный** `v5.0.0-rc.16.3`: PR #729 (Issue #734, подпись HWID старого тарифа), PR #732 (Issue #730, IP/HWID бессрочного тарифа), PR #733 (Issue #731, понятная причина блокировки покупки). Все три PR MERGED в `main`, но эти исправления ещё не включены в Published/Deployed `rc.16.2`.
 
 > README — актуальная карта проекта и точка входа в runbook'и. Исторические upgrade-инструкции и release-by-release описание не дублируются здесь: для них используются `CHANGELOG.md`, GitHub Releases и специализированные документы в `docs/`.
 
@@ -22,7 +22,7 @@
 
 ## Тарифная модель #705 — развёрнута в rc.16.1, приёмка ожидается
 
-Issue #705 реализован в `main` через PR #710: независимые RUB и Stars/XTR, правила видимости локальных User Groups, ручная бессрочная выдача с durable read-back и SQLite schema v14. Scope включён в Published rc.16 с SQLite schema v14; текущий operator-reported Deployed rc.16.1 включает код schema v14, но отдельный read-only журнал миграции и targeted #705 acceptance ещё PENDING. RUB-PSP — отдельный #336, вне scope #705.
+Issue #705 реализован в `main` через PR #710: независимые RUB и Stars/XTR, правила видимости локальных User Groups, ручная бессрочная выдача с durable read-back и SQLite schema v14. Scope включён в Published rc.16 с SQLite schema v14; operator-reported Deployed `rc.16.2` содержит schema v15; S6/S7 и scoped smoke (кроме B5) — PASS по отчёту оператора, а #705/B5 остаётся BLOCKED. RUB-PSP — отдельный #336, вне scope #705.
 
 ## План внешних платежей
 
