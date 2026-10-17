@@ -647,7 +647,7 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
             "Параметры тарифа:",
             f"📦 Трафик: {plan.traffic_gb} GB" if plan.traffic_gb else "📦 Трафик: без лимита",
             f"📱 Лимит IP: {plan.ip_limit}" if plan.ip_limit else "📱 Лимит IP: без лимита",
-            ("🧩 Лимит HWID: индивидуальный (legacy)" if plan.hwid_limit is None
+            ("🧩 Лимит HWID: не задан в тарифе — сохраняется текущий лимит пользователя" if plan.hwid_limit is None
              else (f"🧩 Лимит HWID: {plan.hwid_limit}" if plan.hwid_limit else "🧩 Лимит HWID: без лимита")),
             f"🗂 Группа серверов: {plan_group.name if plan_group else 'не назначена'}",
             "",

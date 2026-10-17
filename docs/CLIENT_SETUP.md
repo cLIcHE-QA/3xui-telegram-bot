@@ -7,6 +7,8 @@
 
 **Published `v5.0.0-rc.16` — ещё не Deployed/Accepted:** code changes [#692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) / #691 и [#710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) / #705 уже в `main`. После отдельно разрешённого deployment потребуются targeted UI smoke Flow и SQLite v14/manual entitlement/Stars/group visibility checks. Ни production write, ни новые реальные платежи не разрешены этим руководством.
 
+**Acceptance checkpoint 2026-10-17:** оператор сообщил deployment `v5.0.0-rc.16.2` и targeted smoke B1–B4/B6–B8 PASS, B5 BLOCKED: в Client Portal нет тарифов; проверка причин на разрешённой pilot identity PENDING. Текущее UI поведение может быть намеренной блокировкой Stars checkout при активной/неопределённой ручной выдаче; это гипотеза, не доказанная причина B5. #705 остаётся OPEN, #731/PR #733 готовят безопасное объяснение в плановом `rc.16.3` (не Published). Pilot allowlist/flags/RBAC, Terms и Stars precheckout не ослаблять. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+
 ## Проект тарифов #705 / rc.16 (не Deployed)
 
 Client Portal должен предоставлять в Telegram только active, разрешённые правилами локальной аудитории планы с положительным Stars/XTR. RUB-сумма не создаёт Telegram checkout. Group-only с include/exclude и admin_only применяются на серверных entrypoints; недоступность правил не открывает публичный доступ. Бесплатные бессрочные планы доступны только ручному админскому назначению. Изменения PR #710 включены в Published rc.16, но не в operator-reported Deployed rc.15 и не подтверждены live smoke.

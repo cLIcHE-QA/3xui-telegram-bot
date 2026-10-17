@@ -357,6 +357,15 @@ async def buy_cb(call: CallbackQuery):
         await call.answer()
         return
 
+    block_reason = await _service().manual_purchase_block_reason(call.from_user.id)
+    if block_reason is not None:
+        await render_callback(
+            call, "💳 Купить / продлить\n\n" + block_reason,
+            reply_markup=back_menu(),
+        )
+        await call.answer()
+        return
+
     plans = await _service().active_plans(call.from_user.id)
     if not plans:
         await render_callback(
