@@ -22,7 +22,7 @@ class ManualEntitlementService:
         # Read-only preflight: не создавать in_flight при заведомо непригодном Inbound.
         plan = await self.db.get_plan(plan_id)
         if plan is None or not (plan.active and plan.duration_days == 0
-                and plan.traffic_gb == 0 and plan.ip_limit == 0
+                and plan.traffic_gb == 0
                 and plan.price_minor == 0 and not plan.rub_price_enabled
                 and plan.stars_price == 0 and plan.visibility == "admin_only"
                 and plan.currency == "RUB"):
@@ -57,10 +57,10 @@ class ManualEntitlementService:
             # Независимый от ACK read-back, включая наличие полей; missing != zero.
             readback = await self.provisioner.xui.get_client(user.email)
             payload = readback.get("client", readback)
-            if not isinstance(payload, dict) or any(
-                key not in payload or payload[key] is None or int(payload[key]) != 0
-                for key in ("expiryTime", "totalGB", "limitIp")
-            ):
+            expected = {"expiryTime": 0, "totalGB": 0, "limitIp": int(plan.ip_limit)}
+            if plan.hwid_limit is not None:
+                expected["limitHwid"] = int(plan.hwid_limit)
+            if not isinstance(payload, dict) or not self.provisioner._limits_match(payload, expected):
                 raise RuntimeError("provider limits read-back is missing or mismatched")
             profile = await self.db.get_user_profile(telegram_id)
             if profile is None or int(profile.plan_id or 0) != int(plan_id):
@@ -104,11 +104,16 @@ class ManualEntitlementService:
         if (not policy.desired_inbound_ids
                 or set(policy.desired_inbound_ids) != set(policy.actionable_inbound_ids)):
             raise ValueError("Для целевого тарифа нет всех доступных Inbounds.")
+        current_plan = await self.db.get_plan(grant.plan_id)
         before = await self.provisioner.xui.get_client(user.email)
         payload = before.get("client", before)
-        if (not isinstance(payload, dict)
-                or any(key not in payload or payload[key] is None or int(payload[key]) != 0
-                       for key in ("expiryTime", "totalGB", "limitIp"))):
+        expected_previous = {"expiryTime": 0, "totalGB": 0}
+        if current_plan is None or current_plan.duration_days != 0:
+            raise ManualEntitlementUnknown("Бессрочный тариф не найден.")
+        expected_previous["limitIp"] = int(current_plan.ip_limit)
+        if current_plan.hwid_limit is not None:
+            expected_previous["limitHwid"] = int(current_plan.hwid_limit)
+        if not isinstance(payload, dict) or not self.provisioner._limits_match(payload, expected_previous):
             raise ManualEntitlementUnknown("Лимиты текущей ручной выдачи не подтверждены.")
         expiry = int((time.time() + plan.duration_days * 86400) * 1000)
         journal = await self.db.begin_manual_switch(
@@ -199,11 +204,12 @@ class ManualEntitlementService:
             readback = await self.provisioner.xui.get_client(user.email)
             payload = readback.get("client", readback)
             inbounds = readback.get("inboundIds")
+            expected = {"expiryTime": 0, "totalGB": 0, "limitIp": int(policy.plan.ip_limit)}
+            if policy.plan.hwid_limit is not None:
+                expected["limitHwid"] = int(policy.plan.hwid_limit)
             if (not isinstance(payload, dict) or not isinstance(inbounds, list)
                     or not set(policy.desired_inbound_ids) <= set(map(int, inbounds))
-                    or any(key not in payload or payload[key] is None
-                           or int(payload[key]) != 0
-                           for key in ("expiryTime", "totalGB", "limitIp"))):
+                    or not self.provisioner._limits_match(payload, expected)):
                 raise RuntimeError("manual grant read-back missing or mismatched")
         except Exception as exc:
             raise ManualEntitlementUnknown(
