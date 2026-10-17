@@ -2,11 +2,11 @@
 
 **Текущая опубликованная версия:** `v5.0.0-rc.16.1` (immutable GitHub prerelease, `version.py`); это **не** подтверждение deployment. Адресный VLESS Reality Flow при WG/AWG из [PR #689](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/689) требует точный Master `panelVersion=3.10.2`; неполные и неоднозначные данные обрабатываются fail-closed. Списки Node/Inbound постраничные, до 64 нод / 256 inbound.
 
-**Published:** immutable [`v5.0.0-rc.16.1`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.1), SHA `31401e81e3f02d1220fc55a55eb8e3b3d61499a0`, `2026-10-16T23:56:36Z` (GitHub). **Deployed:** rc.15 только по сообщению оператора от `2026-10-16T13:16:00Z`; независимая VPS/image/Xray проверка **PENDING**. **Accepted:** targeted A6/N6/R3 и scoped Flow POST — PASS со слов оператора; полный v5 **NOT PASS**, G-11 **PARTIAL / NO-GO**, публичный запуск **BLOCKED**.
+**Published:** immutable [`v5.0.0-rc.16.1`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.1), SHA `31401e81e3f02d1220fc55a55eb8e3b3d61499a0`, `2026-10-16T23:56:36Z` (GitHub). **Deployed:** `v5.0.0-rc.16.1` operator-reported `DEPLOY_OK` от `2026-10-17T05:27:19Z` (SHA и APP_VERSION совпадают, DB/3XUI_TCP ok, restarts 0); отдельный `--status`, VPS/image и targeted #705 smoke **PENDING**. [Audit](docs/audits/2026-10-17-v5-rc16-1-operator-deployment-checkpoint.md). **Accepted:** targeted A6/N6/R3 и scoped Flow POST — PASS со слов оператора; полный v5 **NOT PASS**, G-11 **PARTIAL / NO-GO**, публичный запуск **BLOCKED**.
 
 **Опубликованный rc.16:** [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691) / [PR #692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) и [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) / [PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) входят в Published rc.16 после merge PR #712 и успешного publish workflow. Deployment и targeted UI/schema/manual entitlement smoke — **PENDING**. Общий OpenAPI contract закреплён на `v3.10.2` ([PR #693](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/693)); тот же immutable OpenAPI blob размещён по прежнему vendored пути `v3.10.0` и не означает обновления production. Production mutations, расширение pilot allowlist и stable rollout не разрешены.
 
-**Опубликованный `v5.0.0-rc.16.1`:** исправления тарифов [PR #714](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/714) включены в новый immutable patch-RC; [release-prep PR #716](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/716), публикация GitHub Actions PASS. Дальнейшие production deployment и acceptance #705 — PENDING. Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
+**Опубликованный `v5.0.0-rc.16.1`:** исправления тарифов [PR #714](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/714) включены в новый immutable patch-RC; [release-prep PR #716](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/716), публикация GitHub Actions PASS. Production deployment operator-reported PASS; targeted acceptance #705 — PENDING. Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
 
 > README — актуальная карта проекта и точка входа в runbook'и. Исторические upgrade-инструкции и release-by-release описание не дублируются здесь: для них используются `CHANGELOG.md`, GitHub Releases и специализированные документы в `docs/`.
 
@@ -14,9 +14,9 @@
 
 [Краткий Roadmap](docs/ROADMAP.md) — единственный актуальный источник product и acceptance statuses; [тематический архив старого Roadmap](docs/roadmap/HISTORY_INDEX.md) сохраняет исторические 5803 строки, включая FAIL/STOP, SHA и evidence. Новые проверки записываются в датированные `docs/audits/**`, а не в верхнюю сводку.
 
-## Тарифная модель #705 — опубликована в rc.16, ещё не развёрнута
+## Тарифная модель #705 — развёрнута в rc.16.1, приёмка ожидается
 
-Issue #705 реализован в `main` через PR #710: независимые RUB и Stars/XTR, правила видимости локальных User Groups, ручная бессрочная выдача с durable read-back и SQLite schema v14. Scope включён в Published rc.16 с SQLite schema v14; текущий operator-reported Deployed rc.15 остаётся на schema v13, а Deployed и Accepted rc.16 — PENDING. RUB-PSP — отдельный #336, вне scope #705.
+Issue #705 реализован в `main` через PR #710: независимые RUB и Stars/XTR, правила видимости локальных User Groups, ручная бессрочная выдача с durable read-back и SQLite schema v14. Scope включён в Published rc.16 с SQLite schema v14; текущий operator-reported Deployed rc.16.1 включает код schema v14, но отдельный read-only журнал миграции и targeted #705 acceptance ещё PENDING. RUB-PSP — отдельный #336, вне scope #705.
 
 ## План внешних платежей
 
