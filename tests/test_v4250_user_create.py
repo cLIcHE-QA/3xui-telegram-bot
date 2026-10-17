@@ -46,7 +46,7 @@ class V4250UserCreateTests(unittest.IsolatedAsyncioTestCase):
 
     def test_create_preview_and_run_use_default_hwid_limit(self):
         source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
-        self.assertIn('f"HWID limit: {DEFAULT_HWID_LIMIT}"', source)
+        self.assertIn('hwid_limit = ctx["hwid_limit"]', source)
         self.assertIn("limit_hwid=DEFAULT_HWID_LIMIT", source)
 
     def test_create_callbacks_require_support(self):
