@@ -65,6 +65,48 @@ class AdminStarsTotalsTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Выручка по оплаченным: 10 RUB", mixed)
         self.assertIn("⭐ Telegram Stars\nВсего: 0", mixed)
 
+    async def test_stars_global_pagination_boundaries_and_back(self):
+        module = self.admin
+        async with __import__("aiosqlite").connect(self.db.path) as conn:
+            for i in range(17):
+                cursor = await conn.execute(
+                    "INSERT INTO commerce_orders(telegram_id,plan_id,amount_minor,currency,status,created_at,updated_at) "
+                    "VALUES (1001,NULL,1,'XTR','created',?,?)",
+                    (100 + i, 100 + i),
+                )
+                await conn.execute(
+                    "INSERT INTO commerce_payments(order_id,provider,provider_payment_id,amount_minor,currency,status,created_at,updated_at) "
+                    "VALUES (?,'telegram_stars',?,1,'XTR','created',?,?)",
+                    (cursor.lastrowid, f'test-{i}', 100 + i, 100 + i),
+                )
+            await conn.commit()
+        async def render(data):
+            call = SimpleNamespace(data=data, answer=AsyncMock())
+            cb = AsyncMock()
+            with (patch.object(module, "db", self.db),
+                  patch.object(module, "guard", new=AsyncMock(return_value=True)),
+                  patch.object(module, "render_callback", new=cb)):
+                await module.stars_payments_list(call)
+            return cb.await_args
+        first = await render("admin:starspayments")
+        rows = [b for row in first.kwargs["reply_markup"].inline_keyboard for b in row]
+        self.assertEqual(sum(b.callback_data.startswith("admin:starspayment:") for b in rows), 8)
+        self.assertIn("admin:starspayments:8", [b.callback_data for b in rows])
+        second = await render("admin:starspayments:8")
+        btns = [b.callback_data for row in second.kwargs["reply_markup"].inline_keyboard for b in row]
+        self.assertIn("admin:starspayments:0", btns)
+        self.assertIn("admin:starspayments:16", btns)
+        last = await render("admin:starspayments:9999")
+        vals = [b.callback_data for row in last.kwargs["reply_markup"].inline_keyboard for b in row]
+        self.assertEqual(sum(v.startswith("admin:starspayment:") for v in vals), 1)
+        self.assertNotIn("admin:starspayments:24", vals)
+
+    async def test_read_only_payment_paging_callbacks(self):
+        from admin_privileges import required_role_for_callback
+        for callback in ("admin:payments:8", "admin:starspayments:8", "admin:starspayment:123:8"):
+            self.assertEqual(required_role_for_callback(callback), "read_only")
+        self.assertIsNone(required_role_for_callback("admin:starspayments:-1"))
+
     async def test_confirmed_and_refunded_stars_visible(self):
         commerce = CommerceService(self.db)
         plan_id = await self.db.create_plan(
