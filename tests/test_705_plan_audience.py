@@ -44,10 +44,15 @@ class CatalogAudienceTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await self.db.create_plan(name="invalid-hwid", duration_days=30, traffic_gb=1,
                 ip_limit=2, hwid_limit=1001, price_minor=20000, currency="RUB")
+        bounded = await self.db.create_plan(name="bounded-indefinite", duration_days=0,
+            traffic_gb=0, ip_limit=2, hwid_limit=5, price_minor=0, rub_price_enabled=False,
+            currency="RUB", visibility="admin_only")
+        self.assertEqual(((await self.db.get_plan(bounded)).ip_limit,
+                          (await self.db.get_plan(bounded)).hwid_limit), (2, 5))
         with self.assertRaises(ValueError):
-            await self.db.create_plan(name="bad-indefinite", duration_days=0, traffic_gb=0,
-                ip_limit=0, hwid_limit=1, price_minor=0, rub_price_enabled=False,
-                currency="RUB", visibility="admin_only")
+            await self.db.create_plan(name="bad-indefinite-traffic", duration_days=0,
+                traffic_gb=1, ip_limit=2, hwid_limit=5, price_minor=0,
+                rub_price_enabled=False, currency="RUB", visibility="admin_only")
         with sqlite3.connect(self.path) as conn:
             self.assertEqual(conn.execute("PRAGMA quick_check").fetchone()[0], "ok")
 

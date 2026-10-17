@@ -338,6 +338,22 @@ async def plan_add_duration(message: Message, state: FSMContext):
         await render_input(message, "Введите целое число от 0 до 3650 (0 — бессрочно).", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(duration_days=value)
+    if value == 0:
+        # Бессрочный тариф никогда не продаётся; не спрашивать запрещённые поля.
+        await state.update_data(
+            traffic_gb=0, price_minor=0, currency="RUB",
+            stars_price=0, visibility="admin_only",
+        )
+        await state.set_state(AddPlanStates.ip_limit)
+        await render_input(
+            message,
+            "♾ Бессрочный тариф · только ручная выдача\n\n"
+            "Обязательно: трафик без лимита (0), RUB = 0, Stars = 0, "
+            "видимость — только администратору. Эти поля установлены автоматически.\n\n"
+            "Лимит IP от 0 до 1000 (0 = без ограничения):",
+            reply_markup=cancel_keyboard("admin:planadd:cancel"),
+        )
+        return
     await state.set_state(AddPlanStates.traffic)
     await render_input(message, "💎 Новый тариф · 3/6\n\nЛимит трафика в GB. 0 = без лимита:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
 
@@ -373,7 +389,22 @@ async def plan_add_ip_limit(message: Message, state: FSMContext):
     await state.set_state(AddPlanStates.hwid_limit)
     await render_input(message,
         "💎 Новый тариф · 5/6\n\nЛимит HWID (зарегистрированных устройств). 0 = без лимита:",
-        reply_markup=cancel_keyboard("admin:planadd:cancel"))
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⬅ Лимит IP", callback_data="admin:planadd:backip")],
+            [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")],
+        ]))
+
+
+@catalog_router.callback_query(AddPlanStates.hwid_limit, F.data == "admin:planadd:backip")
+async def plan_add_back_ip(call: CallbackQuery, state: FSMContext):
+    if not await guard_call(call):
+        return
+    await state.set_state(AddPlanStates.ip_limit)
+    await render_callback(
+        call, "⬅ Лимит IP от 0 до 1000 (0 = без ограничения):",
+        reply_markup=cancel_keyboard("admin:planadd:cancel"),
+    )
+    await call.answer()
 
 
 @catalog_router.message(AddPlanStates.hwid_limit)
@@ -386,6 +417,16 @@ async def plan_add_hwid_limit(message: Message, state: FSMContext):
             reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(hwid_limit=int(raw))
+    data = await state.get_data()
+    if int(data["duration_days"]) == 0:
+        await state.set_state(AddPlanStates.group)
+        await render_input(
+            message,
+            "♾ Бессрочно: RUB/Stars = 0, видимость — только администратору.\n\n"
+            "Выберите группу серверов. Можно оставить без группы.",
+            reply_markup=await _plan_add_group_keyboard(),
+        )
+        return
     await state.set_state(AddPlanStates.price)
     await render_input(message, 
         "💎 Новый тариф · 6/6\n\nЦена в RUB, например:\n499\n499.90 RUB\n\n0 = нет RUB-платежа.",
@@ -431,6 +472,18 @@ async def plan_add_stars(message: Message, state: FSMContext):
     )
 
 
+async def _plan_add_group_keyboard() -> InlineKeyboardMarkup:
+    groups = await db.list_server_groups()
+    rows = [[InlineKeyboardButton(text="🚫 Без группы", callback_data="admin:planadd:group:none")]]
+    for group in groups[:30]:
+        rows.append([InlineKeyboardButton(
+            text=f"🗂 {group.name}", callback_data=f"admin:planadd:group:{group.id}",
+        )])
+    rows.append([InlineKeyboardButton(text="⬅ Назад", callback_data="admin:planadd:backvis")])
+    rows.append([InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 @catalog_router.callback_query(AddPlanStates.visibility, F.data.startswith("admin:planadd:visibility:"))
 async def plan_add_visibility(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
@@ -444,24 +497,29 @@ async def plan_add_visibility(call: CallbackQuery, state: FSMContext):
         visibility = "admin_only"
     await state.update_data(visibility=visibility)
     await state.set_state(AddPlanStates.group)
-    groups = await db.list_server_groups()
-    rows = [[InlineKeyboardButton(text="🚫 Без группы", callback_data="admin:planadd:group:none")]]
-    for group in groups[:30]:
-        rows.append([InlineKeyboardButton(
-            text=f"🗂 {group.name}",
-            callback_data=f"admin:planadd:group:{group.id}",
-        )])
-    rows.append([InlineKeyboardButton(text="⬅ Назад", callback_data="admin:planadd:backvis")])
-    await render_callback(call, 
+    await render_callback(
+        call,
         "Выбери группу серверов для тарифа.\n"
         "Можно оставить без группы и назначить позже.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+        reply_markup=await _plan_add_group_keyboard(),
     )
 
 
 @catalog_router.callback_query(AddPlanStates.group, F.data == "admin:planadd:backvis")
 async def plan_add_back_visibility(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
+        return
+    data = await state.get_data()
+    if int(data["duration_days"]) == 0:
+        await state.set_state(AddPlanStates.hwid_limit)
+        await render_callback(
+            call, "⬅ Лимит HWID от 0 до 1000 (0 = без ограничения):",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⬅ Лимит IP", callback_data="admin:planadd:backip")],
+                [InlineKeyboardButton(text="✖ Отмена", callback_data="admin:planadd:cancel")],
+            ]),
+        )
+        await call.answer()
         return
     await state.set_state(AddPlanStates.visibility)
     await render_callback(call, "👁 Видимость тарифа: выберите режим.",
@@ -485,12 +543,11 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
     await state.update_data(server_group_id=group_id)
     data = await state.get_data()
     if int(data["duration_days"]) == 0 and (
-        int(data["price_minor"]) > 0 or int(data.get("stars_price") or 0) > 0
-        or int(data["traffic_gb"]) > 0 or int(data["ip_limit"]) > 0
-        or int(data["hwid_limit"]) > 0
-        or data.get("visibility") != "admin_only"
+        int(data["price_minor"]) != 0 or int(data.get("stars_price") or 0) != 0
+        or int(data["traffic_gb"]) != 0 or data.get("visibility") != "admin_only"
+        or data.get("currency") != "RUB"
     ):
-        await call.answer("Бессрочный тариф разрешён только для ручной бесплатной выдачи.", show_alert=True)
+        await call.answer("Бессрочный тариф: трафик и обе цены = 0, видимость только администратору.", show_alert=True)
         return
     await state.set_state(AddPlanStates.review)
     price_value = Decimal(int(data["price_minor"])) / Decimal(100)
@@ -501,7 +558,9 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
     hwids = "без лимита" if int(data["hwid_limit"]) == 0 else str(data["hwid_limit"])
     await render_callback(call, 
         "💎 Проверь тариф\n\n"
-        f"Название: {data['name']}\n"
+        + ("♾ Ручная бесплатная выдача: трафик без лимита; RUB/Stars отключены.\n\n"
+           if int(data["duration_days"]) == 0 else "")
+        + f"Название: {data['name']}\n"
         f"Срок: {'Бессрочно' if data['duration_days'] == 0 else str(data['duration_days']) + ' дней'}\n"
         f"Трафик: {traffic}\n"
         f"Лимит IP: {ips}\n"
@@ -524,19 +583,10 @@ async def plan_add_back(call: CallbackQuery, state: FSMContext):
     if not await guard_call(call):
         return
     await state.set_state(AddPlanStates.group)
-    groups = await db.list_server_groups()
-    rows = [[InlineKeyboardButton(
-        text="🚫 Без группы", callback_data="admin:planadd:group:none",
-    )]]
-    for group in groups[:30]:
-        rows.append([InlineKeyboardButton(
-            text=f"🗂 {group.name}", callback_data=f"admin:planadd:group:{group.id}",
-        )])
-    rows.append([InlineKeyboardButton(
-        text="⬅ Назад", callback_data="admin:planadd:backvis",
-    )])
-    await render_callback(call, "⬅ Вернитесь к выбору группы серверов.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await render_callback(
+        call, "⬅ Вернитесь к выбору группы серверов.",
+        reply_markup=await _plan_add_group_keyboard(),
+    )
     await call.answer()
 
 

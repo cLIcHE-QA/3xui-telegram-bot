@@ -604,7 +604,7 @@ class Database:
             raise ValueError('invalid plan price')
         if (int(duration_days) == 0 and (
             int(price_minor) or int(stars_price) or visibility != 'admin_only'
-            or int(traffic_gb) or int(ip_limit) or bool(hwid_limit) or bool(rub_price_enabled)
+            or int(traffic_gb) or bool(rub_price_enabled)
         )):
             raise ValueError('indefinite plan must be free, unlimited and admin-only')
         async with aiosqlite.connect(self.path) as db:
@@ -663,8 +663,7 @@ class Database:
                 next_enabled = bool(rub_price_enabled) if rub_price_enabled is not None else bool(current[5])
                 next_visibility = visibility if visibility is not None else str(current[6])
                 if (next_price or int(current[4]) or next_enabled
-                        or next_visibility != "admin_only" or int(current[1]) or int(current[2])
-                        or bool(current[8])):
+                        or next_visibility != "admin_only" or int(current[1])):
                     raise ValueError("indefinite plan may only be hidden, free and unlimited")
             if include_group_ids is not None or exclude_group_ids is not None:
                 for group_id in set((include_group_ids or []) + (exclude_group_ids or [])):
@@ -775,8 +774,7 @@ class Database:
                     raise ValueError("pending commerce must be resolved before manual grant")
                 if plan is None or not (
                     int(plan["active"]) == 1 and int(plan["duration_days"]) == 0
-                    and int(plan["traffic_gb"]) == 0 and int(plan["ip_limit"]) == 0
-                    and plan["hwid_limit"] in (None, 0)
+                    and int(plan["traffic_gb"]) == 0
                     and int(plan["price_minor"]) == 0 and int(plan["stars_price"]) == 0
                     and int(plan["rub_price_enabled"]) == 0
                     and str(plan["visibility"]) == "admin_only"
