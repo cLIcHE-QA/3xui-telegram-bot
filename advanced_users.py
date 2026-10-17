@@ -662,6 +662,8 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
         if manual.status in {"unknown", "in_flight"}:
             lines.append("⚠️ Исход не подтверждён: запрещён автоматический повтор.")
     rows: list[list[InlineKeyboardButton]] = []
+    if manual and manual.status == "active":
+        lines.append("ℹ️ Ручная выдача действует. Для смены тарифа выберите обычный тариф и подтвердите безопасный переход.")
     if manual and manual.status in {"unknown", "in_flight"} and role in {"admin", "owner"}:
         rows.append([InlineKeyboardButton(
             text="🔎 Сверить ручную выдачу", callback_data=f"admin:u:manualcheck:{tg_id}",
@@ -2203,8 +2205,31 @@ async def user_plan_set(call: CallbackQuery):
         await call.answer()
         return
     live = await db.get_live_manual_entitlement(tg_id)
-    if live:
-        await call.answer("У пользователя активная/неопределённая ручная выдача; требуется отдельный ручной review.", show_alert=True)
+    if live and live.status in {"unknown", "in_flight"}:
+        await call.answer("Исход ручной выдачи неизвестен. Сначала используйте «Сверить ручную выдачу».", show_alert=True)
+        return
+    if live and live.status == "active":
+        if not plan_id:
+            await call.answer("Бессрочная ручная выдача действует. Выберите конечный тариф для безопасного перехода.", show_alert=True)
+            return
+        if not await guard(call, minimum="admin"):
+            return
+        nonce = secrets.token_hex(8)
+        _manual_grant_challenges[int(call.from_user.id)] = (
+            tg_id, plan_id, nonce, time.monotonic() + _MANUAL_GRANT_TTL,
+        )
+        await render_callback(call,
+            f"♾ Завершить ручную выдачу #{live.id}?\n\n"
+            f"Пользователь: {await _display_label(rec)}\n"
+            f"Новый тариф: {plan.name}\n\n"
+            "Сначала будут применены и проверены новые лимиты в 3x-ui. "
+            "При неизвестном результате повтор запрещён, доступ останется под ручной проверкой.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Подтвердить переход", callback_data=f"admin:u:manualswitch:{nonce}")],
+                [InlineKeyboardButton(text="✖ Отмена", callback_data=f"admin:u:plan:{tg_id}")],
+            ]),
+        )
+        await call.answer()
         return
     if plan_id:
         nonce = secrets.token_hex(8)
@@ -2328,6 +2353,44 @@ async def manual_plan_grant_run(call: CallbackQuery):
     await call.answer()
 
 
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:manualswitch:[a-f0-9]{16}$"))
+async def manual_plan_switch_run(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    actor = int(call.from_user.id)
+    challenge = _manual_grant_challenges.pop(actor, None)
+    nonce = (call.data or "").rsplit(":", 1)[-1]
+    if challenge is None or challenge[2] != nonce or time.monotonic() >= challenge[3]:
+        await call.answer("Подтверждение истекло или использовано.", show_alert=True)
+        return
+    tg_id, plan_id = challenge[0], challenge[1]
+    rec = await db.get(tg_id)
+    if rec is None:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    try:
+        result = await ManualEntitlementService(db, provisioner).switch_to_finite(
+            telegram_id=tg_id, plan_id=plan_id, actor_id=actor,
+        )
+    except (ManualEntitlementUnknown, ValueError) as exc:
+        await audit_from_call(
+            db, call, "user.plan.manual.switch.unknown", target_type="user",
+            target_id=rec.email, details=f"plan_id={plan_id}; transition=requires_review",
+            success=False,
+        )
+        await render_callback(call, f"🟡 Переход не завершён. {exc}", reply_markup=back_plan(tg_id))
+    else:
+        await audit_from_call(
+            db, call, "user.plan.manual.switch", target_type="user",
+            target_id=rec.email, details=f"plan_id={plan_id}; manual_entitlement_id={result.id}",
+        )
+        await render_callback(call,
+            "✅ Ручная выдача завершена, конечный тариф применён и подтверждён в 3x-ui.",
+            reply_markup=back_plan(tg_id),
+        )
+    await call.answer()
+
+
 @advanced_users_router.callback_query(F.data.regexp(r"^admin:u:manualcheck:\d+$"))
 async def manual_plan_grant_review(call: CallbackQuery):
     if not await guard(call, minimum="admin"):
@@ -2357,8 +2420,7 @@ async def manual_plan_grant_review(call: CallbackQuery):
             f"readback={record.result_code}; mutation_not_retried=true",
         )
         await render_callback(
-            call, f"✅ Ручная выдача #{record.id} подтверждена read-only 3x-ui "
-            "сверкой без повторного применения лимитов.",
+            call, (f"✅ Переход #{record.id} завершён по read-only 3x-ui сверке." if record.status == "superseded" else f"✅ Ручная выдача #{record.id} подтверждена read-only 3x-ui сверкой без повторного применения лимитов."),
             reply_markup=back_plan(tg_id),
         )
     await call.answer()

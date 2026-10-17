@@ -8,6 +8,9 @@
 
 ## Не опубликовано — исправления для v5.0.0-rc.16.2
 
+- [#721](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/721): для `active` ручной бессрочной выдачи добавлен отдельный Admin-only переход на обычный тариф с одноразовым подтверждением, 3x-ui read-back, SQLite CAS и read-only recovery без повторной mutation. При `unknown/in_flight` отмена ограничения не производится; результат не считается подтверждённым до provider postcondition.
+- Предстоящий RC не опубликован и не развернут, production acceptance PENDING.
+
 - [#719](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/719): журналы `⭐ Telegram Stars` и `📒 Ручные платежи (учёт)` в общем разделе «Платежи» постраничные (8 записей, «Новее/Старее», Back из карточки); прямые callback защищены прежним `payments.view`, ledger и refund без изменений.
 - Только кандидат будущего rc.16.2: `Published` и `Deployed` остаются rc.16.1, целевая проверка на production PENDING.
 

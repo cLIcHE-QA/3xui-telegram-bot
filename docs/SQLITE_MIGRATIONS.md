@@ -172,3 +172,7 @@ Owner подтверждает исторический `bot.update` unknown д�
 ## Release-prep `v5.0.0-rc.16.1` (2026-10-17)
 
 Это выпуск исправлений #705 поверх опубликованного `v5.0.0-rc.16`. Версия SQLite остаётся **v14**: новых миграций нет, ручной журнал выдачи и существующие платёжные записи не меняются. Точечный release candidate не означает production deployment или успешную приёмку; до отдельно разрешённого развёртывания нужны штатный backup и `PRAGMA quick_check`/read-back.
+
+## Переход с активной ручной выдачи — кандидат rc.16.2 / #721
+
+Schema v14 не меняется: `manual_entitlements.status` уже разрешает `superseded`. Для активной выдачи отдельная SQLite-транзакция фиксирует `in_flight` и `result_code=switch:<plan_id>:<expiry_ms>` до вызовов 3x-ui; при неизвестном результате операция становится `unknown`, блокируя повтор. Переход в `superseded` вместе с новым `user_profiles.plan_id` / `users.expiry_time` — одна transaction, только после независимого provider read-back. Восстановление read-only сверяет целевые лимиты и Inbounds по прежнему evidence, не повторяет remote mutations; журнал сохраняется. Новая migration не требуется, production read-back и acceptance остаются PENDING до отдельно разрешённого release/deployment.

@@ -4,6 +4,9 @@
 
 ## Актуальная сводка проекта
 
+**Блокирующий дефект #721 / rc.16.2 candidate (2026-10-17):** active ручная бессрочная выдача корректно не допускает прямой смены тарифа, но не имеет безопасного admin перехода на finite. Ветка hotfix содержит только кандидат проверяемого перехода и read-only recovery; **не Merged/Published/Deployed/Accepted**, #721 и #705 OPEN. Production остаётся на rc.16.1.
+
+
 **Кандидат исправлений `v5.0.0-rc.16.2` / #719 (2026-10-17):** на deployed rc.16.1 оператор сообщил о длинном списке Stars без пагинации. Для общего `💳 Платежи` и `⭐ Telegram Stars` готовится постраничный read-only просмотр по 8 с ограниченным SQLite запросом, возвратом из карточки и RBAC. Изменения только в feature branch/PR — **не Merged, не Published, не Deployed, не Accepted**; `v5.0.0-rc.16.1` остаётся последним Published/операторским Deployed. #719 OPEN, targeted Telegram smoke и G-11 PENDING/NO-GO. #705 OPEN отдельно, release/deployment только по явному разрешению.
 
 
