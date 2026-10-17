@@ -311,7 +311,7 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("hosts.manage", "exact", "admin:hosts:discover", "admin:hostadd:start", "admin:hostadd:cancel")
     + _rules("hosts.manage", "prefix", "admin:hostadd:role:", "admin:host:toggle:", "admin:host:deleteask:", "admin:host:delete:")
     + _rules("payments.view", "exact", "admin:payments", "admin:starspayments")
-    + _rules("payments.view", "regex", r"^admin:payment:\d+$", r"^admin:starspayment:\d+$")
+    + _rules("payments.view", "regex", r"^admin:payments:\d+$", r"^admin:starspayments:\d+$", r"^admin:payment:\d+$", r"^admin:starspayment:\d+(?::\d+)?$")
     + _rules("payments.manage", "exact", "admin:paymentadd:start", "admin:paymentadd:save", "admin:paymentadd:cancel")
     + _rules("payments.manage", "prefix", "admin:payment:status:", "admin:paymentadd:plan:", "admin:paymentadd:status:")
     + _rules("payments.manage", "regex", r"^admin:starsrefund:ask:\d+$", r"^admin:starsrefund:run:\d+$")
