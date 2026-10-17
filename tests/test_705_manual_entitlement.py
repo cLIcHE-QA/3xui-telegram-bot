@@ -330,6 +330,21 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(await self.db.get_live_manual_entitlement(999))
         self.assertIsNone(await portal.manual_purchase_block_reason(999))
 
+    async def test_client_purchase_block_reason_unknown_grant_hides_checkout(self):
+        from commerce import CommerceService
+        from customer_service import CustomerPortalService
+        self.xui.omit_expiry = True
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self._grant()
+        portal = CustomerPortalService(
+            self.db, CommerceService(self.db), provider=None,
+            subscription_url_template="https://sub.example.invalid/{sub_id}",
+        )
+        reason = await portal.manual_purchase_block_reason(101)
+        self.assertIn("идёт проверка", reason)
+        self.assertEqual(await portal.active_plans(101), [])
+        self.assertEqual(self.xui.update_calls, 1)
+
     async def test_client_purchase_block_reason_fail_closed_when_db_unavailable(self):
         from commerce import CommerceService
         from customer_service import CustomerPortalService
