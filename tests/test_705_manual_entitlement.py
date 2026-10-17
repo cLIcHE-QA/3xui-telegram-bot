@@ -149,6 +149,47 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
             for table in ("commerce_orders", "commerce_payments", "entitlements", "payments"):
                 self.assertEqual(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0], 0)
 
+    async def test_bounded_indefinite_grant_readback_and_switch(self):
+        bounded = await self.db.create_plan(
+            name="indefinite-limits", duration_days=0, traffic_gb=0, ip_limit=2,
+            hwid_limit=5, price_minor=0, rub_price_enabled=False,
+            currency="RUB", stars_price=0, visibility="admin_only",
+        )
+        record, created = await self.svc.grant(telegram_id=101, plan_id=bounded, actor_id=1)
+        self.assertTrue(created)
+        self.assertEqual(record.status, "active")
+        self.assertEqual(
+            {key: self.xui.limits[key] for key in ("expiryTime", "totalGB", "limitIp", "limitHwid")},
+            {"expiryTime": 0, "totalGB": 0, "limitIp": 2, "limitHwid": 5},
+        )
+        self.assertEqual((await self.svc.review(telegram_id=101, actor_id=1)).status, "active")
+        switched = await self.svc.switch_to_finite(
+            telegram_id=101, plan_id=self.finite, actor_id=1,
+        )
+        self.assertEqual(switched.status, "superseded")
+        self.assertEqual(self.xui.update_calls, 2)
+
+    async def test_bounded_indefinite_mismatch_is_unknown_no_replay(self):
+        bounded = await self.db.create_plan(
+            name="mismatch-limits", duration_days=0, traffic_gb=0, ip_limit=2,
+            hwid_limit=5, price_minor=0, rub_price_enabled=False,
+            currency="RUB", stars_price=0, visibility="admin_only",
+        )
+        previous_update = self.xui.update_client
+
+        async def mismatched_update(email, **kwargs):
+            await previous_update(email, **kwargs)
+            self.xui.limits["limitHwid"] = 0
+
+        self.xui.update_client = mismatched_update
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self.svc.grant(telegram_id=101, plan_id=bounded, actor_id=1)
+        self.assertEqual((await self.db.get_live_manual_entitlement(101)).status, "unknown")
+        before = self.xui.update_calls
+        with self.assertRaises(ValueError):
+            await self.svc.grant(telegram_id=101, plan_id=bounded, actor_id=1)
+        self.assertEqual(self.xui.update_calls, before)
+
     async def test_repeat_after_restart_is_idempotent_and_does_not_replay_provider(self):
         first, _ = await self._grant()
         restarted = Database(self.path)
