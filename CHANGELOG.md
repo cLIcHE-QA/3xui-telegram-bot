@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Не опубликовано — исправления для v5.0.0-rc.16.2
+
+- [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691): в редакторе scoped Flow для Master Inbound больше не показывается ошибочное `Node Panel: не проверено`, вместо этого — `не требуется (Master)`. Для direct node экран явно сообщает, что новую адресную проверку не выполнял. Исторический кэш TTL 180 секунд, provider mutations и ограничения безопасности не меняются.
+- Выпуск и targeted production acceptance PENDING; текущий Published/Deployed остаётся `v5.0.0-rc.16.1`.
+
 ## v5.0.0-rc.16.1 — Исправления назначения тарифов после rc.16
 
 - [PR #714](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/714) / [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705): назначение обычного тарифа: одноразовое подтверждение и проверяемое применение в 3x-ui; read-only preflight до бессрочной ручной выдачи.
