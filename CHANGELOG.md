@@ -8,6 +8,9 @@
 
 ## Не опубликовано — исправления для v5.0.0-rc.16.2
 
+- [PR #725](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/725) / [#724](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/724): независимые IP/HWID лимиты тарифа, отдельный шаг мастера, additive SQLite v15 с сохранением legacy `hwid_limit=NULL`, применение и read-back `limitHwid` и `limitIp` при новом тарифе, создание пользователя и отображение обоих значений. Проверен полный CI после совместной интеграции с #720/#722/#723.
+
+
 - [#721](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/721): для `active` ручной бессрочной выдачи добавлен отдельный Admin-only переход на обычный тариф с одноразовым подтверждением, 3x-ui read-back, SQLite CAS и read-only recovery без повторной mutation. При `unknown/in_flight` отмена ограничения не производится; результат не считается подтверждённым до provider postcondition.
 - Предстоящий RC не опубликован и не развернут, production acceptance PENDING.
 
