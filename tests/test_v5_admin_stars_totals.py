@@ -67,12 +67,13 @@ class AdminStarsTotalsTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_stars_global_pagination_boundaries_and_back(self):
         module = self.admin
+        plan_id = await self.db.create_plan(name="pagination", duration_days=30, traffic_gb=1, ip_limit=1, price_minor=100, currency="RUB", stars_price=1)
         async with __import__("aiosqlite").connect(self.db.path) as conn:
             for i in range(17):
                 cursor = await conn.execute(
                     "INSERT INTO commerce_orders(telegram_id,plan_id,amount_minor,currency,status,created_at,updated_at) "
-                    "VALUES (1001,NULL,1,'XTR','created',?,?)",
-                    (100 + i, 100 + i),
+                    "VALUES (1001,?,1,'XTR','created',?,?)",
+                    (plan_id, 100 + i, 100 + i),
                 )
                 await conn.execute(
                     "INSERT INTO commerce_payments(order_id,provider,provider_payment_id,amount_minor,currency,status,created_at,updated_at) "
