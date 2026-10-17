@@ -383,6 +383,8 @@ class ProvisioningEngine:
                 "totalGB": max(0, plan.traffic_gb) * 1024**3,
                 "limitIp": max(0, plan.ip_limit),
             }
+            if getattr(plan, "hwid_limit", None) is not None:
+                expected_limits["limitHwid"] = int(plan.hwid_limit)
             try:
                 await self.xui.update_client(rec.email, **expected_limits)
             except XUIMutationError as exc:

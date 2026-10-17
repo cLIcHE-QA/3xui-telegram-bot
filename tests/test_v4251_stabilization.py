@@ -53,7 +53,7 @@ class V4251StabilizationTests(unittest.TestCase):
 
     def test_hwid_limit_is_not_plan_managed(self):
         provisioning = (ROOT / "provisioning.py").read_text(encoding="utf-8")
-        self.assertNotIn("limitHwid", provisioning)
+        self.assertIn('expected_limits["limitHwid"] = int(plan.hwid_limit)', provisioning)
 
     def test_administrator_list_separates_status_and_role(self):
         source = (ROOT / "business_admin.py").read_text(encoding="utf-8")

@@ -30,6 +30,9 @@ settings = load_settings()
 db = Database(settings.db_path)
 business_router = Router(name="business_admin")
 
+PAYMENTS_PAGE_SIZE = 8
+
+
 PAYMENT_STATUSES = {
     "pending": "🟡 Ожидает",
     "paid": "🟢 Оплачен",
@@ -174,14 +177,18 @@ def utc_text(ts: int) -> str:
 
 
 @business_router.callback_query(F.data == "admin:payments")
+@business_router.callback_query(F.data.regexp(r"^admin:payments:\d+$"))
 async def payments_list(call: CallbackQuery):
     if not await guard(call):
         return
-    payments = await db.list_payments(limit=30)
+    requested = int((call.data or "").split(":")[2]) if len((call.data or "").split(":")) == 3 else 0
+    legacy_count = await db.count_payments()
+    offset = min(max(0, requested) // PAYMENTS_PAGE_SIZE * PAYMENTS_PAGE_SIZE,
+                 ((legacy_count - 1) // PAYMENTS_PAGE_SIZE) * PAYMENTS_PAGE_SIZE) if legacy_count else 0
+    payments = await db.list_payments(limit=PAYMENTS_PAGE_SIZE, offset=offset)
     summary = await db.payment_summary()
     totals = await db.paid_totals_by_currency()
     stars = await db.stars_payment_summary()
-    legacy_count = await db.count_payments()
     rows: list[list[InlineKeyboardButton]] = []
     for item in payments:
         icon = PAYMENT_STATUSES.get(item.status, item.status).split()[0]
@@ -190,8 +197,15 @@ async def payments_list(call: CallbackQuery):
         label = user_label(user, profile) if user else f"TG {item.telegram_id}"
         rows.append([InlineKeyboardButton(
             text=f"{icon} #{item.id} · {label} · {money(item.amount_minor, item.currency)}",
-            callback_data=f"admin:payment:{item.id}",
+            callback_data=f"admin:payment:{item.id}:{offset}",
         )])
+    nav = []
+    if offset:
+        nav.append(InlineKeyboardButton(text="⬅ Новее", callback_data=f"admin:payments:{offset - PAYMENTS_PAGE_SIZE}"))
+    if offset + PAYMENTS_PAGE_SIZE < legacy_count:
+        nav.append(InlineKeyboardButton(text="➡ Старее", callback_data=f"admin:payments:{offset + PAYMENTS_PAGE_SIZE}"))
+    if nav:
+        rows.append(nav)
     rows += [
         [InlineKeyboardButton(text="⭐ Telegram Stars", callback_data="admin:starspayments")],
         [InlineKeyboardButton(text="➕ Добавить платёж", callback_data="admin:paymentadd:start")],
@@ -220,11 +234,13 @@ async def payments_list(call: CallbackQuery):
     await call.answer()
 
 
-@business_router.callback_query(F.data.regexp(r"^admin:payment:\d+$"))
+@business_router.callback_query(F.data.regexp(r"^admin:payment:\d+(?::\d+)?$"))
 async def payment_detail(call: CallbackQuery):
     if not await guard(call):
         return
-    payment_id = int(call.data.rsplit(":", 1)[-1])
+    parts = (call.data or "").split(":")
+    payment_id = int(parts[2])
+    offset = int(parts[3]) if len(parts) == 4 else 0
     item = await db.get_payment(payment_id)
     if not item:
         await call.answer("Платёж не найден.", show_alert=True)
@@ -254,7 +270,7 @@ async def payment_detail(call: CallbackQuery):
             InlineKeyboardButton(text="↩️ Возвращён", callback_data=f"admin:payment:status:{item.id}:refunded"),
             InlineKeyboardButton(text="⚪ Отменён", callback_data=f"admin:payment:status:{item.id}:cancelled"),
         ],
-        [InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")],
+        [InlineKeyboardButton(text="⬅ Платежи", callback_data=f"admin:payments:{offset}")],
     ]
     await render_callback(call, "\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
@@ -290,11 +306,19 @@ async def payment_status(call: CallbackQuery):
 
 
 @business_router.callback_query(F.data == "admin:starspayments")
+@business_router.callback_query(F.data.regexp(r"^admin:starspayments:\d+$"))
 async def stars_payments_list(call: CallbackQuery):
     if not await guard(call):
         return
+    requested = int((call.data or "").split(":")[2]) if len((call.data or "").split(":")) == 3 else 0
     async with aiosqlite.connect(db.path) as conn:
         conn.row_factory = aiosqlite.Row
+        count_cursor = await conn.execute(
+            "SELECT COUNT(*) FROM commerce_payments WHERE provider = 'telegram_stars'"
+        )
+        total = int((await count_cursor.fetchone())[0])
+        offset = min(max(0, requested) // PAYMENTS_PAGE_SIZE * PAYMENTS_PAGE_SIZE,
+                     ((total - 1) // PAYMENTS_PAGE_SIZE) * PAYMENTS_PAGE_SIZE) if total else 0
         cur = await conn.execute(
             """
             SELECT cp.*, co.telegram_id
@@ -302,8 +326,8 @@ async def stars_payments_list(call: CallbackQuery):
             JOIN commerce_orders co ON co.id = cp.order_id
             WHERE cp.provider = 'telegram_stars'
             ORDER BY cp.created_at DESC, cp.id DESC
-            LIMIT 30
-            """
+            LIMIT ? OFFSET ?
+            """, (PAYMENTS_PAGE_SIZE, offset)
         )
         payments = await cur.fetchall()
     rows = []
@@ -318,22 +342,32 @@ async def stars_payments_list(call: CallbackQuery):
         }.get(str(item["status"]), "•")
         rows.append([InlineKeyboardButton(
             text=f"{label} #{item['id']} · TG {item['telegram_id']} · ⭐ {item['amount_minor']}",
-            callback_data=f"admin:starspayment:{item['id']}",
+            callback_data=f"admin:starspayment:{item['id']}:{offset}",
         )])
+    nav = []
+    if offset:
+        nav.append(InlineKeyboardButton(text="⬅ Новее", callback_data=f"admin:starspayments:{offset - PAYMENTS_PAGE_SIZE}"))
+    if offset + PAYMENTS_PAGE_SIZE < total:
+        nav.append(InlineKeyboardButton(text="➡ Старее", callback_data=f"admin:starspayments:{offset + PAYMENTS_PAGE_SIZE}"))
+    if nav:
+        rows.append(nav)
     rows.append([InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")])
     await render_callback(
         call,
-        "⭐ Telegram Stars\n\nПоследние commerce-платежи:",
+        f"⭐ Telegram Stars\n\nПлатежи: {total} · страница {offset // PAYMENTS_PAGE_SIZE + 1}:",
+
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
 
 
-@business_router.callback_query(F.data.regexp(r"^admin:starspayment:\d+$"))
+@business_router.callback_query(F.data.regexp(r"^admin:starspayment:\d+(?::\d+)?$"))
 async def stars_payment_detail(call: CallbackQuery):
     if not await guard(call):
         return
-    payment_id = int((call.data or "").rsplit(":", 1)[-1])
+    parts = (call.data or "").split(":")
+    payment_id = int(parts[2])
+    offset = int(parts[3]) if len(parts) == 4 else 0
     payment = await db.get_commerce_payment(payment_id)
     if payment is None or payment.provider != "telegram_stars":
         await call.answer("Stars-платёж не найден.", show_alert=True)
@@ -346,7 +380,7 @@ async def stars_payment_detail(call: CallbackQuery):
             text="↩️ Вернуть Stars",
             callback_data=f"admin:starsrefund:ask:{payment.id}",
         )])
-    rows.append([InlineKeyboardButton(text="⬅ Telegram Stars", callback_data="admin:starspayments")])
+    rows.append([InlineKeyboardButton(text="⬅ Telegram Stars", callback_data=f"admin:starspayments:{offset}")])
     await render_callback(
         call,
         "⭐ Telegram Stars\n\n"
