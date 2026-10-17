@@ -8,6 +8,9 @@
 
 ## Не опубликовано — исправления для v5.0.0-rc.16.2
 
+- [#719](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/719): журналы `⭐ Telegram Stars` и `📒 Ручные платежи (учёт)` в общем разделе «Платежи» постраничные (8 записей, «Новее/Старее», Back из карточки); прямые callback защищены прежним `payments.view`, ledger и refund без изменений.
+- Только кандидат будущего rc.16.2: `Published` и `Deployed` остаются rc.16.1, целевая проверка на production PENDING.
+
 - [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691): в редакторе scoped Flow для Master Inbound больше не показывается ошибочное `Node Panel: не проверено`, вместо этого — `не требуется (Master)`. Для direct node экран явно сообщает, что новую адресную проверку не выполнял. Исторический кэш TTL 180 секунд, provider mutations и ограничения безопасности не меняются.
 - Выпуск и targeted production acceptance PENDING; текущий Published/Deployed остаётся `v5.0.0-rc.16.1`.
 
