@@ -55,6 +55,22 @@ class FlowUiViewsTests(unittest.TestCase):
         self.assertNotIn("update_client_inbound_flow(rec.email, challenge.inbound_id, challenge.new_flow, client=snap.client, wg_verified=snap.wg_verified, remark=", source)
 
 
+class EditorNodePanelLabelTests(unittest.TestCase):
+    def test_master_does_not_require_direct_node_check(self):
+        from flow_edit_routes import node_panel_editor_label
+        self.assertEqual(node_panel_editor_label(0), "Node Panel: — не требуется (Master)")
+
+    def test_direct_node_is_not_verified_in_editor(self):
+        from flow_edit_routes import node_panel_editor_label
+        self.assertIn("не проверено на этом экране", node_panel_editor_label(7))
+        self.assertNotIn("MATCH", node_panel_editor_label(7))
+
+    def test_editor_source_uses_scoped_label_without_mutation(self):
+        source = (ROOT / "flow_edit_routes.py").read_text()
+        self.assertIn("{node_panel_editor_label(node_id)}", source)
+        self.assertIn('target.current_flow', source)
+
+
 class NodeNamesTests(unittest.IsolatedAsyncioTestCase):
     async def test_read_only_name_lookup(self):
         obj = SimpleNamespace(nodes_list=AsyncMock(return_value=[

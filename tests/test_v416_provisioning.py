@@ -326,6 +326,7 @@ class ProvisioningRegressionTests(unittest.IsolatedAsyncioTestCase):
             duration_days=30,
             traffic_gb=100,
             ip_limit=2,
+            hwid_limit=4,
             server_group_id=7,
             active=1,
         )
@@ -354,6 +355,7 @@ class ProvisioningRegressionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(email, "one@example.test")
         self.assertEqual(fields["totalGB"], 100 * 1024**3)
         self.assertEqual(fields["limitIp"], 2)
+        self.assertEqual(fields["limitHwid"], 4)
         self.assertGreater(fields["expiryTime"], int(time.time() * 1000))
 
     async def test_paid_target_expiry_defers_local_commit_and_exposes_one_shot_reset(self):

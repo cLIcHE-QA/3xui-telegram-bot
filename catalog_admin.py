@@ -35,6 +35,7 @@ class AddPlanStates(StatesGroup):
     duration = State()
     traffic = State()
     ip_limit = State()
+    hwid_limit = State()
     price = State()
     stars = State()
     visibility = State()
@@ -251,6 +252,8 @@ async def plan_detail(call: CallbackQuery):
     group_name = await _group_name(plan.server_group_id)
     traffic = "без лимита" if plan.traffic_gb == 0 else f"{plan.traffic_gb} GB"
     ip_limit = "без лимита" if plan.ip_limit == 0 else str(plan.ip_limit)
+    hwid_limit = ("сохраняется индивидуальный лимит (legacy)" if plan.hwid_limit is None
+                  else ("без лимита" if plan.hwid_limit == 0 else str(plan.hwid_limit)))
     status = "🟢 активен" if plan.active else "⚪ отключён"
     raw_default = await db.get_runtime_setting("default_plan_id", "")
     try:
@@ -271,6 +274,7 @@ async def plan_detail(call: CallbackQuery):
         f"Срок: {'Бессрочно' if plan.duration_days == 0 else str(plan.duration_days) + ' дней'}\n"
         f"Трафик: {traffic}\n"
         f"Лимит IP: {ip_limit}\n"
+        f"Лимит HWID (устройств): {hwid_limit}\n"
         f"Цена RUB: {_money(plan) if plan.rub_price_enabled else 'не настроена'}\n"
         f"Видимость: {visibility_label(plan.visibility)}\n"
         f"Telegram Stars: {plan.stars_price if plan.stars_price else 'не настроено'}\n"
@@ -303,7 +307,7 @@ async def plan_add_start(call: CallbackQuery, state: FSMContext):
     await state.clear()
     await state.set_state(AddPlanStates.name)
     await render_callback(call, 
-        "💎 Новый тариф · 1/5\n\nНазвание тарифа:",
+        "💎 Новый тариф · 1/6\n\nНазвание тарифа:",
         reply_markup=cancel_keyboard("admin:planadd:cancel"),
     )
     await call.answer()
@@ -319,7 +323,7 @@ async def plan_add_name(message: Message, state: FSMContext):
         return
     await state.update_data(name=name)
     await state.set_state(AddPlanStates.duration)
-    await render_input(message, "💎 Новый тариф · 2/5\n\nСрок действия в днях: 30 или 0 — бессрочно:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
+    await render_input(message, "💎 Новый тариф · 2/6\n\nСрок действия в днях: 30 или 0 — бессрочно:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
 
 
 @catalog_router.message(AddPlanStates.duration)
@@ -335,7 +339,7 @@ async def plan_add_duration(message: Message, state: FSMContext):
         return
     await state.update_data(duration_days=value)
     await state.set_state(AddPlanStates.traffic)
-    await render_input(message, "💎 Новый тариф · 3/5\n\nЛимит трафика в GB. 0 = без лимита:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
+    await render_input(message, "💎 Новый тариф · 3/6\n\nЛимит трафика в GB. 0 = без лимита:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
 
 
 @catalog_router.message(AddPlanStates.traffic)
@@ -351,7 +355,7 @@ async def plan_add_traffic(message: Message, state: FSMContext):
         return
     await state.update_data(traffic_gb=value)
     await state.set_state(AddPlanStates.ip_limit)
-    await render_input(message, "💎 Новый тариф · 4/5\n\nЛимит IP/устройств. 0 = без лимита:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
+    await render_input(message, "💎 Новый тариф · 4/6\n\nЛимит IP (не HWID). 0 = без лимита:", reply_markup=cancel_keyboard("admin:planadd:cancel"))
 
 
 @catalog_router.message(AddPlanStates.ip_limit)
@@ -366,9 +370,25 @@ async def plan_add_ip_limit(message: Message, state: FSMContext):
         await render_input(message, "Введите целое число от 0 до 1000.", reply_markup=cancel_keyboard("admin:planadd:cancel"))
         return
     await state.update_data(ip_limit=value)
+    await state.set_state(AddPlanStates.hwid_limit)
+    await render_input(message,
+        "💎 Новый тариф · 5/6\n\nЛимит HWID (зарегистрированных устройств). 0 = без лимита:",
+        reply_markup=cancel_keyboard("admin:planadd:cancel"))
+
+
+@catalog_router.message(AddPlanStates.hwid_limit)
+async def plan_add_hwid_limit(message: Message, state: FSMContext):
+    if not await guard_message(message, state):
+        return
+    raw = (message.text or "").strip()
+    if not re.fullmatch(r"[0-9]{1,4}", raw) or int(raw) > 1000:
+        await render_input(message, "Введите целое число HWID от 0 до 1000.",
+            reply_markup=cancel_keyboard("admin:planadd:cancel"))
+        return
+    await state.update_data(hwid_limit=int(raw))
     await state.set_state(AddPlanStates.price)
     await render_input(message, 
-        "💎 Новый тариф · 5/5\n\nЦена в RUB, например:\n499\n499.90 RUB\n\n0 = нет RUB-платежа.",
+        "💎 Новый тариф · 6/6\n\nЦена в RUB, например:\n499\n499.90 RUB\n\n0 = нет RUB-платежа.",
         reply_markup=cancel_keyboard("admin:planadd:cancel"),
     )
 
@@ -467,6 +487,7 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
     if int(data["duration_days"]) == 0 and (
         int(data["price_minor"]) > 0 or int(data.get("stars_price") or 0) > 0
         or int(data["traffic_gb"]) > 0 or int(data["ip_limit"]) > 0
+        or int(data["hwid_limit"]) > 0
         or data.get("visibility") != "admin_only"
     ):
         await call.answer("Бессрочный тариф разрешён только для ручной бесплатной выдачи.", show_alert=True)
@@ -477,12 +498,14 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
     group_name = await _group_name(group_id)
     traffic = "без лимита" if int(data["traffic_gb"]) == 0 else f"{data['traffic_gb']} GB"
     ips = "без лимита" if int(data["ip_limit"]) == 0 else str(data["ip_limit"])
+    hwids = "без лимита" if int(data["hwid_limit"]) == 0 else str(data["hwid_limit"])
     await render_callback(call, 
         "💎 Проверь тариф\n\n"
         f"Название: {data['name']}\n"
         f"Срок: {'Бессрочно' if data['duration_days'] == 0 else str(data['duration_days']) + ' дней'}\n"
         f"Трафик: {traffic}\n"
         f"Лимит IP: {ips}\n"
+        f"Лимит HWID (устройств): {hwids}\n"
         f"Цена RUB: {price_text if data['price_minor'] else 'не настроено'}\n"
         f"Цена Stars: {data.get('stars_price') or 'не настроено'}\n"
         f"Видимость: {visibility_label(str(data.get('visibility', 'all')))}\n"
@@ -528,6 +551,7 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
             duration_days=int(data["duration_days"]),
             traffic_gb=int(data["traffic_gb"]),
             ip_limit=int(data["ip_limit"]),
+            hwid_limit=int(data["hwid_limit"]),
             price_minor=int(data["price_minor"]),
             currency=str(data["currency"]),
             server_group_id=data.get("server_group_id"),
@@ -542,7 +566,7 @@ async def plan_add_save(call: CallbackQuery, state: FSMContext):
         return
     await audit_from_call(
         db, call, "plan.create", target_type="plan", target_id=str(plan_id),
-        details=f"name={data['name']}; duration={data['duration_days']}; traffic_gb={data['traffic_gb']}",
+        details=f"name={data['name']}; duration={data['duration_days']}; traffic_gb={data['traffic_gb']}; ip_limit={data['ip_limit']}; hwid_limit={data['hwid_limit']}",
     )
     await state.clear()
     await render_callback(call, 
