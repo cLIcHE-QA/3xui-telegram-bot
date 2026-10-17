@@ -33,6 +33,24 @@ class CatalogAudienceTests(unittest.IsolatedAsyncioTestCase):
         with sqlite3.connect(self.path) as conn:
             self.assertEqual(conn.execute("PRAGMA quick_check").fetchone()[0], "ok")
 
+    async def test_independent_ip_hwid_and_legacy_null(self):
+        old = await self.db.create_plan(name="before-v15", duration_days=30, traffic_gb=1,
+            ip_limit=2, price_minor=20000, currency="RUB")
+        fresh = await self.db.create_plan(name="after-v15", duration_days=30, traffic_gb=1,
+            ip_limit=2, hwid_limit=5, price_minor=20000, currency="RUB")
+        self.assertIsNone((await self.db.get_plan(old)).hwid_limit)
+        self.assertEqual(((await self.db.get_plan(fresh)).ip_limit,
+                          (await self.db.get_plan(fresh)).hwid_limit), (2, 5))
+        with self.assertRaises(ValueError):
+            await self.db.create_plan(name="invalid-hwid", duration_days=30, traffic_gb=1,
+                ip_limit=2, hwid_limit=1001, price_minor=20000, currency="RUB")
+        with self.assertRaises(ValueError):
+            await self.db.create_plan(name="bad-indefinite", duration_days=0, traffic_gb=0,
+                ip_limit=0, hwid_limit=1, price_minor=0, rub_price_enabled=False,
+                currency="RUB", visibility="admin_only")
+        with sqlite3.connect(self.path) as conn:
+            self.assertEqual(conn.execute("PRAGMA quick_check").fetchone()[0], "ok")
+
     async def test_groups_fail_closed_and_admin_only(self):
         gid = await self.db.create_user_group(name="Друзья")
         plan_id = await self.db.create_plan(name="limited", duration_days=30, traffic_gb=0,
