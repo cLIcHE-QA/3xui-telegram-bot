@@ -39,7 +39,7 @@ class AdminStarsTotalsTests(unittest.IsolatedAsyncioTestCase):
         self.tmp.cleanup()
 
     async def _render(self):
-        call = SimpleNamespace(answer=AsyncMock())
+        call = SimpleNamespace(data="admin:payments", answer=AsyncMock())
         renderer = AsyncMock()
         with (
             patch.object(self.admin, "db", self.db),
