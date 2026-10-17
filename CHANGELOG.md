@@ -6,19 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Не опубликовано — исправления для v5.0.0-rc.16.2
+## v5.0.0-rc.16.2 — Раздельные IP/HWID, безопасная смена тарифа и журналы платежей
 
-- [PR #725](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/725) / [#724](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/724): независимые IP/HWID лимиты тарифа, отдельный шаг мастера, additive SQLite v15 с сохранением legacy `hwid_limit=NULL`, применение и read-back `limitHwid` и `limitIp` при новом тарифе, создание пользователя и отображение обоих значений. Проверен полный CI после совместной интеграции с #720/#722/#723.
-
-
-- [#721](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/721): для `active` ручной бессрочной выдачи добавлен отдельный Admin-only переход на обычный тариф с одноразовым подтверждением, 3x-ui read-back, SQLite CAS и read-only recovery без повторной mutation. При `unknown/in_flight` отмена ограничения не производится; результат не считается подтверждённым до provider postcondition.
-- Предстоящий RC не опубликован и не развернут, production acceptance PENDING.
-
-- [#719](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/719): журналы `⭐ Telegram Stars` и `📒 Ручные платежи (учёт)` в общем разделе «Платежи» постраничные (8 записей, «Новее/Старее», Back из карточки); прямые callback защищены прежним `payments.view`, ledger и refund без изменений.
-- Только кандидат будущего rc.16.2: `Published` и `Deployed` остаются rc.16.1, целевая проверка на production PENDING.
-
-- [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691): в редакторе scoped Flow для Master Inbound больше не показывается ошибочное `Node Panel: не проверено`, вместо этого — `не требуется (Master)`. Для direct node экран явно сообщает, что новую адресную проверку не выполнял. Исторический кэш TTL 180 секунд, provider mutations и ограничения безопасности не меняются.
-- Выпуск и targeted production acceptance PENDING; текущий Published/Deployed остаётся `v5.0.0-rc.16.1`.
+- [PR #725](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/725) / [#724](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/724): раздельные IP/HWID лимиты при настройке тарифа, в карточке и provisioning; additive SQLite v15 `plans.hwid_limit` с сохранением legacy `NULL`, независимый 3x-ui read-back `limitIp` и `limitHwid`.
+- [PR #722](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/722) / [#721](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/721): Admin-only перевод `active` бессрочной ручной выдачи на finite-тариф через одноразовое подтверждение, provider postcondition, SQLite CAS; при `unknown/in_flight` — только read-only recovery, без повторной mutation.
+- [PR #720](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/720) / [#719](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/719): постраничные read-only журналы Stars и ручных платежей (по 8), «Новее/Старее» и возврат из карточки; прежний `payments.view` и refund semantics сохраняются.
+- [PR #723](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/723) / [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691): корректное различение `Node Panel` для Master (`не требуется`) и direct node (`не проверено на этом экране`) без изменения Flow mutations и TTL.
+- **Controlled canary prerelease:** после публикации `Published` не означает `Deployed` или `Accepted`. Нужны отдельное разрешение на deployment, совместимый backup перед schema v15, read-only migration journal/SQLite `PRAGMA quick_check`, targeted Telegram/3x-ui smoke и post-smoke health; G-11 PARTIAL / NO-GO, public rollout BLOCKED.
 
 ## v5.0.0-rc.16.1 — Исправления назначения тарифов после rc.16
 
