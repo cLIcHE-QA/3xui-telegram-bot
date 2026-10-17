@@ -176,7 +176,8 @@ def utc_text(ts: int) -> str:
 # ---------------------------------------------------------------------
 
 
-@business_router.callback_query(F.data.regexp(r"^admin:payments(?::\d+)?$"))
+@business_router.callback_query(F.data == "admin:payments")
+@business_router.callback_query(F.data.regexp(r"^admin:payments:\d+$"))
 async def payments_list(call: CallbackQuery):
     if not await guard(call):
         return
@@ -304,7 +305,8 @@ async def payment_status(call: CallbackQuery):
     )
 
 
-@business_router.callback_query(F.data.regexp(r"^admin:starspayments(?::\d+)?$"))
+@business_router.callback_query(F.data == "admin:starspayments")
+@business_router.callback_query(F.data.regexp(r"^admin:starspayments:\d+$"))
 async def stars_payments_list(call: CallbackQuery):
     if not await guard(call):
         return
