@@ -308,6 +308,25 @@ class CustomerPortalService:
         except Exception:  # Fail closed: не показывать тариф при отказе storage
             return False
 
+    async def manual_purchase_block_reason(self, telegram_id: int) -> str | None:
+        """Read-only reason for blocked purchase; uncertain storage remains fail-closed."""
+        try:
+            grant = await self.db.get_live_manual_entitlement(telegram_id)
+        except Exception:
+            return "Проверить право покупки сейчас не удалось. Попробуйте позже."
+        if grant is None:
+            return None
+        if grant.status == "active":
+            return (
+                "У вас действует подписка, назначенная администратором. "
+                "Самостоятельная покупка другого тарифа недоступна. "
+                "Для смены тарифа обратитесь к администратору."
+            )
+        return (
+            "По вашей ручной подписке идёт проверка. "
+            "Самостоятельная покупка сейчас недоступна. Обратитесь к администратору."
+        )
+
     async def active_plans(self, telegram_id: int | None = None) -> list[PlanRecord]:
         plans = [plan for plan in await self.db.list_plans() if plan.active]
         if telegram_id is None:
