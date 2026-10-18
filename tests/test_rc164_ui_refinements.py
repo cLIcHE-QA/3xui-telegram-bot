@@ -26,6 +26,13 @@ class Rc164UiTests(unittest.TestCase):
         self.assertEqual([x.id for x in sort_catalog_plans(items, "stars_desc")], [3,4,2,1])
         self.assertEqual([x.id for x in sort_catalog_plans(items, "")], [4,1,3,2])
 
+    def test_saved_sort_requires_admin(self):
+        for mode in ("rub_asc", "rub_desc", "stars_asc", "stars_desc", "original"):
+            self.assertEqual(required_role_for_callback("admin:plans:save:"+mode), "admin")
+        source = (ROOT/"catalog_admin.py").read_text(encoding="utf-8")
+        self.assertIn('set_runtime_setting("admin_plans_sort_mode", mode', source)
+        self.assertIn('get_runtime_setting("admin_plans_sort_mode", "stars_desc")', source)
+
     def test_price_callbacks_are_read_only(self):
         for suffix in ("rub_asc", "rub_desc", "stars_asc", "stars_desc"):
             self.assertEqual(required_role_for_callback("admin:plans:"+suffix), "read_only")
