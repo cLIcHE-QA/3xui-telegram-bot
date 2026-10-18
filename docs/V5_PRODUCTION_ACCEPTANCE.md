@@ -6,9 +6,9 @@ evidence на конкретном release tag/SHA.
 
 **Scoped acceptance checkpoint (operator-reported, 2026-10-17 11:58 EEST):** deployed `v5.0.0-rc.16.2`, immutable Published tag SHA `a95b43f2e3322c5d42ee74509727686bf9be5cf2`; S1–S9/A1–A7/B1–B4,B6–B8/C1–C7/D1–D6/E1–E4/F1–F8/G1–G7/H1–H8/I1–I4/Z1–Z2 reported PASS, A2=MATCH. **B5 BLOCKED** — тарифы исчезли из клиентского каталога, root cause неизвестен. Scope #691/#719/#721/#724 CLOSE/completed после адресного smoke, #705 OPEN. Эти результаты не закрывают общие V5-A-001/A-002/A-003 или G-11: **PARTIAL/NO-GO**, public rollout BLOCKED; нет independent VPS/DB/image evidence. План `rc.16.3` (#734/#730/#731) требует отдельного релиза/deploy и собственных targeted проверок.
 
-## Targeted pilot checks запланированного rc.16.4 (Issues #740, #742–#745)
+## Targeted pilot checks опубликованного rc.16.4 (Issues #740, #742–#745)
 
-**Не выполнены / PENDING.** Реализация #740/#742–#745 уже MERGED в `main` через PR #741/#746; плановая версия `rc.16.4` не Published/Deployed. После отдельно разрешённых merge/release/deployment соберите immutable SHA, operator-reported status, DB/3x-ui health и read-only evidence только с allowlisted pilot identity.
+**Не выполнены / PENDING.** Реализация #740/#742–#745 уже MERGED в `main` через PR #741/#746; immutable `rc.16.4` Published через PR #749 и [штатный GitHub Release](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.4), SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`. Deployment и targeted acceptance **PENDING**. Только после отдельно разрешённого production deployment соберите точный deployed tag/SHA, operator-reported status, DB/3x-ui health и read-only evidence на allowlisted pilot identity.
 
 1. **#742:** в карточках и списках включённых/отключённых Users, Plans, Inbounds и Administrators 🟢/⚪; при API unknown 🟡; offline 🔴 и предупреждающая кнопка ⛔ не подменяются статусом disabled.
 2. **#743:** страницы списка и поиска пользователей отображают действительный `enable` 3x-ui, делают не более одного read-only `clients/list` на экран, не переходят к N запросам, отсутствие/ошибка/дубликаты — 🟡; проверить кнопку Back и неизменные callback IDs.
