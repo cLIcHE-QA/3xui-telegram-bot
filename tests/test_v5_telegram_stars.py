@@ -53,6 +53,19 @@ class TelegramStarsCommerceTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         self.tmp.cleanup()
 
+    async def test_client_catalog_is_descending_stars_and_stable(self):
+        expensive_id = await self.db.create_plan(
+            name="Premium", duration_days=30, traffic_gb=100, ip_limit=2,
+            price_minor=99900, currency="RUB", stars_price=500,
+        )
+        same_id = await self.db.create_plan(
+            name="Same", duration_days=30, traffic_gb=100, ip_limit=2,
+            price_minor=99900, currency="RUB", stars_price=250,
+        )
+        plans = await self.customer.active_plans(7001)
+        self.assertEqual([p.id for p in plans], [expensive_id, self.plan_id, same_id])
+        self.assertEqual([p.stars_price for p in plans], [500, 250, 250])
+
     async def test_stars_order_uses_xtr_and_enters_awaiting_payment(self):
         plan = await self.db.get_plan(self.plan_id)
         order, created = await self.customer.get_or_create_stars_order(

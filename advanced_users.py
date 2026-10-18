@@ -557,7 +557,7 @@ async def render_user(tg_id: int, role: str | None = "read_only") -> tuple[str, 
             f"👤 {display_name or rec.email}",
             *([f"Email: {rec.email}"] if display_name else []),
             f"Telegram ID: {rec.telegram_id}",
-            f"Статус: {'🟢 включён' if enabled else '⛔ отключён'}",
+            f"Статус: {'🟢 включён' if enabled else '⚪ отключён'}",
             "",
             f"💎 Тариф: {plan_name}",
             f"⏳ Срок: {fmt_date(expiry)}",
@@ -776,7 +776,7 @@ async def _user_subscription_view(tg_id: int, role: str | None) -> tuple[str, In
         expiry = int(client.get("expiryTime") or rec.expiry_time or 0)
         now_ms = int(time.time() * 1000)
         if not enabled:
-            status = "⛔ отключена"
+            status = "⚪ отключена"
         elif expiry and expiry <= now_ms:
             status = "⌛ истекла"
         else:
@@ -2338,7 +2338,6 @@ async def manual_plan_grant_run(call: CallbackQuery):
             telegram_id=tg_id, plan_id=plan_id, actor_id=actor,
         )
     except ValueError as exc:
-        # Предоперационный отказ из атомарной SQLite-транзакции, а не unknown 3x-ui.
         reason = str(exc)
         if reason == "pending commerce must be resolved before manual grant":
             try:
@@ -3071,17 +3070,41 @@ async def user_sub_rotate_run(call: CallbackQuery):
     await call.answer()
 
 
+async def _user_status_icons(users: list[UserRecord]) -> dict[str, str]:
+    """Один read-only запрос: отсутствие доказательства не означает disabled."""
+    try:
+        clients = await xui.clients_list()
+    except Exception:
+        return {}
+    statuses: dict[str, str] = {}
+    for raw in clients:
+        if not isinstance(raw, dict):
+            continue
+        client = raw.get("client", raw)
+        if not isinstance(client, dict) or not isinstance(client.get("email"), str):
+            continue
+        email = client["email"]
+        enabled = client.get("enable")
+        icon = "🟢" if enabled is True else "⚪" if enabled is False else "🟡"
+        if email in statuses and statuses[email] != icon:
+            statuses[email] = "🟡"
+        else:
+            statuses[email] = icon
+    return statuses
+
+
 async def _users_page_view(page: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
     users = await db.list_users()
     pages = max(1, (len(users) + USER_LIST_PAGE_SIZE - 1) // USER_LIST_PAGE_SIZE)
     page = min(max(0, int(page)), pages - 1)
     visible = users[page * USER_LIST_PAGE_SIZE:(page + 1) * USER_LIST_PAGE_SIZE]
 
+    statuses = await _user_status_icons(visible)
     rows: list[list[InlineKeyboardButton]] = []
     for user in visible:
         profile = await db.get_user_profile(user.telegram_id)
         rows.append([InlineKeyboardButton(
-            text=f"👤 {user_label(user, profile)} · TG {user.telegram_id}",
+            text=f"{statuses.get(user.email, '🟡')} {user_label(user, profile)} · TG {user.telegram_id}",
             callback_data=f"admin:u:{user.telegram_id}",
         )])
 
@@ -3707,6 +3730,7 @@ async def admin_users_search_message(message: Message, state: FSMContext):
         await state.clear()
         return
 
+    statuses = await _user_status_icons(users)
     rows: list[list[InlineKeyboardButton]] = []
     for user in users:
         profile = await db.get_user_profile(user.telegram_id)
