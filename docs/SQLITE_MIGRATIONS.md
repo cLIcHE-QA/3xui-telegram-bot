@@ -1,6 +1,6 @@
 # Versioned SQLite migrations
 
-**Release-prep `v5.0.0-rc.16.5` / Issue #752 (ещё не Published/Deployed/Accepted):** замена активного бессрочного ручного тарифа переиспользует schema **v15** без миграций и новых таблиц. `manual_entitlements` сохраняет историческую запись как `superseded` и создаёт новый `active` после 3x-ui read-back атомарно в `BEGIN IMMEDIATE`; при неопределённом результате остаётся существующий `in_flight/unknown` с блокировкой повторов. `commerce_orders`/`commerce_payments` не изменяются; active order/pending entitlement запрещают замену. Это не production acceptance.
+**Published `v5.0.0-rc.16.5` / Issue #752 (не Deployed/Accepted):** замена активного бессрочного ручного тарифа переиспользует schema **v15** без миграций и новых таблиц. `manual_entitlements` сохраняет историческую запись как `superseded` и создаёт новый `active` после 3x-ui read-back атомарно в `BEGIN IMMEDIATE`; при неопределённом результате остаётся существующий `in_flight/unknown` с блокировкой повторов. `commerce_orders`/`commerce_payments` не изменяются; active order/pending entitlement запрещают замену. Это не production acceptance.
 
 
 Этот документ фиксирует migration contract для локальной bot database `bot.sqlite3`.
