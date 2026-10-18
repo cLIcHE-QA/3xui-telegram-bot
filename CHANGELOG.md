@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.16.5 — Статус в поиске и безопасная замена ручного тарифа
+
+- [PR #753](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/753) / [#743](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/743): поиск пользователей в Admin теперь показывает уже вычисленный read-only статус `enable` 3x-ui (🟢/⚪/🟡) вместо постоянного `👤`; существующий bounded `clients/list`, RBAC и callback сохранены. C3 на ранее deployed rc.16.4 был FAIL; проверка после deployment rc.16.5 ещё PENDING.
+- [PR #754](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/754) / [#752](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/752): для Admin/Owner добавлена одноразовая подтверждаемая замена одного активного скрытого бесплатного бессрочного ручного тарифа другим **в пределах той же Server Group**. До remote mutation — read-only preflight, проверка прежних лимитов/Inbounds и atomic commerce CAS; после mutation — независимый read-back 3x-ui, старый manual journal становится `superseded`, новый — `active`. При `unknown` запрещён автоматический replay; доступна read-only сверка. Cross-group не поддерживается; реальные orders/payments/invoices не меняются.
+- [PR #756](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/756) / [#755](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/755): исправлена синхронизация #752 в Roadmap как 🟡 `Реализовано в main` и добавлена required/scheduled CI-сверка этапа реализации с merged runtime PR; docs-only PR не считается runtime-реализацией, GitHub API unknown = FAIL/UNKNOWN.
+- **Совместимость:** SQLite schema **v15** без новых миграций, `.env`, внешних платёжных сервисов и новых API endpoints. `rc.16.5` — controlled-canary prerelease: публикация не выполняет deployment и не означает acceptance. До pilot smoke нужны разрешённый deploy, совместимый DB backup, приёмка статуса поиска и одной замены manual→manual с независимым 3x-ui read-back; G-11 `PARTIAL/NO-GO`, public rollout BLOCKED.
+
 ## v5.0.0-rc.16.4 — Безопасная ручная выдача и единые статусы
 
 - [PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) / [#730](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/730) / [#740](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/740): для скрытого бесплатного бессрочного тарифа разрешены независимые IP/HWID 0…1000; read-only commerce preflight различает незавершённый заказ и ожидающий применения entitlement до подтверждения ручной выдачи. Атомарный order/entitlement fence, fail-closed, одноразовый nonce и unknown/no-replay не обходятся; платежи и provider state автоматически не меняются.
