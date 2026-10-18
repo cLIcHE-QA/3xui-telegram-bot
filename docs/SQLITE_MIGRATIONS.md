@@ -1,5 +1,8 @@
 # Versioned SQLite migrations
 
+**Кандидат `v5.0.0-rc.16.5` / Issue #752 (не опубликован):** замена активного бессрочного ручного тарифа переиспользует schema **v15** без миграций и новых таблиц. `manual_entitlements` сохраняет историческую запись как `superseded` и создаёт новый `active` после 3x-ui read-back атомарно в `BEGIN IMMEDIATE`; при неопределённом результате остаётся существующий `in_flight/unknown` с блокировкой повторов. `commerce_orders`/`commerce_payments` не изменяются; active order/pending entitlement запрещают замену. Это не production acceptance.
+
+
 Этот документ фиксирует migration contract для локальной bot database `bot.sqlite3`.
 
 Механизм относится только к SQLite самого Telegram-бота. Базы 3x-ui на Master/direct nodes мигрируются самим 3x-ui и не управляются этим framework.
