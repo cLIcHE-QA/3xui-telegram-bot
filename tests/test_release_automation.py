@@ -66,6 +66,20 @@ class ReleaseNotesTests(unittest.TestCase):
         self.assertIn("G-11", body)
         self.assertIn("deployment", body)
 
+    def test_rc164_release_notes_cover_merged_scope_and_preserve_safety(self):
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        title, body = release_notes.render_release_notes(
+            changelog, "5.0.0-rc.16.4", "a" * 40
+        )
+        self.assertTrue(title.startswith("v5.0.0-rc.16.4 — "))
+        for fragment in ("PR #741", "PR #746", "#740", "#742", "#743", "#744", "#745"):
+            self.assertIn(fragment, body)
+        self.assertIn("schema остаётся **v15**", body)
+        self.assertIn("unknown/no-replay", body)
+        self.assertIn("G-11 PARTIAL/NO-GO", body)
+        self.assertIn("public rollout BLOCKED", body)
+        self.assertIn("не выполняет production deployment автоматически", body)
+
     def test_release_workflow_marks_rc_as_prerelease(self):
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(
             encoding="utf-8"
