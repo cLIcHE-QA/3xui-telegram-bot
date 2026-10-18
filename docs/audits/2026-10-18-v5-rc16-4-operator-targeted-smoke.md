@@ -141,3 +141,10 @@
 ## Дополнительный операторский checkpoint — 2026-10-18 21:59 EEST
 
 Read-only SQLite подтвердил для пользователя с блокирующим алертом **один `commerce_orders.awaiting_payment` без `commerce_payments`**, pending/provisioning `entitlements` = 0; приватный Telegram ID в документацию не переносится. F1–F7 и Z1–Z5 остаются scoped operator-reported PASS; #740 CLOSED/completed, а будущий read-only интерфейс для order без payment уже учтён в [#470](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/470) (OPEN, target rc.17). Прямого изменения/отмены заказа не было. Оператор также сообщил **M1–M8 8/8 PASS** по manual grant и provider read-back, без независимого VPS evidence. **Не подтверждено, относятся ли M1–M8 к этому же пользователю с активным pending order или к отдельному чистому pilot-сценарию**; нельзя заявлять обход atomic fence или закрыть #730 без уточнения provenance. Full G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+
+## Closure addendum #745 — 2026-10-19 00:35 EEST
+
+- **Окружение/источник:** deployed `v5.0.0-rc.16.4`, immutable SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`, Telegram operator-reported после штатного Docker Compose restart; independent VPS read-back отсутствует.
+- **До рестарта:** выбран `Stars ↓`; E1–E10 ранее operator-reported PASS.
+- **После рестарта:** `#745: PASS`, выбранная сортировка сохранилась. `./scripts/deploy-release.sh --status`: Git tag и Git SHA соответствуют релизу, Container running, RestartCount=0, Bot version `5.0.0-rc.16.4`, Health/DB/3x-ui connectivity = ok, Docker subnet `172.19.0.0/16`.
+- **Итог:** собственный scoped acceptance Issue [#745](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/745) **PASS; CLOSED/completed**. Общий 59/60 targeted A–Z не меняется: C3/#743 FAIL, #730 causal correlation PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED; прошлые PENDING записи выше — исторические.
