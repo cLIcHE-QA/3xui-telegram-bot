@@ -67,7 +67,7 @@ class NodeUiTests(unittest.TestCase):
             if button.callback_data
         }
         self.assertEqual(master_labels["admin:hostctl:m"], "🧩 Управление 3x-ui")
-        self.assertEqual(master_labels["admin:ver:panel:m"], "⬆️ Обновления 3x-ui")
+        self.assertEqual(master_labels["admin:ver:panel:m:i"], "⬆️ Обновления 3x-ui")
         self.assertEqual(node_labels["admin:nodectl:2:maintenance"], "🛠 Включить обслуживание")
         self.assertEqual(node_labels["admin:node:2:readiness"], "🧭 Готовность")
         self.assertEqual(node_labels["admin:nodectl:2:deleteask"], "🗑 Удалить ноду")
@@ -76,8 +76,8 @@ class NodeUiTests(unittest.TestCase):
         self.assertIn("admin:hostctl:m", callback_values(node_ui.master_detail_keyboard()))
         node_callbacks = callback_values(node_ui.node_detail_keyboard(2))
         self.assertIn("admin:hostctl:n2", node_callbacks)
-        self.assertIn("admin:ver:panel:n2", node_callbacks)
-        self.assertIn("admin:ver:xray:n2:0", node_callbacks)
+        self.assertIn("admin:ver:panel:n2:i", node_callbacks)
+        self.assertIn("admin:ver:xray:n2:0:i", node_callbacks)
         self.assertIn("admin:node:2:readiness", node_callbacks)
 
 
