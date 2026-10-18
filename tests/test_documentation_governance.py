@@ -178,6 +178,68 @@ class DocumentationGovernanceTests(unittest.TestCase):
         with self.assertRaises(gh.Drift):
             gh.validate(text, actual, "v9.9.9")
 
+    def test_lifecycle_merged_runtime_pr_requires_implemented_status(self):
+        rows = {
+            752: {"status": gh.PLANNED,
+                  "pr": "[PR #754](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/754)"},
+        }
+        calls = []
+        def github(repo, suffix, token=""):
+            calls.append(suffix)
+            if suffix == "/pulls/754":
+                return {"merged": True, "merge_commit_sha": "6a735dc67db4efd08849bcff8f56e5ff6fff4315",
+                        "base": {"ref": "main"}}
+            if suffix == "/pulls/754/files?per_page=100":
+                return [{"filename": "db.py"}, {"filename": "manual_entitlements.py"},
+                        {"filename": "docs/ROADMAP.md"}]
+            raise AssertionError(suffix)
+        with self.assertRaisesRegex(gh.Drift, r"Issue #752 is planned"):
+            gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", github)
+        rows[752]["status"] = gh.IMPLEMENTED
+        gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", github)
+        self.assertIn("/pulls/754/files?per_page=100", calls)
+
+    def test_lifecycle_docs_only_and_unmerged_do_not_count_as_implementation(self):
+        rows = {
+            707: {"status": gh.PLANNED, "pr":
+                  "[PR #708](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/708)"},
+            752: {"status": gh.PLANNED, "pr":
+                  "[PR #754](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/754)"},
+        }
+        def github(repo, suffix, token=""):
+            if suffix == "/pulls/708":
+                return {"merged": True, "merge_commit_sha": "a" * 40,
+                        "base": {"ref": "main"}}
+            if suffix == "/pulls/708/files?per_page=100":
+                return [{"filename": "docs/ROADMAP.md"},
+                        {"filename": "docs/LEGAL_PORTAL_PLACEMENT.md"}]
+            if suffix == "/pulls/754":
+                return {"merged": False, "merge_commit_sha": None, "base": {"ref": "main"}}
+            raise AssertionError(suffix)
+        gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", github)
+        rows[707]["status"] = gh.IMPLEMENTED
+        with self.assertRaisesRegex(gh.Drift, r"Issue #707 claims implemented"):
+            gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", github)
+
+    def test_lifecycle_implemented_without_merged_pr_or_link_is_rejected(self):
+        rows = {752: {"status": gh.IMPLEMENTED,
+                      "pr": "[PR #754](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/754)"}}
+        def unmerged(repo, suffix, token=""):
+            return {"merged": False, "base": {"ref": "main"}}
+        with self.assertRaisesRegex(gh.Drift, "without merged runtime PR"):
+            gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", unmerged)
+        rows[752]["pr"] = "—"
+        with self.assertRaisesRegex(gh.Drift, "without implementation PR"):
+            gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", unmerged)
+
+    def test_lifecycle_unknown_fails_closed(self):
+        rows = {752: {"status": gh.IMPLEMENTED,
+                      "pr": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/754"}}
+        def unreachable(repo, suffix, token=""):
+            raise gh.Unknown("GitHub unavailable")
+        with self.assertRaises(gh.Unknown):
+            gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", unreachable)
+
     def test_github_reconciliation_release_neutral(self):
         text = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         current = gh.declared_published(text)
