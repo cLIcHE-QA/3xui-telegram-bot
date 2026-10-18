@@ -3812,7 +3812,7 @@ async def admin_users_search_message(message: Message, state: FSMContext):
     for user in users:
         profile = await db.get_user_profile(user.telegram_id)
         rows.append([InlineKeyboardButton(
-            text=f"👤 {user_label(user, profile)} · TG {user.telegram_id}",
+            text=f"{statuses.get(user.email, '🟡')} {user_label(user, profile)} · TG {user.telegram_id}",
             callback_data=f"admin:u:{user.telegram_id}",
         )])
     rows.append([InlineKeyboardButton(text="🔎 Новый поиск", callback_data="admin:users:search")])

@@ -53,6 +53,16 @@ class Rc164UiTests(unittest.TestCase):
         self.assertIn("statuses.get(user.email, '🟡')", source)
         self.assertIn("🟢 включён' if enabled else '⚪ отключён", source)
 
+    def test_search_result_renders_3xui_status_not_person_icon(self):
+        source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
+        search = source.split("async def admin_users_search_message(", 1)[1].split(
+            "@advanced_users_router.callback_query", 1
+        )[0]
+        self.assertIn("statuses = await _user_status_icons(users)", search)
+        self.assertIn("statuses.get(user.email, '🟡')", search)
+        self.assertNotIn('text=f"👤 {user_label(user, profile)}', search)
+        self.assertIn("callback_data=f\"admin:u:{user.telegram_id}\"", search)
+
     def test_status_is_distinct_from_warning_actions(self):
         for path in ("inbound_admin.py", "business_admin.py", "advanced_users.py"):
             source = (ROOT/path).read_text(encoding="utf-8")

@@ -1,5 +1,7 @@
 # Admin Setup: установка и настройка Admin Control Plane
 
+**Будущий `rc.16.5` / #752 (не Released/Deployed):** после отдельного выпуска Administrator/Owner сможет заменить два активных скрытых бесплатных бессрочных тарифа в одной Server Group с одноразовым подтверждением. Перед targeted smoke проверить backup, SQLite v15, current/pending orders, read-only исходный 3x-ui snapshot; после разрешённой единственной замены — strict limits+Inbounds postcondition, журнал старый `superseded` + новый `active`, Health/DB/3x-ui. При `unknown` — только read-only review, не повторять mutation; cross-group вручную не обходить. Без отдельного разрешения никаких production mutations.
+
 Этот runbook описывает полное развёртывание и operational-настройку административного контура 3x-ui Telegram Bot с чистых VPS: Master, одна или несколько direct nodes, Host Control Agent и Extended direct-node backup с nginx snapshot.
 
 Scope документа — только **Admin Control Plane**. Client Portal v5 уже реализован для ограниченного pilot allowlist, но полный production acceptance ещё не завершён; этот runbook не является инструкцией по публичному запуску клиентского интерфейса или приёму новых реальных платежей. Условия контролируемой приёмки описаны в [v5 Production Acceptance](V5_PRODUCTION_ACCEPTANCE.md). Пилотная настройка client-facing функции описана в [CLIENT_SETUP.md](CLIENT_SETUP.md) и **не** разрешает общедоступный rollout; административный deployment flow здесь не смешивается с клиентским.
@@ -51,10 +53,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.16.4. Immutable [`v5.0.0-rc.16.4`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.4) **Published** `2026-10-18T17:30:44Z`, SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`, штатный [Publish release](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39149899084) PASS. **Deployed:** по-прежнему `v5.0.0-rc.16.3` — только operator-reported, с базовым health; независимый VPS/DB read-back PENDING. Этот документ **не разрешает** production deployment без отдельного указания: перед ним проверить immutable tag/SHA, backup, SQLite schema v15/journal/`PRAGMA quick_check`, 3x-ui и targeted pilot smoke #730/#740/#742–#745. G-11 PARTIAL/NO-GO; public rollout BLOCKED.
-
-**Будущий `rc.16.5` / #752 (не Released/Deployed):** после отдельного выпуска Administrator/Owner сможет заменить два активных скрытых бесплатных бессрочных тарифа в одной Server Group с одноразовым подтверждением. Перед targeted smoke проверить backup, SQLite v15, current/pending orders, read-only исходный 3x-ui snapshot; после разрешённой единственной замены — strict limits+Inbounds postcondition, журнал старый `superseded` + новый `active`, Health/DB/3x-ui. При `unknown` — только read-only review, не повторять mutation; cross-group вручную не обходить. Без отдельного разрешения никаких production mutations.
-
+Guide ориентирован на release v5.0.0-rc.16.4. Published `v5.0.0-rc.16.4` / immutable SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`. **Deployed:** operator-reported `DEPLOY_OK` и `--status` 2026-10-18: running, RestartCount=0, Health/DB/3x-ui ok, subnet `172.19.0.0/16`, pre-deploy backup path сообщён приватно; independent VPS/DB/restore read-back PENDING. [Targeted smoke](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md) — 59 PASS / C3 FAIL в поиске, manual grant M1–M8 blocked pending order; без SQL правок/повторного grant, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
