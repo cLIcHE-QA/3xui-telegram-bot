@@ -6,6 +6,12 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Unreleased — исправления после v5.0.0-rc.16.3
+
+- #730: исправлена устаревшая проверка `ip_limit=0` в UI ручного назначения; `IP/HWID=0…1000` согласованы с `rc.16.3`.
+- #740: read-only preflight объясняет незавершённый `commerce_orders` или `entitlements.pending/provisioning` до подтверждения; SQLite сохраняет атомарный запрет, `unknown` и no-replay не ослаблены. Это **не** завершение платежа и не разрешение production mutations.
+- Только implementation candidate: Published/Deployed остаются `v5.0.0-rc.16.3`; merge, новый release, deployment и targeted acceptance PENDING.
+
 ## v5.0.0-rc.16.3 — Понятный HWID, ограниченные бессрочные тарифы и объяснение покупки
 
 - [PR #729](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/729) / [#734](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/734): в карточке старого тарифа вместо `legacy` показано «Лимит HWID: не задан в тарифе — сохраняется текущий лимит пользователя». Семантика `NULL`/0 и действующие ограничения 3x-ui не меняются.
