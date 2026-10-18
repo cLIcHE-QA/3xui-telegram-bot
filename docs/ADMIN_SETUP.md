@@ -53,6 +53,9 @@ Direct Node VPS
 
 Guide ориентирован на release v5.0.0-rc.16.4. Immutable [`v5.0.0-rc.16.4`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.4) **Published** `2026-10-18T17:30:44Z`, SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`, штатный [Publish release](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39149899084) PASS. **Deployed:** по-прежнему `v5.0.0-rc.16.3` — только operator-reported, с базовым health; независимый VPS/DB read-back PENDING. Этот документ **не разрешает** production deployment без отдельного указания: перед ним проверить immutable tag/SHA, backup, SQLite schema v15/journal/`PRAGMA quick_check`, 3x-ui и targeted pilot smoke #730/#740/#742–#745. G-11 PARTIAL/NO-GO; public rollout BLOCKED.
 
+**Будущий `rc.16.5` / #752 (не Released/Deployed):** после отдельного выпуска Administrator/Owner сможет заменить два активных скрытых бесплатных бессрочных тарифа в одной Server Group с одноразовым подтверждением. Перед targeted smoke проверить backup, SQLite v15, current/pending orders, read-only исходный 3x-ui snapshot; после разрешённой единственной замены — strict limits+Inbounds postcondition, журнал старый `superseded` + новый `active`, Health/DB/3x-ui. При `unknown` — только read-only review, не повторять mutation; cross-group вручную не обходить. Без отдельного разрешения никаких production mutations.
+
+
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
 ## 0. Что понадобится
