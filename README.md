@@ -16,6 +16,8 @@
 
 **План `v5.0.0-rc.16.4` (2026-10-18):** #740 — безопасное объяснение блокировки ручной выдачи, #742 — единые 🟢/⚪ статусы, #743 — read-only статус пользователя в списке и поиске при каждом открытии (без фонового polling), #744 — навигация к исходной карточке Node/Master, #745 — RUB/Stars ↑/↓ с сохранением выбранного админского порядка и независимой сортировкой клиентских Stars ↓. [PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) и [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) **OPEN**; изменения **не Merged/Published/Deployed/Accepted**. Текущий Published и operator-reported Deployed остаются `v5.0.0-rc.16.3`, общий v5 G-11 PARTIAL/NO-GO, public rollout BLOCKED. Каноническая таблица Issues: [Roadmap](docs/ROADMAP.md).
 
+**Implementation checkpoint 2026-10-18:** задачи #740/#742/#743/#744/#745 для целевого `v5.0.0-rc.16.4` **реализованы в `main`**: [PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) (manual grant; MERGED `33e6ff9d`), [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) (UI; MERGED `21ae34bc`), [PR #747](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/747) (docs; MERGED `1db6db4c`). Выпуск `rc.16.4` **ещё не Published, не Deployed и не Accepted**; текущий immutable Published и operator-reported Deployed — `rc.16.3`. Issue closure, production rollout и G-11 PASS не подтверждены. [Roadmap](docs/ROADMAP.md).
+
 > README — актуальная карта проекта и точка входа в runbook'и. Исторические upgrade-инструкции и release-by-release описание не дублируются здесь: для них используются `CHANGELOG.md`, GitHub Releases и специализированные документы в `docs/`.
 
 ## Roadmap: текущие статусы и архив

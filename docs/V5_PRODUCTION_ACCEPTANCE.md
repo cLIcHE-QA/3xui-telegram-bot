@@ -8,7 +8,7 @@ evidence на конкретном release tag/SHA.
 
 ## Targeted pilot checks запланированного rc.16.4 (Issues #740, #742–#745)
 
-**Не выполнены / PENDING.** Плановая версия не Published/Deployed. После отдельно разрешённых merge/release/deployment соберите immutable SHA, operator-reported status, DB/3x-ui health и read-only evidence только с allowlisted pilot identity.
+**Не выполнены / PENDING.** Реализация #740/#742–#745 уже MERGED в `main` через PR #741/#746; плановая версия `rc.16.4` не Published/Deployed. После отдельно разрешённых merge/release/deployment соберите immutable SHA, operator-reported status, DB/3x-ui health и read-only evidence только с allowlisted pilot identity.
 
 1. **#742:** в карточках и списках включённых/отключённых Users, Plans, Inbounds и Administrators 🟢/⚪; при API unknown 🟡; offline 🔴 и предупреждающая кнопка ⛔ не подменяются статусом disabled.
 2. **#743:** страницы списка и поиска пользователей отображают действительный `enable` 3x-ui, делают не более одного read-only `clients/list` на экран, не переходят к N запросам, отсутствие/ошибка/дубликаты — 🟡; проверить кнопку Back и неизменные callback IDs.

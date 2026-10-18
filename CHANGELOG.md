@@ -6,14 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Unreleased — запланированный v5.0.0-rc.16.4 (не опубликован)
+## Unreleased — реализовано в main для v5.0.0-rc.16.4 (не опубликован)
 
-- [#740](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/740): планируется безопасный read-only commerce preflight и явная причина запрета ручной выдачи без изменения платёжных статусов ([PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) OPEN).
+- [#740](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/740): реализован безопасный read-only commerce preflight и явная причина запрета ручной выдачи без изменения платёжных статусов ([PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) MERGED, `33e6ff9d`).
 - [#742](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/742): единая 🟢/⚪ грамматика включения, отличная от ⛔ блокировки и 🔴 ошибок.
 - [#743](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/743): read-only состояние клиента 3x-ui в списке/поиске на каждом входе/смене страницы без фонового опроса.
 - [#744](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/744): контекстный возврат версий 3x-ui/Xray к исходной Master/Node-карточке.
 - [#745](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/745): отдельные RUB/Stars ↑/↓, сохранение admin-предпочтения в существующей `runtime_settings`, клиентский Stars-каталог от дорогих к дешёвым после фильтрации разрешений; ни конвертации валют, ни новых платёжных flow.
-- [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) — implementation candidate OPEN, required offline CI PASS; merge, release-prep, immutable tag, deployment и targeted acceptance PENDING. `version.py` и current Published/Deployed `rc.16.3` не меняются.
+- [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) — MERGED (`21ae34bc`), [PR #747](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/747) — MERGED (`1db6db4c`); required `test`/`title` PASS; release-prep, immutable tag, deployment и targeted acceptance **PENDING**. `version.py` и current Published/Deployed `rc.16.3` не меняются.
 
 ## v5.0.0-rc.16.3 — Понятный HWID, ограниченные бессрочные тарифы и объяснение покупки
 
