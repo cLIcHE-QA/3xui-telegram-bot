@@ -6,6 +6,18 @@ evidence на конкретном release tag/SHA.
 
 **Scoped acceptance checkpoint (operator-reported, 2026-10-17 11:58 EEST):** deployed `v5.0.0-rc.16.2`, immutable Published tag SHA `a95b43f2e3322c5d42ee74509727686bf9be5cf2`; S1–S9/A1–A7/B1–B4,B6–B8/C1–C7/D1–D6/E1–E4/F1–F8/G1–G7/H1–H8/I1–I4/Z1–Z2 reported PASS, A2=MATCH. **B5 BLOCKED** — тарифы исчезли из клиентского каталога, root cause неизвестен. Scope #691/#719/#721/#724 CLOSE/completed после адресного smoke, #705 OPEN. Эти результаты не закрывают общие V5-A-001/A-002/A-003 или G-11: **PARTIAL/NO-GO**, public rollout BLOCKED; нет independent VPS/DB/image evidence. План `rc.16.3` (#734/#730/#731) требует отдельного релиза/deploy и собственных targeted проверок.
 
+## Targeted pilot checks запланированного rc.16.4 (Issues #740, #742–#745)
+
+**Не выполнены / PENDING.** Плановая версия не Published/Deployed. После отдельно разрешённых merge/release/deployment соберите immutable SHA, operator-reported status, DB/3x-ui health и read-only evidence только с allowlisted pilot identity.
+
+1. **#742:** в карточках и списках включённых/отключённых Users, Plans, Inbounds и Administrators 🟢/⚪; при API unknown 🟡; offline 🔴 и предупреждающая кнопка ⛔ не подменяются статусом disabled.
+2. **#743:** страницы списка и поиска пользователей отображают действительный `enable` 3x-ui, делают не более одного read-only `clients/list` на экран, не переходят к N запросам, отсутствие/ошибка/дубликаты — 🟡; проверить кнопку Back и неизменные callback IDs.
+3. **#744:** оба входа `Инфраструктура → Ноды → Master/direct Node → 3x-ui/Xray` возвращаются в ту же карточку, включая пагинацию/ошибку; вход из `Система` остаётся внутри версионного раздела; без запуска обновления/backup/restart.
+4. **#745:** admin RUB/Stars ↑/↓, сохранённый режим при повторном входе/перезапуске, отсутствие изменения тарифных цен или DB schema; только Administrator/Owner сохраняют. **Client Portal**: после фильтрации разрешённых планов Stars ↓ до лимита отображения; проверить равные цены/visibility, не подтверждать invoice, сохранённые backend checks.
+5. **#740:** отдельный read-only commerce blocker/unknown no-replay; не переписывать orders/entitlements, provider mutations — только отдельно согласованный тест. Финальный health/SQLite/provider read-back не объявлять PASS без evidence.
+
+Фиксировать PASS отдельно по собственному Issue/тегу после targeted Telegram read-back. Эти проверки **не заменяют** V5-A-001…A-003, G-11 остаётся PARTIAL/NO-GO, public rollout BLOCKED.
+
 ## 0. Зафиксировать baseline
 
 Перед тестами запишите:
