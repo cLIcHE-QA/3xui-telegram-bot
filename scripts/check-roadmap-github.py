@@ -65,7 +65,7 @@ def expectations(roadmap: str) -> tuple[set[int], dict[int, str]]:
 
 # PRs указаны только в каноническом активном реестре; исторические
 # ссылки в сводке не дают оснований менять lifecycle state.
-PR_LINK = re.compile(r"https://github\\.com/cLIcHE-QA/3xui-telegram-bot/pull/(\\d+)")
+PR_LINK = re.compile(r"https://github\.com/cLIcHE-QA/3xui-telegram-bot/pull/(\d+)")
 PLANNED = "⬜ Запланировано"
 IMPLEMENTED = "🟡 Реализовано в main"
 
