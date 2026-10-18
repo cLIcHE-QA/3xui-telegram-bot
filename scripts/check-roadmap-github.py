@@ -63,6 +63,67 @@ def expectations(roadmap: str) -> tuple[set[int], dict[int, str]]:
     return referenced, states
 
 
+# PRs указаны только в каноническом активном реестре; исторические
+# ссылки в сводке не дают оснований менять lifecycle state.
+PR_LINK = re.compile(r"https://github\\.com/cLIcHE-QA/3xui-telegram-bot/pull/(\\d+)")
+PLANNED = "⬜ Запланировано"
+IMPLEMENTED = "🟡 Реализовано в main"
+
+
+def code_file(path: str) -> bool:
+    """Docs-only, audit и test-only PR не подтверждают runtime implementation."""
+    if path.startswith(("docs/", "tests/", ".github/")) or path in (
+        "README.md", "CHANGELOG.md", "SECURITY.md", "AGENTS.md",
+    ):
+        return False
+    return not path.endswith((".md", ".rst", ".txt"))
+
+
+def implementation_drift(rows: dict[int, dict[str, str]], repo: str,
+                         fetcher=None) -> None:
+    """Read-only GitHub PR evidence: merged runtime implementation vs Roadmap.
+
+    Не объявляет Published/Deployed/Accepted и не закрывает Issues.
+    Github failures propagate as UNKNOWN, missing/contradictory evidence as FAIL.
+    """
+    fetcher = fetcher or fetch
+    cache: dict[int, bool] = {}
+    for number, row in rows.items():
+        if row["status"] not in (PLANNED, IMPLEMENTED):
+            continue
+        refs = [int(x) for x in PR_LINK.findall(row["pr"])]
+        if not refs:
+            if row["status"] == IMPLEMENTED:
+                raise Drift(f"Roadmap Issue #{number} implemented without implementation PR")
+            continue
+        implemented = False
+        for pr_number in sorted(set(refs)):
+            if pr_number not in cache:
+                pr = fetcher(repo, f"/pulls/{pr_number}")
+                if not isinstance(pr, dict):
+                    raise Unknown(f"invalid PR #{pr_number} payload")
+                if pr.get("merged"):
+                    if (pr.get("base", {}).get("ref") != "main"
+                            or not pr.get("merge_commit_sha")):
+                        raise Drift(f"PR #{pr_number} merged without main/merge SHA evidence")
+                    files = fetcher(repo, f"/pulls/{pr_number}/files?per_page=100")
+                    if not isinstance(files, list):
+                        raise Unknown(f"invalid PR #{pr_number} files payload")
+                    if len(files) == 100:
+                        raise Unknown(f"PR #{pr_number} files require pagination")
+                    cache[pr_number] = any(
+                        code_file(str(f.get("filename", ""))) for f in files
+                        if isinstance(f, dict)
+                    )
+                else:
+                    cache[pr_number] = False
+            implemented |= cache[pr_number]
+        if row["status"] == PLANNED and implemented:
+            raise Drift(f"Roadmap Issue #{number} is planned, but runtime PR is MERGED in main")
+        if row["status"] == IMPLEMENTED and not implemented:
+            raise Drift(f"Roadmap Issue #{number} claims implemented without merged runtime PR")
+
+
 def declared_published(roadmap: str) -> str:
     if "**Published:**" not in roadmap:
         raise Drift("missing explicit Published field")
@@ -128,6 +189,7 @@ def audit(repo: str, root: Path = ROOT, token: str = ""):
     missing = open_ids - set(rows)
     if missing or extra:
         raise Drift(f"active Issue register mismatch: missing={sorted(missing)}, stale={sorted(extra)}")
+    implementation_drift(rows, repo)
     for number, row in rows.items():
         if actual.get(number) != "open":
             raise Drift(f"active Roadmap row #{number} is not an open GitHub Issue")
