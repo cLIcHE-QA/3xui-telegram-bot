@@ -2182,6 +2182,18 @@ async def user_plan_set(call: CallbackQuery):
                 show_alert=True,
             )
             return
+        live_manual = await db.get_live_manual_entitlement(tg_id)
+        if live_manual and live_manual.status == "active" and live_manual.plan_id != plan_id:
+            previous = await db.get_plan(live_manual.plan_id)
+            profile = await db.get_user_profile(tg_id)
+            if (previous is None or previous.server_group_id is None
+                    or previous.server_group_id != plan.server_group_id
+                    or profile is None or profile.server_group_id != previous.server_group_id):
+                await call.answer("Замена допускается только в одной группе серверов.", show_alert=True)
+                return
+        elif live_manual and live_manual.status in {"unknown", "in_flight"}:
+            await call.answer("Исход ручной выдачи неизвестен; требуется сверка.", show_alert=True)
+            return
         try:
             commerce_block = await db.manual_grant_commerce_block_reason(tg_id)
         except Exception:
@@ -2189,6 +2201,32 @@ async def user_plan_set(call: CallbackQuery):
             return
         if commerce_block:
             await call.answer(commerce_block + " Ручная выдача не начата.", show_alert=True)
+            return
+        if live_manual and live_manual.status == "active" and live_manual.plan_id != plan_id:
+            previous = await db.get_plan(live_manual.plan_id)
+            nonce = secrets.token_hex(8)
+            _manual_grant_challenges[int(call.from_user.id)] = (
+                tg_id, plan_id, nonce, time.monotonic() + _MANUAL_GRANT_TTL,
+            )
+            await render_callback(
+                call,
+                f"♾ Заменить ручной бессрочный тариф?\n\n"
+                f"Пользователь: {await _display_label(rec)}\n"
+                f"Старый: {previous.name} (#{previous.id}); IP {previous.ip_limit}; HWID {previous.hwid_limit if previous.hwid_limit is not None else 'сохранённый'}\n"
+                f"Новый: {plan.name} (#{plan.id}); IP {plan.ip_limit}; HWID {plan.hwid_limit if plan.hwid_limit is not None else 'сохранить текущий'}\n"
+                "Группа серверов, бессрочный срок и бесплатный доступ сохраняются.\n"
+                "Проверим исходную выдачу и итоговые лимиты 3x-ui. Никаких платежей.\n"
+                "Одноразовое подтверждение; при unknown повтор запрещён.",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="✅ Подтвердить замену", callback_data=f"admin:u:manualreplace:{nonce}",
+                    )],
+                    [InlineKeyboardButton(
+                        text="✖ Отмена", callback_data=f"admin:u:planview:{tg_id}",
+                    )],
+                ]),
+            )
+            await call.answer()
             return
         nonce = secrets.token_hex(8)
         _manual_grant_challenges[int(call.from_user.id)] = (
@@ -2374,6 +2412,45 @@ async def manual_plan_grant_run(call: CallbackQuery):
         await render_callback(
             call, "✅ Бессрочная ручная выдача подтверждена независимым "
             f"3x-ui read-back. Журнал #{result.id}.",
+            reply_markup=back_plan(tg_id),
+        )
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:manualreplace:[a-f0-9]{16}$"))
+async def manual_plan_replace_run(call: CallbackQuery):
+    if not await guard(call, minimum="admin"):
+        return
+    actor = int(call.from_user.id)
+    challenge = _manual_grant_challenges.pop(actor, None)
+    nonce = (call.data or "").rsplit(":", 1)[-1]
+    if challenge is None or challenge[2] != nonce or time.monotonic() >= challenge[3]:
+        await call.answer("Подтверждение истекло или уже использовано.", show_alert=True)
+        return
+    tg_id, plan_id = challenge[0], challenge[1]
+    rec = await db.get(tg_id)
+    if rec is None:
+        await call.answer("Пользователь не найден.", show_alert=True)
+        return
+    try:
+        result = await ManualEntitlementService(db, provisioner).switch_to_manual(
+            telegram_id=tg_id, plan_id=plan_id, actor_id=actor,
+        )
+    except (ManualEntitlementUnknown, ValueError) as exc:
+        await audit_from_call(
+            db, call, "user.plan.manual.replace.review",
+            target_type="user", target_id=rec.email,
+            details=f"target_plan={plan_id}; mutation_replay=false", success=False,
+        )
+        await render_callback(call, f"🟡 Замена не подтверждена. {exc}", reply_markup=back_plan(tg_id))
+    else:
+        await audit_from_call(
+            db, call, "user.plan.manual.replace", target_type="user",
+            target_id=rec.email,
+            details=f"target_plan={plan_id}; manual_entitlement_id={result.id}",
+        )
+        await render_callback(
+            call, "✅ Ручной бессрочный тариф заменён, новые лимиты проверены в 3x-ui.",
             reply_markup=back_plan(tg_id),
         )
     await call.answer()
