@@ -6,13 +6,14 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Unreleased — целевой v5.0.0-rc.16.4 (PLANNED)
+## Unreleased — запланированный v5.0.0-rc.16.4 (не опубликован)
 
-- #742: один маркер состояния 🟢 включено / ⚪ отключено на операторских экранах; 🔴 ошибки/offline и ⛔ опасные действия отделены.
-- #743: read-only статусы 3x-ui клиентов рядом с пользователями в списке и поиске; 🟡 при отсутствии надёжного ответа.
-- #744: контекстная навигация 3x-ui/Xray из `Инфраструктура → Ноды` возвращает к выбранной ноде на экранах версий.
-- #745: сортировка тарифов отдельно по RUB ↑/↓ и Stars ↑/↓, с сохранением выбранного оператором режима в SQLite `runtime_settings`. Для клиентов доступные Stars-тарифы выводятся от дорогих к дешёвым независимо от настройки админки, без конвертации и изменения цен/прав покупки.
-- Пункты подготовлены в PR, **не** Merged/Published/Deployed; `v5.0.0-rc.16.3` остаётся текущим Published/Deployed; smoke, G-11 и public rollout PENDING/BLOCKED.
+- [#740](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/740): планируется безопасный read-only commerce preflight и явная причина запрета ручной выдачи без изменения платёжных статусов ([PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) OPEN).
+- [#742](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/742): единая 🟢/⚪ грамматика включения, отличная от ⛔ блокировки и 🔴 ошибок.
+- [#743](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/743): read-only состояние клиента 3x-ui в списке/поиске на каждом входе/смене страницы без фонового опроса.
+- [#744](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/744): контекстный возврат версий 3x-ui/Xray к исходной Master/Node-карточке.
+- [#745](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/745): отдельные RUB/Stars ↑/↓, сохранение admin-предпочтения в существующей `runtime_settings`, клиентский Stars-каталог от дорогих к дешёвым после фильтрации разрешений; ни конвертации валют, ни новых платёжных flow.
+- [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) — implementation candidate OPEN, required offline CI PASS; merge, release-prep, immutable tag, deployment и targeted acceptance PENDING. `version.py` и current Published/Deployed `rc.16.3` не меняются.
 
 ## v5.0.0-rc.16.3 — Понятный HWID, ограниченные бессрочные тарифы и объяснение покупки
 

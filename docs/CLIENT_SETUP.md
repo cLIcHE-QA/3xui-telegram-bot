@@ -9,6 +9,12 @@
 
 **Acceptance checkpoint 2026-10-17:** оператор сообщил deployment `v5.0.0-rc.16.2` и targeted smoke B1–B4/B6–B8 PASS, B5 BLOCKED: в Client Portal нет тарифов; проверка причин на разрешённой pilot identity PENDING. Текущее UI поведение может быть намеренной блокировкой Stars checkout при активной/неопределённой ручной выдаче; это гипотеза, не доказанная причина B5. #705 остаётся OPEN, #731/PR #733 готовят безопасное объяснение в плановом `rc.16.3` (не Published). Pilot allowlist/flags/RBAC, Terms и Stars precheckout не ослаблять. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
+## План rc.16.4 — отображение Stars-тарифов, без изменения платежей
+
+**Целевая версия `v5.0.0-rc.16.4` — PLANNED, не Published/Deployed/Accepted.** В [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) / #745 готовится стабильный UI-порядок: после существующей серверной фильтрации активности, `visibility`, include/exclude-групп, наличия положительной Stars-цены и запрета при ручной выдаче доступные планы упорядочиваются **Stars от большей цены к меньшей** до ограничения списка 20 тарифами. Сохранённый RUB/Stars порядок административного каталога не управляет клиентским checkout, цену не меняет и не конвертирует валюту.
+
+**После отдельно разрешённого выпуска и controlled pilot deployment** read-only проверить на разрешённой identity, что Stars-суммы отсортированы ↓, равные цены стабильны, недоступные/inactive/admin_only/без Stars тарифы не появились, client callback ID сохранился, UI-list-limit применён после сортировки и backend `plan`/invoice/pre-checkout продолжает проверять реальную стоимость и visibility. Тест **не требует создания реального invoice или оплаты**, production mutations отдельно согласуются. G-11 PARTIAL/NO-GO, public launch BLOCKED, последний Published/Deployed — `rc.16.3` (Deployed со слов оператора, без независимого VPS read-back).
+
 ## Проект тарифов #705 / rc.16 (не Deployed)
 
 Client Portal должен предоставлять в Telegram только active, разрешённые правилами локальной аудитории планы с положительным Stars/XTR. RUB-сумма не создаёт Telegram checkout. Group-only с include/exclude и admin_only применяются на серверных entrypoints; недоступность правил не открывает публичный доступ. Бесплатные бессрочные планы доступны только ручному админскому назначению. Изменения PR #710 включены в Published rc.16, но не в operator-reported Deployed rc.15 и не подтверждены live smoke.
