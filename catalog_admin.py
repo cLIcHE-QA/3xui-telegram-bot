@@ -203,11 +203,25 @@ async def _group_name(group_id: int | None) -> str:
 # ---------------------------------------------------------------------
 
 
-@catalog_router.callback_query(F.data == "admin:plans")
+def sort_catalog_plans(plans: list[PlanRecord], mode: str) -> list[PlanRecord]:
+    """Independent RUB/XTR sorting: missing price last even in descending order."""
+    if mode not in {"rub_asc", "rub_desc", "stars_asc", "stars_desc"}:
+        return list(plans)
+    rub = mode.startswith("rub_")
+    descending = mode.endswith("_desc")
+    def key(plan: PlanRecord) -> tuple[int, int, int]:
+        price = int(plan.price_minor if rub else plan.stars_price)
+        available = (bool(plan.rub_price_enabled) and plan.currency == "RUB") if rub else price > 0
+        return (0 if available else 1, -price if descending else price, int(plan.id))
+    return sorted(plans, key=key)
+
+
+@catalog_router.callback_query(F.data.regexp(r"^admin:plans(?::(rub_asc|rub_desc|stars_asc|stars_desc))?$"))
 async def plans_list(call: CallbackQuery):
     if not await guard_call(call):
         return
-    plans = await db.list_plans()
+    mode = (call.data or "").split(":", 2)[-1] if (call.data or "").startswith("admin:plans:") else ""
+    plans = sort_catalog_plans(await db.list_plans(), mode)
     raw_default = await db.get_runtime_setting("default_plan_id", "")
     try:
         default_plan_id = int(raw_default or 0)
@@ -222,6 +236,11 @@ async def plans_list(call: CallbackQuery):
             callback_data=f"admin:plan:{plan.id}",
         )])
     rows += [
+        [InlineKeyboardButton(text="💰 RUB ↑", callback_data="admin:plans:rub_asc"),
+         InlineKeyboardButton(text="💰 RUB ↓", callback_data="admin:plans:rub_desc")],
+        [InlineKeyboardButton(text="⭐ Stars ↑", callback_data="admin:plans:stars_asc"),
+         InlineKeyboardButton(text="⭐ Stars ↓", callback_data="admin:plans:stars_desc")],
+        [InlineKeyboardButton(text="↺ Исходный порядок", callback_data="admin:plans")],
         [InlineKeyboardButton(text="➕ Добавить тариф", callback_data="admin:planadd:start")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ]
@@ -230,7 +249,8 @@ async def plans_list(call: CallbackQuery):
         "💎 Тарифы\n\n"
         f"Тарифов: {len(plans)} · активных: {active}\n\n"
         "Тарифы участвуют в согласовании доступа. ⭐ отмечает тариф по умолчанию для новых пользователей. "
-        "Тариф задаёт лимиты, а группа серверов — серверы и политику Inbounds.",
+        "Тариф задаёт лимиты, а группа серверов — серверы и политику Inbounds. "
+        "RUB и Stars сортируются отдельно, тарифы без выбранной цены помещаются в конец.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
