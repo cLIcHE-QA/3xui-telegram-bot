@@ -199,7 +199,10 @@ def keyboard(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
     ])
 
 
-def back(key: str = "") -> InlineKeyboardMarkup:
+def back(key: str = "", infra: bool = False) -> InlineKeyboardMarkup:
+    if infra and key:
+        destination = "admin:master" if key == "m" else f"admin:node:{key[1:]}"
+        return keyboard([[("⬅ Карточка ноды", destination)]])
     label = "⬅ Сервер" if key else "⬅ Версии и обновления"
     return keyboard([[(label, f"admin:ver:target:{key}" if key else "admin:versions")]])
 
@@ -313,7 +316,7 @@ async def version_target(call: CallbackQuery, state: FSMContext):
         await error_screen(call, exc)
 
 
-async def show_panel_screen(call: CallbackQuery, key: str) -> None:
+async def show_panel_screen(call: CallbackQuery, key: str, infra: bool = False) -> None:
     """Old node-update buttons lead here; their old confirmation never executes."""
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
@@ -331,25 +334,26 @@ async def show_panel_screen(call: CallbackQuery, key: str) -> None:
         rows = []
         if target.eligible and ROLE_RANK.get(role or "", 0) >= ROLE_RANK["admin"] and not same_version(current, latest):
             rows.append([("💾 Создать резервную копию и перейти к подтверждению", f"admin:ver:prepare:{key}:panel")])
-        rows.append([("⬅ Сервер", f"admin:ver:target:{key}")])
+        rows.append([("⬅ Карточка ноды" if infra else "⬅ Сервер", ("admin:master" if key == "m" else f"admin:node:{key[1:]}") if infra else f"admin:ver:target:{key}")])
         await render_callback(call, text, reply_markup=keyboard(rows))
     except Exception as exc:
-        await error_screen(call, exc, key)
+        await render_callback(call, "Версии и обновления\n\n" + safe_error(exc), reply_markup=back(key, infra))
 
 
-@versions_router.callback_query(F.data.regexp(rf"^admin:ver:panel:({KEY})$"))
+@versions_router.callback_query(F.data.regexp(rf"^admin:ver:panel:({KEY})(?::i)?$"))
 async def panel_screen(call: CallbackQuery):
-    await show_panel_screen(call, (call.data or "").rsplit(":", 1)[-1])
+    await show_panel_screen(call, (call.data or "").split(":")[3], (call.data or "").endswith(":i"))
 
 
-@versions_router.callback_query(F.data.regexp(rf"^admin:ver:xray:({KEY}):[0-9]+$"))
+@versions_router.callback_query(F.data.regexp(rf"^admin:ver:xray:({KEY}):[0-9]+(?::i)?$"))
 async def xray_versions(call: CallbackQuery):
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
         return
     await call.answer()
     parts = (call.data or "").split(":")
-    key, page = parts[-2], int(parts[-1])
+    infra = parts[-1] == "i"
+    key, page = (parts[-3], int(parts[-2])) if infra else (parts[-2], int(parts[-1]))
     try:
         target = await resolve_target(key)
         values = await target.client.get_xray_versions()
@@ -367,15 +371,15 @@ async def xray_versions(call: CallbackQuery):
                 rows.append([(f"📦 {label}", f"admin:ver:pick:{key}:{value}")])
         nav = []
         if page:
-            nav.append(("⬅ Предыдущая", f"admin:ver:xray:{key}:{page - 1}"))
+            nav.append(("⬅ Предыдущая", f"admin:ver:xray:{key}:{page - 1}" + (":i" if infra else "")))
         if (page + 1) * 8 < len(values):
-            nav.append(("➡ Следующая", f"admin:ver:xray:{key}:{page + 1}"))
+            nav.append(("➡ Следующая", f"admin:ver:xray:{key}:{page + 1}" + (":i" if infra else "")))
         if nav:
             rows.append(nav)
-        rows.append([("⬅ Сервер", f"admin:ver:target:{key}")])
+        rows.append([("⬅ Карточка ноды" if infra else "⬅ Сервер", ("admin:master" if key == "m" else f"admin:node:{key[1:]}") if infra else f"admin:ver:target:{key}")])
         await render_callback(call, "\n".join(lines), reply_markup=keyboard(rows))
     except Exception as exc:
-        await error_screen(call, exc, key)
+        await render_callback(call, "Версии и обновления\n\n" + safe_error(exc), reply_markup=back(key, infra))
 
 
 async def prepare_screen(call: CallbackQuery, key: str, component: str, version: str = "") -> None:

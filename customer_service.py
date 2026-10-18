@@ -331,7 +331,8 @@ class CustomerPortalService:
         plans = [plan for plan in await self.db.list_plans() if plan.active]
         if telegram_id is None:
             return plans
-        return [plan for plan in plans if await self._plan_visible(plan, telegram_id)]
+        visible = [plan for plan in plans if await self._plan_visible(plan, telegram_id)]
+        return sorted(visible, key=lambda plan: (-int(plan.stars_price), int(plan.id)))
 
     async def active_plan(self, plan_id: int, telegram_id: int | None = None) -> PlanRecord | None:
         plan = await self.db.get_plan(plan_id)

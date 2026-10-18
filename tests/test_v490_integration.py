@@ -78,12 +78,12 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('admin:botupd', self.callback_values(self.nav.system_menu()))
         self.assertNotIn('admin:versions', self.callback_values(self.nav.infrastructure_menu()))
         self.assertIn('admin:hostctl:m', self.callback_values(self.node_ui.master_detail_keyboard()))
-        self.assertIn('admin:ver:panel:m', self.callback_values(self.node_ui.master_detail_keyboard()))
-        self.assertIn('admin:ver:xray:m:0', self.callback_values(self.node_ui.master_detail_keyboard()))
+        self.assertIn('admin:ver:panel:m:i', self.callback_values(self.node_ui.master_detail_keyboard()))
+        self.assertIn('admin:ver:xray:m:0:i', self.callback_values(self.node_ui.master_detail_keyboard()))
         self.assertIn('admin:cheburcheck:master', self.callback_values(self.node_ui.master_detail_keyboard()))
         self.assertIn('admin:hostctl:n2', self.callback_values(self.node_ui.node_detail_keyboard(2)))
-        self.assertIn('admin:ver:panel:n2', self.callback_values(self.node_ui.node_detail_keyboard(2)))
-        self.assertIn('admin:ver:xray:n2:0', self.callback_values(self.node_ui.node_detail_keyboard(2)))
+        self.assertIn('admin:ver:panel:n2:i', self.callback_values(self.node_ui.node_detail_keyboard(2)))
+        self.assertIn('admin:ver:xray:n2:0:i', self.callback_values(self.node_ui.node_detail_keyboard(2)))
         self.assertIn('admin:cheburcheck:node:2', self.callback_values(self.node_ui.node_detail_keyboard(2)))
         self.assertIn('admin:webmon', self.callback_values(self.nav.monitoring_menu()))
 
@@ -304,8 +304,8 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
 
     def test_callback_permissions_are_explicit_and_fail_closed(self):
         from admin_auth import required_role_for_callback
-        for data in ['admin:versions', 'admin:ver:target:m', 'admin:ver:panel:n2',
-                     'admin:ver:xray:m:0', 'admin:ver:check:0123456789abcdef']:
+        for data in ['admin:versions', 'admin:ver:target:m', 'admin:ver:panel:n2:i',
+                     'admin:ver:xray:m:0:i', 'admin:ver:check:0123456789abcdef']:
             self.assertEqual(required_role_for_callback(data), 'read_only', data)
         for data in ['admin:ver:prepare:m:panel', 'admin:ver:pick:n2:v25.9.15',
                      'admin:ver:run:0123456789abcdef', 'admin:ver:cancel:0123456789abcdef']:

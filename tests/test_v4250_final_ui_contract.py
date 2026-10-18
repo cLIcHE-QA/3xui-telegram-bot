@@ -51,7 +51,7 @@ class V4250FinalUiContractTests(unittest.TestCase):
         self.assertIn("masked_sub_id(rec.sub_id)", view)
         self.assertIn("Статус:", view)
         self.assertIn("🟢 активна", view)
-        self.assertIn("⛔ отключена", view)
+        self.assertIn("⚪ отключена", view)
         self.assertIn("⌛ истекла", view)
         self.assertNotIn("ID: {rec.sub_id}", view)
 

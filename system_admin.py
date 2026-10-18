@@ -347,7 +347,7 @@ async def admin_health(call: CallbackQuery):
         lines += ["", "Inbounds Master:"]
         if managed:
             for item in managed:
-                icon = "🟢" if item.enable else "🔴"
+                icon = "🟢" if item.enable else "⚪"
                 lines.append(
                     f"{icon} {item.port} {item.protocol.upper()} — {item.remark}"
                 )
