@@ -1,7 +1,7 @@
 # GitHub Published checkpoint v5.0.0-rc.16.4 — 2026-10-18
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-18 20:30:44 UTC+03:00
+- **Дата/время и часовой пояс:** 2026-10-18 20:30 UTC+03:00
 - **Окружение:** GitHub read-only; CI (не VPS)
 - **Цель:** подтвердить штатный release-prep merge, immutable `v5.0.0-rc.16.4` и публикацию GitHub prerelease отдельно от production deployment/acceptance
 - **Версия и immutable tag/SHA:** `v5.0.0-rc.16.4` / `114de5af16adcde5e8d128cc5a55d58addc37e73`
