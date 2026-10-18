@@ -737,6 +737,27 @@ class Database:
             )).fetchone()
             return ManualEntitlementRecord(**dict(row)) if row else None
 
+    async def manual_grant_commerce_block_reason(self, telegram_id: int) -> str | None:
+        """Read-only подсказка; окончательное решение остаётся за BEGIN IMMEDIATE."""
+        if int(telegram_id) <= 0:
+            raise ValueError("invalid manual grant identity")
+        async with aiosqlite.connect(self.path) as conn:
+            order = await (await conn.execute(
+                """SELECT 1 FROM commerce_orders WHERE telegram_id=?
+                   AND status IN ('created','awaiting_payment') LIMIT 1""",
+                (int(telegram_id),),
+            )).fetchone()
+            pending = await (await conn.execute(
+                """SELECT 1 FROM entitlements WHERE telegram_id=?
+                   AND status IN ('pending','provisioning') LIMIT 1""",
+                (int(telegram_id),),
+            )).fetchone()
+        if order is not None:
+            return "Незавершённый заказ: сначала проверьте его статус в журнале платежей."
+        if pending is not None:
+            return "Оплаченный доступ ещё обрабатывается: проверьте состояние entitlement и согласование."
+        return None
+
     async def begin_manual_entitlement(
         self, *, telegram_id: int, plan_id: int, actor_id: int,
     ) -> tuple[ManualEntitlementRecord, bool]:
