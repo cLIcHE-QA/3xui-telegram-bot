@@ -51,7 +51,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на Published `v5.0.0-rc.16.4` / immutable SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`. **Deployed:** operator-reported `DEPLOY_OK` и `--status` 2026-10-18: running, RestartCount=0, Health/DB/3x-ui ok, subnet `172.19.0.0/16`, pre-deploy backup path сообщён приватно; independent VPS/DB/restore read-back PENDING. [Targeted smoke](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md) — 59 PASS / C3 FAIL в поиске, manual grant M1–M8 blocked pending order; без SQL правок/повторного grant, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+Guide ориентирован на release v5.0.0-rc.16.4. Published `v5.0.0-rc.16.4` / immutable SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`. **Deployed:** operator-reported `DEPLOY_OK` и `--status` 2026-10-18: running, RestartCount=0, Health/DB/3x-ui ok, subnet `172.19.0.0/16`, pre-deploy backup path сообщён приватно; independent VPS/DB/restore read-back PENDING. [Targeted smoke](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md) — 59 PASS / C3 FAIL в поиске, manual grant M1–M8 blocked pending order; без SQL правок/повторного grant, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
