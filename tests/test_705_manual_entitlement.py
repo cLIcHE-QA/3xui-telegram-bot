@@ -397,8 +397,13 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_manual_to_manual_unknown_no_replay_and_recovery_after_restart(self):
         old, target = await self._manual_switch_fixture()
-        self.xui.uncertain_update = True
-        self.xui.omit_expiry = True
+        # Первоначальный read-only preflight проходит; поле expiry теряется
+        # только ПОСЛЕ единственной provider mutation.
+        original_update = self.xui.update_client
+        async def lose_readback(email, **kwargs):
+            await original_update(email, **kwargs)
+            self.xui.omit_expiry = True
+        self.xui.update_client = lose_readback
         with self.assertRaises(ManualEntitlementUnknown):
             await self.svc.switch_to_manual(telegram_id=101, plan_id=target, actor_id=12)
         current = await self.db.get_live_manual_entitlement(101)
