@@ -276,8 +276,9 @@ CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
     + _rules("inbounds.manage", "exact", "admin:inboundtemplates")
     + _rules("inbounds.manage", "regex", r"^admin:inboundtemplate:\d+$", r"^admin:inboundtemplate:delete:\d+$", r"^admin:inbound:delete:\d+$")
     + _rules("plans.view", "exact", "admin:plans")
-    + _rules("plans.view", "regex", r"^admin:plan:\d+$", r"^admin:plans:(rub|stars)_(asc|desc)$", r"^admin:plans(?::(rub_asc|rub_desc|stars_asc|stars_desc))?$")
+    + _rules("plans.view", "regex", r"^admin:plan:\d+$", r"^admin:plans:(rub|stars)_(asc|desc)$", r"^admin:plans(?::(rub_asc|rub_desc|stars_asc|stars_desc|original))?$")
     + _rules("plans.view", "prefix", "admin:plans:")
+    + _rules("plans.manage", "regex", r"^admin:plans:save:(rub_asc|rub_desc|stars_asc|stars_desc|original)$")
     + _rules("plans.view", "prefix", "admin:plan:groups:", "admin:plan:preview:")
     + _rules(
         "plans.manage",
