@@ -332,6 +332,123 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(required_role_for_callback(
             "admin:u:manualswitch:forged"))
 
+    async def _manual_switch_fixture(self):
+        group = await self.db.create_server_group(name="manual switch test")
+        await self.db.set_server_group_member(group, "master", True)
+        with sqlite3.connect(self.path) as conn:
+            conn.execute("UPDATE plans SET server_group_id=? WHERE id=?", (group, self.manual))
+            conn.commit()
+        await self.db.set_user_server_group(101, group)
+        target = await self.db.create_plan(
+            name="new lifetime", duration_days=0, traffic_gb=0,
+            ip_limit=2, hwid_limit=5, price_minor=0, currency="RUB",
+            stars_price=0, rub_price_enabled=False, visibility="admin_only",
+            server_group_id=group,
+        )
+        old, _ = await self._grant()
+        return old, target
+
+    async def test_manual_to_manual_success_preserves_journal_and_no_payments(self):
+        old, target = await self._manual_switch_fixture()
+        result = await self.svc.switch_to_manual(
+            telegram_id=101, plan_id=target, actor_id=12,
+        )
+        self.assertEqual((result.status, result.plan_id, result.previous_plan_id),
+                         ("active", target, self.manual))
+        self.assertEqual((await self.db.get_user_profile(101)).plan_id, target)
+        self.assertEqual((await self.db.get(101)).expiry_time, 0)
+        self.assertEqual((self.xui.update_calls, self.xui.attach_calls), (2, 1))
+        self.assertEqual(self.xui.limits["limitIp"], 2)
+        self.assertEqual(self.xui.limits["limitHwid"], 5)
+        with sqlite3.connect(self.path) as conn:
+            rows = conn.execute(
+                "SELECT status, plan_id FROM manual_entitlements ORDER BY id"
+            ).fetchall()
+            self.assertEqual(rows, [("superseded", self.manual), ("active", target)])
+            for table in ("commerce_orders", "commerce_payments", "entitlements", "payments"):
+                self.assertEqual(conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0], 0)
+
+    async def test_manual_to_manual_rejects_bad_target_and_pending_order_before_mutation(self):
+        old, target = await self._manual_switch_fixture()
+        initial_calls = self.xui.update_calls
+        with self.assertRaises(ValueError):
+            await self.svc.switch_to_manual(telegram_id=101, plan_id=old.plan_id, actor_id=12)
+        with self.assertRaises(ValueError):
+            await self.svc.switch_to_manual(telegram_id=101, plan_id=self.finite, actor_id=12)
+        other_group = await self.db.create_server_group(name="other group")
+        cross = await self.db.create_plan(
+            name="cross", duration_days=0, traffic_gb=0, ip_limit=0,
+            price_minor=0, currency="RUB", stars_price=0,
+            rub_price_enabled=False, visibility="admin_only",
+            server_group_id=other_group,
+        )
+        with self.assertRaises(ValueError):
+            await self.svc.switch_to_manual(telegram_id=101, plan_id=cross, actor_id=12)
+        with sqlite3.connect(self.path) as conn:
+            conn.execute(
+                "INSERT INTO commerce_orders(telegram_id,plan_id,amount_minor,currency,status,created_at,updated_at,paid_at) "
+                "VALUES(101,?,50,'XTR','awaiting_payment',1,1,0)", (self.finite,)
+            )
+            conn.commit()
+        with self.assertRaises(ValueError):
+            await self.svc.switch_to_manual(telegram_id=101, plan_id=target, actor_id=12)
+        self.assertEqual(self.xui.update_calls, initial_calls)
+        self.assertEqual((await self.db.get_live_manual_entitlement(101)).status, "active")
+
+    async def test_manual_to_manual_unknown_no_replay_and_recovery_after_restart(self):
+        old, target = await self._manual_switch_fixture()
+        # Первоначальный read-only preflight проходит; поле expiry теряется
+        # только ПОСЛЕ единственной provider mutation.
+        original_update = self.xui.update_client
+        async def lose_readback(email, **kwargs):
+            await original_update(email, **kwargs)
+            self.xui.omit_expiry = True
+        self.xui.update_client = lose_readback
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self.svc.switch_to_manual(telegram_id=101, plan_id=target, actor_id=12)
+        current = await self.db.get_live_manual_entitlement(101)
+        self.assertEqual(current.status, "unknown")
+        calls = self.xui.update_calls
+        with self.assertRaises(ValueError):
+            await self.svc.switch_to_manual(telegram_id=101, plan_id=target, actor_id=12)
+        self.assertEqual(self.xui.update_calls, calls)
+        self.xui.omit_expiry = False
+        restarted = Database(self.path)
+        await restarted.init()
+        service = ManualEntitlementService(
+            restarted, ProvisioningEngine(restarted, self.xui, settings()),
+        )
+        recovered = await service.review(telegram_id=101, actor_id=13)
+        self.assertEqual((recovered.status, recovered.plan_id), ("active", target))
+        self.assertEqual(self.xui.update_calls, calls)
+        self.assertEqual((await restarted.get_user_profile(101)).plan_id, target)
+
+    async def test_manual_to_manual_readback_mismatch_blocks_recovery(self):
+        old, target = await self._manual_switch_fixture()
+        previous = self.xui.update_client
+        async def mismatch(email, **kwargs):
+            await previous(email, **kwargs)
+            self.xui.limits["limitIp"] = 77
+        self.xui.update_client = mismatch
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self.svc.switch_to_manual(telegram_id=101, plan_id=target, actor_id=12)
+        calls = self.xui.update_calls
+        with self.assertRaises(ManualEntitlementUnknown):
+            await self.svc.review(telegram_id=101, actor_id=12)
+        self.assertEqual(self.xui.update_calls, calls)
+        self.assertEqual((await self.db.get_user_profile(101)).plan_id, self.manual)
+
+    def test_manual_replace_callback_is_admin_only(self):
+        from admin_privileges import required_role_for_callback
+        self.assertEqual(required_role_for_callback(
+            "admin:u:manualreplace:0123456789abcdef"), "admin")
+        self.assertIsNone(required_role_for_callback("admin:u:manualreplace:forged"))
+        source = (Path(__file__).resolve().parents[1] / "advanced_users.py").read_text()
+        self.assertIn("await guard(call, minimum=\"admin\")", source.split(
+            "async def manual_plan_replace_run(", 1)[1].split(
+            "@advanced_users_router.callback_query", 1)[0])
+        self.assertIn("callback_data=f\"admin:u:manualreplace:{nonce}\"", source)
+
     def test_bounded_manual_plan_ui_preflight_accepts_independent_limits(self):
         source = (Path(__file__).resolve().parents[1] / "advanced_users.py").read_text(encoding="utf-8")
         handler = source.split("async def user_plan_set(", 1)[1].split(

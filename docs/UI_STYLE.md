@@ -13,6 +13,8 @@
 
 **C3/#743 — fix candidate `v5.0.0-rc.16.5` (ещё не Merged/Published/Deployed):** поиск пользователей теперь отображает read-only 3x-ui enable `🟢`/`⚪`/`🟡` в кнопке результата вместо `👤`, используя уже существующий единый bounded `clients/list`. Идентификаторы и callbacks, RBAC, поиск и fallback unknown без изменений. Фактический C3 FAIL на deployed rc.16.4 остаётся до новой адресной проверки после отдельно разрешённого выпуска.
 
+**Планируемый `rc.16.5`, Issue #752 — замена активного ручного бессрочного тарифа:** только Admin/Owner выбирает другой скрытый бесплатный бессрочный тариф **в той же Server Group** и подтверждает отдельной одноразовой кнопкой `✅ Подтвердить замену`. В preview показываются старый/новый тариф и IP/HWID. Перед первой 3x-ui mutation обязательны read-only проверка исходных лимитов и Inbounds и durable journal `in_flight`; после нового provider read-back прежняя запись становится `superseded`, новый журнал `active`, профиль обновляется атомарно. `unknown` не повторяется, доступна только ручная read-only сверка. Cross-group, неоплаченные orders/processing entitlements, Support/Read-only не могут обходить запреты. Изменение только в PR, **не Published/Deployed/Accepted** до отдельного разрешённого релиза и pilot smoke.
+
 ## UI v5.0.0-rc.16.4 (#742–#745; Deployed operator-reported, targeted PARTIAL)
 
 **Pilot smoke 2026-10-18:** B1–B6, C1/C2/C4–C6, D1–D6, E1–E10 operator-reported PASS; **C3 FAIL**: в `admin_users_search_message` обработчик получает `statuses`, но выводит literal `👤` вместо 🟢/⚪; #743 OPEN до отдельного fix/release/smoke. #742/#744 scoped CLOSED; #745 требует отдельного доказательства сохранения сортировки после restart. [Audit](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md).
