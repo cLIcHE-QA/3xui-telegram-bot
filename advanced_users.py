@@ -2174,11 +2174,21 @@ async def user_plan_set(call: CallbackQuery):
             return
         if (not plan.active or plan.visibility != "admin_only"
                 or plan.price_minor or plan.rub_price_enabled or plan.stars_price
-                or plan.traffic_gb or plan.ip_limit):
+                or plan.traffic_gb or plan.currency != "RUB"
+                or not (0 <= plan.ip_limit <= 1000)
+                or (plan.hwid_limit is not None and not (0 <= plan.hwid_limit <= 1000))):
             await call.answer(
-                "Для выдачи требуется активный скрытый бесплатный безлимитный тариф.",
+                "Для выдачи требуется активный скрытый бесплатный бессрочный тариф с трафиком 0 и IP/HWID 0…1000.",
                 show_alert=True,
             )
+            return
+        try:
+            commerce_block = await db.manual_grant_commerce_block_reason(tg_id)
+        except Exception:
+            await call.answer("Не удалось проверить заказы и выдачи. Операция заблокирована.", show_alert=True)
+            return
+        if commerce_block:
+            await call.answer(commerce_block + " Ручная выдача не начата.", show_alert=True)
             return
         nonce = secrets.token_hex(8)
         _manual_grant_challenges[int(call.from_user.id)] = (
@@ -2189,7 +2199,7 @@ async def user_plan_set(call: CallbackQuery):
             f"♾ Ручная бессрочная выдача\n\n"
             f"Получатель: {await _display_label(rec)}\n"
             f"Тариф: {plan.name} (#{plan.id})\n"
-            "Срок: Бессрочно; трафик/IP: без лимита.\n"
+            f"Срок: Бессрочно; трафик: без лимита; IP: {plan.ip_limit or 'без лимита'}; HWID: {plan.hwid_limit if plan.hwid_limit is not None else 'сохранить текущий'}.\n"
             "Оплата RUB/Stars не создаётся. Будут изменены параметры 3x-ui.\n\n"
             "Подтверждение одноразовое. При неизвестном результате повтор заблокирован.",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -2327,7 +2337,24 @@ async def manual_plan_grant_run(call: CallbackQuery):
         result, created = await service.grant(
             telegram_id=tg_id, plan_id=plan_id, actor_id=actor,
         )
-    except (ManualEntitlementUnknown, ValueError) as exc:
+    except ValueError as exc:
+        # Предоперационный отказ из атомарной SQLite-транзакции, а не unknown 3x-ui.
+        reason = str(exc)
+        if reason == "pending commerce must be resolved before manual grant":
+            try:
+                reason = await db.manual_grant_commerce_block_reason(tg_id) or "Незавершённая оплата или выдача требует проверки."
+            except Exception:
+                reason = "Невозможно прочитать состояние заказа; выдача заблокирована."
+        else:
+            reason = "Выдача не начата: проверьте условия тарифа и состояние пользователя."
+        await audit_from_call(
+            db, call, "user.plan.manual.denied", target_type="user",
+            target_id=rec.email, details=f"plan_id={plan_id}; mutation_not_started=true",
+            success=False,
+        )
+        await render_callback(call, f"⛔ {reason} Ручная выдача не начата.",
+                              reply_markup=back_plan(tg_id))
+    except ManualEntitlementUnknown as exc:
         await audit_from_call(
             db, call, "user.plan.manual.unknown", target_type="user",
             target_id=rec.email, details=f"plan_id={plan_id}; status=requires_review",
