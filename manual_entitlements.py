@@ -86,6 +86,129 @@ class ManualEntitlementService:
                 "Автоматический повтор заблокирован; нужен ручной read-back."
             ) from exc
 
+    async def switch_to_manual(
+        self, *, telegram_id: int, plan_id: int, actor_id: int,
+    ) -> ManualEntitlementRecord:
+        """Новый hidden lifetime plan: one-shot CAS, no provider replay."""
+        if int(actor_id) <= 0:
+            raise ValueError("invalid switching actor")
+        grant = await self.db.get_live_manual_entitlement(telegram_id)
+        user = await self.db.get(telegram_id)
+        profile = await self.db.get_user_profile(telegram_id)
+        old = await self.db.get_plan(grant.plan_id) if grant else None
+        plan = await self.db.get_plan(plan_id)
+        if (grant is None or grant.status != "active"
+                or user is None or profile is None
+                or profile.plan_id != grant.plan_id or old is None
+                or plan is None or not plan.active or plan.duration_days != 0
+                or plan.traffic_gb != 0 or plan.price_minor != 0
+                or plan.stars_price != 0 or plan.rub_price_enabled
+                or plan.currency != "RUB" or plan.visibility != "admin_only"
+                or not (0 <= plan.ip_limit <= 1000)
+                or (plan.hwid_limit is not None
+                    and not (0 <= plan.hwid_limit <= 1000))
+                or plan.id == old.id or old.duration_days != 0
+                or old.server_group_id is None
+                or old.server_group_id != plan.server_group_id
+                or profile.server_group_id != old.server_group_id):
+            raise ValueError("Для замены нужны две разные активные бессрочные выдачи в одной группе.")
+        policy = await self.provisioner.policy_for_plan(plan)
+        old_policy = await self.provisioner.policy_for_plan(old)
+        if (not policy.desired_inbound_ids or not old_policy.desired_inbound_ids
+                or set(policy.desired_inbound_ids) != set(policy.actionable_inbound_ids)
+                or set(policy.desired_inbound_ids) != set(old_policy.desired_inbound_ids)):
+            raise ValueError("Inbounds исходного и нового тарифа не совпадают.")
+        before = await self.provisioner.xui.get_client(user.email)
+        payload = before.get("client", before)
+        actual_ids = before.get("inboundIds")
+        expected_old = {"expiryTime": 0, "totalGB": 0, "limitIp": int(old.ip_limit)}
+        if old.hwid_limit is not None:
+            expected_old["limitHwid"] = int(old.hwid_limit)
+        if (not isinstance(payload, dict) or not isinstance(actual_ids, list)
+                or not set(old_policy.desired_inbound_ids) <= set(map(int, actual_ids))
+                or not self.provisioner._limits_match(payload, expected_old)):
+            raise ManualEntitlementUnknown("Текущие лимиты/Inbounds 3x-ui не подтверждены.")
+        journal = await self.db.begin_manual_to_manual_switch(
+            telegram_id=telegram_id, target_plan_id=plan_id, actor_id=actor_id,
+        )
+        try:
+            result = await self.provisioner.sync_user(
+                telegram_id, strict=False, apply_plan_limits=True,
+                target_expiry_ms=0, persist_local_expiry=False,
+                manual_operation=True, plan_override=plan,
+            )
+            if (not result.limits_applied or result.remaining_missing_ids
+                    or result.policy.plan is None or int(result.policy.plan.id) != int(plan_id)):
+                raise RuntimeError("provider postcondition incomplete")
+            readback = await self.provisioner.xui.get_client(user.email)
+            client = readback.get("client", readback)
+            ids = readback.get("inboundIds")
+            expected = {"expiryTime": 0, "totalGB": 0, "limitIp": int(plan.ip_limit)}
+            if plan.hwid_limit is not None:
+                expected["limitHwid"] = int(plan.hwid_limit)
+            if (not isinstance(client, dict) or not isinstance(ids, list)
+                    or not set(policy.desired_inbound_ids) <= set(map(int, ids))
+                    or not self.provisioner._limits_match(client, expected)):
+                raise RuntimeError("independent 3x-ui readback mismatch")
+            return await self.db.finish_manual_to_manual_switch(
+                entitlement_id=journal.id, target_plan_id=plan_id, actor_id=actor_id,
+            )
+        except Exception as exc:
+            try:
+                await self.db.mark_manual_to_manual_unknown(journal.id)
+            except Exception:
+                # Durable in_flight уже блокирует новую remote mutation.
+                pass
+            raise ManualEntitlementUnknown(
+                "Замена не подтверждена; автоматический повтор запрещён, нужна read-only сверка."
+            ) from exc
+
+    async def review_manual_switch(
+        self, *, telegram_id: int, actor_id: int,
+    ) -> ManualEntitlementRecord:
+        """Recovery после restart: только provider read-back, без mutation."""
+        if int(actor_id) <= 0:
+            raise ValueError("invalid reviewing actor")
+        journal = await self.db.get_live_manual_entitlement(telegram_id)
+        if (journal is None or journal.status not in {"in_flight", "unknown"}
+                or not journal.result_code.startswith("switchmanual:")):
+            raise ValueError("Нет неопределённой замены ручного тарифа.")
+        chunks = journal.result_code.split(":")
+        if len(chunks) != 3:
+            raise ManualEntitlementUnknown("Некорректный маркер перехода.")
+        target_id, original_actor = int(chunks[1]), int(chunks[2])
+        user = await self.db.get(telegram_id)
+        profile = await self.db.get_user_profile(telegram_id)
+        target = await self.db.get_plan(target_id)
+        old = await self.db.get_plan(journal.plan_id)
+        if (user is None or profile is None or profile.plan_id != journal.plan_id
+                or target is None or old is None or not target.active
+                or target.duration_days != 0 or old.duration_days != 0
+                or target.server_group_id is None
+                or target.server_group_id != old.server_group_id
+                or profile.server_group_id != old.server_group_id):
+            raise ManualEntitlementUnknown("Профиль изменился; требуется ручное расследование.")
+        policy = await self.provisioner.policy_for_plan(target)
+        try:
+            readback = await self.provisioner.xui.get_client(user.email)
+            payload = readback.get("client", readback)
+            ids = readback.get("inboundIds")
+            expected = {"expiryTime": 0, "totalGB": 0, "limitIp": int(target.ip_limit)}
+            if target.hwid_limit is not None:
+                expected["limitHwid"] = int(target.hwid_limit)
+            if (not policy.desired_inbound_ids or not isinstance(ids, list)
+                    or not set(policy.desired_inbound_ids) <= set(map(int, ids))
+                    or not isinstance(payload, dict)
+                    or not self.provisioner._limits_match(payload, expected)):
+                raise RuntimeError("read-back mismatch")
+        except Exception as exc:
+            raise ManualEntitlementUnknown(
+                "Целевой provider postcondition не доказан; mutation не повторялась."
+            ) from exc
+        return await self.db.finish_manual_to_manual_switch(
+            entitlement_id=journal.id, target_plan_id=target_id, actor_id=original_actor,
+        )
+
     async def switch_to_finite(
         self, *, telegram_id: int, plan_id: int, actor_id: int,
     ) -> ManualEntitlementRecord:
@@ -187,6 +310,8 @@ class ManualEntitlementService:
             raise ValueError("no live manual entitlement")
         if record.status == "active":
             return record
+        if record.result_code.startswith("switchmanual:"):
+            return await self.review_manual_switch(telegram_id=telegram_id, actor_id=actor_id)
         if record.result_code.startswith("switch:"):
             return await self.review_switch(telegram_id=telegram_id, actor_id=actor_id)
         if record.status not in {"unknown", "in_flight"}:
