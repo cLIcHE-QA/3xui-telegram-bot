@@ -63,10 +63,10 @@ class V4251StabilizationTests(unittest.TestCase):
         )[0]
         for icon in ("👑", "🛡", "🧑‍💻", "👁"):
             self.assertIn(icon, source)
-        self.assertIn('"🟢" if rec.enabled else "⛔"', view)
+        self.assertIn('"🟢" if rec.enabled else "⚪"', view)
         self.assertIn("ROLE_ICONS.get(rec.role", view)
         self.assertIn(" · отключён", view)
-        self.assertIn("Статус: 🟢 включён · ⛔ отключён", view)
+        self.assertIn("Статус: 🟢 включён · ⚪ отключён", view)
         self.assertNotIn("'⚪'", view)
 
     def test_local_owner_keeps_explicit_source_marker(self):
