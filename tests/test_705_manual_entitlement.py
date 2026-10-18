@@ -332,6 +332,56 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(required_role_for_callback(
             "admin:u:manualswitch:forged"))
 
+    def test_bounded_manual_plan_ui_preflight_accepts_independent_limits(self):
+        source = (Path(__file__).resolve().parents[1] / "advanced_users.py").read_text(encoding="utf-8")
+        handler = source.split("async def user_plan_set(", 1)[1].split(
+            "async def user_plan_assign_run(", 1
+        )[0]
+        self.assertNotIn("or plan.traffic_gb or plan.ip_limit", handler)
+        self.assertIn("0 <= plan.ip_limit <= 1000", handler)
+        self.assertIn("0 <= plan.hwid_limit <= 1000", handler)
+        self.assertIn("manual_grant_commerce_block_reason(tg_id)", handler)
+        self.assertLess(handler.index("manual_grant_commerce_block_reason(tg_id)"),
+                        handler.index("_manual_grant_challenges[int(call.from_user.id)]"))
+        run = source.split("async def manual_plan_grant_run(", 1)[1].split(
+            "async def manual_plan_switch_run(", 1
+        )[0]
+        self.assertIn("except ValueError as exc:", run)
+        self.assertIn("except ManualEntitlementUnknown as exc:", run)
+        self.assertIn("mutation_not_started=true", run)
+
+    async def test_commerce_preflight_is_read_only_and_atomic_fence_remains(self):
+        self.assertIsNone(await self.db.manual_grant_commerce_block_reason(101))
+        order_id = await self.db.create_commerce_order(
+            telegram_id=101, plan_id=self.finite, amount_minor=50, currency="XTR",
+        )
+        before = await self.db.get_user_profile(101)
+        reason = await self.db.manual_grant_commerce_block_reason(101)
+        self.assertIn("Незавершённый заказ", reason)
+        self.assertEqual((await self.db.get_user_profile(101)).plan_id, before.plan_id)
+        self.assertIsNone(await self.db.get_live_manual_entitlement(101))
+        with self.assertRaisesRegex(ValueError, "pending commerce"):
+            await self._grant()
+        self.assertEqual(self.xui.update_calls, 0)
+        with sqlite3.connect(self.path) as conn:
+            conn.execute("UPDATE commerce_orders SET status='cancelled' WHERE id=?", (order_id,))
+            conn.commit()
+        self.assertIsNone(await self.db.manual_grant_commerce_block_reason(101))
+
+    async def test_pending_entitlement_preflight_blocks_even_without_open_order(self):
+        with sqlite3.connect(self.path) as conn:
+            conn.execute(
+                "INSERT INTO entitlements(telegram_id,order_id,plan_id,status,created_at,updated_at)"
+                " VALUES (101,888,?,'provisioning',1,1)", (self.finite,),
+            )
+            conn.commit()
+        reason = await self.db.manual_grant_commerce_block_reason(101)
+        self.assertIn("entitlement", reason)
+        with self.assertRaisesRegex(ValueError, "pending commerce"):
+            await self._grant()
+        self.assertEqual(self.xui.update_calls, 0)
+        self.assertIsNone(await self.db.get_live_manual_entitlement(101))
+
     async def test_existing_checkout_blocks_new_manual_grant(self):
         await self.db.create_commerce_order(
             telegram_id=101, plan_id=self.finite, amount_minor=50, currency="XTR",
