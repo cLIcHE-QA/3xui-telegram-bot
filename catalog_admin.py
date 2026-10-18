@@ -216,7 +216,7 @@ def sort_catalog_plans(plans: list[PlanRecord], mode: str) -> list[PlanRecord]:
     return sorted(plans, key=key)
 
 
-@catalog_router.callback_query(F.data.regexp(r"^admin:plans(?::(rub_asc|rub_desc|stars_asc|stars_desc))?$"))
+@catalog_router.callback_query(F.data.regexp(r"^admin:plans(?::(rub_asc|rub_desc|stars_asc|stars_desc|original))?$"))
 async def plans_list(call: CallbackQuery):
     if not await guard_call(call):
         return
@@ -227,6 +227,10 @@ async def plans_list(call: CallbackQuery):
         stored_mode = "stars_desc"
     if mode not in {"rub_asc", "rub_desc", "stars_asc", "stars_desc", "original"}:
         mode = stored_mode if stored_mode in {"rub_asc", "rub_desc", "stars_asc", "stars_desc", "original"} else "stars_desc"
+    await _render_sorted_plans(call, mode)
+
+
+async def _render_sorted_plans(call: CallbackQuery, mode: str) -> None:
     plans = sort_catalog_plans(await db.list_plans(), mode)
     raw_default = await db.get_runtime_setting("default_plan_id", "")
     try:
@@ -276,18 +280,7 @@ async def plans_sort_save(call: CallbackQuery):
     except Exception:
         await call.answer("Не удалось сохранить порядок тарифов.", show_alert=True)
         return
-    await call.answer("Порядок тарифов сохранён.")
-    await plans_list_saved(call, mode)
-
-
-async def plans_list_saved(call: CallbackQuery, mode: str) -> None:
-    # Возвращаемся в сохранённый список без повторного изменения runtime setting.
-    old_data = call.data
-    call.data = f"admin:plans:{mode}"
-    try:
-        await plans_list(call)
-    finally:
-        call.data = old_data
+    await _render_sorted_plans(call, mode)
 
 
 @catalog_router.callback_query(F.data.regexp(r"^admin:plan:\d+$"))
