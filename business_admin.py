@@ -994,7 +994,7 @@ async def administrators_list(call: CallbackQuery):
             text = f"🟢 👑 {administrator_label(tg_id)} · Owner · локальная конфигурация"
         else:
             rec = db_admins[tg_id]
-            status = "🟢" if rec.enabled else "⛔"
+            status = "🟢" if rec.enabled else "⚪"
             disabled = "" if rec.enabled else " · отключён"
             text = f"{status} {ROLE_ICONS.get(rec.role, '❓')} {administrator_label(tg_id)} · {ROLE_LABELS.get(rec.role, rec.role)}{disabled}"
         rows.append([InlineKeyboardButton(text=bounded_admin_button(text), callback_data=f"admin:administrator:{tg_id}")])
@@ -1006,7 +1006,7 @@ async def administrators_list(call: CallbackQuery):
     await render_callback(call, 
         "👮 Администраторы\n\n"
         "Owner из локальной конфигурации — аварийный владелец; его нельзя отключить из Telegram.\n"
-        "Статус: 🟢 включён · ⛔ отключён\n\n"
+        "Статус: 🟢 включён · ⚪ отключён\n\n"
         "Роли:\n"
         "👑 Owner — полный доступ и управление администраторами\n"
         "🛡 Administrator — все рабочие операции и безопасные настройки\n"
@@ -1084,7 +1084,7 @@ async def administrator_detail(call: CallbackQuery, state: FSMContext):
     await render_callback(call, 
         f"👮 {administrator_label(tg_id)}\nTelegram ID: {tg_id}\n\n"
         f"Роль: {role_button(rec.role)}\n"
-        f"Статус: {'🟢 включён' if rec.enabled else '⛔ отключён'}\n"
+        f"Статус: {'🟢 включён' if rec.enabled else '⚪ отключён'}\n"
         f"Добавил: {f'TG {rec.added_by}' if rec.added_by else 'система'}\n"
         f"Создан: {utc_text(rec.created_at)}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
@@ -1400,7 +1400,7 @@ async def client_switches_view(call: CallbackQuery):
         return
     snapshot = await client_flags.snapshot()
     def label(value):
-        return "🟢 включено" if value else "⛔ выключено"
+        return "🟢 включено" if value else "⚪ выключено"
     lines = [
         "👤 Клиентский портал и Telegram Stars", "",
         f"Портал: {label(snapshot.portal_enabled)} — {snapshot.reason('portal')}",
