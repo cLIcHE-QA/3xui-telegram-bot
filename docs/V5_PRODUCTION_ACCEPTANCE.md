@@ -8,6 +8,9 @@ evidence на конкретном release tag/SHA.
 
 ## Targeted pilot checks опубликованного rc.16.4 (Issues #740, #742–#745)
 
+**Operator-reported deployment/smoke checkpoint 2026-10-18 21:36 EEST:** `rc.16.4` / `114de5af16adcde5e8d128cc5a55d58addc37e73` Deployed и baseline Health/DB/3x-ui PASS; targeted A1–Z5 **59 PASS / C3 FAIL**. В поиске пользователей вместо статуса `🟢/⚪` выводится `👤` (#743 OPEN). #740, #742, #744 scoped PASS / CLOSED; #745 E1–E10 PASS, но отдельная persistence после restart PENDING, #730 G1–G7 PASS, но M1–M8 BLOCKED незавершённым заказом, #705/#731 root cause/end-to-end PENDING. [Новый audit](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md). Проверочный план ниже — исторически подготовленный до deployment; операторский PASS не доказывает independent VPS read-back или полный G-11.
+
+
 **Не выполнены / PENDING.** Реализация #740/#742–#745 уже MERGED в `main` через PR #741/#746; immutable `rc.16.4` Published через PR #749 и [штатный GitHub Release](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.4), SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`. Deployment и targeted acceptance **PENDING**. Только после отдельно разрешённого production deployment соберите точный deployed tag/SHA, operator-reported status, DB/3x-ui health и read-only evidence на allowlisted pilot identity.
 
 1. **#742:** в карточках и списках включённых/отключённых Users, Plans, Inbounds и Administrators 🟢/⚪; при API unknown 🟡; offline 🔴 и предупреждающая кнопка ⛔ не подменяются статусом disabled.
