@@ -89,9 +89,9 @@
 
 ## Текущая очередь и блокировки
 
-1. **rc.16.4 C3 / #743 FAIL:** в поиске пользователей emoji `👤` вместо enable-status, исправить и подтвердить повторным C3 на новом отдельно разрешённом runtime release; `advanced_users.py` search вычисляет statuses, но не использует их при render.
-2. **rc.16.4 / #730/#705 M1–M8 BLOCKED:** read-only найти незавершённый заказ, проверить финансовое и entitlement состояние, запретить blind-replay; после доказанного terminal state и отдельного согласования — controlled manual-grant/provider read-back. #731 B5 root cause и #745 restart-persistence PENDING.
-3. **G-11 / PARTIAL:** [финальный отчёт](audits/v5-production-acceptance-2026-10-14.md) имеет итог `CONDITIONAL / NO-GO`; полный V5-A-001…A-003, ownership, rollback и global reconciliation требуют нового отдельно согласованного scope/нормативного решения. Нельзя снимать блокировку stable/public rollout; без разрешения production operations не запускать.
+1. **G-11 / PARTIAL:** [финальный отчёт](audits/v5-production-acceptance-2026-10-14.md) имеет итог `CONDITIONAL / NO-GO`; полный V5-A-001…A-003, ownership, rollback и global reconciliation требуют нового отдельно согласованного scope/нормативного решения. Нельзя снимать блокировку stable/public rollout; без разрешения production operations не запускать.
+
+**Текущие targeted blockers (Issues, не отдельные G-gates):** C3/#743 FAIL (поиск `👤` вместо enabled-status), #730/#705 M1–M8 BLOCKED pending commerce, #731 B5 root cause PENDING и #745 restart persistence PENDING; точные критерии в активном Issue-реестре и [audit](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md).
 
 Прочие незакрытые работы — в gate-реестре и [активных GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues); W-03 отражает принятое оператором исключение по закрытому как `not_planned` [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466); новый PASS не заявлен. Завершённые D1 [audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md) и G-09 [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md) не являются новыми задачами. Отдельные PASS/waivers не заменяют полного v5 acceptance; новых production mutations без согласования нет.
 
