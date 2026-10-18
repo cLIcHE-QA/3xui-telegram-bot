@@ -335,7 +335,9 @@ class ManualEntitlementTests(unittest.IsolatedAsyncioTestCase):
     async def _manual_switch_fixture(self):
         group = await self.db.create_server_group(name="manual switch test")
         await self.db.set_server_group_member(group, "master", True)
-        await self.db.update_plan_catalog(self.manual, server_group_id=group)
+        with sqlite3.connect(self.path) as conn:
+            conn.execute("UPDATE plans SET server_group_id=? WHERE id=?", (group, self.manual))
+            conn.commit()
         await self.db.set_user_server_group(101, group)
         target = await self.db.create_plan(
             name="new lifetime", duration_days=0, traffic_gb=0,
