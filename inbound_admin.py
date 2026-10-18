@@ -310,7 +310,7 @@ async def inbound_list_view() -> tuple[str, InlineKeyboardMarkup]:
     lines = ["📡 Inbounds", "", f"Видимых: {len(inbounds)}", "✅ = участвует в согласовании · ⚙️ = только администрирование"]
     for ib in sorted(inbounds, key=lambda x: (_node_key(x.get("nodeId")), int(x.get("port") or 0), int(x.get("id") or 0))):
         iid = int(ib.get("id") or 0)
-        icon = "🟢" if bool(ib.get("enable", True)) else "🔴"
+        icon = "🟢" if bool(ib.get("enable", True)) else "⚪"
         node = _node_label(_node_key(ib.get("nodeId")), nodes)
         name = str(ib.get("remark") or ib.get("tag") or f"Inbound {iid}")
         scope = "✅" if _managed(ib) else "⚙️"
@@ -345,7 +345,7 @@ async def _inbound_card(inbound_id: int) -> tuple[str, InlineKeyboardMarkup]:
         "",
         f"ID: #{inbound_id}",
         f"Сервер: {_node_label(node_id, nodes)}",
-        f"Статус: {'🟢 включён' if ib.get('enable', True) else '🔴 отключён'}",
+        f"Статус: {'🟢 включён' if ib.get('enable', True) else '⚪ отключён'}",
         f"Протокол: {ib.get('protocol') or '-'}",
         f"Порт: {ib.get('port') or 0}",
         f"Listen: {ib.get('listen') or '*'}",
@@ -431,7 +431,7 @@ async def inbound_clients(call: CallbackQuery):
         rec = await db.get_by_email(email) if email != "-" else None
         profile = await db.get_user_profile(rec.telegram_id) if rec else None
         label = user_label(rec, profile) if rec else email
-        lines.append(f"{'🟢' if enabled else '⛔'} {label}")
+        lines.append(f"{'🟢' if enabled else '⚪'} {label}")
         if rec:
             rows.append([InlineKeyboardButton(
                 text=f"👤 {label}", callback_data=f"adminuser:{rec.telegram_id}"
