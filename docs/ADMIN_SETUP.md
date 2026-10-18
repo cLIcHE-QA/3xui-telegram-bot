@@ -174,7 +174,7 @@ PY
 Ожидается **только после публикации и отдельного разрешённого deployment**:
 
 ~~~text
-5.0.0-rc.16.4
+5.0.0-rc.16.5
 ~~~
 
 ## 4. Создай local admin venv
@@ -1157,7 +1157,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Git tag: v5.0.0-rc.16.5
 Container: running
 RestartCount=0
-Bot version: 5.0.0-rc.16.4
+Bot version: 5.0.0-rc.16.5
 Health: ok
 DB: ok
 3x-ui connectivity: ok
