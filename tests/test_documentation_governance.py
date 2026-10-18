@@ -273,7 +273,8 @@ class DocumentationGovernanceTests(unittest.TestCase):
             if suffix.endswith("page=1"):return page1
             if suffix.endswith("page=2"):return page2
             raise AssertionError("unexpected GitHub request "+suffix)
-        with patch.object(gh,"fetch",side_effect=fake_fetch):
+        with patch.object(gh,"fetch",side_effect=fake_fetch), \
+             patch.object(gh,"implementation_drift"):
             tag,issues,classified,active_count=gh.audit("cLIcHE-QA/3xui-telegram-bot",ROOT)
         self.assertEqual(tag,gh.declared_published((ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")))
         self.assertEqual(active_count,len(open_ids))
