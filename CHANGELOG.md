@@ -6,14 +6,16 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Unreleased — реализовано в main для v5.0.0-rc.16.4 (не опубликован)
+## v5.0.0-rc.16.4 — Безопасная ручная выдача и единые статусы
 
-- [#740](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/740): реализован безопасный read-only commerce preflight и явная причина запрета ручной выдачи без изменения платёжных статусов ([PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) MERGED, `33e6ff9d`).
-- [#742](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/742): единая 🟢/⚪ грамматика включения, отличная от ⛔ блокировки и 🔴 ошибок.
-- [#743](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/743): read-only состояние клиента 3x-ui в списке/поиске на каждом входе/смене страницы без фонового опроса.
-- [#744](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/744): контекстный возврат версий 3x-ui/Xray к исходной Master/Node-карточке.
-- [#745](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/745): отдельные RUB/Stars ↑/↓, сохранение admin-предпочтения в существующей `runtime_settings`, клиентский Stars-каталог от дорогих к дешёвым после фильтрации разрешений; ни конвертации валют, ни новых платёжных flow.
-- [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) — MERGED (`21ae34bc`), [PR #747](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/747) — MERGED (`1db6db4c`); required `test`/`title` PASS; release-prep, immutable tag, deployment и targeted acceptance **PENDING**. `version.py` и current Published/Deployed `rc.16.3` не меняются.
+- [PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) / [#730](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/730) / [#740](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/740): для скрытого бесплатного бессрочного тарифа разрешены независимые IP/HWID 0…1000; read-only commerce preflight различает незавершённый заказ и ожидающий применения entitlement до подтверждения ручной выдачи. Атомарный order/entitlement fence, fail-closed, одноразовый nonce и unknown/no-replay не обходятся; платежи и provider state автоматически не меняются.
+- [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) / [#742](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/742): единая грамматика 🟢 включён / ⚪ отключён / 🟡 неизвестно; ошибки/offline 🔴 и запреты ⛔ не подменяются состоянием disabled.
+- [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) / [#743](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/743): в списках и поиске пользователей — read-only статус `enable` 3x-ui через ограниченный `clients/list` при открытии страницы или поиске, без фонового polling и provider mutations; неоднозначный/недоступный источник обозначен 🟡.
+- [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) / [#744](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/744): из экранов версий 3x-ui/Xray навигация Back/Cancel сохраняет исходную карточку Master/direct Node, не запускает update/restart и не ослабляет RBAC.
+- [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) / [#745](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/745): независимые RUB/Stars ↑/↓ в административном каталоге, сохранение выбора Administrator/Owner в существующих `runtime_settings`; доступные клиенту Stars-планы сортируются по убыванию **после** backend-фильтрации. RUB invoice, конвертации валют и новых платёжных flow нет.
+- [PR #747](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/747) и [PR #748](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/748): актуализированы UI, setup, Roadmap и acceptance-документы после реализации; их слияние не означает production acceptance.
+- **Совместимость:** SQLite schema остаётся **v15**, новых migrations, `.env`, permissions или внешних платёжных сервисов нет. До отдельно разрешённого deployment нужны совместимый backup, journal/`PRAGMA quick_check`, проверка 3x-ui и health.
+- **Controlled canary prerelease:** GitHub Published не означает Deployed/Accepted. Требуются отдельное разрешение на deployment, targeted pilot smoke #730/#740/#742–#745, independent VPS read-back и post-smoke health; #705/#731 и M1–M8 остаются PENDING/BLOCKED по своим критериям, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 ## v5.0.0-rc.16.3 — Понятный HWID, ограниченные бессрочные тарифы и объяснение покупки
 
