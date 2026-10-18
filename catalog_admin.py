@@ -221,6 +221,12 @@ async def plans_list(call: CallbackQuery):
     if not await guard_call(call):
         return
     mode = (call.data or "").split(":", 2)[-1] if (call.data or "").startswith("admin:plans:") else ""
+    try:
+        stored_mode = await db.get_runtime_setting("admin_plans_sort_mode", "stars_desc")
+    except Exception:
+        stored_mode = "stars_desc"
+    if mode not in {"rub_asc", "rub_desc", "stars_asc", "stars_desc", "original"}:
+        mode = stored_mode if stored_mode in {"rub_asc", "rub_desc", "stars_asc", "stars_desc", "original"} else "stars_desc"
     plans = sort_catalog_plans(await db.list_plans(), mode)
     raw_default = await db.get_runtime_setting("default_plan_id", "")
     try:
@@ -240,7 +246,8 @@ async def plans_list(call: CallbackQuery):
          InlineKeyboardButton(text="💰 RUB ↓", callback_data="admin:plans:rub_desc")],
         [InlineKeyboardButton(text="⭐ Stars ↑", callback_data="admin:plans:stars_asc"),
          InlineKeyboardButton(text="⭐ Stars ↓", callback_data="admin:plans:stars_desc")],
-        [InlineKeyboardButton(text="↺ Исходный порядок", callback_data="admin:plans")],
+        [InlineKeyboardButton(text="↺ Исходный порядок", callback_data="admin:plans:original")],
+        [InlineKeyboardButton(text="💾 Сохранить порядок", callback_data=f"admin:plans:save:{mode}")],
         [InlineKeyboardButton(text="➕ Добавить тариф", callback_data="admin:planadd:start")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ]
@@ -250,10 +257,37 @@ async def plans_list(call: CallbackQuery):
         f"Тарифов: {len(plans)} · активных: {active}\n\n"
         "Тарифы участвуют в согласовании доступа. ⭐ отмечает тариф по умолчанию для новых пользователей. "
         "Тариф задаёт лимиты, а группа серверов — серверы и политику Inbounds. "
-        "RUB и Stars сортируются отдельно, тарифы без выбранной цены помещаются в конец.",
+        f"RUB и Stars сортируются отдельно, тарифы без выбранной цены помещаются в конец. "
+        f"Сейчас: {mode}. Сохранить выбор — отдельное действие администратора.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()
+
+
+@catalog_router.callback_query(F.data.regexp(r"^admin:plans:save:(rub_asc|rub_desc|stars_asc|stars_desc|original)$"))
+async def plans_sort_save(call: CallbackQuery):
+    from admin_auth import authorize_callback
+    ok, _ = await authorize_callback(db, settings, call, minimum="admin")
+    if not ok:
+        return
+    mode = (call.data or "").rsplit(":", 1)[-1]
+    try:
+        await db.set_runtime_setting("admin_plans_sort_mode", mode, updated_by=call.from_user.id)
+    except Exception:
+        await call.answer("Не удалось сохранить порядок тарифов.", show_alert=True)
+        return
+    await call.answer("Порядок тарифов сохранён.")
+    await plans_list_saved(call, mode)
+
+
+async def plans_list_saved(call: CallbackQuery, mode: str) -> None:
+    # Возвращаемся в сохранённый список без повторного изменения runtime setting.
+    old_data = call.data
+    call.data = f"admin:plans:{mode}"
+    try:
+        await plans_list(call)
+    finally:
+        call.data = old_data
 
 
 @catalog_router.callback_query(F.data.regexp(r"^admin:plan:\d+$"))
