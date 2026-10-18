@@ -53,7 +53,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.16.4. Published `v5.0.0-rc.16.4` / immutable SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`. **Deployed:** operator-reported `DEPLOY_OK` и `--status` 2026-10-18: running, RestartCount=0, Health/DB/3x-ui ok, subnet `172.19.0.0/16`, pre-deploy backup path сообщён приватно; independent VPS/DB/restore read-back PENDING. [Targeted smoke](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md) — 59 PASS / C3 FAIL в поиске, manual grant M1–M8 blocked pending order; без SQL правок/повторного grant, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+Guide ориентирован на release v5.0.0-rc.16.5. Published `v5.0.0-rc.16.4` / immutable SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`. **Deployed:** operator-reported `DEPLOY_OK` и `--status` 2026-10-18: running, RestartCount=0, Health/DB/3x-ui ok, subnet `172.19.0.0/16`, pre-deploy backup path сообщён приватно; independent VPS/DB/restore read-back PENDING. [Targeted smoke](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md) — 59 PASS / C3 FAIL в поиске, manual grant M1–M8 blocked pending order; без SQL правок/повторного grant, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
@@ -121,7 +121,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.16.4` исходный native API contract pinned к 3x-ui `v3.10.2` (GitHub Published rc.16.4; Deployed rc.16.3 только operator-reported; rc.15 использовал тот же pinned contract) (controlled canary; production Node/Xray E2E требует отдельного evidence). Для опубликованного bot release `v5.0.0-rc.14` также pinned `v3.10.0` (изменение WG-scoped Flow проверено отдельно только с Master panel `v3.10.2`); для опубликованного bot release `v5.0.0-rc.13` также pinned `v3.10.0`; для опубликованного `v5.0.0-rc.10` также pinned `v3.10.0`; для опубликованного rc.9 исходный native API contract pinned к `v3.9.0` (operator-reported production). Pinned supported 3x-ui для текущего `main`: `v3.10.2`. Текущий pinned OpenAPI в опубликованном `rc.10` — `v3.10.0` из `docs/3XUI_OPENAPI_CONTRACT.md`, 55/55 используемых методов структурно совместимы. **Это не означает**, что панель Master/ноды обновлены, что интеграция проверена в новой среде или что rollout разрешён. Перед отдельным разрешением: проверить полный Master/direct-node inventory, безопасный full backup/restore rollback с учётом одноразовых миграций конфигов, systemd sandbox/custom paths, TLS/CA, Xray/client cores, staging Master/Node sync и maintenance window. Все ноды требуют обновления для upstream Node fixes. [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
+Для bot release `v5.0.0-rc.16.5` исходный native API contract pinned к 3x-ui `v3.10.2` (release-prep rc.16.5, still not Published/Deployed; published rc.16.4 retains same pinned contract) (controlled canary; production Node/Xray E2E требует отдельного evidence). Для опубликованного bot release `v5.0.0-rc.14` также pinned `v3.10.0` (изменение WG-scoped Flow проверено отдельно только с Master panel `v3.10.2`); для опубликованного bot release `v5.0.0-rc.13` также pinned `v3.10.0`; для опубликованного `v5.0.0-rc.10` также pinned `v3.10.0`; для опубликованного rc.9 исходный native API contract pinned к `v3.9.0` (operator-reported production). Pinned supported 3x-ui для текущего `main`: `v3.10.2`. Текущий pinned OpenAPI в опубликованном `rc.10` — `v3.10.0` из `docs/3XUI_OPENAPI_CONTRACT.md`, 55/55 используемых методов структурно совместимы. **Это не означает**, что панель Master/ноды обновлены, что интеграция проверена в новой среде или что rollout разрешён. Перед отдельным разрешением: проверить полный Master/direct-node inventory, безопасный full backup/restore rollback с учётом одноразовых миграций конфигов, systemd sandbox/custom paths, TLS/CA, Xray/client cores, staging Master/Node sync и maintenance window. Все ноды требуют обновления для upstream Node fixes. [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
 
 ## 2. Базовая подготовка Master VPS
 
@@ -159,7 +159,7 @@ cd 3xui-telegram-bot
 git fetch --tags --prune
 # Только после отдельного разрешённого merge release-prep,
 # появления immutable published tag и проверки его SHA:
-git checkout --detach v5.0.0-rc.16.4
+git checkout --detach v5.0.0-rc.16.5
 ~~~
 
 Проверка release:
@@ -686,15 +686,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v5.0.0-rc.16.4.tar.gz
+  /root/3xui-host-control-bundle-v5.0.0-rc.16.5.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v5.0.0-rc.16.4.tar.gz \
-  /root/3xui-host-control-bundle-v5.0.0-rc.16.4.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v5.0.0-rc.16.5.tar.gz \
+  /root/3xui-host-control-bundle-v5.0.0-rc.16.5.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -704,7 +704,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.16.4.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.16.5.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -713,7 +713,7 @@ sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.16.4.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.16.4.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.16.5.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
@@ -1154,7 +1154,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v5.0.0-rc.16.4
+Git tag: v5.0.0-rc.16.5
 Container: running
 RestartCount=0
 Bot version: 5.0.0-rc.16.4
