@@ -12,3 +12,7 @@
 - **Связанные Issues:** #740 REOPENED/OPEN (диагностика), #730/#705 OPEN (ручная выдача), #743 OPEN, #745 OPEN
 - **Следующий шаг:** отдельная безопасная read-only SQLite query по разрешённой pilot identity для `commerce_orders`↔`commerce_payments`↔`entitlements`; по полученному evidence решить, нужен ли safe order-lifecycle reconciliation/UI feature; без override и SQL mutations
 - **Раздельные состояния:** merged=PASS (PR #749/#750); published=PASS (immutable `rc.16.4`); deployed=operator-reported PASS (runtime `rc.16.4`); accepted=PARTIAL (59/60 scoped checks, отдельная guide/diagnostic проблема #740 не закрыта)
+
+## Дополнительный операторский checkpoint — 2026-10-18 21:59 EEST
+
+Read-only SQLite подтвердил для пользователя с блокирующим алертом **один `commerce_orders.awaiting_payment` без `commerce_payments`**, pending/provisioning `entitlements` = 0; приватный Telegram ID в документацию не переносится. F1–F7 и Z1–Z5 остаются scoped operator-reported PASS; #740 CLOSED/completed, а будущий read-only интерфейс для order без payment уже учтён в [#470](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/470) (OPEN, target rc.17). Прямого изменения/отмены заказа не было. Оператор также сообщил **M1–M8 8/8 PASS** по manual grant и provider read-back, без независимого VPS evidence. **Не подтверждено, относятся ли M1–M8 к этому же пользователю с активным pending order или к отдельному чистому pilot-сценарию**; нельзя заявлять обход atomic fence или закрыть #730 без уточнения provenance. Full G-11 PARTIAL/NO-GO, public rollout BLOCKED.
