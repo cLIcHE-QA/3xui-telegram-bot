@@ -190,7 +190,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("🟠 Опубликовано; acceptance отложен", roadmap)
         self.assertIn("v" + APP_VERSION, roadmap)
         self.assertIn("NOT PASS", roadmap)
-        self.assertIn("#510", roadmap)
+        self.assertIn("## Активный Issue-реестр (machine-checked)", roadmap)
         self.assertIn("⬜ Запланировано", roadmap)
 
     def test_current_release_status_in_readme_and_roadmap(self):
@@ -237,13 +237,13 @@ class LivingDocsSemanticTests(unittest.TestCase):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         self.assertEqual(status_projection_errors(readme, roadmap), [])
         self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
-            readme.replace("v5.0.0-rc.16.6`, SHA", "v5.0.0-rc.16.5`, SHA", 1), roadmap))
+            readme.replace("operator-reported `v" + APP_VERSION + "`", "operator-reported `v0.0.0`", 1), roadmap))
         self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
-            readme.replace("SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, health", "SHA `" + "a" * 40 + "`, health"), roadmap))
+            readme.replace("health OK; independent VPS", "health FAIL; independent VPS", 1), roadmap))
         self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
-            readme.replace("operator-reported `v5.0.0-rc.16.6`", "independent `v5.0.0-rc.16.6`"), roadmap))
+            readme.replace("operator-reported `v" + APP_VERSION + "`", "independent `v" + APP_VERSION + "`", 1), roadmap))
         self.assertIn("Accepted README/Roadmap mismatch", status_projection_errors(
-            readme.replace("U8 Back PARTIAL", "U8 Back PASS"), roadmap))
+            readme.replace("**Accepted:**", "**Accepted:** INCONSISTENT ", 1), roadmap))
         self.assertTrue(status_projection_errors(readme.replace("**Accepted:**", "**Acceptance:**", 1), roadmap))
         # Исторические старые версии не относятся к текущей строке.
         self.assertEqual(status_projection_errors(readme + "\\nИстория: Deployed rc.16.4", roadmap), [])
@@ -308,17 +308,20 @@ class LivingDocsSemanticTests(unittest.TestCase):
             "docs/CLIENT_SETUP.md", "docs/UI_STYLE.md",
             "docs/SQLITE_MIGRATIONS.md", "README.md", "CHANGELOG.md")}
         old = dict(docs)
+        current_tag = "v" + APP_VERSION
+        self.assertIn(f"Published `{current_tag}`", old["docs/CLIENT_SETUP.md"])
         old["docs/CLIENT_SETUP.md"] = old["docs/CLIENT_SETUP.md"].replace(
-            "Published `v5.0.0-rc.16.6`", "Published `v5.0.0-rc.16.4`", 1)
+            f"Published `{current_tag}`", "Published `v0.0.0`", 1)
         self.assertTrue(current_release_claim_errors(roadmap, old))
         old = dict(docs)
         old["docs/UI_STYLE.md"] = old["docs/UI_STYLE.md"].replace(
             "**Исторический fix scope", "**C3/#743 — fix candidate", 1)
         self.assertTrue(current_release_claim_errors(roadmap, old))
         old = dict(docs)
+        current_tag = "v" + APP_VERSION
         old["CHANGELOG.md"] = old["CHANGELOG.md"].replace(
-            "## Подготовка v5.0.0-rc.16.6 — исторический release-prep scope",
-            "## Планируемый v5.0.0-rc.16.6 — до выпуска", 1)
+            f"## Подготовка {current_tag} — исторический release-prep scope",
+            f"## Планируемый {current_tag} — до выпуска", 1)
         self.assertTrue(current_release_claim_errors(roadmap, old))
 
     def test_roadmap_active_issues_have_russian_explanations(self):
