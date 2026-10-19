@@ -3224,7 +3224,10 @@ async def _users_page_view(
         InlineKeyboardButton(text="👥 Группы пользователей", callback_data="admin:usergroups"),
         InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats"),
     ])
-    rows.append([InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")])
+    rows.append([InlineKeyboardButton(
+        text="⬅ Пользователи" if manual_only else "⬅ Панель администратора",
+        callback_data="admin:users" if manual_only else "admin:home",
+    )])
 
     text = (
         ("♾️ Пользователи с ручной выдачей\n\n" if manual_only else "👥 Пользователи\n\n")
