@@ -27,7 +27,7 @@ class Rc17ReleaseTests(unittest.TestCase):
         legal = json.loads((ROOT / "docs/legal-publication.json").read_text(encoding="utf-8"))
         if legal["terms"]["publication_state"] == "unpublished":
             self.assertIn("§ 9", scope)
-            self.assertIn("не опубликованы", scope)
+            self.assertIn("не опубликованы", scope.replace("**", ""))
 
 
 if __name__ == "__main__":
