@@ -299,7 +299,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertTrue(self._current_block_errors(roadmap + "\\n**Текущая незавершённая работа:** rc.15", setup))
         self.assertTrue(self._current_block_errors(roadmap, replace_required(
             setup, "**Текущий Published/Deployed/Accepted status:**",
-            "Действующий published `rc.0` / operator-reported deployed `rc.0`")))
+            "Published `v0.0.0`; **Deployed:** rc.0")))
         self.assertTrue(self._current_block_errors(roadmap, setup.replace(
             "**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md)",
             "Published `v5.0.0-rc.15`; **Deployed:** rc.15")))
