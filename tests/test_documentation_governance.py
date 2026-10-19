@@ -45,6 +45,8 @@ class DocumentationGovernanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "docs/audits").mkdir(parents=True)
+            (root / "docs/roadmap").mkdir(parents=True)
+            (root / "docs/roadmap/issue-closure-decisions.json").write_text(json.dumps({"schema": 1, "decisions": [{"issue": 597, "decision": "completed"}]}), encoding="utf-8")
             path = "docs/audits/2026-10-13-example.md"
             good = """# Результат
 
@@ -58,11 +60,18 @@ class DocumentationGovernanceTests(unittest.TestCase):
 - **Источник и evidence:** https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38432290724
 - **Ограничения и остаточные риски:** Not production
 - **Связанные Issues:** #597
+- **Решение по Issues:** #597: completed
 - **Следующий шаг:** Документировать
 - **Раздельные состояния:** merged=main; published=rc.9; deployed=operator-reported; accepted=NOT PASS
 """
             (root / path).write_text(good, encoding="utf-8")
             self.assertEqual(sem.audit_ok(root, path), [])
+            broken = good.replace("- **Решение по Issues:** #597: completed\\n", "")
+            (root / path).write_text(broken, encoding="utf-8")
+            self.assertTrue(any("PASS audit requires explicit closure decision" in e for e in sem.audit_ok(root, path)))
+            broken = good.replace("#597: completed", "#597: keep_open")
+            (root / path).write_text(broken, encoding="utf-8")
+            self.assertTrue(any("closure decisions missing/mismatched" in e for e in sem.audit_ok(root, path)))
             broken = good.replace("**Фактический результат:** PASS", "**Фактический результат:** UNKNOWN")
             (root / path).write_text(broken, encoding="utf-8")
             self.assertIn(f"{path}: invalid audit result status", sem.audit_ok(root, path))
