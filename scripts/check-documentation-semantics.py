@@ -6,6 +6,7 @@ Historical immutable snapshots are never rewritten or relinked by this checker.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -146,6 +147,24 @@ def audit_ok(root: Path, path: str) -> list[str]:
     issues = fields.get("Связанные Issues", "")
     if not re.search(r"#\d+\b|\bN/A\b\s*[:(—-]\s*\S{8,}", issues, re.I):
         problems.append(f"{path}: require Issue number or reasoned N/A")
+    # Любой новый аудит с фактическим PASS и связанными Issues обязан
+    # зафиксировать closure decision, иначе формально зеленый smoke снова
+    # оставит accepted Issue открытым. Исторические audits immutable.
+    linked = {int(n) for n in re.findall(r"#(\\d+)\\b", issues)}
+    if status == "PASS" and linked:
+        decisions = fields.get("Решение по Issues", "")
+        pairs = re.findall(r"#(\\d+)\\s*:\\s*(completed|keep_open)\\b", decisions)
+        declared = {int(n): decision for n, decision in pairs}
+        if counts["Решение по Issues"] != 1 or len(pairs) != len(declared) or set(declared) != linked:
+            problems.append(f"{path}: PASS audit requires explicit closure decision for each linked Issue")
+        registry_path = root / "docs/roadmap/issue-closure-decisions.json"
+        try:
+            registry = json.loads(registry_path.read_text(encoding="utf-8"))
+            registered = {entry["issue"]: entry["decision"] for entry in registry["decisions"]}
+            if any(registered.get(n) != decision for n, decision in declared.items()):
+                problems.append(f"{path}: PASS audit closure decisions missing/mismatched in registry")
+        except (OSError, ValueError, TypeError, KeyError):
+            problems.append(f"{path}: closure decision registry unavailable/invalid")
     boundary = fields.get("Раздельные состояния", "").lower()
     for key in ("merged=", "published=", "deployed=", "accepted="):
         if key not in boundary:
