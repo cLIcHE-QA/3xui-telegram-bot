@@ -2,7 +2,7 @@
 
 **Каноническая точка входа для оператора.** Полные команды, переменные, preflight/postconditions и ручной fallback сохранены в [пошаговых процедурах Admin Setup](ADMIN_SETUP_PROCEDURES.md). Этот документ определяет **единственный порядок действий**, но не даёт разрешения менять production. Команды на VPS, Docker, firewall, SQLite и 3x-ui выполняются только в отдельно согласованной операции.
 
-**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md). Guide ориентирован на release v5.0.0-rc.17. До публикации это release-prep, а не подтверждение Published или Deployed. Публикация не равна развёртыванию и приёмке; #760/U8 остаётся PARTIAL/FAIL, G-11 PARTIAL/NO-GO, public rollout BLOCKED. Для Client Portal используется [отдельный controlled pilot runbook](CLIENT_SETUP.md), для release/deployment — [release contract](RELEASES.md).
+**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md). `v5.0.0-rc.17` опубликован в GitHub и оператор сообщил deployment (2026-10-20 01:58 EEST); независимый VPS read-back и scoped acceptance #437/#470/#760 PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED. Для Client Portal используется [controlled pilot runbook](CLIENT_SETUP.md), для release/deployment — [release contract](RELEASES.md).
 
 ## Перед началом: границы и безопасность
 
@@ -33,7 +33,7 @@
 ## Дополнительные операции (не часть установки)
 
 - Ручной тариф, commerce preflight, `manual_entitlements.in_flight/unknown`, независимый 3x-ui read-back и запрет replay: [отдельная процедура Admin](ADMIN_SETUP_PROCEDURES.md#28-ручное-назначение-тарифа-через-admin-отдельный-operational-flow).
-- Заказы Stars `/admin → Платежи → Telegram Stars → 📦 Заказы Stars`: read-only `commerce_orders` без требования существующего Payment, с заказом/платежом/entitlement, пагинацией и fail-closed RBAC. `created/awaiting_payment` без оплаты — не ошибка. Никаких invoice retry/refund/provider mutations, production smoke до отдельного release/deploy PENDING; [UI contract](UI_STYLE.md).
+- Заказы Stars `/admin → Платежи → Telegram Stars → 📦 Заказы Stars`: read-only `commerce_orders` без требования существующего Payment, с заказом/платежом/entitlement, пагинацией и fail-closed RBAC. `created/awaiting_payment` без оплаты — не ошибка. Никаких invoice retry/refund/provider mutations, post-deploy scoped UI/RBAC/no-mutation smoke на `rc.17` PENDING; [UI contract](UI_STYLE.md).
 - Справочник возвратов `/admin → Платежи → 📖 Политика возвратов`: read-only раздел для Support/Admin, условия только по подтверждённой публичной редакции § 9 из [общего versioned source](legal-publication.json). До публикации #707 экран показывает отсутствие актуальной редакции и эскалирует Owner; никаких Stars refund, смены статуса платежа или 3x-ui действий. Факт Published/Deployed/Accepted проверять только по [Roadmap](ROADMAP.md); публикация бота не публикует юридический § 9 по #707; [UI contract](UI_STYLE.md).
 - Сброс локальной клиентской сессии, Shadowrocket/Streisand и HWID: [UI/клиентский контракт](UI_STYLE.md), [Client Setup](CLIENT_SETUP.md).
 - QA-проверка доставки Telegram: исторический scoped workflow в [исходной версии Admin Setup](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот). Никаких реальных Telegram сообщений в рамках установки.
