@@ -188,8 +188,8 @@ def current_ok(root: Path) -> list[str]:
     g11_blocked = bool(re.search(r"^\|\s*G-11\s*\|[^\n]*\|\s*BLOCKED\s*\|\s*\*\*BLOCKED ON G-09(?: \+ D1)?\*\*", t, re.M))
     if not (g09_pass and (g11_pending or g11_report_partial and has_final_report) or not g09_pass and g11_blocked):
         issues.append("G-11 must stay BLOCKED until G-09 PASS, then become PENDING")
-    if re.search(r"\*\*⬜[^\n]*\]\([^)]*/issues/(?:593|597)\)", t):
-        issues.append("closed docs-only issue listed as planned")
+    # Closed/open state is checked for every Issue by check-roadmap-github.py.
+    # Do not hardcode historical closed numbers into the local semantic gate.
     # Current gate verdicts, waivers and actionable queue are distinct state axes.
     gate_statuses: dict[str, str] = {}
     section = t.split("## Реестр acceptance-gates rc.9", 1)
