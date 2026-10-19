@@ -82,7 +82,7 @@ Diff-trigger не заменяет проверку содержания. `tests
 
 Проверка current-release проекции включает также верхний актуальный статус в `docs/CLIENT_SETUP.md`, отсутствие ложных «ещё не Published» в `docs/UI_STYLE.md`, `docs/SQLITE_MIGRATIONS.md`, README и release-prep заголовках CHANGELOG. Датированные исторические checkpoints сохраняются; CI не делает вывода о production acceptance.
 
-Новые постоянные current-state checks добавляются в `test_living_docs.py`, а не накапливаются в version-specific test files.
+Новые постоянные current-state checks добавляются в `test_living_docs.py` или профильный общий документальный тест, а не накапливаются в version-specific test files. Такие проверки должны быть version-/Issue-neutral, использовать канонический источник вместо frozen snapshot и подтверждать, что negative-fixture действительно меняет входные данные; historical regression fixtures могут сохранять точные Issue/PR/tag.
 
 ## Repository state вне Git
 
