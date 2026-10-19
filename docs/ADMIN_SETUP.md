@@ -2,7 +2,7 @@
 
 **Каноническая точка входа для оператора.** Полные команды, переменные, preflight/postconditions и ручной fallback сохранены в [пошаговых процедурах Admin Setup](ADMIN_SETUP_PROCEDURES.md). Этот документ определяет **единственный порядок действий**, но не даёт разрешения менять production. Команды на VPS, Docker, firewall, SQLite и 3x-ui выполняются только в отдельно согласованной операции.
 
-**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md). **Guide ориентирован на release v5.0.0-rc.16.6.** Публикация не равна развёртыванию и приёмке; #760/U8 остаётся PARTIAL/FAIL, G-11 PARTIAL/NO-GO, public rollout BLOCKED. Для Client Portal используется [отдельный controlled pilot runbook](CLIENT_SETUP.md), для release/deployment — [release contract](RELEASES.md).
+**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md). Guide ориентирован на release v5.0.0-rc.16.6. Публикация не равна развёртыванию и приёмке; #760/U8 остаётся PARTIAL/FAIL, G-11 PARTIAL/NO-GO, public rollout BLOCKED. Для Client Portal используется [отдельный controlled pilot runbook](CLIENT_SETUP.md), для release/deployment — [release contract](RELEASES.md).
 
 ## Перед началом: границы и безопасность
 
