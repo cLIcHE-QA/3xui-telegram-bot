@@ -72,8 +72,10 @@ class Rc164UiTests(unittest.TestCase):
         self.assertIn('WHERE EXISTS (', db_source)
         self.assertIn('for start in range(0, len(ids), 400)', db_source)
         self.assertIn('if status == "active":', source)
-        self.assertIn('return " ♾"', source)
-        self.assertIn('return " 🟡♾"', source)
+        self.assertIn('return " ♾️"', source)
+        self.assertIn('return " 🟡♾️"', source)
+        self.assertNotIn('return " ♾"', source)
+        self.assertNotIn('return " 🟡♾"', source)
         self.assertIn('manual_only: bool = False', source)
         self.assertIn('db.list_live_manual_users() if manual_only else db.list_users()', source)
         self.assertIn('_manual_list_badge(manual_statuses.get(user.telegram_id))', source)
@@ -82,6 +84,37 @@ class Rc164UiTests(unittest.TestCase):
         self.assertIn('admin:users:manual:page:', source)
         self.assertIn('minimum="read_only"', source)
         self.assertIn('callback_data=f"admin:u:{user.telegram_id}"', source)
+
+    def test_manual_user_back_targets_immediate_parent(self):
+        from unittest.mock import AsyncMock, patch
+        from types import SimpleNamespace
+        from aiogram.types import InlineKeyboardButton
+
+        import importlib
+        import os
+        with patch.dict(os.environ, {
+            "BOT_TOKEN": "123456789:offline-navigation-token",
+            "PANEL_URL": "https://panel.example.invalid/base",
+            "PANEL_API_TOKEN": "offline-navigation-token",
+            "SUBSCRIPTION_URL_TEMPLATE": "https://sub.example.invalid/sub/{sub_id}",
+            "COMPAT_SUBSCRIPTION_URL_TEMPLATE": "https://public.example.invalid/compat/{sub_id}",
+            "ALLOWED_TELEGRAM_IDS": "1", "ADMIN_TELEGRAM_IDS": "1",
+        }):
+            module = importlib.import_module("advanced_users")
+
+        async def check():
+            with patch.object(module.db, "list_users", new_callable=AsyncMock, return_value=[]), \
+                 patch.object(module.db, "list_live_manual_users", new_callable=AsyncMock, return_value=[]), \
+                 patch.object(module, "_user_status_icons", new_callable=AsyncMock, return_value={}), \
+                 patch.object(module.db, "manual_statuses_for_users", new_callable=AsyncMock, return_value={}):
+                _, manual = await module._users_page_view(0, "read_only", manual_only=True)
+                _, general = await module._users_page_view(0, "read_only")
+            last_manual = manual.inline_keyboard[-1][0]
+            last_general = general.inline_keyboard[-1][0]
+            self.assertEqual((last_manual.text, last_manual.callback_data), ("⬅ Пользователи", "admin:users"))
+            self.assertEqual((last_general.text, last_general.callback_data), ("⬅ Панель администратора", "admin:home"))
+        import asyncio
+        asyncio.run(check())
 
     def test_status_is_distinct_from_warning_actions(self):
         for path in ("inbound_admin.py", "business_admin.py", "advanced_users.py"):

@@ -41,6 +41,14 @@
       "evidence": "docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md",
       "date": "2026-10-19",
       "comment": "Issue closed/completed after own criteria; G-11 remains PARTIAL/NO-GO."
+    },
+    {
+      "issue": 760,
+      "decision": "keep_open",
+      "accepted": "operator-reported U1–U7/U9–U12/Z1–Z2 PASS; U8 Back FAIL",
+      "evidence": "docs/audits/2026-10-19-v5-rc16-6-operator-ui-acceptance.md",
+      "date": "2026-10-19",
+      "comment": "Deployed rc.16.6, initial 14/14 ticks, then navigation regression; requires new release/deploy and targeted Back acceptance, no repeat of previous PASS."
     }
   ]
 }
