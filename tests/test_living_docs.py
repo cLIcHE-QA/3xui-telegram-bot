@@ -53,11 +53,11 @@ def current_release_claim_errors(roadmap: str, docs: dict[str, str]) -> list[str
     expected_published, expected_deployed = published.group(1), deployed.group(1)
     issues: list[str] = []
     client = docs["docs/CLIENT_SETUP.md"]
-    header = next((l for l in client.splitlines() if l.startswith("**Текущий статус контролируемого пилота:**")), "")
+    header = next((l for l in client.splitlines() if "**Текущий статус контролируемого пилота:**" in l), "")
     if not header or f"Published `{expected_published}`" not in header or f"Deployed operator-reported `{expected_deployed}`" not in header:
         issues.append("CLIENT_SETUP current Published/Deployed drift")
     ui = docs["docs/UI_STYLE.md"]
-    if re.search(r"^\*\*C3/#743 — fix candidate .*ещё не Merged", ui, re.M):
+    if re.search(r"^\*\*C3/#743 — fix candidate", ui, re.M):
         issues.append("UI_STYLE obsolete candidate as current")
     schema = docs["docs/SQLITE_MIGRATIONS.md"]
     if "Исторический Published, текущий operator-reported Deployed" in schema:
