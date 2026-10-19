@@ -12,6 +12,36 @@ from version import APP_VERSION
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def current_status_fragments(document: str) -> tuple[str, str]:
+    """Сравниваем только каноническую текущую строку, а не исторические checkpoints."""
+    lines = [line for line in document.splitlines() if line.startswith("**Published:** immutable ")]
+    if len(lines) != 1:
+        raise ValueError("ожидается ровно одна текущая строка Published")
+    line = lines[0]
+    parts = re.split(r"\*\*(Deployed|Accepted):\*\*", line)
+    if len(parts) != 5 or not parts[2].strip() or not parts[4].strip():
+        raise ValueError("текущая сводка требует отдельные Deployed и Accepted")
+    deployed, accepted = parts[2].strip(), parts[4].strip()
+    if not re.search(r"`v\d+\.\d+\.\d+[^\x60]*`", deployed):
+        raise ValueError("текущий Deployed должен содержать версию")
+    if not re.search(r"SHA `[0-9a-f]{40}`", deployed):
+        raise ValueError("текущий Deployed должен содержать полный SHA")
+    if "operator-reported" not in deployed and "independent" not in deployed:
+        raise ValueError("текущий Deployed должен указывать provenance")
+    return deployed, accepted
+
+
+def status_projection_errors(readme: str, roadmap: str) -> list[str]:
+    try:
+        readme_state = current_status_fragments(readme)
+        roadmap_state = current_status_fragments(roadmap)
+    except ValueError as error:
+        return [str(error)]
+    return [name + " README/Roadmap mismatch"
+            for name, left, right in zip(("Deployed", "Accepted"), readme_state, roadmap_state)
+            if left != right]
+
+
 class LivingDocsSemanticTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = json.loads(
@@ -169,8 +199,26 @@ class LivingDocsSemanticTests(unittest.TestCase):
             self.assertNotIn(f"**Published:** immutable [`{candidate}`]", readme)
             self.assertNotIn(f"**Published:** immutable [Тег `{candidate}`]", roadmap)
             self.assertIn("PENDING", roadmap)
+        self.assertEqual(status_projection_errors(readme, roadmap), [])
         self.assertNotIn("Текущий опубликованный `rc.7`", readme)
 
+
+
+    def test_deployment_status_projection_negative_cases(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        self.assertEqual(status_projection_errors(readme, roadmap), [])
+        self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
+            readme.replace("v5.0.0-rc.16.6`, SHA", "v5.0.0-rc.16.5`, SHA", 1), roadmap))
+        self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
+            readme.replace("SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, health", "SHA `" + "a" * 40 + "`, health"), roadmap))
+        self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
+            readme.replace("operator-reported `v5.0.0-rc.16.6`", "independent `v5.0.0-rc.16.6`"), roadmap))
+        self.assertIn("Accepted README/Roadmap mismatch", status_projection_errors(
+            readme.replace("U8 Back PARTIAL", "U8 Back PASS"), roadmap))
+        self.assertTrue(status_projection_errors(readme.replace("**Accepted:**", "**Acceptance:**", 1), roadmap))
+        # Исторические старые версии не относятся к текущей строке.
+        self.assertEqual(status_projection_errors(readme + "\\nИстория: Deployed rc.16.4", roadmap), [])
 
     def test_roadmap_active_issues_have_russian_explanations(self):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
