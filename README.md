@@ -1,6 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.16.6
+# Telegram-бот для 3x-ui v5.0.0-rc.17
 
-**Текущий controlled canary:** `v5.0.0-rc.16.6` — ограниченный pilot; общий v5 acceptance остаётся `PARTIAL/NO-GO`, public rollout `BLOCKED`. Текущие статусы отдельных задач — в реестре ниже и [Roadmap](docs/ROADMAP.md).
+**Release-prep:** `v5.0.0-rc.17` — кандидат controlled canary с read-only #437/#470 и исправлением #760/U8; до фактической публикации immutable tag текущим Published/Deployed остаётся `v5.0.0-rc.16.6`. Юридический § 9 по #707 не опубликован, справочник не выдаёт черновик за действующие условия. Общий v5 acceptance `PARTIAL/NO-GO`, public rollout `BLOCKED`. Проверенные фактические статусы — в [Roadmap](docs/ROADMAP.md).
 
 **Published:** immutable [`v5.0.0-rc.16.6`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.6), SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, 2026-10-19T10:01:30Z, [PR #764](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/764) MERGED, push [Python checks](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39234042887) и [Publish release](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39234380296) PASS. **Deployed:** operator-reported `v5.0.0-rc.16.6`, SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, health OK; independent VPS read-back PENDING. **Accepted:** #760 U8 Back PARTIAL (operator-reported FAIL), остальные U1–U7/U9–U12/Z1–Z2 scoped operator-reported PASS; исправление #766 только в main, новый release/deploy и адресный re-smoke PENDING; full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 

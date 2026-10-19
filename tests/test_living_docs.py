@@ -248,12 +248,15 @@ class LivingDocsSemanticTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         self.assertEqual(status_projection_errors(readme, roadmap), [])
+        deployed_match = re.search(r"\*\*Deployed:\*\* operator-reported `(v[^`]+)`", roadmap)
+        self.assertIsNotNone(deployed_match)
+        deployed_tag = deployed_match.group(1)
         self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
-            replace_required(readme, "operator-reported `v" + APP_VERSION + "`", "operator-reported `v0.0.0`"), roadmap))
+            replace_required(readme, f"operator-reported `{deployed_tag}`", "operator-reported `v0.0.0`"), roadmap))
         self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
             replace_required(readme, "health OK; independent VPS", "health FAIL; independent VPS"), roadmap))
         self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
-            replace_required(readme, "operator-reported `v" + APP_VERSION + "`", "independent `v" + APP_VERSION + "`"), roadmap))
+            replace_required(readme, f"operator-reported `{deployed_tag}`", f"independent `{deployed_tag}`"), roadmap))
         self.assertIn("Accepted README/Roadmap mismatch", status_projection_errors(
             replace_required(readme, "**Accepted:**", "**Accepted:** INCONSISTENT "), roadmap))
         self.assertTrue(status_projection_errors(replace_required(readme, "**Accepted:**", "**Acceptance:**"), roadmap))
@@ -320,7 +323,11 @@ class LivingDocsSemanticTests(unittest.TestCase):
             "docs/CLIENT_SETUP.md", "docs/UI_STYLE.md",
             "docs/SQLITE_MIGRATIONS.md", "README.md", "CHANGELOG.md")}
         old = dict(docs)
-        current_tag = "v" + APP_VERSION
+        published_line = next((line for line in roadmap.splitlines()
+                               if line.startswith("**Published:** immutable ")), "")
+        published_match = re.search(r"`(v\d+\.\d+\.\d+(?:-rc\.\d+(?:\.\d+)?)?)`", published_line)
+        self.assertIsNotNone(published_match)
+        current_tag = published_match.group(1)
         self.assertIn(f"Published `{current_tag}`", old["docs/CLIENT_SETUP.md"])
         old["docs/CLIENT_SETUP.md"] = old["docs/CLIENT_SETUP.md"].replace(
             f"Published `{current_tag}`", "Published `v0.0.0`", 1)
@@ -331,10 +338,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
             "**C3/#743 — fix candidate \u2014 нынешний статус**\n\n## Исторические UI и acceptance checkpoints")
         self.assertTrue(current_release_claim_errors(roadmap, old))
         old = dict(docs)
-        current_tag = "v" + APP_VERSION
-        old["CHANGELOG.md"] = old["CHANGELOG.md"].replace(
-            f"## Подготовка {current_tag} — исторический release-prep scope",
-            f"## Планируемый {current_tag} — до выпуска", 1)
+        old["CHANGELOG.md"] = f"## Планируемый {current_tag} — до выпуска\n\n" + old["CHANGELOG.md"]
         self.assertTrue(current_release_claim_errors(roadmap, old))
 
     def test_roadmap_active_issues_have_russian_explanations(self):
