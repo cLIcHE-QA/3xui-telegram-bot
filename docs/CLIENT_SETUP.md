@@ -3,7 +3,7 @@
 **Published checkpoint 2026-10-17:** immutable `v5.0.0-rc.16.1` SHA `31401e81e3f02d1220fc55a55eb8e3b3d61499a0` опубликован GitHub 2026-10-16T23:56:36Z, включает исправления #705 (PR #714), не меняет правила Client Portal, оплат, pilot allowlist или PSP. Deployment `rc.16.1` подтверждён только операторским `DEPLOY_OK` (2026-10-17T05:27:19Z); targeted smoke PENDING, полный v5 G-11 NO-GO. Предыдущая историческая публикация `rc.16` описана ниже.
 
 
-**Текущий статус контролируемого пилота:** [канонический Roadmap](ROADMAP.md) — Published `v5.0.0-rc.16.6`, Deployed operator-reported `v5.0.0-rc.16.6` (не независимая VPS attestation); #760/U8 PARTIAL, G-11 PARTIAL/NO-GO, public launch BLOCKED. Исторический scoped smoke `rc.16.4` см. в [датированном аудите](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md).
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [канонический Roadmap](ROADMAP.md) — Published `v5.0.0-rc.16.6`, Deployed operator-reported `v5.0.0-rc.16.6` (не независимая VPS attestation); #760/U8 PARTIAL, G-11 PARTIAL/NO-GO, public launch BLOCKED. Исторический scoped smoke `rc.16.4` см. в [датированном аудите](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md).
 
 **Published `v5.0.0-rc.16` — ещё не Deployed/Accepted:** code changes [#692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) / #691 и [#710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) / #705 уже в `main`. После отдельно разрешённого deployment потребуются targeted UI smoke Flow и SQLite v14/manual entitlement/Stars/group visibility checks. Ни production write, ни новые реальные платежи не разрешены этим руководством.
 
