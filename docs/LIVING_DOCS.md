@@ -102,6 +102,8 @@ Scheduled audit read-only и не меняет repository settings.
 
 Roadmap меняется только по факту, а не авансом.
 
+**Post-merge Issues:** required PR checklist требует явный план `completed`/`keep_open` для связанного Issue, но GitHub CI не закрывает Issues автоматически. Выполненный docs-only scope закрывается после merged/read-back и scoped CI, затем строка удаляется из текущего Roadmap в отдельном docs-only PR; реестр решений сверяется с GitHub. `test`/`title` и сверка OPEN IDs без явного closure решения не являются доказательством полной синхронизации жизненного цикла.
+
 ## Definition of Done
 
 Перед merge PR:

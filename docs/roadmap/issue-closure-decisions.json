@@ -49,6 +49,22 @@
       "evidence": "docs/audits/2026-10-19-v5-rc16-6-operator-ui-acceptance.md",
       "date": "2026-10-19",
       "comment": "Deployed rc.16.6, initial 14/14 ticks, then navigation regression; requires new release/deploy and targeted Back acceptance, no repeat of previous PASS."
+    },
+    {
+      "issue": 767,
+      "decision": "completed",
+      "accepted": "docs/CI scoped PASS, GitHub independent read-back",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/768",
+      "date": "2026-10-19",
+      "comment": "PR #768 MERGED a2bf9736dd840268c094433df5f5e7f7dfd5b1bd; no production changes; docs-only Issue closed/completed."
+    },
+    {
+      "issue": 769,
+      "decision": "completed",
+      "accepted": "docs/CI scoped PASS, GitHub independent read-back",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/770",
+      "date": "2026-10-19",
+      "comment": "PR #770 MERGED 5fabcbfbffdb5f3530b5c8377bba0cfb0d4a7d3b; no production changes; docs-only Issue closed/completed."
     }
   ]
 }
