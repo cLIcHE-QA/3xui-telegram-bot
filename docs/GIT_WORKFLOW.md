@@ -149,6 +149,12 @@ Force-push/rebase общей PR-ветки без необходимости н�
 
 Для `v*` release tags включён active ruleset **Protect release tags** (ID `24615100`) с pattern `refs/tags/v*`: update/delete/non-fast-forward запрещены, bypass actors отсутствуют (`current_user_can_bypass=never`). Создание новых release tags разрешено и остаётся обязанностью штатного release workflow.
 
+### Завершение acceptance: fail-closed closure decision (#762)
+
+После каждого scoped acceptance, который объявляется **PASS / завершено** в новом датированном аудите, автор checkpoint обязан принять **явное** решение по каждому затронутому Issue: `completed` либо `keep_open` с причиной и остатком. Решение фиксируется в `docs/roadmap/issue-closure-decisions.json` (ссылка на evidence, дату и provenance), а не выводится из слова PASS или автоматического merge. `scripts/check-roadmap-github.py` сопоставляет решения с GitHub live state и активным реестром Roadmap; accepted/completed но OPEN, либо CLOSED но всё ещё active — fail-closed. До merge closure PR active Roadmap/main сохраняет исторический snapshot, gate ожидает консистентного HEAD; никакое CI само Issues не закрывает.
+
+Если evidence `PARTIAL`, `UNKNOWN`, не хватает scope или идёт отдельный acceptance, решение `keep_open` с конкретной причиной; broad G-11 остаётся `PARTIAL/NO-GO` независимо от закрытия узкого Issue. **Правило при каждом новом аудите**: не выпускать checkpoint с явным заявлением о завершённом Issue без записи в registry; текущий checker не может сам определить completion из произвольного текста. Для старых аудитов исторические решения добавлять только отдельным датированным checkpoint без переписывания истории.
+
 ### Issues
 
 **Issue-first tracking (обязательное правило для новых самостоятельных задач).** Любой новый bug/fix, feature/UX/architecture improvement, security/operational hardening, technical debt, performance/scaling work или значимый acceptance finding, имеющий собственный scope/acceptance, **до начала реализации** связывается с существующим GitHub Issue либо регистрируется новым Issue. Roadmap фиксирует состояние и evidence, **не заменяет** Issue. Сначала проверь отсутствие дубликата; опиши цель/симптом, scope, критерии приёмки, ограничения и `OPEN/PENDING` до подтверждённого завершения. При необходимости укажи Issue в PR и актуальной сводке Roadmap; версию/milestone заранее назначать не нужно.
