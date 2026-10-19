@@ -54,6 +54,14 @@ class ReadmeCurrentStateTests(unittest.TestCase):
         mutated = self.readme.replace("CLOSED/completed", "приёмка ожидается", 1)
         self.assertTrue(readme_contract_errors(mutated, self.decisions))
 
+    def test_tariff_b5_false_blocked_detected(self):
+        mutated = self.readme.replace(
+            "## План внешних платежей",
+            "#705/B5 остаётся BLOCKED.\\n\\n## План внешних платежей",
+            1,
+        )
+        self.assertTrue(any("#705" in error for error in readme_contract_errors(mutated, self.decisions)))
+
     def test_stale_release_history_detected(self):
         mutated = self.readme.replace("## Roadmap:", "**Опубликованный rc.16:** targeted acceptance #705 — PENDING.\n\n## Roadmap:", 1)
         self.assertTrue(any("хронология" in e or "устаревший" in e for e in readme_contract_errors(mutated, self.decisions)))
