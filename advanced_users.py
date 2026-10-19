@@ -3228,7 +3228,7 @@ async def _users_page_view(
 
     text = (
         ("♾ Пользователи с ручной выдачей\n\n" if manual_only else "👥 Пользователи\n\n")
-        f"Пользователей: {len(users)}\n"
+        + f"Пользователей: {len(users)}\n"
         f"Страница: {page + 1}/{pages}"
     )
     if manual_only and not users:
