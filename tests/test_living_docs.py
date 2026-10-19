@@ -284,7 +284,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
             errors.append("обнаружена параллельная текущая сводка")
         intro = setup.split("## Перед началом:", 1)[0]
         guide = next((line for line in setup.splitlines()
-                      if line.startswith("Guide ориентирован на release ")), "")
+                      if "Guide ориентирован на release " in line), "")
         if "Roadmap](ROADMAP.md)" not in intro or "Roadmap](ROADMAP.md)" not in guide:
             errors.append("Admin Setup должен ссылаться на канонический Roadmap")
         if re.search(r"(?:Действующий published|Действующий Published|Published `v\\d|published `rc\\.|deployed `rc\\.)", intro):
