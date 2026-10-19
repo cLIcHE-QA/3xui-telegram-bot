@@ -110,7 +110,7 @@ class PublicReadinessTests(unittest.TestCase):
             env,
         )
 
-        admin_setup = self._source("docs/ADMIN_SETUP.md")
+        admin_setup = self._source("docs/ADMIN_SETUP_PROCEDURES.md")
         self.assertIn(
             "Host Control URL: https://host-control-node1.example.com:18443",
             admin_setup,
