@@ -3269,7 +3269,7 @@ async def admin_users_manual(call: CallbackQuery, state: FSMContext):
     await call.answer()
 
 
-@advanced_users_router.callback_query(F.data.regexp(r"^admin:users:manual:page:\\d+$"))
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:users:manual:page:\d+$"))
 async def admin_users_manual_page(call: CallbackQuery):
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
