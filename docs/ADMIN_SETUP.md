@@ -2,7 +2,7 @@
 
 **Каноническая точка входа для оператора.** Полные команды, переменные, preflight/postconditions и ручной fallback сохранены в [пошаговых процедурах Admin Setup](ADMIN_SETUP_PROCEDURES.md). Этот документ определяет **единственный порядок действий**, но не даёт разрешения менять production. Команды на VPS, Docker, firewall, SQLite и 3x-ui выполняются только в отдельно согласованной операции.
 
-**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md). `v5.0.0-rc.17` опубликован в GitHub и оператор сообщил deployment (2026-10-20 01:58 EEST); независимый VPS read-back и scoped acceptance #437/#470/#760 PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED. Для Client Portal используется [controlled pilot runbook](CLIENT_SETUP.md), для release/deployment — [release contract](RELEASES.md).
+**Текущий Published/Deployed/Accepted status:** [Roadmap](ROADMAP.md) — единственный канонический текущий источник. Guide ориентирован на release `v5.0.0-rc.17`: Published и Deployed operator-reported; targeted U8/S/R operator-reported scoped PASS с conditional applicability PENDING, полный acceptance #437/#707 и G-11 PENDING/NO-GO. Независимый VPS read-back PENDING, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
 ## Перед началом: границы и безопасность
 
