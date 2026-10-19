@@ -1151,7 +1151,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 
 Перед заменой release helper уже сохраняет консистентный pre-release `bot.sqlite3`. Дополнительно каждая migration, помеченная `requires_backup=True`, до изменения DB создаёт проверенную recovery copy в persistent каталоге `data/migration-backups/`.
 
-Если migration journal содержит `running`/`failed`, schema version новее текущего кода или schema validation не проходит, bot блокирует startup. Не удаляй `schema_migrations` и не меняй status вручную, чтобы принудительно продолжить запуск: сначала сохрани DB, проверь recovery copy/Full Backup и устрани причину.
+Если migration journal содержит `running`/`failed`, schema version новее текущего кода или schema validation не проходит, bot блокирует startup. Проверка `PRAGMA quick_check` обязательна при migration preflight/postcondition и при restore read-back. Не удаляй `schema_migrations` и не меняй status вручную, чтобы принудительно продолжить запуск: сначала сохрани DB, проверь recovery copy/Full Backup и устрани причину.
 
 Проверка journal из repository root:
 
