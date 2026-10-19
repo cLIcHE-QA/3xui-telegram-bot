@@ -237,7 +237,7 @@ async def payments_list(call: CallbackQuery):
 
 
 @business_router.callback_query(F.data == "admin:refundpolicy")
-@business_router.callback_query(F.data.regexp(r"^admin:refundpolicy:(check|issues|terms|owner)$"))
+@business_router.callback_query(F.data.regexp(r"^admin:refundpolicy:(?:check|issues|terms|owner)$"))
 async def refund_policy_guide(call: CallbackQuery):
     """Read-only Support-памятка: не является refund approval или mutation."""
     if not await guard(call):
@@ -329,7 +329,8 @@ async def refund_policy_guide(call: CallbackQuery):
         )])
     extra_buttons.append([InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")])
     await render_callback(
-        call, body, reply_markup=InlineKeyboardMarkup(inline_keyboard=extra_buttons),
+        call, "📖 Справочник возвратов\n\n" + body,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=extra_buttons),
     )
     await call.answer()
 
