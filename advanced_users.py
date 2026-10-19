@@ -658,7 +658,7 @@ async def _user_plan_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyb
             f"🗂 Группа серверов: {current_group.name if current_group else 'не назначена'}",
         ]
     if manual is not None:
-        lines += ["", f"♾ Ручная выдача: #{manual.id} · {manual.status}"]
+        lines += ["", f"♾️ Ручная выдача: #{manual.id} · {manual.status}"]
         if manual.status in {"unknown", "in_flight"}:
             lines.append("⚠️ Исход не подтверждён: запрещён автоматический повтор.")
     rows: list[list[InlineKeyboardButton]] = []
@@ -2210,7 +2210,7 @@ async def user_plan_set(call: CallbackQuery):
             )
             await render_callback(
                 call,
-                f"♾ Заменить ручной бессрочный тариф?\n\n"
+                f"♾️ Заменить ручной бессрочный тариф?\n\n"
                 f"Пользователь: {await _display_label(rec)}\n"
                 f"Старый: {previous.name} (#{previous.id}); IP {previous.ip_limit}; HWID {previous.hwid_limit if previous.hwid_limit is not None else 'сохранённый'}\n"
                 f"Новый: {plan.name} (#{plan.id}); IP {plan.ip_limit}; HWID {plan.hwid_limit if plan.hwid_limit is not None else 'сохранить текущий'}\n"
@@ -2234,7 +2234,7 @@ async def user_plan_set(call: CallbackQuery):
         )
         await render_callback(
             call,
-            f"♾ Ручная бессрочная выдача\n\n"
+            f"♾️ Ручная бессрочная выдача\n\n"
             f"Получатель: {await _display_label(rec)}\n"
             f"Тариф: {plan.name} (#{plan.id})\n"
             f"Срок: Бессрочно; трафик: без лимита; IP: {plan.ip_limit or 'без лимита'}; HWID: {plan.hwid_limit if plan.hwid_limit is not None else 'сохранить текущий'}.\n"
@@ -2267,7 +2267,7 @@ async def user_plan_set(call: CallbackQuery):
             tg_id, plan_id, nonce, time.monotonic() + _MANUAL_GRANT_TTL,
         )
         await render_callback(call,
-            f"♾ Завершить ручную выдачу #{live.id}?\n\n"
+            f"♾️ Завершить ручную выдачу #{live.id}?\n\n"
             f"Пользователь: {await _display_label(rec)}\n"
             f"Новый тариф: {plan.name}\n\n"
             "Сначала будут применены и проверены новые лимиты в 3x-ui. "
@@ -3172,9 +3172,9 @@ async def _user_status_icons(users: list[UserRecord]) -> dict[str, str]:
 
 def _manual_list_badge(status: str | None) -> str:
     if status == "active":
-        return " ♾"
+        return " ♾️"
     if status in {"in_flight", "unknown"}:
-        return " 🟡♾"
+        return " 🟡♾️"
     return ""
 
 
@@ -3206,7 +3206,7 @@ async def _users_page_view(
         rows.append(nav)
 
     rows.append([InlineKeyboardButton(
-        text="👥 Все" if manual_only else "♾ Ручные",
+        text="👥 Все" if manual_only else "♾️ Ручные",
         callback_data="admin:users" if manual_only else "admin:users:manual",
     )])
     if role in {"support", "admin", "owner"}:
@@ -3227,7 +3227,7 @@ async def _users_page_view(
     rows.append([InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")])
 
     text = (
-        ("♾ Пользователи с ручной выдачей\n\n" if manual_only else "👥 Пользователи\n\n")
+        ("♾️ Пользователи с ручной выдачей\n\n" if manual_only else "👥 Пользователи\n\n")
         + f"Пользователей: {len(users)}\n"
         f"Страница: {page + 1}/{pages}"
     )
