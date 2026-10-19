@@ -124,6 +124,34 @@ def implementation_drift(rows: dict[int, dict[str, str]], repo: str,
             raise Drift(f"Roadmap Issue #{number} claims implemented without merged runtime PR")
 
 
+def closure_decisions_ok(rows: dict[int, dict[str, str]], actual: dict[int, str],
+                         manifest: dict) -> None:
+    """Новые acceptance decisions fail-closed; не определяет PASS за оператора."""
+    if manifest.get("schema") != 1 or not isinstance(manifest.get("decisions"), list):
+        raise Drift("invalid closure decisions manifest")
+    seen: set[int] = set()
+    for item in manifest["decisions"]:
+        if not isinstance(item, dict):
+            raise Drift("invalid closure decision entry")
+        number = item.get("issue")
+        decision = item.get("decision")
+        if not isinstance(number, int) or number <= 0 or number in seen:
+            raise Drift("duplicate or invalid closure decision")
+        seen.add(number)
+        if decision not in ("completed", "keep_open"):
+            raise Drift(f"Issue #{number}: missing/invalid closure decision")
+        if not all(isinstance(item.get(key), str) and item[key].strip()
+                   for key in ("accepted", "evidence", "date", "comment")):
+            raise Drift(f"Issue #{number}: missing closure evidence")
+        if number not in actual:
+            raise Drift(f"Issue #{number}: closure state not fetched")
+        if decision == "completed":
+            if actual[number] != "closed" or number in rows:
+                raise Drift(f"Issue #{number}: accepted/completed but GitHub/active register not closed")
+        elif actual[number] != "open" or number not in rows:
+            raise Drift(f"Issue #{number}: keep_open decision mismatches GitHub/active register")
+
+
 def declared_published(roadmap: str) -> str:
     if "**Published:**" not in roadmap:
         raise Drift("missing explicit Published field")
@@ -190,6 +218,16 @@ def audit(repo: str, root: Path = ROOT, token: str = ""):
     if missing or extra:
         raise Drift(f"active Issue register mismatch: missing={sorted(missing)}, stale={sorted(extra)}")
     implementation_drift(rows, repo)
+    decisions_path = root / "docs/roadmap/issue-closure-decisions.json"
+    decisions = json.loads(decisions_path.read_text(encoding="utf-8"))
+    for item in decisions["decisions"]:
+        number = item["issue"]
+        if number not in actual:
+            payload = fetch(repo, f"/issues/{number}", token)
+            if "pull_request" in payload:
+                raise Drift(f"#{number} is a PR, not an Issue")
+            actual[number] = payload.get("state", "unknown")
+    closure_decisions_ok(rows, actual, decisions)
     for number, row in rows.items():
         if actual.get(number) != "open":
             raise Drift(f"active Roadmap row #{number} is not an open GitHub Issue")
