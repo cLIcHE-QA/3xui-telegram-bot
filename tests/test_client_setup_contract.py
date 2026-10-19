@@ -21,6 +21,8 @@ class ClientSetupContractTests(unittest.TestCase):
         self.assertIn("Stars", setup)
         self.assertIn("portal=false", setup)
         self.assertIn("unknown", setup)
+        self.assertIn("PUBLIC LAUNCH BLOCKED", setup)
+        self.assertIn("unknown", setup)
 
     def test_living_docs_and_navigation(self):
         contract = json.loads((ROOT / "docs" / "live-docs.json").read_text(encoding="utf-8"))
