@@ -1,5 +1,7 @@
 # Admin Setup: установка и настройка Admin Control Plane
 
+**Release-prep `v5.0.0-rc.16.6` (#760/#762):** фильтр `♾ Ручные` и метки выдач в общем списке доступны read-only администраторам после отдельно разрешённого deployment; никакой новой установки, `.env`, SQLite migration или настройки 3x-ui не требуется. Действующий published `rc.16.5` / operator-reported deployed `rc.16.5` остаётся baseline до нового publication/deployment evidence. После деплоя — scoped UI smoke и штатный health, G-11 PARTIAL/NO-GO.
+
 **Published `rc.16.5` / #752 (не Deployed/Accepted):** после отдельного выпуска Administrator/Owner сможет заменить два активных скрытых бесплатных бессрочных тарифа в одной Server Group с одноразовым подтверждением. Перед targeted smoke проверить backup, SQLite v15, current/pending orders, read-only исходный 3x-ui snapshot; после разрешённой единственной замены — strict limits+Inbounds postcondition, журнал старый `superseded` + новый `active`, Health/DB/3x-ui. При `unknown` — только read-only review, не повторять mutation; cross-group вручную не обходить. Без отдельного разрешения никаких production mutations.
 
 Этот runbook описывает полное развёртывание и operational-настройку административного контура 3x-ui Telegram Bot с чистых VPS: Master, одна или несколько direct nodes, Host Control Agent и Extended direct-node backup с nginx snapshot.
