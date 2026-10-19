@@ -64,6 +64,8 @@
 
 **Никогда не закрывай Issue при merge только ради зелёного CI:** для production bug требуются published/deployed и его targeted outcome. Исключения обоснованы scope (например docs-only Issue не нуждается в production smoke). Не закрывай весь V5-A-001/A-002/A-003 только из-за scoped smoke и не возобновляй waived Telegram burst. Production deploy, Stars payments, реальный refund/restore/restart — только по отдельному разрешению оператора.
 
+**Полнота targeted smoke:** перед выдачей новых проверок применяй `docs/GIT_WORKFLOW.md#полный-targeted-acceptance-checklist-без-повторов-805`: в одном ответе весь минимально необходимый непроверенный checklist, без лимита 3–4 и без повторения ранее доказанных scoped PASS; исполнение опасных шагов, checkpoints и все разрешения остаются отдельными.
+
 ## 2. Канонические источники
 
 Используй документы по их назначению:
