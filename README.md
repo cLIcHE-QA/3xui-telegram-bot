@@ -1,20 +1,30 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.16.6
 
-**Текущий controlled canary:** `v5.0.0-rc.16.6` — ограниченный pilot. Реализация #705 завершена и принята по собственному scope, но общий v5 acceptance остаётся `PARTIAL/NO-GO`. #760/U8 `OPEN/PARTIAL`; public rollout `BLOCKED`. Каноническое состояние и ограничения: [Roadmap](docs/ROADMAP.md).
+**Текущий controlled canary:** `v5.0.0-rc.16.6` — ограниченный pilot; общий v5 acceptance остаётся `PARTIAL/NO-GO`, public rollout `BLOCKED`. Текущие статусы отдельных задач — в реестре ниже и [Roadmap](docs/ROADMAP.md).
 
 **Published:** immutable [`v5.0.0-rc.16.6`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.6), SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, 2026-10-19T10:01:30Z, [PR #764](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/764) MERGED, push [Python checks](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39234042887) и [Publish release](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39234380296) PASS. **Deployed:** operator-reported `v5.0.0-rc.16.6`, SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, health OK; independent VPS read-back PENDING. **Accepted:** #760 U8 Back PARTIAL (operator-reported FAIL), остальные U1–U7/U9–U12/Z1–Z2 scoped operator-reported PASS; исправление #766 только в main, новый release/deploy и адресный re-smoke PENDING; full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 > README описывает актуальное состояние и постоянные интерфейсы проекта, а не хронологию каждого релиза. Ранее опубликованные версии, исторические FAIL/PENDING, даты и evidence сохранены в [CHANGELOG.md](CHANGELOG.md), [GitHub Releases](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases), [датированных аудитах](docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md) и [историческом индексе](docs/roadmap/HISTORY_INDEX.md). Исторические статусы не описывают текущий runtime.
 
+## Текущие Issue-статусы (сверяются с Roadmap и GitHub)
+
+Таблица отражает только отдельные явно упомянутые текущие задачи. Полный реестр — в [Roadmap](docs/ROADMAP.md). Состояния `open` и `completed` автоматически сверяются с открытым реестром и closure decisions; `completed` означает только собственный scoped acceptance, не full v5 PASS.
+
+| Issue | GitHub-состояние | Текущий scoped outcome |
+| --- | --- | --- |
+| [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) | `completed` | operator-reported scoped PASS; независимый VPS read-back PENDING |
+| [#760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760) | `open` | U8 Back FAIL; targeted re-smoke PENDING |
+| [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) | `open` | внешний PSP не реализован; будущий отдельный scope |
+
 ## Roadmap: текущие статусы и архив
 
 [Краткий Roadmap](docs/ROADMAP.md) — единственный актуальный источник product и acceptance statuses; [тематический архив старого Roadmap](docs/roadmap/HISTORY_INDEX.md) сохраняет исторические 5803 строки, включая FAIL/STOP, SHA и evidence. Новые проверки записываются в датированные `docs/audits/**`, а не в верхнюю сводку.
 
-## Тарифная модель #705 — реализована и принята в собственном scope
+## Тарифная модель — RUB, Stars и ручное назначение
 
-[Issue #705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) **CLOSED/completed** по operator-reported scoped acceptance от 2026-10-19 12:09 EEST: сверка Orders/Payments/Entitlements и собственные критерии подтверждены оператором. [Аудит и provenance](docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md), [решение о закрытии](docs/roadmap/issue-closure-decisions.json). Независимый VPS/data-plane read-back отсутствует; завершение #705 не означает общего v5 acceptance, разрешения public rollout или закрытия #760/U8.
+[Issue #705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) принят по operator-reported scoped acceptance от 2026-10-19 12:09 EEST: сверка Orders/Payments/Entitlements и собственные критерии подтверждены оператором. [Аудит и provenance](docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md), [решение о закрытии](docs/roadmap/issue-closure-decisions.json). Независимый VPS/data-plane read-back отсутствует; завершение #705 не означает общего v5 acceptance, разрешения public rollout или закрытия #760/U8.
 
-[PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) реализовал независимые RUB и Stars/XTR, правила видимости локальных User Groups и ручную бессрочную выдачу с durable read-back. Первоначальная SQLite schema v14 — исторический этап; **текущая schema v15** ([контракт миграций](docs/SQLITE_MIGRATIONS.md)). RUB-PSP относится к отдельному открытому [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336); в Telegram цифровые покупки используют только Stars/XTR.
+[PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) реализовал независимые RUB и Stars/XTR, правила видимости локальных User Groups и ручную бессрочную выдачу с durable read-back. Первоначальная SQLite schema v14 — исторический этап; **текущая schema v15** ([контракт миграций](docs/SQLITE_MIGRATIONS.md)). RUB-PSP относится к отдельному [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336); в Telegram цифровые покупки используют только Stars/XTR.
 
 ## План внешних платежей
 
