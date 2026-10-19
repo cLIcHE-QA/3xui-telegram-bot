@@ -85,9 +85,9 @@ class RoadmapFinalGovernanceTests(unittest.TestCase):
             t=(ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8")
             planned = next((n for n, row in gov.roadmap_rows(ROOT).items()
                         if row["status"] == "⬜ Запланировано" and row["pr"] == "—"), None)
-        self.assertIsNotNone(planned, "нужна хотя бы одна плановая строка без PR")
-        t=t.replace(f"| [#{planned}](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/{planned}) | ⬜ Запланировано | — |",
-                    f"| [#{planned}](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/{planned}) | 🟡 Реализовано в main | — |")
+            self.assertIsNotNone(planned, "нужна хотя бы одна плановая строка без PR")
+            t=t.replace(f"| [#{planned}](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/{planned}) | ⬜ Запланировано | — |",
+                        f"| [#{planned}](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/{planned}) | 🟡 Реализовано в main | — |")
             (root/"docs/ROADMAP.md").write_text(t,encoding="utf-8")
             with self.assertRaisesRegex(ValueError,"requires PR"):
                 gov.roadmap_rows(root)
