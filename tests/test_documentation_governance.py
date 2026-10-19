@@ -240,6 +240,30 @@ class DocumentationGovernanceTests(unittest.TestCase):
         with self.assertRaises(gh.Unknown):
             gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", unreachable)
 
+    def test_closure_decisions_prevent_accepted_open_and_stale_rows(self):
+        rows = {730: {"status": gh.IMPLEMENTED, "pr": "PR"}, 760: {"status": gh.PLANNED, "pr": "—"}}
+        sample = {"schema": 1, "decisions": [
+            {"issue": 730, "decision": "completed",
+             "accepted": "operator-reported", "evidence": "docs/audits/a.md",
+             "date": "2026-10-19", "comment": "scoped closure"}
+        ]}
+        with self.assertRaisesRegex(gh.Drift, "accepted/completed"):
+            gh.closure_decisions_ok(rows, {730: "open", 760: "open"}, sample)
+        with self.assertRaisesRegex(gh.Drift, "accepted/completed"):
+            gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+        rows.pop(730)
+        gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+        sample["decisions"][0]["decision"] = "keep_open"
+        with self.assertRaisesRegex(gh.Drift, "keep_open"):
+            gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+        sample["decisions"][0]["decision"] = "completed"
+        sample["decisions"].append(dict(sample["decisions"][0]))
+        with self.assertRaisesRegex(gh.Drift, "duplicate"):
+            gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+        sample["decisions"][1]["issue"] = 999
+        with self.assertRaisesRegex(gh.Drift, "not fetched"):
+            gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+
     def test_github_reconciliation_release_neutral(self):
         text = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         current = gh.declared_published(text)
