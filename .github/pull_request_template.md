@@ -36,6 +36,7 @@
 - Что останется проверить после merge / release / deployment: перечисли gates и следующий шаг либо обоснуй `не требуется`.
 - [ ] Проверены четыре статуса Roadmap; `main`, Published, Deployed и acceptance не смешиваются.
 - [ ] Указана необходимость последующей актуализации Roadmap (отдельный docs-only PR, если статус нельзя честно обновить до merge).
+- [ ] Для каждого связанного Issue указан post-merge closure checkpoint: `completed` или `keep_open` с конкретным остатком, ответственным шагом и будущей синхронизацией Roadmap. Сам merge не означает acceptance.
 
 ## Rollout / rollback
 
