@@ -63,6 +63,26 @@ class Rc164UiTests(unittest.TestCase):
         self.assertNotIn('text=f"👤 {user_label(user, profile)}', search)
         self.assertIn("callback_data=f\"admin:u:{user.telegram_id}\"", search)
 
+    def test_manual_user_filter_and_badges_preserve_status_and_navigation(self):
+        source = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
+        db_source = (ROOT / "db.py").read_text(encoding="utf-8")
+        self.assertIn('async def list_live_manual_users(', db_source)
+        self.assertIn('async def manual_statuses_for_users(', db_source)
+        self.assertIn("m.status IN ('active', 'in_flight', 'unknown')", db_source)
+        self.assertIn('WHERE EXISTS (', db_source)
+        self.assertIn('for start in range(0, len(ids), 400)', db_source)
+        self.assertIn('if status == "active":', source)
+        self.assertIn('return " ♾"', source)
+        self.assertIn('return " 🟡♾"', source)
+        self.assertIn('manual_only: bool = False', source)
+        self.assertIn('db.list_live_manual_users() if manual_only else db.list_users()', source)
+        self.assertIn('_manual_list_badge(manual_statuses.get(user.telegram_id))', source)
+        self.assertIn('statuses = await _user_status_icons(visible)', source)
+        self.assertIn('statuses = await _user_status_icons(users)', source)
+        self.assertIn('admin:users:manual:page:', source)
+        self.assertIn('minimum="read_only"', source)
+        self.assertIn('callback_data=f"admin:u:{user.telegram_id}"', source)
+
     def test_status_is_distinct_from_warning_actions(self):
         for path in ("inbound_admin.py", "business_admin.py", "advanced_users.py"):
             source = (ROOT/path).read_text(encoding="utf-8")
