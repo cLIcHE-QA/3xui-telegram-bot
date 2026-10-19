@@ -45,6 +45,8 @@ class DocumentationGovernanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root / "docs/audits").mkdir(parents=True)
+            (root / "docs/roadmap").mkdir(parents=True)
+            (root / "docs/roadmap/issue-closure-decisions.json").write_text(json.dumps({"schema": 1, "decisions": [{"issue": 597, "decision": "completed"}]}), encoding="utf-8")
             path = "docs/audits/2026-10-13-example.md"
             good = """# Результат
 
@@ -58,11 +60,18 @@ class DocumentationGovernanceTests(unittest.TestCase):
 - **Источник и evidence:** https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/38432290724
 - **Ограничения и остаточные риски:** Not production
 - **Связанные Issues:** #597
+- **Решение по Issues:** #597: completed
 - **Следующий шаг:** Документировать
 - **Раздельные состояния:** merged=main; published=rc.9; deployed=operator-reported; accepted=NOT PASS
 """
             (root / path).write_text(good, encoding="utf-8")
             self.assertEqual(sem.audit_ok(root, path), [])
+            broken = good.replace("- **Решение по Issues:** #597: completed", "")
+            (root / path).write_text(broken, encoding="utf-8")
+            self.assertTrue(any("PASS audit requires explicit closure decision" in e for e in sem.audit_ok(root, path)))
+            broken = good.replace("#597: completed", "#597: keep_open")
+            (root / path).write_text(broken, encoding="utf-8")
+            self.assertTrue(any("closure decisions missing/mismatched" in e for e in sem.audit_ok(root, path)))
             broken = good.replace("**Фактический результат:** PASS", "**Фактический результат:** UNKNOWN")
             (root / path).write_text(broken, encoding="utf-8")
             self.assertIn(f"{path}: invalid audit result status", sem.audit_ok(root, path))
@@ -240,6 +249,30 @@ class DocumentationGovernanceTests(unittest.TestCase):
         with self.assertRaises(gh.Unknown):
             gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", unreachable)
 
+    def test_closure_decisions_prevent_accepted_open_and_stale_rows(self):
+        rows = {730: {"status": gh.IMPLEMENTED, "pr": "PR"}, 760: {"status": gh.PLANNED, "pr": "—"}}
+        sample = {"schema": 1, "decisions": [
+            {"issue": 730, "decision": "completed",
+             "accepted": "operator-reported", "evidence": "docs/audits/a.md",
+             "date": "2026-10-19", "comment": "scoped closure"}
+        ]}
+        with self.assertRaisesRegex(gh.Drift, "accepted/completed"):
+            gh.closure_decisions_ok(rows, {730: "open", 760: "open"}, sample)
+        with self.assertRaisesRegex(gh.Drift, "accepted/completed"):
+            gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+        rows.pop(730)
+        gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+        sample["decisions"][0]["decision"] = "keep_open"
+        with self.assertRaisesRegex(gh.Drift, "keep_open"):
+            gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+        sample["decisions"][0]["decision"] = "completed"
+        sample["decisions"].append(dict(sample["decisions"][0]))
+        with self.assertRaisesRegex(gh.Drift, "duplicate"):
+            gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+        sample["decisions"][1]["issue"] = 999
+        with self.assertRaisesRegex(gh.Drift, "not fetched"):
+            gh.closure_decisions_ok(rows, {730: "closed", 760: "open"}, sample)
+
     def test_github_reconciliation_release_neutral(self):
         text = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         current = gh.declared_published(text)
@@ -267,7 +300,7 @@ class DocumentationGovernanceTests(unittest.TestCase):
             requested.append(suffix)
             if suffix.startswith("/issues/"):
                 n=int(suffix.split("/")[-1])
-                return {"state":gh.expectations((ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8"))[1].get(n,"open")}
+                return {"state": "closed" if n in {705, 730, 731, 743, 752} else gh.expectations((ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8"))[1].get(n,"open")}
             if suffix.startswith("/releases?"):
                 return [{"tag_name":gh.declared_published((ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")),"published_at":"2026-10-11T11:24:04Z","draft":False}]
             if suffix.endswith("page=1"):return page1
