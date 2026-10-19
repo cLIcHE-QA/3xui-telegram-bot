@@ -18,11 +18,11 @@ def readme_contract_errors(readme: str, decisions: dict) -> list[str]:
     if len(tariff) != 2:
         return ["README: отсутствует раздел тарифной модели #705"]
     tariff_text = tariff[1].split("\n## ", 1)[0]
-    if len(re.findall(r"(?m)^\\*\\*Published:\\*\\*", intro)) != 1:
+    if len(re.findall(r"(?m)^\*\*Published:\*\*", intro)) != 1:
         errors.append("README: требуется единый текущий Published")
     if not all(f"**{s}:**" in intro for s in ("Published", "Deployed", "Accepted")):
         errors.append("README: независимые Published/Deployed/Accepted обязательны")
-    if re.search(r"(?mi)^\\*\\*(?:Опубликованный|Исходный план|Исторический implementation|Acceptance checkpoint|Published \`v)", intro):
+    if re.search(r"(?mi)^\*\*(?:Опубликованный|Исходный план|Исторический implementation|Acceptance checkpoint|Published \`v)", intro):
         errors.append("README: историческая release-хронология во вступлении")
     if re.search(r"(?i)(?:ещ[её] не Published|при[её]мка ожидается|targeted acceptance #705.{0,15}PENDING)", intro):
         errors.append("README: устаревший статус во вступлении")
