@@ -69,6 +69,7 @@ Living Docs: database-schema — изменений не требуется
 Diff-trigger не заменяет проверку содержания. `tests/test_living_docs.py` всегда проверяет current-state invariants:
 
 - `version.py` согласован с README/Admin Setup/CHANGELOG;
+- текущая единственная строка `**Published:**` в README и Roadmap имеет одинаковые **значения** `Deployed` (version, 40-char SHA, provenance) и `Accepted` (scoped outcome и PENDING), без чтения исторических checkpoints; отсутствие поля/расхождение — FAIL в обязательном `test`. Roadmap — канонический источник, README — краткая проекция; CI не удостоверяет реальное VPS deployment, даже при совпадении operator-reported текста;
 - текущая SQLite schema version отражена в `docs/SQLITE_MIGRATIONS.md`;
 - public security reporting contract присутствует в `SECURITY.md`;
 - Git/release docs отражают enforced branch/tag rulesets;
