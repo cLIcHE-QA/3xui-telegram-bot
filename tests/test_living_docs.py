@@ -240,7 +240,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
         # Дублирование устаревающего snapshot запрещено даже при совпадении сегодня.
         if re.search(r"(?:Published immutable tag|Deployed `?rc\\.\\d+)", stage):
             errors.append("в текущем этапе дублируется release/deployed baseline")
-        if re.search(r"^\\*\\*Текущая незавершённая работа:", roadmap, re.M):
+        if "**Текущая незавершённая работа:" in roadmap:
             errors.append("обнаружена параллельная текущая сводка")
         intro = setup.split("Этот runbook описывает", 1)[0]
         guide = next((line for line in setup.splitlines()
