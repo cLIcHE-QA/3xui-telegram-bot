@@ -1,8 +1,8 @@
 # Admin Setup: установка и настройка Admin Control Plane
 
-**Release-prep `v5.0.0-rc.16.6` (#760/#762):** фильтр `♾ Ручные` и метки выдач в общем списке доступны read-only администраторам после отдельно разрешённого deployment; никакой новой установки, `.env`, SQLite migration или настройки 3x-ui не требуется. Действующий published `rc.16.5` / operator-reported deployed `rc.16.5` остаётся baseline до нового publication/deployment evidence. После деплоя — scoped UI smoke и штатный health, G-11 PARTIAL/NO-GO.
+**Актуальный release/deployment/acceptance status:** см. единственный текущий Published/Deployed/Accepted checkpoint [Roadmap](ROADMAP.md). Release `v5.0.0-rc.16.6` Published и operator-reported Deployed; #760/U8 PARTIAL, изменение Back из PR #766 только в `main`. Ни release нового исправления, ни public rollout не разрешены. Для фильтра `♾ Ручные` дополнительных `.env`, SQLite migrations или настроек 3x-ui нет.
 
-**Published `rc.16.5` / #752 (не Deployed/Accepted):** после отдельного выпуска Administrator/Owner сможет заменить два активных скрытых бесплатных бессрочных тарифа в одной Server Group с одноразовым подтверждением. Перед targeted smoke проверить backup, SQLite v15, current/pending orders, read-only исходный 3x-ui snapshot; после разрешённой единственной замены — strict limits+Inbounds postcondition, журнал старый `superseded` + новый `active`, Health/DB/3x-ui. При `unknown` — только read-only review, не повторять mutation; cross-group вручную не обходить. Без отдельного разрешения никаких production mutations.
+**Исторический scope #752 (`rc.16.5`):** при разрешённой manual→manual замене в одной Server Group требуются backup/SQLite v15 и read-only preflight, после — strict limits+Inbounds postcondition, старый journal `superseded`, новый `active`, Health/DB/3x-ui. При `unknown` — read-only review; cross-group нельзя обходить. Подробности ранее опубликованной функциональности не являются текущим release/deployment status.
 
 Этот runbook описывает полное развёртывание и operational-настройку административного контура 3x-ui Telegram Bot с чистых VPS: Master, одна или несколько direct nodes, Host Control Agent и Extended direct-node backup с nginx snapshot.
 
@@ -55,7 +55,7 @@ Direct Node VPS
 └─ local HOST_CONTROL_AGENT_NGINX_SOURCE
 ~~~
 
-Guide ориентирован на release v5.0.0-rc.16.6. Published `v5.0.0-rc.16.5` / immutable SHA `0728b8466eb2c4c65f0a36a112ae5c4a3ea60cbc`. **Deployed:** operator-reported `DEPLOY_OK` и `--status` 2026-10-18: running, RestartCount=0, Health/DB/3x-ui ok, subnet `172.19.0.0/16`, pre-deploy backup path сообщён приватно; independent VPS/DB/restore read-back PENDING. [Targeted smoke](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md) — 59 PASS / C3 FAIL в поиске, manual grant M1–M8 blocked pending order; без SQL правок/повторного grant, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+Guide ориентирован на release v5.0.0-rc.16.6. **Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md), без дополнительной копии текущего SHA или acceptance. Исторические `rc.16.4/rc.16.5` проверки см. в [датированных audits](audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md); independent VPS/DB attestation PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 > Начиная с `v4.14.2` guided wrapper `scripts/onboard-direct-node.sh bind` исправлен и является рекомендуемым путём для регистрации node и обоих privileged bindings. Underlying helpers остаются доступным manual fallback.
 
