@@ -394,7 +394,7 @@ async def plan_add_duration(message: Message, state: FSMContext):
         await state.set_state(AddPlanStates.ip_limit)
         await render_input(
             message,
-            "♾ Бессрочный тариф · только ручная выдача\n\n"
+            "♾️ Бессрочный тариф · только ручная выдача\n\n"
             "Обязательно: трафик без лимита (0), RUB = 0, Stars = 0, "
             "видимость — только администратору. Эти поля установлены автоматически.\n\n"
             "Лимит IP от 0 до 1000 (0 = без ограничения):",
@@ -469,7 +469,7 @@ async def plan_add_hwid_limit(message: Message, state: FSMContext):
         await state.set_state(AddPlanStates.group)
         await render_input(
             message,
-            "♾ Бессрочно: RUB/Stars = 0, видимость — только администратору.\n\n"
+            "♾️ Бессрочно: RUB/Stars = 0, видимость — только администратору.\n\n"
             "Выберите группу серверов. Можно оставить без группы.",
             reply_markup=await _plan_add_group_keyboard(),
         )
@@ -605,7 +605,7 @@ async def plan_add_group(call: CallbackQuery, state: FSMContext):
     hwids = "без лимита" if int(data["hwid_limit"]) == 0 else str(data["hwid_limit"])
     await render_callback(call, 
         "💎 Проверь тариф\n\n"
-        + ("♾ Ручная бесплатная выдача: трафик без лимита; RUB/Stars отключены.\n\n"
+        + ("♾️ Ручная бесплатная выдача: трафик без лимита; RUB/Stars отключены.\n\n"
            if int(data["duration_days"]) == 0 else "")
         + f"Название: {data['name']}\n"
         f"Срок: {'Бессрочно' if data['duration_days'] == 0 else str(data['duration_days']) + ' дней'}\n"
