@@ -40,7 +40,7 @@ SECTIONS = {
         ),
         "Действия при проблеме / rollback": (
             "`CLIENT_PAYMENT_ACCEPTANCE_ENABLED=false`",
-            "`CLIENT_PORTAL_ENABLED=false`",
+            "`.env CLIENT_PORTAL_ENABLED=false`",
             "Не удаляйте существующие orders/payments/entitlements",
             "не выполняйте повторные refund/provisioning mutations",
         ),
