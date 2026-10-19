@@ -4,6 +4,8 @@
 
 Machine-readable contract: `docs/live-docs.json`.
 
+**CI governance #762:** `docs/roadmap/issue-closure-decisions.json` хранит датированное scoped решение `completed/keep_open`, `scripts/check-roadmap-github.py` fail-closed сравнивает его с GitHub и активным реестром Roadmap. Сами checks не закрывают Issues и не подтверждают VPS acceptance; новый closure checkpoint требует отдельно разрешённого merge. 
+
 ## Living и historical документы
 
 Living documents описывают текущее состояние проекта и должны оставаться актуальными:
