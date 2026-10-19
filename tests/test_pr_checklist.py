@@ -82,6 +82,15 @@ class PrChecklistTests(unittest.TestCase):
     def test_missing_template_checklist_blocks(self):
         self.assertTrue(validate_pr_body(self.completed(), "## Checklist\n"))
 
+    def test_real_template_requires_postmerge_issue_decision(self):
+        template = (ROOT / '.github' / 'pull_request_template.md').read_text(encoding='utf-8')
+        required = [label for label, _, _ in extract_checkboxes(template)]
+        self.assertEqual(sum('post-merge closure checkpoint' in label for label in required), 1)
+        body = self.completed(template)
+        self.assertEqual(validate_pr_body(body, template), [])
+        missing = '\n'.join(line for line in body.splitlines() if 'post-merge closure checkpoint' not in line)
+        self.assertTrue(any('Отсутствует обязательный пункт' in x for x in validate_pr_body(missing, template)))
+
     def test_real_template_is_self_consistent(self):
         template = (
             ROOT / ".github" / "pull_request_template.md"
