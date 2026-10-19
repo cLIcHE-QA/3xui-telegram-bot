@@ -1,6 +1,6 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.16.6
 
-**Published candidate:** `v5.0.0-rc.16.6` — GitHub prerelease Published; Deployed operator-reported, U8 acceptance PARTIAL. Scope: #760/PR #761 (♾/🟡♾ и read-only фильтр) и #762/PR #763 (closure governance), SQLite v15 без новых migrations. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+**Текущий controlled canary:** `v5.0.0-rc.16.6` — GitHub prerelease Published; Deployed operator-reported, U8 acceptance PARTIAL. Scope: #760/PR #761 (♾/🟡♾ и read-only фильтр) и #762/PR #763 (closure governance), SQLite v15 без новых migrations. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 **Текущая опубликованная версия:** `v5.0.0-rc.16.6` (immutable GitHub prerelease, tag SHA `1ca049047de2b2ed1761a718604d3d975c54463b`; не означает deployment или acceptance).
 
