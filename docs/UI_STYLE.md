@@ -387,6 +387,12 @@ Owner-only список `/admin → Система → Администрато�
 - Stars-detail открывается только при `commerce_payments.order_id → commerce_orders.telegram_id` совпадении с выбранным пользователем; отдельный callback namespace предотвращает пересечение ID. В карточке нет кнопок refund/status mutations, stale callback fail-closed.
 - Пагинация ограничена восемью операциями на страницу, выбор ledger и `Назад` сохраняют user context; общий Admin Stars ledger остаётся отдельным экраном.
 
+## Заказы Telegram Stars в административном UI (#470, кандидат rc.17)
+
+`/admin → Платежи → ⭐ Telegram Stars → 📦 Заказы Stars` — read-only список `commerce_orders` для `currency=XTR` (до восьми записей на страницу), с отдельной карточкой `admin:starsorder:<id>:<offset>`. Кнопки просмотра, пагинации и возврата имеют privilege `payments.view` (Read-only+), private-chat boundary. Карточка из одного bounded SELECT связывает `Order → последний Telegram Stars Payment → Entitlement` и название тарифа; не раскрывает `provider_payment_id`, invoice payload, checkout URL, subscriptions или secrets. `TG ID` — уже разрешённая административная identity в закрытом /admin, иных PII экран не добавляет. При отсутствии Payment показывается `Платёж ещё не подтверждён / не создан`, не `failed`; отсутствие Entitlement не означает ошибку. Счёт Telegram invoice не проверяется и не объявляется доставленным/активным.
+
+Только чтение: ни `retry`, `refund`, `cancel`, ни webhook/provider mutations, ни отправка invoice. Старые `admin:starspayments` и `admin:starspayment` сохраняются. На карточке доступен переход к существующей карточке Stars-платежа, если реальный платёж найден; Back возвращает на исходную страницу Orders. Invalid/stale callback не выполняет mutation; UI и security smoke после отдельно разрешённых release/deploy остаётся PENDING. #470 OPEN до targeted acceptance, G-11 PARTIAL/NO-GO.
+
 ## Справочник возвратов поддержки (#437, кандидат rc.17)
 
 `/admin → Платежи → 📖 Политика возвратов` — только read-only памятка (callback `admin:refundpolicy`): проверка обращения, спорные `duplicate/unknown/in_flight`, справка по § 9, эскалация Owner. Каждый вложенный экран имеет `⬅ Политика возвратов` и `⬅ Платежи`; новые callbacks защищены `payments.view` и private-chat RBAC для `Read-only` / `Support` / `Administrator` / `Owner`. Сам просмотр не вызывает платежей, Stars refund, provisioning или сохранения PII.

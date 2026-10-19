@@ -452,11 +452,157 @@ async def stars_payments_list(call: CallbackQuery):
         nav.append(InlineKeyboardButton(text="➡ Старее", callback_data=f"admin:starspayments:{offset + PAYMENTS_PAGE_SIZE}"))
     if nav:
         rows.append(nav)
+    rows.append([InlineKeyboardButton(text="📦 Заказы Stars", callback_data="admin:starsorders")])
     rows.append([InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")])
     await render_callback(
         call,
         f"⭐ Telegram Stars\n\nПлатежи: {total} · страница {offset // PAYMENTS_PAGE_SIZE + 1}:",
 
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+
+# Read-only order projection. No invoice readback or provider mutation here.
+STARS_ORDER_ICONS = {
+    "created": "⚪",
+    "awaiting_payment": "🟡",
+    "paid": "🟢",
+    "cancelled": "⛔",
+    "expired": "⌛",
+}
+
+
+@business_router.callback_query(F.data == "admin:starsorders")
+@business_router.callback_query(F.data.regexp(r"^admin:starsorders:\d+$"))
+async def stars_orders_list(call: CallbackQuery):
+    if not await guard(call):
+        return
+    parts = (call.data or "").split(":")
+    requested = int(parts[2]) if len(parts) == 3 else 0
+    async with aiosqlite.connect(db.path) as conn:
+        conn.row_factory = aiosqlite.Row
+        count = await conn.execute(
+            "SELECT COUNT(*) FROM commerce_orders WHERE currency = 'XTR'"
+        )
+        total = int((await count.fetchone())[0])
+        offset = min(
+            requested // PAYMENTS_PAGE_SIZE * PAYMENTS_PAGE_SIZE,
+            ((total - 1) // PAYMENTS_PAGE_SIZE) * PAYMENTS_PAGE_SIZE,
+        ) if total else 0
+        cursor = await conn.execute(
+            """
+            SELECT co.id, co.telegram_id, co.amount_minor, co.status,
+                   (SELECT cp.status FROM commerce_payments cp
+                     WHERE cp.order_id = co.id AND cp.provider = 'telegram_stars'
+                     ORDER BY cp.id DESC LIMIT 1) AS payment_status
+            FROM commerce_orders co
+            WHERE co.currency = 'XTR'
+            ORDER BY co.id DESC
+            LIMIT ? OFFSET ?
+            """, (PAYMENTS_PAGE_SIZE, offset),
+        )
+        orders = await cursor.fetchall()
+    rows = []
+    for item in orders:
+        symbol = STARS_ORDER_ICONS.get(str(item["status"]), "•")
+        paid = str(item["payment_status"] or "нет платежа")
+        rows.append([InlineKeyboardButton(
+            text=f"{symbol} #{item['id']} · TG {item['telegram_id']} · ⭐ {item['amount_minor']} · {paid}"[:64],
+            callback_data=f"admin:starsorder:{item['id']}:{offset}",
+        )])
+    nav = []
+    if offset:
+        nav.append(InlineKeyboardButton(
+            text="⬅ Новее", callback_data=f"admin:starsorders:{offset - PAYMENTS_PAGE_SIZE}",
+        ))
+    if offset + PAYMENTS_PAGE_SIZE < total:
+        nav.append(InlineKeyboardButton(
+            text="➡ Старее", callback_data=f"admin:starsorders:{offset + PAYMENTS_PAGE_SIZE}",
+        ))
+    if nav:
+        rows.append(nav)
+    rows.append([InlineKeyboardButton(
+        text="⬅ Telegram Stars", callback_data="admin:starspayments",
+    )])
+    await render_callback(
+        call,
+        "📦 Заказы Stars · только просмотр\n\n"
+        f"Заказы: {total} · страница {offset // PAYMENTS_PAGE_SIZE + 1}.\n"
+        "Отсутствие платежа не означает ошибку или факт отправки счёта.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+@business_router.callback_query(F.data.regexp(r"^admin:starsorder:\d+(?::\d+)?$"))
+async def stars_order_detail(call: CallbackQuery):
+    if not await guard(call):
+        return
+    parts = (call.data or "").split(":")
+    order_id = int(parts[2])
+    offset = int(parts[3]) if len(parts) == 4 else 0
+    async with aiosqlite.connect(db.path) as conn:
+        conn.row_factory = aiosqlite.Row
+        cursor = await conn.execute(
+            """
+            SELECT co.id, co.telegram_id, co.plan_id, co.amount_minor,
+                   co.status, co.created_at, co.updated_at, co.paid_at,
+                   p.name AS plan_name,
+                   cp.id AS payment_id, cp.status AS payment_status,
+                   e.id AS entitlement_id, e.status AS entitlement_status
+            FROM commerce_orders co
+            LEFT JOIN plans p ON p.id = co.plan_id
+            LEFT JOIN commerce_payments cp ON cp.id = (
+                SELECT cp2.id FROM commerce_payments cp2
+                WHERE cp2.order_id = co.id AND cp2.provider = 'telegram_stars'
+                ORDER BY cp2.id DESC LIMIT 1
+            )
+            LEFT JOIN entitlements e ON e.order_id = co.id
+            WHERE co.id = ? AND co.currency = 'XTR'
+            LIMIT 1
+            """, (order_id,),
+        )
+        item = await cursor.fetchone()
+    if item is None:
+        await call.answer("Заказ Stars не найден или больше недоступен.", show_alert=True)
+        return
+    rows = []
+    payment_id = item["payment_id"]
+    if payment_id is not None:
+        rows.append([InlineKeyboardButton(
+            text="🔎 Открыть Stars-платёж",
+            callback_data=f"admin:starspayment:{payment_id}",
+        )])
+    rows.append([InlineKeyboardButton(
+        text="⬅ Заказы Stars", callback_data=f"admin:starsorders:{offset}",
+    )])
+    plan_label = str(item["plan_name"] or f"ID {item['plan_id']}")
+    payment_text = (
+        f"#{payment_id} · {item['payment_status']}"
+        if payment_id is not None else
+        "Платёж ещё не подтверждён / не создан"
+    )
+    entitlement_text = (
+        f"#{item['entitlement_id']} · {item['entitlement_status']}"
+        if item["entitlement_id"] is not None else
+        "Записи нет (не означает ошибку платежа)"
+    )
+    await render_callback(
+        call,
+        "📦 Заказ Stars · только просмотр\n\n"
+        f"Заказ: #{item['id']}\n"
+        f"Покупатель: TG {item['telegram_id']}\n"
+        f"Тариф: {plan_label}\n"
+        f"Сумма: ⭐ {item['amount_minor']} XTR\n"
+        f"Статус заказа: {item['status']}\n"
+        f"Создан: {utc_text(item['created_at'])}\n"
+        f"Обновлён: {utc_text(item['updated_at'])}\n"
+        f"Оплачен: {utc_text(item['paid_at']) if item['paid_at'] else '—'}\n"
+        f"Платёж: {payment_text}\n"
+        f"Entitlement: {entitlement_text}\n\n"
+        "Статус Telegram invoice message отдельно не подтверждён.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
     await call.answer()

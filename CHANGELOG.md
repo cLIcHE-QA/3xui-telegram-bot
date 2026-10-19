@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Подготовка v5.0.0-rc.17 — просмотр Stars Orders (#470, кандидат)
+
+- В админке `Платежи → Telegram Stars → Заказы Stars` добавлен bounded read-only список заказов XTR и карточка `Order → Payment → Entitlement` с точными статусами и возвратом к списку. `created/awaiting_payment` без Payment отображается как ожидание, не ошибка и не доказательство отправки invoice. Платёжные provider payload/keys не выводятся; mutation кнопок нет.
+- Задача #470 в implementation PR, до merge, immutable release/deploy и адресной приёмки — PENDING. `version.py` пока `5.0.0-rc.16.6`; release candidate rc.17 плановый, не Published/Deployed/Accepted; G-11 PARTIAL/NO-GO.
+
 ## Подготовка v5.0.0-rc.17 — справочник возвратов для Support (#437, кандидат)
 
 - Подготовлен read-only экран `/admin → Платежи → Политика возвратов` с навигацией, проверкой типа платежа/unknown, рекомендацией эскалации Owner и RBAC `payments.view`; никакого нового права на Stars refund и никакой payment/3x-ui mutation. #433/#434/#436 остаются отменёнными, добровольная 14-дневная программа не возвращается.
