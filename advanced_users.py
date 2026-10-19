@@ -3170,30 +3170,45 @@ async def _user_status_icons(users: list[UserRecord]) -> dict[str, str]:
     return statuses
 
 
-async def _users_page_view(page: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
-    users = await db.list_users()
+def _manual_list_badge(status: str | None) -> str:
+    if status == "active":
+        return " ♾"
+    if status in {"in_flight", "unknown"}:
+        return " 🟡♾"
+    return ""
+
+
+async def _users_page_view(
+    page: int, role: str | None, *, manual_only: bool = False,
+) -> tuple[str, InlineKeyboardMarkup]:
+    users = await (db.list_live_manual_users() if manual_only else db.list_users())
     pages = max(1, (len(users) + USER_LIST_PAGE_SIZE - 1) // USER_LIST_PAGE_SIZE)
     page = min(max(0, int(page)), pages - 1)
     visible = users[page * USER_LIST_PAGE_SIZE:(page + 1) * USER_LIST_PAGE_SIZE]
 
     statuses = await _user_status_icons(visible)
+    manual_statuses = await db.manual_statuses_for_users([u.telegram_id for u in visible])
     rows: list[list[InlineKeyboardButton]] = []
     for user in visible:
         profile = await db.get_user_profile(user.telegram_id)
         rows.append([InlineKeyboardButton(
-            text=f"{statuses.get(user.email, '🟡')} {user_label(user, profile)} · TG {user.telegram_id}",
+            text=f"{statuses.get(user.email, '🟡')}{_manual_list_badge(manual_statuses.get(user.telegram_id))} {user_label(user, profile)} · TG {user.telegram_id}",
             callback_data=f"admin:u:{user.telegram_id}",
         )])
 
     if pages > 1:
         nav: list[InlineKeyboardButton] = []
         if page > 0:
-            nav.append(InlineKeyboardButton(text="◀️", callback_data=f"admin:users:page:{page - 1}"))
+            nav.append(InlineKeyboardButton(text="◀️", callback_data=f"admin:users:{'manual:page' if manual_only else 'page'}:{page - 1}"))
         nav.append(InlineKeyboardButton(text=f"{page + 1}/{pages}", callback_data="admin:users:noop"))
         if page + 1 < pages:
-            nav.append(InlineKeyboardButton(text="▶️", callback_data=f"admin:users:page:{page + 1}"))
+            nav.append(InlineKeyboardButton(text="▶️", callback_data=f"admin:users:{'manual:page' if manual_only else 'page'}:{page + 1}"))
         rows.append(nav)
 
+    rows.append([InlineKeyboardButton(
+        text="👥 Все" if manual_only else "♾ Ручные",
+        callback_data="admin:users" if manual_only else "admin:users:manual",
+    )])
     if role in {"support", "admin", "owner"}:
         rows.append([
             InlineKeyboardButton(text="🔎 Поиск", callback_data="admin:users:search"),
@@ -3212,10 +3227,12 @@ async def _users_page_view(page: int, role: str | None) -> tuple[str, InlineKeyb
     rows.append([InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")])
 
     text = (
-        "👥 Пользователи\n\n"
+        ("♾ Пользователи с ручной выдачей\n\n" if manual_only else "👥 Пользователи\n\n")
         f"Пользователей: {len(users)}\n"
         f"Страница: {page + 1}/{pages}"
     )
+    if manual_only and not users:
+        text += "\nНет действующих ручных выдач."
     return text, InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -3237,6 +3254,28 @@ async def admin_users_page(call: CallbackQuery):
         return
     page = int(call.data.rsplit(":", 1)[-1])
     text, kb = await _users_page_view(page, role)
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data == "admin:users:manual")
+async def admin_users_manual(call: CallbackQuery, state: FSMContext):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    await state.clear()
+    text, kb = await _users_page_view(0, role, manual_only=True)
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
+
+
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:users:manual:page:\\d+$"))
+async def admin_users_manual_page(call: CallbackQuery):
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    page = int(call.data.rsplit(":", 1)[-1])
+    text, kb = await _users_page_view(page, role, manual_only=True)
     await render_callback(call, text, reply_markup=kb)
     await call.answer()
 
@@ -3808,11 +3847,12 @@ async def admin_users_search_message(message: Message, state: FSMContext):
         return
 
     statuses = await _user_status_icons(users)
+    manual_statuses = await db.manual_statuses_for_users([u.telegram_id for u in users])
     rows: list[list[InlineKeyboardButton]] = []
     for user in users:
         profile = await db.get_user_profile(user.telegram_id)
         rows.append([InlineKeyboardButton(
-            text=f"{statuses.get(user.email, '🟡')} {user_label(user, profile)} · TG {user.telegram_id}",
+            text=f"{statuses.get(user.email, '🟡')}{_manual_list_badge(manual_statuses.get(user.telegram_id))} {user_label(user, profile)} · TG {user.telegram_id}",
             callback_data=f"admin:u:{user.telegram_id}",
         )])
     rows.append([InlineKeyboardButton(text="🔎 Новый поиск", callback_data="admin:users:search")])
