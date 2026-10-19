@@ -466,7 +466,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
         agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
         heading = "## Полный targeted acceptance checklist без повторов (#805)"
         self.assertEqual(workflow.count(heading), 1)
-        section = workflow.split(heading, 1)[1].split("\\n## ", 1)[0]
+        section = workflow.split(heading, 1)[1].split("\n## ", 1)[0]
         for clause in ("без искусственного ограничения", "одним ответом",
                        "Не включай ранее принятые scoped PASS",
                        "PENDING", "N/A", "operator-reported",
