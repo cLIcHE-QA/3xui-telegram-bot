@@ -42,6 +42,34 @@ def status_projection_errors(readme: str, roadmap: str) -> list[str]:
             if left != right]
 
 
+
+def current_release_claim_errors(roadmap: str, docs: dict[str, str]) -> list[str]:
+    """Проверка только явно текущих assertions; датированные исторические audits не переписывать."""
+    canonical = next((l for l in roadmap.splitlines() if l.startswith("**Published:** immutable ")), "")
+    published = re.search(r"`(v\d+\.\d+\.\d+[^\x60]*)`", canonical)
+    deployed = re.search(r"\*\*Deployed:\*\*[^\n]*?`(v\d+\.\d+\.\d+[^\x60]*)`", canonical)
+    if not published or not deployed:
+        return ["Roadmap: missing canonical release versions"]
+    expected_published, expected_deployed = published.group(1), deployed.group(1)
+    issues: list[str] = []
+    client = docs["docs/CLIENT_SETUP.md"]
+    header = next((l for l in client.splitlines() if l.startswith("**Текущий статус контролируемого пилота:**")), "")
+    if not header or f"Published `{expected_published}`" not in header or f"Deployed operator-reported `{expected_deployed}`" not in header:
+        issues.append("CLIENT_SETUP current Published/Deployed drift")
+    ui = docs["docs/UI_STYLE.md"]
+    if re.search(r"^\*\*C3/#743 — fix candidate .*ещё не Merged", ui, re.M):
+        issues.append("UI_STYLE obsolete candidate as current")
+    schema = docs["docs/SQLITE_MIGRATIONS.md"]
+    if "Исторический Published, текущий operator-reported Deployed" in schema:
+        issues.append("SQLITE_MIGRATIONS obsolete deployed baseline")
+    readme = docs["README.md"]
+    if re.search(r"Актуальный controlled canary `rc\.\d+", readme):
+        issues.append("README obsolete current canary")
+    changelog = docs["CHANGELOG.md"]
+    if f"## Планируемый {expected_published} — до выпуска" in changelog:
+        issues.append("CHANGELOG published version presented as unreleased")
+    return issues
+
 class LivingDocsSemanticTests(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = json.loads(
@@ -265,6 +293,33 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertTrue(self._current_block_errors(roadmap, setup.replace(
             "**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md)",
             "Published `v5.0.0-rc.15`; **Deployed:** rc.15")))
+
+
+    def test_cross_document_current_release_claims(self):
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        documents = {p: (ROOT / p).read_text(encoding="utf-8") for p in (
+            "docs/CLIENT_SETUP.md", "docs/UI_STYLE.md",
+            "docs/SQLITE_MIGRATIONS.md", "README.md", "CHANGELOG.md")}
+        self.assertEqual(current_release_claim_errors(roadmap, documents), [])
+
+    def test_cross_document_stale_claim_regressions(self):
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        docs = {p: (ROOT / p).read_text(encoding="utf-8") for p in (
+            "docs/CLIENT_SETUP.md", "docs/UI_STYLE.md",
+            "docs/SQLITE_MIGRATIONS.md", "README.md", "CHANGELOG.md")}
+        old = dict(docs)
+        old["docs/CLIENT_SETUP.md"] = old["docs/CLIENT_SETUP.md"].replace(
+            "Published `v5.0.0-rc.16.6`", "Published `v5.0.0-rc.16.4`", 1)
+        self.assertTrue(current_release_claim_errors(roadmap, old))
+        old = dict(docs)
+        old["docs/UI_STYLE.md"] = old["docs/UI_STYLE.md"].replace(
+            "**Исторический fix scope", "**C3/#743 — fix candidate", 1)
+        self.assertTrue(current_release_claim_errors(roadmap, old))
+        old = dict(docs)
+        old["CHANGELOG.md"] = old["CHANGELOG.md"].replace(
+            "## Подготовка v5.0.0-rc.16.6 — исторический release-prep scope",
+            "## Планируемый v5.0.0-rc.16.6 — до выпуска", 1)
+        self.assertTrue(current_release_claim_errors(roadmap, old))
 
     def test_roadmap_active_issues_have_russian_explanations(self):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
