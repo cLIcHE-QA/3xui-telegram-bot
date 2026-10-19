@@ -66,6 +66,9 @@ Living Docs: database-schema — изменений не требуется
 
 ## Semantic invariants
 
+**Текущая release-state проекция:** `docs/ROADMAP.md` — единственный текущий status source. `README.md` повторяет только одну машинно проверяемую строку Published/Deployed/Accepted; `docs/ADMIN_SETUP.md` ссылается на неё и не дублирует действующий SHA или предыдущий baseline. Недатированные секции Roadmap «Текущий этап» и «Текущие targeted blockers» обязаны быть согласованы с текущим checkpoint; прежние версии/Issue состояния оставлять только внутри однозначно датированных исторических свидетельств. CI проверяет формат и явные stale-current фразы; исторические audits не переписываются. Эта сверка не является VPS attestation.
+
+
 Diff-trigger не заменяет проверку содержания. `tests/test_living_docs.py` всегда проверяет current-state invariants:
 
 - `version.py` согласован с README/Admin Setup/CHANGELOG;
