@@ -300,7 +300,7 @@ class DocumentationGovernanceTests(unittest.TestCase):
             requested.append(suffix)
             if suffix.startswith("/issues/"):
                 n=int(suffix.split("/")[-1])
-                return {"state": "closed" if n in {705, 730, 731, 743, 752} else gh.expectations((ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8"))[1].get(n,"open")}
+                return {"state": "closed" if n in {705, 730, 731, 743, 752, 767, 769} else gh.expectations((ROOT/"docs/ROADMAP.md").read_text(encoding="utf-8"))[1].get(n,"open")}
             if suffix.startswith("/releases?"):
                 return [{"tag_name":gh.declared_published((ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")),"published_at":"2026-10-11T11:24:04Z","draft":False}]
             if suffix.endswith("page=1"):return page1
