@@ -6,12 +6,25 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.17 — Заказы Stars и справочник возвратов для поддержки
+
+- [PR #801](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/801) / [#470](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/470): в `/admin → Платежи → Telegram Stars → Заказы Stars` добавлены ограниченный постраничный read-only список и карточка `Order → Payment → Entitlement`. `created/awaiting_payment` без Payment показываются как ожидание, а не ошибка; отсутствуют повторная отправка счёта, refund и provider mutations. Действует `payments.view` и прежний RBAC.
+- [PR #799](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/799) / [#437](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/437): read-only справочник обращений по возвратам для Support/Admin, с навигацией, разграничением Stars/RUB, состояниями `unknown` и эскалацией Owner. Условия § 9 ещё **не опубликованы** по [#707](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/707): `docs/legal-publication.json` имеет `publication_state=unpublished`, поэтому действующие условия и ссылка не подменяются юридическим черновиком. Дополнительная 14-дневная программа не вводится; новые права на refund не выдаются.
+- [PR #766](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/766) / [#760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760): исправлены возврат из списка ручных тарифов и отображение `♾️`/`🟡♾️`. На прежнем deployed `rc.16.6` адресная проверка U8 была FAIL; исправление требует нового deployment и targeted Back+emoji re-smoke, а не объявляется принятым при публикации.
+- [PR #768](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/768), [PR #770](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/770), [PR #772](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/772), [PR #775](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/775): исправлены расхождения живой документации о Published/Deployed/Accepted и правила документированного закрытия Issues; без новых runtime payment/3x-ui mutations.
+- **Совместимость:** SQLite schema остаётся **v15**; новых migrations, внешнего RUB checkout, provider API endpoints, секретов и изменений production-конфигурации нет. Pinned 3x-ui API contract — `v3.10.2`. До отдельного разрешённого deployment — immutable tag, совместимый backup, SQLite `quick_check`, Health/DB/3x-ui read-back.
+- **Controlled canary:** выпуск RC не выполняет deployment и не закрывает #437/#470/#760. После отдельного deployment нужны targeted UI/RBAC/no-mutation smoke #437/#470 и U8 Back+emoji smoke #760, post-smoke health и решение по каждому Issue. Юридическая публикация #707 остаётся PENDING; общий v5 `G-11 PARTIAL/NO-GO`, public rollout `BLOCKED`.
+
 ## Подготовка v5.0.0-rc.17 — просмотр Stars Orders (#470, кандидат)
+
+> Исторический pre-merge snapshot. Текущие результаты выпуска отражены в каноническом разделе `v5.0.0-rc.17` выше и в Roadmap.
 
 - В админке `Платежи → Telegram Stars → Заказы Stars` добавлен bounded read-only список заказов XTR и карточка `Order → Payment → Entitlement` с точными статусами и возвратом к списку. `created/awaiting_payment` без Payment отображается как ожидание, не ошибка и не доказательство отправки invoice. Платёжные provider payload/keys не выводятся; mutation кнопок нет.
 - Задача #470 в implementation PR, до merge, immutable release/deploy и адресной приёмки — PENDING. `version.py` пока `5.0.0-rc.16.6`; release candidate rc.17 плановый, не Published/Deployed/Accepted; G-11 PARTIAL/NO-GO.
 
 ## Подготовка v5.0.0-rc.17 — справочник возвратов для Support (#437, кандидат)
+
+> Исторический pre-merge snapshot. Не подтверждает действующую публикацию § 9 или acceptance.
 
 - Подготовлен read-only экран `/admin → Платежи → Политика возвратов` с навигацией, проверкой типа платежа/unknown, рекомендацией эскалации Owner и RBAC `payments.view`; никакого нового права на Stars refund и никакой payment/3x-ui mutation. #433/#434/#436 остаются отменёнными, добровольная 14-дневная программа не возвращается.
 - Единый `docs/legal-publication.json` изначально `unpublished`: до фактической проверенной публикации соглашения § 9 (#707) раздел не показывает черновик или неработающую ссылку. Ни Terms, ни механизм акцепта не реализованы; для содержательной части #437 остаётся зависимость.
