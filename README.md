@@ -359,7 +359,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 
 ## Telegram surfaces
 
-Актуальный controlled canary `rc.15` сохраняет два отдельных UI/authorization boundary.
+Текущий controlled canary (см. [Roadmap](docs/ROADMAP.md)) сохраняет два отдельных UI/authorization boundary.
 
 Client Portal (pilot allowlist, `CLIENT_PORTAL_ENABLED`):
 
