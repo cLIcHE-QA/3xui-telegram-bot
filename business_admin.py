@@ -25,6 +25,7 @@ from db import AdministratorRecord, Database, PaymentRecord, PromoCodeRecord
 from ui_time import backup_schedule_text, end_of_day_timestamp, format_timestamp
 from user_ui import user_label
 from stars_refund import run_stars_refund
+from refund_support_policy import get_published_terms
 
 settings = load_settings()
 db = Database(settings.db_path)
@@ -208,6 +209,7 @@ async def payments_list(call: CallbackQuery):
         rows.append(nav)
     rows += [
         [InlineKeyboardButton(text="⭐ Telegram Stars", callback_data="admin:starspayments")],
+        [InlineKeyboardButton(text="📖 Политика возвратов", callback_data="admin:refundpolicy")],
         [InlineKeyboardButton(text="➕ Добавить платёж", callback_data="admin:paymentadd:start")],
         [InlineKeyboardButton(text="⬅ Панель администратора", callback_data="admin:home")],
     ]
@@ -230,6 +232,104 @@ async def payments_list(call: CallbackQuery):
         f"Выручка по оплаченным: {paid_text}\n\n"
         "Суммы Stars и внутреннего журнала учитываются отдельно.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+    await call.answer()
+
+
+@business_router.callback_query(F.data == "admin:refundpolicy")
+@business_router.callback_query(F.data.regexp(r"^admin:refundpolicy:(check|issues|terms|owner)$"))
+async def refund_policy_guide(call: CallbackQuery):
+    """Read-only Support-памятка: не является refund approval или mutation."""
+    if not await guard(call):
+        return
+    section = (call.data or "").rsplit(":", 1)[-1]
+    terms = get_published_terms() if section == "terms" else None
+    extra_buttons: list[list[InlineKeyboardButton]] = []
+
+    if section == "check":
+        body = (
+            "📋 Порядок проверки обращения\n\n"
+            "1. Зафиксируйте время обращения, не запрашивая секреты и полный платёжный payload.\n"
+            "2. В защищённом журнале уточните канал: Telegram Stars (XTR) "
+            "или ручной учёт. Внешний RUB PSP пока не подключён.\n"
+            "3. Сверьте заказ, payment_id, статус и подтверждение операции "
+            "в существующих Orders/Payments; не переносите ID и PII в переписку.\n"
+            "4. При споре о сроке/условиях используйте только опубликованную "
+            "редакцию § 9. Отменённый добровольный refund не применяйте.\n"
+            "5. Не меняйте платёж или доступ; передайте Owner сомнения "
+            "и сведения о своевременности обращения."
+        )
+    elif section == "issues":
+        body = (
+            "⚠️ Двойной платёж, unknown и доступ\n\n"
+            "• Дублирующиеся списания проверяются по каждому заказу и provider "
+            "read-back; совпадение имени клиента не доказывает дубль.\n"
+            "• unknown/in_flight: исход может быть неопределён. "
+            "Запрещён blind replay refund или provisioning.\n"
+            "• Сбой 3x-ui и спор о доступе не эквивалентны возврату денег. "
+            "Нужны отдельные подтверждения ledger/entitlement/3x-ui.\n"
+            "• Нельзя самостоятельно менять срок подписки, выполнять "
+            "Stars refund либо повторять платёжную mutation. Эскалация Owner."
+        )
+    elif section == "owner":
+        body = (
+            "🧑‍💻 Эскалация Owner\n\n"
+            "Передайте Owner канал оплаты, время обращения, проверенный статус "
+            "записи в защищённом журнале, наличие duplicate/unknown и "
+            "сведения о доступности услуги. Не отправляйте публично payment_id, "
+            "PII, провайдерские ключи или полный payload.\n\n"
+            "Support не одобряет refund и не выполняет provider/3x-ui mutation. "
+            "Owner проверяет применимую редакцию § 9, доказательства и "
+            "обязательные права заявителя; спорные правовые вопросы "
+            "эскалируются на профессиональную оценку."
+        )
+    elif section == "terms":
+        if terms is None:
+            body = (
+                "⚖️ Пользовательское соглашение, § 9\n\n"
+                "Подтверждённая опубликованная редакция ещё не опубликована "
+                "в versioned-реестре. Черновик от 16.10.2026 не является "
+                "действующей публичной политикой.\n\n"
+                "Не цитируйте неподтверждённые сроки, не предлагайте "
+                "автоматический refund. Направьте обращение Owner до "
+                "верификации опубликованного HTML, хеша, редакции и даты "
+                "в scope #707."
+            )
+        else:
+            body = (
+                "⚖️ Пользовательское соглашение, § 9\n\n"
+                f"Редакция по реестру: {terms.revision}\n"
+                f"Действует с: {terms.effective_at.isoformat()} (UTC)\n"
+                "Полные условия возврата следует читать непосредственно "
+                "в опубликованном документе. Эта памятка не заменяет "
+                "его текст, законные права и разбор спорных случаев."
+            )
+            extra_buttons.append([InlineKeyboardButton(
+                text="📜 Открыть опубликованное соглашение",
+                url=terms.url,
+            )])
+    else:
+        body = (
+            "📖 Политика возвратов · справочник поддержки\n\n"
+            "Только просмотр для Support/Admin. Это не команда возврата, "
+            "не отдельная юридическая политика и не разрешение на refund.\n"
+            "Сначала определите канал и статус, затем проверьте § 9 "
+            "реально опубликованного соглашения и при сомнении "
+            "эскалируйте Owner. Независимых правил о добровольном сроке нет."
+        )
+        extra_buttons += [
+            [InlineKeyboardButton(text="📋 Проверить обращение", callback_data="admin:refundpolicy:check")],
+            [InlineKeyboardButton(text="⚠️ Спорные случаи", callback_data="admin:refundpolicy:issues")],
+            [InlineKeyboardButton(text="⚖️ Условия соглашения (§ 9)", callback_data="admin:refundpolicy:terms")],
+            [InlineKeyboardButton(text="🧑‍💻 Эскалация Owner", callback_data="admin:refundpolicy:owner")],
+        ]
+    if section in {"check", "issues", "terms", "owner"}:
+        extra_buttons.append([InlineKeyboardButton(
+            text="⬅ Политика возвратов", callback_data="admin:refundpolicy",
+        )])
+    extra_buttons.append([InlineKeyboardButton(text="⬅ Платежи", callback_data="admin:payments")])
+    await render_callback(
+        call, body, reply_markup=InlineKeyboardMarkup(inline_keyboard=extra_buttons),
     )
     await call.answer()
 
