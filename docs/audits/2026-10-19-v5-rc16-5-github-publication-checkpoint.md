@@ -1,0 +1,14 @@
+# GitHub publication checkpoint — v5.0.0-rc.16.5
+
+<!-- audit-schema: 1 -->
+- **Дата/время и часовой пояс:** 2026-10-19 02:13 UTC+03:00
+- **Окружение:** GitHub CI/release workflow и read-only GitHub API; нет доступа к production VPS в этом аудите
+- **Цель:** проверить полноценную публикацию immutable prerelease v5.0.0-rc.16.5 после merge C3 fix, manual switch и Roadmap lifecycle gate
+- **Версия и immutable tag/SHA:** `v5.0.0-rc.16.5` / `0728b8466eb2c4c65f0a36a112ae5c4a3ea60cbc`
+- **Scope:** [PR #756](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/756) merge `7da90642b755f51ed86377f0861376c92eea8446`, [release-prep PR #757](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/757) squash MERGED `0728b8466eb2c4c65f0a36a112ae5c4a3ea60cbc`; required PR test/title PASS, postmerge [Python checks](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39175366569) PASS, [Publish release](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39175551063) prepare/publish PASS; independent tag/release/version read-back. Новых Stars платежей, ручных выдач, deployment или VPS операций не было
+- **Фактический результат:** PASS (только Published prerelease). Tag `rc.16.5` соответствует merge SHA, GitHub Release `2026-10-18T23:13:01Z` prerelease=true, непустые name/body из CHANGELOG; предыдущий immutable `rc.16.4` по-прежнему указывает на `114de5af16adcde5e8d128cc5a55d58addc37e73`
+- **Источник и evidence:** [Release v5.0.0-rc.16.5](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.5), [release PR #757](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/757), [publish workflow](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39175551063), [merge #753](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/753), [merge #754](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/754), [merge #756](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/756)
+- **Ограничения и остаточные риски:** production остаётся `rc.16.4` — только operator-reported; новый C3 status и ручная→ручная замена `rc.16.5` на production **не Deployed/не Accepted**; #730 chronology, #705/#731 unresolved, independent VPS/backup/DB evidence PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED
+- **Связанные Issues:** #743 и #752 OPEN (targeted smoke), #755 CLOSED/completed (CI governance), #730/#705/#731 OPEN, #470 OPEN/PLANNED для order-only UI
+- **Следующий шаг:** после отдельного разрешения deploy строго immutable tag `v5.0.0-rc.16.5`, predeploy backup/status, postdeploy status/SQLite v15+quick_check, addressable C3 и один authorized manual→manual pilot + provider read-back, postsmoke health; затем повторно сверить Issues/Roadmap
+- **Раздельные состояния:** merged=PASS (#753/#754/#756/#757); published=PASS (`rc.16.5`, immutable); deployed=PENDING (`rc.16.5`; последняя `rc.16.4` operator-reported); accepted=PENDING (`rc.16.5`; G-11 PARTIAL/NO-GO)
