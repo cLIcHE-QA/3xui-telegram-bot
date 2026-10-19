@@ -10,6 +10,13 @@
 
 - [Issue #760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760): подготовлена реализация read-only значка `♾` в списке и поиске пользователей, `🟡♾` при `unknown/in_flight`, фильтра `♾ Ручные` с пагинацией и batch SQLite-выборкой; без migration, 3x-ui mutation и платежей. **Не Published, не Deployed, не Accepted**; требуется отдельный merge/release/deploy.
 
+## v5.0.0-rc.16.6 — Ручные тарифы в списке и контроль закрытия Issues
+
+- [PR #761](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/761) / [#760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760): отметка `♾` для активных ручных тарифов и `🟡♾` для `unknown/in_flight` в общем списке и поиске пользователей, read-only фильтр `Все / ♾ Ручные` с пагинацией и пакетной SQLite-выборкой без N+1; прежние статусы 3x-ui и RBAC сохранены.
+- [PR #763](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/763) / [#762](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/762): fail-closed CI-сверка явных решений `completed/keep_open` с GitHub Issues и активным Roadmap, негативные регрессионные тесты; исторические operator-reported scoped acceptance #705/#730/#731/#743/#752 закрыты без изменения production.
+- [PR #759](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/759): документационный checkpoint приёмки `rc.16.5`, без новых runtime mutations (docs-only).
+- **Controlled canary:** версия SQLite остаётся **v15**, новых миграций, `.env`, платежей и provider mutations нет. GitHub **Published не означает Deployed/Accepted**; для `rc.16.6` после отдельно разрешённого deployment обязательны backup, `quick_check`, Health/DB/3x-ui и адресный UI smoke меток, фильтра/пагинации и RBAC без повторения прежних PASS. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+
 ## v5.0.0-rc.16.5 — Статус в поиске и безопасная замена ручного тарифа
 
 - [PR #753](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/753) / [#743](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/743): поиск пользователей в Admin теперь показывает уже вычисленный read-only статус `enable` 3x-ui (🟢/⚪/🟡) вместо постоянного `👤`; существующий bounded `clients/list`, RBAC и callback сохранены. C3 на ранее deployed rc.16.4 был FAIL; проверка после deployment rc.16.5 ещё PENDING.
