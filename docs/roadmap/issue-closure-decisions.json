@@ -73,6 +73,14 @@
       "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/772",
       "date": "2026-10-19",
       "comment": "PR #772 squash MERGED ece86811c007c810ab91da43c45cac5dc546c0bc; required test/title PASS; Issue #771 closed/completed; no release/deploy."
+    },
+    {
+      "issue": 774,
+      "decision": "completed",
+      "accepted": "docs/CI scoped PASS, independent GitHub read-back",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/775",
+      "date": "2026-10-19",
+      "comment": "PR #775 squash MERGED df6d7d2d9b1a160456072c65a89228b1e63e26c2; test/title PASS; Issue #774 closed/completed, docs-only."
     }
   ]
 }
