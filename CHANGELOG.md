@@ -6,9 +6,9 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Планируемый v5.0.0-rc.16.6 — до выпуска
+## Подготовка v5.0.0-rc.16.6 — исторический release-prep scope
 
-- [Issue #760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760): подготовлена реализация read-only значка `♾` в списке и поиске пользователей, `🟡♾` при `unknown/in_flight`, фильтра `♾ Ручные` с пагинацией и batch SQLite-выборкой; без migration, 3x-ui mutation и платежей. **Не Published, не Deployed, не Accepted**; требуется отдельный merge/release/deploy.
+- [Issue #760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760): подготовлена реализация read-only значка `♾` в списке и поиске пользователей, `🟡♾` при `unknown/in_flight`, фильтра `♾ Ручные` с пагинацией и batch SQLite-выборкой; без migration, 3x-ui mutation и платежей. **На дату подготовки scope не был Published/Deployed/Accepted**; позднее rc.16.6 опубликован и operator-reported развёрнут, приёмка #760/U8 остаётся PARTIAL (см. текущий Roadmap).
 
 ## v5.0.0-rc.16.6 — Ручные тарифы в списке и контроль закрытия Issues
 

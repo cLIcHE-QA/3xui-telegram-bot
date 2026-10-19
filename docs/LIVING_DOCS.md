@@ -80,6 +80,8 @@ Diff-trigger не заменяет проверку содержания. `tests
 - machine-readable contract не ссылается на отсутствующие документы;
 - число endpoints текущего `contracts/3xui/contract.json` совпадает с `docs/3XUI_OPENAPI_CONTRACT.md`.
 
+Проверка current-release проекции включает также верхний актуальный статус в `docs/CLIENT_SETUP.md`, отсутствие ложных «ещё не Published» в `docs/UI_STYLE.md`, `docs/SQLITE_MIGRATIONS.md`, README и release-prep заголовках CHANGELOG. Датированные исторические checkpoints сохраняются; CI не делает вывода о production acceptance.
+
 Новые постоянные current-state checks добавляются в `test_living_docs.py`, а не накапливаются в version-specific test files.
 
 ## Repository state вне Git
