@@ -12,6 +12,16 @@ from version import APP_VERSION
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def replace_required(source: str, old: str, new: str) -> str:
+    """Негативная фикстура обязана изменить единственное совпадение."""
+    if source.count(old) != 1:
+        raise AssertionError(f"expected one anchor: {old!r}")
+    updated = source.replace(old, new, 1)
+    if updated == source:
+        raise AssertionError("negative fixture did not change input")
+    return updated
+
+
 def current_status_fragments(document: str) -> tuple[str, str]:
     """Сравниваем только каноническую текущую строку, а не исторические checkpoints."""
     lines = [line for line in document.splitlines() if line.startswith("**Published:** immutable ")]
@@ -237,14 +247,14 @@ class LivingDocsSemanticTests(unittest.TestCase):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         self.assertEqual(status_projection_errors(readme, roadmap), [])
         self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
-            readme.replace("operator-reported `v" + APP_VERSION + "`", "operator-reported `v0.0.0`", 1), roadmap))
+            replace_required(readme, "operator-reported `v" + APP_VERSION + "`", "operator-reported `v0.0.0`"), roadmap))
         self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
-            readme.replace("health OK; independent VPS", "health FAIL; independent VPS", 1), roadmap))
+            replace_required(readme, "health OK; independent VPS", "health FAIL; independent VPS"), roadmap))
         self.assertIn("Deployed README/Roadmap mismatch", status_projection_errors(
-            readme.replace("operator-reported `v" + APP_VERSION + "`", "independent `v" + APP_VERSION + "`", 1), roadmap))
+            replace_required(readme, "operator-reported `v" + APP_VERSION + "`", "independent `v" + APP_VERSION + "`"), roadmap))
         self.assertIn("Accepted README/Roadmap mismatch", status_projection_errors(
-            readme.replace("**Accepted:**", "**Accepted:** INCONSISTENT ", 1), roadmap))
-        self.assertTrue(status_projection_errors(readme.replace("**Accepted:**", "**Acceptance:**", 1), roadmap))
+            replace_required(readme, "**Accepted:**", "**Accepted:** INCONSISTENT "), roadmap))
+        self.assertTrue(status_projection_errors(replace_required(readme, "**Accepted:**", "**Acceptance:**"), roadmap))
         # Исторические старые версии не относятся к текущей строке.
         self.assertEqual(status_projection_errors(readme + "\\nИстория: Deployed rc.16.4", roadmap), [])
 
@@ -287,9 +297,9 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertTrue(self._current_block_errors(roadmap.replace(
             "Актуальные Published/Deployed/Accepted", "Published immutable tag `v5.0.0-rc.15`", 1), setup))
         self.assertTrue(self._current_block_errors(roadmap + "\\n**Текущая незавершённая работа:** rc.15", setup))
-        self.assertTrue(self._current_block_errors(roadmap, setup.replace(
-            "Release `v5.0.0-rc.16.6` Published и operator-reported Deployed",
-            "Действующий published `rc.15` / operator-reported deployed `rc.15`")))
+        self.assertTrue(self._current_block_errors(roadmap, replace_required(
+            setup, "**Текущий Published/Deployed/Accepted status:**",
+            "Действующий published `rc.0` / operator-reported deployed `rc.0`")))
         self.assertTrue(self._current_block_errors(roadmap, setup.replace(
             "**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md)",
             "Published `v5.0.0-rc.15`; **Deployed:** rc.15")))
