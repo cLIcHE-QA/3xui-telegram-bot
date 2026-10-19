@@ -24,7 +24,7 @@
 9. **Direct node:** подготовить 3 privilege domains, verified TLS Host Control, локальный nginx source, три enrollment-файла, затем guided bind **preflight → отдельно разрешённый `--apply`**. При неопределённости — read-only сверка, не повтор операции. [Шаги 9–16](ADMIN_SETUP_PROCEDURES.md#9-подготовь-direct-node); [manual fallback](ADMIN_SETUP_PROCEDURES.md#14a-manual-fallback-создай-node-sync-enrollment-на-master).
 10. **Readiness и backup:** проверка node_id binding, Agent running, bounded benign Host Control, complete snapshot с SHA-256, Full Backup и защищённый recovery export. При `missing`/degraded не объявлять readiness. [Шаги 17–20](ADMIN_SETUP_PROCEDURES.md#17-readiness-direct-node).
 11. **Завершение:** Master `--status`, проверить health, удалить только временные enrollment, повторять с уникальными identity для следующей node. [Шаги 21–23](ADMIN_SETUP_PROCEDURES.md#21-финальный-health-check-master).
-12. **Обновления и recovery:** использовать опубликленный tag через deploy helper, pre-migration backup, SQLite `schema_migrations`, `PRAGMA quick_check`, целевой smoke; downgrade невозможен одним checkout. [Шаги 24–27](ADMIN_SETUP_PROCEDURES.md#24-обновления-после-первоначальной-установки); [SQLite migrations](SQLITE_MIGRATIONS.md), [VPS recovery](VPS_RECOVERY.md).
+12. **Обновления и recovery:** использовать опубликованный tag через deploy helper, pre-migration backup, SQLite `schema_migrations`, `PRAGMA quick_check`, целевой smoke; downgrade невозможен одним checkout. [Шаги 24–27](ADMIN_SETUP_PROCEDURES.md#24-обновления-после-первоначальной-установки); [SQLite migrations](SQLITE_MIGRATIONS.md), [VPS recovery](VPS_RECOVERY.md).
 
 ## Definition of Done и troubleshooting
 
@@ -35,7 +35,7 @@
 - Ручной тариф, commerce preflight, `manual_entitlements.in_flight/unknown`, независимый 3x-ui read-back и запрет replay: [отдельная процедура Admin](ADMIN_SETUP_PROCEDURES.md#28-ручное-назначение-тарифа-через-admin-отдельный-operational-flow).
 - Сброс локальной клиентской сессии, Shadowrocket/Streisand и HWID: [UI/клиентский контракт](UI_STYLE.md), [Client Setup](CLIENT_SETUP.md).
 - QA-проверка доставки Telegram: исторический scoped workflow в [исходной версии Admin Setup](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот). Никаких реальных Telegram сообщений в рамках установки.
-- [Host Control rollout](HOST_CONTROL_ROLLOUT.md), [Node onboarding](NODE_ONBOARDING.md), [Offsite Backup](OFFSITE_BACKUP.md), [Safe Bot Self-Update](BOT_SELF_UPDATE.md).
+- Профильные руководства: [Host Control rollout](HOST_CONTROL_ROLLOUT.md), [Node onboarding](NODE_ONBOARDING.md), [Offsite Backup](OFFSITE_BACKUP.md) и [Safe Bot Self-Update](BOT_SELF_UPDATE.md).
 
 ## Исторические checkpoints (не текущий status)
 
