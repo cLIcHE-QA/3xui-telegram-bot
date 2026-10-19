@@ -123,7 +123,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.16.5` исходный native API contract pinned к 3x-ui `v3.10.2` (Published rc.16.5, not Deployed; immutable rc.16.4 retained same pinned contract) (controlled canary; production Node/Xray E2E требует отдельного evidence). Для опубликованного bot release `v5.0.0-rc.14` также pinned `v3.10.0` (изменение WG-scoped Flow проверено отдельно только с Master panel `v3.10.2`); для опубликованного bot release `v5.0.0-rc.13` также pinned `v3.10.0`; для опубликованного `v5.0.0-rc.10` также pinned `v3.10.0`; для опубликованного rc.9 исходный native API contract pinned к `v3.9.0` (operator-reported production). Pinned supported 3x-ui для текущего `main`: `v3.10.2`. Текущий pinned OpenAPI в опубликованном `rc.10` — `v3.10.0` из `docs/3XUI_OPENAPI_CONTRACT.md`, 55/55 используемых методов структурно совместимы. **Это не означает**, что панель Master/ноды обновлены, что интеграция проверена в новой среде или что rollout разрешён. Перед отдельным разрешением: проверить полный Master/direct-node inventory, безопасный full backup/restore rollback с учётом одноразовых миграций конфигов, systemd sandbox/custom paths, TLS/CA, Xray/client cores, staging Master/Node sync и maintenance window. Все ноды требуют обновления для upstream Node fixes. [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
+Для bot release `v5.0.0-rc.16.6` исходный native API contract pinned к 3x-ui `v3.10.2` (Published rc.16.5, not Deployed; immutable rc.16.4 retained same pinned contract) (controlled canary; production Node/Xray E2E требует отдельного evidence). Для опубликованного bot release `v5.0.0-rc.14` также pinned `v3.10.0` (изменение WG-scoped Flow проверено отдельно только с Master panel `v3.10.2`); для опубликованного bot release `v5.0.0-rc.13` также pinned `v3.10.0`; для опубликованного `v5.0.0-rc.10` также pinned `v3.10.0`; для опубликованного rc.9 исходный native API contract pinned к `v3.9.0` (operator-reported production). Pinned supported 3x-ui для текущего `main`: `v3.10.2`. Текущий pinned OpenAPI в опубликованном `rc.10` — `v3.10.0` из `docs/3XUI_OPENAPI_CONTRACT.md`, 55/55 используемых методов структурно совместимы. **Это не означает**, что панель Master/ноды обновлены, что интеграция проверена в новой среде или что rollout разрешён. Перед отдельным разрешением: проверить полный Master/direct-node inventory, безопасный full backup/restore rollback с учётом одноразовых миграций конфигов, systemd sandbox/custom paths, TLS/CA, Xray/client cores, staging Master/Node sync и maintenance window. Все ноды требуют обновления для upstream Node fixes. [Issue #630](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/630).
 
 ## 2. Базовая подготовка Master VPS
 
@@ -161,7 +161,7 @@ cd 3xui-telegram-bot
 git fetch --tags --prune
 # Только после отдельного разрешённого merge release-prep,
 # появления immutable published tag и проверки его SHA:
-git checkout --detach v5.0.0-rc.16.5
+git checkout --detach v5.0.0-rc.16.6
 ~~~
 
 Проверка release:
