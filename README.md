@@ -1,8 +1,8 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.17
 
-**Release-prep:** `v5.0.0-rc.17` — кандидат controlled canary с read-only #437/#470 и исправлением #760/U8; до фактической публикации immutable tag текущим Published/Deployed остаётся `v5.0.0-rc.16.6`. Юридический § 9 по #707 не опубликован, справочник не выдаёт черновик за действующие условия. Общий v5 acceptance `PARTIAL/NO-GO`, public rollout `BLOCKED`. Проверенные фактические статусы — в [Roadmap](docs/ROADMAP.md).
+**Controlled canary:** `v5.0.0-rc.17` опубликован и, по сообщению оператора от 2026-10-20 01:58 EEST, развернут: read-only #437/#470 и исправление #760/U8 требуют нового адресного UI smoke. Юридический § 9 #707 остаётся `unpublished`; справочник не выдаёт черновик за действующие условия. Общий v5 acceptance `PARTIAL/NO-GO`, public rollout `BLOCKED`. Актуальный статус — в [Roadmap](docs/ROADMAP.md).
 
-**Published:** immutable [`v5.0.0-rc.16.6`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.6), SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, 2026-10-19T10:01:30Z, [PR #764](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/764) MERGED, push [Python checks](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39234042887) и [Publish release](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39234380296) PASS. **Deployed:** operator-reported `v5.0.0-rc.16.6`, SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, health OK; independent VPS read-back PENDING. **Accepted:** #760 U8 Back PARTIAL (operator-reported FAIL), остальные U1–U7/U9–U12/Z1–Z2 scoped operator-reported PASS; исправление #766 только в main, новый release/deploy и адресный re-smoke PENDING; full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+**Published:** immutable [`v5.0.0-rc.17`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.17), tag SHA `0d5240c4799ba09952d74748a90a6a669894006d`, `2026-10-19T22:02:35Z` (independent GitHub read-back). **Deployed:** operator-reported `v5.0.0-rc.17`, same SHA, `APP_VERSION=5.0.0-rc.17`, container running, no restarts, health/DB/3x-ui `ok` (сообщение 2026-10-20 01:58 EEST); independent VPS read-back PENDING. **Accepted:** #437/#470 и адресный #760/U8 Back+emoji на `rc.17` PENDING, предыдущие U1–U7/U9–U12/Z1–Z2 остаются scoped operator-reported PASS; full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 > README описывает актуальное состояние и постоянные интерфейсы проекта, а не хронологию каждого релиза. Ранее опубликованные версии, исторические FAIL/PENDING, даты и evidence сохранены в [CHANGELOG.md](CHANGELOG.md), [GitHub Releases](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases), [датированных аудитах](docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md) и [историческом индексе](docs/roadmap/HISTORY_INDEX.md). Исторические статусы не описывают текущий runtime.
 
@@ -13,7 +13,7 @@
 | Issue | GitHub-состояние | Текущий scoped outcome |
 | --- | --- | --- |
 | [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) | `completed` | operator-reported scoped PASS; независимый VPS read-back PENDING |
-| [#760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760) | `open` | U8 Back FAIL; targeted re-smoke PENDING |
+| [#760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760) | `open` | На `rc.16.6` U8 Back FAIL; на развернутом operator-reported `rc.17` targeted re-smoke PENDING |
 | [#336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336) | `open` | внешний PSP не реализован; будущий отдельный scope |
 
 ## Roadmap: текущие статусы и архив
