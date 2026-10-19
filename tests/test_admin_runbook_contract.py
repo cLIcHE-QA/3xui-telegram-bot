@@ -64,7 +64,7 @@ class AdminRunbookContractTests(unittest.TestCase):
     def test_procedure_missing_safety(self):
         for key in ("--check-only", "VERIFY_TLS=true", "schema_migrations"):
             with self.subTest(key=key):
-                changed=self.procedure.replace(key,"REMOVED",1)
+                changed=self.procedure.replace(key,"REMOVED")
                 self.assertNotEqual(changed,self.procedure)
                 self.assertTrue(errors(self.guide,changed))
     def test_duplicate_step_and_history_provenance(self):
