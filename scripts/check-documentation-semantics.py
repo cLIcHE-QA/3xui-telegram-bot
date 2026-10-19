@@ -27,7 +27,8 @@ CHECK_PATHS = (
     "README.md", "AGENTS.md", "docs/ROADMAP.md", "docs/GIT_WORKFLOW.md",
     "docs/LIVING_DOCS.md", "docs/RELEASES.md", "docs/roadmap/HISTORY_INDEX.md",
     "docs/V5_PRODUCTION_ACCEPTANCE.md", "docs/CLIENT_SETUP.md",
-    "docs/UI_STYLE.md", "docs/SQLITE_MIGRATIONS.md",
+    "docs/UI_STYLE.md", "docs/SQLITE_MIGRATIONS.md", "docs/ADMIN_SETUP.md",
+    "docs/ADMIN_SETUP_PROCEDURES.md",
 )
 LINK = re.compile(r"(?<!!)\[[^\]]*\]\((<[^>]*>|[^)\s]+)(?:\s+[^)]*)?\)")
 HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*#*\s*$")

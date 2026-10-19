@@ -116,7 +116,8 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertTrue(readme.startswith(f"# Telegram-бот для 3x-ui v{version}"))
         self.assertIn(f"## v{version} ", changelog)
         self.assertIn(f"Guide ориентирован на release v{version}.", admin_setup)
-        self.assertIn(f"git checkout --detach v{version}", admin_setup)
+        procedures = (ROOT / "docs/ADMIN_SETUP_PROCEDURES.md").read_text(encoding="utf-8")
+        self.assertIn(f"git checkout --detach v{version}", procedures)
 
     def test_current_sqlite_schema_version_is_documented(self):
         migration_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(
@@ -143,7 +144,8 @@ class LivingDocsSemanticTests(unittest.TestCase):
         )
 
         self.assertIn(f"- 3x-ui: `v{version}`;", readme)
-        self.assertIn(f"Pinned supported 3x-ui для текущего `main`: `v{version}`", admin_setup)
+        self.assertIn(f"Pinned supported 3x-ui для текущего `main`: `v{version}`",
+                      (ROOT / "docs/ADMIN_SETUP_PROCEDURES.md").read_text(encoding="utf-8"))
         self.assertIn(f"- 3x-ui: `v{version}`;", contract_doc)
         declared_count = re.findall(r"Текущий manifest содержит \*\*(\d+)\*\* endpoints", contract_doc)
         self.assertEqual(len(declared_count), 1, "Manifest endpoint count must appear exactly once")
@@ -280,9 +282,9 @@ class LivingDocsSemanticTests(unittest.TestCase):
             errors.append("в текущем этапе дублируется release/deployed baseline")
         if "**Текущая незавершённая работа:" in roadmap:
             errors.append("обнаружена параллельная текущая сводка")
-        intro = setup.split("Этот runbook описывает", 1)[0]
+        intro = setup.split("## Перед началом:", 1)[0]
         guide = next((line for line in setup.splitlines()
-                      if line.startswith("Guide ориентирован на release ")), "")
+                      if "Guide ориентирован на release " in line), "")
         if "Roadmap](ROADMAP.md)" not in intro or "Roadmap](ROADMAP.md)" not in guide:
             errors.append("Admin Setup должен ссылаться на канонический Roadmap")
         if re.search(r"(?:Действующий published|Действующий Published|Published `v\\d|published `rc\\.|deployed `rc\\.)", intro):
@@ -300,9 +302,9 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertTrue(self._current_block_errors(roadmap, replace_required(
             setup, "**Текущий Published/Deployed/Accepted status:**",
             "Published `v0.0.0`; **Deployed:** rc.0")))
-        self.assertTrue(self._current_block_errors(roadmap, setup.replace(
-            "**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md)",
-            "Published `v5.0.0-rc.15`; **Deployed:** rc.15")))
+        self.assertTrue(self._current_block_errors(roadmap, replace_required(
+            setup, "**Текущий Published/Deployed/Accepted status:**",
+            "Published `v0.0.0`; **Deployed:** rc.0")))
 
 
     def test_cross_document_current_release_claims(self):

@@ -69,7 +69,7 @@ class V4241ReleaseTests(unittest.TestCase):
 
     def test_pagespeed_remains_optional(self):
         env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
-        admin_setup = (ROOT / "docs" / "ADMIN_SETUP.md").read_text(encoding="utf-8")
+        admin_setup = (ROOT / "docs" / "ADMIN_SETUP_PROCEDURES.md").read_text(encoding="utf-8")
         self.assertIn("PAGESPEED_API_KEY=", env_example)
         self.assertIn("Optional PageSpeed diagnostics", admin_setup)
         self.assertIn("PAGESPEED_API_KEY=", admin_setup)

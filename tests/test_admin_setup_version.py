@@ -8,15 +8,17 @@ from version import APP_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
 ADMIN_SETUP = ROOT / "docs" / "ADMIN_SETUP.md"
+PROCEDURES = ROOT / "docs" / "ADMIN_SETUP_PROCEDURES.md"
 
 
 class AdminSetupReleaseVersionTests(unittest.TestCase):
     def test_canonical_install_flow_matches_app_version(self):
-        doc = ADMIN_SETUP.read_text(encoding="utf-8")
+        guide = ADMIN_SETUP.read_text(encoding="utf-8")
+        doc = PROCEDURES.read_text(encoding="utf-8")
         version = APP_VERSION
         tag = f"v{version}"
 
-        self.assertIn(f"Guide ориентирован на release {tag}.", doc)
+        self.assertIn(f"Guide ориентирован на release {tag}.", guide)
         self.assertIn(f"Для bot release `{tag}`", doc)
         self.assertIn(f"git checkout --detach {tag}", doc)
         self.assertIn("~~~text\n" + version + "\n~~~", doc)
