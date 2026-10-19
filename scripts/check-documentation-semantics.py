@@ -150,10 +150,10 @@ def audit_ok(root: Path, path: str) -> list[str]:
     # Любой новый аудит с фактическим PASS и связанными Issues обязан
     # зафиксировать closure decision, иначе формально зеленый smoke снова
     # оставит accepted Issue открытым. Исторические audits immutable.
-    linked = {int(n) for n in re.findall(r"#(\\d+)\\b", issues)}
+    linked = {int(n) for n in re.findall(r"#(\d+)\b", issues)}
     if status == "PASS" and linked:
         decisions = fields.get("Решение по Issues", "")
-        pairs = re.findall(r"#(\\d+)\\s*:\\s*(completed|keep_open)\\b", decisions)
+        pairs = re.findall(r"#(\d+)\s*:\s*(completed|keep_open)\b", decisions)
         declared = {int(n): decision for n, decision in pairs}
         if counts["Решение по Issues"] != 1 or len(pairs) != len(declared) or set(declared) != linked:
             problems.append(f"{path}: PASS audit requires explicit closure decision for each linked Issue")
