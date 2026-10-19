@@ -1,6 +1,6 @@
 # Versioned SQLite migrations
 
-Этот документ описывает **нормативный контракт** миграций локальной bot database `bot.sqlite3`. Схема Master/direct nodes 3x-ui управляется самим 3x-ui, не данным framework. Каталог `MIGRATIONS` в [db_migrations.py](../db_migrations.py) — единственный source of truth: версия схемы равна последнему элементу каталога, а не версии релиза. Не приписывать `main`-schema уже опубликленному или deployed tag без отдельного подтверждения [Roadmap](ROADMAP.md).
+Этот документ описывает **нормативный контракт** миграций локальной bot database `bot.sqlite3`. Схема Master/direct nodes 3x-ui управляется самим 3x-ui, не данным framework. Каталог `MIGRATIONS` в [db_migrations.py](../db_migrations.py) — единственный source of truth: версия схемы равна последнему элементу каталога, а не версии релиза. Не приписывать `main`-schema уже опубликованному или deployed tag без отдельного подтверждения [Roadmap](ROADMAP.md).
 
 ## Текущий контракт schema
 
