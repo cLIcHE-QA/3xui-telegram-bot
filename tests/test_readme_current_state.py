@@ -1,4 +1,8 @@
-"""Проверки текущей карты README: исторические snapshots живут вне актуального вступления."""
+"""Status claims in current README are a projection of the canonical Issue register.
+
+The table is an explicit, bounded current-state surface; historical prose and
+audits are not parsed as active status assertions.
+"""
 from __future__ import annotations
 
 import json
@@ -7,68 +11,119 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+SECTION = "## Текущие Issue-статусы (сверяются с Roadmap и GitHub)"
+LINK = re.compile(
+    r"^\| \[#(\d+)\]\(https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/\1\)"
+    r" \| \`([a-z_]+)\` \| .+ \|$"
+)
+ACTIVE = re.compile(
+    r"^\| \[#(\d+)\]\(https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/\1\) \|"
+)
 
 
-def readme_contract_errors(readme: str, decisions: dict) -> list[str]:
-    errors = []
-    if "## Roadmap: текущие статусы и архив" not in readme:
-        return ["README: нет раздела Roadmap"]
-    intro, rest = readme.split("## Roadmap: текущие статусы и архив", 1)
-    tariff = rest.split("## Тарифная модель #705", 1)
-    if len(tariff) != 2:
-        return ["README: отсутствует раздел тарифной модели #705"]
-    tariff_text = tariff[1].split("\n## ", 1)[0]
-    if len(re.findall(r"(?m)^\*\*Published:\*\*", intro)) != 1:
-        errors.append("README: требуется единый текущий Published")
-    if not all(f"**{s}:**" in intro for s in ("Published", "Deployed", "Accepted")):
-        errors.append("README: независимые Published/Deployed/Accepted обязательны")
-    if re.search(r"(?mi)^\*\*(?:Опубликованный|Исходный план|Исторический implementation|Acceptance checkpoint|Published \`v)", intro):
-        errors.append("README: историческая release-хронология во вступлении")
-    if re.search(r"(?i)(?:ещ[её] не Published|при[её]мка ожидается|targeted acceptance #705.{0,15}PENDING)", intro):
-        errors.append("README: устаревший статус во вступлении")
-    decisions_by_issue = {entry["issue"]: entry["decision"] for entry in decisions["decisions"]}
-    if decisions_by_issue.get(705) == "completed":
-        if "CLOSED/completed" not in tariff_text or "operator-reported scoped acceptance" not in tariff_text:
-            errors.append("README: #705 должен отражать completed и provenance")
-        if re.search(r"(?i)(?:при[её]мка ожидается|#705/B5.{0,30}BLOCKED|#705.{0,40}PENDING)", tariff_text):
-            errors.append("README: #705 имеет устаревший acceptance")
-    for text in ("G-11", "PARTIAL/NO-GO", "public rollout", "BLOCKED"):
-        if text not in intro:
-            errors.append("README: не отражены границы общего v5 acceptance: " + text)
-    for link in ("docs/ROADMAP.md", "CHANGELOG.md", "docs/RELEASES.md",
-                 "docs/ADMIN_SETUP.md", "docs/SQLITE_MIGRATIONS.md", "docs/UI_STYLE.md"):
-        if link not in readme:
-            errors.append("README: отсутствует каноническая ссылка " + link)
+def status_errors(readme: str, roadmap: str, manifest: dict) -> list[str]:
+    errors: list[str] = []
+    if readme.count(SECTION) != 1:
+        return ["README: missing or duplicate current Issue status section"]
+    section = readme.split(SECTION, 1)[1].split("\n## ", 1)[0]
+    rows = [line for line in section.splitlines() if line.startswith("| [#")]
+    active_block = roadmap.split("## Активный Issue-реестр (machine-checked)", 1)
+    if len(active_block) != 2:
+        return ["Roadmap: missing active Issue register"]
+    active_block = active_block[1].split("\n## ", 1)[0]
+    open_ids = {int(x.group(1)) for line in active_block.splitlines()
+                if (x := ACTIVE.match(line))}
+    decisions = {}
+    for item in manifest.get("decisions", []):
+        number = item.get("issue")
+        if number in decisions:
+            errors.append(f"Issue #{number}: duplicate closure decision")
+        decisions[number] = item.get("decision")
+    seen = set()
+    for line in rows:
+        match = LINK.fullmatch(line)
+        if not match:
+            errors.append("README: unparseable or ambiguous current Issue status row")
+            continue
+        number, stated = int(match.group(1)), match.group(2)
+        if number in seen:
+            errors.append(f"Issue #{number}: duplicate current status assertion")
+        seen.add(number)
+        if stated not in {"open", "completed"}:
+            errors.append(f"Issue #{number}: unsupported current status {stated}")
+        if number in open_ids:
+            if stated != "open":
+                errors.append(f"Issue #{number}: README claims {stated}, Roadmap is open")
+            if decisions.get(number) == "completed":
+                errors.append(f"Issue #{number}: completed decision contradicts open Roadmap")
+        else:
+            if stated != "completed":
+                errors.append(f"Issue #{number}: README claims {stated}, not in open Roadmap")
+            if decisions.get(number) != "completed":
+                errors.append(f"Issue #{number}: missing completed closure decision")
+    if not rows:
+        errors.append("README: current Issue status table is empty")
+    if not all(f"**{s}:**" in readme.split(SECTION, 1)[0]
+               for s in ("Published", "Deployed", "Accepted")):
+        errors.append("README: Published/Deployed/Accepted must be distinct")
+    if "PARTIAL/NO-GO" not in readme.split(SECTION, 1)[0]:
+        errors.append("README: full v5 acceptance boundary lost")
     return errors
 
 
 class ReadmeCurrentStateTests(unittest.TestCase):
     def setUp(self):
         self.readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.decisions = json.loads((ROOT / "docs/roadmap/issue-closure-decisions.json").read_text(encoding="utf-8"))
-
-    def test_current_readme(self):
-        self.assertEqual(readme_contract_errors(self.readme, self.decisions), [])
-
-    def test_stale_acceptance_detected(self):
-        mutated = self.readme.replace("CLOSED/completed", "приёмка ожидается", 1)
-        self.assertTrue(readme_contract_errors(mutated, self.decisions))
-
-    def test_tariff_b5_false_blocked_detected(self):
-        mutated = self.readme.replace(
-            "## План внешних платежей",
-            "#705/B5 остаётся BLOCKED.\\n\\n## План внешних платежей",
-            1,
+        self.roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        self.decisions = json.loads(
+            (ROOT / "docs/roadmap/issue-closure-decisions.json").read_text(encoding="utf-8")
         )
-        self.assertTrue(any("#705" in error for error in readme_contract_errors(mutated, self.decisions)))
 
-    def test_stale_release_history_detected(self):
-        mutated = self.readme.replace("## Roadmap:", "**Опубликованный rc.16:** targeted acceptance #705 — PENDING.\n\n## Roadmap:", 1)
-        self.assertTrue(any("хронология" in e or "устаревший" in e for e in readme_contract_errors(mutated, self.decisions)))
+    def check(self, readme=None, roadmap=None, decisions=None):
+        return status_errors(
+            self.readme if readme is None else readme,
+            self.roadmap if roadmap is None else roadmap,
+            self.decisions if decisions is None else decisions,
+        )
 
-    def test_missing_current_status_detected(self):
-        mutated = self.readme.replace("**Deployed:**", "**Deploy:**", 1)
-        self.assertTrue(any("Deployed" in e for e in readme_contract_errors(mutated, self.decisions)))
+    def test_current_document(self):
+        self.assertEqual(self.check(), [])
+
+    def test_all_declared_rows_are_checked_not_just_one_issue(self):
+        rows = LINK.findall(self.readme.split(SECTION, 1)[1].split("\n## ", 1)[0])
+        self.assertGreaterEqual(len(rows), 3)
+        for number, status in rows:
+            opposite = "completed" if status == "open" else "open"
+            modified = self.readme.replace(
+                f"/issues/{number}) | \`{status}\` |",
+                f"/issues/{number}) | \`{opposite}\` |", 1,
+            )
+            with self.subTest(issue=number):
+                self.assertTrue(any(f"Issue #{number}" in e for e in self.check(readme=modified)))
+
+    def test_missing_closure_decision_fails_closed(self):
+        closed = next(int(n) for n, s in LINK.findall(self.readme) if s == "completed")
+        changed = dict(self.decisions)
+        changed["decisions"] = [x for x in self.decisions["decisions"] if x["issue"] != closed]
+        self.assertIn(f"Issue #{closed}: missing completed closure decision",
+                      self.check(decisions=changed))
+
+    def test_unknown_and_duplicate_rows_fail(self):
+        row = next(line for line in self.readme.splitlines() if LINK.fullmatch(line))
+        unknown = row.replace("| \`completed\` |", "| \`unknown\` |").replace(
+            "| \`open\` |", "| \`unknown\` |"
+        )
+        self.assertTrue(self.check(readme=self.readme.replace(row, unknown, 1)))
+        self.assertTrue(any("duplicate" in e for e in
+                            self.check(readme=self.readme.replace(row, row + "\n" + row))))
+
+    def test_historical_prose_not_parsed_as_current_status(self):
+        historical = "\n## Историческая запись\n\n2026-10-10: #705 OPEN / PENDING.\n"
+        self.assertEqual(self.check(readme=self.readme + historical), [])
+
+    def test_missing_current_fields_and_section_fail(self):
+        self.assertTrue(self.check(readme=self.readme.replace("**Deployed:**", "**Deploy:**", 1)))
+        self.assertTrue(self.check(readme=self.readme.replace(SECTION, "## Предыдущие статусы", 1)))
 
 
 if __name__ == "__main__":
