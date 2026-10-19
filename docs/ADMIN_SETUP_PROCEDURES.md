@@ -2,7 +2,7 @@
 
 Это **актуальное подробное приложение** к [каноническому маршруту установки Admin Control Plane](ADMIN_SETUP.md), а не второй независимый источник Published/Deployed/Accepted. Выполняйте шаги 0–27 **только по явному разрешению на операции** в подходящей среде; отдельные команды могут менять host firewall, systemd, Docker, SQLite, Backup и 3x-ui. Читайте prerequisites, ожидаемые postconditions и rollback перед применением. Публикация релиза, слияние PR и разрешение на production deployment — разные факты; статус проверяется в [Roadmap](ROADMAP.md).
 
-**Исторический provenance:** исходные полные инструкции до реструктуризации (включая датированные rc/checkpoint, findings и deprecated paths) сохранены побайтово в [immutable Admin Setup snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md). Датированные проверки — в [аудитах](audits/) и [CHANGELOG](../CHANGELOG.md). Отдельный [инструмент проверки доставки Telegram QA](TELEGRAM_QA_DELIVERY.md) не является этапом production setup.
+**Исторический provenance:** исходные полные инструкции до реструктуризации (включая датированные rc/checkpoint, findings и deprecated paths) сохранены побайтово в [immutable Admin Setup snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md). Датированные проверки — в [аудитах](audits/) и [CHANGELOG](../CHANGELOG.md). Отдельный [исторический сценарий проверки доставки Telegram QA](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот) не является этапом production setup.
 
 ## 0. Что понадобится
 
