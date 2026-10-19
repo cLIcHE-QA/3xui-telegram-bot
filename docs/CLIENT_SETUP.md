@@ -2,7 +2,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [канонический Roadmap](ROADMAP.md) — Published `v5.0.0-rc.16.6`, Deployed operator-reported `v5.0.0-rc.16.6` (не независимая VPS attestation); #760/U8 PARTIAL, G-11 PARTIAL/NO-GO, public launch BLOCKED. Действующие статусы, immutable SHA и gates сверяйте именно с Roadmap; эта строка поддерживается cross-document CI.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус пилота:** [Roadmap](ROADMAP.md) — Published immutable `v5.0.0-rc.17`, Deployed `v5.0.0-rc.17` **operator-reported** (2026-10-20 01:58 EEST, independent VPS read-back PENDING). #760/U8 Back+emoji, #437 и #470 post-deploy targeted acceptance PENDING; G-11 PARTIAL/NO-GO, public launch BLOCKED. Действующие статусы, immutable SHA и gates сверяйте с Roadmap.
 
 ## Client Portal: тарифы и платежные ограничения
 
