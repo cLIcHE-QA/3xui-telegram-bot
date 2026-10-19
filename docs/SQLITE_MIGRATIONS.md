@@ -1,13 +1,17 @@
 # Versioned SQLite migrations
 
-**Release-prep `v5.0.0-rc.16.6` / #760:** schema остаётся **v15**. Отметки и фильтр ручных выдач используют существующие `manual_entitlements` через read-only bounded/batched SQLite запросы, не создают таблиц, заказов или платежей и не меняют миграции. Deployment только отдельно; Published ≠ Deployed ≠ Accepted.
+Этот документ описывает **нормативный контракт** миграций локальной bot database `bot.sqlite3`. Схема Master/direct nodes 3x-ui управляется самим 3x-ui, не данным framework. Каталог `MIGRATIONS` в [db_migrations.py](../db_migrations.py) — единственный source of truth: версия схемы равна последнему элементу каталога, а не версии релиза. Не приписывать `main`-schema уже опубликленному или deployed tag без отдельного подтверждения [Roadmap](ROADMAP.md).
 
-**Published `v5.0.0-rc.16.5` / Issue #752 (не Deployed/Accepted):** замена активного бессрочного ручного тарифа переиспользует schema **v15** без миграций и новых таблиц. `manual_entitlements` сохраняет историческую запись как `superseded` и создаёт новый `active` после 3x-ui read-back атомарно в `BEGIN IMMEDIATE`; при неопределённом результате остаётся существующий `in_flight/unknown` с блокировкой повторов. `commerce_orders`/`commerce_payments` не изменяются; active order/pending entitlement запрещают замену. Это не production acceptance.
+## Текущий контракт schema
 
+- Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
+- `v14 plan_audience_v5_0_0` добавляет независимую RUB/Stars видимость, локальные User Groups и `manual_entitlements`; один live/unknown journal запрещает конкурентную выдачу. Schema v15 сохраняет историю, при `in_flight/unknown` запрещён автоматический replay; read-only batch/filter ручных выдач не создаёт новую миграцию, заказ или платёж.
+- Все миграции **forward-only**; pre-migration backup, `schema_migrations`, postcondition и `PRAGMA quick_check` обязательны по соответствующим правилам ниже. `requires_backup=True` для опасной миграции, без recovery copy её нельзя начинать. Старый код на более новой schema блокируется `DatabaseSchemaTooNewError`.
+- Current Published/Deployed/Accepted всегда проверяйте по [Roadmap](ROADMAP.md), отдельно от schema каталога в `main`. Любое production deployment и DB mutation требуют отдельного разрешения.
 
-Этот документ фиксирует migration contract для локальной bot database `bot.sqlite3`.
+## Историческая эволюция release/schema (не действующий статус)
 
-Механизм относится только к SQLite самого Telegram-бота. Базы 3x-ui на Master/direct nodes мигрируются самим 3x-ui и не управляются этим framework.
+Исходная release-by-release таблица `v4.24`–`rc.16.6`, прежние отметки «ещё не Deployed/Accepted», release-prep `rc.16.1` и кандидат `rc.16.2` сохранены в [immutable snapshot этого документа](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/8d5b9ad1ce1fecf8f5f1808c786f3b2b3cf32f0b/docs/SQLITE_MIGRATIONS.md), а публикации и приёмка — в [CHANGELOG](../CHANGELOG.md) и [Roadmap](ROADMAP.md). Это исторические утверждения, не фактический текущий deployment.
 
 ## Источник истины
 
@@ -23,12 +27,6 @@
 Версии идут строго подряд, начиная с `1`. Пропуски, дубликаты и переименование уже опубликованной migration считаются ошибкой.
 
 Текущая версия схемы определяется последним элементом каталога, а не версией приложения.
-
-**Published `v5.0.0-rc.16` (не Deployed):** текущая bot schema version — **14**; additive migration **v14** `plan_audience_v5_0_0` добавляет в `plans` флаг `rub_price_enabled`, `visibility`, `include_group_ids`, `exclude_group_ids`, журнал `manual_entitlements` и индексы `idx_manual_entitlements_user_status`/`idx_manual_entitlements_one_live`. #705 уже реализован в main (PR #710) и опубликован (PR #712, immutable tag SHA `18920b195baa378e9bf561868c4495067e1f3f45`), но schema v14 ещё **не Deployed/не Accepted**. До отдельно разрешённого deployment необходим совместимый SQLite backup, затем schema journal/`PRAGMA quick_check` и targeted read-only восстановление manual grant без повторной mutation. Legacy валюты/заказы/платежи не переписываются. Downgrade без восстановления совместимой DB запрещён.
-
-**Исторический Published и Deployed `v5.0.0-rc.15` (checkpoint 2026-10-16):** runtime bot SQLite schema **v13**, без новых migrations; этот прежний baseline не является текущим Published/Deployed (см. [Roadmap](ROADMAP.md)).
-
-**Schema v15, актуальная для опубликованного `v5.0.0-rc.16.4` / #724 (схема уже применена с rc.16.2):** текущая bot schema version — **15**; вперед-only schema **v15** `plan_hwid_limit_v5_0_0`: `plans.hwid_limit INTEGER NULL DEFAULT NULL CHECK(0..1000)`. Старые планы остаются `NULL` и не меняют HWID у уже существующих пользователей; новые получают явный лимит через мастер. Не переинтерпретировать `NULL` как `0`. Перед deployment требуется pre-deploy backup, journal/schema read-back, затем targeted read-back 3x-ui `limitIp` и `limitHwid`.
 
 ## Migration journal
 
@@ -49,13 +47,7 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 ## Текущий каталог schema
 
-Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3`, `v4.26.4`, `v4.26.5`, `v4.26.6`, `v4.26.7` и `v4.26.8` текущая bot schema version — **5**.
-
-Для `v4.26.9` текущая bot schema version — **7**. Этот release впервые публикует additive Client Portal migrations v6/v7 поверх исторической v4 baseline.
-
-Для `v5.0.0-rc.1` и `v5.0.0-rc.2` опубликованная bot schema version — **10**.
-
-Для опубликованного `v5.0.0-rc.7` bot schema version — **11** (впервые опубликована в `rc.3`). В опубликованном и operator-reported deployed `v5.0.0-rc.8` и в release-prep candidate `v5.0.0-rc.9` текущая bot schema version — **13**: migrations v12 и v13 уже опубликованы в `rc.8`; ни `rc.9`, ни опубликованный `rc.10`, ни `rc.11` не добавляют миграций; в rc.10 #627/#628 только read-only, в rc.11 #648/#649/#650/#659/#663 только Flow и Admin UI, #433 перенесён на TBD, новая refund policy migration не входит. Полный каталог ветки:
+Текущий versioned каталог указан ниже. Историческое соответствие конкретных release-кандидатов версиям schema сохранено в immutable snapshot выше.
 
 1. `v1 baseline_v4_14_2` — исходная каноническая схема v4.14.2;
 2. `v2 user_display_name_v4_21_0` — additive `display_name TEXT NOT NULL DEFAULT ''` в `user_profiles`;
@@ -91,7 +83,7 @@ Migration v2–v14 имеют `requires_backup=False`: они additive, не у�
 
 Журнал ручных выдач фиксирует идентичность admin actor, план, предыдущий план, временные поля и bounded result_code, но **не** создаёт ни Orders, ни Payments. Успех подтверждается отдельным 3x-ui read-back; `in_flight/unknown` требуют ручного review и блокируют automatic replay после restart. Повтор уже `active` — идемпотентен.
 
-Технический профиль (`duration_days=0`, `traffic_gb=0`, отсутствие двух цен, `rub_price_enabled=0`, `visibility=admin_only`) допускается только для ручной административной выдачи. IP и HWID независимо задаются в диапазоне `0…1000`; для старых тарифов `hwid_limit=NULL` означает сохранить индивидуальный HWID (не равен 0). Ненулевой трафик бессрочных тарифов запрещён до отдельного решения о политике сброса квоты. Миграция не создаёт ни назначений, ни Orders, ни entitlements, ни PSP checkout. Применение schema v14 на production требует отдельного разрешённого release/deployment и pre-migration backup. Rollback после применения v14 через downgrade без восстановления совместимой DB не поддерживается.
+Технический профиль (`duration_days=0`, `traffic_gb=0`, отсутствие двух цен, `rub_price_enabled=0`, `visibility=admin_only`) допускается только для ручной административной выдачи. IP и HWID независимо задаются в диапазоне `0…1000`; для старых тарифов `hwid_limit=NULL` означает сохранить индивидуальный HWID (не равен 0). Ненулевой трафик бессрочных тарифов запрещён до отдельного решения о политике сброса квоты. Миграция не создаёт ни назначений, ни Orders, ни entitlements, ни PSP checkout. Любое применение schema на production требует отдельного разрешённого release/deployment и pre-migration backup. Rollback после применения v14 через downgrade без восстановления совместимой DB не поддерживается.
 
 ## Startup semantics
 
@@ -174,10 +166,6 @@ Framework является forward-only: автоматических down migra
 
 Owner подтверждает исторический `bot.update` unknown двухшаговым UI после read-only GET correlation. Одна SQLite transaction атомарно фиксирует acknowledgment и audit event; duplicate noop. Migration не меняет `job_runs.status`, не вызывает Deploy Agent. Attention Center исключает лишь конкретный подтверждённый run ID; новые сбои по тому же job name продолжают отображаться. Откат на `rc.7` после schema v12 требует совместимого pre-migration DB restore.
 
-## Release-prep `v5.0.0-rc.16.1` (2026-10-17)
+## Исторический release-prep и ручные переходы
 
-Это выпуск исправлений #705 поверх опубликованного `v5.0.0-rc.16`. Версия SQLite остаётся **v14**: новых миграций нет, ручной журнал выдачи и существующие платёжные записи не меняются. Точечный release candidate не означает production deployment или успешную приёмку; до отдельно разрешённого развёртывания нужны штатный backup и `PRAGMA quick_check`/read-back.
-
-## Переход с активной ручной выдачи — кандидат rc.16.2 / #721
-
-Schema v14 не меняется: `manual_entitlements.status` уже разрешает `superseded`. Для активной выдачи отдельная SQLite-транзакция фиксирует `in_flight` и `result_code=switch:<plan_id>:<expiry_ms>` до вызовов 3x-ui; при неизвестном результате операция становится `unknown`, блокируя повтор. Переход в `superseded` вместе с новым `user_profiles.plan_id` / `users.expiry_time` — одна transaction, только после независимого provider read-back. Восстановление read-only сверяет целевые лимиты и Inbounds по прежнему evidence, не повторяет remote mutations; журнал сохраняется. Новая migration не требуется, production read-back и acceptance остаются PENDING до отдельно разрешённого release/deployment.
+Release-prep `rc.16.1` и план `rc.16.2` не вводили новые миграции и не подтверждали production acceptance. Подробный исторический scope и незавершённые тогда проверки доступны в неизменяемой версии документа выше. Для текущих операций применимы нормативные правила `manual_entitlements`, read-back, `unknown/no-replay` и запрещённого downgrade.
