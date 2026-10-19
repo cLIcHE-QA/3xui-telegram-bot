@@ -66,7 +66,7 @@ class DocumentationGovernanceTests(unittest.TestCase):
 """
             (root / path).write_text(good, encoding="utf-8")
             self.assertEqual(sem.audit_ok(root, path), [])
-            broken = good.replace("- **Решение по Issues:** #597: completed\\n", "")
+            broken = good.replace("- **Решение по Issues:** #597: completed", "")
             (root / path).write_text(broken, encoding="utf-8")
             self.assertTrue(any("PASS audit requires explicit closure decision" in e for e in sem.audit_ok(root, path)))
             broken = good.replace("#597: completed", "#597: keep_open")
