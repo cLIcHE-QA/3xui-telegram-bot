@@ -220,6 +220,52 @@ class LivingDocsSemanticTests(unittest.TestCase):
         # Исторические старые версии не относятся к текущей строке.
         self.assertEqual(status_projection_errors(readme + "\\nИстория: Deployed rc.16.4", roadmap), [])
 
+
+    def test_current_setup_and_roadmap_do_not_reintroduce_stale_baselines(self):
+        """Недатированные current-state блоки не должны иметь вторую release-истину."""
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        setup = (ROOT / "docs/ADMIN_SETUP.md").read_text(encoding="utf-8")
+        self.assertEqual(self._current_block_errors(roadmap, setup), [])
+
+    @staticmethod
+    def _current_block_errors(roadmap: str, setup: str) -> list[str]:
+        """Область проверки — только явно названные текущие блоки, не historical audits."""
+        errors = []
+        current = roadmap.split("## Текущий этап:", 1)
+        if len(current) != 2:
+            return ["отсутствует текущий этап Roadmap"]
+        stage = current[1].split("## Реестр acceptance-gates", 1)[0]
+        if "Актуальные Published/Deployed/Accepted" not in stage:
+            errors.append("текущий этап должен ссылаться на канонические статусы")
+        # Дублирование устаревающего snapshot запрещено даже при совпадении сегодня.
+        if re.search(r"(?:Published immutable tag|Deployed `?rc\\.\\d+)", stage):
+            errors.append("в текущем этапе дублируется release/deployed baseline")
+        if "**Текущая незавершённая работа:" in roadmap:
+            errors.append("обнаружена параллельная текущая сводка")
+        intro = setup.split("Этот runbook описывает", 1)[0]
+        guide = next((line for line in setup.splitlines()
+                      if line.startswith("Guide ориентирован на release ")), "")
+        if "Roadmap](ROADMAP.md)" not in intro or "Roadmap](ROADMAP.md)" not in guide:
+            errors.append("Admin Setup должен ссылаться на канонический Roadmap")
+        if re.search(r"(?:Действующий published|Действующий Published|Published `v\\d|published `rc\\.|deployed `rc\\.)", intro):
+            errors.append("Admin Setup дублирует/устарел текущий baseline")
+        if re.search(r"Published `v\\d|\\*\\*Deployed:\\*\\*", guide):
+            errors.append("Admin Setup guide дублирует Published/Deployed")
+        return errors
+
+    def test_current_block_negative_regressions(self):
+        roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        setup = (ROOT / "docs/ADMIN_SETUP.md").read_text(encoding="utf-8")
+        self.assertTrue(self._current_block_errors(roadmap.replace(
+            "Актуальные Published/Deployed/Accepted", "Published immutable tag `v5.0.0-rc.15`", 1), setup))
+        self.assertTrue(self._current_block_errors(roadmap + "\\n**Текущая незавершённая работа:** rc.15", setup))
+        self.assertTrue(self._current_block_errors(roadmap, setup.replace(
+            "Release `v5.0.0-rc.16.6` Published и operator-reported Deployed",
+            "Действующий published `rc.15` / operator-reported deployed `rc.15`")))
+        self.assertTrue(self._current_block_errors(roadmap, setup.replace(
+            "**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md)",
+            "Published `v5.0.0-rc.15`; **Deployed:** rc.15")))
+
     def test_roadmap_active_issues_have_russian_explanations(self):
         roadmap = (ROOT / "docs/ROADMAP.md").read_text(encoding="utf-8")
         register = roadmap.split("## Активный Issue-реестр (machine-checked)", 1)[1].split("## Завершённые этапы", 1)[0]
