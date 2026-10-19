@@ -123,7 +123,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn(
-            f"текущая bot schema version — **{CURRENT_SCHEMA_VERSION}**",
+            f"schema **v{CURRENT_SCHEMA_VERSION}**",
             migration_doc,
         )
 
@@ -324,8 +324,9 @@ class LivingDocsSemanticTests(unittest.TestCase):
             f"Published `{current_tag}`", "Published `v0.0.0`", 1)
         self.assertTrue(current_release_claim_errors(roadmap, old))
         old = dict(docs)
-        old["docs/UI_STYLE.md"] = old["docs/UI_STYLE.md"].replace(
-            "**Исторический fix scope", "**C3/#743 — fix candidate", 1)
+        old["docs/UI_STYLE.md"] = replace_required(
+            old["docs/UI_STYLE.md"], "## Исторические UI и acceptance checkpoints",
+            "**C3/#743 — fix candidate \u2014 нынешний статус**\n\n## Исторические UI и acceptance checkpoints")
         self.assertTrue(current_release_claim_errors(roadmap, old))
         old = dict(docs)
         current_tag = "v" + APP_VERSION

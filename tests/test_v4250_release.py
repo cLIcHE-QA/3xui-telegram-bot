@@ -19,11 +19,14 @@ class V4269ReleaseTests(unittest.TestCase):
         sqlite_doc = (ROOT / "docs" / "SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
 
         self.assertIn("## v4.26.9 — Subscription browser compatibility hotfix", changelog)
+        self.assertIn("immutable snapshot этого документа", sqlite_doc)
         self.assertIn(
-            "Для `v4.24.0`, `v4.24.1`, `v4.25.0`, `v4.25.1`, `v4.25.2`, `v4.25.3`, `v4.25.4`, `v4.25.5`, `v4.25.6`, `v4.25.7`, `v4.25.8`, `v4.26.0`, `v4.26.1`, `v4.26.2`, `v4.26.3`, `v4.26.4`, `v4.26.5`, `v4.26.6`, `v4.26.7` и `v4.26.8` текущая bot schema version — **5**",
+            "https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/"
+            "8d5b9ad1ce1fecf8f5f1808c786f3b2b3cf32f0b/docs/SQLITE_MIGRATIONS.md",
             sqlite_doc,
         )
-        self.assertIn("Для `v4.26.9` текущая bot schema version — **7**.", sqlite_doc)
+        # Исторический schema mapping сохраняется в immutable Git-снимке,
+        # а не в действующем руководстве по миграциям.
 
     def test_release_notes_cover_v4269_scope(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
