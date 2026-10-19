@@ -1,28 +1,10 @@
 # v5 Production Acceptance and Controlled Canary
 
-Этот runbook закрывает production-only findings V5-A-001…V5-A-003 после repository
-launch audit. Он **не** разрешает отмечать сценарий PASS без фактически полученного
-evidence на конкретном release tag/SHA.
+**Действующий нормативный план приёмки**, не свидетельство успешного production rollout. Канонические Published/Deployed/Accepted — только [Roadmap](ROADMAP.md); статус G-11 `PARTIAL/NO-GO`, public rollout `BLOCKED`, #760/U8 `FAIL/PARTIAL` до отдельно разрешённых нового релиза, deployment и targeted re-smoke. Scopes V5-A-001…003 не считаются PASS без собственного фактического evidence на точном deployed tag/SHA.
 
-**Scoped acceptance checkpoint (operator-reported, 2026-10-17 11:58 EEST):** deployed `v5.0.0-rc.16.2`, immutable Published tag SHA `a95b43f2e3322c5d42ee74509727686bf9be5cf2`; S1–S9/A1–A7/B1–B4,B6–B8/C1–C7/D1–D6/E1–E4/F1–F8/G1–G7/H1–H8/I1–I4/Z1–Z2 reported PASS, A2=MATCH. **B5 BLOCKED** — тарифы исчезли из клиентского каталога, root cause неизвестен. Scope #691/#719/#721/#724 CLOSE/completed после адресного smoke, #705 OPEN. Эти результаты не закрывают общие V5-A-001/A-002/A-003 или G-11: **PARTIAL/NO-GO**, public rollout BLOCKED; нет independent VPS/DB/image evidence. План `rc.16.3` (#734/#730/#731) требует отдельного релиза/deploy и собственных targeted проверок.
+## Исторические operator-reported checkpoints (не текущие статусы)
 
-
-**Closure checkpoint #745 — 2026-10-19 00:35 EEST:** при deployed immutable `rc.16.4` выбранный администратором `Stars ↓` остался после restart, post-restart `--status` подтвердил operator-reported running/RestartCount=0/Health=ok/DB=ok/3x-ui=ok. Ранее E1–E10 PASS, отдельное persistence после restart теперь **PASS**; [#745](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/745) CLOSED/completed. [Датированный audit](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md). C3/#743 FAIL и #730 causal correlation PENDING, G-11 PARTIAL/NO-GO; старые checkpoints ниже остаются историей.
-
-## Targeted pilot checks опубликованного rc.16.4 (Issues #740, #742–#745)
-
-**Operator-reported deployment/smoke checkpoint 2026-10-18 21:36 EEST:** `rc.16.4` / `114de5af16adcde5e8d128cc5a55d58addc37e73` Deployed и baseline Health/DB/3x-ui PASS; targeted A1–Z5 **59 PASS / C3 FAIL**. В поиске пользователей вместо статуса `🟢/⚪` выводится `👤` (#743 OPEN). #740, #742, #744 scoped PASS / CLOSED; #745 E1–E10 PASS, но отдельная persistence после restart PENDING, #730 G1–G7 PASS, но M1–M8 BLOCKED незавершённым заказом, #705/#731 root cause/end-to-end PENDING. [Новый audit](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md). Проверочный план ниже — исторически подготовленный до deployment; операторский PASS не доказывает independent VPS read-back или полный G-11.
-
-
-**Не выполнены / PENDING.** Реализация #740/#742–#745 уже MERGED в `main` через PR #741/#746; immutable `rc.16.4` Published через PR #749 и [штатный GitHub Release](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.4), SHA `114de5af16adcde5e8d128cc5a55d58addc37e73`. Deployment и targeted acceptance **PENDING**. Только после отдельно разрешённого production deployment соберите точный deployed tag/SHA, operator-reported status, DB/3x-ui health и read-only evidence на allowlisted pilot identity.
-
-1. **#742:** в карточках и списках включённых/отключённых Users, Plans, Inbounds и Administrators 🟢/⚪; при API unknown 🟡; offline 🔴 и предупреждающая кнопка ⛔ не подменяются статусом disabled.
-2. **#743:** страницы списка и поиска пользователей отображают действительный `enable` 3x-ui, делают не более одного read-only `clients/list` на экран, не переходят к N запросам, отсутствие/ошибка/дубликаты — 🟡; проверить кнопку Back и неизменные callback IDs.
-3. **#744:** оба входа `Инфраструктура → Ноды → Master/direct Node → 3x-ui/Xray` возвращаются в ту же карточку, включая пагинацию/ошибку; вход из `Система` остаётся внутри версионного раздела; без запуска обновления/backup/restart.
-4. **#745:** admin RUB/Stars ↑/↓, сохранённый режим при повторном входе/перезапуске, отсутствие изменения тарифных цен или DB schema; только Administrator/Owner сохраняют. **Client Portal**: после фильтрации разрешённых планов Stars ↓ до лимита отображения; проверить равные цены/visibility, не подтверждать invoice, сохранённые backend checks.
-5. **#740:** отдельный read-only commerce blocker/unknown no-replay; не переписывать orders/entitlements, provider mutations — только отдельно согласованный тест. Финальный health/SQLite/provider read-back не объявлять PASS без evidence.
-
-Фиксировать PASS отдельно по собственному Issue/тегу после targeted Telegram read-back. Эти проверки **не заменяют** V5-A-001…A-003, G-11 остаётся PARTIAL/NO-GO, public rollout BLOCKED.
+Первоначальные записи `rc.16.2` и `rc.16.4` о B5/C3 findings, scoped PASS, прошлом #705 OPEN и тогдашних `Published/Deployed/PENDING` сохранены в [immutable snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/b1f86cdf7c420b4e133c85578c8d42a006043e15/docs/V5_PRODUCTION_ACCEPTANCE.md) и [датированных аудитах](audits/). Это evidence на момент соответствующего release и не обновляет текущий Issue/release state. Targeted UI сценарии #740/#742–#745 ниже могут оставаться как шаблоны проверки, но не заменяют V5-A gates.
 
 ## 0. Зафиксировать baseline
 
