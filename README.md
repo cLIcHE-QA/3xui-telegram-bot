@@ -1,36 +1,20 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.16.6
 
-**Текущий controlled canary:** `v5.0.0-rc.16.6` — GitHub prerelease Published; Deployed operator-reported, U8 acceptance PARTIAL. Scope: #760/PR #761 (♾/🟡♾ и read-only фильтр) и #762/PR #763 (closure governance), SQLite v15 без новых migrations. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
-
-**Текущая опубликованная версия:** `v5.0.0-rc.16.6` (immutable GitHub prerelease, tag SHA `1ca049047de2b2ed1761a718604d3d975c54463b`; не означает deployment или acceptance).
+**Текущий controlled canary:** `v5.0.0-rc.16.6` — ограниченный pilot. Реализация #705 завершена и принята по собственному scope, но общий v5 acceptance остаётся `PARTIAL/NO-GO`. #760/U8 `OPEN/PARTIAL`; public rollout `BLOCKED`. Каноническое состояние и ограничения: [Roadmap](docs/ROADMAP.md).
 
 **Published:** immutable [`v5.0.0-rc.16.6`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.16.6), SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, 2026-10-19T10:01:30Z, [PR #764](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/764) MERGED, push [Python checks](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39234042887) и [Publish release](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39234380296) PASS. **Deployed:** operator-reported `v5.0.0-rc.16.6`, SHA `1ca049047de2b2ed1761a718604d3d975c54463b`, health OK; independent VPS read-back PENDING. **Accepted:** #760 U8 Back PARTIAL (operator-reported FAIL), остальные U1–U7/U9–U12/Z1–Z2 scoped operator-reported PASS; исправление #766 только в main, новый release/deploy и адресный re-smoke PENDING; full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
-**Published `v5.0.0-rc.16.4` (GitHub read-back 2026-10-18):** [PR #749](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/749) MERGED, immutable tag SHA `114de5af16adcde5e8d128cc5a55d58addc37e73` и GitHub prerelease Published через штатный workflow. В релиз вошли [PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) и [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) для #730/#740/#742–#745; `rc.16.4` **Deployed operator-reported** и имеет scoped acceptance PARTIAL (C3 FAIL; M1–M8 PENDING), full v5 NOT PASS. Runtime SQLite schema остаётся v15. Публикация не запускает VPS deployment, платёжные mutations, изменение allowlist или public rollout. G-11 PARTIAL/NO-GO, targeted smoke PENDING.
-
-**Опубликованный rc.16:** [#691](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/691) / [PR #692](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/692) и [#705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) / [PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) входят в Published rc.16 после merge PR #712 и успешного publish workflow. Deployment и targeted UI/schema/manual entitlement smoke — **PENDING**. Общий OpenAPI contract закреплён на `v3.10.2` ([PR #693](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/693)); тот же immutable OpenAPI blob размещён по прежнему vendored пути `v3.10.0` и не означает обновления production. Production mutations, расширение pilot allowlist и stable rollout не разрешены.
-
-**Опубликованный `v5.0.0-rc.16.1`:** исправления тарифов [PR #714](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/714) включены в новый immutable patch-RC; [release-prep PR #716](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/716), публикация GitHub Actions PASS. Production deployment operator-reported PASS; targeted acceptance #705 — PENDING. Источник версии приложения: `version.py`. История изменений: [CHANGELOG.md](CHANGELOG.md). Граница v4/v5 и оставшиеся freeze-задачи: [Product Roadmap](docs/ROADMAP.md).
-
-**Опубликованный `v5.0.0-rc.16.2`:** в `main` уже merged [#725](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/725) (IP/HWID, SQLite v15), [#722](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/722) (безопасный active→finite), [#720](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/720) (пагинация платежей) и [#723](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/723) (Master Flow UI). `Published` — `v5.0.0-rc.16.2`, operator-reported `Deployed` — `v5.0.0-rc.16.2`; scoped #691/#719/#721/#724 закрыты после targeted PASS, но #705/B5 BLOCKED, G-11 NO-GO. Перед schema v15 на production обязателен совместимый backup; live changes в этот PR не входят.
-
-**Опубликованный и operator-reported Deployed `v5.0.0-rc.16.3`:** PR #729/#733/#732 MERGED; в релиз входят исправление подписи HWID (#734), управляемые лимиты бесплатного бессрочного тарифа (#730) и объяснение блокировки покупки (#731). Сообщение оператора от 2026-10-17 13:52 EEST подтверждает только deployment и базовый health; #705/B5 остаётся BLOCKED до диагностики, #730/#731/#734 и G-11 не получили полного PASS. Независимый VPS read-back PENDING.
-
-**Acceptance checkpoint 2026-10-18 17:07 EEST:** operator-reported deployed `v5.0.0-rc.16.3`, 23/23 A1–D4 targeted UI PASS, включая HWID A1–A5, мастер бессрочного тарифа B1–B7, B5 повтор C2 PASS и финальный health D4. **#734 CLOSED/completed** по scoped UI evidence. #705/#731 OPEN: B5 больше не воспроизводится в этом pilot, однако root cause/backend не проверены. #730 OPEN: bounded indefinite ручная выдача всё ещё блокируется прежним UI IP=0; **#740 OPEN**, target `v5.0.0-rc.16.4` PLANNED: pending commerce удерживает безопасный fence, понятное сообщение в [PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) только подготовлено. M1–M8 PENDING, G-11 PARTIAL/NO-GO; independent VPS attestation и public rollout PENDING/BLOCKED. [Audit](docs/audits/2026-10-18-rc16-3-operator-smoke-checkpoint.md).
-
-**Исходный план `v5.0.0-rc.16.4` (2026-10-18):** #740 — безопасное объяснение блокировки ручной выдачи, #742 — единые статусы, #743 — read-only статус пользователей, #744 — контекстная навигация Node/Master, #745 — сортировки RUB/Stars и сохранение выбора. Реализация слита в `main` через PR #741/#746; release-prep готовится отдельно. Published/Deployed до публикации сохраняются `rc.16.3` (Deployed operator-reported); G-11 PARTIAL/NO-GO, public rollout BLOCKED. Каноническое состояние: [Roadmap](docs/ROADMAP.md).
-
-**Исторический implementation checkpoint 2026-10-18, до публикации rc.16.4:** задачи #740/#742/#743/#744/#745 для целевого `v5.0.0-rc.16.4` **реализованы в `main`**: [PR #741](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/741) (manual grant; MERGED `33e6ff9d`), [PR #746](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/746) (UI; MERGED `21ae34bc`), [PR #747](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/747) (docs; MERGED `1db6db4c`). Выпуск `rc.16.4` **ещё не Published, не Deployed и не Accepted**; текущий immutable Published и operator-reported Deployed — `rc.16.3`. Issue closure, production rollout и G-11 PASS не подтверждены. [Roadmap](docs/ROADMAP.md).
-
-> README — актуальная карта проекта и точка входа в runbook'и. Исторические upgrade-инструкции и release-by-release описание не дублируются здесь: для них используются `CHANGELOG.md`, GitHub Releases и специализированные документы в `docs/`.
+> README описывает актуальное состояние и постоянные интерфейсы проекта, а не хронологию каждого релиза. Ранее опубликованные версии, исторические FAIL/PENDING, даты и evidence сохранены в [CHANGELOG.md](CHANGELOG.md), [GitHub Releases](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases), [датированных аудитах](docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md) и [историческом индексе](docs/roadmap/HISTORY_INDEX.md). Исторические статусы не описывают текущий runtime.
 
 ## Roadmap: текущие статусы и архив
 
 [Краткий Roadmap](docs/ROADMAP.md) — единственный актуальный источник product и acceptance statuses; [тематический архив старого Roadmap](docs/roadmap/HISTORY_INDEX.md) сохраняет исторические 5803 строки, включая FAIL/STOP, SHA и evidence. Новые проверки записываются в датированные `docs/audits/**`, а не в верхнюю сводку.
 
-## Тарифная модель #705 — развёрнута в rc.16.1, приёмка ожидается
+## Тарифная модель #705 — реализована и принята в собственном scope
 
-Issue #705 реализован в `main` через PR #710: независимые RUB и Stars/XTR, правила видимости локальных User Groups, ручная бессрочная выдача с durable read-back и SQLite schema v14. Scope включён в Published rc.16 с SQLite schema v14; operator-reported Deployed `rc.16.2` содержит schema v15; S6/S7 и scoped smoke (кроме B5) — PASS по отчёту оператора, а #705/B5 остаётся BLOCKED. RUB-PSP — отдельный #336, вне scope #705.
+[Issue #705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) **CLOSED/completed** по operator-reported scoped acceptance от 2026-10-19 12:09 EEST: сверка Orders/Payments/Entitlements и собственные критерии подтверждены оператором. [Аудит и provenance](docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md), [решение о закрытии](docs/roadmap/issue-closure-decisions.json). Независимый VPS/data-plane read-back отсутствует; завершение #705 не означает общего v5 acceptance, разрешения public rollout или закрытия #760/U8.
+
+[PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) реализовал независимые RUB и Stars/XTR, правила видимости локальных User Groups и ручную бессрочную выдачу с durable read-back. Первоначальная SQLite schema v14 — исторический этап; **текущая schema v15** ([контракт миграций](docs/SQLITE_MIGRATIONS.md)). RUB-PSP относится к отдельному открытому [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336); в Telegram цифровые покупки используют только Stars/XTR.
 
 ## План внешних платежей
 
@@ -126,7 +110,7 @@ Encrypted off-site replication и recovery:
 
 Off-site transport выключен по умолчанию. Full Backup содержит secrets; Telegram и GitHub не являются backup storage. Admin UI может создать backup или подготовить DR export, но secret-bearing файлы не прикладываются к Telegram: их получают только через защищённый host-side/off-site recovery path.
 
-## Архитектура v4.x
+## Архитектура текущего runtime (v4 foundation / v5 Client Portal)
 
 После cleanup-декомпозиции entrypoint и runtime разделены:
 
@@ -248,7 +232,7 @@ Streisand не передаёт совместимый `X-HWID` в raw subscript
 ## Subscription Compatibility Proxy
 
 
-V4 сохраняет встроенный compatibility proxy для подписок, управляемых ботом.
+Проект сохраняет встроенный compatibility proxy для подписок, управляемых ботом.
 
 Он:
 
