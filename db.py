@@ -346,6 +346,41 @@ class Database:
             rows = await cur.fetchall()
             return [UserRecord(**dict(r)) for r in rows]
 
+    async def list_live_manual_users(self) -> list[UserRecord]:
+        """Фильтрация до пагинации: только подтверждённые и требующие сверки выдачи."""
+        async with aiosqlite.connect(self.path) as conn:
+            conn.row_factory = aiosqlite.Row
+            rows = await (await conn.execute(
+                """SELECT u.* FROM users AS u
+                   WHERE EXISTS (
+                       SELECT 1 FROM manual_entitlements AS m
+                       WHERE m.telegram_id = u.telegram_id
+                         AND m.status IN ('active', 'in_flight', 'unknown')
+                   )
+                   ORDER BY u.created_at DESC"""
+            )).fetchall()
+            return [UserRecord(**dict(row)) for row in rows]
+
+    async def manual_statuses_for_users(self, telegram_ids: list[int]) -> dict[int, str]:
+        """Один ограниченный SQLite read для пользователей видимой страницы/поиска."""
+        ids = list(dict.fromkeys(int(value) for value in telegram_ids))
+        if not ids:
+            return {}
+        result: dict[int, str] = {}
+        async with aiosqlite.connect(self.path) as conn:
+            for start in range(0, len(ids), 400):
+                chunk = ids[start:start + 400]
+                marks = ",".join("?" for _ in chunk)
+                rows = await (await conn.execute(
+                    f"""SELECT telegram_id, status FROM manual_entitlements
+                        WHERE telegram_id IN ({marks})
+                          AND status IN ('active', 'in_flight', 'unknown')
+                        ORDER BY id DESC""", chunk
+                )).fetchall()
+                for tg_id, status in rows:
+                    result.setdefault(int(tg_id), str(status))
+        return result
+
     async def search_users(self, query: str, *, limit: int = 20) -> list[UserRecord]:
         text = str(query or "").strip()
         if not text:
