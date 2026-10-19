@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "description": "Явные решения по scoped acceptance; CI запрещает accepted-but-open и completed-but-active. Исторические записи не означают независимую production аттестацию.",
+  "decisions": [
+    {
+      "issue": 705,
+      "decision": "completed",
+      "accepted": "operator-reported scoped PASS",
+      "evidence": "docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md",
+      "date": "2026-10-19",
+      "comment": "Issue closed/completed after own criteria; G-11 remains PARTIAL/NO-GO."
+    },
+    {
+      "issue": 730,
+      "decision": "completed",
+      "accepted": "operator-reported scoped PASS",
+      "evidence": "docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md",
+      "date": "2026-10-19",
+      "comment": "Issue closed/completed after own criteria; G-11 remains PARTIAL/NO-GO."
+    },
+    {
+      "issue": 731,
+      "decision": "completed",
+      "accepted": "operator-reported scoped PASS",
+      "evidence": "docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md",
+      "date": "2026-10-19",
+      "comment": "Issue closed/completed after own criteria; G-11 remains PARTIAL/NO-GO."
+    },
+    {
+      "issue": 743,
+      "decision": "completed",
+      "accepted": "operator-reported scoped PASS",
+      "evidence": "docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md",
+      "date": "2026-10-19",
+      "comment": "Issue closed/completed after own criteria; G-11 remains PARTIAL/NO-GO."
+    },
+    {
+      "issue": 752,
+      "decision": "completed",
+      "accepted": "operator-reported scoped PASS",
+      "evidence": "docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md",
+      "date": "2026-10-19",
+      "comment": "Issue closed/completed after own criteria; G-11 remains PARTIAL/NO-GO."
+    }
+  ]
+}
