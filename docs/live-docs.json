@@ -16,7 +16,8 @@
     "docs/3XUI_OPENAPI_CONTRACT.md",
     "docs/UI_STYLE.md",
     "docs/V5_PRODUCTION_ACCEPTANCE.md",
-    "docs/CLIENT_SETUP.md"
+    "docs/CLIENT_SETUP.md",
+    "docs/LEGAL_PORTAL_PLACEMENT.md"
   ],
   "rules": [
     {
@@ -213,6 +214,16 @@
         "docs/UI_STYLE.md"
       ],
       "waiver": "Living Docs: telegram-ui-language — изменений не требуется"
+    },
+    {
+      "id": "legal-publication",
+      "mode": "require_all",
+      "triggers": [
+        "docs/legal-publication.json"
+      ],
+      "documents": [
+        "docs/LEGAL_PORTAL_PLACEMENT.md"
+      ]
     }
   ],
   "repository_state": {

@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "terms": {
+    "publication_state": "unpublished",
+    "revision": null,
+    "effective_at": null,
+    "content_sha256": null,
+    "verified_at": null,
+    "url": null
+  }
+}

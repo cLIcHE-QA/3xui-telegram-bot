@@ -6,6 +6,10 @@ Machine-readable contract: `docs/live-docs.json`.
 
 **CI governance #762:** `docs/roadmap/issue-closure-decisions.json` хранит датированное scoped решение `completed/keep_open`, `scripts/check-roadmap-github.py` fail-closed сравнивает его с GitHub и активным реестром Roadmap. Сами checks не закрывают Issues и не подтверждают VPS acceptance; новый closure checkpoint требует отдельно разрешённого merge. 
 
+## Единый publication record юридических Terms
+
+`docs/legal-publication.json` — машиночитаемая версия факта публикации для #707 (клиентские страницы) и #437 (Support read-only справка). Только после подтверждённой опубликованной редакции § 9 в нём допустимы реальные `revision/effective_at/content_sha256/verified_at/url`. Пока #707 не опубликован, `publication_state=unpublished`; этот статус нельзя подменять утверждением юридического черновика или release. `docs/LEGAL_PORTAL_PLACEMENT.md` — канонические правила источника, зависимости и внешний verification gate. Изменение JSON требует синхронизации этой схемы по `docs/live-docs.json`; релиз/production acceptance остаются отдельными.
+
 ## Living и historical документы
 
 Living documents описывают текущее состояние проекта и должны оставаться актуальными:
