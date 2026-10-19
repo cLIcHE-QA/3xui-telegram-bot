@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SECTION = "## Текущие Issue-статусы (сверяются с Roadmap и GitHub)"
 LINK = re.compile(
     r"^\| \[#(\d+)\]\(https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/\1\)"
-    r" \| \`([a-z_]+)\` \| .+ \|$"
+    r" \| `([a-z_]+)` \| .+ \|$"
 )
 ACTIVE = re.compile(
     r"^\| \[#(\d+)\]\(https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/\1\) \|"
@@ -95,8 +95,8 @@ class ReadmeCurrentStateTests(unittest.TestCase):
         for number, status in rows:
             opposite = "completed" if status == "open" else "open"
             modified = self.readme.replace(
-                f"/issues/{number}) | \`{status}\` |",
-                f"/issues/{number}) | \`{opposite}\` |", 1,
+                f"/issues/{number}) | `{status}` |",
+                f"/issues/{number}) | `{opposite}` |", 1,
             )
             with self.subTest(issue=number):
                 self.assertTrue(any(f"Issue #{number}" in e for e in self.check(readme=modified)))
@@ -110,8 +110,8 @@ class ReadmeCurrentStateTests(unittest.TestCase):
 
     def test_unknown_and_duplicate_rows_fail(self):
         row = next(line for line in self.readme.splitlines() if LINK.fullmatch(line))
-        unknown = row.replace("| \`completed\` |", "| \`unknown\` |").replace(
-            "| \`open\` |", "| \`unknown\` |"
+        unknown = row.replace("| `completed` |", "| `unknown` |").replace(
+            "| `open` |", "| `unknown` |"
         )
         self.assertTrue(self.check(readme=self.readme.replace(row, unknown, 1)))
         self.assertTrue(any("duplicate" in e for e in
