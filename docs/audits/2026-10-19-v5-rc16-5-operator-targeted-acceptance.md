@@ -39,7 +39,7 @@
 - **R7 (#705):** сверка Orders/Payments/Entitlements/Manual Entitlements отмечена выполненной, но результат `MATCH/MISMATCH` и безопасное summary отсутствуют.
 - **R8 (#705):** Issue closure audit отмечен выполненным, но исход принятия/остатки не представлены; нет оснований закрыть #705.
 - **R9:** read-only final status/health отмечен выполненным; датированный GitHub checkpoint обновлён в текущем docs PR; **Roadmap sync в main PENDING** до merge/read-back.
-- **Фактический результат:** `PARTIAL / EVIDENCE INCOMPLETE` для R1–R9. `[x]` означает заявленное выполнение оператором, а не утверждённый `PASS` по causal/root-cause criteria. Предшествующие P/C3/S/Z по rc.16.5 не требуют повторного smoke.
+- **Итог R1–R9:** `PARTIAL / EVIDENCE INCOMPLETE` для R1–R9. `[x]` означает заявленное выполнение оператором, а не утверждённый `PASS` по causal/root-cause criteria. Предшествующие P/C3/S/Z по rc.16.5 не требуют повторного smoke.
 
 ## Остаточные gates и следующий шаг
 
