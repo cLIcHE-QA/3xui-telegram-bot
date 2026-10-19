@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SECTION = "## Текущие Issue-статусы (сверяются с Roadmap и GitHub)"
 LINK = re.compile(
     r"^\| \[#(\d+)\]\(https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/\1\)"
-    r" \| `([a-z_]+)` \| .+ \|$"
+    r" \| `([a-z_]+)` \| .+ \|$", re.M
 )
 ACTIVE = re.compile(
     r"^\| \[#(\d+)\]\(https://github\.com/cLIcHE-QA/3xui-telegram-bot/issues/\1\) \|"
