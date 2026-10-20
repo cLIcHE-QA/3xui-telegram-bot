@@ -44,11 +44,11 @@
     },
     {
       "issue": 760,
-      "decision": "keep_open",
-      "accepted": "operator-reported U1–U7/U9–U12/Z1–Z2 PASS; U8 Back FAIL",
-      "evidence": "docs/audits/2026-10-19-v5-rc16-6-operator-ui-acceptance.md",
-      "date": "2026-10-19",
-      "comment": "Deployed rc.16.6, initial 14/14 ticks, then navigation regression; requires new release/deploy and targeted Back acceptance, no repeat of previous PASS."
+      "decision": "completed",
+      "accepted": "operator-reported U1-U12/Z1-Z2 scoped PASS + rc.17 U8 targeted Back/emoji; offline edge-case regression PASS",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/804",
+      "date": "2026-10-20",
+      "comment": "#760 CLOSED/completed after published/deployed rc.17, PR #766 and test/title PASS; U8-4 conditional status covered by offline fixtures, no independent live row attested. G-11 PARTIAL/NO-GO."
     },
     {
       "issue": 767,
@@ -145,6 +145,14 @@
       "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/804",
       "date": "2026-10-20",
       "comment": "PR #804 squash MERGED 03ddd1d32f50a19d43b5f9c2f9e8c11aae95ed51; required test/title PASS; main read-back confirms canonical checklist and regression test; #805 CLOSED/completed; no release/deploy."
+    },
+    {
+      "issue": 470,
+      "decision": "completed",
+      "date": "2026-10-20",
+      "accepted": "operator-reported rc.17 Stars Orders scoped UI/RBAC PASS + offline pending/payment/pagination regression PASS",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/804",
+      "comment": "#470 CLOSED/completed after published/deployed rc.17, PR #801 and test/title PASS; S3/S6 conditional covered by offline fixture, not live sample. G-11 PARTIAL/NO-GO."
     }
   ]
 }
