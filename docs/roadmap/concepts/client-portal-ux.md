@@ -273,7 +273,7 @@ Finding #320 не блокирует targeted acceptance `v5.0.0-rc.3`; закр
 
 Безопасный contract:
 
-- customer callback несёт только stable `device_id`; Telegram ID/email другого пользователя не принимаются из customer-controlled payload;
+- callback карточки несёт только stable `device_id`; confirm/cancel callback несёт только opaque одноразовый token без email/customer ID/device ID; token привязан к Telegram user, текущему email и сроку жизни до 90 секунд; после process restart все неподтверждённые tokens недействительны;
 - backend заново разрешает текущий authenticated Telegram ID → customer profile/email и перед DELETE повторно проверяет, что `device_id` действительно входит в HWID inventory этого customer;
 - mutation проходит только через provider-neutral service method/capability (`delete_device` / `supports_device_delete`), без прямого `XUIClient` import в `client_access.py`;
 - удаляется ровно одно устройство за операцию;
@@ -281,9 +281,9 @@ Finding #320 не блокирует targeted acceptance `v5.0.0-rc.3`; закр
 - используется существующая one-shot mutation semantics: timeout/network/5xx → outcome `unknown`, DELETE автоматически не повторяется;
 - после `unknown` UI предлагает только обновить device list/read-back; blind retry не выполняется;
 - deterministic rejection показывается отдельно от `unknown`;
-- success возвращает в обновлённый device list;
+- success возвращает в обновлённый device list только после полного недвусмысленного read-back всех upstream ID и доказательства отсутствия удалённого ID; частичный, некорректный или противоречивый ответ остаётся `unknown`;
 - в обычный audit/support output не пишутся полный HWID/fingerprint, subscription URL или другие secret-like identifiers;
-- customer delete имеет небольшой bounded rate limit/cooldown, чтобы self-service не превращался в churn API;
+- customer delete имеет небольшой bounded rate limit/cooldown (120 секунд после DELETE попытки) и лимит pending confirmations; один бот-процесс сериализует подтверждения, multi-replica deployment требует отдельного общего coordination/storage contract;
 - `Удалить все устройства` в базовый customer flow не добавляется.
 
 HWID limit трактуется как ограничение одновременно зарегистрированных устройств: удалив собственный device, пользователь освобождает слот и может зарегистрировать новый, если это допускает текущий provider limit. Это не считается обходом concurrent-device limit. Если продукту понадобится ограничивать частую ротацию устройств между людьми, это отдельная anti-churn policy/cooldown, а не изменение смысла HWID limit.
