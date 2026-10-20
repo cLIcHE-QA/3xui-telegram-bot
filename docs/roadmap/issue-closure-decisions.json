@@ -185,6 +185,14 @@
       "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
       "date": "2026-10-20",
       "comment": "keep_open: X2 contradiction и X1/X3 approval/read-back не подтверждены деталями; никаких новых DELETE"
+    },
+    {
+      "issue": 820,
+      "decision": "keep_open",
+      "date": "2026-10-20",
+      "accepted": "GitHub main read-back confirms PR #821 implementation merged, required test/title PASS; next runtime release/deployment and admin pagination scoped acceptance PENDING",
+      "evidence": "docs/audits/2026-10-20-hwid-ui-819-821-postmerge-checkpoint.md",
+      "comment": "keep_open: в main реализованы admin HWID 8/page, client 5/page, pagination/back/emoji parity после squash merge aff7bde8ec2521fa11f14362c00502737e2b04e5; отдельный новый release/deploy и targeted production smoke ещё не выполнены. A4/A5 rc.18.1 FAIL не заменены offline CI, public rollout BLOCKED."
     }
   ]
 }
