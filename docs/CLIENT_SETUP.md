@@ -2,7 +2,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.17`, Deployed operator-reported `v5.0.0-rc.17` (2026-10-20 01:58 EEST, independent VPS read-back PENDING). Targeted U8/S/R 20/20 operator-reported `[x]`; scoped #760/#470 CLOSED/completed по operator-reported UI плюс offline regression условных U8-4/S3/S6; отсутствие соответствующих live-записей не представляется production PASS; #707 § 9 unpublished. G-11 PARTIAL/NO-GO, public launch BLOCKED. Канонические current-state поля — в Roadmap.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18`, Deployed operator-reported `v5.0.0-rc.17` (2026-10-20 01:58 EEST, independent VPS read-back PENDING). Targeted U8/S/R 20/20 operator-reported `[x]`; scoped #760/#470 CLOSED/completed по operator-reported UI плюс offline regression условных U8-4/S3/S6; отсутствие соответствующих live-записей не представляется production PASS; #707 § 9 unpublished. G-11 PARTIAL/NO-GO, public launch BLOCKED. Канонические current-state поля — в Roadmap.
 
 ## Client Portal: тарифы и платежные ограничения
 
