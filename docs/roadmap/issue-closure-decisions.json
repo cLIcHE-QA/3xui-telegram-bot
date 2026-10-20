@@ -157,42 +157,42 @@
     {
       "issue": 814,
       "decision": "keep_open",
-      "accepted": "operator-reported A1/A2/A3/A6 scoped PASS; A5 FAIL not attributable",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
+      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
       "date": "2026-10-20",
-      "comment": "keep_open: составной A5 FAIL не разграничен, privacy/unknown contract нельзя объявить принятым"
+      "comment": "keep_open: OS/emoji/Back reported PASS, A5 live unknown/privacy applicability not evidenced; GitHub docs PR unmerged."
     },
     {
       "issue": 816,
       "decision": "keep_open",
-      "accepted": "operator-reported A4 FAIL and A5 FAIL",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
+      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
       "date": "2026-10-20",
-      "comment": "keep_open: Happ/Incy UI не принят, факт фактической утечки не установлен, требуется безопасное описание симптомов"
+      "comment": "keep_open: Happ/Incy/Shadowrocket and unknown reported PASS, no per-client live fixture applicability; avoid inventing live case evidence."
     },
     {
       "issue": 471,
       "decision": "keep_open",
-      "accepted": "operator-reported prior D1-D8 PASS, B1 PASS without applicability detail",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
+      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
       "date": "2026-10-20",
-      "comment": "keep_open: D3/D6/D8 provenance не приложен, A5 privacy FAIL может затрагивать read-only карточку"
+      "comment": "keep_open: read-only ownership/Back reported PASS; missing earlier D3/D6/D8 actual inventory/provenance; no independent VPS read-back."
     },
     {
       "issue": 472,
       "decision": "keep_open",
-      "accepted": "operator-reported prior S1-S4 PASS, B2/B3 PASS without provenance",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
+      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
       "date": "2026-10-20",
-      "comment": "keep_open: X2 contradiction и X1/X3 approval/read-back не подтверждены деталями; никаких новых DELETE"
+      "comment": "keep_open: read-only no-mutation reported PASS, not proof of one-shot DELETE; X2 contradiction and X1/X3 approval/postcondition still PENDING."
     },
     {
       "issue": 820,
       "decision": "keep_open",
       "date": "2026-10-20",
-      "accepted": "GitHub main read-back confirms PR #821 implementation merged, required test/title PASS; next runtime release/deployment and admin pagination scoped acceptance PENDING",
-      "evidence": "docs/audits/2026-10-20-hwid-ui-819-821-postmerge-checkpoint.md",
-      "comment": "keep_open: в main реализованы admin HWID 8/page, client 5/page, pagination/back/emoji parity после squash merge aff7bde8ec2521fa11f14362c00502737e2b04e5; отдельный новый release/deploy и targeted production smoke ещё не выполнены. A4/A5 rc.18.1 FAIL не заменены offline CI, public rollout BLOCKED."
+      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
+      "comment": "keep_open: admin 8/client 5/page and Back reported PASS, live 9+/legacy/provider failure case applicability not separately evidenced."
     }
   ]
 }
