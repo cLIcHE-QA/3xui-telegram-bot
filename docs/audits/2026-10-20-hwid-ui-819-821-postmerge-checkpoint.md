@@ -1,7 +1,7 @@
 # HWID UI — последовательные merges #819 и #821; post-merge checkpoint
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-20 21:13:26 UTC+03:00 (GitHub PR #821 `merged_at=2026-10-20T18:13:26Z`; #819 — `2026-10-20T18:07:11Z`).
+- **Дата/время и часовой пояс:** 2026-10-20 21:13 UTC+03:00 (GitHub PR #821 `merged_at=2026-10-20T18:13:26Z`; #819 — `2026-10-20T18:07:11Z`).
 - **Окружение:** GitHub PR/CI и read-only repository state; не VPS и не Telegram production.
 - **Цель:** проверить последовательный squash merge #819 → #821; сохранить отрицательную приёмку, отдельные состояния release/deployment и незавершённый scope HWID.
 - **Версия и immutable tag/SHA:** работающий по отчёту оператора `v5.0.0-rc.18.1`, опубликованный immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`. Следующие UI-исправления только в `main` `aff7bde8ec2521fa11f14362c00502737e2b04e5`, ещё **без отдельного release tag или deployment**.
