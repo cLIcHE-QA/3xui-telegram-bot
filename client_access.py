@@ -311,6 +311,9 @@ async def traffic_cb(call: CallbackQuery):
     await call.answer()
 
 
+from device_presentation import device_emoji, display_os
+
+
 DEVICE_PAGE_SIZE = 5
 
 
@@ -339,16 +342,16 @@ def _device_list_view(
     else:
         lines.append(f"Страница {page + 1}/{count}")
         for index, device in enumerate(visible, start=start + 1):
-            platform = device.os_name or "ОС неизвестна"
+            platform = display_os(device.os_name, device.os_version)
             seen = format_timestamp(
                 device.last_seen, milliseconds=True, empty="—",
             ).split(" ", 1)[0]
-            lines.append(f"{index}. {device.title} · {platform} · {seen}")
+            lines.append(f"{index}. {device_emoji(device.os_name, device.title)} {device.title} · {platform} · {seen}")
             if device.device_id is None:
                 lines.append("   Карточка недоступна: ID UNKNOWN")
             else:
                 rows.append([InlineKeyboardButton(
-                    text=f"📱 {device.title[:32]}",
+                    text=f"{device_emoji(device.os_name, device.title)} {device.title[:32]}",
                     callback_data=f"client:device:{device.device_id}:{page}",
                 )])
     if inventory.truncated:
@@ -441,8 +444,8 @@ async def _render_device_detail(call: CallbackQuery, device_id: int, page: int) 
                     device.last_seen, milliseconds=True, empty="—",
                 )
                 text = (
-                    f"📱 {device.title}\n\n"
-                    f"ОС: {device.os_name or 'неизвестна'}\n"
+                    f"{device_emoji(device.os_name, device.title)} {device.title}\n\n"
+                    f"ОС: {display_os(device.os_name, device.os_version)}\n"
                     f"Последняя активность: {seen}"
                 )
                 capability = getattr(service, "supports_device_delete", None)
