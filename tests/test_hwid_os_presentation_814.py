@@ -70,7 +70,12 @@ class HwidPresentation814Tests(unittest.IsolatedAsyncioTestCase):
             ("INCY/2.6.4/macos CFNetwork/3860.700.1 Darwin/25.6.0", "Incy"),
             ("Happ/6.1.0/ios/2610091516618", "Happ"),
             ("UnknownVPN/2.3", "UnknownVPN"),
-            ("Happ/6.1.0/ios/2610091516618 <token>", ""),\n            ("V2Box 10.1.9/iOS 26.5.1", "V2Box"),\n            ("v2rayNG/1.9.46", "v2rayNG"),\n            ("sing-box/1.12.0", "sing-box"),\n            ("Sing Box 2.3/android", "Sing Box"),\n            ("VPN-Client.Pro 12.5/windows", "VPN-Client.Pro"),
+            ("Happ/6.1.0/ios/2610091516618 <token>", ""),
+            ("V2Box 10.1.9/iOS 26.5.1", "V2Box"),
+            ("v2rayNG/1.9.46", "v2rayNG"),
+            ("sing-box/1.12.0", "sing-box"),
+            ("Sing Box 2.3/android", "Sing Box"),
+            ("VPN-Client.Pro 12.5/windows", "VPN-Client.Pro"),
         )
         for raw, expected in cases:
             with self.subTest(raw=raw):
