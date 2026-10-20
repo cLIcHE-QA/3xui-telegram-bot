@@ -85,4 +85,7 @@ def recognized_vpn_app(user_agent: object) -> str:
     atom = r"[A-Za-z][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*"
     if not re.fullmatch(rf"{atom}(?: {atom}){{0,3}}", first):
         return ""
-    return first
+    # Compatibility-only display spelling for legacy clients; this is not an
+    # allowlist: all other syntactically valid names remain accepted verbatim.
+    legacy_spelling = {"happ": "Happ", "incy": "Incy", "shadowrocket": "Shadowrocket"}
+    return legacy_spelling.get(first.casefold(), first)
