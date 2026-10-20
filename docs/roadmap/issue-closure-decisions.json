@@ -156,43 +156,43 @@
     },
     {
       "issue": 814,
-      "decision": "keep_open",
-      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
+      "decision": "completed",
+      "accepted": "operator-reported production H1-H8 applicable PASS + A1-A6/B1-B6/C1-C3 UI 15/15 and offline PR #821 test/title PASS; independent VPS read-back PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
       "date": "2026-10-20",
-      "comment": "keep_open: OS/emoji/Back reported PASS, A5 live unknown/privacy applicability not evidenced; GitHub docs PR unmerged."
+      "comment": "completed: osVersion/emoji/privacy/fallback; H2/H3 production reported PASS, historical rc.18.1 FAIL preserved."
     },
     {
       "issue": 816,
-      "decision": "keep_open",
-      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
+      "decision": "completed",
+      "accepted": "operator-reported production H1-H8 applicable PASS + A1-A6/B1-B6/C1-C3 UI 15/15 and offline PR #821 test/title PASS; independent VPS read-back PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
       "date": "2026-10-20",
-      "comment": "keep_open: Happ/Incy/Shadowrocket and unknown reported PASS, no per-client live fixture applicability; avoid inventing live case evidence."
+      "comment": "completed: Happ/Incy/Shadowrocket and unknown fallback in live H1-H3, raw UA not exposed, safe offline parser regressions."
     },
     {
       "issue": 471,
-      "decision": "keep_open",
-      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
+      "decision": "completed",
+      "accepted": "operator-reported production H1-H8 applicable PASS + A1-A6/B1-B6/C1-C3 UI 15/15 and offline PR #821 test/title PASS; independent VPS read-back PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
       "date": "2026-10-20",
-      "comment": "keep_open: read-only ownership/Back reported PASS; missing earlier D3/D6/D8 actual inventory/provenance; no independent VPS read-back."
+      "comment": "completed: read-only real HWID, stable ID, unknown limit/provider, ownership/privacy H7/H8 and earlier D1-D8 operator-reported."
     },
     {
       "issue": 472,
       "decision": "keep_open",
-      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
+      "accepted": "operator-reported H9/H10 PASS marked, outcome X2 and separate X1/X3 approval/postcondition/no-replay values not supplied",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
       "date": "2026-10-20",
-      "comment": "keep_open: read-only no-mutation reported PASS, not proof of one-shot DELETE; X2 contradiction and X1/X3 approval/postcondition still PENDING."
+      "comment": "keep_open: X2 фактический итог и реальные X1/X3 DELETE approval/outcome/postcondition не описаны; не инициировать новые production DELETE"
     },
     {
       "issue": 820,
-      "decision": "keep_open",
+      "decision": "completed",
       "date": "2026-10-20",
-      "accepted": "operator-reported rc.18.2 DEPLOY_OK, 15/15 HWID UI [x] scoped observations; conditional applicability/provenance remains PENDING",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-2-operator-targeted-hwid-acceptance.md",
-      "comment": "keep_open: admin 8/client 5/page and Back reported PASS, live 9+/legacy/provider failure case applicability not separately evidenced."
+      "accepted": "operator-reported production H1-H8 applicable PASS + A1-A6/B1-B6/C1-C3 UI 15/15 and offline PR #821 test/title PASS; independent VPS read-back PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
+      "comment": "completed: 8 admin / 5 client per page, 9+ live pagination/legacy callback/error H4-H6 and offline edge cases."
     }
   ]
 }
