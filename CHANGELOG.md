@@ -8,6 +8,12 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## Не выпущено — Windows OS форматирование (#834)
+
+- `Windows 10_10.0.19045` → `Windows 10 (сборка 19045)`; `Windows 10 10.0` → `Windows 10`; `Windows 11 10.0.26100` → `Windows 11 (сборка 26100)`. Linux/Ubuntu/Debian и mobile OS без изменения.
+- Никаких догадок по NT 10.0: определённый major берётся только из `deviceOs`, противоречивые входные данные остаются оригинальными. Один общий `display_os()` в admin list/detail и Client Portal; `deviceModel` не изменяется.
+- Только read-only UI; не опубликовано, не развёрнуто, targeted production smoke PENDING.
+
 ## Не выпущено — понятные названия мобильных HWID (Issue #830)
 
 - Единое read-only отображение модели для админки и Client Portal: справочник Apple идентификаторов `iPhone`/`iPad`, однозначные Android `Device ID`, строгий fallback при неизвестном устройстве и извлечение Apple Model ID из валидированного хвоста `User-Agent`; в admin detail дополнительно выводится подтверждённый по таблице `Model ID`.
