@@ -6,6 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## Подготовка v5.0.0-rc.18 — клиентские HWID-карточки (#471, implementation PR)
+
+- Read-only `📱 Устройства`: пагинация по пять, отдельные карточки по подтверждённому upstream `id`, короткие подписи и отдельные состояния неизвестного/отключённого HWID limit. На каждый callback выполняется свежая проверка владения, без раскрытия fingerprint/HWID и без DELETE (#472 отдельно).
+- До merge/release/deployment/targeted acceptance функция **не Published, не Deployed, не Accepted**. `APP_VERSION` остаётся `5.0.0-rc.17`, общий G-11 PARTIAL/NO-GO; номер `rc.18` только плановый.
+
 ## v5.0.0-rc.17 — Заказы Stars и справочник возвратов для поддержки
 
 - [PR #801](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/801) / [#470](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/470): в `/admin → Платежи → Telegram Stars → Заказы Stars` добавлены ограниченный постраничный read-only список и карточка `Order → Payment → Entitlement`. `created/awaiting_payment` без Payment показываются как ожидание, а не ошибка; отсутствуют повторная отправка счёта, refund и provider mutations. Действует `payments.view` и прежний RBAC.

@@ -255,7 +255,7 @@ Finding #320 не блокирует targeted acceptance `v5.0.0-rc.3`; закр
 - каждый реальный HWID device открывается отдельной inline-кнопкой `📱 {device}`;
 - observed IP/session data при необходимости остаются отдельным presentation layer и не смешиваются с HWID inventory.
 
-Карточка конкретного устройства:
+Карточка конкретного устройства в read-only #471 (кнопка DELETE относится только к будущему #472):
 
 ~~~text
 📱 {device_model_or_platform}
@@ -263,7 +263,6 @@ Finding #320 не блокирует targeted acceptance `v5.0.0-rc.3`; закр
 ОС: {os}
 Последняя активность: {last_seen}
 
-[🗑 Удалить устройство]
 [⬅ Устройства]
 ~~~
 
