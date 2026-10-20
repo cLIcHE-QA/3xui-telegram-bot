@@ -153,6 +153,38 @@
       "accepted": "operator-reported rc.17 Stars Orders scoped UI/RBAC PASS + offline pending/payment/pagination regression PASS",
       "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/804",
       "comment": "#470 CLOSED/completed after published/deployed rc.17, PR #801 and test/title PASS; S3/S6 conditional covered by offline fixture, not live sample. G-11 PARTIAL/NO-GO."
+    },
+    {
+      "issue": 814,
+      "decision": "keep_open",
+      "accepted": "operator-reported A1/A2/A3/A6 scoped PASS; A5 FAIL not attributable",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
+      "date": "2026-10-20",
+      "comment": "keep_open: составной A5 FAIL не разграничен, privacy/unknown contract нельзя объявить принятым"
+    },
+    {
+      "issue": 816,
+      "decision": "keep_open",
+      "accepted": "operator-reported A4 FAIL and A5 FAIL",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
+      "date": "2026-10-20",
+      "comment": "keep_open: Happ/Incy UI не принят, факт фактической утечки не установлен, требуется безопасное описание симптомов"
+    },
+    {
+      "issue": 471,
+      "decision": "keep_open",
+      "accepted": "operator-reported prior D1-D8 PASS, B1 PASS without applicability detail",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
+      "date": "2026-10-20",
+      "comment": "keep_open: D3/D6/D8 provenance не приложен, A5 privacy FAIL может затрагивать read-only карточку"
+    },
+    {
+      "issue": 472,
+      "decision": "keep_open",
+      "accepted": "operator-reported prior S1-S4 PASS, B2/B3 PASS without provenance",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
+      "date": "2026-10-20",
+      "comment": "keep_open: X2 contradiction и X1/X3 approval/read-back не подтверждены деталями; никаких новых DELETE"
     }
   ]
 }
