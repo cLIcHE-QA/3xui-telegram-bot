@@ -34,3 +34,16 @@ def device_emoji(os_name: str, model: str = "") -> str:
     if any(word in os for word in ("windows", "macos", "mac os", "linux", "chrome os", "chromeos")):
         return "💻"
     return "🔹"
+
+
+def recognized_vpn_app(user_agent: object) -> str:
+    """Recognize an explicit standalone allowlisted client token; never return raw UA."""
+    if not isinstance(user_agent, str) or not 1 <= len(user_agent) <= 128:
+        return ""
+    if not user_agent.isascii() or any(ord(ch) < 32 or ord(ch) == 127 for ch in user_agent):
+        return ""
+    # Only an application identifier followed by its optional numeric version.
+    match = re.fullmatch(r"(Happ|Incy)(?:/[0-9]+(?:\.[0-9]+){0,3})?", user_agent, re.IGNORECASE)
+    if not match:
+        return ""
+    return {"happ": "Happ", "incy": "Incy"}[match.group(1).casefold()]
