@@ -194,7 +194,7 @@ class ClientDeviceDelete472Tests(unittest.IsolatedAsyncioTestCase):
         import client_access
         service, _, provider = make_service()
         call = SimpleNamespace(
-            data="client:device-delete:ask:17:0",
+            data="client:device-delete:deleteask:17:0",
             from_user=SimpleNamespace(id=42),
             message=SimpleNamespace(chat=SimpleNamespace(type="private")),
             answer=AsyncMock(),
