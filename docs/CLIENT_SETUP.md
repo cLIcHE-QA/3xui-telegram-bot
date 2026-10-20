@@ -46,6 +46,12 @@
 
 На выделенном pilot-клиенте сверить количество HWID с upstream: 0 и более 5 записей, листание/Back и полное время в карточке; отключённый/неизвестный `limitHwid` не должен отображаться как числовой лимит. Сменить модельные test identities только в изолированной проверке, проверить отсутствие чужих карточек, устаревшие ID, oversized fields, отключённый portal/allowlist и provider unavailable. Никаких DELETE, payment, расширения pilot или production mutation; результат записать отдельно с tag/SHA/TZ/source. До релиза #471 `PENDING`.
 
+## #472 — плановый security/acceptance checkpoint (до выпуска PENDING)
+
+Новый клиентский `🗑 Удалить устройство` предназначен только для собственного подтверждённого HWID; текущий Published/Deployed `rc.17` не содержит этот implementation PR. Никаких production DELETE в рамках read-only #471 smoke. Клиентский delete flow требует нового отдельно согласованного release/deploy и **отдельного разрешения** на каждую опасную production мутацию; публикация и зелёный CI сами по себе не дают такого разрешения.
+
+До live testing допустима только offline/изолированная проверка: чужой/неизвестный ID, смена владельца между экранами, stale token, Cancel без DELETE, двойное подтверждение, concurrency, отсутствие capability, 4xx vs timeout/network/5xx, невалидный/частичный HWID inventory, отсутствие postcondition, общий portal OFF/allowlist и per-user cooldown. Подтверждать `PASS` только для проверенного evidence. При `unknown` выполняется **только read-only inventory lookup**, автоматический DELETE retry запрещён; после `deleted` должен быть независимый полный inventory read-back. Записи личного HWID, email, private token или private subscription URL не включать в отчёт. Текущие G-11 `PARTIAL/NO-GO` и public rollout `BLOCKED` не меняются.
+
 ## Безопасный smoke без реальных платежей
 
 1. На разрешённой test identity проверьте `/start`: личный кабинет открывается при разрешённых gate и allowlist. У посторонней identity доступ должен быть отклонён. `/admin` проверяйте отдельно под разрешённой ролью.
