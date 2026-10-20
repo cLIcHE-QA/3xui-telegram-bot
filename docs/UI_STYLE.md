@@ -446,3 +446,7 @@ Android-коды читаются только при единственном �
 ## Названия моделей Windows/Linux (#833, implementation PR)
 
 Только явные технические значения модели (`DESKTOP-…`, `Windows 10 amd64`, `x86_64`, `Unknown device`, название Linux-дистрибутива) заменяются на `Устройство Windows` или `Устройство Linux`. Аппаратные коммерческие названия сохраняются, неизвестные ОС не классифицируются. Модели Linux распознаются только при известном названии Linux-дистрибутива в `deviceOs`. Никакие версии ОС не форматируются; этот этап отдельно в #834. Это лишь presentation-only UI: модель или OS label не участвует в device_id, HWID ownership, RBAC, callbacks или DELETE. Админская карточка сохраняет исходные технические поля для диагностики, Client Portal их не раскрывает. Не Published/Deployed/Accepted до самостоятельных gates.
+
+## Windows OS форматирование (#834, implementation PR)
+
+`Windows 10_10.0.19045` → `Windows 10 (сборка 19045)`; `Windows 10 10.0` → `Windows 10`; `Windows 11 10.0.26100` → `Windows 11 (сборка 26100)`. Linux/Ubuntu/Debian и mobile OS без изменения. Никаких догадок по NT 10.0: определённый major берётся только из `deviceOs`, противоречивые входные данные остаются оригинальными. Один общий `display_os()` в admin list/detail и Client Portal; `deviceModel` не изменяется. Это лишь presentation-only UI: модель или OS label не участвует в device_id, HWID ownership, RBAC, callbacks или DELETE. Админская карточка сохраняет исходные технические поля для диагностики, Client Portal их не раскрывает. Не Published/Deployed/Accepted до самостоятельных gates.

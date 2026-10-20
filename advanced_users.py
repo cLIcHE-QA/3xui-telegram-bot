@@ -1057,7 +1057,7 @@ async def user_device_detail(call: CallbackQuery):
         f"📱 Устройство · {await _display_label(rec)}\n\n"
         f"Модель: {model}\n"
         + (f"Model ID: {model_id}\n" if model_id else "")
-        + f"ОС: {os_name}{(' ' + os_version) if os_version else ''}\n"
+        + f"ОС: {display_os(os_name, os_version)}\n"
         f"Fingerprint: {fingerprint}\n"
         f"User-Agent: {user_agent}\n"
         f"Первое появление: {_fmt_optional_ms(item.get('firstSeen'))}\n"
