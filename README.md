@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.17
+# Telegram-бот для 3x-ui v5.0.0-rc.18 (release-prep)
+
+**В подготовке:** `APP_VERSION=5.0.0-rc.18` относится к release-prep для #471 (HWID-карточки) и #472 (удаление одного собственного устройства с подтверждением и no-replay). Это ещё **не** опубликованный tag, развёрнутый контейнер или production acceptance. Никаких новых production DELETE без отдельного разрешения; текущие Published/Deployed/Accepted ниже относятся только к `rc.17`. [Client Setup](docs/CLIENT_SETUP.md), [Roadmap](docs/ROADMAP.md).
 
 **Controlled canary:** `v5.0.0-rc.17` Published GitHub/Deployed operator-reported; targeted U8/S/R 20/20 отмечены 2026-10-20 02:10 EEST. #760 и #470 CLOSED/completed: применимый UI подтверждён оператором, условные U8-4/S3/S6 покрыты offline CI fixtures без утверждения, что такие записи присутствовали в production. #437 OPEN: § 9 по #707 `unpublished`. G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Текущий Roadmap](docs/ROADMAP.md).
 
