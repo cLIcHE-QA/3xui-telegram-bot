@@ -1,4 +1,4 @@
-# Telegram-бот для 3x-ui — release-prep v5.0.0-rc.18.1
+# Telegram-бот для 3x-ui v5.0.0-rc.18.1
 
 **Published:** `v5.0.0-rc.18` включает #471 (HWID-карточки) и #472 (удаление ровно одного собственного устройства с подтверждением и no-replay). Публикация не означает deployment или acceptance: на VPS `rc.18` подтверждён только сообщением оператора (P0–P2; F1–F3), independent VPS read-back PENDING. Production DELETE допускается исключительно после отдельного разрешения. [Client Setup](docs/CLIENT_SETUP.md), [Roadmap](docs/ROADMAP.md).
 
