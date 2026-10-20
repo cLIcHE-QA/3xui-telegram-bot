@@ -61,7 +61,7 @@ def recognized_vpn_app(user_agent: object) -> str:
     # Validate the suffix shape; never display or trust its contents.
     suffix = user_agent.split("/", 1)[1]
     if not re.fullmatch(
-        r"[0-9]+(?:\.[0-9]+){0,3}(?:/(?:ios|ipados|macos|android|windows)(?:/[0-9]+)?)?"
+        r"[0-9]{1,15}(?:\.[0-9]{1,15}){0,3}(?:/(?:ios|ipados|macos|android|windows)(?:/[0-9]{1,15})?)?"
         r"(?: CFNetwork/[0-9.]+ Darwin/[0-9.]+(?: [A-Za-z0-9,]+)?)?",
         suffix, re.IGNORECASE,
     ):
