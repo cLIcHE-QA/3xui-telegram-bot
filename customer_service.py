@@ -34,6 +34,18 @@ class CustomerDevice:
     title: str
     os_name: str
     last_seen: int
+    # Verified, stable upstream HWID row ID. Never substitute a list index.
+    device_id: int | None = None
+
+
+@dataclass(frozen=True)
+class CustomerDeviceInventory:
+    devices: tuple[CustomerDevice, ...]
+    total: int
+    # A positive, verified provider limit only. Zero/absent is not a quota.
+    limit: int | None = None
+    limit_state: str = "unknown"  # known | disabled | unknown
+    truncated: bool = False
 
 
 @dataclass(frozen=True)
@@ -70,7 +82,7 @@ class CustomerAccessProvider(Protocol):
 
     async def traffic(self, email: str) -> CustomerTraffic: ...
 
-    async def devices(self, email: str) -> list[CustomerDevice]: ...
+    async def devices(self, email: str) -> CustomerDeviceInventory: ...
 
 
 class CustomerPortalService:
@@ -234,7 +246,7 @@ class CustomerPortalService:
             return None
         return await self.provider.traffic(profile.email)
 
-    async def devices(self, telegram_id: int) -> list[CustomerDevice] | None:
+    async def devices(self, telegram_id: int) -> CustomerDeviceInventory | None:
         profile = await self.profile(telegram_id, read_access=False)
         if not profile.exists:
             return None

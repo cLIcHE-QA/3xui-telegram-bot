@@ -8,6 +8,10 @@
 
 Для переключения `Все / ♾️ Ручные` `⬅ Пользователи` → `admin:users`, тогда как обычный общий список использует `⬅ Панель администратора` → `admin:home`. Возврат и поиск сохраняют identity/контекст, устаревший callback не создаёт mutation. Исправление [PR #766](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/766) Published `rc.17`, Deployed **operator-reported** (2026-10-20 01:58 EEST), а targeted U8-1…U8-4 operator-reported 4/4 `[x]` (02:10 EEST); [#760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760) CLOSED/completed после regression tests `tests/test_manual_user_list_760.py` и `tests/test_rc164_ui_refinements.py`. Условная U8-4 по редкому статусу подтверждена offline fixture, не отдельным наблюдением production-записи. FAIL на старом `rc.16.6` сохранён в audit. Следующие изменения не обходят требования отдельно разрешённого release/deploy и новой адресной приёмки при затронутой регрессии.
 
+## Клиентские HWID-устройства (#471, implementation до merge)
+
+`📱 Устройства` — исключительно записи registered HWID из 3x-ui, не IP/online sessions. Список по пять на страницу, карточка только по уникальному валидному upstream `id`, повторная проверка customer ownership при каждом callback, устаревшая карточка ведёт к обновлению. Не выводить полный fingerprint/HWID, email/subscription URL. Только положительный подтверждённый `limitHwid` показывает `N/limit`; ноль — «отключён», невалидное/недоступное значение — `UNKNOWN`. Detail read-only, без кнопки DELETE (#472 отдельно). Текущий runtime `rc.17` не изменён до отдельного release/deploy.
+
 ## Другие устойчивые UI-инварианты
 
 - Статусы `🟢` (enabled), `⚪` (disabled), `🟡` (unknown), `🔴` (offline/error) различаются; один bounded read-only `clients/list` на отображаемую страницу/результат, без N+1 и ложного состояния при API error.

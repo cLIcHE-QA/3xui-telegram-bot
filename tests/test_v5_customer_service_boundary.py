@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 from customer_service import (
     CustomerDevice,
+    CustomerDeviceInventory,
     CustomerProviderAccess,
     CustomerPortalService,
     CustomerTraffic,
@@ -72,9 +73,12 @@ class CustomerServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
         provider = SimpleNamespace(
             access=AsyncMock(return_value=CustomerProviderAccess(enabled=True, expiry_time=1234567890000)),
             traffic=AsyncMock(return_value=CustomerTraffic(up=10, down=20, total=100)),
-            devices=AsyncMock(return_value=[
-                CustomerDevice(title="Phone", os_name="iOS", last_seen=123),
-            ]),
+            devices=AsyncMock(return_value=CustomerDeviceInventory(
+                devices=(CustomerDevice(title="Phone", os_name="iOS", last_seen=123, device_id=7),),
+                total=1,
+                limit=5,
+                limit_state="known",
+            )),
         )
         service = CustomerPortalService(
             db,
@@ -100,7 +104,7 @@ class CustomerServiceBoundaryTests(unittest.IsolatedAsyncioTestCase):
         provider.traffic.assert_awaited_once_with("tg-42@example.invalid")
 
         devices = await service.devices(42)
-        self.assertEqual(devices[0].title, "Phone")
+        self.assertEqual(devices.devices[0].title, "Phone")
         provider.devices.assert_awaited_once_with("tg-42@example.invalid")
 
     async def test_missing_customer_does_not_call_provider(self):

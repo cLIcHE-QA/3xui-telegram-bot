@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
@@ -16,7 +18,7 @@ from admin_ui import render_callback
 from config import load_settings
 from client_flags import ClientFeatureFlags
 from client_rate_limit import SlidingWindowRateLimiter
-from customer_service import CustomerPortalService, CustomerProviderUnavailable
+from customer_service import (CustomerDeviceInventory, CustomerPortalService, CustomerProviderUnavailable)
 from ui_time import format_timestamp
 from website_diagnostics import qr_png
 from version import APP_VERSION
@@ -303,33 +305,154 @@ async def traffic_cb(call: CallbackQuery):
     await call.answer()
 
 
+DEVICE_PAGE_SIZE = 5
+
+
+def _device_page_count(inventory: CustomerDeviceInventory) -> int:
+    return max(1, (len(inventory.devices) + DEVICE_PAGE_SIZE - 1) // DEVICE_PAGE_SIZE)
+
+
+def _device_list_view(
+    inventory: CustomerDeviceInventory, page: int,
+) -> tuple[str, InlineKeyboardMarkup]:
+    count = _device_page_count(inventory)
+    page = max(0, min(page, count - 1))
+    start = page * DEVICE_PAGE_SIZE
+    visible = inventory.devices[start:start + DEVICE_PAGE_SIZE]
+    title = f"📱 Устройства · {inventory.total}"
+    if inventory.limit is not None and inventory.limit_state == "known":
+        title += f"/{inventory.limit}"
+    lines = [title, ""]
+    if inventory.limit_state == "unknown":
+        lines += ["Лимит HWID: UNKNOWN", ""]
+    elif inventory.limit_state == "disabled":
+        lines += ["Лимит HWID: отключён", ""]
+    rows: list[list[InlineKeyboardButton]] = []
+    if not inventory.devices:
+        lines.append("Зарегистрированных HWID-устройств нет.")
+    else:
+        lines.append(f"Страница {page + 1}/{count}")
+        for index, device in enumerate(visible, start=start + 1):
+            platform = device.os_name or "ОС неизвестна"
+            seen = format_timestamp(
+                device.last_seen, milliseconds=True, empty="—",
+            ).split(" ", 1)[0]
+            lines.append(f"{index}. {device.title} · {platform} · {seen}")
+            if device.device_id is None:
+                lines.append("   Карточка недоступна: ID UNKNOWN")
+            else:
+                rows.append([InlineKeyboardButton(
+                    text=f"📱 {device.title[:32]}",
+                    callback_data=f"client:device:{device.device_id}:{page}",
+                )])
+    if inventory.truncated:
+        lines += ["", "⚠️ Показаны первые 100 записей; полный список недоступен."]
+    paging: list[InlineKeyboardButton] = []
+    if page > 0:
+        paging.append(InlineKeyboardButton(
+            text="⬅ Предыдущая", callback_data=f"client:devices:page:{page - 1}",
+        ))
+    if page + 1 < count:
+        paging.append(InlineKeyboardButton(
+            text="➡ Следующая", callback_data=f"client:devices:page:{page + 1}",
+        ))
+    if paging:
+        rows.append(paging)
+    rows.extend([
+        [InlineKeyboardButton(text="🔄 Обновить", callback_data="client:devices")],
+        [InlineKeyboardButton(text="⬅ Личный кабинет", callback_data="client:home")],
+    ])
+    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def _device_back_menu(page: int = 0) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="⬅ Устройства", callback_data=f"client:devices:page:{page}",
+        )],
+        [InlineKeyboardButton(text="⬅ Личный кабинет", callback_data="client:home")],
+    ])
+
+
+async def _guard_device_callback(call: CallbackQuery) -> bool:
+    if not await guard_callback(call):
+        return False
+    if not call.message or call.message.chat.type != "private":
+        await call.answer("Устройства доступны только в личном чате.", show_alert=True)
+        return False
+    return True
+
+
+async def _render_devices(call: CallbackQuery, page: int = 0) -> None:
+    try:
+        inventory = await _service().devices(call.from_user.id)
+        if inventory is None:
+            text, markup = "📱 Устройства\n\nДоступ пока не оформлен.", back_menu()
+        else:
+            text, markup = _device_list_view(inventory, page)
+    except CustomerProviderUnavailable:
+        text, markup = (
+            "📱 Устройства\n\n⚠️ Данные провайдера временно недоступны.",
+            _device_back_menu(),
+        )
+    await render_callback(call, text, reply_markup=markup)
+    await call.answer()
+
+
 @client_access_router.callback_query(F.data == "client:devices")
 async def devices_cb(call: CallbackQuery):
-    if not await guard_callback(call):
+    if not await _guard_device_callback(call):
         return
+    await _render_devices(call)
+
+
+@client_access_router.callback_query(F.data.startswith("client:devices:page:"))
+async def devices_page_cb(call: CallbackQuery):
+    if not await _guard_device_callback(call):
+        return
+    match = re.fullmatch(r"client:devices:page:(0|[1-9][0-9]{0,2})", call.data or "")
+    if match is None:
+        await call.answer("Некорректная или устаревшая страница.", show_alert=True)
+        return
+    await _render_devices(call, int(match.group(1)))
+
+
+@client_access_router.callback_query(F.data.startswith("client:device:"))
+async def device_detail_cb(call: CallbackQuery):
+    if not await _guard_device_callback(call):
+        return
+    match = re.fullmatch(
+        r"client:device:([1-9][0-9]{0,18}):(0|[1-9][0-9]{0,2})",
+        call.data or "",
+    )
+    if match is None or int(match.group(1)) > 2**63 - 1:
+        await call.answer("Карточка недоступна: ID UNKNOWN.", show_alert=True)
+        return
+    device_id = int(match.group(1))
+    page = int(match.group(2))
     try:
-        devices = await _service().devices(call.from_user.id)
-        if devices is None:
-            text = "📱 Устройства\n\nДоступ пока не оформлен."
+        # Resolve ownership against a fresh provider snapshot, never a
+        # Telegram-controlled index, email, or unvalidated callback ID.
+        inventory = await _service().devices(call.from_user.id)
+        if inventory is None:
+            text = "📱 Устройство\n\nДоступ пока не оформлен."
         else:
-            lines = ["📱 Устройства", ""]
-            if not devices:
-                lines.append("Зарегистрированных HWID-устройств нет.")
+            matches = [d for d in inventory.devices if d.device_id == device_id]
+            if len(matches) != 1:
+                text = "📱 Устройство\n\nКарточка устарела или устройство больше не зарегистрировано. Обновите список."
             else:
-                for index, item in enumerate(devices, start=1):
-                    last_seen = format_timestamp(
-                        item.last_seen,
-                        milliseconds=True,
-                        empty="—",
-                    )
-                    lines.append(
-                        f"{index}. {item.title[:60]} · {item.os_name or 'ОС неизвестна'}"
-                    )
-                    lines.append(f"   Последняя активность: {last_seen}")
-            text = "\n".join(lines)
+                device = matches[0]
+                seen = format_timestamp(
+                    device.last_seen, milliseconds=True, empty="—",
+                )
+                text = (
+                    f"📱 {device.title}\n\n"
+                    f"ОС: {device.os_name or 'неизвестна'}\n"
+                    f"Последняя активность: {seen}"
+                )
     except CustomerProviderUnavailable:
-        text = "📱 Устройства\n\n⚠️ Данные провайдера временно недоступны."
-    await render_callback(call, text, reply_markup=back_menu())
+        text = "📱 Устройство\n\n⚠️ Данные провайдера временно недоступны."
+    await render_callback(call, text, reply_markup=_device_back_menu(page))
     await call.answer()
 
 

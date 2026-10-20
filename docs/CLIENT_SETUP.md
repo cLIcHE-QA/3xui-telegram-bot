@@ -42,6 +42,10 @@
 
 **Fail closed / действующий runtime contract:** `.env` остаётся безусловным veto. Owner-only DB overrides находятся в `/admin → Система → Настройки → 👤 Клиентский портал`; выключенное DB `portal=false` запрещает также **старые inline callbacks**, не только новые кнопки. `/admin` проверяется отдельно и не выключается клиентским флагом. Для break-glass используйте `.env CLIENT_PORTAL_ENABLED=false` с контролируемым применением конфигурации, без изменения уже подтверждённых платежей, 3x-ui entitlements или allowlist. Исторический регрессионный smoke #342 доступен в immutable snapshot и соответствующем аудите; он не подтверждает весь v5 acceptance.
 
+## Плановый read-only smoke #471 (только после разрешённого release/deploy)
+
+На выделенном pilot-клиенте сверить количество HWID с upstream: 0 и более 5 записей, листание/Back и полное время в карточке; отключённый/неизвестный `limitHwid` не должен отображаться как числовой лимит. Сменить модельные test identities только в изолированной проверке, проверить отсутствие чужих карточек, устаревшие ID, oversized fields, отключённый portal/allowlist и provider unavailable. Никаких DELETE, payment, расширения pilot или production mutation; результат записать отдельно с tag/SHA/TZ/source. До релиза #471 `PENDING`.
+
 ## Безопасный smoke без реальных платежей
 
 1. На разрешённой test identity проверьте `/start`: личный кабинет открывается при разрешённых gate и allowlist. У посторонней identity доступ должен быть отклонён. `/admin` проверяйте отдельно под разрешённой ролью.
