@@ -36,6 +36,8 @@
       "path": "docs/roadmap/concepts/client-portal-ux.md",
       "status": "DRAFT",
       "issues": [
+        471,
+        472,
         496
       ],
       "decision_evidence": null,
