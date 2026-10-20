@@ -22,7 +22,7 @@ def rows(path: Path):
         if not line.startswith("| ") or line.startswith(("| Производитель", "| Категория", "| :")):
             continue
         # Изначальный Android Markdown содержит экранированный pipe в названии.
-        parts = [part.strip() for part in re.split(r"(?<!\\)\\|", line.strip().strip("|"))]
+        parts = [part.strip().replace("{{PIPE}}", "|") for part in line.strip().strip("|").replace(chr(92) + "|", "{{PIPE}}").split("|")]
         if len(parts) != 4:
             raise AssertionError(f"Некорректная строка справочника: {line[:100]}")
         yield parts
@@ -37,8 +37,8 @@ class DeviceIdentifierCatalogTest(unittest.TestCase):
             with self.subTest(name=name):
                 payload = (CATALOGS / name).read_bytes()
                 self.assertEqual(sha256(payload).hexdigest(), expected)
-                self.assertFalse(payload.startswith(b"\\xef\\xbb\\xbf"))
-                self.assertTrue(payload.endswith(b"\\n"))
+                self.assertFalse(payload.startswith(bytes([0xef, 0xbb, 0xbf])))
+                self.assertTrue(payload.endswith(bytes([10])))
 
     def test_android_rows_and_ambiguous_device_ids(self):
         catalog = list(rows(CATALOGS / "android_all_identifiers.md"))
@@ -55,7 +55,7 @@ class DeviceIdentifierCatalogTest(unittest.TestCase):
         for category, marketed, codes, _ in catalog:
             if category not in ("iPhone", "iPad"):
                 continue
-            for code in re.findall(r"`(iPhone\\d+,\\d+|iPad\\d+,\\d+)`", codes):
+            for code in re.findall(r"`(iPhone[0-9]+,[0-9]+|iPad[0-9]+,[0-9]+)`", codes):
                 self.assertNotIn(code, mapping)
                 mapping[code] = marketed
         self.assertEqual(mapping["iPhone18,1"], "iPhone 17 Pro")
