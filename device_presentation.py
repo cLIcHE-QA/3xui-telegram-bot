@@ -53,28 +53,39 @@ def admin_device_page_window(total: int, page: int) -> tuple[int, int, int]:
 
 
 def recognized_vpn_app(user_agent: object) -> str:
-    """Recognize only a known first-token app; never propagate raw provider UA."""
+    """Return a bounded display-only name claimed by an untrusted User-Agent.
+
+    Neither the name nor the User-Agent authenticates a VPN application.
+    """
     if not isinstance(user_agent, str) or not 1 <= len(user_agent) <= 256:
         return ""
     if not user_agent.isascii() or any(ord(ch) < 32 or ord(ch) == 127 for ch in user_agent):
         return ""
-    # The literal app identifier is before the first slash, not anywhere in UA.
-    # An unknown identifier must never become a trusted display name.
-    prefix = user_agent.split("/", 1)[0]
-    if not re.fullmatch(r"[A-Za-z]{2,32}", prefix):
+
+    # Reject ambiguous or secret-like tails instead of sanitizing them into a
+    # deceptively plausible name. Do not expose the suffix to the UI.
+    first, separator, suffix = user_agent.partition("/")
+    if separator:
+        suffix_pattern = (
+            r"(?:[0-9]{1,15}(?:\.[0-9]{1,15}){0,3}"
+            r"(?:/(?:ios|ipados|macos|android|windows)(?:/[0-9]{1,15})?)?"
+            r"(?: CFNetwork/[0-9.]+ Darwin/[0-9.]+(?: [A-Za-z0-9,]+)?)?"
+            r"|(?:ios|ipados|macos|android|windows|linux)(?: [0-9]{1,3}(?:\.[0-9]{1,3}){0,3})?)"
+        )
+        if not re.fullmatch(suffix_pattern, suffix, re.IGNORECASE):
+            return ""
+
+    # The dotted version must be a separate final field, not digits belonging
+    # to a brand (V2Box, v2rayNG). Never strip punctuation inside the name.
+    first = re.sub(r" [vV]?[0-9]{1,15}(?:\.[0-9]{1,15}){1,3}$", "", first)
+    if not 2 <= len(first) <= 48:
         return ""
-    known = {"happ": "Happ", "incy": "Incy", "shadowrocket": "Shadowrocket"}
-    app = known.get(prefix.casefold(), "")
-    if not app:
+    # Allow multiword brands and internal hyphens/dots, but no markup,
+    # URLs, key-value delimiters, or other untrusted formatting.
+    atom = r"[A-Za-z][A-Za-z0-9]*(?:[.-][A-Za-z0-9]+)*"
+    if not re.fullmatch(rf"{atom}(?: {atom}){{0,3}}", first):
         return ""
-    if "/" not in user_agent:
-        return app
-    # Validate the suffix shape; never display or trust its contents.
-    suffix = user_agent.split("/", 1)[1]
-    if not re.fullmatch(
-        r"[0-9]{1,15}(?:\.[0-9]{1,15}){0,3}(?:/(?:ios|ipados|macos|android|windows)(?:/[0-9]{1,15})?)?"
-        r"(?: CFNetwork/[0-9.]+ Darwin/[0-9.]+(?: [A-Za-z0-9,]+)?)?",
-        suffix, re.IGNORECASE,
-    ):
-        return ""
-    return app
+    # Compatibility-only display spelling for legacy clients; this is not an
+    # allowlist: all other syntactically valid names remain accepted verbatim.
+    legacy_spelling = {"happ": "Happ", "incy": "Incy", "shadowrocket": "Shadowrocket"}
+    return legacy_spelling.get(first.casefold(), first)

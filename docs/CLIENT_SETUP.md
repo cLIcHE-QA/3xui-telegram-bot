@@ -80,3 +80,7 @@
 **BLOCKED до полного PASS.** Нельзя расширять pilot allowlist или считать stable `v5.0.0` готовым лишь по публикации RC, зелёному CI или успешному ручному smoke. Необходимы все обязательные проверки из [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md), закрытие release-blocking findings, безопасное восстановление/резервирование и отдельный approved release/deployment flow. Результаты и оставшиеся gates вносятся в [ROADMAP.md](ROADMAP.md); завершённое выполнение подтверждается evidence, а не галочкой без проверки.
 
 После stable v5 и завершённого acceptance это руководство пересматривается отдельным PR, а не автоматически переименовывается в public launch guide.
+
+## Планируемое универсальное имя VPN-клиента (#827, ещё не Published)
+
+Только после отдельного merge, release и deployment карточка HWID сможет выводить заявленное приложением безопасное имя из `userAgent` без allowlist (`V2Box 10.1.9/iOS 26.5.1` → `V2Box`, `v2rayNG`, `sing-box`). Невалидный/неоднозначный/отсутствующий `userAgent` останется «Не определён»; это не механизм удостоверения приложения. Для targeted read-only smoke после явно разрешённого deployment требуется сравнить UI названия на собственных разрешённых test-HWID, проверить fallback/privacy, навигацию и последующий health без DELETE/Stars/3x-ui mutations. Published/Deployed/Accepted этого нового scope: PENDING; общий G-11 PARTIAL/NO-GO, public rollout BLOCKED.
