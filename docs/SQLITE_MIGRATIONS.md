@@ -5,7 +5,7 @@
 ## Текущий контракт schema
 
 - Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
-- Release-prep `v5.0.0-rc.17` включает read-only #437/#470 и UI-fix #760, не меняет каталог `MIGRATIONS` и сохраняет schema v15. Published/Deployed/Accepted определяются только по [Roadmap](ROADMAP.md), не по этому кандидату.
+- Release-prep `v5.0.0-rc.18` включает HWID-карточки #471 и одноразовый DELETE собственного устройства #472, **не меняет** каталог `MIGRATIONS` и не меняет структуру SQLite; текущая схема остаётся прежней. Предыдущий опубликованный `rc.17` сохранял ту же версию миграций; новый APP_VERSION не означает schema migration. Published/Deployed/Accepted определяются только по [Roadmap](ROADMAP.md), а не по текущему release-prep.
 - `v14 plan_audience_v5_0_0` добавляет независимую RUB/Stars видимость, локальные User Groups и `manual_entitlements`; один live/unknown journal запрещает конкурентную выдачу. Schema v15 сохраняет историю, при `in_flight/unknown` запрещён автоматический replay; read-only batch/filter ручных выдач не создаёт новую миграцию, заказ или платёж.
 - Все миграции **forward-only**; pre-migration backup, `schema_migrations`, postcondition и `PRAGMA quick_check` обязательны по соответствующим правилам ниже. `requires_backup=True` для опасной миграции, без recovery copy её нельзя начинать. Старый код на более новой schema блокируется `DatabaseSchemaTooNewError`.
 - Current Published/Deployed/Accepted всегда проверяйте по [Roadmap](ROADMAP.md), отдельно от schema каталога в `main`. Любое production deployment и DB mutation требуют отдельного разрешения.
