@@ -52,7 +52,7 @@ class DeviceInventory471Tests(unittest.IsolatedAsyncioTestCase):
         ]
         devices = (await self.provider(rows).devices("owned@example.invalid")).devices
         self.assertEqual([d.device_id for d in devices], [None, None, None, None, None, 9])
-        self.assertEqual(devices[-1].title, "Android")
+        self.assertEqual(devices[-1].title, "Устройство Android")
 
     async def test_large_inventory_truncated_and_duplicate_outside_window(self):
         rows = [{"id": i + 1, "deviceModel": "Phone"} for i in range(119)]
