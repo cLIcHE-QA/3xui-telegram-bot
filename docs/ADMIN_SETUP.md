@@ -2,7 +2,9 @@
 
 **Каноническая точка входа для оператора.** Полные команды, переменные, preflight/postconditions и ручной fallback сохранены в [пошаговых процедурах Admin Setup](ADMIN_SETUP_PROCEDURES.md). Этот документ определяет **единственный порядок действий**, но не даёт разрешения менять production. Команды на VPS, Docker, firewall, SQLite и 3x-ui выполняются только в отдельно согласованной операции.
 
-**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md) — единственный канонический текущий источник. Guide ориентирован на release v5.0.0-rc.18. **Release-prep, не Published/Deployed:** текущая развернутая версия остаётся операторски подтверждённой `rc.17`, независимый VPS read-back PENDING. #471/#472 входят в кандидат `rc.18`, но его выпуск/развёртывание и targeted acceptance ещё PENDING; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
+**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md) — единственный канонический текущий источник.
+
+Guide ориентирован на release v5.0.0-rc.18. Текущий статус версии и опубликованного deployment — только в [Roadmap](ROADMAP.md). **Release-prep, не Published/Deployed:** текущая развернутая версия остаётся операторски подтверждённой `rc.17`, независимый VPS read-back PENDING. #471/#472 входят в кандидат `rc.18`, но его выпуск/развёртывание и targeted acceptance ещё PENDING; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
 ## Перед началом: границы и безопасность
 
