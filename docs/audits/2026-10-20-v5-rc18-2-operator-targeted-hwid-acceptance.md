@@ -25,3 +25,5 @@
 | C1/C2/C3 | 3/3 `[x]` | operator-reported UI/RBAC/no-mutation/health, но нет независимого backend audit и доказанной негативной ownership fixture |
 
 **Security:** в этот audit не перенесены личные Telegram ID, реальные HWID/fingerprint, raw userAgent, subscription URL, данные платежей, host credentials или содержимое/расположение backup.
+
+**Контроль документальных границ:** этот checkpoint не изменяет структуру Roadmap, правила Git workflow или Living Docs; он актуализирует только датированные операторские факты и текущую проекцию статусов.
