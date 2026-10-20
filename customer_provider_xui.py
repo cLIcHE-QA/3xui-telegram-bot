@@ -14,6 +14,7 @@ from customer_service import (
     CustomerTraffic,
 )
 from xui import XUIClient, XUIError, XUIMutationError
+from device_presentation import recognized_vpn_app
 
 
 def _safe_device_label(raw: object) -> str:
@@ -162,6 +163,8 @@ class XuiCustomerProvider:
                 os_name=os_name,
                 last_seen=_verified_timestamp(item.get("lastSeen")),
                 device_id=device_id,
+                os_version=_safe_device_label(item.get("osVersion")),
+                app_name=recognized_vpn_app(item.get("userAgent")),
             ))
         return CustomerDeviceInventory(
             devices=tuple(result),
