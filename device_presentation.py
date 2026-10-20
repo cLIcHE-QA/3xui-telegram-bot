@@ -53,4 +53,17 @@ def recognized_vpn_app(user_agent: object) -> str:
     if not re.fullmatch(r"[A-Za-z]{2,32}", prefix):
         return ""
     known = {"happ": "Happ", "incy": "Incy", "shadowrocket": "Shadowrocket"}
-    return known.get(prefix.casefold(), "")
+    app = known.get(prefix.casefold(), "")
+    if not app:
+        return ""
+    if "/" not in user_agent:
+        return app
+    # Validate the suffix shape; never display or trust its contents.
+    suffix = user_agent.split("/", 1)[1]
+    if not re.fullmatch(
+        r"[0-9]+(?:\.[0-9]+){0,3}(?:/(?:ios|ipados|macos|android|windows)(?:/[0-9]+)?)?"
+        r"(?: CFNetwork/[0-9.]+ Darwin/[0-9.]+(?: [A-Za-z0-9,]+)?)?",
+        suffix, re.IGNORECASE,
+    ):
+        return ""
+    return app
