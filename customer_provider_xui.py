@@ -15,6 +15,7 @@ from customer_service import (
 )
 from xui import XUIClient, XUIError, XUIMutationError
 from device_presentation import recognized_vpn_app
+from device_model_resolver import display_device_model
 
 
 def _safe_device_label(raw: object) -> str:
@@ -159,7 +160,7 @@ class XuiCustomerProvider:
             if device_id is not None and id_counts[device_id] != 1:
                 device_id = None
             result.append(CustomerDevice(
-                title=model or os_name or "Устройство",
+                title=display_device_model(item.get("deviceModel"), os_name, item.get("userAgent")),
                 os_name=os_name,
                 last_seen=_verified_timestamp(item.get("lastSeen")),
                 device_id=device_id,
