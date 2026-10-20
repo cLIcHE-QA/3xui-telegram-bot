@@ -71,7 +71,7 @@ class DeviceInventory471Tests(unittest.IsolatedAsyncioTestCase):
 
     async def test_xui_invalid_response_not_empty(self):
         client = XUIClient("https://panel.example.invalid", "token")
-        for obj in (None, {}, [None]):
+        for obj in (None, {}, "bad"):
             client._request = AsyncMock(return_value={"obj": obj})
             with self.assertRaises(XUIError):
                 await client.client_hwids("owned@example.invalid")
