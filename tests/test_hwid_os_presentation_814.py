@@ -79,6 +79,8 @@ class HwidPresentation814Tests(unittest.IsolatedAsyncioTestCase):
     def test_universal_user_agent_security(self):
         safe = (
             ("CustomVPN/3.2", "CustomVPN"),
+            ("NotIncy/1.0", "NotIncy"),
+            ("V2Box/10.1.9", "V2Box"),
             ("V2Box 10.1.9/iOS 26.5.1", "V2Box"),
             ("Brand2-Pro.Only 3.14/linux", "Brand2-Pro.Only"),
             ("Happ", "Happ"),
