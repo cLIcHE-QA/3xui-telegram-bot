@@ -6,6 +6,13 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
+## v5.0.0-rc.18.1 — Версия ОС, тип устройства и Happ/Incy в HWID-карточке
+
+- [PR #815](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/815) / [#814](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/814): real upstream `osVersion` дополняет `deviceOs` в списке и карточке зарегистрированных HWID, без догадки и повторов; безопасные `📱`, `💻`, `🖥️`, `🔹` отражают только консервативный UI form-factor.
+- [PR #815](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/815) / [#816](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/816): в карточке показывается только allowlisted имя приложения `Happ` или `Incy`, извлечённое из недоверенного upstream `userAgent`; версия приложения, raw User-Agent, неизвестные/вредоносные строки не выводятся.
+- **Совместимость/security:** только read-only presentation; customer ownership, provider capability, HWID identity, лимиты, paginated callbacks, confirmation/DELETE/no-replay и SQLite schema v15 не меняются. API закреплён за 3x-ui v3.10.2.
+- **Controlled canary:** `rc.18.1` — отдельный release-prep; **не Published, не Deployed и не Accepted** до отдельных разрешений/свидетельств. Текущий Published `rc.18`; его Deployed только operator-reported. Для #471/#472 D1–D8 / S1–S4 reported PASS, X1/X3 provenance неполное и X2 PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+
 ## v5.0.0-rc.18 — Карточки HWID и безопасное удаление устройства
 
 - [PR #808](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/808) / [#471](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/471): в Client Portal добавлены компактный постраничный список по пять зарегистрированных HWID и отдельные read-only карточки с краткими model/OS/last-seen. Учитываются только проверенные уникальные upstream `id`; неизвестный/отключённый `limitHwid` не подменяется выдуманной квотой. При каждом открытии проверяются актуальная identity/ownership и недоступность провайдера; fingerprints, subscription credentials и чужие устройства не показываются.
