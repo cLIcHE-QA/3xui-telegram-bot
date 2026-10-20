@@ -44,6 +44,8 @@
 
 ## Плановый read-only smoke #471 (только после разрешённого release/deploy)
 
+Последующие изменения отображения HWID по Issue #814 (только после отдельного merge/release/deploy): если upstream отдаёт проверенные `deviceOs`/`osVersion`, в списке и карточке показывается реальная версия ОС; `deviceModel`/`deviceOs` задают только консервативный визуальный тип `📱`/`💻`/`🖥️`/`🔹`, не влияют на owner/id/capability. Некорректная/неизвестная версия не подменяется догадкой.
+
 На выделенном pilot-клиенте сверить количество HWID с upstream: 0 и более 5 записей, листание/Back и полное время в карточке; отключённый/неизвестный `limitHwid` не должен отображаться как числовой лимит. Сменить модельные test identities только в изолированной проверке, проверить отсутствие чужих карточек, устаревшие ID, oversized fields, отключённый portal/allowlist и provider unavailable. Никаких DELETE, payment, расширения pilot или production mutation; результат записать отдельно с tag/SHA/TZ/source. До релиза #471 `PENDING`.
 
 ## #472 — плановый security/acceptance checkpoint (до выпуска PENDING)
