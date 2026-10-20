@@ -1,6 +1,6 @@
 # v5 Production Acceptance and Controlled Canary
 
-**Действующий нормативный план приёмки**, не свидетельство успешного production rollout. Канонические Published/Deployed/Accepted — только [Roadmap](ROADMAP.md); статус G-11 `PARTIAL/NO-GO`, public rollout `BLOCKED`, #760/U8 `FAIL/PARTIAL` до отдельно разрешённых нового релиза, deployment и targeted re-smoke. Scopes V5-A-001…003 не считаются PASS без собственного фактического evidence на точном deployed tag/SHA.
+**Действующий нормативный план приёмки**, не свидетельство успешного public rollout. Статусы Published/Deployed/Accepted — только [Roadmap](ROADMAP.md): `v5.0.0-rc.17` Published и Deployed operator-reported. На старом `rc.16.6` #760/U8 был FAIL; 2026-10-20 02:10 EEST после нового deployment оператор отметил U8-1…U8-4 (4/4), S1…S8 (8/8), R1…R8 (8/8) `[x]`: применимые targeted UI пути scoped operator-reported PASS, но условные U8-4/S3/S6 без подтверждения применимости PENDING/N/A, #707 § 9 unpublished. [Audit](audits/2026-10-20-v5-rc17-operator-targeted-ui-acceptance.md). Не приравнивать scoped UI к полному G-11 или V5-A-001…003; G-11 `PARTIAL/NO-GO`, public rollout `BLOCKED`.
 
 ## Исторические operator-reported checkpoints (не текущие статусы)
 

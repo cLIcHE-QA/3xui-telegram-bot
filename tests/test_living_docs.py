@@ -461,6 +461,19 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertIn("## Roadmap / Acceptance impact", pr_template)
         self.assertIn("Что останется проверить", pr_template)
 
+    def test_targeted_acceptance_checklist_contract_is_unbounded_and_non_repeating(self):
+        workflow = (ROOT / "docs/GIT_WORKFLOW.md").read_text(encoding="utf-8")
+        agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+        heading = "## Полный targeted acceptance checklist без повторов (#805)"
+        self.assertEqual(workflow.count(heading), 1)
+        section = workflow.split(heading, 1)[1].split("\n## ", 1)[0]
+        for clause in ("без искусственного ограничения", "одним ответом",
+                       "Не включай ранее принятые scoped PASS",
+                       "PENDING", "N/A", "operator-reported",
+                       "перед следующим значимым пакетом"):
+            self.assertIn(clause, section)
+        self.assertIn("docs/GIT_WORKFLOW.md#полный-targeted-acceptance-checklist-без-повторов-805", agents)
+
     def test_required_pr_checklist_gate_is_wired(self):
         workflow = (
             ROOT / ".github" / "workflows" / "pr-conventions.yml"
