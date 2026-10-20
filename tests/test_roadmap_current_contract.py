@@ -84,7 +84,7 @@ class RoadmapCurrentContractTests(unittest.TestCase):
         self.assertTrue(any("already published" in x for x in roadmap_current_errors(mutated)))
 
     def test_missing_provenance_and_duplicate_fields_rejected(self):
-        mutated = self.roadmap.replace("blob/", "historical/", 1)
+        mutated = self.roadmap.replace("blob/", "historical/")
         self.assertTrue(any("provenance" in e for e in roadmap_current_errors(mutated)))
         mutated = self.roadmap.replace("**Deployed:**", "**Deployed:** UNKNOWN **Deployed:**", 1)
         self.assertTrue(any("unique" in e for e in roadmap_current_errors(mutated)))
