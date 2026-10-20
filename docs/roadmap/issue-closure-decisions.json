@@ -185,6 +185,14 @@
       "evidence": "docs/audits/2026-10-20-v5-rc18-1-operator-targeted-acceptance-fail.md",
       "date": "2026-10-20",
       "comment": "keep_open: X2 contradiction и X1/X3 approval/read-back не подтверждены деталями; никаких новых DELETE"
+    },
+    {
+      "issue": 820,
+      "decision": "keep_open",
+      "accepted": "offline required test/title PASS; admin 8/client 5 UI implementation merged, new release/deploy and targeted production acceptance PENDING",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821",
+      "date": "2026-10-20",
+      "comment": "PR #821 MERGED в main aff7bde8ec2521fa11f14362c00502737e2b04e5; no new published/deployed runtime; operator targeted A4/A5 FAIL on rc.18.1 remains; after separately approved release/deploy scoped admin 8/page, client 5/page, navigation and privacy smoke still required. No production DELETE; issue OPEN."
     }
   ]
 }
