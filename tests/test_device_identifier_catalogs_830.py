@@ -43,6 +43,7 @@ class DeviceIdentifierCatalogTest(unittest.TestCase):
     def test_android_rows_and_ambiguous_device_ids(self):
         catalog = list(rows(CATALOGS / "android_all_identifiers.md"))
         self.assertEqual(len(catalog), 54217)
+        self.assertTrue(any(device == "`oriole`" and model == "Pixel 6" for _, _, device, model in catalog))
         by_device = defaultdict(set)
         for brand, marketed, device, model in catalog:
             by_device[device].add((brand, marketed, model))
