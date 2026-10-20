@@ -21,7 +21,7 @@ class HwidPresentation814Tests(unittest.IsolatedAsyncioTestCase):
         result = await provider.devices("example.invalid")
         self.assertEqual([x.os_version for x in result.devices], ["15", "11"])
         self.assertEqual([x.app_name for x in result.devices], ["Happ", "Incy"])
-        self.assertEqual(recognized_vpn_app("Unknown/2.4"), "")
+        self.assertEqual(recognized_vpn_app("Unknown/2.4"), "Unknown")
         # The detail field renders a stable unknown label, not raw upstream metadata.
         source = __import__("pathlib").Path("client_access.py").read_text(encoding="utf-8")
         self.assertIn("VPN-клиент: {device.app_name or 'Не определён'}", source)
@@ -69,12 +69,58 @@ class HwidPresentation814Tests(unittest.IsolatedAsyncioTestCase):
             ("Shadowrocket/3445 CFNetwork/3860.600.12 Darwin/25.5.0 iPhone18,1", "Shadowrocket"),
             ("INCY/2.6.4/macos CFNetwork/3860.700.1 Darwin/25.6.0", "Incy"),
             ("Happ/6.1.0/ios/2610091516618", "Happ"),
-            ("UnknownVPN/2.3", ""),
-            ("Happ/6.1.0/ios/2610091516618 <token>", ""),
+            ("UnknownVPN/2.3", "UnknownVPN"),
+            ("Happ/6.1.0/ios/2610091516618 <token>", ""),\n            ("V2Box 10.1.9/iOS 26.5.1", "V2Box"),\n            ("v2rayNG/1.9.46", "v2rayNG"),\n            ("sing-box/1.12.0", "sing-box"),\n            ("Sing Box 2.3/android", "Sing Box"),\n            ("VPN-Client.Pro 12.5/windows", "VPN-Client.Pro"),
         )
         for raw, expected in cases:
             with self.subTest(raw=raw):
                 self.assertEqual(recognized_vpn_app(raw), expected)
+
+    def test_universal_user_agent_security(self):
+        safe = (
+            ("CustomVPN/3.2", "CustomVPN"),
+            ("V2Box 10.1.9/iOS 26.5.1", "V2Box"),
+            ("Brand2-Pro.Only 3.14/linux", "Brand2-Pro.Only"),
+            ("Happ", "Happ"),
+            ("Shadowrocket/3445 CFNetwork/3860.600.12 Darwin/25.5.0 iPhone18,1", "Shadowrocket"),
+        )
+        for user_agent, expected in safe:
+            with self.subTest(user_agent=user_agent):
+                self.assertEqual(recognized_vpn_app(user_agent), expected)
+
+        forbidden = (
+            "", None, 5, "A/1.0", "Not A Name!/1.2",
+            "V2Box 10.1.9/iOS 26.5.1 bearer=secret",
+            "Custom/1.0 token=secret", "Mozilla/5.0 (compatible; bot)",
+            "Custom/1.0/extra/private", "Custom/1.0?sub_id=token",
+            "<b>Happ</b>/1.0", "Happ&Co/1.0", "Happ\\nX/1.0",
+            "Happ\\u200b/1.0", "Happ/1.2 secret",
+            "Happ/1.0" + "9" * 260, "V2Box 10.1.9/iOS 26.5.1/extra",
+            "Name " + "X" * 50 + "/1.0", "Some Very Very Long Named Application Here Here/1.0",
+            "Other/1.0 Happ/3", "NotIncy/1.0/secret",
+            "Name\\r/1.0", "Name/1.0;TOKEN=secret",
+            "Name/https://example.invalid/abc", "Name/1.0 <secret>",
+        )
+        for user_agent in forbidden:
+            with self.subTest(user_agent=user_agent):
+                self.assertEqual(recognized_vpn_app(user_agent), "")
+
+    async def test_unknown_app_provider_only_changes_display_name(self):
+        provider = XuiCustomerProvider(SimpleNamespace(
+            client_hwids=AsyncMock(return_value=[
+                {"id": 7, "deviceModel": "Pixel 9", "deviceOs": "Android",
+                 "userAgent": "V2Box 10.1.9/iOS 26.5.1"},
+                {"id": 8, "deviceModel": "Pixel 8", "deviceOs": "Android",
+                 "userAgent": "Happ/1.0 secret"},
+            ]),
+            get_client=AsyncMock(return_value={"client": {"email": "example.invalid", "limitHwid": 5}}),
+        ))
+        inventory = await provider.devices("example.invalid")
+        self.assertEqual([device.app_name for device in inventory.devices], ["V2Box", ""])
+        self.assertEqual([device.device_id for device in inventory.devices], [7, 8])
+        label, buttons = _device_list_view(inventory, 0)
+        self.assertNotIn("V2Box", label + str(buttons))
+        self.assertNotIn("Happ/1.0", label + str(buttons))
 
     def test_macos_on_ipad_form_factor_is_mac(self):
         self.assertEqual(device_emoji("macOS (Designed for iPad)", "iPad Pro (12.9-inch) (3rd generation)"), "💻")
