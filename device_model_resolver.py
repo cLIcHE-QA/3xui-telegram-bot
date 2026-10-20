@@ -9,7 +9,7 @@ from device_presentation import recognized_vpn_app
 
 _DATA = Path(__file__).resolve().parent / "docs" / "device-identifiers"
 _APPLE_ID = re.compile(r"(?:iPhone|iPad)[0-9]{1,3},[0-9]{1,3}")
-_LABEL = re.compile(r"[A-Za-zА-Яа-яЁё0-9 ._+()\-]{1,48}")
+_LABEL = re.compile(r"[A-Za-zА-Яа-яЁё0-9 ,._+()\-]{1,48}")
 _ANDROID_CODE = re.compile(r"[A-Za-z0-9_.+\-]{2,48}")
 _UNKNOWN = frozenset(("", "unknown", "unknown device", "неизвестно", "устройство", "device", "—", "-"))
 
