@@ -137,7 +137,7 @@ class C2ForgedOwnershipTests(unittest.IsolatedAsyncioTestCase):
             traffic=AsyncMock(return_value=SimpleNamespace(
                 up=1, down=2, total=10,
             )),
-            devices=AsyncMock(return_value=[]),
+            devices=AsyncMock(return_value=__import__('customer_service').CustomerDeviceInventory(devices=(), total=0)),
         )
         flags = SimpleNamespace(snapshot=AsyncMock(
             return_value=SimpleNamespace(portal_enabled=True)
