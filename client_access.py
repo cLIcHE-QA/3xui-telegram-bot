@@ -379,7 +379,6 @@ def _device_back_menu(page: int = 0) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(
             text="⬅ Устройства", callback_data=f"client:devices:page:{page}",
         )],
-        [InlineKeyboardButton(text="⬅ Личный кабинет", callback_data="client:home")],
     ])
 
 
@@ -446,7 +445,7 @@ async def _render_device_detail(call: CallbackQuery, device_id: int, page: int) 
                 text = (
                     f"{device_emoji(device.os_name, device.title)} {device.title}\n\n"
                     f"ОС: {display_os(device.os_name, device.os_version)}\n"
-                    + (f"Приложение: {device.app_name}\n" if device.app_name else "")
+                    + f"VPN-клиент: {device.app_name or 'Не определён'}\n"
                     + f"Последняя активность: {seen}"
                 )
                 capability = getattr(service, "supports_device_delete", None)
