@@ -8,6 +8,12 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## Не выпущено — понятные названия мобильных HWID (Issue #830)
+
+- Единое read-only отображение модели для админки и Client Portal: справочник Apple идентификаторов `iPhone`/`iPad`, однозначные Android `Device ID`, строгий fallback при неизвестном устройстве и извлечение Apple Model ID из валидированного хвоста `User-Agent`.
+- При конфликте служебных ID не угадывать точную модель. `iPad` при реально заявленной `macOS` отображается как `Mac (модель не определена)`, без добавления Mac lookup.
+- Идентификатор HWID, RBAC/ownership, подтверждения/DELETE и схема SQLite не меняются. Изменения не Published, не Deployed и не Accepted до отдельных этапов.
+
 ## Не выпущено — универсальное имя VPN-клиента (Issue #827, implementation PR PENDING)
 
 - В будущей версии поле `VPN-клиент` сможет безопасно извлекать любое синтаксически допустимое название из `userAgent` без фиксированного списка: `V2Box 10.1.9/iOS 26.5.1` → `V2Box`, `v2rayNG/1.9` → `v2rayNG`, `sing-box/1.12` → `sing-box`; версии и raw metadata в UI не выводятся.
