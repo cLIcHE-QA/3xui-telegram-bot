@@ -74,7 +74,7 @@ def _platform(os_name: str) -> str:
 
 
 def _ua_apple_code(raw: object) -> str:
-    if not isinstance(raw, str) or not recognized_vpn_app(raw):
+    if not isinstance(raw, str) or recognized_vpn_app(raw) != "Shadowrocket":
         return ""
     # Только верифицируемый terminus Apple ID в известном форм-факторе UA.
     found = re.search(r" CFNetwork/[0-9.]+ Darwin/[0-9.]+ ((?:iPhone|iPad)[0-9]+,[0-9]+)$", raw)
