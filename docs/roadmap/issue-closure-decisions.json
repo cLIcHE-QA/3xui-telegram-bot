@@ -180,11 +180,11 @@
     },
     {
       "issue": 472,
-      "decision": "keep_open",
-      "accepted": "operator-reported H9/H10 PASS marked, outcome X2 and separate X1/X3 approval/postcondition/no-replay values not supplied",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
+      "decision": "completed",
+      "accepted": "operator-reported S1-S4 and H9/H10 PASS, explicit owner confirmation on 2026-10-20 22:59 EEST: close #472; destructive X1/X3 and X2 detailed provenance not independently supplied",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-owner-final-closure.md",
       "date": "2026-10-20",
-      "comment": "keep_open: X2 фактический итог и реальные X1/X3 DELETE approval/outcome/postcondition не описаны; не инициировать новые production DELETE"
+      "comment": "completed by explicit owner acceptance; no independent VPS or mutation/postcondition attestation; G-11 PARTIAL/NO-GO, no new DELETE performed"
     },
     {
       "issue": 820,
