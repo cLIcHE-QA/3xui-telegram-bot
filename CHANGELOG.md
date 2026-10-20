@@ -8,6 +8,15 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), но отдельного нового Release/deployment ещё нет. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## v5.0.0-rc.18.2 — VPN-клиенты и постраничные устройства
+
+- [PR #821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) / [#816](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/816): карточка собственного HWID всегда показывает «VPN-клиент», безопасно распознаёт Happ, Incy и Shadowrocket по валидированному префиксу `userAgent`; для неизвестного клиента выводит «Не определён», не раскрывая сырой `userAgent`.
+- [PR #821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) / [#814](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/814): фактическая `macOS (Designed for iPad)` определяет эмодзи `💻`, даже если модель содержит iPad; на `iPadOS` остаётся `📱`.
+- [PR #821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) / [#820](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/820): административный HWID-список использует компактное описание и эмодзи как Client Portal, не более 8 устройств на страницу, кнопки навигации и возврат на исходную страницу; клиентский список сохраняет лимит 5 устройств на страницу.
+- [PR #821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) / [#471](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/471): из клиентской подробной HWID-карточки оставлен переход «⬅ Устройства»; кнопка «Личный кабинет» остаётся в списке.
+- **Совместимость и безопасность:** SQLite schema v15, API 3x-ui v3.10.2, RBAC, ownership, стабильные callback-ID и guarded DELETE/no-replay не изменялись. Regression/CI подтверждены; неизвестные и недоверенные `userAgent` не передаются в UI.
+- **Controlled canary:** выпуск `rc.18.2` через отдельный release-prep PR и штатный immutable prerelease workflow не выполняет production deployment. Предыдущий `rc.18.1` опубликован и operator-reported deployed, targeted A4/A5 там **FAIL**. После отдельно разрешённого deployment `rc.18.2` необходим scoped read-only smoke VPN-клиента, emoji, admin 8/client 5 pagination, Back и post-smoke health. #814/#816/#820/#471 остаются OPEN до собственного acceptance; X2/X1/X3 provenance #472 PENDING. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+
 ## v5.0.0-rc.18.1 — Версия ОС, тип устройства и Happ/Incy в HWID-карточке
 
 - [PR #815](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/815) / [#814](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/814): real upstream `osVersion` дополняет `deviceOs` в списке и карточке зарегистрированных HWID, без догадки и повторов; безопасные `📱`, `💻`, `🖥️`, `🔹` отражают только консервативный UI form-factor.
