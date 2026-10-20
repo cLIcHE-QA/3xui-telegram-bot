@@ -65,6 +65,7 @@
 
 | Целевой RC | Задачи | Зависимости перед включением |
 | --- | --- | --- |
+| **v5.0.0-rc.18.3** | #827 | Универсальное безопасное display-only имя VPN-клиента после merged #828; release-prep, immutable Published tag, операторское Deployed и targeted UI/privacy/health acceptance **PENDING**, выпуск отдельно не разрешён |
 | **v5.0.0-rc.19** | #473, #497 | Карточка #497 — стабильный контекст; #473 только verified deep-links, безопасный URL/QR fallback; #476 не обязательный полный prerequisite |
 | **v5.0.0-rc.20** | #498, #505 | #498 после #497 и с необходимыми доказательствами Master/Node #487 и API budget #482; FAQ/общий Support #505 независимо |
 | **v5.0.0-rc.21** | #506, #564 | #506: Stars-first без обязательного #336; #564: сохранить старые guarded redirects |
@@ -115,7 +116,7 @@
 | [#701](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/701) | ⬜ Запланировано | — | TBD | 2026-10-16: новый Issue; Host Groups 3x-ui read-only уже по закрытому #422, локальные User Groups — отдельная модель | Группы **клиентов 3x-ui**: read-only Master API, позднее guarded membership/CRUD; не смешивать Telegram audience и Host/Server Groups; #496 отдельно | L|
 | [#702](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/702) | ⬜ Запланировано | — | TBD | 2026-10-16: новый Issue, пример `page-mascot`; собственной страницы подписки пока нет | После появления custom subscription page: optional mascot, лицензия/ассеты, reduced-motion, privacy и мобильная доступность; действующий proxy не менять | M|
 | [#703](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/703) | ⬜ Запланировано | — | TBD | 2026-10-16: новый Issue, пример iwtsy.com; публичный API третьей стороны не подтверждён | Только свои/разрешённые адреса: региональные TCP/SSH probes, различать connect/RST/banner/timeout; consent, SSRF, rate limits, внешний API или собственные probes; #478 — отдельная система | XL|
-| [#827](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/827) | ⬜ Запланировано | — | TBD | 2026-10-20: новый scope после завершённого #816; оператор одобрил универсальное best-effort имя VPN-клиента | Parser без allowlist, безопасное отображение/регрессия V2Box/v2rayNG/sing-box; implementation PR и CI до merge, Published/Deployed/targeted acceptance PENDING | S|
+| [#827](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/827) | 🟡 Реализовано в main | [#828](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/828) | **v5.0.0-rc.18.3 (план, не Published)** | 2026-10-20: [#828](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/828) squash MERGED, main SHA `7fab1bdb0e34e6abb05c96b03366a1a297771709`; required `test`/`title` PASS; operator назначил rc.18.3 без разрешения release | Отдельно разрешённый release-prep/Publish/Deployed PENDING; scoped read-only HWID/V2Box/unknown/privacy/health и решение по Issue после реального deployment; #827 keep_open, G-11 PARTIAL/NO-GO | S|
 | [#707](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/707) | ⬜ Запланировано | [#708](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/708) | TBD | Оператор утвердил юристом подготовленные Terms/Privacy и возвраты по соглашению | План раздела «Документы и условия»: /legal/terms, /legal/privacy, /legal/tariffs; версия/акцепт перед XTR/RUB, без публикации тестового URL; #433/#434/#436 superseded | L|
 
 ## Завершённые HWID Issue scopes (2026-10-20, operator-reported)
