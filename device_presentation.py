@@ -4,10 +4,41 @@ from __future__ import annotations
 import re
 
 
+def _windows_os(os_name: str, os_version: str) -> str | None:
+    """Нормализовать только доказанный Windows major, не выводить его из NT 10.0."""
+    if not isinstance(os_name, str) or len(os_name) > 80:
+        return None
+    raw = os_name.strip()
+    match = re.fullmatch(
+        r"Windows[ ]+(10|11|8(?:[.]1)?|7)(?:[_ ]10[.]0(?:[.]([0-9]{4,6}))?)?",
+        raw, re.IGNORECASE
+    )
+    if not match:
+        return None
+    major, build = match.groups()
+    version = (os_version or "").strip()
+    # Только явно согласованный build. Несовместимый osVersion — без догадок.
+    if version and not re.fullmatch(r"[0-9]{1,5}(?:[.][0-9]{1,6}){0,3}", version):
+        return None
+    if version:
+        vm = re.fullmatch(r"10[.]0(?:[.]([0-9]{4,6}))?", version)
+        if vm:
+            next_build = vm.group(1)
+            if build and next_build and build != next_build:
+                return None
+            build = build or next_build
+        elif version not in ("10", "11", "8", "8.1", "7"):
+            return None
+    return f"Windows {major}" + (f" (сборка {build})" if build else "")
+
+
 def display_os(os_name: str, os_version: str = "") -> str:
     """Never infer a version; do not duplicate it when upstream includes it in OS."""
     os_name = os_name or ""
     os_version = os_version or ""
+    normalized_windows = _windows_os(os_name, os_version)
+    if normalized_windows is not None:
+        return normalized_windows
     if not os_name:
         return "ОС неизвестна"
     if not os_version:
