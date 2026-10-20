@@ -218,7 +218,7 @@ class ClientDeviceDelete472Tests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(any(e[0] == "delete" for e in provider.events))
             call.data = confirm
             await client_access.device_delete_confirm_cb(call)
-            self.assertIn("устарело", render.await_args.args[1].lower())
+            self.assertIn("устарел", render.await_args.args[1].lower())
             self.assertFalse(any(e[0] == "delete" for e in provider.events))
 
     async def test_ui_confirmation_and_unknown_never_offer_direct_retry(self):
