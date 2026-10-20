@@ -23,7 +23,7 @@ from db import Database, UserRecord
 from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
 from device_presentation import ADMIN_DEVICE_PAGE_SIZE, admin_device_page_window, device_emoji, display_os
-from device_model_resolver import display_device_model
+from device_model_resolver import display_device_model, resolved_mobile_model_id
 from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine, ProvisioningUnknown
@@ -1048,6 +1048,7 @@ async def user_device_detail(call: CallbackQuery):
         await call.answer("Устройство не найдено.", show_alert=True)
         return
     model = _device_title(item)
+    model_id = resolved_mobile_model_id(item.get("deviceModel"), item.get("deviceOs"), item.get("userAgent"))
     os_name = str(item.get("deviceOs") or "—")[:40]
     os_version = str(item.get("osVersion") or "")[:40]
     fingerprint = str(item.get("fingerprint") or "—")[:32]
@@ -1055,7 +1056,8 @@ async def user_device_detail(call: CallbackQuery):
     text = (
         f"📱 Устройство · {await _display_label(rec)}\n\n"
         f"Модель: {model}\n"
-        f"ОС: {os_name}{(' ' + os_version) if os_version else ''}\n"
+        + (f"Model ID: {model_id}\n" if model_id else "")
+        + f"ОС: {os_name}{(' ' + os_version) if os_version else ''}\n"
         f"Fingerprint: {fingerprint}\n"
         f"User-Agent: {user_agent}\n"
         f"Первое появление: {_fmt_optional_ms(item.get('firstSeen'))}\n"
