@@ -7,11 +7,13 @@ import aiohttp
 from customer_service import (
     CustomerDevice,
     CustomerDeviceInventory,
+    CustomerDeviceDeleteRejected,
+    CustomerDeviceDeleteUnknown,
     CustomerProviderAccess,
     CustomerProviderUnavailable,
     CustomerTraffic,
 )
-from xui import XUIClient, XUIError
+from xui import XUIClient, XUIError, XUIMutationError
 
 
 def _safe_device_label(raw: object) -> str:
@@ -83,6 +85,25 @@ class XuiCustomerProvider:
         )
 
 
+    def supports_device_delete(self) -> bool:
+        """This adapter implements the pinned 3x-ui single-HWID DELETE route."""
+        return callable(getattr(self.xui, "delete_client_hwid", None))
+
+    async def delete_device(self, email: str, device_id: int) -> None:
+        """Never replay; only a definitive provider acknowledgement can succeed."""
+        if not self.supports_device_delete() or _verified_device_id(device_id) is None:
+            raise CustomerDeviceDeleteRejected("device delete is unavailable")
+        try:
+            response = await self.xui.delete_client_hwid(email, device_id)
+        except XUIMutationError as exc:
+            if exc.uncertain:
+                raise CustomerDeviceDeleteUnknown("device delete outcome unknown") from None
+            raise CustomerDeviceDeleteRejected("device delete was rejected") from None
+        except (XUIError, aiohttp.ClientError, asyncio.TimeoutError, OSError):
+            raise CustomerDeviceDeleteUnknown("device delete outcome unknown") from None
+        if not isinstance(response, dict) or response.get("success") is not True:
+            raise CustomerDeviceDeleteUnknown("device delete acknowledgement unavailable")
+
     async def devices(self, email: str) -> CustomerDeviceInventory:
         """Read real HWID rows only; keep identity and quota uncertainty explicit."""
         try:
@@ -122,6 +143,13 @@ class XuiCustomerProvider:
             if device_id is not None:
                 id_counts[device_id] = id_counts.get(device_id, 0) + 1
 
+        # A complete, unambiguous ID set is required for destructive postconditions.
+        # Read-only cards can still show rows whose IDs are unknown.
+        verified_ids = (
+            frozenset(id_counts)
+            if len(id_counts) == len(items) and all(c == 1 for c in id_counts.values())
+            else None
+        )
         result: list[CustomerDevice] = []
         for item in items[:100]:
             model = _safe_device_label(item.get("deviceModel"))
@@ -141,4 +169,5 @@ class XuiCustomerProvider:
             limit=limit,
             limit_state=limit_state,
             truncated=len(items) > 100,
+            verified_ids=verified_ids,
         )

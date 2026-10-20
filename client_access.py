@@ -18,7 +18,13 @@ from admin_ui import render_callback
 from config import load_settings
 from client_flags import ClientFeatureFlags
 from client_rate_limit import SlidingWindowRateLimiter
-from customer_service import (CustomerDeviceInventory, CustomerPortalService, CustomerProviderUnavailable)
+from customer_service import (
+    CustomerDeviceDeletePrompt,
+    CustomerDeviceDeleteResult,
+    CustomerDeviceInventory,
+    CustomerPortalService,
+    CustomerProviderUnavailable,
+)
 from ui_time import format_timestamp
 from website_diagnostics import qr_png
 from version import APP_VERSION
@@ -417,23 +423,12 @@ async def devices_page_cb(call: CallbackQuery):
     await _render_devices(call, int(match.group(1)))
 
 
-@client_access_router.callback_query(F.data.startswith("client:device:"))
-async def device_detail_cb(call: CallbackQuery):
-    if not await _guard_device_callback(call):
-        return
-    match = re.fullmatch(
-        r"client:device:([1-9][0-9]{0,18}):(0|[1-9][0-9]{0,2})",
-        call.data or "",
-    )
-    if match is None or int(match.group(1)) > 2**63 - 1:
-        await call.answer("Карточка недоступна: ID UNKNOWN.", show_alert=True)
-        return
-    device_id = int(match.group(1))
-    page = int(match.group(2))
+async def _render_device_detail(call: CallbackQuery, device_id: int, page: int) -> None:
+    markup = _device_back_menu(page)
     try:
-        # Resolve ownership against a fresh provider snapshot, never a
-        # Telegram-controlled index, email, or unvalidated callback ID.
-        inventory = await _service().devices(call.from_user.id)
+        # Always resolve current Telegram identity and upstream ownership anew.
+        service = _service()
+        inventory = await service.devices(call.from_user.id)
         if inventory is None:
             text = "📱 Устройство\n\nДоступ пока не оформлен."
         else:
@@ -450,9 +445,138 @@ async def device_detail_cb(call: CallbackQuery):
                     f"ОС: {device.os_name or 'неизвестна'}\n"
                     f"Последняя активность: {seen}"
                 )
+                capability = getattr(service, "supports_device_delete", None)
+                try:
+                    allowed = callable(capability) and capability() is True
+                except Exception:
+                    allowed = False
+                if (allowed and inventory.verified_ids is not None
+                        and device_id in inventory.verified_ids):
+                    markup = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(
+                            text="🗑 Удалить устройство",
+                            callback_data=f"client:device-delete:deleteask:{device_id}:{page}",
+                        )],
+                        *_device_back_menu(page).inline_keyboard,
+                    ])
     except CustomerProviderUnavailable:
         text = "📱 Устройство\n\n⚠️ Данные провайдера временно недоступны."
-    await render_callback(call, text, reply_markup=_device_back_menu(page))
+    await render_callback(call, text, reply_markup=markup)
+    await call.answer()
+
+
+@client_access_router.callback_query(F.data.startswith("client:device:"))
+async def device_detail_cb(call: CallbackQuery):
+    if not await _guard_device_callback(call):
+        return
+    match = re.fullmatch(
+        r"client:device:([1-9][0-9]{0,18}):(0|[1-9][0-9]{0,2})",
+        call.data or "",
+    )
+    if match is None or int(match.group(1)) > 2**63 - 1:
+        await call.answer("Карточка недоступна: ID UNKNOWN.", show_alert=True)
+        return
+    await _render_device_detail(call, int(match.group(1)), int(match.group(2)))
+
+
+def _device_delete_status_text(status: str) -> str:
+    return {
+        "stale": "Подтверждение или карточка устарели. Обновите список устройств.",
+        "unsupported": "Удаление устройств этим провайдером не поддерживается.",
+        "unavailable": "⚠️ Проверить устройство и его владельца сейчас не удалось. Удаление не выполнено.",
+        "rejected": "❌ Провайдер отклонил удаление. Повторной операции не было.",
+        "unknown": (
+            "⚠️ Исход DELETE не подтверждён. Устройство могло быть удалено. "
+            "Автоматический повтор запрещён. Сначала обновите список устройств."
+        ),
+        "cooldown": "⏳ Повторное удаление временно ограничено. Обновить список можно без DELETE.",
+    }.get(status, "Операция недоступна. Обновите список устройств.")
+
+
+@client_access_router.callback_query(F.data.startswith("client:device-delete:deleteask:"))
+async def device_delete_ask_cb(call: CallbackQuery):
+    if not await _guard_device_callback(call):
+        return
+    match = re.fullmatch(
+        r"client:device-delete:deleteask:([1-9][0-9]{0,18}):(0|[1-9][0-9]{0,2})",
+        call.data or "",
+    )
+    if match is None or int(match.group(1)) > 2**63 - 1:
+        await call.answer("Некорректная карточка устройства.", show_alert=True)
+        return
+    device_id, page = int(match.group(1)), int(match.group(2))
+    result = await _service().prepare_device_delete(
+        call.from_user.id, device_id, page=page,
+    )
+    if isinstance(result, CustomerDeviceDeletePrompt):
+        # The second callback carries only an opaque one-use token, never
+        # customer ID/email or a provider identifier.
+        text = (
+            f"⚠️ Удалить устройство «{result.device.title}»?\n\n"
+            "Это отключит зарегистрированное устройство от HWID-списка. "
+            "Чтобы использовать его снова, может потребоваться повторная регистрация.\n\n"
+            "Удаляется ровно одно устройство. Подтверждение действует ограниченное время."
+        )
+        markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="🗑 Да, удалить устройство",
+                callback_data=f"client:device-delete:confirm:{result.token}",
+            )],
+            [InlineKeyboardButton(
+                text="✖ Отмена",
+                callback_data=f"client:device-delete:cancel:{result.token}",
+            )],
+        ])
+    else:
+        text = "📱 Устройства\n\n" + _device_delete_status_text(result.status)
+        markup = _device_back_menu(page)
+    await render_callback(call, text, reply_markup=markup)
+    await call.answer()
+
+
+@client_access_router.callback_query(F.data.startswith("client:device-delete:cancel:"))
+async def device_delete_cancel_cb(call: CallbackQuery):
+    if not await _guard_device_callback(call):
+        return
+    match = re.fullmatch(
+        r"client:device-delete:cancel:([A-Za-z0-9_-]{22})", call.data or "",
+    )
+    if match is None:
+        await call.answer("Подтверждение недоступно.", show_alert=True)
+        return
+    previous = await _service().cancel_device_delete(call.from_user.id, match.group(1))
+    if previous is None:
+        await call.answer("Подтверждение устарело.", show_alert=True)
+        return
+    await _render_device_detail(call, *previous)
+
+
+@client_access_router.callback_query(F.data.startswith("client:device-delete:confirm:"))
+async def device_delete_confirm_cb(call: CallbackQuery):
+    if not await _guard_device_callback(call):
+        return
+    match = re.fullmatch(
+        r"client:device-delete:confirm:([A-Za-z0-9_-]{22})", call.data or "",
+    )
+    if match is None:
+        await call.answer("Подтверждение недоступно.", show_alert=True)
+        return
+    result: CustomerDeviceDeleteResult = await _service().confirm_device_delete(
+        call.from_user.id, match.group(1),
+    )
+    if result.status == "deleted" and result.inventory is not None:
+        devices_text, markup = _device_list_view(result.inventory, result.page)
+        text = "✅ Устройство удалено.\n\n" + devices_text
+    else:
+        text = "📱 Устройства\n\n" + _device_delete_status_text(result.status)
+        markup = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="🔄 Проверить устройства",
+                callback_data="client:devices",
+            )],
+            *_device_back_menu(result.page).inline_keyboard,
+        ])
+    await render_callback(call, text, reply_markup=markup)
     await call.answer()
 
 

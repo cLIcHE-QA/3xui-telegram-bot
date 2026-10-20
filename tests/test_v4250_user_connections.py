@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import AsyncMock
 
 from admin_privileges import required_role_for_callback
-from xui import XUIClient
+from xui import XUIClient, XUIError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,6 +35,13 @@ class V4250UserConnectionsTests(unittest.IsolatedAsyncioTestCase):
             await client.client_ips("user@example.test"),
             ["203.0.113.10 (1735000000000)"],
         )
+        # A malformed row must never be silently filtered: DELETE read-back
+        # requires the complete inventory, not a partial success snapshot.
+        with self.assertRaises(XUIError):
+            await client.client_hwids("user@example.test")
+        client._request = AsyncMock(return_value={"success": True, "obj": [
+            {"id": 7, "deviceModel": "Pixel 9", "fingerprint": "abc123"},
+        ]})
         self.assertEqual(
             await client.client_hwids("user@example.test"),
             [{"id": 7, "deviceModel": "Pixel 9", "fingerprint": "abc123"}],
