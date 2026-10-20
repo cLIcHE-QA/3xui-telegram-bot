@@ -53,6 +53,7 @@ class CustomerDevice:
     # Verified, stable upstream HWID row ID. Never substitute a list index.
     device_id: int | None = None
     os_version: str = ""
+    app_name: str = ""
 
 
 @dataclass(frozen=True)
