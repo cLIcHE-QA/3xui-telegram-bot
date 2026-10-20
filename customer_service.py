@@ -84,6 +84,7 @@ class CustomerDeviceDeleteResult:
 @dataclass(frozen=True)
 class _PendingDeviceDelete:
     token: str
+    owner_email: str
     device_id: int
     page: int
     expires_at: float
@@ -340,11 +341,15 @@ class CustomerPortalService:
             if telegram_id in self._device_delete_last_attempt:
                 return CustomerDeviceDeleteResult("cooldown", page=page)
         try:
-            inventory = await self.devices(telegram_id)
+            profile = await self.profile(telegram_id, read_access=False)
+            if not profile.exists or not profile.email:
+                return CustomerDeviceDeleteResult("stale", page=page)
+            inventory = await self.provider.devices(profile.email)
         except Exception:
             return CustomerDeviceDeleteResult("unavailable", page=page)
-        if inventory is None:
-            return CustomerDeviceDeleteResult("stale", page=page)
+        if (inventory.verified_ids is None
+                or device_id not in inventory.verified_ids):
+            return CustomerDeviceDeleteResult("unavailable", page=page)
         matches = [d for d in inventory.devices if d.device_id == device_id]
         if len(matches) != 1:
             return CustomerDeviceDeleteResult("stale", page=page)
@@ -357,7 +362,7 @@ class CustomerPortalService:
                 return CustomerDeviceDeleteResult("unavailable", page=page)
             token = secrets.token_urlsafe(16)
             self._device_delete_prompts[telegram_id] = _PendingDeviceDelete(
-                token=token, device_id=device_id, page=page,
+                token=token, owner_email=profile.email, device_id=device_id, page=page,
                 expires_at=now + DEVICE_DELETE_CONFIRM_TTL_SECONDS,
             )
         return CustomerDeviceDeletePrompt(token, matches[0], page)
@@ -399,10 +404,14 @@ class CustomerPortalService:
             try:
                 # No callback-controlled customer identity/email is accepted.
                 profile = await self.profile(telegram_id, read_access=False)
-                if not profile.exists or not profile.email:
+                if (not profile.exists or not profile.email
+                        or profile.email != pending.owner_email):
                     return CustomerDeviceDeleteResult("stale", page=page)
                 before = await self.provider.devices(profile.email)
             except Exception:
+                return CustomerDeviceDeleteResult("unavailable", page=page)
+            if (before.verified_ids is None
+                    or pending.device_id not in before.verified_ids):
                 return CustomerDeviceDeleteResult("unavailable", page=page)
             if len([d for d in before.devices if d.device_id == pending.device_id]) != 1:
                 return CustomerDeviceDeleteResult("stale", page=page)
