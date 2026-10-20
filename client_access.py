@@ -354,7 +354,7 @@ def _device_list_view(
         ))
     if page + 1 < count:
         paging.append(InlineKeyboardButton(
-            text="Следующая ➡", callback_data=f"client:devices:page:{page + 1}",
+            text="➡ Следующая", callback_data=f"client:devices:page:{page + 1}",
         ))
     if paging:
         rows.append(paging)
