@@ -60,6 +60,43 @@ def _android() -> dict[str, str]:
     return {code: next(iter(names)) for code, names in by_code.items() if len(names) == 1}
 
 
+_LINUX_DISTRO = re.compile(
+    r"^(?:linux|ubuntu|debian|fedora|arch(?: linux)?|linux mint|mint|"
+    r"opensuse(?: tumbleweed| leap)?|suse(?: linux)?|centos|rocky(?: linux)?|"
+    r"almalinux|rhel|red hat enterprise linux|manjaro|kali(?: linux)?|"
+    r"pop!_os|elementary os|gentoo|nixos|raspbian|raspberry pi os)"
+    r"(?=$|[\\s0-9._(])", re.IGNORECASE
+)
+_WIN_TECHNICAL = re.compile(
+    r"^(?:desktop|laptop|win|windows)[-_][A-Za-z0-9]{4,32}(?:[_-](?:x86_64|amd64|x64|x86))?$",
+    re.IGNORECASE
+)
+_ARCH_ONLY = re.compile(r"^(?:x86_64|amd64|x64|i386|i686|aarch64|arm64)$", re.IGNORECASE)
+_OS_AS_MODEL = re.compile(
+    r"^(?:windows(?:\\s+(?:10|11|8(?:\\.1)?|7))?(?:\\s+(?:x86_64|amd64|x64|x86))?|"
+    r"(?:linux|ubuntu|debian|fedora|arch linux|linux mint|mint)"
+    r"(?:\\s+[0-9][0-9A-Za-z.\\-]*)?(?:\\s+(?:x86_64|amd64|x64|aarch64))?)$",
+    re.IGNORECASE
+)
+
+
+def _desktop_fallback(raw: str, os: str) -> str | None:
+    """Обобщаем только явно техническую модель при подтверждённом семействе ОС."""
+    o = os.casefold().strip()
+    if re.match(r"^windows(?=$|[\\s_0-9.])", o):
+        group = "Windows"
+    elif _LINUX_DISTRO.match(o):
+        group = "Linux"
+    else:
+        return None
+    normalized = raw.casefold()
+    if (normalized in _UNKNOWN or _ARCH_ONLY.fullmatch(raw)
+            or _OS_AS_MODEL.fullmatch(raw)
+            or _WIN_TECHNICAL.fullmatch(raw)):
+        return f"Устройство {group}"
+    return None
+
+
 def _platform(os_name: str) -> str:
     os_name = os_name.casefold().strip()
     if os_name.startswith("macos") or os_name.startswith("mac os"):
@@ -108,7 +145,7 @@ def display_device_model(model: object, os_name: object, user_agent: object = No
     os = _safe(os_name)
     platform = _platform(os)
     if not platform:
-        return raw or "Устройство"
+        return _desktop_fallback(raw, os) or raw or "Устройство"
     lowered = raw.casefold()
     unknown = lowered in _UNKNOWN
     if platform == "mac":
