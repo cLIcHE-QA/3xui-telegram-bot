@@ -162,6 +162,7 @@ class XuiCustomerProvider:
                 os_name=os_name,
                 last_seen=_verified_timestamp(item.get("lastSeen")),
                 device_id=device_id,
+                os_version=_safe_device_label(item.get("osVersion")),
             ))
         return CustomerDeviceInventory(
             devices=tuple(result),
