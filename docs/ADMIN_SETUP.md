@@ -4,7 +4,7 @@
 
 **Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md) — единственный канонический текущий источник. Guide ориентирован на release v5.0.0-rc.18. Текущий статус версии проверяйте только в [Roadmap](ROADMAP.md).
 
-**Release-prep, не Published/Deployed:** текущая развернутая версия остаётся операторски подтверждённой `rc.17`, независимый VPS read-back PENDING. #471/#472 входят в кандидат `rc.18`, но его выпуск/развёртывание и targeted acceptance ещё PENDING; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
+**Новый release-prep не Published/Deployed:** текущая развернутая версия остаётся операторски подтверждённой `rc.17`, независимый VPS read-back PENDING. #471/#472 входят в кандидат `rc.18`, но его выпуск/развёртывание и targeted acceptance ещё PENDING; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
 ## Перед началом: границы и безопасность
 
