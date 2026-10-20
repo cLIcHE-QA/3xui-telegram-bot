@@ -22,6 +22,7 @@ from trial_settings import parse_trial_setting
 from db import Database, UserRecord
 from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
+from device_presentation import device_emoji, display_os
 from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine, ProvisioningUnknown
@@ -957,16 +958,15 @@ async def _user_devices_view(tg_id: int, role: str | None) -> tuple[str, InlineK
         for index, item in enumerate(devices[:30], start=1):
             device_id = int(item.get("id") or 0)
             title = _device_title(item)
-            fingerprint = str(item.get("fingerprint") or "—")[:24]
-            last_seen = _fmt_optional_ms(item.get("lastSeen"))
-            lines += [
-                f"{index}. {title}",
-                f"   Fingerprint: {fingerprint}",
-                f"   Последняя активность: {last_seen}",
-            ]
+            os_name = str(item.get("deviceOs") or "")
+            os_version = str(item.get("osVersion") or "")
+            icon = device_emoji(os_name, title)
+            platform = display_os(os_name, os_version)
+            last_seen = _fmt_optional_ms(item.get("lastSeen")).split(" ", 1)[0]
+            lines.append(f"{index}. {icon} {title} · {platform} · {last_seen}")
             if device_id > 0:
                 rows.append([InlineKeyboardButton(
-                    text=f"📱 {index}. {title}"[:60],
+                    text=f"{icon} {index}. {title}"[:60],
                     callback_data=f"admin:u:device:{tg_id}:{device_id}",
                 )])
         if len(devices) > 30:
