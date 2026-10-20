@@ -67,17 +67,17 @@ def recognized_vpn_app(user_agent: object) -> str:
     first, separator, suffix = user_agent.partition("/")
     if separator:
         suffix_pattern = (
-            r"(?:[0-9]{1,15}(?:\\.[0-9]{1,15}){0,3}"
+            r"(?:[0-9]{1,15}(?:\.[0-9]{1,15}){0,3}"
             r"(?:/(?:ios|ipados|macos|android|windows)(?:/[0-9]{1,15})?)?"
             r"(?: CFNetwork/[0-9.]+ Darwin/[0-9.]+(?: [A-Za-z0-9,]+)?)?"
-            r"|(?:ios|ipados|macos|android|windows|linux)(?: [0-9]{1,3}(?:\\.[0-9]{1,3}){0,3})?)"
+            r"|(?:ios|ipados|macos|android|windows|linux)(?: [0-9]{1,3}(?:\.[0-9]{1,3}){0,3})?)"
         )
         if not re.fullmatch(suffix_pattern, suffix, re.IGNORECASE):
             return ""
 
     # The dotted version must be a separate final field, not digits belonging
     # to a brand (V2Box, v2rayNG). Never strip punctuation inside the name.
-    first = re.sub(r" [vV]?[0-9]{1,15}(?:\\.[0-9]{1,15}){1,3}$", "", first)
+    first = re.sub(r" [vV]?[0-9]{1,15}(?:\.[0-9]{1,15}){1,3}$", "", first)
     if not 2 <= len(first) <= 48:
         return ""
     # Allow multiword brands and internal hyphens/dots, but no markup,
