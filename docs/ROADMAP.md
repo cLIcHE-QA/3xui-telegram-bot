@@ -23,7 +23,7 @@
 
 ## Текущий этап: v5 Client Portal
 
-**🟠 Опубликовано; общий v5 acceptance отложен.** `v5.0.0-rc.18` Published, не Deployed/Accepted; #471/#472 OPEN до отдельных targeted smoke. Актуальные Published/Deployed/Accepted определяются только строкой `**Published:**` выше. После `rc.17` оператор отметил targeted 20/20: #760 U8, #470 Orders, #437 Support. #760/#470 CLOSED/completed; U8-4/S3/S6 доказаны только offline fixtures, не live; #707 § 9 unpublished. G-11 PARTIAL/NO-GO, public rollout BLOCKED. Прежние PASS не повторяются.
+**🟠 Опубликовано; общий v5 acceptance отложен.** `v5.0.0-rc.18` Published, Deployed только operator-reported (независимый VPS/provider read-back PENDING), не полностью Accepted; #471/#472 OPEN до unresolved security/provenance closure. `rc.18.1` только release-prep, не Published/Deployed/Accepted. Актуальные Published/Deployed/Accepted определяются только строкой `**Published:**` выше. После `rc.17` оператор отметил targeted 20/20: #760 U8, #470 Orders, #437 Support. #760/#470 CLOSED/completed; U8-4/S3/S6 доказаны только offline fixtures, не live; #707 § 9 unpublished. G-11 PARTIAL/NO-GO, public rollout BLOCKED. Прежние PASS не повторяются.
 
 ## Реестр acceptance-gates rc.9
 
