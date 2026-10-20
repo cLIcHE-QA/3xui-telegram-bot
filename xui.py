@@ -523,9 +523,11 @@ class XUIClient(VersionAPIMixin):
         )
         obj = data.get("obj")
         # Invalid/missing payload is not evidence of an empty inventory.
-        if not isinstance(obj, list):
+        if not isinstance(obj, list) or any(not isinstance(item, dict) for item in obj):
+            # Never silently drop malformed HWID rows: a partial list must not
+            # be mistaken for proof that a DELETE has completed.
             raise XUIError("Invalid HWID inventory response")
-        return [item for item in obj if isinstance(item, dict)]
+        return obj
 
     async def delete_client_hwid(self, email: str, device_id: int) -> dict[str, Any]:
         """Delete exactly one registered HWID device without automatic retry."""
