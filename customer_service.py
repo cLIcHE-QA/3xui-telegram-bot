@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
+import hmac
+import secrets
 import time
 from typing import Protocol
 
@@ -11,6 +14,19 @@ from db import CommerceOrderRecord, Database, PlanRecord
 
 class CustomerProviderUnavailable(RuntimeError):
     """Customer-facing provider read failed without exposing provider details."""
+
+
+class CustomerDeviceDeleteUnknown(RuntimeError):
+    """The provider may have committed DELETE; automatic replay is forbidden."""
+
+
+class CustomerDeviceDeleteRejected(RuntimeError):
+    """The provider deterministically rejected a single DELETE."""
+
+
+DEVICE_DELETE_CONFIRM_TTL_SECONDS = 90
+DEVICE_DELETE_COOLDOWN_SECONDS = 120
+DEVICE_DELETE_MAX_PENDING = 256
 
 
 @dataclass(frozen=True)
@@ -46,6 +62,31 @@ class CustomerDeviceInventory:
     limit: int | None = None
     limit_state: str = "unknown"  # known | disabled | unknown
     truncated: bool = False
+    # Complete, unique upstream IDs, or None when read-back cannot prove absence.
+    verified_ids: frozenset[int] | None = None
+
+
+@dataclass(frozen=True)
+class CustomerDeviceDeletePrompt:
+    token: str
+    device: CustomerDevice
+    page: int
+
+
+@dataclass(frozen=True)
+class CustomerDeviceDeleteResult:
+    # deleted | stale | unsupported | unavailable | rejected | unknown | cooldown
+    status: str
+    page: int = 0
+    inventory: CustomerDeviceInventory | None = None
+
+
+@dataclass(frozen=True)
+class _PendingDeviceDelete:
+    token: str
+    device_id: int
+    page: int
+    expires_at: float
 
 
 @dataclass(frozen=True)
@@ -84,6 +125,10 @@ class CustomerAccessProvider(Protocol):
 
     async def devices(self, email: str) -> CustomerDeviceInventory: ...
 
+    def supports_device_delete(self) -> bool: ...
+
+    async def delete_device(self, email: str, device_id: int) -> None: ...
+
 
 class CustomerPortalService:
     """Provider-neutral domain boundary for the Telegram Client Portal."""
@@ -102,6 +147,11 @@ class CustomerPortalService:
         self.provider = provider
         self.subscription_url_template = subscription_url_template
         self.checkout = checkout
+        # One-shot confirmations and serialized customer mutations are strictly
+        # process-local. Never restore a pending token after a restart.
+        self._device_delete_lock = asyncio.Lock()
+        self._device_delete_prompts: dict[int, _PendingDeviceDelete] = {}
+        self._device_delete_last_attempt: dict[int, float] = {}
 
     @staticmethod
     def _expiry_mismatch(left: int, right: int) -> bool:
@@ -251,6 +301,135 @@ class CustomerPortalService:
         if not profile.exists:
             return None
         return await self.provider.devices(profile.email)
+
+
+    def supports_device_delete(self) -> bool:
+        """Fail closed for missing, throwing or unreviewed provider capability."""
+        capability = getattr(self.provider, "supports_device_delete", None)
+        delete = getattr(self.provider, "delete_device", None)
+        if not callable(capability) or not callable(delete):
+            return False
+        try:
+            return capability() is True
+        except Exception:
+            return False
+
+    def _prune_device_delete_state(self, now: float) -> None:
+        self._device_delete_prompts = {
+            user: item for user, item in self._device_delete_prompts.items()
+            if item.expires_at > now
+        }
+        self._device_delete_last_attempt = {
+            user: instant for user, instant in self._device_delete_last_attempt.items()
+            if now - instant < DEVICE_DELETE_COOLDOWN_SECONDS
+        }
+
+    async def prepare_device_delete(
+        self, telegram_id: int, device_id: int, *, page: int = 0,
+    ) -> CustomerDeviceDeletePrompt | CustomerDeviceDeleteResult:
+        """Only issue a short-lived single-user token for a freshly owned HWID."""
+        if (type(telegram_id) is not int or telegram_id <= 0
+                or type(device_id) is not int or not 0 < device_id <= 2**63 - 1
+                or type(page) is not int or not 0 <= page <= 999):
+            return CustomerDeviceDeleteResult("stale")
+        if not self.supports_device_delete():
+            return CustomerDeviceDeleteResult("unsupported", page=page)
+        async with self._device_delete_lock:
+            self._prune_device_delete_state(time.monotonic())
+            self._device_delete_prompts.pop(telegram_id, None)
+            if telegram_id in self._device_delete_last_attempt:
+                return CustomerDeviceDeleteResult("cooldown", page=page)
+        try:
+            inventory = await self.devices(telegram_id)
+        except Exception:
+            return CustomerDeviceDeleteResult("unavailable", page=page)
+        if inventory is None:
+            return CustomerDeviceDeleteResult("stale", page=page)
+        matches = [d for d in inventory.devices if d.device_id == device_id]
+        if len(matches) != 1:
+            return CustomerDeviceDeleteResult("stale", page=page)
+        async with self._device_delete_lock:
+            now = time.monotonic()
+            self._prune_device_delete_state(now)
+            if telegram_id in self._device_delete_last_attempt:
+                return CustomerDeviceDeleteResult("cooldown", page=page)
+            if len(self._device_delete_prompts) >= DEVICE_DELETE_MAX_PENDING:
+                return CustomerDeviceDeleteResult("unavailable", page=page)
+            token = secrets.token_urlsafe(16)
+            self._device_delete_prompts[telegram_id] = _PendingDeviceDelete(
+                token=token, device_id=device_id, page=page,
+                expires_at=now + DEVICE_DELETE_CONFIRM_TTL_SECONDS,
+            )
+        return CustomerDeviceDeletePrompt(token, matches[0], page)
+
+    async def cancel_device_delete(
+        self, telegram_id: int, token: str,
+    ) -> tuple[int, int] | None:
+        """Invalidate confirmation on Cancel without provider mutations."""
+        async with self._device_delete_lock:
+            self._prune_device_delete_state(time.monotonic())
+            pending = self._device_delete_prompts.get(telegram_id)
+            if not pending or not isinstance(token, str) or not hmac.compare_digest(pending.token, token):
+                return None
+            del self._device_delete_prompts[telegram_id]
+            return pending.device_id, pending.page
+
+    async def confirm_device_delete(
+        self, telegram_id: int, token: str,
+    ) -> CustomerDeviceDeleteResult:
+        """Consume once; re-resolve owner and device, then DELETE exactly once.
+
+        A successful HTTP response is NOT a success claim until an independent
+        complete provider inventory read-back proves the ID has disappeared.
+        """
+        async with self._device_delete_lock:
+            self._prune_device_delete_state(time.monotonic())
+            pending = self._device_delete_prompts.get(telegram_id)
+            if (not pending or not isinstance(token, str)
+                    or not hmac.compare_digest(pending.token, token)):
+                return CustomerDeviceDeleteResult("stale")
+            # Consume before any network await, including an uncertain attempt.
+            del self._device_delete_prompts[telegram_id]
+            page = pending.page
+            if telegram_id in self._device_delete_last_attempt:
+                return CustomerDeviceDeleteResult("cooldown", page=page)
+            if not self.supports_device_delete():
+                return CustomerDeviceDeleteResult("unsupported", page=page)
+
+            try:
+                # No callback-controlled customer identity/email is accepted.
+                profile = await self.profile(telegram_id, read_access=False)
+                if not profile.exists or not profile.email:
+                    return CustomerDeviceDeleteResult("stale", page=page)
+                before = await self.provider.devices(profile.email)
+            except Exception:
+                return CustomerDeviceDeleteResult("unavailable", page=page)
+            if len([d for d in before.devices if d.device_id == pending.device_id]) != 1:
+                return CustomerDeviceDeleteResult("stale", page=page)
+
+            # Charge cooldown BEFORE the only possible mutation attempt.
+            self._device_delete_last_attempt[telegram_id] = time.monotonic()
+            try:
+                await self.provider.delete_device(profile.email, pending.device_id)
+            except CustomerDeviceDeleteRejected:
+                return CustomerDeviceDeleteResult("rejected", page=page)
+            except CustomerDeviceDeleteUnknown:
+                return CustomerDeviceDeleteResult("unknown", page=page)
+            except Exception:
+                # Unclassified transport/adapter errors after dispatch may have
+                # committed the mutation. Never blindly replay.
+                return CustomerDeviceDeleteResult("unknown", page=page)
+
+            try:
+                after = await self.provider.devices(profile.email)
+            except Exception:
+                return CustomerDeviceDeleteResult("unknown", page=page)
+            if (after.verified_ids is None
+                    or pending.device_id in after.verified_ids):
+                return CustomerDeviceDeleteResult("unknown", page=page)
+            return CustomerDeviceDeleteResult(
+                "deleted", page=page, inventory=after,
+            )
 
     async def diagnostics(self, telegram_id: int) -> CustomerDiagnostics:
         profile = await self.profile(telegram_id)
