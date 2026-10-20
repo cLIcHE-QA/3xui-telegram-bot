@@ -81,6 +81,27 @@ def _ua_apple_code(raw: object) -> str:
     return found.group(1) if found else ""
 
 
+
+def resolved_mobile_model_id(model: object, os_name: object, user_agent: object = None) -> str:
+    """Только однозначный заявленный Apple ID для административной диагностики."""
+    raw = _safe(model)
+    platform = _platform(_safe(os_name))
+    if platform not in ("iphone", "ipad"):
+        return ""
+    expected = "iPhone" if platform == "iphone" else "iPad"
+    direct = raw if _APPLE_ID.fullmatch(raw) else ""
+    ua_code = _ua_apple_code(user_agent)
+    if direct and ua_code and direct != ua_code:
+        return ""
+    if direct:
+        code = direct
+    elif raw.casefold() in _UNKNOWN or raw.casefold() == expected.casefold():
+        code = ua_code
+    else:
+        return ""
+    return code if code.startswith(expected) and code in _apple() else ""
+
+
 def display_device_model(model: object, os_name: object, user_agent: object = None) -> str:
     """Никаких изменений identity: результат предназначен исключительно для UI."""
     raw = _safe(model)
