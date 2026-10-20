@@ -446,7 +446,8 @@ async def _render_device_detail(call: CallbackQuery, device_id: int, page: int) 
                 text = (
                     f"{device_emoji(device.os_name, device.title)} {device.title}\n\n"
                     f"ОС: {display_os(device.os_name, device.os_version)}\n"
-                    f"Последняя активность: {seen}"
+                    + (f"Приложение: {device.app_name}\n" if device.app_name else "")
+                    + f"Последняя активность: {seen}"
                 )
                 capability = getattr(service, "supports_device_delete", None)
                 try:
