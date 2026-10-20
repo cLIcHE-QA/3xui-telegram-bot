@@ -347,7 +347,7 @@ class CustomerPortalService:
             inventory = await self.provider.devices(profile.email)
         except Exception:
             return CustomerDeviceDeleteResult("unavailable", page=page)
-        if inventory.verified_ids is None:
+        if not isinstance(inventory, CustomerDeviceInventory) or inventory.verified_ids is None:
             return CustomerDeviceDeleteResult("unavailable", page=page)
         if device_id not in inventory.verified_ids:
             return CustomerDeviceDeleteResult("stale", page=page)
@@ -411,7 +411,7 @@ class CustomerPortalService:
                 before = await self.provider.devices(profile.email)
             except Exception:
                 return CustomerDeviceDeleteResult("unavailable", page=page)
-            if before.verified_ids is None:
+            if not isinstance(before, CustomerDeviceInventory) or before.verified_ids is None:
                 return CustomerDeviceDeleteResult("unavailable", page=page)
             if pending.device_id not in before.verified_ids:
                 return CustomerDeviceDeleteResult("stale", page=page)
@@ -435,7 +435,8 @@ class CustomerPortalService:
                 after = await self.provider.devices(profile.email)
             except Exception:
                 return CustomerDeviceDeleteResult("unknown", page=page)
-            if (after.verified_ids is None
+            if (not isinstance(after, CustomerDeviceInventory)
+                    or after.verified_ids is None
                     or pending.device_id in after.verified_ids):
                 return CustomerDeviceDeleteResult("unknown", page=page)
             return CustomerDeviceDeleteResult(
