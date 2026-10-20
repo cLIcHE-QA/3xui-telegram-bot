@@ -455,7 +455,7 @@ async def _render_device_detail(call: CallbackQuery, device_id: int, page: int) 
                     markup = InlineKeyboardMarkup(inline_keyboard=[
                         [InlineKeyboardButton(
                             text="🗑 Удалить устройство",
-                            callback_data=f"client:device-delete:ask:{device_id}:{page}",
+                            callback_data=f"client:device-delete:deleteask:{device_id}:{page}",
                         )],
                         *_device_back_menu(page).inline_keyboard,
                     ])
@@ -493,12 +493,12 @@ def _device_delete_status_text(status: str) -> str:
     }.get(status, "Операция недоступна. Обновите список устройств.")
 
 
-@client_access_router.callback_query(F.data.startswith("client:device-delete:ask:"))
+@client_access_router.callback_query(F.data.startswith("client:device-delete:deleteask:"))
 async def device_delete_ask_cb(call: CallbackQuery):
     if not await _guard_device_callback(call):
         return
     match = re.fullmatch(
-        r"client:device-delete:ask:([1-9][0-9]{0,18}):(0|[1-9][0-9]{0,2})",
+        r"client:device-delete:deleteask:([1-9][0-9]{0,18}):(0|[1-9][0-9]{0,2})",
         call.data or "",
     )
     if match is None or int(match.group(1)) > 2**63 - 1:
