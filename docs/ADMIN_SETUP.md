@@ -2,9 +2,9 @@
 
 **Каноническая точка входа для оператора.** Полные команды, переменные, preflight/postconditions и ручной fallback сохранены в [пошаговых процедурах Admin Setup](ADMIN_SETUP_PROCEDURES.md). Этот документ определяет **единственный порядок действий**, но не даёт разрешения менять production. Команды на VPS, Docker, firewall, SQLite и 3x-ui выполняются только в отдельно согласованной операции.
 
-**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md) — единственный канонический текущий источник. Guide ориентирован на release v5.0.0-rc.18. Текущий статус версии проверяйте только в [Roadmap](ROADMAP.md).
+**Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md) — единственный канонический текущий источник. Guide описывает controlled pilot и release-prep `v5.0.0-rc.18.1`; опубликованным остаётся `rc.18`. Текущий статус версии проверяйте только в [Roadmap](ROADMAP.md).
 
-**Новый release-prep не Published/Deployed:** текущая развернутая версия остаётся операторски подтверждённой `rc.17`, независимый VPS read-back PENDING. #471/#472 входят в кандидат `rc.18`, но его выпуск/развёртывание и targeted acceptance ещё PENDING; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
+**Release-prep `rc.18.1` не Published/Deployed:** оператор сообщил deployed `rc.18` P0–P2/F1–F3 и scoped D1–D8/S1–S4 PASS, но независимый VPS/provider read-back отсутствует, X2 и destructive postcondition provenance PENDING. Новая версия `rc.18.1` ещё не опубликована и не развернута; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
 ## Перед началом: границы и безопасность
 
