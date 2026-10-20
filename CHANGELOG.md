@@ -6,10 +6,11 @@
 
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
-## Подготовка v5.0.0-rc.18 — клиентские HWID-карточки (#471, implementation PR)
+## Подготовка v5.0.0-rc.18 — HWID-карточки и безопасное удаление (#471, #472)
 
-- Read-only `📱 Устройства`: пагинация по пять, отдельные карточки по подтверждённому upstream `id`, короткие подписи и отдельные состояния неизвестного/отключённого HWID limit. На каждый callback выполняется свежая проверка владения, без раскрытия fingerprint/HWID и без DELETE (#472 отдельно).
-- До merge/release/deployment/targeted acceptance функция **не Published, не Deployed, не Accepted**. `APP_VERSION` остаётся `5.0.0-rc.17`, общий G-11 PARTIAL/NO-GO; номер `rc.18` только плановый.
+- #471 уже реализован в `main`: read-only `📱 Устройства`, пагинация по пять, отдельные карточки по подтверждённому upstream `id` и состояния неизвестного/отключённого HWID limit. Без разглашения fingerprint/HWID.
+- #472 в отдельном implementation PR: двухшаговое удаление ровно одного собственного HWID по одноразовому token, owner recheck перед DELETE, provider-neutral capability, cooldown, разграничение `rejected`/`unknown` и read-back без автоматического replay.
+- #472 до merge/release/deployment/targeted acceptance **не Published, не Deployed, не Accepted**; #471 после merge также требует отдельного release/deploy и scoped read-only smoke. `APP_VERSION` остаётся `5.0.0-rc.17`, общий G-11 PARTIAL/NO-GO; `rc.18` только плановый.
 
 ## v5.0.0-rc.17 — Заказы Stars и справочник возвратов для поддержки
 
