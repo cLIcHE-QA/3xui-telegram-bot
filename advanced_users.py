@@ -22,7 +22,7 @@ from trial_settings import parse_trial_setting
 from db import Database, UserRecord
 from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
-from device_presentation import device_emoji, display_os
+from device_presentation import ADMIN_DEVICE_PAGE_SIZE, admin_device_page_window, device_emoji, display_os
 from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
 from provisioning import ProvisioningEngine, ProvisioningUnknown
@@ -936,7 +936,7 @@ async def _user_connections_view(tg_id: int, role: str | None) -> tuple[str, Inl
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-async def _user_devices_view(tg_id: int, role: str | None) -> tuple[str, InlineKeyboardMarkup]:
+async def _user_devices_view(tg_id: int, role: str | None, page: int = 0) -> tuple[str, InlineKeyboardMarkup]:
     rec = await db.get(tg_id)
     if not rec:
         return "Пользователь не найден.", users_back()
@@ -950,12 +950,15 @@ async def _user_devices_view(tg_id: int, role: str | None) -> tuple[str, InlineK
             ]]),
         )
 
+    page, pages, start = admin_device_page_window(len(devices), page)
     lines = [f"📱 Устройства · {await _display_label(rec)}", ""]
     rows: list[list[InlineKeyboardButton]] = []
     if not devices:
         lines.append("— зарегистрированных HWID устройств нет")
     else:
-        for index, item in enumerate(devices[:30], start=1):
+        if pages > 1:
+            lines.append(f"Страница {page + 1}/{pages}")
+        for index, item in enumerate(devices[start:start + ADMIN_DEVICE_PAGE_SIZE], start=start + 1):
             device_id = int(item.get("id") or 0)
             title = _device_title(item)
             os_name = str(item.get("deviceOs") or "")
@@ -967,10 +970,19 @@ async def _user_devices_view(tg_id: int, role: str | None) -> tuple[str, InlineK
             if device_id > 0:
                 rows.append([InlineKeyboardButton(
                     text=f"{icon} {index}. {title}"[:60],
-                    callback_data=f"admin:u:device:{tg_id}:{device_id}",
+                    callback_data=f"admin:u:device:{tg_id}:{device_id}:{page}",
                 )])
-        if len(devices) > 30:
-            lines.append(f"… ещё {len(devices) - 30}")
+        paging: list[InlineKeyboardButton] = []
+        if page > 0:
+            paging.append(InlineKeyboardButton(
+                text="⬅ Предыдущая", callback_data=f"admin:u:devices:{tg_id}:{page - 1}",
+            ))
+        if page + 1 < pages:
+            paging.append(InlineKeyboardButton(
+                text="➡ Следующая", callback_data=f"admin:u:devices:{tg_id}:{page + 1}",
+            ))
+        if paging:
+            rows.append(paging)
     rows.append([InlineKeyboardButton(text="⬅ Подключения", callback_data=f"admin:u:connections:{tg_id}")])
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -997,16 +1009,31 @@ async def user_connections(call: CallbackQuery):
 
 @advanced_users_router.callback_query(F.data.startswith("admin:u:devices:"))
 async def user_devices(call: CallbackQuery):
-    await _render_user_section(call, _user_devices_view)
+    ok, role = await authorize_callback(db, settings, call, minimum="read_only")
+    if not ok:
+        return
+    match = re.fullmatch(r"admin:u:devices:(\d+)(?::(0|[1-9]\d{0,2}))?", call.data or "")
+    if match is None:
+        await call.answer("Некорректная страница устройств.", show_alert=True)
+        return
+    tg_id = int(match.group(1))
+    page = int(match.group(2) or "0")
+    text, kb = await _user_devices_view(tg_id, role, page)
+    await render_callback(call, text, reply_markup=kb)
+    await call.answer()
 
 
-@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:device:\d+:\d+$"))
+@advanced_users_router.callback_query(F.data.regexp(r"^admin:u:device:\d+:\d+(?::\d{1,3})?$"))
 async def user_device_detail(call: CallbackQuery):
     ok, role = await authorize_callback(db, settings, call, minimum="read_only")
     if not ok:
         return
     parts = call.data.split(":")
-    tg_id, device_id = int(parts[-2]), int(parts[-1])
+    tg_id, device_id = int(parts[3]), int(parts[4])
+    # Legacy callbacks without a page remain compatible.
+    back = f"admin:u:devices:{tg_id}"
+    if len(parts) == 6:
+        back += f":{int(parts[5])}"
     try:
         rec, item = await _find_user_device(tg_id, device_id)
     except XUIError as exc:
@@ -1014,7 +1041,7 @@ async def user_device_detail(call: CallbackQuery):
             call,
             f"⚠️ 3x-ui: {exc}",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="⬅ Устройства", callback_data=f"admin:u:devices:{tg_id}")
+                InlineKeyboardButton(text="⬅ Устройства", callback_data=back)
             ]]),
         )
         await call.answer()
@@ -1042,7 +1069,7 @@ async def user_device_detail(call: CallbackQuery):
             text="🗑 Удалить устройство",
             callback_data=f"admin:u:devdelask:{tg_id}:{device_id}",
         )])
-    rows.append([InlineKeyboardButton(text="⬅ Устройства", callback_data=f"admin:u:devices:{tg_id}")])
+    rows.append([InlineKeyboardButton(text="⬅ Устройства", callback_data=back)])
     await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await call.answer()
 
