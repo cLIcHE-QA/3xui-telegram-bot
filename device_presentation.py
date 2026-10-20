@@ -22,6 +22,11 @@ def device_emoji(os_name: str, model: str = "") -> str:
     """Conservative visual hints only. Never used for ownership or provider writes."""
     os = (os_name or "").casefold().strip()
     name = (model or "").casefold().strip()
+    # Verified actual OS takes precedence over an iPad model running a macOS app.
+    if "macos" in os or "mac os" in os:
+        if any(word in name for word in ("desktop", "imac", "mac mini", "mac pro", "workstation", "настольн")):
+            return "🖥️"
+        return "💻"
     # Explicit form-factor in model takes precedence when OS is generic.
     if any(word in name for word in ("desktop", "imac", "mac mini", "mac pro", "workstation", "настольн")):
         return "🖥️"
@@ -36,14 +41,40 @@ def device_emoji(os_name: str, model: str = "") -> str:
     return "🔹"
 
 
+ADMIN_DEVICE_PAGE_SIZE = 8
+
+
+def admin_device_page_window(total: int, page: int) -> tuple[int, int, int]:
+    """Clamp a read-only admin HWID page; never truncate the full inventory."""
+    total = max(0, total)
+    pages = max(1, (total + ADMIN_DEVICE_PAGE_SIZE - 1) // ADMIN_DEVICE_PAGE_SIZE)
+    page = max(0, min(page, pages - 1))
+    return page, pages, page * ADMIN_DEVICE_PAGE_SIZE
+
+
 def recognized_vpn_app(user_agent: object) -> str:
-    """Recognize an explicit standalone allowlisted client token; never return raw UA."""
-    if not isinstance(user_agent, str) or not 1 <= len(user_agent) <= 128:
+    """Recognize only a known first-token app; never propagate raw provider UA."""
+    if not isinstance(user_agent, str) or not 1 <= len(user_agent) <= 256:
         return ""
     if not user_agent.isascii() or any(ord(ch) < 32 or ord(ch) == 127 for ch in user_agent):
         return ""
-    # Only an application identifier followed by its optional numeric version.
-    match = re.fullmatch(r"(Happ|Incy)(?:/[0-9]+(?:\.[0-9]+){0,3})?", user_agent, re.IGNORECASE)
-    if not match:
+    # The literal app identifier is before the first slash, not anywhere in UA.
+    # An unknown identifier must never become a trusted display name.
+    prefix = user_agent.split("/", 1)[0]
+    if not re.fullmatch(r"[A-Za-z]{2,32}", prefix):
         return ""
-    return {"happ": "Happ", "incy": "Incy"}[match.group(1).casefold()]
+    known = {"happ": "Happ", "incy": "Incy", "shadowrocket": "Shadowrocket"}
+    app = known.get(prefix.casefold(), "")
+    if not app:
+        return ""
+    if "/" not in user_agent:
+        return app
+    # Validate the suffix shape; never display or trust its contents.
+    suffix = user_agent.split("/", 1)[1]
+    if not re.fullmatch(
+        r"[0-9]{1,15}(?:\.[0-9]{1,15}){0,3}(?:/(?:ios|ipados|macos|android|windows)(?:/[0-9]{1,15})?)?"
+        r"(?: CFNetwork/[0-9.]+ Darwin/[0-9.]+(?: [A-Za-z0-9,]+)?)?",
+        suffix, re.IGNORECASE,
+    ):
+        return ""
+    return app
