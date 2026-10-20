@@ -1,0 +1,15 @@
+# v5.0.0-rc.18.2 — финальное Owner acceptance и закрытие #472
+
+<!-- audit-schema: 1 -->
+- **Дата/время и часовой пояс:** 2026-10-20 22:59 UTC+03:00 (EEST); подтверждение оператора 2026-10-20T19:59:14Z.
+- **Окружение:** production controlled pilot, operator-reported; GitHub Issue state и CI read-back, без прямого доступа к VPS.
+- **Цель:** зафиксировать прямое окончательное решение оператора по ранее незакрытому #472 и завершить синхронизацию пяти HWID Issues с живым реестром.
+- **Версия и immutable tag/SHA:** `v5.0.0-rc.18.2` / `20205a56887cbdf644f604febdd9eb9ac717b914`.
+- **Scope:** ранее оператор подтвердил `S1–S4` PASS на `rc.18`, `H9/H10` PASS в production на `rc.18.2`; затем 2026-10-20T19:59:14Z прямо сообщил «закрывай #472, там все хорошо» и поручил синхронизацию Roadmap. #814/#816/#820/#471 уже закрыты по H1–H8. Новые DELETE, retries, Stars, deployment, release и restart не выполнялись.
+- **Фактический результат:** PARTIAL — #472 `CLOSED/completed` по явному operator acceptance решению; совокупный scoped HWID closure пяти Issues завершён. По отдельным destructive postconditions X1/X3 и историческому X2 нет подробного независимого evidence, их нельзя выдумывать. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+- **Источник и evidence:** operator reports 2026-10-20T19:20:38Z (deployment), 19:25:12Z (A/B/C 15/15), 19:48:40Z (H1–H10 PASS), 19:59:14Z (прямое решение закрыть #472); [Issue #472](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/472) closed/completed по GitHub API; [H1–H10 audit](2026-10-20-v5-rc18-2-hwid-final-closure-review.md); [implementation PR #810](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/810), [release tag](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.18.2), [Roadmap PR #826](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/826).
+- **Ограничения и остаточные риски:** operator-accepted не означает независимую data-plane аттестацию; содержание X2 и перечень approval/outcome/no-replay X1/X3 не представлены. Не объявлять факт production DELETE или его безопасность независимо доказанными. Исторический A4/A5 FAIL в `rc.18.1` и предыдущие PENDING не переписываются. Синхронизация с main только после разрешённого merge и GitHub read-back.
+- **Связанные Issues:** #814, #816, #820, #471, #472.
+- **Решение по Issues:** #814: completed; #816: completed; #820: completed; #471: completed; #472: completed (явный operator acceptance, подробная destructive provenance отсутствует).
+- **Следующий шаг:** обновить registry, активную таблицу Roadmap и current-state docs в PR #826; исправить регрессионный тест governance реестра, пройти `test`/`title`; отдельно разрешённый merge PR и main read-back. Общий G-11 остаётся PARTIAL/NO-GO.
+- **Раздельные состояния:** merged=implementation PR #810/#821 и docs PR #825, closure docs PR #826 OPEN до разрешения; published=`v5.0.0-rc.18.2` GitHub Release PASS; deployed=`rc.18.2` operator-reported; accepted=пять HWID Issue scopes `completed` по operator acceptance, независимый X1/X3 postcondition read-back PENDING, full v5 NOT PASS.
