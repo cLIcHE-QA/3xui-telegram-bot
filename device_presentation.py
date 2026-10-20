@@ -41,6 +41,17 @@ def device_emoji(os_name: str, model: str = "") -> str:
     return "🔹"
 
 
+ADMIN_DEVICE_PAGE_SIZE = 8
+
+
+def admin_device_page_window(total: int, page: int) -> tuple[int, int, int]:
+    """Clamp a read-only admin HWID page; never truncate the full inventory."""
+    total = max(0, total)
+    pages = max(1, (total + ADMIN_DEVICE_PAGE_SIZE - 1) // ADMIN_DEVICE_PAGE_SIZE)
+    page = max(0, min(page, pages - 1))
+    return page, pages, page * ADMIN_DEVICE_PAGE_SIZE
+
+
 def recognized_vpn_app(user_agent: object) -> str:
     """Recognize only a known first-token app; never propagate raw provider UA."""
     if not isinstance(user_agent, str) or not 1 <= len(user_agent) <= 256:
