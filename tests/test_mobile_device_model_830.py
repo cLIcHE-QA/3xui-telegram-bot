@@ -35,6 +35,8 @@ class MobileModelResolverTests(unittest.TestCase):
             ("Galaxy S24 Ultra", "Android 15", "", "Galaxy S24 Ultra"),
             ("Mac mini", "macOS 26.7", "", "Mac mini"),
             ("iPhone18,99", "iOS", "", "iPhone (модель не определена)"),
+            ("iPhone18,1", "iOS", "", "iPhone 17 Pro"),
+            ("Unknown device", "iPadOS", "", "iPad (модель не определена)"),
             ("iPad", "macOS (Designed for iPad) 26.7", "", "Mac (модель не определена)"),
         )
         for model, os_name, ua, expected in cases:
