@@ -21,6 +21,12 @@ class HwidPresentation814Tests(unittest.IsolatedAsyncioTestCase):
         result = await provider.devices("example.invalid")
         self.assertEqual([x.os_version for x in result.devices], ["15", "11"])
         self.assertEqual([x.app_name for x in result.devices], ["Happ", "Incy"])
+        self.assertEqual(recognized_vpn_app("Unknown/2.4"), "")
+        # The detail field renders a stable unknown label, not raw upstream metadata.
+        source = __import__("pathlib").Path("client_access.py").read_text(encoding="utf-8")
+        self.assertIn("VPN-клиент: {device.app_name or 'Не определён'}", source)
+        back = source.split("def _device_back_menu", 1)[1].split("async def _guard_device_callback", 1)[0]
+        self.assertNotIn("client:home", back)
         label, buttons = _device_list_view(result, 0)
         self.assertIn("📱 Pixel 9 · Android 15", label)
         self.assertIn("💻 ThinkPad · Windows 11", label)
