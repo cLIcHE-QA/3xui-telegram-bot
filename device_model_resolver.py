@@ -28,7 +28,7 @@ def _rows(filename: str):
             if not line.startswith("| "):
                 continue
             fields = [f.strip().replace("{PIPE}", "|") for f in
-                      line.strip().strip("|").replace("\\|", "{PIPE}").split("|")]
+                      line.strip().strip("|").replace("\|", "{PIPE}").split("|")]
             if len(fields) != 4 or fields[0] in ("Категория", "Retail Branding", "Производитель", ":---"):
                 continue
             if fields[0].startswith(":"):
@@ -65,7 +65,7 @@ _LINUX_DISTRO = re.compile(
     r"opensuse(?: tumbleweed| leap)?|suse(?: linux)?|centos|rocky(?: linux)?|"
     r"almalinux|rhel|red hat enterprise linux|manjaro|kali(?: linux)?|"
     r"pop!_os|elementary os|gentoo|nixos|raspbian|raspberry pi os)"
-    r"(?=$|[\\s0-9._(])", re.IGNORECASE
+    r"(?=$|[\s0-9._(])", re.IGNORECASE
 )
 _WIN_TECHNICAL = re.compile(
     r"^(?:desktop|laptop|win|windows)[-_][A-Za-z0-9]{4,32}(?:[_-](?:x86_64|amd64|x64|x86))?$",
@@ -73,9 +73,9 @@ _WIN_TECHNICAL = re.compile(
 )
 _ARCH_ONLY = re.compile(r"^(?:x86_64|amd64|x64|i386|i686|aarch64|arm64)$", re.IGNORECASE)
 _OS_AS_MODEL = re.compile(
-    r"^(?:windows(?:\\s+(?:10|11|8(?:\\.1)?|7))?(?:\\s+(?:x86_64|amd64|x64|x86))?|"
+    r"^(?:windows(?:\s+(?:10|11|8(?:\.1)?|7))?(?:\s+(?:x86_64|amd64|x64|x86))?|"
     r"(?:linux|ubuntu|debian|fedora|arch linux|linux mint|mint)"
-    r"(?:\\s+[0-9][0-9A-Za-z.\\-]*)?(?:\\s+(?:x86_64|amd64|x64|aarch64))?)$",
+    r"(?:\s+[0-9][0-9A-Za-z.\-]*)?(?:\s+(?:x86_64|amd64|x64|aarch64))?)$",
     re.IGNORECASE
 )
 
@@ -83,7 +83,7 @@ _OS_AS_MODEL = re.compile(
 def _desktop_fallback(raw: str, os: str) -> str | None:
     """Обобщаем только явно техническую модель при подтверждённом семействе ОС."""
     o = os.casefold().strip()
-    if re.match(r"^windows(?=$|[\\s_0-9.])", o):
+    if re.match(r"^windows(?=$|[\s_0-9.])", o):
         group = "Windows"
     elif _LINUX_DISTRO.match(o):
         group = "Linux"
