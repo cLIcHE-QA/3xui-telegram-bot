@@ -4,7 +4,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-from device_model_resolver import _android, _apple, display_device_model
+from device_model_resolver import _android, _apple, display_device_model, resolved_mobile_model_id
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -62,6 +62,14 @@ class MobileModelResolverTests(unittest.TestCase):
                 self.assertEqual(display_device_model("iPhone", "iOS", payload),
                                  "iPhone (модель не определена)")
 
+    def test_admin_model_id_is_optional_and_never_an_identity(self):
+        ua = "Shadowrocket/3445 CFNetwork/3860.600.12 Darwin/25.5.0 iPhone18,1"
+        self.assertEqual(resolved_mobile_model_id("iPhone18,1", "iOS"), "iPhone18,1")
+        self.assertEqual(resolved_mobile_model_id("iPhone", "iOS", ua), "iPhone18,1")
+        self.assertEqual(resolved_mobile_model_id("iPhone18,2", "iOS", ua), "")
+        self.assertEqual(resolved_mobile_model_id("iPad", "macOS", ua), "")
+        self.assertEqual(resolved_mobile_model_id("Pixel 9", "Android", ua), "")
+
     def test_catalogs_load_and_ambiguity_is_not_guessed(self):
         self.assertEqual(_apple()["iPhone18,1"], "iPhone 17 Pro")
         self.assertGreater(len(_android()), 100)
@@ -74,6 +82,7 @@ class MobileModelResolverTests(unittest.TestCase):
         self.assertIn('title=display_device_model(item.get("deviceModel"), os_name, item.get("userAgent"))', customer)
         self.assertIn('return display_device_model(', admin)
         self.assertIn('model = _device_title(item)', admin)
+        self.assertIn('Model ID: {model_id}', admin)
         self.assertIn('_verified_device_id(item.get("id"))', customer)
         self.assertIn('device_id = int(item.get("id") or 0)', admin)
         self.assertIn('callback_data=f"admin:u:device:{tg_id}:{device_id}:{page}"', admin)
