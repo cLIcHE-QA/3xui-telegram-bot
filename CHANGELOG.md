@@ -4,6 +4,8 @@
 
 > **Незавершённый post-publication checkpoint:** `v5.0.0-rc.18.5` уже GitHub Published, но нет независимого VPS read-back и подтверждённого deployment именно этого immutable tag; последнее идентифицированное operator-reported deployment — `rc.18.3`, оператор также сообщил об обновлении без точного tag/SHA. Сами GitHub Actions и offline 1269 unittest не означают Accepted; #827/#830/#833/#834/#838 OPEN/keep_open, G-11 PARTIAL/NO-GO.
 
+**Release-prep `v5.0.0-rc.18.6` (НЕ Published/Deployed/Accepted):** fix [#849](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/849) уже MERGED в `main` (SHA `79c3700a5933707e21b0e564eab2276744762d0e`), публикация только штатным release workflow после отдельного release-prep PR. Предыдущий Published — immutable `rc.18.5`.
+
 Все заметные изменения проекта фиксируются здесь на русском языке. Названия элементов интерфейса, API, переменных, таблиц и команд сохраняются в исходном виде, чтобы их можно было сопоставить с кодом.
 
 История до перехода на Git восстановлена по сохранённым релизным архивам. Для исторических версий формулировки сокращены и приведены к единому виду.
@@ -11,6 +13,13 @@
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
+
+## v5.0.0-rc.18.6 — Диагностика и безопасное распознавание Karing
+
+- [PR #849](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/849) / [#827](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/827): сохранён прежний full-match Karing User-Agent длиной 167 символов; для ровно 160-символьного обрыва известного составного UA `(Prefe` добавлен строго ограниченный fallback только при правильной последовательности версий и компонентов. Невалидные, произвольные и секретоподобные хвосты по-прежнему дают «Не определён».
+- [PR #849](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/849): административная детальная HWID-карточка сохраняет прежнюю строку `User-Agent` с preview до 160 символов и дополнительно показывает фактическую длину/отметку обрезки preview и результат полного display-only парсера. Client Portal не показывает raw UA, fingerprint или скрытые хвосты.
+- **Совместимость:** сохранены определения Throne, V2Box, OneXray, Karing, Incy, Happ, прочих безопасных generic клиентов; `deviceModel`, `deviceOs`, `osVersion`, HWID ownership/identity, RBAC, callbacks и DELETE/no-replay неизменны. Нет изменений SQLite schema v15, pinned 3x-ui API v3.10.2, подписок или платежей. Offline PR CI `test`/`title` PASS, полный unittest 1273 (2 skipped).
+- **Controlled canary:** только после отдельного deployment и независимой/операторской targeted read-only проверки фактической длины полного Karing UA, `Karing`/fallback, моделей/ОС, приватности и health можно оценивать acceptance. Новый релиз не является deployed/accepted; #827/#830/#833/#834/#838 keep_open, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 ## v5.0.0-rc.18.5 — Универсальное определение VPN-клиента по платформе
 

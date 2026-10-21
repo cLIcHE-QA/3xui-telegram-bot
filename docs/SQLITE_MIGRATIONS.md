@@ -4,6 +4,9 @@
 
 ## Текущий контракт schema
 
+- **Release-prep `v5.0.0-rc.18.6` (НЕ Published/Deployed/Accepted):** merged PR #849 меняет только read-only Karing UA presentation/administrative diagnostics; schema v15 неизменна, миграций нет. Последний Published `rc.18.5` на immutable SHA `b2bdb09778f120aa57c8415ae803394483a2ef8e`; новая версия только кандидат.
+
+
 - Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
 - **GitHub Published `v5.0.0-rc.18.5`** (immutable tag `b2bdb09778f120aa57c8415ae803394483a2ef8e`, read-back 2026-10-21T21:27:19Z): merged PR #846 добавил только read-only распознавание `Client/Platform/Version` без новой миграции. Schema остаётся v15, модели/ОС, device ownership и DELETE не менялись. Реальный deployed tag/SHA и targeted acceptance PENDING; никакой production SQLite mutation не выполнялся. [Roadmap](ROADMAP.md) — канонический Published/Deployed/Accepted status.
 - **Предыдущий Published `v5.0.0-rc.18.4`** (immutable tag `c5686b909e24c367d5b3fa118850d62011787889`) включает read-only HWID presentation #844 и не включает универсальный `Client/Platform/Version` fix #846. Исходный `rc.18.3` также не добавлял migrations; последний идентифицированный Deployed `rc.18.3` — только operator-reported, после 2026-10-21 21:28 EEST новая рабочая версия не идентифицирована; acceptance PENDING. Присвоение `APP_VERSION` само по себе не подтверждает Published/Deployed/Accepted. SQLite schema v15 неизменна; [Roadmap](ROADMAP.md) — источник актуальных release-статусов.
