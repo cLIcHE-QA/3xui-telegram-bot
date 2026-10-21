@@ -88,10 +88,50 @@ def recognized_vpn_app(user_agent: object) -> str:
 
     Neither the name nor the User-Agent authenticates a VPN application.
     """
-    if not isinstance(user_agent, str) or not 1 <= len(user_agent) <= 256:
+    if not isinstance(user_agent, str) or not 1 <= len(user_agent) <= 768:
         return ""
     if not user_agent.isascii() or any(ord(ch) < 32 or ord(ch) == 127 for ch in user_agent):
         return ""
+
+    # A syntactically valid HTTP stack is not a VPN application.
+    # Reject standalone transport/browser components before universal parsing.
+    excluded = {"dalvik", "okhttp", "mozilla", "curl", "cfnetwork",
+                "darwin", "python-requests", "go-http-client", "java"}
+    first_token = user_agent.split("/", 1)[0].strip()
+    if first_token.casefold() in excluded:
+        return ""
+    # Keep a strict bounded generic parser for unknown brands; accept only
+    # explicitly understood composite formats, never arbitrary trailing fields.
+    version = r"[0-9]{1,15}(?:[.][0-9]{1,15}){0,3}"
+    dalvik = r" Dalvik/[0-9]{1,3}(?:[.][0-9]{1,3}){1,3}(?:[+][0-9A-Za-z-]{1,20})?"
+    incy = re.fullmatch(
+        rf"INCY/({version})/(android|windows [0-9]{{1,2}}){dalvik}",
+        user_agent, re.IGNORECASE
+    )
+    if incy:
+        return "Incy"
+    # OneXray-specific secondary marker: do not mislabel the wrapper v2rayN
+    # when both versioned components and the bounded iOS app marker agree.
+    if re.fullmatch(
+        rf"v2rayN/({version}) OneXray/({version}) "
+        r"\\(net[.]yuandev[.]onexray; build:[0-9]{1,8}; ios\\)",
+        user_agent, re.IGNORECASE
+    ):
+        return "OneXray"
+    # Karing can report a list of protocol engines; they are NOT app names.
+    # Require an exact known grammar, no key/value secrets or URLs.
+    if re.fullmatch(
+        rf"Karing/({version}) platform/ios;"
+        rf"mihomo/({version});clash-verge;FLClash;"
+        rf"mihomo[.]party/v({version}) \\(clash[.]meta\\);"
+        rf"ClashMeta;v2ray;sing-box {version};NekoBox/Android/{version}"
+        rf"(?: \\(Preferences\\))?",
+        user_agent, re.IGNORECASE
+    ):
+        return "Karing"
+    # A limited simple app-version preface, but no arbitrary suffix.
+    if re.fullmatch(rf"[A-Za-z][A-Za-z0-9.-]{{1,47}}/v{version}", user_agent):
+        return first_token
 
     # Reject ambiguous or secret-like tails instead of sanitizing them into a
     # deceptively plausible name. Do not expose the suffix to the UI.
