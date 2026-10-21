@@ -1,6 +1,8 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.18.5
+# Telegram-бот для 3x-ui v5.0.0-rc.18.6
 
 **GitHub Published `v5.0.0-rc.18.5`:** универсальный bounded `Client/Platform/Version` parser из [merged PR #846](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/846) включён в immutable tag `b2bdb09778f120aa57c8415ae803394483a2ef8e` после [release PR #847](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/847). Поддержка `Throne` подтверждена offline CI; V2Box/OneXray/Karing/Incy, модели, ОС и security boundaries не изменены. Публикация не выполняет production deployment; targeted acceptance PENDING, public rollout BLOCKED.
+
+**Release-prep `v5.0.0-rc.18.6` (НЕ Published/Deployed/Accepted):** [PR #849](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/849) MERGED в `main` (SHA `79c3700a5933707e21b0e564eab2276744762d0e`); ограниченный Karing fallback для ровно 160 символов и admin-only длина/распознавание полного UA без раскрытия хвоста. Дополнительные runtime migrations отсутствуют, текущая опубликованная версия по-прежнему `rc.18.5`; target deployment и acceptance PENDING.
 
 **Актуальный GitHub Published:** [`v5.0.0-rc.18.5`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.18.5), immutable tag SHA `b2bdb09778f120aa57c8415ae803394483a2ef8e`, 2026-10-21T21:27:19Z, prerelease. Scope — безопасное определение нового User-Agent #846 поверх ранее опубликованных HWID исправлений; targeted acceptance #827/#830/#833/#834/#838 PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
