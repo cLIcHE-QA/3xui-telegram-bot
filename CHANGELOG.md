@@ -8,35 +8,15 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
-## Не выпущено — безопасные исходные HWID-поля админки (#838)
+## v5.0.0-rc.18.3 — Безопасные HWID-карточки для разных устройств
 
-- В admin detail при изменённом отображении модели/строки ОС добавлены необязательные поля `Исходная модель` и `Исходная ОС`. Непосредственные значения 3x-ui не перезаписываются.
-- Короткие значения ограничены по допустимым символам и длине; опасные поля скрываются, клиентский портал и HWID identity/DELETE не затрагиваются.
-- Кандидат `v5.0.0-rc.18.3` (план, не Published/Deployed/Accepted); targeted acceptance после отдельного разрешённого релиза.
-
-## Не выпущено — Windows OS форматирование (#834)
-
-- `Windows 10_10.0.19045` → `Windows 10 (сборка 19045)`; `Windows 10 10.0` → `Windows 10`; `Windows 11 10.0.26100` → `Windows 11 (сборка 26100)`. Linux/Ubuntu/Debian и mobile OS без изменения.
-- Никаких догадок по NT 10.0: определённый major берётся только из `deviceOs`, противоречивые входные данные остаются оригинальными. Один общий `display_os()` в admin list/detail и Client Portal; `deviceModel` не изменяется.
-- Только read-only UI; не опубликовано, не развёрнуто, targeted production smoke PENDING.
-
-## Не выпущено — Названия моделей Windows/Linux (#833)
-
-- Только явные технические значения модели (`DESKTOP-…`, `Windows 10 amd64`, `x86_64`, `Unknown device`, название Linux-дистрибутива) заменяются на `Устройство Windows` или `Устройство Linux`. Аппаратные коммерческие названия сохраняются, неизвестные ОС не классифицируются.
-- Модели Linux распознаются только при известном названии Linux-дистрибутива в `deviceOs`. Никакие версии ОС не форматируются; этот этап отдельно в #834.
-- Только read-only UI; не опубликовано, не развёрнуто, targeted production smoke PENDING.
-
-## Не выпущено — понятные названия мобильных HWID (Issue #830)
-
-- Единое read-only отображение модели для админки и Client Portal: справочник Apple идентификаторов `iPhone`/`iPad`, однозначные Android `Device ID`, строгий fallback при неизвестном устройстве и извлечение Apple Model ID из валидированного хвоста `User-Agent`; в admin detail дополнительно выводится подтверждённый по таблице `Model ID`.
-- При конфликте служебных ID не угадывать точную модель. `iPad` при реально заявленной `macOS` отображается как `Mac (модель не определена)`, без добавления Mac lookup.
-- Идентификатор HWID, RBAC/ownership, подтверждения/DELETE и схема SQLite не меняются. Изменения не Published, не Deployed и не Accepted до отдельных этапов.
-
-## Не выпущено — универсальное имя VPN-клиента (Issue #827, implementation PR PENDING)
-
-- В будущей версии поле `VPN-клиент` сможет безопасно извлекать любое синтаксически допустимое название из `userAgent` без фиксированного списка: `V2Box 10.1.9/iOS 26.5.1` → `V2Box`, `v2rayNG/1.9` → `v2rayNG`, `sing-box/1.12` → `sing-box`; версии и raw metadata в UI не выводятся.
-- Отсутствующее/опасное/неоднозначное значение остаётся «Не определён». Имя — только заявление User-Agent, без нового доверия, полномочий или изменений HWID DELETE и 3x-ui API.
-- Пакет относится к отдельному Issue #827; до merge, разрешённого Published/Deployed и targeted acceptance — PENDING. `v5.0.0-rc.18.2` не меняется, общий G-11 PARTIAL/NO-GO.
+- [PR #828](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/828) / [#827](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/827): поле `VPN-клиент` безопасно извлекает синтаксически допустимое заявленное имя из `userAgent` без фиксированного списка (`V2Box`, `v2rayNG`, `sing-box`); версии и опасные/неоднозначные значения не отображаются, fallback — «Не определён».
+- [PR #832](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/832) / [#830](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/830): общие read-only названия мобильных HWID-моделей по проверенным справочникам Apple и Android, с ограниченным извлечением Apple Model ID из `User-Agent` и консервативным fallback при неизвестном или противоречивом идентификаторе. Исходные каталоги подготовлены в [PR #831](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/831).
+- [PR #835](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/835) / [#833](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/833): технические и неизвестные названия моделей Windows/Linux заменяются на безопасные «Устройство Windows» / «Устройство Linux» только при достаточном OS-признаке; реальные коммерческие названия сохраняются.
+- [PR #836](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/836) / [#834](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/834): строки `deviceOs` Windows 10/11 нормализуются с достоверным номером сборки, например `Windows 10_10.0.19045` → `Windows 10 (сборка 19045)`; версия Windows не угадывается по NT 10.0, Linux/mobile OS не изменяются.
+- [PR #839](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/839) / [#838](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/838): в административной подробной карточке при нормализации модели/ОС доступны ограниченные фильтром необязательные поля `Исходная модель` и `Исходная ОС`; опасные значения скрываются и не попадают в клиентский интерфейс.
+- **Совместимость и безопасность:** изменения относятся к read-only HWID presentation; идентичность устройств, authorization/ownership, callback-ID, подтверждение/DELETE и no-replay не меняются. Новых SQLite migrations и расширения 3x-ui API нет: schema v15, pinned 3x-ui v3.10.2.
+- **Controlled canary:** выпуск prerelease через штатный immutable tag и GitHub Actions сам по себе не выполняет production deployment. После отдельно разрешённого deployment требуется targeted read-only HWID smoke по #827/#830/#833/#834/#838 с проверкой unsafe/unknown fallback, разграничения admin/client, неизменности DELETE и финального health. Эти Issues остаются OPEN до собственного scoped acceptance; full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 ## v5.0.0-rc.18.2 — VPN-клиенты и постраничные устройства
 
