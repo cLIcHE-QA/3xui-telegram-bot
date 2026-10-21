@@ -114,7 +114,7 @@ def recognized_vpn_app(user_agent: object) -> str:
     # when both versioned components and the bounded iOS app marker agree.
     if re.fullmatch(
         rf"v2rayN/({version}) OneXray/({version}) "
-        r"\\(net[.]yuandev[.]onexray; build:[0-9]{1,8}; ios\\)",
+        r"\(net[.]yuandev[.]onexray; build:[0-9]{1,8}; ios\)",
         user_agent, re.IGNORECASE
     ):
         return "OneXray"
@@ -123,9 +123,9 @@ def recognized_vpn_app(user_agent: object) -> str:
     if re.fullmatch(
         rf"Karing/({version}) platform/ios;"
         rf"mihomo/({version});clash-verge;FLClash;"
-        rf"mihomo[.]party/v({version}) \\(clash[.]meta\\);"
+        rf"mihomo[.]party/v({version}) \(clash[.]meta\);"
         rf"ClashMeta;v2ray;sing-box {version};NekoBox/Android/{version}"
-        rf"(?: \\(Preferences\\))?",
+        rf"(?: \(Preferences\))?",
         user_agent, re.IGNORECASE
     ):
         return "Karing"
