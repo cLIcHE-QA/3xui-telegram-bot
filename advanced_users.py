@@ -1070,8 +1070,9 @@ async def user_device_detail(call: CallbackQuery):
         + (f"Исходная ОС: {original_os}\n" if original_os else "")
         + f"ОС: {display_os(os_name, os_version)}\n"
         f"Fingerprint: {fingerprint}\n"
-        f"User-Agent: {user_agent}{ua_preview_note}\n"
-        f"Распознано по полному User-Agent: {ua_match}\n"
+        f"User-Agent: {user_agent}\n"
+        + (f"Предпросмотр UA: {ua_preview_note}\n" if ua_preview_note else "")
+        + f"Распознано по полному User-Agent: {ua_match}\n"
         f"Первое появление: {_fmt_optional_ms(item.get('firstSeen'))}\n"
         f"Последняя активность: {_fmt_optional_ms(item.get('lastSeen'))}"
     )
