@@ -1,6 +1,6 @@
 # Журнал изменений
 
-> **Implementation-кандидат `v5.0.0-rc.18.4` (НЕ Published/Deployed/Accepted):** в отдельном PR готовятся read-only HWID fallback для эмуляторов Android/macOS на iPad, строгий разбор нескольких подтверждённых составных `User-Agent` (Incy, OneXray, Karing), исключение коротких HTTP-stack имен и негативные regression tests (#827/#830). Этот абзац не является release notes и не меняет опубликованную историю `rc.18.3`; фактический состав релиза будет оформлен отдельным release-prep по `docs/RELEASES.md` после merge реализации и разрешения.
+> **Release-prep `v5.0.0-rc.18.4` (НЕ Published/Deployed/Accepted):** implementation [#844](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/844) уже squash-merged; version/release notes готовятся отдельно в PR #845. Актуальные Published и Deployed (operator-reported) остаются на `v5.0.0-rc.18.3`; полный targeted acceptance не завершён, public rollout BLOCKED.
 
 Все заметные изменения проекта фиксируются здесь на русском языке. Названия элементов интерфейса, API, переменных, таблиц и команд сохраняются в исходном виде, чтобы их можно было сопоставить с кодом.
 
