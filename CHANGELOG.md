@@ -1,6 +1,8 @@
 # Журнал изменений
 
-> **Release-prep `v5.0.0-rc.18.4` (НЕ Published/Deployed/Accepted):** implementation [#844](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/844) уже squash-merged; version/release notes готовятся отдельно в PR #845. Актуальные Published и Deployed (operator-reported) остаются на `v5.0.0-rc.18.3`; полный targeted acceptance не завершён, public rollout BLOCKED.
+> **GitHub Published `v5.0.0-rc.18.4` (2026-10-21 21:13 EEST):** immutable tag SHA `c5686b909e24c367d5b3fa118850d62011787889` после merged [PR #845](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/845). Оператор сообщил 2026-10-21 21:28 EEST об успешном обновлении, но без точного Deployed tag/SHA; независимый VPS read-back и targeted HWID acceptance PENDING. Public rollout BLOCKED.
+
+> **Новый невыпущенный fix по #827 (рабочая ветка, ещё НЕ Merged/Published/Deployed/Accepted):** универсальная безопасная грамматика `Client/Platform/Version` устраняет `Throne/Android/2.0.3` → «Не определён» без добавления нового бренда в allowlist. До merge и следующего отдельно разрешённого release текущий `rc.18.4` не содержит исправление.
 
 Все заметные изменения проекта фиксируются здесь на русском языке. Названия элементов интерфейса, API, переменных, таблиц и команд сохраняются в исходном виде, чтобы их можно было сопоставить с кодом.
 
