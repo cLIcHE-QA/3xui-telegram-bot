@@ -130,6 +130,19 @@ def recognized_vpn_app(user_agent: object) -> str:
         user_agent, re.IGNORECASE
     ):
         return "Karing"
+    # 3x-ui may supply an exactly 160-character cut of this established UA.
+    # Recognize ONLY the cut of the full, independently validated Karing
+    # fixture at the fixed "(Preferences)" terminus, never arbitrary prefixes.
+    karing_prefix = re.fullmatch(
+        rf"Karing/({version}) platform/ios;"
+        rf"mihomo/({version});clash-verge;FLClash;"
+        rf"mihomo[.]party/v({version}) \(clash[.]meta\);"
+        rf"ClashMeta;v2ray;sing-box {version};NekoBox/Android/{version}",
+        user_agent[: -len(" (Prefe")] if user_agent.endswith(" (Prefe") else "",
+        re.IGNORECASE,
+    )
+    if len(user_agent) == 160 and user_agent.endswith(" (Prefe") and karing_prefix:
+        return "Karing"
     # Versioned forms emitted by known VPN applications, with an optional
     # pre-release marker; never accept an unknown extra token or a URL.
     compatible = re.fullmatch(
