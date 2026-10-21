@@ -96,7 +96,8 @@ def recognized_vpn_app(user_agent: object) -> str:
     # A syntactically valid HTTP stack is not a VPN application.
     # Reject standalone transport/browser components before universal parsing.
     excluded = {"dalvik", "okhttp", "mozilla", "curl", "cfnetwork",
-                "darwin", "python-requests", "go-http-client", "java"}
+                "darwin", "python-requests", "go-http-client", "java",
+                "android", "ios", "ipados", "macos", "windows", "linux"}
     first_token = user_agent.split("/", 1)[0].strip()
     if first_token.casefold() in excluded:
         return ""
@@ -148,8 +149,13 @@ def recognized_vpn_app(user_agent: object) -> str:
     # deceptively plausible name. Do not expose the suffix to the UI.
     first, separator, suffix = user_agent.partition("/")
     if separator:
+        # Универсальный безопасный формат: приложение/платформа/версия.
+        # Название не зависит от списка известных VPN-клиентов; все три
+        # компонента и отсутствие произвольного хвоста обязательны.
+        platform = r"(?:android|ios|ipados|macos|windows|linux)"
         suffix_pattern = (
-            r"(?:[0-9]{1,15}(?:\.[0-9]{1,15}){0,3}"
+            rf"(?:{platform}/v?{version}(?:-(?:alpha|beta|rc)[0-9]{{0,4}})?"
+            r"|[0-9]{1,15}(?:\.[0-9]{1,15}){0,3}"
             r"(?:/(?:ios|ipados|macos|android|windows)(?:/[0-9]{1,15})?)?"
             r"(?: CFNetwork/[0-9.]+ Darwin/[0-9.]+(?: [A-Za-z0-9,]+)?)?"
             r"|(?:ios|ipados|macos|android|windows|linux)(?: [0-9]{1,3}(?:\.[0-9]{1,3}){0,3})?)"
@@ -160,7 +166,7 @@ def recognized_vpn_app(user_agent: object) -> str:
     # The dotted version must be a separate final field, not digits belonging
     # to a brand (V2Box, v2rayNG). Never strip punctuation inside the name.
     first = re.sub(r" [vV]?[0-9]{1,15}(?:\.[0-9]{1,15}){1,3}$", "", first)
-    if not 2 <= len(first) <= 48:
+    if not 2 <= len(first) <= 48 or first.casefold() in excluded:
         return ""
     # Allow multiword brands and internal hyphens/dots, but no markup,
     # URLs, key-value delimiters, or other untrusted formatting.
