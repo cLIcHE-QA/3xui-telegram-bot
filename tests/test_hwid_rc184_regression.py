@@ -15,6 +15,9 @@ class Rc184HwidRegressionTests(unittest.TestCase):
              "mihomo.party/v2.0.0 (clash.meta);ClashMeta;v2ray;sing-box 1.13.0;"
              "NekoBox/Android/1.4.1 (Preferences)", "Karing"),
             ("Happ/1.2", "Happ"),
+            ("Happ/v1.2.0", "Happ"),
+            ("Happ/1.2.3-beta", "Happ"),
+            ("INCY/3.8.8-rc1", "Incy"),
             ("V2Box 10.1.9/iOS 26.5.1", "V2Box"),
             ("v2rayNG/1.9.46", "v2rayNG"),
             ("sing-box/1.12.0", "sing-box"),
@@ -42,6 +45,8 @@ class Rc184HwidRegressionTests(unittest.TestCase):
             ("generic_x86_64", "Android 17", "Устройство Android"),
             ("emulator", "Android 17", "Устройство Android"),
             ("Pixel 9", "Android 17", "Pixel 9"),
+            ("Samsung SM-S928B/DS", "Android 17", "Samsung SM-S928B/DS"),
+            ("iphone18,1", "iOS 26.5.1", "iPhone 17 Pro"),
             ("iPad Pro (12.9-inch) (3rd generation)", "macOS (Designed for iPad) 26.7", "Mac (модель не определена)"),
             ("iPad Pro (12.9-inch) (3rd generation)", "iPadOS 26.7", "iPad Pro (12.9-inch) (3rd generation)"),
             ("Unknown device", "Androidish", "Unknown device"),
