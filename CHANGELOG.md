@@ -2,7 +2,7 @@
 
 > **GitHub Published `v5.0.0-rc.18.4` (2026-10-21 21:13 EEST):** immutable tag SHA `c5686b909e24c367d5b3fa118850d62011787889` после merged [PR #845](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/845). Оператор сообщил 2026-10-21 21:28 EEST об успешном обновлении, но без точного Deployed tag/SHA; независимый VPS read-back и targeted HWID acceptance PENDING. Public rollout BLOCKED.
 
-> **Новый невыпущенный fix по #827 (рабочая ветка, ещё НЕ Merged/Published/Deployed/Accepted):** универсальная безопасная грамматика `Client/Platform/Version` устраняет `Throne/Android/2.0.3` → «Не определён» без добавления нового бренда в allowlist. До merge и следующего отдельно разрешённого release текущий `rc.18.4` не содержит исправление.
+> **Следующий release-prep `v5.0.0-rc.18.5` (ещё НЕ Published/Deployed/Accepted):** [PR #846](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/846) MERGED в `main` (`179c34dad52cf27cb0b3e76f685fbf5c7b54647e`), required `test`/`title` PASS. Универсальное безопасное распознавание `Client/Platform/Version` исправляет `Throne/Android/2.0.3` без brand allowlist. В Published `rc.18.4` fix не входит; публикация нового RC — только отдельный release-prep PR и штатные Actions, deployment/targeted acceptance отдельно.
 
 Все заметные изменения проекта фиксируются здесь на русском языке. Названия элементов интерфейса, API, переменных, таблиц и команд сохраняются в исходном виде, чтобы их можно было сопоставить с кодом.
 
@@ -11,6 +11,14 @@
 > Первый архив проекта не имел номера версии. При миграции в Git он помечен тегом `v1.0.0` как историческая отправная точка.
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
+
+## v5.0.0-rc.18.5 — Универсальное определение VPN-клиента по платформе
+
+- [PR #846](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/846) / [#827](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/827): расширено безопасное display-only распознавание любого синтаксически допустимого `Client/Platform/Version` для Android, iOS, iPadOS, macOS, Windows и Linux без allowlist брендов: `Throne/Android/2.0.3` → `Throne`, `FutureVPN/iOS/1.2.3` → `FutureVPN`.
+- [PR #846](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/846): сохранены прежние особенности форматов `V2Box 10.1.9/iOS 26.5.1` → `V2Box`, определение `OneXray` из составного `v2rayN` User-Agent, строго заданные `Karing`/`Incy` и обычные `Happ`/`Shadowrocket`/`v2rayNG`/`sing-box`; модели iPhone/Android/Windows/Linux, iPad/macOS, ОС и admin-only исходные HWID-метаданные не меняются.
+- [PR #846](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/846): техназвания ОС/HTTP-stack, control/Unicode, нестандартные suffix, URL и `Throne/Android/2.0.3 token=secret` остаются «Не определён»; raw UA/fingerprint не выводятся в Client Portal. Offline required `test` PASS: 1269 unittest (2 skipped), `title` PASS.
+- **Совместимость и безопасность:** только read-only имя заявленного приложения, не подтверждение подлинности клиента. Без изменения `deviceModel`, `deviceOs`, SQLite schema v15, pinned 3x-ui API v3.10.2, HWID identity/ownership, RBAC, callback, DELETE/no-replay, подписок или платежей.
+- **Controlled canary:** публикация `rc.18.5` через immutable tag и GitHub Release не означает deployment/acceptance; targeted read-only HWID smoke `Throne`/неизвестный безопасный бренд/unsafe suffix, модели/ОС и health после отдельно разрешённого deployment PENDING. #827/#830/#833/#834/#838 keep_open; full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 ## v5.0.0-rc.18.4 — Корректные HWID-модели и VPN-клиенты
 
