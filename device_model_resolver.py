@@ -60,6 +60,14 @@ def _android() -> dict[str, str]:
     return {code: next(iter(names)) for code, names in by_code.items() if len(names) == 1}
 
 
+
+# Строго технические Android emulator names, без определения физической модели.
+_ANDROID_EMULATOR = re.compile(
+    r"^(?:(?:Google|Android) )?(?:sdk_gphone[A-Za-z0-9_+.-]{0,30}|"
+    r"generic(?:_x86|_x86_64|_arm64)?|emulator(?:[-_][A-Za-z0-9]{1,16})?)$",
+    re.IGNORECASE
+)
+
 _LINUX_DISTRO = re.compile(
     r"^(?:linux|ubuntu|debian|fedora|arch(?: linux)?|linux mint|mint|"
     r"opensuse(?: tumbleweed| leap)?|suse(?: linux)?|centos|rocky(?: linux)?|"
@@ -99,13 +107,13 @@ def _desktop_fallback(raw: str, os: str) -> str | None:
 
 def _platform(os_name: str) -> str:
     os_name = os_name.casefold().strip()
-    if os_name.startswith("macos") or os_name.startswith("mac os"):
+    if re.match(r"^(?:macos|mac os)(?=$|[ (0-9._])", os_name):
         return "mac"
-    if os_name.startswith("ipados"):
+    if re.match(r"^ipados(?=$|[ 0-9._])", os_name):
         return "ipad"
-    if os_name.startswith("ios"):
+    if re.match(r"^ios(?=$|[ 0-9._])", os_name):
         return "iphone"
-    if os_name.startswith("android"):
+    if re.match(r"^android(?=$|[ 0-9._])", os_name):
         return "android"
     return ""
 
@@ -184,7 +192,7 @@ def display_device_model(model: object, os_name: object, user_agent: object = No
     lowered = raw.casefold()
     unknown = lowered in _UNKNOWN
     if platform == "mac":
-        if unknown or lowered in ("ipad", "iphone") or _APPLE_ID.fullmatch(raw):
+        if unknown or lowered in ("ipad", "iphone") or _APPLE_ID.fullmatch(raw) or re.match(r"^ipad[ ]", lowered):
             return "Mac (модель не определена)"
         return raw
 
@@ -207,7 +215,7 @@ def display_device_model(model: object, os_name: object, user_agent: object = No
             return fallback
         return raw
 
-    if unknown or lowered == "android":
+    if unknown or lowered == "android" or _ANDROID_EMULATOR.fullmatch(raw):
         return "Устройство Android"
     # Android device-коды неоднозначны, разрешено лишь одно коммерческое имя.
     lookup = _android().get(raw.casefold()) if _ANDROID_CODE.fullmatch(raw) else None
