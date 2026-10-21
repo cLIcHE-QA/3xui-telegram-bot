@@ -1,7 +1,7 @@
 # GitHub publication checkpoint v5.0.0-rc.18.3 — 21.10.2026
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-21 11:52:37 UTC+03:00
+- **Дата/время и часовой пояс:** 2026-10-21 11:52 UTC+03:00
 - **Окружение:** GitHub API / GitHub Actions, read-only verification после штатной публикации
 - **Цель:** проверить наличие immutable release tag, GitHub prerelease и успешных required checks без смешения публикации с production deployment
 - **Версия и immutable tag/SHA:** `v5.0.0-rc.18.3` / `4b7785557097b6b71324e8f53e9504ad898e43c4`
