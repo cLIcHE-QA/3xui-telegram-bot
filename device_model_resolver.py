@@ -18,6 +18,8 @@ def _safe(value: object) -> str:
     if not isinstance(value, str):
         return ""
     s = " ".join(value.split())
+    if re.fullmatch(r"(?:Samsung )?SM-[A-Za-z0-9-]{4,20}/DS", s, re.IGNORECASE):
+        return s
     return s if _LABEL.fullmatch(s) and not re.search(r"[a-fA-F0-9]{16,}|[A-Za-z0-9_-]{24,}", s) else ""
 
 
@@ -49,16 +51,24 @@ def _apple() -> dict[str, str]:
 
 @lru_cache(maxsize=1)
 def _android() -> dict[str, str]:
-    by_code: dict[str, set[str]] = {}
+    by_code: dict[str, set[tuple[str, str]]] = {}
     for brand, marketing, device, model in _rows("android_all_identifiers.md"):
         code = device.strip("`")
         candidate = _safe(marketing)
-        if not _ANDROID_CODE.fullmatch(code) or not candidate:
+        vendor = _safe(brand)
+        if not _ANDROID_CODE.fullmatch(code) or not candidate or not vendor:
             continue
-        # Не используем название, совпадающее с неопределённым служебным кодом.
-        by_code.setdefault(code.casefold(), set()).add(candidate)
-    return {code: next(iter(names)) for code, names in by_code.items() if len(names) == 1}
+        # Cross-vendor Device collisions не дают уверенной коммерческой модели.
+        by_code.setdefault(code.casefold(), set()).add((vendor.casefold(), candidate))
+    return {code: next(iter(names))[1] for code, names in by_code.items() if len(names) == 1}
 
+
+# Строго технические Android emulator names, без определения физической модели.
+_ANDROID_EMULATOR = re.compile(
+    r"^(?:(?:Google|Android) )?(?:sdk_gphone[A-Za-z0-9_+.-]{0,30}|"
+    r"generic(?:_x86|_x86_64|_arm64)?|emulator(?:[-_][A-Za-z0-9]{1,16})?)$",
+    re.IGNORECASE
+)
 
 _LINUX_DISTRO = re.compile(
     r"^(?:linux|ubuntu|debian|fedora|arch(?: linux)?|linux mint|mint|"
@@ -99,13 +109,13 @@ def _desktop_fallback(raw: str, os: str) -> str | None:
 
 def _platform(os_name: str) -> str:
     os_name = os_name.casefold().strip()
-    if os_name.startswith("macos") or os_name.startswith("mac os"):
+    if re.match(r"^(?:macos|mac os)(?=$|[ (0-9._])", os_name):
         return "mac"
-    if os_name.startswith("ipados"):
+    if re.match(r"^ipados(?=$|[ 0-9._])", os_name):
         return "ipad"
-    if os_name.startswith("ios"):
+    if re.match(r"^ios(?=$|[ 0-9._])", os_name):
         return "iphone"
-    if os_name.startswith("android"):
+    if re.match(r"^android(?=$|[ 0-9._])", os_name):
         return "android"
     return ""
 
@@ -119,6 +129,14 @@ def _ua_apple_code(raw: object) -> str:
 
 
 
+def _canonical_apple_code(raw: str) -> str:
+    """Only exact Apple code syntax, case-normalized without platform inference."""
+    lower = raw.casefold()
+    canonical = ("iPhone" + raw[6:] if lower.startswith("iphone") else
+                 "iPad" + raw[4:] if lower.startswith("ipad") else raw)
+    return canonical if _APPLE_ID.fullmatch(canonical) else ""
+
+
 def resolved_mobile_model_id(model: object, os_name: object, user_agent: object = None) -> str:
     """Только однозначный заявленный Apple ID для административной диагностики."""
     raw = _safe(model)
@@ -126,7 +144,7 @@ def resolved_mobile_model_id(model: object, os_name: object, user_agent: object 
     if platform not in ("iphone", "ipad"):
         return ""
     expected = "iPhone" if platform == "iphone" else "iPad"
-    direct = raw if _APPLE_ID.fullmatch(raw) else ""
+    direct = _canonical_apple_code(raw)
     ua_code = _ua_apple_code(user_agent)
     if direct and ua_code and direct != ua_code:
         return ""
@@ -184,7 +202,7 @@ def display_device_model(model: object, os_name: object, user_agent: object = No
     lowered = raw.casefold()
     unknown = lowered in _UNKNOWN
     if platform == "mac":
-        if unknown or lowered in ("ipad", "iphone") or _APPLE_ID.fullmatch(raw):
+        if unknown or lowered in ("ipad", "iphone") or _canonical_apple_code(raw) or re.match(r"^ipad[ ]", lowered):
             return "Mac (модель не определена)"
         return raw
 
@@ -193,7 +211,7 @@ def display_device_model(model: object, os_name: object, user_agent: object = No
         fallback = f"{expected} (модель не определена)" if lowered == expected.casefold() else (
             "Устройство iOS" if platform == "iphone" else "iPad (модель не определена)"
         )
-        direct = raw if _APPLE_ID.fullmatch(raw) else ""
+        direct = _canonical_apple_code(raw)
         ua_code = _ua_apple_code(user_agent)
         # Конфликт кодов не должен приводить к ложной точной модели.
         if direct and ua_code and direct != ua_code:
@@ -207,7 +225,7 @@ def display_device_model(model: object, os_name: object, user_agent: object = No
             return fallback
         return raw
 
-    if unknown or lowered == "android":
+    if unknown or lowered == "android" or _ANDROID_EMULATOR.fullmatch(raw):
         return "Устройство Android"
     # Android device-коды неоднозначны, разрешено лишь одно коммерческое имя.
     lookup = _android().get(raw.casefold()) if _ANDROID_CODE.fullmatch(raw) else None
