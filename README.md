@@ -1,4 +1,8 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.18.3
+# Telegram-бот для 3x-ui v5.0.0-rc.18.4
+
+**Текущий release-prep (не Published):** [План совместного targeted HWID smoke](docs/CLIENT_SETUP.md) включает ранее непроверенные критерии `rc.18.3` и новые display-only исправления `rc.18.4`; ни один пункт не считается accepted до отдельного post-deploy evidence.
+
+**Текущий release-prep (не Published):** `v5.0.0-rc.18.4` — read-only HWID presentation fixes в отдельном release-prep PR; GitHub Published/production Deployed по-прежнему `v5.0.0-rc.18.3` по каноническому Roadmap. Публикация, deploy и targeted acceptance нового RC не выполнялись.
 
 **Опубликованный prerelease:** `v5.0.0-rc.18.3` — безопасные названия VPN-клиентов, мобильных и Windows/Linux HWID-моделей, форматирование Windows и ограниченная диагностика исходных полей только для админа (Issues #827/#830/#833/#834/#838). GitHub release опубликован; deployment нового RC **operator-reported**, targeted acceptance **PENDING**; public rollout BLOCKED. [Roadmap](docs/ROADMAP.md) — канонический status source.
 
