@@ -63,6 +63,8 @@
 
 Прочие незакрытые работы — в gate-реестре и [активных GitHub Issues](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues); W-03 отражает принятое оператором исключение по закрытому как `not_planned` [#466](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/466); новый PASS не заявлен. Завершённые D1 [audit](audits/2026-10-14-v5-d1-second-natural-cycle-readback.md) и G-09 [audit](audits/2026-10-14-v5-g09-natural-paid-expiry-readback.md) не являются новыми задачами. Отдельные PASS/waivers не заменяют полного v5 acceptance; новых production mutations без согласования нет.
 
+**Предлагаемый узкий UI fix `rc.18.4` (#827/#830, пока НЕ merged/Published):** уточнение отображения Android emulator, macOS/iPad и известных составных `User-Agent`, security regression против HTTP-stack false positives и некорректных OS-префиксов; пять наблюдений rc.18.3 зафиксированы в [аудите](audits/2026-10-21-v5-rc18-3-hwid-five-ui-findings.md). Не закрывать связанные Issues до новых targeted доказательств. Не относится к общему G-11 PASS.
+
 ## Будущие release-кандидаты (план после Published rc.18.3)
 
 | Целевой RC | Задачи | Зависимости перед включением |
