@@ -4,7 +4,7 @@
 
 ## Текущий контракт schema
 
-- **Release-prep `v5.0.0-rc.18.6` (НЕ Published/Deployed/Accepted):** merged PR #849 меняет только read-only Karing UA presentation/administrative diagnostics; schema v15 неизменна, миграций нет. Последний Published `rc.18.5` на immutable SHA `b2bdb09778f120aa57c8415ae803394483a2ef8e`; новая версия только кандидат.
+- **Release-prep `v5.0.0-rc.18.6` (НЕ Published/Deployed/Accepted):** merged PR #849 меняет только read-only Karing UA presentation/administrative diagnostics; schema v15 неизменна, миграций нет. Последний Published `rc.18.5` на immutable SHA `b2bdb09778f120aa57c8415ae803394483a2ef8e`; новая версия опубликована как prerelease, production deployment не подтверждён.
 
 
 - Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
