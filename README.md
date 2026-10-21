@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.18.2
+# Telegram-бот для 3x-ui v5.0.0-rc.18.3
+
+**Release-prep:** код `v5.0.0-rc.18.3` включает безопасные HWID-названия VPN-клиентов, мобильных/desktop-моделей, форматирование Windows и ограниченную диагностику исходной модели/ОС только для админа ([#827](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/827), [#830](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/830), [#833](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/833), [#834](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/834), [#838](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/838)). Версия исходного кода не доказывает Published, Deployed или Accepted; действующий проверенный checkpoint приведён ниже и в [Roadmap](docs/ROADMAP.md). Production deployment и targeted acceptance требуют отдельных разрешений и evidence. После публикации требуется независимый GitHub tag/Release read-back и отдельный post-publication Roadmap checkpoint.
 
 **Опубликовано:** `v5.0.0-rc.18.2` — GitHub prerelease с immutable tag `20205a56887cbdf644f604febdd9eb9ac717b914` (verified). Это не deployment и не acceptance. Предыдущий опубликованный `v5.0.0-rc.18.1` содержит отображение версии ОС, типа устройства и распознанного приложения Happ/Incy в карточке (#814/#816). Оператор сообщил об успешном развёртывании; targeted UI-приёмка `rc.18.1` завершилась **A4/A5 FAIL** (не PENDING), детали — в Roadmap. [Client Setup](docs/CLIENT_SETUP.md), [Roadmap](docs/ROADMAP.md).
 
