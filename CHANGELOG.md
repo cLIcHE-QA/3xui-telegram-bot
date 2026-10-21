@@ -4,7 +4,7 @@
 
 > **Незавершённый post-publication checkpoint:** `v5.0.0-rc.18.5` уже GitHub Published, но нет независимого VPS read-back и подтверждённого deployment именно этого immutable tag; последнее идентифицированное operator-reported deployment — `rc.18.3`, оператор также сообщил об обновлении без точного tag/SHA. Сами GitHub Actions и offline 1269 unittest не означают Accepted; #827/#830/#833/#834/#838 OPEN/keep_open, G-11 PARTIAL/NO-GO.
 
-**Release-prep `v5.0.0-rc.18.6` (НЕ Published/Deployed/Accepted):** fix [#849](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/849) уже MERGED в `main` (SHA `79c3700a5933707e21b0e564eab2276744762d0e`), публикация только штатным release workflow после отдельного release-prep PR. Предыдущий Published — immutable `rc.18.5`.
+> **GitHub Published `v5.0.0-rc.18.6` (2026-10-21T22:10:48Z):** immutable tag SHA `46bc24530633d9958278ab56f624c8b8d274f845` после squash-merged [release PR #850](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/850); main Python checks [39684218655](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39684218655) SUCCESS; Publish release [39684532328](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39684532328) SUCCESS. Karing fix #849 Published, actual deployment и targeted acceptance PENDING. Public rollout BLOCKED.
 
 Все заметные изменения проекта фиксируются здесь на русском языке. Названия элементов интерфейса, API, переменных, таблиц и команд сохраняются в исходном виде, чтобы их можно было сопоставить с кодом.
 
