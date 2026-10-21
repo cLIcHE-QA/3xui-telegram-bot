@@ -129,6 +129,14 @@ def _ua_apple_code(raw: object) -> str:
 
 
 
+def _canonical_apple_code(raw: str) -> str:
+    """Only exact Apple code syntax, case-normalized without platform inference."""
+    lower = raw.casefold()
+    canonical = ("iPhone" + raw[6:] if lower.startswith("iphone") else
+                 "iPad" + raw[4:] if lower.startswith("ipad") else raw)
+    return canonical if _APPLE_ID.fullmatch(canonical) else ""
+
+
 def resolved_mobile_model_id(model: object, os_name: object, user_agent: object = None) -> str:
     """Только однозначный заявленный Apple ID для административной диагностики."""
     raw = _safe(model)
@@ -136,7 +144,7 @@ def resolved_mobile_model_id(model: object, os_name: object, user_agent: object 
     if platform not in ("iphone", "ipad"):
         return ""
     expected = "iPhone" if platform == "iphone" else "iPad"
-    direct = (raw[:1].upper() + raw[1:]) if _APPLE_ID.fullmatch(raw[:1].upper() + raw[1:]) else ""
+    direct = _canonical_apple_code(raw)
     ua_code = _ua_apple_code(user_agent)
     if direct and ua_code and direct != ua_code:
         return ""
@@ -194,7 +202,7 @@ def display_device_model(model: object, os_name: object, user_agent: object = No
     lowered = raw.casefold()
     unknown = lowered in _UNKNOWN
     if platform == "mac":
-        if unknown or lowered in ("ipad", "iphone") or _APPLE_ID.fullmatch(raw) or re.match(r"^ipad[ ]", lowered):
+        if unknown or lowered in ("ipad", "iphone") or _canonical_apple_code(raw) or re.match(r"^ipad[ ]", lowered):
             return "Mac (модель не определена)"
         return raw
 
@@ -203,7 +211,7 @@ def display_device_model(model: object, os_name: object, user_agent: object = No
         fallback = f"{expected} (модель не определена)" if lowered == expected.casefold() else (
             "Устройство iOS" if platform == "iphone" else "iPad (модель не определена)"
         )
-        direct = raw if _APPLE_ID.fullmatch(raw) else ""
+        direct = _canonical_apple_code(raw)
         ua_code = _ua_apple_code(user_agent)
         # Конфликт кодов не должен приводить к ложной точной модели.
         if direct and ua_code and direct != ua_code:
