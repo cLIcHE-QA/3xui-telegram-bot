@@ -129,6 +129,17 @@ def recognized_vpn_app(user_agent: object) -> str:
         user_agent, re.IGNORECASE
     ):
         return "Karing"
+    # Versioned forms emitted by known VPN applications, with an optional
+    # pre-release marker; never accept an unknown extra token or a URL.
+    compatible = re.fullmatch(
+        rf"(Happ|Incy|Shadowrocket|V2Box|v2rayNG|sing-box)/v?{version}"
+        rf"(?:-(?:alpha|beta|rc)[0-9]{{0,4}})?",
+        user_agent, re.IGNORECASE
+    )
+    if compatible:
+        spellings = {"happ": "Happ", "incy": "Incy", "shadowrocket": "Shadowrocket",
+                     "v2box": "V2Box", "v2rayng": "v2rayNG", "sing-box": "sing-box"}
+        return spellings[compatible.group(1).casefold()]
     # A limited simple app-version preface, but no arbitrary suffix.
     if re.fullmatch(rf"[A-Za-z][A-Za-z0-9.-]{{1,47}}/v{version}", user_agent):
         return first_token
