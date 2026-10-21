@@ -4,7 +4,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18.5` (immutable tag SHA `b2bdb09778f120aa57c8415ae803394483a2ef8e`, GitHub 2026-10-21T21:27:19Z); Deployed operator-reported `v5.0.0-rc.18.3` — последний идентифицированный tag/SHA по отчёту 2026-10-21 13:34 EEST, после обновления 21:28 EEST точные tag/SHA отсутствуют. Independent VPS read-back PENDING; #827/#830/#833/#834/#838 OPEN и targeted acceptance PENDING. G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранее `rc.18.2` targeted HWID 15/15 и H1–H8 operator-reported scoped PASS, X2/X1/X3 PENDING.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18.6` (immutable tag SHA `46bc24530633d9958278ab56f624c8b8d274f845`, GitHub 2026-10-21T22:10:48Z); Deployed operator-reported `v5.0.0-rc.18.3` — последний идентифицированный tag/SHA по отчёту 2026-10-21 13:34 EEST, после обновления 21:28 EEST точные tag/SHA отсутствуют. Independent VPS read-back PENDING; #827/#830/#833/#834/#838 OPEN и targeted acceptance PENDING. G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранее `rc.18.2` targeted HWID 15/15 и H1–H8 operator-reported scoped PASS, X2/X1/X3 PENDING.
 
 ## Client Portal: тарифы и платежные ограничения
 
