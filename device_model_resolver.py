@@ -18,6 +18,8 @@ def _safe(value: object) -> str:
     if not isinstance(value, str):
         return ""
     s = " ".join(value.split())
+    if re.fullmatch(r"(?:Samsung )?SM-[A-Za-z0-9-]{4,20}/DS", s, re.IGNORECASE):
+        return s
     return s if _LABEL.fullmatch(s) and not re.search(r"[a-fA-F0-9]{16,}|[A-Za-z0-9_-]{24,}", s) else ""
 
 
@@ -49,16 +51,16 @@ def _apple() -> dict[str, str]:
 
 @lru_cache(maxsize=1)
 def _android() -> dict[str, str]:
-    by_code: dict[str, set[str]] = {}
+    by_code: dict[str, set[tuple[str, str]]] = {}
     for brand, marketing, device, model in _rows("android_all_identifiers.md"):
         code = device.strip("`")
         candidate = _safe(marketing)
-        if not _ANDROID_CODE.fullmatch(code) or not candidate:
+        vendor = _safe(brand)
+        if not _ANDROID_CODE.fullmatch(code) or not candidate or not vendor:
             continue
-        # Не используем название, совпадающее с неопределённым служебным кодом.
-        by_code.setdefault(code.casefold(), set()).add(candidate)
-    return {code: next(iter(names)) for code, names in by_code.items() if len(names) == 1}
-
+        # Cross-vendor Device collisions не дают уверенной коммерческой модели.
+        by_code.setdefault(code.casefold(), set()).add((vendor.casefold(), candidate))
+    return {code: next(iter(names))[1] for code, names in by_code.items() if len(names) == 1}
 
 
 # Строго технические Android emulator names, без определения физической модели.
