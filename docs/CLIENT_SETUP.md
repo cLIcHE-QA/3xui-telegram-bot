@@ -84,3 +84,8 @@
 ## Планируемое универсальное имя VPN-клиента (#827, ещё не Published)
 
 Только после отдельного merge, release и deployment карточка HWID сможет выводить заявленное приложением безопасное имя из `userAgent` без allowlist (`V2Box 10.1.9/iOS 26.5.1` → `V2Box`, `v2rayNG`, `sing-box`). Невалидный/неоднозначный/отсутствующий `userAgent` останется «Не определён»; это не механизм удостоверения приложения. Для targeted read-only smoke после явно разрешённого deployment требуется сравнить UI названия на собственных разрешённых test-HWID, проверить fallback/privacy, навигацию и последующий health без DELETE/Stars/3x-ui mutations. Published/Deployed/Accepted этого нового scope: PENDING; общий G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+
+
+## Подготовка targeted HWID smoke для rc.18.4 (пока не Published)
+
+По #827/#830 проверить read-only detail после отдельно разрешённого release/deploy: заявленные Incy Android/Windows с Dalvik, OneXray с wrapper v2rayN, полный (не обрезанный до 160 символов) Karing UA и unsafe suffix → безопасный fallback; Google sdk_gphone / generic Android emulator → `Устройство Android`; iPad Pro при `macOS (Designed for iPad)` → `Mac (модель не определена)`; `iPadOS` остаётся iPad. Обязательно отрицательные HTTP-stack UA, ложные OS prefixes и проверка, что клиент не получает fingerprint/raw UA; при отсутствии `deviceOs` сохранять `ОС неизвестна`. Это только план будущего объединённого targeted smoke rc.18.3+rc.18.4 и не реальная проверка или разрешение на production. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
