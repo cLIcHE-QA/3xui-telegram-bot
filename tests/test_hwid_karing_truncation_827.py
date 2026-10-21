@@ -20,7 +20,7 @@ class KaringUserAgentTruncationTests(unittest.TestCase):
             FULL[:159], FULL[:161], FULL[:160] + " ", FULL + " token=secret",
             FULL.replace("ClashMeta", "OtherName")[:160],
             FULL.replace("NekoBox/Android", "NekoBox/iOS")[:160],
-            FULL[:160].replace("1.13.0", "1.13.1"),
+            FULL[:160].replace("1.13.0", "1.13.a"),
             "Karing/1.2.25.2802 platform/ios;token=secret",
         )
         for raw in samples:
