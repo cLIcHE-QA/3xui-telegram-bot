@@ -1,8 +1,10 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.18.4
+# Telegram-бот для 3x-ui v5.0.0-rc.18.5
+
+**Release-prep `v5.0.0-rc.18.5` (ещё НЕ Published/Deployed/Accepted):** универсальный bounded `Client/Platform/Version` parser из [merged PR #846](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/846) в `main` (`179c34dad52cf27cb0b3e76f685fbf5c7b54647e`), CI `test`/`title` PASS. Отдельный release-prep PR готовит версию и canonical CHANGELOG; новый prerelease публикуется только после CI/merge через штатный GitHub Actions. Существующие модели, ОС, специальные OneXray/V2Box/Karing/Incy и security boundary не меняются. Targeted production acceptance PENDING, public rollout BLOCKED.
 
 **Актуальный GitHub Published:** [`v5.0.0-rc.18.4`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.18.4), immutable tag SHA `c5686b909e24c367d5b3fa118850d62011787889`, 2026-10-21 21:13 EEST. Он включает HWID display-only изменения #844; targeted acceptance #827/#830/#833/#834/#838 PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
-**Текущий operator-reported checkpoint (2026-10-21 21:28 EEST):** бот успешно обновлён по сообщению оператора, но точный работающий tag/SHA и независимая VPS-проверка отсутствуют. Новый `Throne/Android/2.0.3` пока даёт «Не определён»; универсальный патч `Client/Platform/Version` разрабатывается отдельно по Issue #827 и не включён в Published `rc.18.4`. Последний идентифицированный operator-reported Deployed — `rc.18.3` (2026-10-21 13:34 EEST).
+**Текущий operator-reported checkpoint (2026-10-21 21:28 EEST):** бот успешно обновлён по сообщению оператора, но точный работающий tag/SHA и независимая VPS-проверка отсутствуют. Новый `Throne/Android/2.0.3` пока даёт «Не определён»; универсальный патч `Client/Platform/Version` уже merged в `main` через PR #846 и подготавливается к выпуску в `rc.18.5` и не включён в Published `rc.18.4`. Последний идентифицированный operator-reported Deployed — `rc.18.3` (2026-10-21 13:34 EEST).
 
 **Предыдущий контролируемый пилот (исторический rc.18.2):** `v5.0.0-rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST, 15/15 targeted HWID UI `[x]` (scoped operator-reported), H1–H8 operator-reported PASS; #472 owner-accepted, независимый DELETE provenance PENDING; прежний `rc.18.1` A4/A5 FAIL — исторический. #814/#816/#820/#471 CLOSED/completed; #472 CLOSED/completed (operator-accepted), G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
