@@ -136,7 +136,7 @@ def resolved_mobile_model_id(model: object, os_name: object, user_agent: object 
     if platform not in ("iphone", "ipad"):
         return ""
     expected = "iPhone" if platform == "iphone" else "iPad"
-    direct = raw if _APPLE_ID.fullmatch(raw) else ""
+    direct = (raw[:1].upper() + raw[1:]) if _APPLE_ID.fullmatch(raw[:1].upper() + raw[1:]) else ""
     ua_code = _ua_apple_code(user_agent)
     if direct and ua_code and direct != ua_code:
         return ""
