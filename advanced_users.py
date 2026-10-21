@@ -22,7 +22,7 @@ from trial_settings import parse_trial_setting
 from db import Database, UserRecord
 from ui_time import end_of_day_timestamp, format_timestamp
 from user_ui import display_name_from_profile, user_label
-from device_presentation import ADMIN_DEVICE_PAGE_SIZE, admin_device_page_window, device_emoji, display_os
+from device_presentation import ADMIN_DEVICE_PAGE_SIZE, admin_device_page_window, device_emoji, display_os, recognized_vpn_app
 from device_model_resolver import admin_original_hwid_labels, display_device_model, resolved_mobile_model_id
 from website_diagnostics import qr_png
 from xui import DEFAULT_HWID_LIMIT, XUIClient, XUIError, XUIMutationError
@@ -1055,7 +1055,13 @@ async def user_device_detail(call: CallbackQuery):
     os_name = str(item.get("deviceOs") or "—")[:40]
     os_version = str(item.get("osVersion") or "")[:40]
     fingerprint = str(item.get("fingerprint") or "—")[:32]
-    user_agent = str(item.get("userAgent") or "—").replace("\n", " ").replace("\r", " ")[:160]
+    raw_user_agent = item.get("userAgent")
+    # Admin-only diagnostics: length and classification; never display the
+    # remainder of a long/untrusted User-Agent.
+    ua_length = len(raw_user_agent) if isinstance(raw_user_agent, str) else 0
+    ua_match = recognized_vpn_app(raw_user_agent) or "Не определён"
+    user_agent = str(raw_user_agent or "—").replace("\\n", " ").replace("\\r", " ")[:160]
+    ua_preview_note = f" (показаны первые 160 из {ua_length} символов)" if ua_length > 160 else ""
     text = (
         f"📱 Устройство · {await _display_label(rec)}\n\n"
         f"Модель: {model}\n"
