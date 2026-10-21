@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 import re
 
-from device_presentation import recognized_vpn_app
+from device_presentation import display_os, recognized_vpn_app
 
 _DATA = Path(__file__).resolve().parent / "docs" / "device-identifiers"
 _APPLE_ID = re.compile(r"(?:iPhone|iPad)[0-9]{1,3},[0-9]{1,3}")
@@ -137,6 +137,41 @@ def resolved_mobile_model_id(model: object, os_name: object, user_agent: object 
     else:
         return ""
     return code if code.startswith(expected) and code in _apple() else ""
+
+
+
+# Административная диагностика: не пересылаем без проверки произвольные
+# строки, токены, управляющие символы и Telegram/HTML-разметку из 3x-ui.
+_ADMIN_SOURCE_LABEL = re.compile(r"[A-Za-zА-Яа-яЁё0-9 ,._+()\\/-]{1,80}")
+_ADMIN_OPAQUE_VALUE = re.compile(r"[A-Za-z0-9_-]{32,}")
+
+
+def _safe_admin_source(value: object) -> str:
+    if not isinstance(value, str):
+        return ""
+    label = value.strip()
+    if not _ADMIN_SOURCE_LABEL.fullmatch(label) or _ADMIN_OPAQUE_VALUE.search(label):
+        return ""
+    return label
+
+
+def admin_original_hwid_labels(
+    source_model: object,
+    source_os: object,
+    display_model: str,
+    *,
+    model_id: str = "",
+) -> tuple[str, str]:
+    """Только дополнительные строки admin detail; никакого влияния на identity.
+
+    Исходная ОС показывается при нормализации самой строки deviceOs, а не
+    при обычном добавлении отдельного osVersion.
+    """
+    model = _safe_admin_source(source_model)
+    os_name = _safe_admin_source(source_os)
+    original_model = model if model and model != display_model and model != model_id else ""
+    original_os = os_name if os_name and display_os(os_name) != os_name else ""
+    return original_model, original_os
 
 
 def display_device_model(model: object, os_name: object, user_agent: object = None) -> str:
