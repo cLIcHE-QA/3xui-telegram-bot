@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.18.6
+# Telegram-бот для 3x-ui v5.0.0-rc.18.7
+
+**Release-prep `v5.0.0-rc.18.7` (не Published/Deployed/Accepted):** исправления #852 (191-char Karing) и #855 (desktop 🖥️, Windows OS, admin/client detail), CI и публикация через отдельный штатный PR. Опубликованный immutable `rc.18.6` сохраняется неизменным; полный v5 public rollout BLOCKED.
 
 **GitHub Published `v5.0.0-rc.18.5`:** универсальный bounded `Client/Platform/Version` parser из [merged PR #846](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/846) включён в immutable tag `b2bdb09778f120aa57c8415ae803394483a2ef8e` после [release PR #847](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/847). Поддержка `Throne` подтверждена offline CI; V2Box/OneXray/Karing/Incy, модели, ОС и security boundaries не изменены. Публикация не выполняет production deployment; targeted acceptance PENDING, public rollout BLOCKED.
 
