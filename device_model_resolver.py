@@ -179,6 +179,7 @@ def admin_original_hwid_labels(
     display_model: str,
     *,
     model_id: str = "",
+    os_version: object = "",
 ) -> tuple[str, str]:
     """Только дополнительные строки admin detail; никакого влияния на identity.
 
@@ -187,6 +188,11 @@ def admin_original_hwid_labels(
     """
     model = _safe_admin_source(source_model)
     os_name = _safe_admin_source(source_os)
+    version = _safe_admin_source(os_version)
+    if os_name.casefold() == "windows" and re.fullmatch(r"(?:10|11|8(?:[.]1)?|7)_10[.]0(?:[.][0-9]{4,6})?", version, re.IGNORECASE):
+        combined = f"{os_name} {version}"
+        if len(combined) <= 80:
+            os_name = combined
     original_model = model if model and model != display_model and model != model_id else ""
     original_os = os_name if os_name else ""
     return original_model, original_os

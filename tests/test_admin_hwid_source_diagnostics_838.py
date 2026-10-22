@@ -33,6 +33,26 @@ class AdminRawLabelsTest(unittest.TestCase):
         self.assertEqual(admin_original_hwid_labels("ThinkPad", "Windows", "ThinkPad"), ("", "Windows"))
         self.assertEqual(admin_original_hwid_labels("Dell", "Ubuntu 24.04", "Dell"), ("", "Ubuntu 24.04"))
 
+    def test_split_windows_original_os_is_admin_only(self):
+        self.assertEqual(
+            admin_original_hwid_labels("DESKTOP-TEST1234_x86_64", "Windows",
+                                       "Устройство Windows", os_version="10_10.0.19045"),
+            ("DESKTOP-TEST1234_x86_64", "Windows 10_10.0.19045"),
+        )
+        self.assertEqual(
+            admin_original_hwid_labels("Dell", "Windows", "Dell",
+                                       os_version="11_10.0.26100"),
+            ("", "Windows 11_10.0.26100"),
+        )
+        for unsafe in ("10_10.0.19045?token=secret", "<bad>10_10.0.19045",
+                       "10_10.0.19045" + "a" * 80, "10.0"):
+            with self.subTest(unsafe=unsafe):
+                self.assertEqual(
+                    admin_original_hwid_labels("Dell", "Windows", "Dell",
+                                               os_version=unsafe),
+                    ("", "Windows"),
+                )
+
     def test_never_expose_untrusted_markup_and_secrets(self):
         dangerous = (
             "<b>DESKTOP</b>", "Model\nINJECTED", "OS\rINJECTED",
@@ -53,6 +73,17 @@ class AdminRawLabelsTest(unittest.TestCase):
         self.assertIn("Исходная ОС: {original_os}", detail)
         self.assertIn('f"🧾 Исходная ОС: {original_os}\\n"', detail)
         self.assertIn('f"{model_icon} Модель: {model}\\n"', detail)
+        expected_order = (
+            'Модель: {model}',
+            'Исходная модель: {original_model}',
+            'ОС: {display_os(os_name, os_version)}',
+            'Исходная ОС: {original_os}',
+            'Model ID: {model_id}',
+            'Fingerprint: {fingerprint}',
+        )
+        positions = [detail.index(field) for field in expected_order]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn('os_version=item.get("osVersion")', detail)
         self.assertNotIn("Исходная модель:", customer)
         self.assertNotIn("Исходная ОС:", customer)
         self.assertIn('callback_data=f"admin:u:devdelask:{tg_id}:{device_id}"', detail)
