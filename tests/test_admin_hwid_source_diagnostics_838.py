@@ -73,6 +73,17 @@ class AdminRawLabelsTest(unittest.TestCase):
         self.assertIn("Исходная ОС: {original_os}", detail)
         self.assertIn('f"🧾 Исходная ОС: {original_os}\\n"', detail)
         self.assertIn('f"{model_icon} Модель: {model}\\n"', detail)
+        expected_order = (
+            'Модель: {model}',
+            'Исходная модель: {original_model}',
+            'ОС: {display_os(os_name, os_version)}',
+            'Исходная ОС: {original_os}',
+            'Model ID: {model_id}',
+            'Fingerprint: {fingerprint}',
+        )
+        positions = [detail.index(field) for field in expected_order]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn('os_version=item.get("osVersion")', detail)
         self.assertNotIn("Исходная модель:", customer)
         self.assertNotIn("Исходная ОС:", customer)
         self.assertIn('callback_data=f"admin:u:devdelask:{tg_id}:{device_id}"', detail)
