@@ -4,7 +4,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18.8` (immutable tag SHA `8695184b9aea8076e4a2acdbcba7c306ec26655b`, GitHub 2026-10-22T11:13:22Z); Deployed operator-reported `v5.0.0-rc.18.3` — последний идентифицированный tag/SHA по отчёту 2026-10-21 13:34 EEST, после обновления 21:28 EEST точные tag/SHA отсутствуют. Independent VPS read-back PENDING; #827/#830/#833/#834/#838/#854 OPEN и targeted acceptance PENDING. G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранее `rc.18.2` targeted HWID 15/15 и H1–H8 operator-reported scoped PASS, X2/X1/X3 PENDING.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18.9` (immutable tag SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e`, GitHub 2026-10-22T11:53:55Z); Deployed operator-reported `v5.0.0-rc.18.3` — последний идентифицированный tag/SHA по отчёту 2026-10-21 13:34 EEST, после обновления 21:28 EEST точные tag/SHA отсутствуют. Independent VPS read-back PENDING; #827/#830/#833/#834/#838/#854 OPEN и targeted acceptance PENDING. G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранее `rc.18.2` targeted HWID 15/15 и H1–H8 operator-reported scoped PASS, X2/X1/X3 PENDING.
 
 ## Client Portal: тарифы и платежные ограничения
 
@@ -122,4 +122,4 @@ Finding оператора 2026-10-21 21:41 UTC: клиентская карто
 
 ## Админская исходная ОС Windows 10 + 10.0 (#834, 2026-10-22)
 
-Operator-reported после обновления: 3x-ui показывает `Windows 10 10.0`, а admin-only `Исходная ОС` показывала лишь `Windows 10`. Fix вычисляет безопасную композицию `deviceOs` и `osVersion` без изменения данных провайдера и нормализованной строки `ОС: Windows 10`. Технические значения остаются admin-only; клиентский интерфейс не получает новых полей. Targeted smoke и точный deployed SHA PENDING.
+Operator-reported после обновления: 3x-ui показывает `Windows 10 10.0`, а admin-only `Исходная ОС` показывала лишь `Windows 10`. Fix [PR #861](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/861) теперь Published в `rc.18.9` и вычисляет безопасную композицию `deviceOs` и `osVersion` без изменения данных провайдера и нормализованной строки `ОС: Windows 10`. Технические значения остаются admin-only; клиентский интерфейс не получает новых полей. Targeted smoke и точный deployed SHA PENDING.
