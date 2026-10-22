@@ -230,6 +230,26 @@ class DocumentationGovernanceTests(unittest.TestCase):
         with self.assertRaisesRegex(gh.Drift, r"Issue #707 claims implemented"):
             gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", github)
 
+    def test_lifecycle_merged_ci_only_checker_is_not_runtime(self):
+        rows = {869: {"status": gh.PLANNED,
+                      "pr": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/868"}}
+        def github(repo, suffix, token=""):
+            if suffix == "/pulls/868":
+                return {"merged": True, "base": {"ref": "main"},
+                        "merge_commit_sha": "a" * 40}
+            if suffix == "/pulls/868/files?per_page=100":
+                return [{"filename": "docs/ROADMAP.md"},
+                        {"filename": "tests/test_current_release_claims.py"},
+                        {"filename": "scripts/check-documentation-semantics.py"}]
+            raise AssertionError(suffix)
+        self.assertFalse(gh.code_file("scripts/check-documentation-semantics.py"))
+        self.assertTrue(gh.code_file("scripts/deploy-release.sh"))
+        self.assertTrue(gh.code_file("bot.py"))
+        gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", github)
+        rows[869]["status"] = gh.IMPLEMENTED
+        with self.assertRaisesRegex(gh.Drift, "without merged runtime PR"):
+            gh.implementation_drift(rows, "cLIcHE-QA/3xui-telegram-bot", github)
+
     def test_lifecycle_implemented_without_merged_pr_or_link_is_rejected(self):
         rows = {752: {"status": gh.IMPLEMENTED,
                       "pr": "[PR #754](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/754)"}}
