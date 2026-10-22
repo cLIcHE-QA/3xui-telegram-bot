@@ -54,6 +54,8 @@ class CustomerDevice:
     device_id: int | None = None
     os_version: str = ""
     app_name: str = ""
+    # Только вычисленная безопасная иконка, никогда исходный deviceModel.
+    icon: str = ""
 
 
 @dataclass(frozen=True)

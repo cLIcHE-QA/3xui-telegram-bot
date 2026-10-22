@@ -28,7 +28,10 @@ def _windows_os(os_name: str, os_version: str) -> str | None:
                 return None
             build = build or next_build
         elif version not in ("10", "11", "8", "8.1", "7"):
-            return None
+            # A proven build embedded in deviceOs has precedence over an unrelated
+            # osVersion field; do not duplicate or invent an additional version.
+            if not build:
+                return None
     return f"Windows {major}" + (f" (сборка {build})" if build else "")
 
 
@@ -49,10 +52,16 @@ def display_os(os_name: str, os_version: str = "") -> str:
     return f"{os_name} {os_version}"
 
 
-def device_emoji(os_name: str, model: str = "") -> str:
+def device_emoji(os_name: str, model: str = "", source_model: object = "") -> str:
     """Conservative visual hints only. Never used for ownership or provider writes."""
     os = (os_name or "").casefold().strip()
     name = (model or "").casefold().strip()
+    # A verified desktop-shaped upstream label may be hidden by model normalization.
+    # Use only its type prefix, never display or persist its hostname.
+    if (isinstance(source_model, str) and len(source_model) <= 80
+            and re.fullmatch(r"DESKTOP-[A-Za-z0-9]{4,32}(?:[_-](?:x86_64|amd64|x64|x86))?", source_model, re.IGNORECASE)
+            and re.match(r"^windows(?=$|[ _0-9.])", os)):
+        return "🖥️"
     # Verified actual OS takes precedence over an iPad model running a macOS app.
     if "macos" in os or "mac os" in os:
         if any(word in name for word in ("desktop", "imac", "mac mini", "mac pro", "workstation", "настольн")):

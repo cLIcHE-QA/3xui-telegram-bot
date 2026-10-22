@@ -182,13 +182,13 @@ def admin_original_hwid_labels(
 ) -> tuple[str, str]:
     """Только дополнительные строки admin detail; никакого влияния на identity.
 
-    Исходная ОС показывается при нормализации самой строки deviceOs, а не
-    при обычном добавлении отдельного osVersion.
+    Показывать безопасную исходную deviceOs в admin detail независимо от
+    нормализации; osVersion не подменяет значение источника.
     """
     model = _safe_admin_source(source_model)
     os_name = _safe_admin_source(source_os)
     original_model = model if model and model != display_model and model != model_id else ""
-    original_os = os_name if os_name and display_os(os_name) != os_name else ""
+    original_os = os_name if os_name else ""
     return original_model, original_os
 
 

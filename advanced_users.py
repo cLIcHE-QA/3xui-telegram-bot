@@ -961,7 +961,7 @@ async def _user_devices_view(tg_id: int, role: str | None, page: int = 0) -> tup
             title = _device_title(item)
             os_name = str(item.get("deviceOs") or "")
             os_version = str(item.get("osVersion") or "")
-            icon = device_emoji(os_name, title)
+            icon = device_emoji(os_name, title, item.get("deviceModel"))
             platform = display_os(os_name, os_version)
             last_seen = _fmt_optional_ms(item.get("lastSeen")).split(" ", 1)[0]
             lines.append(f"{index}. {icon} {title} · {platform} · {last_seen}")
@@ -1054,6 +1054,7 @@ async def user_device_detail(call: CallbackQuery):
     )
     os_name = str(item.get("deviceOs") or "—")[:40]
     os_version = str(item.get("osVersion") or "")[:40]
+    model_icon = device_emoji(os_name, model, item.get("deviceModel"))
     fingerprint = str(item.get("fingerprint") or "—")[:32]
     raw_user_agent = item.get("userAgent")
     # Admin-only diagnostics: length and classification; never display the
@@ -1064,17 +1065,17 @@ async def user_device_detail(call: CallbackQuery):
     ua_preview_note = f" (показаны первые 160 из {ua_length} символов)" if ua_length > 160 else ""
     text = (
         f"📱 Устройство · {await _display_label(rec)}\n\n"
-        f"Модель: {model}\n"
-        + (f"Model ID: {model_id}\n" if model_id else "")
-        + (f"Исходная модель: {original_model}\n" if original_model else "")
-        + (f"Исходная ОС: {original_os}\n" if original_os else "")
-        + f"ОС: {display_os(os_name, os_version)}\n"
-        f"Fingerprint: {fingerprint}\n"
-        f"User-Agent: {user_agent}\n"
-        + (f"Предпросмотр UA: {ua_preview_note}\n" if ua_preview_note else "")
-        + f"Распознано по полному User-Agent: {ua_match}\n"
-        f"Первое появление: {_fmt_optional_ms(item.get('firstSeen'))}\n"
-        f"Последняя активность: {_fmt_optional_ms(item.get('lastSeen'))}"
+        f"{model_icon} Модель: {model}\n"
+        + (f"🆔 Model ID: {model_id}\n" if model_id else "")
+        + (f"🔎 Исходная модель: {original_model}\n" if original_model else "")
+        + (f"🧾 Исходная ОС: {original_os}\n" if original_os else "")
+        + f"🖥️ ОС: {display_os(os_name, os_version)}\n"
+        f"🔐 Fingerprint: {fingerprint}\n"
+        f"📡 User-Agent: {user_agent}\n"
+        + (f"📏 Предпросмотр UA: {ua_preview_note}\n" if ua_preview_note else "")
+        + f"🔍 Распознано по полному User-Agent: {ua_match}\n"
+        f"🗓️ Первое появление: {_fmt_optional_ms(item.get('firstSeen'))}\n"
+        f"🕒 Последняя активность: {_fmt_optional_ms(item.get('lastSeen'))}"
     )
     rows: list[list[InlineKeyboardButton]] = []
     if _role_can_support(role):

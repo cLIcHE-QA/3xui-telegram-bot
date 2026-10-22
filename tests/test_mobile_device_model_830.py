@@ -79,7 +79,9 @@ class MobileModelResolverTests(unittest.TestCase):
     def test_both_ui_surfaces_use_one_resolver_without_identity_changes(self):
         customer = (ROOT / "customer_provider_xui.py").read_text(encoding="utf-8")
         admin = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
-        self.assertIn('title=display_device_model(item.get("deviceModel"), os_name, item.get("userAgent"))', customer)
+        self.assertIn('title = display_device_model(item.get("deviceModel"), os_name, item.get("userAgent"))', customer)
+        self.assertIn("title=title", customer)
+        self.assertIn('icon=device_emoji(os_name, title, item.get("deviceModel"))', customer)
         self.assertIn('return display_device_model(', admin)
         self.assertIn('model = _device_title(item)', admin)
         self.assertIn('Model ID: {model_id}', admin)

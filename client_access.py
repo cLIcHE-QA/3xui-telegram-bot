@@ -346,12 +346,13 @@ def _device_list_view(
             seen = format_timestamp(
                 device.last_seen, milliseconds=True, empty="—",
             ).split(" ", 1)[0]
-            lines.append(f"{index}. {device_emoji(device.os_name, device.title)} {device.title} · {platform} · {seen}")
+            icon = device.icon if device.icon in ("📱", "💻", "🖥️", "🔹") else device_emoji(device.os_name, device.title)
+            lines.append(f"{index}. {icon} {device.title} · {platform} · {seen}")
             if device.device_id is None:
                 lines.append("   Карточка недоступна: ID UNKNOWN")
             else:
                 rows.append([InlineKeyboardButton(
-                    text=f"{device_emoji(device.os_name, device.title)} {device.title[:32]}",
+                    text=f"{icon} {device.title[:32]}",
                     callback_data=f"client:device:{device.device_id}:{page}",
                 )])
     if inventory.truncated:
@@ -442,11 +443,12 @@ async def _render_device_detail(call: CallbackQuery, device_id: int, page: int) 
                 seen = format_timestamp(
                     device.last_seen, milliseconds=True, empty="—",
                 )
+                icon = device.icon if device.icon in ("📱", "💻", "🖥️", "🔹") else device_emoji(device.os_name, device.title)
                 text = (
-                    f"{device_emoji(device.os_name, device.title)} {device.title}\n\n"
-                    f"ОС: {display_os(device.os_name, device.os_version)}\n"
-                    + f"VPN-клиент: {device.app_name or 'Не определён'}\n"
-                    + f"Последняя активность: {seen}"
+                    f"{icon} {device.title}\n\n"
+                    f"⚙️ ОС: {display_os(device.os_name, device.os_version)}\n"
+                    + f"🛡️ VPN-клиент: {device.app_name or 'Не определён'}\n"
+                    + f"🕒 Последняя активность: {seen}"
                 )
                 capability = getattr(service, "supports_device_delete", None)
                 try:

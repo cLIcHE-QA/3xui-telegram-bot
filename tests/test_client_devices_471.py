@@ -133,5 +133,47 @@ class DeviceInventory471Tests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn(forbidden, segment)
 
 
+    async def test_client_device_detail_icons_and_private_source(self):
+        import client_access
+        provider = self.provider([{
+            "id": 7, "deviceModel": "DESKTOP-TEST1234_x86_64",
+            "deviceOs": "Windows 10_10.0.19045", "osVersion": "26.5",
+            "userAgent": "Happ/1.0", "lastSeen": 1735000000000,
+        }])
+        inventory = await provider.devices("owned@example.invalid")
+        self.assertEqual(inventory.devices[0].title, "Устройство Windows")
+        self.assertEqual(inventory.devices[0].icon, "🖥️")
+        text, keyboard = client_access._device_list_view(inventory, 0)
+        self.assertIn("🖥️ Устройство Windows · Windows 10 (сборка 19045)", text)
+        self.assertIn("🖥️ Устройство Windows", str(keyboard))
+        self.assertNotIn("DESKTOP-TEST1234", text + str(keyboard))
+
+        svc = SimpleNamespace(devices=AsyncMock(return_value=inventory))
+        call = SimpleNamespace(from_user=SimpleNamespace(id=17), answer=AsyncMock())
+        with patch.object(client_access, "_service", return_value=svc), \
+             patch.object(client_access, "render_callback", new=AsyncMock()) as render:
+            await client_access._render_device_detail(call, 7, 0)
+        detail = render.await_args.args[1]
+        self.assertIn("🖥️ Устройство Windows", detail)
+        self.assertIn("⚙️ ОС: Windows 10 (сборка 19045)", detail)
+        self.assertIn("🛡️ VPN-клиент: Happ", detail)
+        self.assertIn("🕒 Последняя активность:", detail)
+        for forbidden in ("DESKTOP-TEST1234", "Исходная ОС:", "Исходная модель:",
+                          "Fingerprint:", "User-Agent:"):
+            self.assertNotIn(forbidden, detail)
+        self.assertIn("⬅ Устройства", str(render.await_args.kwargs["reply_markup"]))
+        svc.devices.assert_awaited_once_with(17)
+
+    def test_client_device_icon_fallback_never_renders_untrusted_value(self):
+        import client_access
+        legacy = CustomerDevice("ThinkPad", "Windows", 0, 1, os_version="11")
+        unsafe = CustomerDevice("ThinkPad", "Windows", 0, 2,
+                                os_version="11", icon="<script>unsafe</script>")
+        inventory = CustomerDeviceInventory(devices=(legacy, unsafe), total=2)
+        text, keyboard = client_access._device_list_view(inventory, 0)
+        self.assertEqual(text.count("💻 ThinkPad"), 2)
+        self.assertNotIn("<script>", text + str(keyboard))
+
+
 if __name__ == "__main__":
     unittest.main()
