@@ -314,10 +314,16 @@ def current_release_claims_ok(root: Path) -> list[str]:
         "**Исторический checkpoint", 1)[0]
     if "Roadmap](ROADMAP.md)" not in admin_current or conflicts(admin_current):
         errors.append("ADMIN_SETUP: противоречивый текущий Published/Deployed/Accepted")
+    admin_tag = re.search(r"Guide ориентирован на release (v\d+\.\d+\.\d+(?:-rc\.\d+(?:\.\d+)?)?)", admin_current)
+    if not admin_tag or admin_tag.group(1) != tag:
+        errors.append("ADMIN_SETUP: release в действующей инструкции не равен Published Roadmap")
     schema = (root / "docs/SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
     schema_current = schema.split("## Историческая эволюция", 1)[0]
     if "Roadmap](ROADMAP.md)" not in schema_current or conflicts(schema_current):
         errors.append("SQLITE_MIGRATIONS: противоречивый текущий Published/Deployed/Accepted")
+    schema_tag = re.search(r"для Published \x60(v\d+\.\d+\.\d+(?:-rc\.\d+(?:\.\d+)?)?)\x60", schema_current)
+    if not schema_tag or schema_tag.group(1) != tag:
+        errors.append("SQLITE_MIGRATIONS: текущая версия Published не равна Roadmap")
     changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     current_header = changelog.split("Все заметные изменения проекта фиксируются", 1)[0]
     # Исторические publication snapshots разрешены только после явно
