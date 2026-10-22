@@ -1050,7 +1050,8 @@ async def user_device_detail(call: CallbackQuery):
     model = _device_title(item)
     model_id = resolved_mobile_model_id(item.get("deviceModel"), item.get("deviceOs"), item.get("userAgent"))
     original_model, original_os = admin_original_hwid_labels(
-        item.get("deviceModel"), item.get("deviceOs"), model, model_id=model_id
+        item.get("deviceModel"), item.get("deviceOs"), model,
+        model_id=model_id, os_version=item.get("osVersion"),
     )
     os_name = str(item.get("deviceOs") or "—")[:40]
     os_version = str(item.get("osVersion") or "")[:40]
@@ -1066,10 +1067,10 @@ async def user_device_detail(call: CallbackQuery):
     text = (
         f"📱 Устройство · {await _display_label(rec)}\n\n"
         f"{model_icon} Модель: {model}\n"
-        + (f"🆔 Model ID: {model_id}\n" if model_id else "")
         + (f"🔎 Исходная модель: {original_model}\n" if original_model else "")
-        + (f"🧾 Исходная ОС: {original_os}\n" if original_os else "")
         + f"🖥️ ОС: {display_os(os_name, os_version)}\n"
+        + (f"🧾 Исходная ОС: {original_os}\n" if original_os else "")
+        + (f"🆔 Model ID: {model_id}\n" if model_id else "")
         f"🔐 Fingerprint: {fingerprint}\n"
         f"📡 User-Agent: {user_agent}\n"
         + (f"📏 Предпросмотр UA: {ua_preview_note}\n" if ua_preview_note else "")
