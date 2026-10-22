@@ -14,6 +14,13 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## v5.0.0-rc.18.8 — Windows OS и исходные HWID-поля
+
+- [PR #858](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/858) / [Issue #834](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/834): при раздельных полях `deviceOs=Windows`, `osVersion=10_10.0.19045` общий renderer показывает `Windows 10 (сборка 19045)` в admin list/detail и Client Portal. Согласованные Windows 10/11 build поддерживаются; неподтверждённая marketing version не угадывается, конфликтующие значения не маскируются.
+- В расширенной admin-only HWID-карточке порядок `Модель` → `Исходная модель` → `ОС` → `Исходная ОС` → остальные поля; исходная строка для безопасной split-пары — `Windows 10_10.0.19045`. Значок desktop и исходная модель сохраняются; клиент не видит технические исходные поля, fingerprint или raw UA.
+- Добавлены регрессионные тесты исходной составной ОС, порядка полей, безопасности входных данных и клиентского rendering; только read-only представление. Нет изменений HWID identity/ownership, RBAC, DELETE/no-replay, pinned 3x-ui API, SQLite schema v15 или платежей.
+- **Controlled canary:** публикация prerelease не выполняет deployment. Issue #834 остаётся OPEN/keep_open до подтверждённого exact deployed tag/SHA и targeted read-only проверки Windows/admin/client parity, privacy и health; G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+
 ## v5.0.0-rc.18.7 — Karing 191 символ и HWID-интерфейс
 
 - [PR #852](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/852) / [#827](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/827): распознавание ровно заданного 191-символьного составного Karing User-Agent с терминальным ` (Prefer ClashMeta Format);HiddifyNext`, без произвольных хвостов; 167-символьный ` (Preferences)`, строго 160-символьный fallback и отрицательные security cases сохранены.
