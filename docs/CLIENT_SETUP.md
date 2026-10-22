@@ -5,6 +5,20 @@
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
 **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18.10` SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
+## #473 — импорт подписки (кандидат rc.19, не Published)
+
+В личном чате: «Моя подписка» → «Подключить устройство» → платформа → клиент. Incy и v2raytun получают кандидатный URI для ручного импорта через CopyTextButton или локальный QR. Для неподдержанных приложений/URL есть обычные HTTPS URL/QR. Telegram inline URL-button не поддерживает custom схемы, поэтому external redirect/shortener не используется.
+
+| Приложение | Платформы кандидата | Формат | Источник | Приёмка |
+| --- | --- | --- | --- | --- |
+| Incy | iOS, Android, Windows, macOS, Linux | incy://import/ + HTTPS URL | https://docs.incy.cc/en/deep-links | версии/import/refresh PENDING |
+| v2raytun | iOS, Android, Windows, macOS | v2raytun://import/ + HTTPS URL | https://docs.v2raytun.com/ | версии/import/refresh PENDING |
+| Happ, Shadowrocket, V2Box, Karing, OneXray, Throne | все | manual URL/QR | совместимый subscription import контракт не подтверждён | PENDING |
+
+Это candidate matrix, не гарантия установленной версии и не live PASS. До разрешённого targeted smoke для каждого приложения, платформы и версии необходимо проверить реальный import/refresh, наличие узлов и отсутствие повреждения существующих профилей. Результат PASS/UNSUPPORTED/PENDING фиксировать с точной версией, датой и evidence; до этого использовать безопасный ручной URL/QR.
+
+Ссылки и QR содержат bearer credential, не предназначены для сторонних чатов/логов. URI отвергается при HTTP, userinfo, fragment, query, неоднозначном percent encoding, частных/локальных IP, неподдержанной схеме, превышении CopyTextButton 256 символов. Existing portal switch/allowlist/rate/private chat guards обязательны до чтения owner URL. Нет нового storage, payments, HWID, provisioning, migrations или операторских параметров. Rollback: existing portal switch/штатный опубликованный release. Production acceptance, Release/Deployed и G-11 остаются PENDING/BLOCKED.
+
 
 ## Client Portal: тарифы и платежные ограничения
 
