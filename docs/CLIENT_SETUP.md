@@ -98,3 +98,8 @@ Finding оператора 2026-10-21 21:41 UTC: клиентская карто
 
 
 **GitHub Published rc.18.6 (tag SHA `46bc24530633d9958278ab56f624c8b8d274f845`; Deployed/Accepted PENDING):** Karing fix [PR #849](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/849) MERGED; теперь Published, но НЕ Deployed/Accepted. После публикации и отдельно разрешённого deployment проверить только read-only admin длину полного UA/результат парсера и client Karing/безопасный fallback, без DELETE или изменения HWID. Current-state Published/Deployed/Accepted — [Roadmap](ROADMAP.md).
+
+
+## Karing: подтверждённый 191-char suffix, новая регрессия #827 (не Published)
+
+Операторское read-only наблюдение 2026-10-22T07:48:23Z после обновления: admin `UA length=191`, preview `160`, `Распознано по полному User-Agent: Не определён`; Client Portal показывает тот же fallback. В полном формате завершающие маркеры ` (Prefer ClashMeta Format);HiddifyNext`, которых не было в строгой грамматике `rc.18.6`. Подготовлено точечное распознавание второго фиксированного Karing suffix без сканирования произвольных engine names. Старые `(Preferences)` и 160-char fallback, V2Box/OneXray/Incy/Throne, `Устройство iOS` и `iOS 26.5.1` не меняются. Исправление пока только implementation candidate; `rc.18.6` Published отдельно и не содержит его. Deployment/version provenance VPS и targeted post-deploy Karing PASS PENDING, Issue #827 OPEN, G-11 PARTIAL/NO-GO.
