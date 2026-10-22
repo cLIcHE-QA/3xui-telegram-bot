@@ -1,6 +1,8 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.18.9
+# Telegram-бот для 3x-ui v5.0.0-rc.18.10
 
-**GitHub Published `v5.0.0-rc.18.9` (Deployed/Accepted PENDING):** [PR #861](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/861) MERGED; [release PR #862](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/862) MERGED, tag SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e`, 2026-10-22T11:53:55Z. #834 keep_open до live targeted verification, public rollout BLOCKED.
+**Release-prep `v5.0.0-rc.18.10` (НЕ Published/Deployed/Accepted):** [PR #864](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/864) MERGED, безопасный формат Happ/Android с 20-значным opaque suffix, offline CI PASS; [#827](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/827) OPEN/keep_open до exact deployed tag/SHA и targeted read-only smoke. После required checks release-prep PR и отдельного publish workflow будет доступен новый immutable prerelease; текущий Published по-прежнему `rc.18.9`, public rollout BLOCKED.
+
+**Предыдущий GitHub Published `v5.0.0-rc.18.9` (Deployed/Accepted PENDING):** [PR #861](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/861) MERGED; [release PR #862](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/862) MERGED, tag SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e`, 2026-10-22T11:53:55Z. #834 keep_open до live targeted verification, public rollout BLOCKED.
 
 **GitHub Published `v5.0.0-rc.18.8` (Deployed/Accepted PENDING):** [PR #858](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/858) исправил раздельную Windows OS и admin-only исходную ОС; [release PR #859](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/859) MERGED, immutable tag SHA `8695184b9aea8076e4a2acdbcba7c306ec26655b` (2026-10-22T11:13:22Z). Точный Deployed SHA неизвестен, #834 targeted smoke PENDING; public rollout BLOCKED.
 
