@@ -53,6 +53,20 @@ class AdminRawLabelsTest(unittest.TestCase):
                     ("", "Windows"),
                 )
 
+    def test_windows_10_original_os_keeps_safe_nt_version(self):
+        self.assertEqual(
+            admin_original_hwid_labels("Windows 10 amd64", "Windows 10",
+                                       "Устройство Windows", os_version="10.0"),
+            ("Windows 10 amd64", "Windows 10 10.0"),
+        )
+        self.assertEqual(display_os("Windows 10", "10.0"), "Windows 10")
+        for version in ("", "10.0?secret", "<b>10.0</b>", "x" * 90):
+            with self.subTest(version=version):
+                self.assertEqual(admin_original_hwid_labels(
+                    "Dell", "Windows 10", "Dell", os_version=version),
+                    ("", "Windows 10"),
+                )
+
     def test_never_expose_untrusted_markup_and_secrets(self):
         dangerous = (
             "<b>DESKTOP</b>", "Model\nINJECTED", "OS\rINJECTED",
