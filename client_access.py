@@ -281,7 +281,7 @@ def subscription_card_menu(card: CustomerSubscriptionCard, *, can_buy: bool) -> 
         )])
     if card.profile.exists:
         rows.append([InlineKeyboardButton(
-            text="📱 Подключить устройство", callback_data="client:onboard",
+            text="📱 Подключить устройство", callback_data="client:onboard:subscription",
         )])
         if can_buy:
             rows.append([InlineKeyboardButton(
@@ -1075,19 +1075,22 @@ async def stars_successful_payment(message: Message):
     )
 
 
-def onboarding_menu() -> InlineKeyboardMarkup:
+def onboarding_menu(*, subscription_origin: bool = False) -> InlineKeyboardMarkup:
+    prefix = "client:onboard:subscription" if subscription_origin else "client:onboard"
+    parent = "client:subscription" if subscription_origin else "client:help"
+    parent_label = "⬅ Моя подписка" if subscription_origin else "⬅ Помощь"
     return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🍎 iOS", callback_data="client:onboard:ios"),
-            InlineKeyboardButton(text="🤖 Android", callback_data="client:onboard:android"),
+            InlineKeyboardButton(text="🍎 iOS", callback_data=f"{prefix}:ios"),
+            InlineKeyboardButton(text="🤖 Android", callback_data=f"{prefix}:android"),
         ],
         [
-            InlineKeyboardButton(text="🪟 Windows", callback_data="client:onboard:windows"),
-            InlineKeyboardButton(text="🍎 macOS", callback_data="client:onboard:macos"),
+            InlineKeyboardButton(text="🪟 Windows", callback_data=f"{prefix}:windows"),
+            InlineKeyboardButton(text="🍎 macOS", callback_data=f"{prefix}:macos"),
         ],
-        [InlineKeyboardButton(text="🐧 Linux", callback_data="client:onboard:linux")],
-        [InlineKeyboardButton(text="🔳 QR подписки", callback_data="client:onboard:qr")],
-        [InlineKeyboardButton(text="⬅ Помощь", callback_data="client:help")],
+        [InlineKeyboardButton(text="🐧 Linux", callback_data=f"{prefix}:linux")],
+        [InlineKeyboardButton(text="🔳 QR подписки", callback_data=f"{prefix}:qr")],
+        [InlineKeyboardButton(text=parent_label, callback_data=parent)],
     ])
 
 
@@ -1120,7 +1123,7 @@ async def help_cb(call: CallbackQuery):
     await call.answer()
 
 
-@client_access_router.callback_query(F.data == "client:onboard")
+@client_access_router.callback_query(F.data.in_({"client:onboard", "client:onboard:subscription"}))
 async def onboarding_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
@@ -1129,7 +1132,9 @@ async def onboarding_cb(call: CallbackQuery):
         "📱 Как подключиться\n\n"
         "Выберите платформу. Subscription URL является секретом доступа: "
         "не публикуйте его и не пересылайте посторонним.",
-        reply_markup=onboarding_menu(),
+        reply_markup=onboarding_menu(
+            subscription_origin=(call.data == "client:onboard:subscription"),
+        ),
     )
     await call.answer()
 
@@ -1138,7 +1143,9 @@ async def onboarding_cb(call: CallbackQuery):
 async def onboarding_platform_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    platform = (call.data or "").rsplit(":", 1)[-1]
+    data = call.data or ""
+    subscription_origin = data.startswith("client:onboard:subscription:")
+    platform = data.rsplit(":", 1)[-1]
     if platform == "qr":
         if not await _require_private_subscription_callback(call):
             return
@@ -1172,7 +1179,12 @@ async def onboarding_platform_cb(call: CallbackQuery):
         "быть стабилен и безопасен для конкретного клиента.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🌐 Моя подписка", callback_data="client:subscription")],
-            [InlineKeyboardButton(text="⬅ Платформы", callback_data="client:onboard")],
+            [InlineKeyboardButton(
+                text="⬅ Платформы",
+                callback_data=(
+                    "client:onboard:subscription" if subscription_origin else "client:onboard"
+                ),
+            )],
         ]),
     )
     await call.answer()
