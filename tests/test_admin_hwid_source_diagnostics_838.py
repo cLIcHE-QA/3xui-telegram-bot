@@ -33,6 +33,26 @@ class AdminRawLabelsTest(unittest.TestCase):
         self.assertEqual(admin_original_hwid_labels("ThinkPad", "Windows", "ThinkPad"), ("", "Windows"))
         self.assertEqual(admin_original_hwid_labels("Dell", "Ubuntu 24.04", "Dell"), ("", "Ubuntu 24.04"))
 
+    def test_split_windows_original_os_is_admin_only(self):
+        self.assertEqual(
+            admin_original_hwid_labels("DESKTOP-TEST1234_x86_64", "Windows",
+                                       "Устройство Windows", os_version="10_10.0.19045"),
+            ("DESKTOP-TEST1234_x86_64", "Windows 10_10.0.19045"),
+        )
+        self.assertEqual(
+            admin_original_hwid_labels("Dell", "Windows", "Dell",
+                                       os_version="11_10.0.26100"),
+            ("", "Windows 11_10.0.26100"),
+        )
+        for unsafe in ("10_10.0.19045?token=secret", "<bad>10_10.0.19045",
+                       "10_10.0.19045" + "a" * 80, "10.0"):
+            with self.subTest(unsafe=unsafe):
+                self.assertEqual(
+                    admin_original_hwid_labels("Dell", "Windows", "Dell",
+                                               os_version=unsafe),
+                    ("", "Windows"),
+                )
+
     def test_never_expose_untrusted_markup_and_secrets(self):
         dangerous = (
             "<b>DESKTOP</b>", "Model\nINJECTED", "OS\rINJECTED",
