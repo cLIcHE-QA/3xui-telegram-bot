@@ -30,7 +30,7 @@
 
 ## Текущий этап: v5 Client Portal
 
-**🟠 Опубликовано; общий v5 acceptance отложен.** GitHub  `v5.0.0-rc.18.9` Published tag SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e` (включая #858 Windows split OS) с generic `Client/Platform/Version` из #846, но actual Deployed tag/SHA UNKNOWN/PENDING. Targeted HWID #827/#830/#833/#834/#838/#854 остаётся PENDING и Issues OPEN (пять ранних UI наблюдений на rc.18.3 и новый `Throne` finding до выпуска rc.18.5). Все прежние V2Box/OneXray/Karing/Incy, модели и ОС покрыты offline regression, но production acceptance не заявлен. Ранее rc.18.2 15/15 HWID и H1–H8 operator-reported scoped PASS, независимый VPS/DELETE X2/X1/X3 PENDING. Актуальные Published/Deployed/Accepted определяются только строкой `**Published:**` выше; full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+**🟠 Опубликовано; общий v5 acceptance отложен.** GitHub `v5.0.0-rc.18.10` Published tag SHA `dae205ac82762723448f93827b981f89ae622231` (включая #858 Windows split OS) с generic `Client/Platform/Version` из #846, и operator-reported Deployed exact tag/SHA совпадает; независимый VPS read-back PENDING. Targeted HWID #827/#830/#833/#834/#838/#854 остаётся PENDING и Issues OPEN (пять ранних UI наблюдений на rc.18.3 и новый `Throne` finding до выпуска rc.18.5). Все прежние V2Box/OneXray/Karing/Incy, модели и ОС покрыты offline regression, но production acceptance не заявлен. Ранее rc.18.2 15/15 HWID и H1–H8 operator-reported scoped PASS, независимый VPS/DELETE X2/X1/X3 PENDING. Актуальные Published/Deployed/Accepted определяются только строкой `**Published:**` выше; full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 ## Реестр acceptance-gates rc.9
 
