@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.18.7
+# Telegram-бот для 3x-ui v5.0.0-rc.18.8
+
+**Release-prep `v5.0.0-rc.18.8` (НЕ Published/Deployed/Accepted):** [PR #858](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/858) MERGED: исправлено разделённое `Windows` + `10_10.0.19045` и admin-only исходная ОС/порядок полей. Отдельное GitHub Release ожидает CI и merge release-prep, production deployment не разрешён. Последний Published — immutable `rc.18.7`.
 
 **GitHub Published `v5.0.0-rc.18.7` (Deployed/Accepted PENDING):** исправления #852 (191-char Karing) и #855 (desktop 🖥️, Windows OS, admin/client detail), [PR #856](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/856) MERGED; GitHub Release Published SHA `b5c67fe8078eb87c84cba9382c97fb3da6420de1`. Старый immutable `rc.18.6` сохраняется неизменным; полный v5 public rollout BLOCKED.
 
