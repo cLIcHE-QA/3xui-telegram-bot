@@ -23,7 +23,7 @@
 
 ## Текущий этап: v5 Client Portal
 
-**🟠 Опубликовано; общий v5 acceptance отложен.** Published/Deployed `rc.18.10` exact SHA operator-reported MATCH; HWID targeted 23/23 scoped PASS, шесть Issues completed. Independent VPS attestation PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+**🟠 Опубликовано; общий v5 acceptance отложен.** Published/Deployed `rc.18.10` exact SHA operator-reported MATCH; HWID targeted 23/23 scoped PASS, шесть Issues completed. Independent VPS attestation PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED. Актуальные Published/Deployed/Accepted отражены в единственной верхней сводке Roadmap.
 
 ## Реестр acceptance-gates rc.9
 
