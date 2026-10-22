@@ -9,6 +9,19 @@ def _windows_os(os_name: str, os_version: str) -> str | None:
     if not isinstance(os_name, str) or len(os_name) > 80:
         return None
     raw = os_name.strip()
+    version = (os_version or "").strip()
+    # 3x-ui sometimes separates "Windows" and "10_10.0.19045" between
+    # deviceOs and osVersion. The marketing major must be explicit.
+    split = re.fullmatch(
+        r"(10|11|8(?:[.]1)?|7)_10[.]0(?:[.]([0-9]{4,6}))?",
+        version, re.IGNORECASE,
+    )
+    if split:
+        major, build = split.groups()
+        stated = re.fullmatch(r"Windows(?:[ ]+(10|11|8(?:[.]1)?|7))?", raw, re.IGNORECASE)
+        if stated and (stated.group(1) is None or stated.group(1) == major):
+            return f"Windows {major}" + (f" (сборка {build})" if build else "")
+        return None
     match = re.fullmatch(
         r"Windows[ ]+(10|11|8(?:[.]1)?|7)(?:[_ ]10[.]0(?:[.]([0-9]{4,6}))?)?",
         raw, re.IGNORECASE
