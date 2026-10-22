@@ -30,6 +30,7 @@ class HappLongAndroidUaTests(unittest.TestCase):
         rejected = (
             "OtherVPN/4.7.1/Android/" + "1" * 20,
             "Happ/4.7.1/iOS/" + "1" * 20,
+            "Happ/4.7.1/Android/" + "1" * 15 + "a" * 5,
             "Happ/4.7.1/Android/" + "1" * 19,
             "Happ/4.7.1/Android/" + "1" * 21,
             "Happ/4.7.1/Android/" + "1" * 20 + "/extra",
