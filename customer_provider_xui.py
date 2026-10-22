@@ -65,10 +65,24 @@ class XuiCustomerProvider:
             if not isinstance(client, dict) or not isinstance(client.get("enable"), bool):
                 raise CustomerProviderUnavailable("customer provider access state unavailable")
             raw_expiry = client.get("expiryTime")
+            # The get_client response carries inboundIds at obj level. Only
+            # an exact matching owner and an unambiguous bounded ID set give a
+            # count of Master associations, never a count of live locations.
+            inbound_count = None
+            raw_ids = obj.get("inboundIds") if isinstance(obj, dict) else None
+            if (
+                client.get("email") == email
+                and isinstance(raw_ids, list)
+                and len(raw_ids) <= 1000
+                and all(type(value) is int and 0 < value <= 2**63 - 1 for value in raw_ids)
+                and len(set(raw_ids)) == len(raw_ids)
+            ):
+                inbound_count = len(raw_ids)
             return CustomerProviderAccess(
                 enabled=client["enable"],
                 expiry_time=int(raw_expiry or 0),
                 expiry_available=raw_expiry not in (None, ""),
+                master_inbounds=inbound_count,
             )
         except (XUIError, aiohttp.ClientError, asyncio.TimeoutError, OSError, TypeError, ValueError) as exc:
             raise CustomerProviderUnavailable("customer provider unavailable") from exc

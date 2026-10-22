@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import hmac
+import re
 import secrets
 import time
 from typing import Protocol
@@ -43,6 +44,10 @@ class CustomerProviderAccess:
     enabled: bool
     expiry_time: int  # ms; 0 means unlimited
     expiry_available: bool = True  # False when expiryTime is omitted by provider.
+    # Master-side inbound associations are not reachable server/region counts.
+    master_inbounds: int | None = None
+    # Set only by an adapter with independent, verified location availability.
+    available_locations: int | None = None
 
 
 @dataclass(frozen=True)
@@ -109,6 +114,17 @@ class CustomerProfile:
     provider_expiry_time: int = 0
     expiry_drift: bool = False
     expiry_comparison: str = "insufficient_data"
+    expiry_known: bool = False
+    master_inbounds: int | None = None
+    available_locations: int | None = None
+
+
+@dataclass(frozen=True)
+class CustomerSubscriptionCard:
+    """One owner-scoped read snapshot. URL is a bearer credential."""
+
+    profile: CustomerProfile
+    url: str | None = None
 
 
 @dataclass(frozen=True)
@@ -186,6 +202,7 @@ class CustomerPortalService:
             plan_name=plan.name if plan else "",
             expiry_time=local_expiry,
             sub_id=rec.sub_id,
+            expiry_known=local_expiry_known,
         )
         if not read_access:
             # Payment, subscription URL and inventory need identity, not
@@ -273,6 +290,9 @@ class CustomerPortalService:
             access_status = "unknown"
         elif period_status == "suspended":
             access_status = "suspended"
+        elif period_status not in {"active", "legacy"}:
+            # Unknown future/invalid entitlement states never grant active UI.
+            access_status = "unknown"
         elif provider_access is None or expiry_drift or not provider_expiry_known:
             access_status = "unknown"
         else:
@@ -287,13 +307,41 @@ class CustomerPortalService:
             provider_expiry_time=provider_expiry,
             expiry_drift=bool(expiry_drift),
             expiry_comparison=expiry_comparison,
+            master_inbounds=(
+                provider_access.master_inbounds
+                if provider_access is not None
+                and type(provider_access.master_inbounds) is int
+                and 0 <= provider_access.master_inbounds <= 1000 else None
+            ),
+            available_locations=(
+                provider_access.available_locations
+                if provider_access is not None
+                and type(provider_access.available_locations) is int
+                and 0 <= provider_access.available_locations <= 1000 else None
+            ),
+        )
+
+    def _subscription_url_for_profile(self, profile: CustomerProfile) -> str | None:
+        # A malformed or absent identifier must never produce a partial URL.
+        if (
+            not profile.exists
+            or not isinstance(profile.sub_id, str)
+            or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", profile.sub_id)
+        ):
+            return None
+        return self.subscription_url_template.format(sub_id=profile.sub_id)
+
+    async def subscription_card(self, telegram_id: int) -> CustomerSubscriptionCard:
+        """Read the owner's state once; never allocate IDs or reconcile access."""
+        profile = await self.profile(telegram_id)
+        return CustomerSubscriptionCard(
+            profile=profile,
+            url=self._subscription_url_for_profile(profile),
         )
 
     async def subscription_url(self, telegram_id: int) -> str | None:
         profile = await self.profile(telegram_id, read_access=False)
-        if not profile.exists:
-            return None
-        return self.subscription_url_template.format(sub_id=profile.sub_id)
+        return self._subscription_url_for_profile(profile)
 
     async def traffic(self, telegram_id: int) -> CustomerTraffic | None:
         profile = await self.profile(telegram_id, read_access=False)

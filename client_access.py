@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import re
+from urllib.parse import urlsplit
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     BufferedInputFile,
     CallbackQuery,
+    CopyTextButton,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     LabeledPrice,
@@ -22,6 +24,7 @@ from customer_service import (
     CustomerDeviceDeletePrompt,
     CustomerDeviceDeleteResult,
     CustomerDeviceInventory,
+    CustomerSubscriptionCard,
     CustomerPortalService,
     CustomerProviderUnavailable,
 )
@@ -157,6 +160,142 @@ async def guard_callback(call: CallbackQuery) -> bool:
     return True
 
 
+def _private_subscription_chat(chat: object, telegram_id: int) -> bool:
+    # Callback data is never authority for a customer identity. Inaccessible
+    # messages, group chats, and wrong private-chat owners fail closed.
+    return (
+        chat is not None
+        and getattr(chat, "type", None) == "private"
+        and getattr(chat, "id", None) == telegram_id
+    )
+
+
+async def _require_private_subscription_message(message: Message) -> bool:
+    if _private_subscription_chat(message.chat, message.from_user.id):
+        return True
+    await message.answer("Ссылка подписки доступна только в личном чате с ботом.")
+    return False
+
+
+async def _require_private_subscription_callback(call: CallbackQuery) -> bool:
+    chat = getattr(call.message, "chat", None)
+    if _private_subscription_chat(chat, call.from_user.id):
+        return True
+    await call.answer("Ссылка подписки доступна только в личном чате с ботом.", show_alert=True)
+    return False
+
+
+def _safe_card_label(value: object, fallback: str = "не назначен") -> str:
+    if not isinstance(value, str):
+        return fallback
+    text = " ".join(value.split())
+    # No control/markup injection, URLs or credential-looking long opaque IDs.
+    if (
+        not text or len(text) > 80
+        or re.search(r"[\x00-\x1f\x7f<>]", text)
+        or re.search(r"https?://|[A-Za-z0-9_-]{40,}", text, flags=re.I)
+    ):
+        return fallback
+    return text
+
+
+def _safe_subscription_url(value: object) -> str | None:
+    if (
+        not isinstance(value, str)
+        or not 1 <= len(value) <= 512
+        or any(ord(char) < 33 or ord(char) > 126 for char in value)
+    ):
+        return None
+    try:
+        parsed = urlsplit(value)
+        if (
+            parsed.scheme != "https"
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.fragment
+        ):
+            return None
+    except ValueError:
+        return None
+    return value
+
+
+def subscription_card_text(card: CustomerSubscriptionCard) -> str:
+    profile = card.profile
+    if not profile.exists:
+        return "🌐 Моя подписка\n\nДоступ пока не оформлен. Публичная регистрация закрыта."
+
+    if profile.expiry_drift:
+        expiry = "⚠️ сроки в источниках различаются"
+    elif profile.expiry_comparison == "match" and profile.expiry_known:
+        expiry = format_timestamp(
+            profile.expiry_time, milliseconds=True, empty="без срока",
+        )
+    else:
+        expiry = "⚪ срок не подтверждён"
+
+    count = (
+        f"{profile.available_locations} (подтверждено)"
+        if type(profile.available_locations) is int
+        and 0 <= profile.available_locations <= 1000
+        else "не подтверждено"
+    )
+    master = (
+        f"\nПривязки Master Inbounds: {profile.master_inbounds} (не число доступных серверов)"
+        if type(profile.master_inbounds) is int
+        and 0 <= profile.master_inbounds <= 1000 else ""
+    )
+    activation = {
+        "pending": "🟡 ожидает активации",
+        "provisioning": "🟡 выполняется активация",
+        "failed": "❌ ошибка активации; обратитесь в поддержку",
+        "legacy": "ℹ️ legacy; журнал активации недоступен",
+        "active": "✅ entitlement активен; это не гарантия доступности нод",
+        "suspended": "⛔ приостановлен",
+        "expired": "⌛ период истёк",
+    }.get(profile.period_status, "⚪ не подтверждено")
+    link = _safe_subscription_url(card.url)
+    url_label = link or "⚪ ссылка недоступна или не подтверждена"
+    return (
+        "🌐 Моя подписка\n\n"
+        f"VPN-доступ: {customer_access_label(profile.access_status)}\n"
+        f"Период: {customer_period_label(profile.period_status)}\n"
+        f"Тариф: {_safe_card_label(profile.plan_name)}\n"
+        f"Срок: {expiry}\n"
+        f"Доступные серверы/локации: {count}"
+        f"{master}\n"
+        f"Активация: {activation}\n\n"
+        f"🔗 Subscription URL:\n{url_label}\n\n"
+        "Ссылка — секрет доступа. Не пересылайте её; наличие URL не доказывает доступность VPN."
+    )
+
+
+def subscription_card_menu(card: CustomerSubscriptionCard, *, can_buy: bool) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    link = _safe_subscription_url(card.url) if card.profile.exists else None
+    if link and len(link) <= 256:
+        rows.append([InlineKeyboardButton(
+            text="📋 Скопировать ссылку",
+            copy_text=CopyTextButton(text=link),
+        )])
+    if card.profile.exists:
+        rows.append([InlineKeyboardButton(
+            text="📱 Подключить устройство", callback_data="client:onboard",
+        )])
+        if can_buy:
+            rows.append([InlineKeyboardButton(
+                text="💳 Купить / продлить", callback_data="client:buy",
+            )])
+        rows.append([InlineKeyboardButton(
+            text="🛠 Проверить состояние", callback_data="client:diagnostics",
+        )])
+    rows.append([InlineKeyboardButton(
+        text="⬅ Личный кабинет", callback_data="client:home",
+    )])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 def customer_period_label(status: str) -> str:
     return {
         "active": "🟢 оплачен",
@@ -271,10 +410,13 @@ async def profile_cb(call: CallbackQuery):
 async def subscription_cmd(message: Message):
     if not await guard_message(message):
         return
-    url = await _service().subscription_url(message.from_user.id)
+    if not await _require_private_subscription_message(message):
+        return
+    card = await _service().subscription_card(message.from_user.id)
+    can_buy = await payment_acceptance_enabled()
     await message.answer(
-        "🌐 Моя подписка\n\n" + (url or "Подписка пока не оформлена."),
-        reply_markup=portal_menu(),
+        subscription_card_text(card),
+        reply_markup=subscription_card_menu(card, can_buy=can_buy),
     )
 
 
@@ -282,9 +424,14 @@ async def subscription_cmd(message: Message):
 async def subscription_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    url = await _service().subscription_url(call.from_user.id)
-    text = "🌐 Моя подписка\n\n" + (url or "Подписка пока не оформлена.")
-    await render_callback(call, text, reply_markup=back_menu())
+    if not await _require_private_subscription_callback(call):
+        return
+    card = await _service().subscription_card(call.from_user.id)
+    can_buy = await payment_acceptance_enabled()
+    await render_callback(
+        call, subscription_card_text(card),
+        reply_markup=subscription_card_menu(card, can_buy=can_buy),
+    )
     await call.answer()
 
 
@@ -993,12 +1140,13 @@ async def onboarding_platform_cb(call: CallbackQuery):
         return
     platform = (call.data or "").rsplit(":", 1)[-1]
     if platform == "qr":
-        url = await _service().subscription_url(call.from_user.id)
-        if not url:
-            await call.answer("Подписка пока не оформлена.", show_alert=True)
+        if not await _require_private_subscription_callback(call):
             return
-        if not call.message or call.message.chat.type != "private":
-            await call.answer("QR доступен только в личном чате.", show_alert=True)
+        url = _safe_subscription_url(
+            await _service().subscription_url(call.from_user.id)
+        )
+        if not url:
+            await call.answer("Ссылка подписки недоступна.", show_alert=True)
             return
         image = qr_png(url)
         await call.bot.send_photo(
