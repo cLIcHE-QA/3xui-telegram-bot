@@ -115,7 +115,7 @@
 
 ## Завершённые HWID Issue scopes (operator-reported)
 
-**2026-10-22 / `rc.18.10`:** #827/#830/#833/#834/#838/#854 completed, [23/23 targeted UI audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md). **2026-10-20 / `rc.18.2`:** #814/#816/#820/#471/#472 completed ([closure audit](audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md)). Independent provider/VPS/DELETE evidence PENDING; full v5 G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+**Результат 2026-10-22 / `rc.18.10`:** #827/#830/#833/#834/#838/#854 закрыты как completed, [адресный аудит 23/23](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md). **Ранее, 2026-10-20 / `rc.18.2`:** #814/#816/#820/#471/#472 завершены ([аудит закрытия](audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md)). Независимое свидетельство provider/VPS/DELETE остаётся PENDING, общий v5 G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 ## Завершённые этапы и исторические документы
 
