@@ -8,6 +8,9 @@ class DesktopOsTests(unittest.TestCase):
     def test_known_windows_versions(self):
         pairs = (
             ("Windows 10_10.0.19045", "", "Windows 10 (сборка 19045)"),
+            ("Windows", "10_10.0.19045", "Windows 10 (сборка 19045)"),
+            ("Windows 10", "10_10.0.19045", "Windows 10 (сборка 19045)"),
+            ("Windows 11", "11_10.0.26100", "Windows 11 (сборка 26100)"),
             ("Windows 10 10.0", "", "Windows 10"),
             ("Windows 11 10.0.26100", "", "Windows 11 (сборка 26100)"),
             ("Windows 10", "10.0.19045", "Windows 10 (сборка 19045)"),
@@ -22,6 +25,10 @@ class DesktopOsTests(unittest.TestCase):
     def test_no_guess_on_conflict_or_unrecognized_os(self):
         pairs = (
             ("Windows", "10.0", "Windows 10.0"),
+            ("Windows", "10_10.0", "Windows 10"),
+            ("Windows 11", "10_10.0.19045", "Windows 11 10_10.0.19045"),
+            ("Windows", "10_10.0.19045 token=private", "Windows 10_10.0.19045 token=private"),
+            ("Ubuntu 24.04", "10_10.0.19045", "Ubuntu 24.04 10_10.0.19045"),
             ("Windows 10_10.0.19045", "10.0.26100", "Windows 10_10.0.19045 10.0.26100"),
             ("Windows 11", "garbage", "Windows 11 garbage"),
             ("Ubuntu 24.04", "", "Ubuntu 24.04"),
