@@ -45,13 +45,13 @@ class CurrentReleaseClaimsTests(unittest.TestCase):
         roadmap = (self.root / "docs/ROADMAP.md").read_text(encoding="utf-8")
         lines = [l for l in roadmap.splitlines() if l.startswith("**Published:** immutable ")]
         self.assertEqual(len(lines), 1)
-        match = re.search(r"releases/tag/(v\\d+\\.\\d+\\.\\d+(?:-rc\\.\\d+(?:\\.\\d+)?)?)", lines[0])
+        match = re.search(r"releases/tag/(v\d+\.\d+\.\d+(?:-rc\.\d+(?:\.\d+)?)?)", lines[0])
         self.assertIsNotNone(match)
         return match.group(1)
 
     def next_tag(self):
         tag = self.published_tag()
-        replacement = re.sub(r"\\d+$", lambda m: str(int(m.group()) + 1), tag)
+        replacement = re.sub(r"\d+$", lambda m: str(int(m.group()) + 1), tag)
         self.assertNotEqual(replacement, tag)
         return replacement
 
