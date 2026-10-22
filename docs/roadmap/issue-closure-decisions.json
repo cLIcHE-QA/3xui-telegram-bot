@@ -249,6 +249,14 @@
       "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39849427557/job/120071306157",
       "date": "2026-10-22",
       "comment": "Issue #869 GitHub CLOSED/completed after independent read-back; #870 remains separate scoped finding until dynamic fixtures pass. No deployment; G-11 PARTIAL/NO-GO."
+    },
+    {
+      "issue": 870,
+      "decision": "completed",
+      "accepted": "CI-only scoped PASS: #871/#872 squash merged; main push test SUCCESS with runtime classification and reusable regression fixtures",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39852064442/job/120080570667",
+      "date": "2026-10-22",
+      "comment": "GitHub Issue #870 CLOSED/completed after main read-back; no production changes; G-11 PARTIAL/NO-GO."
     }
   ]
 }
