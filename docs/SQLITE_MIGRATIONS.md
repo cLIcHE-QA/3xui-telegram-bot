@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+- **Release-prep `v5.0.0-rc.18.10` (публикация PENDING):** PR #864 / Issue #827 — только безопасное распознавание Happ Android с длинным User-Agent. SQLite schema v15 без изменений, новых миграций нет. Предыдущий Published immutable `rc.18.9`; точный deployed tag/SHA и targeted acceptance неизвестны.
+
 - **GitHub Published `v5.0.0-rc.18.9` (Deployed/Accepted PENDING):** #861 изменяет только безопасную admin-only исходную ОС. SQLite schema v15 неизменна; новых миграций нет. Immutable tag SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e`; Deployed SHA не подтверждён.
 
 
