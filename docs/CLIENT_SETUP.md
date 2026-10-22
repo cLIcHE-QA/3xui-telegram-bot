@@ -123,3 +123,8 @@ Finding оператора 2026-10-21 21:41 UTC: клиентская карто
 ## Админская исходная ОС Windows 10 + 10.0 (#834, 2026-10-22)
 
 Operator-reported после обновления: 3x-ui показывает `Windows 10 10.0`, а admin-only `Исходная ОС` показывала лишь `Windows 10`. Fix [PR #861](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/861) теперь Published в `rc.18.9` и вычисляет безопасную композицию `deviceOs` и `osVersion` без изменения данных провайдера и нормализованной строки `ОС: Windows 10`. Технические значения остаются admin-only; клиентский интерфейс не получает новых полей. Targeted smoke и точный deployed SHA PENDING.
+
+
+## Адресная проверка Happ с 20-значным suffix (#827; PENDING)
+
+После отдельно разрешённых merge, release и deployment сверить точный deployed tag/SHA, затем на разрешённом Pixel 6 с Android 17 выполнить только read-only просмотр клиентской и административной HWID-карточек для `Happ/4.7.1/Android/17912108360521999608`. Ожидается `VPN-клиент: Happ` в Client Portal и распознавание `Happ` в admin diagnostic; исходная модель, ОС и timestamps неизменны. Убедиться, что клиентский список и detail не раскрывают сырой User-Agent, suffix либо fingerprint; запрещённые дополнительные хвосты продолжают давать `Не определён`. Проверить health и отдельно записать evidence (точный tag/SHA, время с TZ, источник, результат). Не выполнять DELETE/платежи, не расширять pilot. Пока smoke отсутствует: #827 OPEN/keep_open, scoped acceptance PENDING.

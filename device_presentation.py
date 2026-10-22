@@ -165,6 +165,12 @@ def recognized_vpn_app(user_agent: object) -> str:
     )
     if len(user_agent) == 160 and user_agent.endswith(" (Prefe") and karing_prefix:
         return "Karing"
+    # #827: observed Happ on Android has a 20-digit opaque numeric trailer.
+    # Keep generic version limits unchanged; reject all extra fields and
+    # do not interpret this number as a build, timestamp or device identity.
+    if re.fullmatch(r"Happ/[0-9]{1,15}(?:[.][0-9]{1,15}){1,3}/Android/[0-9]{20}",
+                    user_agent, re.IGNORECASE):
+        return "Happ"
     # Versioned forms emitted by known VPN applications, with an optional
     # pre-release marker; never accept an unknown extra token or a URL.
     compatible = re.fullmatch(
