@@ -2,6 +2,12 @@
 
 Этот документ задаёт **действующие нормативные** правила языка, терминологии, навигации, безопасности и пользовательских формулировок Telegram UI. Источники фактических Published/Deployed/Accepted и незавершённых gates — [Roadmap](ROADMAP.md) и [V5 production acceptance](V5_PRODUCTION_ACCEPTANCE.md); реализация в `main` не доказывает deployment.
 
+## Ручные тарифы и статусы пользователей
+
+В `/admin → Пользователи` 3x-ui status `🟢/⚪/🟡` и статус ручной выдачи **независимы**: для `manual_entitlements.active` — `♾️`, для `unknown/in_flight` — `🟡♾️`; `superseded/failed` и один лишь `admin_only` без живой выдачи не отмечаются. Фильтр `♾️ Ручные` действует **до пагинации**, выполняет bounded/batched SQLite read без N+1 и сохраняет RBAC/карточки пользователя. При неизвестном 3x-ui status используйте `🟡`, не объявляя ошибку отключением. Unicode emoji variation selector `U+FE0F` применяется в текущем UI после merge соответствующего исправления, но не означает его Published/Deployed/Accepted.
+
+Для переключения `Все / ♾️ Ручные` `⬅ Пользователи` → `admin:users`, тогда как обычный общий список использует `⬅ Панель администратора` → `admin:home`. Возврат и поиск сохраняют identity/контекст, устаревший callback не создаёт mutation. Исправление [PR #766](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/766) Published `rc.17`, Deployed **operator-reported** (2026-10-20 01:58 EEST), а targeted U8-1…U8-4 operator-reported 4/4 `[x]` (02:10 EEST); [#760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760) CLOSED/completed после regression tests `tests/test_manual_user_list_760.py` и `tests/test_rc164_ui_refinements.py`. Условная U8-4 по редкому статусу подтверждена offline fixture, не отдельным наблюдением production-записи. FAIL на старом `rc.16.6` сохранён в audit. Следующие изменения не обходят требования отдельно разрешённого release/deploy и новой адресной приёмки при затронутой регрессии.
+
 ## Моя подписка — read-only карточка (#497, кандидат rc.19)
 
 `/subscription` и `🌐 Моя подписка` используют единый owner-scoped снимок `CustomerPortalService.subscription_card()`. Карточка отдельно показывает состояние VPN (`active/disabled/expired/suspended/provisioning/unknown`), entitlement-период, ограниченное название тарифа, подтверждённый срок и активацию. Ошибка провайдера, expiry drift или недостаток фактов не превращаются в `active`; неподтверждённый срок обозначается явно.
@@ -11,12 +17,6 @@
 Bearer-like URL и `📋 Скопировать ссылку` (`CopyTextButton`) доступны только в `private` при `chat.id == from_user.id` и действующих pilot/feature/rate gates. Callback не принимает внешний owner ID. Повреждённые URL не получают кнопку копирования. Действия: `📱 Подключить устройство` с контекстным возвратом, `💳 Купить / продлить` через существующий guarded Stars flow (только если enabled), `🛠 Проверить состояние` и `⬅ Личный кабинет`. Кнопку reconcile не добавлять до #498; deep-links — отдельный #473. Просмотр не меняет identity, entitlement, provider или платежи.
 
 Кандидат rc.19 не включён в текущий Published/Deployed rc.18.10; merge, release, smoke и acceptance подтверждаются отдельно.
-
-## Ручные тарифы и статусы пользователей
-
-В `/admin → Пользователи` 3x-ui status `🟢/⚪/🟡` и статус ручной выдачи **независимы**: для `manual_entitlements.active` — `♾️`, для `unknown/in_flight` — `🟡♾️`; `superseded/failed` и один лишь `admin_only` без живой выдачи не отмечаются. Фильтр `♾️ Ручные` действует **до пагинации**, выполняет bounded/batched SQLite read без N+1 и сохраняет RBAC/карточки пользователя. При неизвестном 3x-ui status используйте `🟡`, не объявляя ошибку отключением. Unicode emoji variation selector `U+FE0F` применяется в текущем UI после merge соответствующего исправления, но не означает его Published/Deployed/Accepted.
-
-Для переключения `Все / ♾️ Ручные` `⬅ Пользователи` → `admin:users`, тогда как обычный общий список использует `⬅ Панель администратора` → `admin:home`. Возврат и поиск сохраняют identity/контекст, устаревший callback не создаёт mutation. Исправление [PR #766](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/766) Published `rc.17`, Deployed **operator-reported** (2026-10-20 01:58 EEST), а targeted U8-1…U8-4 operator-reported 4/4 `[x]` (02:10 EEST); [#760](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/760) CLOSED/completed после regression tests `tests/test_manual_user_list_760.py` и `tests/test_rc164_ui_refinements.py`. Условная U8-4 по редкому статусу подтверждена offline fixture, не отдельным наблюдением production-записи. FAIL на старом `rc.16.6` сохранён в audit. Следующие изменения не обходят требования отдельно разрешённого release/deploy и новой адресной приёмки при затронутой регрессии.
 
 ## Отображение версии ОС и типа устройства (#814/#816, rc.18.1)
 

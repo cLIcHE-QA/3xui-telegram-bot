@@ -143,9 +143,13 @@ class CustomerSubscriptionCard497Tests(unittest.IsolatedAsyncioTestCase):
                 if ids is not None:
                     response["inboundIds"] = ids
                 xui = SimpleNamespace(get_client=AsyncMock(return_value=response))
-                access = await XuiCustomerProvider(xui).access("owned@example.invalid")
-                self.assertEqual(access.master_inbounds, expected)
-                self.assertIsNone(access.available_locations)
+                if owner != "owned@example.invalid":
+                    with self.assertRaises(CustomerProviderUnavailable):
+                        await XuiCustomerProvider(xui).access("owned@example.invalid")
+                else:
+                    access = await XuiCustomerProvider(xui).access("owned@example.invalid")
+                    self.assertEqual(access.master_inbounds, expected)
+                    self.assertIsNone(access.available_locations)
                 xui.get_client.assert_awaited_once_with("owned@example.invalid")
 
 
@@ -216,7 +220,7 @@ class CustomerSubscriptionCardUI497Tests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("https://example.invalid/path", text)
         self.assertIn("Тариф: не назначен", text)
         self.assertIn("срок не подтверждён", text)
-        self.assertIn("активации", text)
+        self.assertIn("Активация: 🟡 выполняется активация", text)
         self.assertIn("статус неизвестен", text)
 
     async def test_group_and_wrong_chat_fail_before_owner_data_read(self):

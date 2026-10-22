@@ -6,18 +6,18 @@
 
 **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18.10` SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
 
-## Моя подписка: кандидат #497, ещё не в Published rc.18.10
-
-После отдельного выпуска на разрешённом pilot-аккаунте проверьте `/subscription` и `🌐 Моя подписка` в личном чате: статусы VPN/entitlement, план, срок, `CopyTextButton`, возврат из подключения, guarded покупку/продление и диагностику. Проверяйте без изменения доступа случаи «нет аккаунта», disabled/expired/provisioning/unknown, provider outage, нестыковку сроков и отсутствие подтверждённого числа локаций. «Привязки Master Inbounds» **не** означают число доступных серверов. Не переносите реальные URL, ID или ключи в лог/Issue.
-
-При выключенном `CLIENT_PORTAL_ENABLED`, вне pilot allowlist и в group/supergroup команда и callback не должны читать или выдавать секрет; QR также доступен только в личном чате. Просмотр не запускает `provisioning/reconcile`, новые заказы, изменение `sub_id` или рефанды. Rollback: существующий feature switch и штатный release rollback; новых настроек/миграций нет. G-11 остаётся PARTIAL/NO-GO до отдельной приёмки.
-
 ## Client Portal: тарифы и платежные ограничения
 
 - Клиенту показываются только `active` тарифы с положительной ценой Stars/XTR, разрешённые локальными User Groups, `visibility`, `include_group_ids`/`exclude_group_ids` и серверными проверками. `admin_only` и технические бессрочные бесплатные планы не являются публичной продажей. Отсутствующая цена Stars не преобразуется из RUB; Telegram-покупка цифрового продукта использует только Stars.
 - Список доступных тарифов после серверной фильтрации сортируется по Stars **по убыванию** со стабильным порядком равных цен **до** лимита в 20 строк. Административный RUB/Stars порядок не меняет клиентскую стоимость или backend pre-checkout: реальный `plan`/`invoice` заново проверяет цену, доступность и владельца.
 - Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
 - Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
+
+## Моя подписка: кандидат #497, ещё не в Published rc.18.10
+
+После отдельного выпуска на разрешённом pilot-аккаунте проверьте `/subscription` и `🌐 Моя подписка` в личном чате: статусы VPN/entitlement, план, срок, `CopyTextButton`, возврат из подключения, guarded покупку/продление и диагностику. Проверяйте без изменения доступа случаи «нет аккаунта», disabled/expired/provisioning/unknown, provider outage, нестыковку сроков и отсутствие подтверждённого числа локаций. «Привязки Master Inbounds» **не** означают число доступных серверов. Не переносите реальные URL, ID или ключи в лог/Issue.
+
+При выключенном `CLIENT_PORTAL_ENABLED`, вне pilot allowlist и в group/supergroup команда и callback не должны читать или выдавать секрет; QR также доступен только в личном чате. Просмотр не запускает `provisioning/reconcile`, новые заказы, изменение `sub_id` или рефанды. Rollback: существующий feature switch и штатный release rollback; новых настроек/миграций нет. G-11 остаётся PARTIAL/NO-GO до отдельной приёмки.
 
 ## Исторические release и acceptance checkpoints (не текущий статус)
 

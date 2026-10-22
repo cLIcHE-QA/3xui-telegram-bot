@@ -64,6 +64,10 @@ class XuiCustomerProvider:
             client = obj.get("client", obj)
             if not isinstance(client, dict) or not isinstance(client.get("enable"), bool):
                 raise CustomerProviderUnavailable("customer provider access state unavailable")
+            # An explicitly different provider identity is not owner evidence.
+            # Never infer the caller's VPN state from a foreign client record.
+            if client.get("email") not in (None, "", email):
+                raise CustomerProviderUnavailable("customer provider owner mismatch")
             raw_expiry = client.get("expiryTime")
             # The get_client response carries inboundIds at obj level. Only
             # an exact matching owner and an unambiguous bounded ID set give a
