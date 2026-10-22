@@ -5,6 +5,14 @@
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
 **CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18.10` SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
+
+## Client Portal: тарифы и платежные ограничения
+
+- Клиенту показываются только `active` тарифы с положительной ценой Stars/XTR, разрешённые локальными User Groups, `visibility`, `include_group_ids`/`exclude_group_ids` и серверными проверками. `admin_only` и технические бессрочные бесплатные планы не являются публичной продажей. Отсутствующая цена Stars не преобразуется из RUB; Telegram-покупка цифрового продукта использует только Stars.
+- Список доступных тарифов после серверной фильтрации сортируется по Stars **по убыванию** со стабильным порядком равных цен **до** лимита в 20 строк. Административный RUB/Stars порядок не меняет клиентскую стоимость или backend pre-checkout: реальный `plan`/`invoice` заново проверяет цену, доступность и владельца.
+- Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
+- Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
+
 ## #473 — импорт подписки (кандидат rc.19, не Published)
 
 В личном чате: «Моя подписка» → «Подключить устройство» → платформа → клиент. Incy и v2raytun получают кандидатный URI для ручного импорта через CopyTextButton или локальный QR. Для неподдержанных приложений/URL есть обычные HTTPS URL/QR. Telegram inline URL-button не поддерживает custom схемы, поэтому external redirect/shortener не используется.
@@ -20,12 +28,6 @@
 Ссылки и QR содержат bearer credential, не предназначены для сторонних чатов/логов. URI отвергается при HTTP, userinfo, fragment, query, неоднозначном percent encoding, частных/локальных IP, неподдержанной схеме, превышении CopyTextButton 256 символов. Existing portal switch/allowlist/rate/private chat guards обязательны до чтения owner URL. Нет нового storage, payments, HWID, provisioning, migrations или операторских параметров. Rollback: existing portal switch/штатный опубликованный release. Production acceptance, Release/Deployed и G-11 остаются PENDING/BLOCKED.
 
 
-## Client Portal: тарифы и платежные ограничения
-
-- Клиенту показываются только `active` тарифы с положительной ценой Stars/XTR, разрешённые локальными User Groups, `visibility`, `include_group_ids`/`exclude_group_ids` и серверными проверками. `admin_only` и технические бессрочные бесплатные планы не являются публичной продажей. Отсутствующая цена Stars не преобразуется из RUB; Telegram-покупка цифрового продукта использует только Stars.
-- Список доступных тарифов после серверной фильтрации сортируется по Stars **по убыванию** со стабильным порядком равных цен **до** лимита в 20 строк. Административный RUB/Stars порядок не меняет клиентскую стоимость или backend pre-checkout: реальный `plan`/`invoice` заново проверяет цену, доступность и владельца.
-- Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
-- Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
 
 ## Моя подписка: кандидат #497, ещё не в Published rc.18.10
 
