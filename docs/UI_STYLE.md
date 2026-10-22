@@ -498,3 +498,8 @@ Read-only уточнение отображения зарегистрирова
 ## Happ: длинное числовое окончание User-Agent (#827; PR PENDING)
 
 Зафиксирован operator-reported кейс (2026-10-22 13:43 MSK): `Happ/4.7.1/Android/17912108360521999608` ранее показывал «Не определён». Узкий display-only парсер распознаёт **только** точный `Happ/<version>/Android/<20 ASCII digits>` и выводит `Happ` в detail Client Portal и admin diagnostic. Окончание непрозрачно, не считается версией, timestamp, hardware ID или подтверждением приложения. Generic parser для других брендов не расширен, любые дополнительные хвосты/URL/токены отвергаются. В клиентских списках приложение, raw UA и fingerprint не показываются. Состояние: реализация в рабочем PR, merge/Published/Deployed/targeted acceptance PENDING.
+
+
+## HWID scoped acceptance rc.18.10 (2026-10-22)
+
+После Published и operator-reported Deployed точного `v5.0.0-rc.18.10` (SHA `dae205ac82762723448f93827b981f89ae622231`) оператор подтвердил 23/23 scoped UI пунктов: `UA-01…07`, `MODEL-01…06`, `OS-01…03`, `UI-01…05`, `FINAL-01…02`. [Датированный acceptance audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md) — источник evidence и ограничений; текущий статус — [Roadmap](ROADMAP.md). Шесть HWID Issues completed по собственным read-only критериям; старые candidate/PENDING выше исторические. Нет независимой VPS аттестации, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
