@@ -2,6 +2,11 @@
 
 Этот документ задаёт **действующие нормативные** правила языка, терминологии, навигации, безопасности и пользовательских формулировок Telegram UI. Источники фактических Published/Deployed/Accepted и незавершённых gates — [Roadmap](ROADMAP.md) и [V5 production acceptance](V5_PRODUCTION_ACCEPTANCE.md); реализация в `main` не доказывает deployment.
 
+## #473 — клиентские import URI
+
+После выбора платформы показывается выбор клиента и ручной fallback. Custom import URI только через private-owner CopyTextButton или локальный QR; токен не попадает в callback_data, URL-кнопку Telegram, логи, redirect или внешний QR API. Unsupported client/URL/length -> ручной HTTPS URL/QR и честная инструкция без обещания VPN-соединения. Матрица и проверка версий — docs/CLIENT_SETUP.md; админка не меняется.
+
+
 ## Ручные тарифы и статусы пользователей
 
 В `/admin → Пользователи` 3x-ui status `🟢/⚪/🟡` и статус ручной выдачи **независимы**: для `manual_entitlements.active` — `♾️`, для `unknown/in_flight` — `🟡♾️`; `superseded/failed` и один лишь `admin_only` без живой выдачи не отмечаются. Фильтр `♾️ Ручные` действует **до пагинации**, выполняет bounded/batched SQLite read без N+1 и сохраняет RBAC/карточки пользователя. При неизвестном 3x-ui status используйте `🟡`, не объявляя ошибку отключением. Unicode emoji variation selector `U+FE0F` применяется в текущем UI после merge соответствующего исправления, но не означает его Published/Deployed/Accepted.
