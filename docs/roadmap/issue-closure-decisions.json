@@ -241,6 +241,14 @@
       "evidence": "docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md",
       "date": "2026-10-22",
       "comment": "completed по собственным критериям HWID UI на основании операторского PASS; full v5 G-11 PARTIAL/NO-GO, без новых production mutations"
+    },
+    {
+      "issue": 869,
+      "decision": "completed",
+      "accepted": "docs/CI-only scoped PASS: PR #868/#871 merged, targeted negative regressions and main push Python test SUCCESS",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39849427557/job/120071306157",
+      "date": "2026-10-22",
+      "comment": "Issue #869 GitHub CLOSED/completed after independent read-back; #870 remains separate scoped finding until dynamic fixtures pass. No deployment; G-11 PARTIAL/NO-GO."
     }
   ]
 }
