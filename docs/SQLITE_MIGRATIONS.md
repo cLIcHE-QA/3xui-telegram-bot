@@ -4,7 +4,7 @@
 
 ## Текущий контракт schema
 
-- **Release-prep `v5.0.0-rc.18.9` (НЕ Published/Deployed/Accepted):** #861 изменяет только безопасную admin-only исходную ОС. SQLite schema v15 неизменна; новых миграций нет. Последний Published `rc.18.8`, Deployed SHA не подтверждён.
+- **GitHub Published `v5.0.0-rc.18.9` (Deployed/Accepted PENDING):** #861 изменяет только безопасную admin-only исходную ОС. SQLite schema v15 неизменна; новых миграций нет. Immutable tag SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e`; Deployed SHA не подтверждён.
 
 
 - **GitHub Published `v5.0.0-rc.18.8` (Deployed/Accepted PENDING):** [PR #858](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/858) — только OS/HWID display, SQLite schema v15 неизменна; новый release не требует миграций. Immutable tag SHA `8695184b9aea8076e4a2acdbcba7c306ec26655b` (2026-10-22T11:13:22Z); текущий Deployed tag/SHA UNKNOWN.
