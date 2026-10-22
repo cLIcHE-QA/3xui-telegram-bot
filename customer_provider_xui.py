@@ -14,7 +14,7 @@ from customer_service import (
     CustomerTraffic,
 )
 from xui import XUIClient, XUIError, XUIMutationError
-from device_presentation import recognized_vpn_app
+from device_presentation import device_emoji, recognized_vpn_app
 from device_model_resolver import display_device_model
 
 
@@ -159,9 +159,11 @@ class XuiCustomerProvider:
             device_id = _verified_device_id(item.get("id"))
             if device_id is not None and id_counts[device_id] != 1:
                 device_id = None
+            title = display_device_model(item.get("deviceModel"), os_name, item.get("userAgent"))
             result.append(CustomerDevice(
-                title=display_device_model(item.get("deviceModel"), os_name, item.get("userAgent")),
+                title=title,
                 os_name=os_name,
+                icon=device_emoji(os_name, title, item.get("deviceModel")),
                 last_seen=_verified_timestamp(item.get("lastSeen")),
                 device_id=device_id,
                 os_version=_safe_device_label(item.get("osVersion")),

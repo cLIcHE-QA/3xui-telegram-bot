@@ -53,7 +53,7 @@ class AdminHwidParityTests(unittest.TestCase):
         self.assertIn("page, pages, start = admin_device_page_window(len(devices), page)", list_view)
         self.assertIn("devices[start:start + ADMIN_DEVICE_PAGE_SIZE]", list_view)
         self.assertIn('lines.append(f"Страница {page + 1}/{pages}")', list_view)
-        self.assertIn("icon = device_emoji(os_name, title)", list_view)
+        self.assertIn('icon = device_emoji(os_name, title, item.get("deviceModel"))', list_view)
         self.assertIn("platform = display_os(os_name, os_version)", list_view)
         self.assertIn('f"{index}. {icon} {title} · {platform} · {last_seen}"', list_view)
         self.assertIn('text=f"{icon} {index}. {title}"[:60]', list_view)
@@ -86,8 +86,8 @@ class AdminHwidParityTests(unittest.TestCase):
     def test_admin_detail_contract_remains_untouched(self):
         src = (ROOT / "advanced_users.py").read_text(encoding="utf-8")
         detail = src.split("async def user_device_detail(", 1)[1].split('F.data.regexp(r"^admin:u:devdelask:', 1)[0]
-        self.assertIn('f"User-Agent: {user_agent}\\n"', detail)
-        self.assertIn('f"Fingerprint: {fingerprint}\\n"', detail)
+        self.assertIn('f"📡 User-Agent: {user_agent}\\n"', detail)
+        self.assertIn('f"🔐 Fingerprint: {fingerprint}\\n"', detail)
         self.assertIn('text="🗑 Удалить устройство"', detail)
         self.assertIn('text="⬅ Устройства"', detail)
 

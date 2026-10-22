@@ -133,6 +133,10 @@ class HwidPresentation814Tests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(device_emoji("macOS (Designed for iPad)", "iPad Pro (12.9-inch) (3rd generation)"), "💻")
         self.assertEqual(device_emoji("iPadOS", "iPad Pro"), "📱")
         self.assertEqual(device_emoji("macOS", "iMac"), "🖥️")
+        self.assertEqual(device_emoji("Windows 10_10.0.19045", "Устройство Windows", "DESKTOP-5RIKK8G_x86_64"), "🖥️")
+        self.assertEqual(device_emoji("Windows", "Устройство Windows", "Windows 10 amd64"), "💻")
+        self.assertEqual(device_emoji("Windows", "Устройство Windows", "DESKTOP-aabb1234_x86_64<script>"), "💻")
+        self.assertEqual(display_os("Windows 10_10.0.19045", "26.5"), "Windows 10 (сборка 19045)")
 
     def test_version_not_guessed_and_not_duplicated(self):
         self.assertEqual(display_os("Android", ""), "Android")

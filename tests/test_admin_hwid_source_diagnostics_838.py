@@ -15,9 +15,9 @@ class AdminRawLabelsTest(unittest.TestCase):
             ("Windows 10 amd64", "Windows 10 10.0",
              "Устройство Windows", "Windows 10 amd64", "Windows 10 10.0"),
             ("Unknown device", "Ubuntu 24.04",
-             "Устройство Linux", "Unknown device", ""),
-            ("ThinkPad T14", "Debian 13", "ThinkPad T14", "", ""),
-            ("iPhone18,1", "iOS 26.5.1", "iPhone 17 Pro", "iPhone18,1", ""),
+             "Устройство Linux", "Unknown device", "Ubuntu 24.04"),
+            ("ThinkPad T14", "Debian 13", "ThinkPad T14", "", "Debian 13"),
+            ("iPhone18,1", "iOS 26.5.1", "iPhone 17 Pro", "iPhone18,1", "iOS 26.5.1"),
         )
         for source_model, source_os, expected_display, original_model, original_os in pairs:
             with self.subTest(source_model=source_model):
@@ -30,8 +30,8 @@ class AdminRawLabelsTest(unittest.TestCase):
 
     def test_os_version_append_does_not_trigger_raw(self):
         self.assertEqual(display_os("Windows", "11"), "Windows 11")
-        self.assertEqual(admin_original_hwid_labels("ThinkPad", "Windows", "ThinkPad"), ("", ""))
-        self.assertEqual(admin_original_hwid_labels("Dell", "Ubuntu 24.04", "Dell"), ("", ""))
+        self.assertEqual(admin_original_hwid_labels("ThinkPad", "Windows", "ThinkPad"), ("", "Windows"))
+        self.assertEqual(admin_original_hwid_labels("Dell", "Ubuntu 24.04", "Dell"), ("", "Ubuntu 24.04"))
 
     def test_never_expose_untrusted_markup_and_secrets(self):
         dangerous = (
@@ -51,6 +51,8 @@ class AdminRawLabelsTest(unittest.TestCase):
         self.assertIn("admin_original_hwid_labels(", detail)
         self.assertIn("Исходная модель: {original_model}", detail)
         self.assertIn("Исходная ОС: {original_os}", detail)
+        self.assertIn('f"🧾 Исходная ОС: {original_os}\\n"', detail)
+        self.assertIn('f"{model_icon} Модель: {model}\\n"', detail)
         self.assertNotIn("Исходная модель:", customer)
         self.assertNotIn("Исходная ОС:", customer)
         self.assertIn('callback_data=f"admin:u:devdelask:{tg_id}:{device_id}"', detail)
