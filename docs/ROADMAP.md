@@ -65,6 +65,7 @@
 | **v5.0.0-rc.20** | #498, #505 | #498 после #497 и с необходимыми доказательствами Master/Node #487 и API budget #482; FAQ/общий Support #505 независимо |
 | **v5.0.0-rc.21** | #506, #564 | #506: Stars-first без обязательного #336; #564: сохранить старые guarded redirects |
 | **v5.0.0-rc.22** | #615 | Реальная per-subscription совместимость RU Direct / Full VPN в Happ и Incy, отдельный smoke обеих политик |
+| **v5.0.0-rc.23** | #874 | Только сервисные новости клиентам: ручные/плановые admin-рассылки, собственная durable SQLite-очередь, Telegram rate budget, dry-run/approval, согласование необязательных категорий с #501; без рекламы или автоматической production отправки |
 
 **Смысл версий:** только будущие кандидаты после Published rc.18.10, не обещание сроков. Выполненные HWID Issues в backlog не возвращать; #482/#487 и другие зависимости остаются самостоятельными. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
@@ -111,6 +112,7 @@
 | [#701](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/701) | ⬜ Запланировано | — | TBD | 2026-10-16: новый Issue; Host Groups 3x-ui read-only уже по закрытому #422, локальные User Groups — отдельная модель | Группы **клиентов 3x-ui**: read-only Master API, позднее guarded membership/CRUD; не смешивать Telegram audience и Host/Server Groups; #496 отдельно | L|
 | [#702](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/702) | ⬜ Запланировано | — | TBD | 2026-10-16: новый Issue, пример `page-mascot`; собственной страницы подписки пока нет | После появления custom subscription page: optional mascot, лицензия/ассеты, reduced-motion, privacy и мобильная доступность; действующий proxy не менять | M|
 | [#703](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/703) | ⬜ Запланировано | — | TBD | 2026-10-16: новый Issue, пример iwtsy.com; публичный API третьей стороны не подтверждён | Только свои/разрешённые адреса: региональные TCP/SSH probes, различать connect/RST/banner/timeout; consent, SSRF, rate limits, внешний API или собственные probes; #478 — отдельная система | XL|
+| [#874](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/874) | ⬜ Запланировано | — | v5.0.0-rc.23 | Оператор 2026-10-22 согласовал только сервисные сообщения (работы, функции, тарифы), не рекламу; Issue #874 OPEN, реализация PENDING | Админские ручные/запланированные рассылки через собственный Bot API; durable bounded delivery, User Groups, privacy/stop/recovery и #501 для optional opt-out; выпуск/отправка только после approval | XL |
 | [#707](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/707) | ⬜ Запланировано | [#708](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/708) | TBD | Оператор утвердил юристом подготовленные Terms/Privacy и возвраты по соглашению | План раздела «Документы и условия»: /legal/terms, /legal/privacy, /legal/tariffs; версия/акцепт перед XTR/RUB, без публикации тестового URL; #433/#434/#436 superseded | L|
 
 ## Завершённые HWID Issue scopes (operator-reported)
