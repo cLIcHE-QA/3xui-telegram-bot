@@ -4,7 +4,7 @@
 
 ## Текущий контракт schema
 
-- **Release-prep `v5.0.0-rc.18.7` (НЕ Published/Deployed/Accepted):** #852 Karing 191-character suffix, #855 безопасные HWID UI значки/Windows OS/исходная ОС только в админке; **schema v15 неизменна**, новых миграций нет. Последний реально Published — immutable `v5.0.0-rc.18.6`, tag SHA `46bc24530633d9958278ab56f624c8b8d274f845`. Deployment/targeted acceptance нового кандидата PENDING.
+- **GitHub Published `v5.0.0-rc.18.7` (Deployed/Accepted PENDING):** #852 Karing 191-character suffix, #855 безопасные HWID UI значки/Windows OS/исходная ОС только в админке; **schema v15 неизменна**, новых миграций нет. Immutable tag SHA `b5c67fe8078eb87c84cba9382c97fb3da6420de1`; deployment/targeted acceptance PENDING.
 
 
 - **Release-prep `v5.0.0-rc.18.6` (НЕ Published/Deployed/Accepted):** merged PR #849 меняет только read-only Karing UA presentation/administrative diagnostics; schema v15 неизменна, миграций нет. Последний Published `rc.18.5` на immutable SHA `b2bdb09778f120aa57c8415ae803394483a2ef8e`; новая версия опубликована как prerelease, production deployment не подтверждён.
