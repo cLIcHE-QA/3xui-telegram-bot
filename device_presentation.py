@@ -126,7 +126,7 @@ def recognized_vpn_app(user_agent: object) -> str:
         rf"mihomo/({version});clash-verge;FLClash;"
         rf"mihomo[.]party/v({version}) \(clash[.]meta\);"
         rf"ClashMeta;v2ray;sing-box {version};NekoBox/Android/{version}"
-        rf"(?: \(Preferences\))?",
+        rf"(?: \(Preferences\)| \(Prefer ClashMeta Format\);HiddifyNext)?",
         user_agent, re.IGNORECASE
     ):
         return "Karing"
