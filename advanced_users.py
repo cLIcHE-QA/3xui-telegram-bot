@@ -1071,7 +1071,7 @@ async def user_device_detail(call: CallbackQuery):
         + f"🖥️ ОС: {display_os(os_name, os_version)}\n"
         + (f"🧾 Исходная ОС: {original_os}\n" if original_os else "")
         + (f"🆔 Model ID: {model_id}\n" if model_id else "")
-        f"🔐 Fingerprint: {fingerprint}\n"
+        + f"🔐 Fingerprint: {fingerprint}\n"
         f"📡 User-Agent: {user_agent}\n"
         + (f"📏 Предпросмотр UA: {ua_preview_note}\n" if ua_preview_note else "")
         + f"🔍 Распознано по полному User-Agent: {ua_match}\n"
