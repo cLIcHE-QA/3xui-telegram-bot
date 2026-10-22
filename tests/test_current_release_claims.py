@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -52,22 +53,27 @@ class CurrentReleaseClaimsTests(unittest.TestCase):
                             semantics.current_release_claims_ok(self.root)))
 
     def test_current_changelog_stale_acceptance_rejected(self):
-        self.change("CHANGELOG.md", "Текущий checkpoint 2026-10-22",
-                    "Deployed/Accepted PENDING. Текущий checkpoint 2026-10-22")
+        self.change("CHANGELOG.md", "**Текущий checkpoint",
+                    "**Текущий checkpoint Deployed/Accepted PENDING;")
         self.assertTrue(any("CHANGELOG" in x for x in
                             semantics.current_release_claims_ok(self.root)))
 
     def test_completed_issue_cannot_be_open_in_admin(self):
-        self.change("docs/ADMIN_SETUP.md", "Принятые оператором 23/23",
-                    "#827 OPEN; Принятые оператором 23/23")
-        self.assertTrue(any("#827" in x for x in
+        decisions = json.loads((self.root / "docs/roadmap/issue-closure-decisions.json").read_text(encoding="utf-8"))
+        issue = next(d["issue"] for d in decisions["decisions"] if d["decision"] == "completed")
+        self.change("docs/ADMIN_SETUP.md", "**Текущий Published/Deployed/Accepted status:**",
+                    f"**Текущий Published/Deployed/Accepted status:** #{issue} OPEN;")
+        self.assertTrue(any(f"#{issue}" in x for x in
                             semantics.current_release_claims_ok(self.root)))
 
     def test_historical_publication_pending_is_not_current(self):
         f = self.root / "CHANGELOG.md"
         s = f.read_text(encoding="utf-8")
+        decisions = json.loads((self.root / "docs/roadmap/issue-closure-decisions.json").read_text(encoding="utf-8"))
+        issue = next(d["issue"] for d in decisions["decisions"] if d["decision"] == "completed")
+        self.assertEqual(s.count("**Исторические publication checkpoints"), 1)
         s = s.replace("**Исторические publication checkpoints",
-                      "**Исторические publication checkpoints: Deployed/Accepted PENDING, #827 OPEN", 1)
+                      f"**Исторические publication checkpoints: Deployed/Accepted PENDING, #{issue} OPEN", 1)
         f.write_text(s, encoding="utf-8")
         self.assertEqual(semantics.current_release_claims_ok(self.root), [])
 
