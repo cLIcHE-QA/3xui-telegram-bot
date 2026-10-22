@@ -35,6 +35,27 @@ class HwidPresentation814Tests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("Happ", label)
         self.assertNotIn("Incy", str(buttons))
 
+    async def test_split_windows_os_is_shared_with_client_inventory(self):
+        provider = XuiCustomerProvider(SimpleNamespace(
+            client_hwids=AsyncMock(return_value=[{
+                "id": 7, "deviceModel": "DESKTOP-TEST1234_x86_64",
+                "deviceOs": "Windows", "osVersion": "10_10.0.19045",
+                "userAgent": "Happ/4.5.4/Windows/2610141139502",
+            }]),
+            get_client=AsyncMock(return_value={"client": {
+                "email": "example.invalid", "limitHwid": 5,
+            }}),
+        ))
+        inventory = await provider.devices("example.invalid")
+        label, buttons = _device_list_view(inventory, 0)
+        self.assertIn("🖥️ Устройство Windows · Windows 10 (сборка 19045)", label)
+        self.assertNotIn("DESKTOP-TEST1234", label + str(buttons))
+        self.assertEqual(inventory.devices[0].os_name, "Windows")
+        self.assertEqual(inventory.devices[0].os_version, "10_10.0.19045")
+        self.assertEqual(display_os(inventory.devices[0].os_name,
+                                    inventory.devices[0].os_version),
+                         "Windows 10 (сборка 19045)")
+
     async def test_untrusted_version_is_ignored(self):
         for raw in ("<b>15</b>", "a" * 60, "https://example.invalid/secret", "f" * 32, 17, None):
             with self.subTest(raw=raw):
