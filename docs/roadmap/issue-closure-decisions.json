@@ -193,6 +193,54 @@
       "accepted": "operator-reported production H1-H8 applicable PASS + A1-A6/B1-B6/C1-C3 UI 15/15 and offline PR #821 test/title PASS; independent VPS read-back PENDING",
       "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
       "comment": "completed: 8 admin / 5 client per page, 9+ live pagination/legacy callback/error H4-H6 and offline edge cases."
+    },
+    {
+      "issue": 827,
+      "decision": "completed",
+      "accepted": "operator-reported v5.0.0-rc.18.10, targeted read-only HWID UI 23/23 PASS; exact Published/Deployed SHA match; independent VPS and per-fixture evidence not supplied",
+      "evidence": "docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md",
+      "date": "2026-10-22",
+      "comment": "completed по собственным критериям HWID UI на основании операторского PASS; full v5 G-11 PARTIAL/NO-GO, без новых production mutations"
+    },
+    {
+      "issue": 830,
+      "decision": "completed",
+      "accepted": "operator-reported v5.0.0-rc.18.10, targeted read-only HWID UI 23/23 PASS; exact Published/Deployed SHA match; independent VPS and per-fixture evidence not supplied",
+      "evidence": "docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md",
+      "date": "2026-10-22",
+      "comment": "completed по собственным критериям HWID UI на основании операторского PASS; full v5 G-11 PARTIAL/NO-GO, без новых production mutations"
+    },
+    {
+      "issue": 833,
+      "decision": "completed",
+      "accepted": "operator-reported v5.0.0-rc.18.10, targeted read-only HWID UI 23/23 PASS; exact Published/Deployed SHA match; independent VPS and per-fixture evidence not supplied",
+      "evidence": "docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md",
+      "date": "2026-10-22",
+      "comment": "completed по собственным критериям HWID UI на основании операторского PASS; full v5 G-11 PARTIAL/NO-GO, без новых production mutations"
+    },
+    {
+      "issue": 834,
+      "decision": "completed",
+      "accepted": "operator-reported v5.0.0-rc.18.10, targeted read-only HWID UI 23/23 PASS; exact Published/Deployed SHA match; independent VPS and per-fixture evidence not supplied",
+      "evidence": "docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md",
+      "date": "2026-10-22",
+      "comment": "completed по собственным критериям HWID UI на основании операторского PASS; full v5 G-11 PARTIAL/NO-GO, без новых production mutations"
+    },
+    {
+      "issue": 838,
+      "decision": "completed",
+      "accepted": "operator-reported v5.0.0-rc.18.10, targeted read-only HWID UI 23/23 PASS; exact Published/Deployed SHA match; independent VPS and per-fixture evidence not supplied",
+      "evidence": "docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md",
+      "date": "2026-10-22",
+      "comment": "completed по собственным критериям HWID UI на основании операторского PASS; full v5 G-11 PARTIAL/NO-GO, без новых production mutations"
+    },
+    {
+      "issue": 854,
+      "decision": "completed",
+      "accepted": "operator-reported v5.0.0-rc.18.10, targeted read-only HWID UI 23/23 PASS; exact Published/Deployed SHA match; independent VPS and per-fixture evidence not supplied",
+      "evidence": "docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md",
+      "date": "2026-10-22",
+      "comment": "completed по собственным критериям HWID UI на основании операторского PASS; full v5 G-11 PARTIAL/NO-GO, без новых production mutations"
     }
   ]
 }
