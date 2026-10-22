@@ -4,6 +4,9 @@
 
 ## Текущий контракт schema
 
+- **Release-prep `v5.0.0-rc.18.8` (НЕ Published/Deployed/Accepted):** [PR #858](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/858) — только OS/HWID display, SQLite schema v15 неизменна; новый release не требует миграций. Последний Published `rc.18.7`; текущий Deployed tag/SHA UNKNOWN.
+
+
 - **GitHub Published `v5.0.0-rc.18.7` (Deployed/Accepted PENDING):** #852 Karing 191-character suffix, #855 безопасные HWID UI значки/Windows OS/исходная ОС только в админке; **schema v15 неизменна**, новых миграций нет. Immutable tag SHA `b5c67fe8078eb87c84cba9382c97fb3da6420de1`; deployment/targeted acceptance PENDING.
 
 
