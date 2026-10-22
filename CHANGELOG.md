@@ -1,3 +1,5 @@
+> Кандидат #473, ещё не Published: добавлен private-only выбор клиента и защищённый импорт Incy/v2raytun через копирование URI или локальный QR, manual URL/QR fallback; проверка реальных client versions и targeted smoke PENDING. G-11 PARTIAL/NO-GO.
+
 # Журнал изменений
 
 > **Текущий checkpoint 2026-10-22 21:21 UTC+03:00:** GitHub Published `v5.0.0-rc.18.10` (immutable SHA `dae205ac82762723448f93827b981f89ae622231`), Deployed с точным SHA **operator-reported**; targeted HWID UI 23/23 operator-reported scoped PASS. #827/#830/#833/#834/#838/#854 CLOSED/completed по собственным критериям, [датированный audit](docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md), [Roadmap](docs/ROADMAP.md). Independent VPS/provider attestation PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Дата operator report: 2026-10-22T18:21:19Z.
