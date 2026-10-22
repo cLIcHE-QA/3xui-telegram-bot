@@ -54,8 +54,8 @@
 ## Текущая очередь и блокировки
 
 1. **G-11 / PARTIAL:** полный V5-A-001…003, ownership/rollback/reconciliation остаются незавершёнными; [финальный отчёт](audits/v5-production-acceptance-2026-10-14.md) `CONDITIONAL / NO-GO`. Никаких новых опасных production mutations/waived smoke без отдельного разрешения.
-2. **HWID scoped closure:** #827/#830/#833/#834/#838/#854 completed по [23/23 operator-reported targeted UI](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md). Ранее #814/#816/#820/#471/#472 completed; X1/X2/X3 independent DELETE provenance PENDING. Исторические `rc.18.1`/`rc.18.3` FAIL сохраняются.
-3. **Остальные блокировки:** #437 зависит от юридического § 9 #707, W-01/W-02/W-03 waiver не равен PASS. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+**HWID scoped closure:** #827/#830/#833/#834/#838/#854 completed по [23/23 operator-reported targeted UI](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md). Ранее #814/#816/#820/#471/#472 completed; X1/X2/X3 independent DELETE provenance PENDING. Исторические `rc.18.1`/`rc.18.3` FAIL сохраняются.
+**Остальные блокировки:** #437 зависит от юридического § 9 #707, W-01/W-02/W-03 waiver не равен PASS. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 ## Будущие release-кандидаты (план после Published rc.18.10)
 
