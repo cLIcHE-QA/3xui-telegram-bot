@@ -72,7 +72,9 @@ IMPLEMENTED = "🟡 Реализовано в main"
 
 def code_file(path: str) -> bool:
     """Docs-only, audit и test-only PR не подтверждают runtime implementation."""
-    if path.startswith(("docs/", "tests/", ".github/")) or path in (
+    if path.startswith(("docs/", "tests/", ".github/")) or (
+        path.startswith("scripts/check-") and path.endswith(".py")
+    ) or path in (
         "README.md", "CHANGELOG.md", "SECURITY.md", "AGENTS.md",
     ):
         return False
