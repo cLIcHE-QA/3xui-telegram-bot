@@ -8,6 +8,8 @@
 
 > **GitHub Published `v5.0.0-rc.18.9` (2026-10-22T11:53:55Z):** immutable tag SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e` по [release PR #862](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/862), main CI и Publish release SUCCESS. [PR #858](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/858) включён; Deployed/targeted #834 acceptance PENDING, public rollout BLOCKED.
 
+> **Новый неопубликованный #827 fix (2026-10-22):** адресная поддержка `Happ/4.7.1/Android/17912108360521999608` (Pixel 6 / Android 17) — безопасно показывать только `Happ` в HWID detail; 20-значный непрозрачный suffix не интерпретируется и не раскрывается в Client Portal. Общий синтаксис иных VPN-клиентов, authorization, DELETE, API и SQLite без изменений. Изменение подготовлено в отдельном implementation PR; НЕ Published/Deployed/Accepted, #827 OPEN/keep_open, targeted smoke PENDING.
+
 Все заметные изменения проекта фиксируются здесь на русском языке. Названия элементов интерфейса, API, переменных, таблиц и команд сохраняются в исходном виде, чтобы их можно было сопоставить с кодом.
 
 История до перехода на Git восстановлена по сохранённым релизным архивам. Для исторических версий формулировки сокращены и приведены к единому виду.

@@ -4,6 +4,8 @@
 
 ## Актуальная сводка проекта
 
+**Новый #827 finding (2026-10-22 13:43 MSK, operator-reported):** на обновлённом боте для Pixel 6 / Android 17 строка `Happ/4.7.1/Android/17912108360521999608` распознана как «Не определён»; actual deployed tag/SHA не подтверждён. Узкое исправление формата `Happ/<version>/Android/<20 digits>` подготовлено в отдельном PR, не merged/not Published/not Deployed/not Accepted. 20 цифр — непрозрачный suffix, не версия/идентификатор. #827 OPEN/keep_open, targeted read-only UI/security acceptance PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+
 
 **Опубликован GitHub Release v5.0.0-rc.18.9 (2026-10-22T11:53:55Z; повторная проверка GitHub):** [PR #861](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/861) слит «сжатым» коммитом `4b68fc65fa6ca566f3f793069b5b6ec78c819f12`, [release PR #862](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/862) слит, [Python checks 39773333047](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39773333047) успешно завершён при повторном запуске после временной ошибки GitHub API, [Publish release 39774013709](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39774013709) успешно завершён. Неизменяемый SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e`; точная развёрнутая версия и SHA неизвестны; адресная проверка #834 ожидается; G-11 PARTIAL/NO-GO, публичный запуск заблокирован.
 
