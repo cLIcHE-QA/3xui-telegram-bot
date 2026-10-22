@@ -4,27 +4,15 @@
 
 ## Текущий контракт schema
 
-- **GitHub Published `v5.0.0-rc.18.10` (Deployed/Accepted PENDING):** PR #864 / Issue #827 — только безопасное распознавание Happ Android с длинным User-Agent. SQLite schema v15 без изменений, новых миграций нет. Immutable tag SHA `dae205ac82762723448f93827b981f89ae622231`; предшествующий Published `rc.18.9`. Точный Deployed tag/SHA и targeted acceptance UNKNOWN/PENDING.
+**Схема SQLite v15 неизменна для Published `v5.0.0-rc.18.10`.** Новых миграций в релизе нет: исправления Happ/User-Agent, Windows/OS и HWID-карточек — только read-only представление. Текущий операторский deployment и адресные HWID 23/23 `PASS` фиксируются исключительно в [Roadmap](ROADMAP.md) и [датированном audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md); независимая VPS/SQLite `PRAGMA quick_check` аттестация остаётся PENDING. Само `DB=ok` не является доказательством `PRAGMA quick_check`.
 
-- **GitHub Published `v5.0.0-rc.18.9` (Deployed/Accepted PENDING):** #861 изменяет только безопасную admin-only исходную ОС. SQLite schema v15 неизменна; новых миграций нет. Immutable tag SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e`; Deployed SHA не подтверждён.
+Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
 
+**История релизов** `rc.18.2`–`rc.18.9` и их прежних `PENDING` сохранена в [CHANGELOG](../CHANGELOG.md), [датированных audits](audits/) и [историческом Roadmap](roadmap/HISTORY_INDEX.md). Эти предыдущие snapshot-статусы не описывают текущий `rc.18.10`.
 
-- **GitHub Published `v5.0.0-rc.18.8` (Deployed/Accepted PENDING):** [PR #858](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/858) — только OS/HWID display, SQLite schema v15 неизменна; новый release не требует миграций. Immutable tag SHA `8695184b9aea8076e4a2acdbcba7c306ec26655b` (2026-10-22T11:13:22Z); текущий Deployed tag/SHA UNKNOWN.
-
-
-- **GitHub Published `v5.0.0-rc.18.7` (Deployed/Accepted PENDING):** #852 Karing 191-character suffix, #855 безопасные HWID UI значки/Windows OS/исходная ОС только в админке; **schema v15 неизменна**, новых миграций нет. Immutable tag SHA `b5c67fe8078eb87c84cba9382c97fb3da6420de1`; deployment/targeted acceptance PENDING.
-
-
-- **Release-prep `v5.0.0-rc.18.6` (НЕ Published/Deployed/Accepted):** merged PR #849 меняет только read-only Karing UA presentation/administrative diagnostics; schema v15 неизменна, миграций нет. Последний Published `rc.18.5` на immutable SHA `b2bdb09778f120aa57c8415ae803394483a2ef8e`; новая версия опубликована как prerelease, production deployment не подтверждён.
-
-
-- Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
-- **GitHub Published `v5.0.0-rc.18.5`** (immutable tag `b2bdb09778f120aa57c8415ae803394483a2ef8e`, read-back 2026-10-21T21:27:19Z): merged PR #846 добавил только read-only распознавание `Client/Platform/Version` без новой миграции. Schema остаётся v15, модели/ОС, device ownership и DELETE не менялись. Реальный deployed tag/SHA и targeted acceptance PENDING; никакой production SQLite mutation не выполнялся. [Roadmap](ROADMAP.md) — канонический Published/Deployed/Accepted status.
-- **Предыдущий Published `v5.0.0-rc.18.4`** (immutable tag `c5686b909e24c367d5b3fa118850d62011787889`) включает read-only HWID presentation #844 и не включает универсальный `Client/Platform/Version` fix #846. Исходный `rc.18.3` также не добавлял migrations; последний идентифицированный Deployed `rc.18.3` — только operator-reported, после 2026-10-21 21:28 EEST новая рабочая версия не идентифицирована; acceptance PENDING. Присвоение `APP_VERSION` само по себе не подтверждает Published/Deployed/Accepted. SQLite schema v15 неизменна; [Roadmap](ROADMAP.md) — источник актуальных release-статусов.
-- Release-prep `v5.0.0-rc.18.2` содержит только presentation/HWID UI corrections #821, **без новых SQLite migrations**; Published (immutable GitHub tag `20205a56887cbdf644f604febdd9eb9ac717b914`), **Deployed operator-reported, targeted UI 15/15 и H1–H8 operator-reported PASS, #472 CLOSED/completed (operator-accepted); full v5 NOT Accepted**. Published `v5.0.0-rc.18.1` включает HWID presentation #814/#816 поверх HWID-карточек #471 и одноразовый DELETE собственного устройства #472, **не меняет** каталог `MIGRATIONS` и не меняет структуру SQLite; текущая схема остаётся прежней. Предыдущий опубликованный `rc.17` сохранял ту же версию миграций; новый APP_VERSION не означает schema migration. Published/Deployed/Accepted определяются только по [Roadmap](ROADMAP.md), а не по текущему release-prep.
-- `v14 plan_audience_v5_0_0` добавляет независимую RUB/Stars видимость, локальные User Groups и `manual_entitlements`; один live/unknown journal запрещает конкурентную выдачу. Schema v15 сохраняет историю, при `in_flight/unknown` запрещён автоматический replay; read-only batch/filter ручных выдач не создаёт новую миграцию, заказ или платёж.
-- Все миграции **forward-only**; pre-migration backup, `schema_migrations`, postcondition и `PRAGMA quick_check` обязательны по соответствующим правилам ниже. `requires_backup=True` для опасной миграции, без recovery copy её нельзя начинать. Старый код на более новой schema блокируется `DatabaseSchemaTooNewError`.
-- Current Published/Deployed/Accepted всегда проверяйте по [Roadmap](ROADMAP.md), отдельно от schema каталога в `main`. Любое production deployment и DB mutation требуют отдельного разрешения.
+- `v14 plan_audience_v5_0_0` добавляет независимую RUB/Stars видимость, локальные User Groups и `manual_entitlements`; один live/unknown journal запрещает конкурентную выдачу.
+- Миграции **forward-only**; pre-migration backup, `schema_migrations`, postcondition и `PRAGMA quick_check` обязательны по соответствующим правилам ниже. `requires_backup=True` для опасной миграции, без recovery copy её нельзя начинать. Старый код на более новой schema блокируется `DatabaseSchemaTooNewError`.
+- Актуальные Published/Deployed/Accepted всегда проверяйте по [Roadmap](ROADMAP.md), отдельно от каталога миграций в `main`. Production deployment или DB mutation требуют отдельного разрешения.
 
 ## Историческая эволюция release/schema (не действующий статус)
 

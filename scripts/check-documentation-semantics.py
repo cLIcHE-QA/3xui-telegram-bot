@@ -276,9 +276,73 @@ def current_ok(root: Path) -> list[str]:
     return issues
 
 
+def current_release_claims_ok(root: Path) -> list[str]:
+    """Сверка только явно действующих проекций, а не датированной истории."""
+    roadmap = (root / "docs/ROADMAP.md").read_text(encoding="utf-8")
+    lines = [line for line in roadmap.splitlines()
+             if line.startswith("**Published:** immutable ")]
+    if len(lines) != 1:
+        return ["release: нужна одна каноническая строка Roadmap"]
+    canonical = lines[0]
+    tag_match = re.search(r"releases/tag/(v\d+\.\d+\.\d+(?:-rc\.\d+(?:\.\d+)?)?)", canonical)
+    if not tag_match:
+        return ["release: в Roadmap отсутствует Published tag"]
+    tag = tag_match.group(1)
+    deployed_block = canonical.split("**Deployed:**", 1)[-1].split("**Accepted:**", 1)[0]
+    deployed_match = re.search(r"\x60(v\d+\.\d+\.\d+[^\x60]*)\x60", deployed_block)
+    if not deployed_match:
+        return ["release: в Roadmap отсутствует Deployed tag"]
+    deployed = deployed_match.group(1)
+    accepted_block = canonical.split("**Accepted:**", 1)[-1]
+    accepted_scoped = bool(re.search(r"\bscoped PASS\b", accepted_block, re.I))
+    reported = "operator-reported" in deployed_block
+
+    def conflicts(text: str) -> bool:
+        """Уже принятый scope не может быть одновременно неизвестным в current intro."""
+        if reported and deployed == tag:
+            if re.search(r"Deployed/Accepted\s+(?:UNKNOWN/)?PENDING", text, re.I):
+                return True
+            if re.search(r"(?:не Deployed/Accepted|deployment и acceptance не подтверждены|Точный Deployed tag/SHA (?:неизвестен|UNKNOWN))", text, re.I):
+                return True
+        if accepted_scoped and re.search(r"(?:targeted\s+(?:HWID\s+)?acceptance|scoped\s+Happ\s+acceptance)\s+(?:UNKNOWN/)?PENDING", text, re.I):
+            return True
+        return False
+
+    errors: list[str] = []
+    admin = (root / "docs/ADMIN_SETUP.md").read_text(encoding="utf-8")
+    admin_current = admin.split("## Перед началом:", 1)[0].split(
+        "**Исторический checkpoint", 1)[0]
+    if "Roadmap](ROADMAP.md)" not in admin_current or conflicts(admin_current):
+        errors.append("ADMIN_SETUP: противоречивый текущий Published/Deployed/Accepted")
+    schema = (root / "docs/SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
+    schema_current = schema.split("## Историческая эволюция", 1)[0]
+    if "Roadmap](ROADMAP.md)" not in schema_current or conflicts(schema_current):
+        errors.append("SQLITE_MIGRATIONS: противоречивый текущий Published/Deployed/Accepted")
+    changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    current_header = changelog.split("Все заметные изменения проекта фиксируются", 1)[0]
+    # Исторические publication snapshots разрешены только после явно
+    # обозначенного исторического маркера; не проверяем секции старых RC.
+    current_header = current_header.split("**Исторические publication checkpoints", 1)[0]
+    if f"Текущий checkpoint" not in current_header or tag not in current_header:
+        errors.append("CHANGELOG: нет однозначного текущего release checkpoint")
+    elif conflicts(current_header):
+        errors.append("CHANGELOG: старый deployment/acceptance под текущим заголовком")
+
+    # Закрытый Issue нельзя называть OPEN в текущем Admin/Changelog блоке.
+    decisions = json.loads((root / "docs/roadmap/issue-closure-decisions.json").read_text(encoding="utf-8"))
+    closed = {x["issue"] for x in decisions["decisions"] if x.get("decision") == "completed"}
+    current_texts = {"ADMIN_SETUP": admin_current, "CHANGELOG": current_header}
+    for name, text in current_texts.items():
+        for issue in sorted(closed):
+            if re.search(rf"#(?:{issue})\s+(?:OPEN|keep_open)\b", text, re.I):
+                errors.append(f"{name}: #{issue} completed в registry, но OPEN в текущей сводке")
+    return errors
+
+
 def check(root: Path = ROOT, changed: list[str] | None = None) -> list[str]:
     new_files = changed or []
     errors = current_ok(root)
+    errors.extend(current_release_claims_ok(root))
     targets = set(CHECK_PATHS)
     targets.update(p for p in new_files if p.startswith("docs/roadmap/concepts/") and p.endswith(".md"))
     targets.update(p for p in new_files if p.startswith("docs/audits/") and p.endswith(".md")
