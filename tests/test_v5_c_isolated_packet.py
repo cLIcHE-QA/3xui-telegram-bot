@@ -145,7 +145,7 @@ class C2ForgedOwnershipTests(unittest.IsolatedAsyncioTestCase):
             devices=AsyncMock(return_value=__import__('customer_service').CustomerDeviceInventory(devices=(), total=0)),
         )
         flags = SimpleNamespace(snapshot=AsyncMock(
-            return_value=SimpleNamespace(portal_enabled=True)
+            return_value=SimpleNamespace(portal_enabled=True, stars_enabled=False)
         ))
         bot = SimpleNamespace(send_photo=AsyncMock())
         call = SimpleNamespace(
@@ -235,7 +235,7 @@ class C3BoundedConcurrencyTests(unittest.IsolatedAsyncioTestCase):
         portal = portal_module()
         limiter = SlidingWindowRateLimiter(limit=30, window_seconds=60)
         flags = SimpleNamespace(snapshot=AsyncMock(
-            return_value=SimpleNamespace(portal_enabled=True)
+            return_value=SimpleNamespace(portal_enabled=True, stars_enabled=False)
         ))
         def fake_call(uid):
             return SimpleNamespace(

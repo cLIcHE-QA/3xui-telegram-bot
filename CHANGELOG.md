@@ -12,6 +12,12 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## Ещё не выпущено — кандидат v5.0.0-rc.19
+
+- [#497](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/497): единая read-only карточка подписки показывает фактический статус доступа/entitlement, тариф, подтверждённый срок и состояние активации. Provider outage, expiry drift и unknown не выдаются за `active`; число Master Inbounds не выдается за подтверждённые работающие локации.
+- Ссылка и кнопка `CopyTextButton` защищены private chat/owner/pilot; доступны переходы в подключение, существующую покупку/продление и read-only диагностику. Никаких новых `sub_id`, `provisioning/reconcile` (#498 отдельно), API, migrations, секретов или обновления operator setup.
+- Unit/UI/regression покрытие обновлено. Это **кандидат, не Published**, не Deployed и не Accepted; `rc.19` не гарантирован, действующий Published/Deployed `rc.18.10`, G-11 PARTIAL/NO-GO.
+
 ## v5.0.0-rc.18.10 — безопасное распознавание Happ на Android
 
 - [PR #864](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/864) / [Issue #827](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/827): полный User-Agent `Happ/4.7.1/Android/17912108360521999608` теперь строго распознаётся как `Happ`, включая 20-значное непрозрачное окончание; Android 17 и Pixel 6 не изменяют правила определения приложения.
