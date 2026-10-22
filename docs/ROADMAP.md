@@ -4,7 +4,6 @@
 
 ## Актуальная сводка проекта
 
-**Release-prep checkpoint (2026-10-22):** [PR #858](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/858) squash MERGED `cb679e103ec7ba6c97d9486c0656c8fa45363633` после required `test`/`title` PASS; разделённая Windows-версия и admin original OS/порядок полей — в `main`, планируемый controlled `v5.0.0-rc.18.8` **ещё НЕ Published/Deployed/Accepted**. Published остаётся immutable `rc.18.7`; operator-reported update без exact deployed tag/SHA, targeted #834 PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 **GitHub Published v5.0.0-rc.18.7 (2026-10-22T09:42:24Z; GitHub read-back):** PR #853 squash MERGED `da168ccb455d54754e8b1244087b9ed98051c642`, PR #855 squash MERGED `86f633bfe9477c9a5a9fd8b54649c70dcc87868a`, required `test`/`title` PASS. #852 уже MERGED; 191-char Karing и desktop/HWID UI вошли в immutable Published tag `v5.0.0-rc.18.7` SHA `b5c67fe8078eb87c84cba9382c97fb3da6420de1` через [PR #856](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/856), [Publish release 39757444253](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39757444253) SUCCESS; actual Deployed tag/SHA UNKNOWN; #827/#854 keep_open, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
