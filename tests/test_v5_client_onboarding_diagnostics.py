@@ -179,7 +179,8 @@ class ClientOnboardingDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
     def test_client_ui_keeps_qr_local_private_and_diagnostics_non_mutating(self):
         source = (ROOT / "client_access.py").read_text(encoding="utf-8")
         self.assertIn("qr_png(url)", source)
-        self.assertIn('chat.type != "private"', source)
+        self.assertIn('getattr(chat, "type", None) == "private"', source)
+        self.assertIn("_require_private_subscription_callback(call)", source)
         self.assertIn('callback_data="client:diagnostics"', source)
         self.assertNotIn("await _service().reconcile", source)
         self.assertNotIn("aiohttp", source)

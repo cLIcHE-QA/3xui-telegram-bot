@@ -38,7 +38,8 @@ class V5LaunchAuditContractTests(unittest.TestCase):
 
     def test_subscription_secret_and_qr_controls_remain_present(self):
         ui = self.read("client_access.py")
-        self.assertIn('chat.type != "private"', ui)
+        self.assertIn('getattr(chat, "type", None) == "private"', ui)
+        self.assertIn("_require_private_subscription_callback(call)", ui)
         self.assertIn("qr_png(url)", ui)
         self.assertIn("секрет", ui.lower())
         self.assertNotIn("api.qrserver", ui)

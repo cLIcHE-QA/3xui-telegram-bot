@@ -22,7 +22,9 @@ class V5Rc2CanaryFindingsTests(unittest.TestCase):
 
     def test_subscription_command_uses_canonical_heading(self):
         source = (ROOT / "client_access.py").read_text(encoding="utf-8")
-        self.assertIn('"🌐 Моя подписка\\n\\n" + (url or "Подписка пока не оформлена.")', source)
+        self.assertIn('"🌐 Моя подписка\\n\\nДоступ пока не оформлен', source)
+        self.assertIn("subscription_card_text(card)", source)
+        self.assertIn("subscription_card_menu(card, can_buy=can_buy)", source)
 
     def test_payment_support_has_one_guarded_command_renderer(self):
         source = (ROOT / "client_access.py").read_text(encoding="utf-8")

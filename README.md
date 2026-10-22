@@ -376,7 +376,7 @@ curl -fsS http://127.0.0.1:18080/healthz
 Client Portal (pilot allowlist, `CLIENT_PORTAL_ENABLED`):
 
 - `/start` — личный кабинет;
-- `/subscription` — подписка клиента;
+- `/subscription` — read-only карточка подписки с достоверным статусом и сроком; owner-scoped URL доступен только в личном чате, без создания нового `sub_id`;
 - `/paysupport` — помощь по платежам;
 - `/create` и `/inbounds` — legacy-переходы в личный кабинет, а не самостоятельные mutation endpoints.
 

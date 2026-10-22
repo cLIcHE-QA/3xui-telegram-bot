@@ -134,13 +134,18 @@ class C2ForgedOwnershipTests(unittest.IsolatedAsyncioTestCase):
             subscription_url=AsyncMock(
                 return_value="https://sub.example.invalid/only-a"
             ),
+            subscription_card=AsyncMock(return_value=__import__(
+                "customer_service"
+            ).CustomerSubscriptionCard(profile=__import__(
+                "customer_service"
+            ).CustomerProfile(exists=False))),
             traffic=AsyncMock(return_value=SimpleNamespace(
                 up=1, down=2, total=10,
             )),
             devices=AsyncMock(return_value=__import__('customer_service').CustomerDeviceInventory(devices=(), total=0)),
         )
         flags = SimpleNamespace(snapshot=AsyncMock(
-            return_value=SimpleNamespace(portal_enabled=True)
+            return_value=SimpleNamespace(portal_enabled=True, stars_enabled=False)
         ))
         bot = SimpleNamespace(send_photo=AsyncMock())
         call = SimpleNamespace(
@@ -170,7 +175,8 @@ class C2ForgedOwnershipTests(unittest.IsolatedAsyncioTestCase):
             qr.assert_called_once_with("https://sub.example.invalid/only-a")
             bot.send_photo.assert_awaited_once()
         for operation in (
-            service.profile, service.subscription_url, service.traffic, service.devices
+            service.profile, service.subscription_card,
+            service.subscription_url, service.traffic, service.devices
         ):
             operation.assert_awaited()
             self.assertTrue(all(
@@ -229,7 +235,7 @@ class C3BoundedConcurrencyTests(unittest.IsolatedAsyncioTestCase):
         portal = portal_module()
         limiter = SlidingWindowRateLimiter(limit=30, window_seconds=60)
         flags = SimpleNamespace(snapshot=AsyncMock(
-            return_value=SimpleNamespace(portal_enabled=True)
+            return_value=SimpleNamespace(portal_enabled=True, stars_enabled=False)
         ))
         def fake_call(uid):
             return SimpleNamespace(
