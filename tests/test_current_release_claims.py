@@ -32,10 +32,28 @@ class CurrentReleaseClaimsTests(unittest.TestCase):
             target.write_text((ROOT / path).read_text(encoding="utf-8"), encoding="utf-8")
 
     def change(self, path, old, new):
+        """Негативная мутация должна изменить ровно одну ожидаемую запись."""
         f = self.root / path
         source = f.read_text(encoding="utf-8")
-        self.assertIn(old, source)
-        f.write_text(source.replace(old, new, 1), encoding="utf-8")
+        self.assertNotEqual(old, new, "no-op fixture mutation")
+        self.assertEqual(source.count(old), 1, f"fixture changed: {path}")
+        changed = source.replace(old, new, 1)
+        self.assertNotEqual(changed, source)
+        f.write_text(changed, encoding="utf-8")
+
+    def published_tag(self):
+        roadmap = (self.root / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        lines = [l for l in roadmap.splitlines() if l.startswith("**Published:** immutable ")]
+        self.assertEqual(len(lines), 1)
+        match = re.search(r"releases/tag/(v\\d+\\.\\d+\\.\\d+(?:-rc\\.\\d+(?:\\.\\d+)?)?)", lines[0])
+        self.assertIsNotNone(match)
+        return match.group(1)
+
+    def next_tag(self):
+        tag = self.published_tag()
+        replacement = re.sub(r"\\d+$", lambda m: str(int(m.group()) + 1), tag)
+        self.assertNotEqual(replacement, tag)
+        return replacement
 
     def test_current_docs_match_canonical_roadmap(self):
         self.assertEqual(semantics.current_release_claims_ok(self.root), [])
@@ -47,8 +65,8 @@ class CurrentReleaseClaimsTests(unittest.TestCase):
                             semantics.current_release_claims_ok(self.root)))
 
     def test_schema_stale_deployment_rejected(self):
-        self.change("docs/SQLITE_MIGRATIONS.md", "Новых миграций в релизе нет:",
-                    "Deployed/Accepted UNKNOWN/PENDING. Новых миграций в релизе нет:")
+        self.change("docs/SQLITE_MIGRATIONS.md", "## Текущий контракт schema",
+                    "## Текущий контракт schema\n\nDeployed/Accepted UNKNOWN/PENDING.")
         self.assertTrue(any("SQLITE_MIGRATIONS" in x for x in
                             semantics.current_release_claims_ok(self.root)))
 
@@ -57,6 +75,40 @@ class CurrentReleaseClaimsTests(unittest.TestCase):
                     "**Текущий checkpoint Deployed/Accepted PENDING;")
         self.assertTrue(any("CHANGELOG" in x for x in
                             semantics.current_release_claims_ok(self.root)))
+
+    def test_admin_outdated_published_tag_rejected(self):
+        tag = self.published_tag()
+        other = self.next_tag()
+        self.change("docs/ADMIN_SETUP.md", f"Guide ориентирован на release {tag}",
+                    f"Guide ориентирован на release {other}")
+        self.assertTrue(any("ADMIN_SETUP" in x for x in
+                            semantics.current_release_claims_ok(self.root)))
+
+    def test_sqlite_outdated_published_tag_rejected(self):
+        tag = self.published_tag()
+        other = self.next_tag()
+        self.change("docs/SQLITE_MIGRATIONS.md", f"для Published `{tag}`",
+                    f"для Published `{other}`")
+        self.assertTrue(any("SQLITE_MIGRATIONS" in x for x in
+                            semantics.current_release_claims_ok(self.root)))
+
+    def test_new_release_tag_is_derived_from_roadmap(self):
+        """Новый Published RC не требует правки тестовых версий или дат."""
+        tag = self.published_tag()
+        other = self.next_tag()
+        roadmap = (self.root / "docs/ROADMAP.md").read_text(encoding="utf-8")
+        canonical = next(x for x in roadmap.splitlines()
+                         if x.startswith("**Published:** immutable "))
+        self.assertGreaterEqual(canonical.count(tag), 3)
+        self.change("docs/ROADMAP.md", canonical,
+                    canonical.replace(tag, other))
+        self.change("docs/ADMIN_SETUP.md", f"Guide ориентирован на release {tag}",
+                    f"Guide ориентирован на release {other}")
+        self.change("docs/SQLITE_MIGRATIONS.md", f"для Published `{tag}`",
+                    f"для Published `{other}`")
+        self.change("CHANGELOG.md", f"GitHub Published `{tag}`",
+                    f"GitHub Published `{other}`")
+        self.assertEqual(semantics.current_release_claims_ok(self.root), [])
 
     def test_completed_issue_cannot_be_open_in_admin(self):
         decisions = json.loads((self.root / "docs/roadmap/issue-closure-decisions.json").read_text(encoding="utf-8"))
