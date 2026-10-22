@@ -67,6 +67,7 @@
 | **v5.0.0-rc.22** | #615 | Реальная per-subscription совместимость RU Direct / Full VPN в Happ и Incy, отдельный smoke обеих политик |
 | **v5.0.0-rc.23** | #874 | Только сервисные новости клиентам: ручные/плановые admin-рассылки, собственная durable SQLite-очередь, Telegram rate budget, dry-run/approval, согласование необязательных категорий с #501; без рекламы или автоматической production отправки |
 | **v5.0.0-rc.24** | #876 | Только Client Portal: настраиваемые Owner-only кастомные Telegram-эмодзи в inline-кнопках и текстах, проверка capability, безопасный Unicode fallback, admin UI неизменен; выпуск/применение после отдельного approval |
+| **v5.0.0-rc.25** | #878 | HWID: предупреждающие заведомо нерабочие профили вместо 404 только при доказанном лимите; отдельная матрица Happ, Incy, Shadowrocket, V2Box, v2raytun, Karing, OneXray, Throne и других подтверждённых HWID-клиентов; безопасный fallback |
 
 **Смысл версий:** только будущие кандидаты после Published rc.18.10, не обещание сроков. Выполненные HWID Issues в backlog не возвращать; #482/#487 и другие зависимости остаются самостоятельными. G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
