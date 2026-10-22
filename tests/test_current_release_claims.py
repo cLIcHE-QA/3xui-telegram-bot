@@ -64,8 +64,6 @@ class CurrentReleaseClaimsTests(unittest.TestCase):
                             semantics.current_release_claims_ok(self.root)))
 
     def test_historical_publication_pending_is_not_current(self):
-        self.change("CHANGELOG.md", "**Исторические publication checkpoints",
-                    "**Исторические publication checkpoints")
         f = self.root / "CHANGELOG.md"
         s = f.read_text(encoding="utf-8")
         s = s.replace("**Исторические publication checkpoints",
