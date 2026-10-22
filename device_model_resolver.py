@@ -189,7 +189,13 @@ def admin_original_hwid_labels(
     model = _safe_admin_source(source_model)
     os_name = _safe_admin_source(source_os)
     version = _safe_admin_source(os_version)
-    if os_name.casefold() == "windows" and re.fullmatch(r"(?:10|11|8(?:[.]1)?|7)_10[.]0(?:[.][0-9]{4,6})?", version, re.IGNORECASE):
+    # В админской диагностике исходная ОС — безопасная композиция deviceOs
+    # и osVersion (как в 3x-ui), без изменения исходных полей или display_os.
+    windows_major = re.fullmatch(r"Windows (10|11|8(?:[.]1)?|7)", os_name, re.IGNORECASE)
+    if (windows_major and re.fullmatch(r"10[.]0(?:[.][0-9]{4,6})?", version)
+            and len(f"{os_name} {version}") <= 80):
+        os_name = f"{os_name} {version}"
+    elif os_name.casefold() == "windows" and re.fullmatch(r"(?:10|11|8(?:[.]1)?|7)_10[.]0(?:[.][0-9]{4,6})?", version, re.IGNORECASE):
         combined = f"{os_name} {version}"
         if len(combined) <= 80:
             os_name = combined
