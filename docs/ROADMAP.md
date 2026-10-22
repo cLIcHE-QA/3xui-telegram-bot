@@ -2,6 +2,8 @@
 
 > **Канонический актуальный статус.** Старый Roadmap (5803 строки) сохранён побайтово в [тематическом историческом архиве](roadmap/HISTORY_INDEX.md), original blob `7303286842241ee29b7cbefbabbe4780911043dd`. Исторические сведения и прежние FAIL/STOP/WAIVED не стираются и не являются сегодняшними статусами. Нормативная [приёмка v5](V5_PRODUCTION_ACCEPTANCE.md), [release history](../CHANGELOG.md).
 
+> #473 implementation checkpoint: branch-only candidate import URI для Incy/v2raytun с private-only copy/QR и ручным fallback. До PR CI, merge, проверок реальных версий, release и deploy не считать выполненным. Issue #473 keep_open; public rollout BLOCKED.
+
 ## Актуальная сводка проекта
 
 **Published:** immutable [Тег `v5.0.0-rc.18.10`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.18.10), tag SHA `dae205ac82762723448f93827b981f89ae622231`, GitHub Release 2026-10-22T13:27:26Z (независимый GitHub tag/read-back). **Deployed:** operator-reported `v5.0.0-rc.18.10`, SHA `dae205ac82762723448f93827b981f89ae622231` (2026-10-22 18:12 UTC+03:00); health OK; independent VPS read-back PENDING. **Accepted:** targeted HWID 23/23 operator-reported scoped PASS (2026-10-22 21:21 UTC+03:00), six Issues completed; independent VPS/provider read-back PENDING, full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
