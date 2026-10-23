@@ -15,11 +15,15 @@
 
 ## #473 — импорт подписки (кандидат rc.19, не Published)
 
+**Security review #882 (2026-10-23, pre-merge):** в каталоге import URI отклоняются URL с query-delimiter (включая пустой `?`), percent/fragment/userinfo/private IP и небезопасной схемой; `subTitle` валидируется как ограниченное Unicode-имя с отказом на control/bidi, читается только через loopback после owner/private guard, без redirect. Ошибки информационного upstream-запроса логируются по типу исключения, без bearer URL. Добавлены negative tests для forged callbacks, недоступного proxy и title injection. Итог offline CI и реальный post-deploy smoke независимы от самого review; выпуск до обязательных checks запрещён.
+
+
+
 **Проверка исправленной ссылки (2026-10-23 14:42 UTC+03:00):** пользователь подтвердил устранение подмены имени при ручном импорте Shadowrocket. Для новых клиентов бот должен брать собственный актуальный `subTitle` 3x-ui из `GET /compat/{sub_id}?format=info` по loopback после owner/private/pilot guards и добавлять его как URL-encoded `remark`, **не хардкодить** `VPN` или название Telegram-бота. Если title недоступен или некорректен, оставить `remark` пустым (без выдуманного названия). Ручной клиентский smoke — operator-reported PASS; получение title самим ботом до deployment не аттестовано. Изменение title в панели влияет на новые импорты, но не гарантирует переименования старых записей.
 
 **Наблюдение 2026-10-23:** оператор сообщил успешный импорт Happ и Shadowrocket на iOS, Android, macOS; фактические версии приложений и применимость Shadowrocket к Android/macOS требуют уточнения. Скриншот показывает шесть серверов и заголовок VPN в Shadowrocket. Root cause в PR #882 — фиксированный `remark=VPN`; исправлено чтением `subTitle` через read-only локальный `/compat/{sub_id}?format=info`, ограниченная проверка строки и percent-encoding. Если metadata недоступна, фиктивное имя не подставляется. Исправление имени пока не проходило повторный device smoke, Issue #473 keep_open.
 
-**Happ / Shadowrocket test gate:** схема Happ `happ://add/<HTTPS URL>` для iOS/Android и Shadowrocket `shadowrocket://add/sub://<base64(HTTPS URL + ?flag=shadowrocket)>?remark=VPN` для iOS сверены с upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`. На устройствах ещё PENDING. Для остальных candidate URI тоже required client/version-specific smoke; статус PASS не присваивать по CI. Incy 2.6.4/macOS имеет отдельный operator-reported PASS ([audit](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md)).
+**Happ / Shadowrocket test gate:** схема Happ `happ://add/<HTTPS URL>` для iOS/Android и Shadowrocket `shadowrocket://add/sub://<base64(HTTPS URL + ?flag=shadowrocket)>?remark=<encoded subTitle>` для iOS сверены с upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`. На устройствах ещё PENDING. Для остальных candidate URI тоже required client/version-specific smoke; статус PASS не присваивать по CI. Incy 2.6.4/macOS имеет отдельный operator-reported PASS ([audit](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md)).
 
 
 
