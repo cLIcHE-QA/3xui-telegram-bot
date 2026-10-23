@@ -18,6 +18,15 @@ test("четыре варианта подписки и инструкции д�
   }
   await control.getByText("cards", { exact: true }).click();
   await expect(preview.locator(".subscription-info-grid .mantine-Card-root")).toHaveCount(3);
+  const scenarios = page.getByTestId("subscription-scenario");
+  await control.getByText("expanded", { exact: true }).click();
+  for (const state of ["unknown", "active", "expired", "pending"]) {
+    await scenarios.locator('[data-value="'+state+'"]').click();
+    await expect(preview).toHaveAttribute("data-scenario", state);
+    await expect(preview.getByText("ДЕМО")).toBeVisible();
+    await expect(preview.getByText("Вымышленные данные, не ваша подписка")).toBeVisible();
+    await expect(preview.getByRole("button", { name: "Get Link" })).toBeDisabled();
+  }
   await control.getByText("hidden", { exact: true }).click();
   await expect(page.getByRole("button", { name: "Get Link" })).toHaveCount(0);
 
@@ -42,4 +51,16 @@ test("RTL, клавиатура и мобильная компоновка бе�
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   await expect(page.getByRole("heading", { name: "اینترنت امن‌تر. بدون پیچیدگی." })).toBeVisible();
   await expect(page.locator(".hero")).toBeVisible();
+});
+
+test("five locales preserve preview safety and allow navigation", async ({ page }) => {
+  await page.goto("/");
+  const language = page.getByRole("combobox", { name: "Language" });
+  for (const locale of ["EN", "FR", "ZH", "FA", "RU"]) {
+    await language.click();
+    await page.getByRole("option", { name: locale }).click();
+    await expect(page.getByTestId("subscription-scenario")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Get Link" })).toBeDisabled();
+    await expect(page.locator("html")).toHaveAttribute("lang", locale.toLowerCase());
+  }
 });
