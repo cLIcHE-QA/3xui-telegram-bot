@@ -82,3 +82,22 @@ Scope: #887 D1a UI polish в существующем PR #889, отдельны�
 Проверка после нового commit — CI `test/title/frontend-model`, Chromium visual,
 а `audit` Pillow/certifi в отдельном #890. `package-lock.json` в Git и строгий
 `npm ci` без bootstrap по-прежнему PENDING.
+
+## Фирменный D1a — состояния и локализация, 2026-10-23
+
+Повторный визуальный пакет #887 / PR #889: компонент `src/SubscriptionPreview.tsx` содержит четыре
+**исключительно синтетических** сценария `unknown/active/expired/pending` для визуальной проверки
+режимов `expanded/collapsed/cards/hidden`. Пример активной подписки показывает лишь фиктивные
+24.6/100 GB и 15 дней с явной пометкой `ДЕМО`, не имитирует backend session или entitlement.
+`Get Link`, connection keys и импортирующие действия **не активируются** при переключении.
+Новые сценарии не являются production states, не хранят и не создают ключи.
+
+В интерфейсе добавлены локализованные подписи, в том числе для `fr/zh` (пять языков
+`en/ru/fr/zh/fa`), направление документа `dir=rtl` только для `fa`.
+Вендорские SVG не используются до license/security проверки; статус клиента
+не следует интерпретировать как проверенную поддержку версии или импорт в устройство.
+
+Дополнены Playwright проверки сценариев, языков и keyboard/RTL. **CI и visual read-back
+на последнем commit PENDING до проверки GitHub Actions**, предыдущие PASS на иных SHA не переносить.
+`package-lock.json` пока не закоммичен; `audit` Python/Pillow/certifi — отдельный #890.
+#887 keep_open: полный D1a acceptance и D1b/D2/D3 отсутствуют; Roadmap в `main` SYNC PENDING.
