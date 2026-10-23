@@ -10,6 +10,7 @@ import ipaddress
 import re
 from dataclasses import dataclass
 from urllib.parse import quote, urlsplit
+from client_import_title import safe_import_title
 
 
 @dataclass(frozen=True)
@@ -104,7 +105,7 @@ def _safe_import_target(value: object) -> str | None:
     return value
 
 
-def import_uri(client: str, platform: str, subscription_url: object) -> str | None:
+def import_uri(client: str, platform: str, subscription_url: object, *, title: object = None) -> str | None:
     """Return a documented candidate import URI, or fail closed to manual URL/QR."""
     spec = IMPORT_CLIENTS.get(client)
     if spec is None or platform not in spec.platforms:
@@ -127,7 +128,11 @@ def import_uri(client: str, platform: str, subscription_url: object) -> str | No
         payload = base64.b64encode(source_url.encode("ascii")).decode("ascii")
     else:
         return None
-    candidate = spec.prefix + payload + spec.suffix
+    suffix = spec.suffix
+    if client == "shadowrocket":
+        label = safe_import_title(title)
+        suffix = "?remark=" + quote(label, safe="") if label else ""
+    candidate = spec.prefix + payload + suffix
     if len(candidate) > MAX_IMPORT_URI_LENGTH:
         return None
     return candidate
