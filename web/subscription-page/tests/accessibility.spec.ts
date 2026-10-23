@@ -121,3 +121,26 @@ test("брендовая анимация: hover lift и отказ от дви�
   expect(staticTransform).toBe("none");
   await expect(page.getByRole("button",{name:"Получить ссылку"})).toBeDisabled();
 });
+
+test("угловое свечение: слой не блокирует UI и учитывает reduced motion", async ({page},testInfo)=>{
+  await page.goto("/");
+  const shell=page.locator(".portal-shell");
+  const d=await shell.evaluate(el=>{
+    const s=getComputedStyle(el,"::before");
+    return {content:s.content,pointer:s.pointerEvents,layer:s.zIndex,background:s.backgroundImage,opacity:s.opacity};
+  });
+  expect(d.content).not.toBe("none");
+  expect(d.pointer).toBe("none");
+  expect(d.background).toContain("radial-gradient");
+  const next=page.getByTestId("guide-next");
+  await expect(next).toBeEnabled();
+  await next.click();
+  await page.emulateMedia({reducedMotion:"reduce"});
+  expect(await shell.evaluate(el=>getComputedStyle(el,"::before").animationName)).toBe("none");
+  for(const width of [320,390,1280]){
+    await page.setViewportSize({width,height:812});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+    if(width===390)await page.screenshot({path:testInfo.outputPath("ambient-mobile-390.png"),fullPage:true,animations:"disabled"});
+    if(width===1280)await page.screenshot({path:testInfo.outputPath("ambient-desktop-1280.png"),fullPage:true,animations:"disabled"});
+  }
+});
