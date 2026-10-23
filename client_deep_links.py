@@ -76,7 +76,7 @@ def _safe_import_target(value: object) -> str | None:
         return None
     # Nested URL query/fragment, percent-decoding, slash/backslash and userinfo
     # ambiguity must never be reinterpreted by a custom-scheme URL parser.
-    if any(c in value for c in ("\\", "#", "%")):
+    if any(c in value for c in ("\\", "?", "#", "%")):
         return None
     try:
         parsed = urlsplit(value)
