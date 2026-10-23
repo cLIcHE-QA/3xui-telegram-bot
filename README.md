@@ -1,6 +1,6 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.19
 
-> **Актуальный release checkpoint:** GitHub [Published `v5.0.0-rc.19`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.19) immutable tag SHA `d738dd970f2215adc346a919c7ed182abaf454b1` (2026-10-23T13:55:49Z). **Deployed** по отчёту оператора только `v5.0.0-rc.18.10`, SHA `dae205ac82762723448f93827b981f89ae622231`. #473/#497 post-deploy acceptance PENDING, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+> **Текущий релиз:** [опубликована версия `v5.0.0-rc.19`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.19), неизменяемый тег указывает на коммит `d738dd970f2215adc346a919c7ed182abaf454b1` (2026-10-23T13:55:49Z). **На сервере**, по отчёту оператора, установлена только версия `v5.0.0-rc.18.10`, коммит `dae205ac82762723448f93827b981f89ae622231`. Приёмка задач #473/#497 после развёртывания ещё не проведена; G-11 остаётся PARTIAL/NO-GO, публичный запуск запрещён.
 
 
 **Последний подтверждённый Published до rc.19: `v5.0.0-rc.18.10` (2026-10-22T13:27:26Z):** [PR #864](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/864) и [PR #865](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/865) MERGED, SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported, HWID 23/23 targeted scoped PASS ([audit](docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)), G-11 PARTIAL/NO-GO, public rollout BLOCKED.
