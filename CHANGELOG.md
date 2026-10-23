@@ -16,6 +16,8 @@
 
 ## Ещё не выпущено — кандидат v5.0.0-rc.19
 
+- #473: полная матрица платформ меню iOS/Android/Windows/macOS/Linux; для Windows показаны Incy, v2raytun, Karing, OneXray, Throne, для Linux — Incy, Karing, OneXray, Throne; manual URL/QR fallback и regression tests. Desktop import smoke PENDING, не Published.
+
 - #473 (ещё не Published): кандидаты V2Box/Karing/OneXray/Throne теперь используют безопасный динамический `subTitle` (если предусмотрен форматом) без `VPN` hardcode; Happ и Shadowrocket (Apple) добавлены в macOS menu, Android/Shadowrocket исключён. Новый клиентский import smoke PENDING, ручной URL/QR fallback сохраняется.
 
 - **#473, не Published:** draft [PR #882](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/882) — Incy/v2raytun private-only import URI и URL/QR fallback; [операторский 4/4](docs/audits/2026-10-23-client-import-473-operator-smoke.md) на iOS 26.5.1/Android 17, Incy 2.6.4/v2raytun 2.4.7. Только manual client import; bot-to-client deployed smoke, security review и отдельный release PENDING. G-11 PARTIAL/NO-GO.
