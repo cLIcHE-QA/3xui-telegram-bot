@@ -1,6 +1,6 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.19
 
-> **Текущий Published:** GitHub `v5.0.0-rc.19` (tag SHA `d738dd9`); VPS Deployed operator-reported `v5.0.0-rc.18.10` (SHA `dae205a`); post-deploy acceptance #473/#497 PENDING, G-11 PARTIAL/NO-GO.
+> **Текущий Published:** GitHub `v5.0.0-rc.19` (tag SHA `d738dd9`); VPS Deployed `rc.18.10` (operator-reported, SHA `dae205a`); post-deploy acceptance #473/#497 PENDING, G-11 PARTIAL/NO-GO.
 
 
 **Исторический Published до rc.19: `v5.0.0-rc.18.10` (2026-10-22T13:27:26Z):** [PR #864](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/864) и [PR #865](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/865) MERGED, SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported, HWID 23/23 targeted scoped PASS ([audit](docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)), G-11 PARTIAL/NO-GO, public rollout BLOCKED.
