@@ -25,17 +25,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - name: Создать проверяемый npm lock candidate
+      - name: Установить зависимости строго по committed lockfile
         working-directory: web/subscription-page
         run: |
-          if test -f package-lock.json; then
-            echo 'Используем зафиксированный package-lock.json'
-          else
-            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          fi
+          test -f package-lock.json
           npm ci --ignore-scripts --no-audit --no-fund
           sha256sum package-lock.json
-      - name: Сохранить npm lock candidate
+      - name: Сохранить проверенный committed npm lockfile
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: d1a-npm-lock
