@@ -16,7 +16,8 @@ class ImportURI473Tests(unittest.TestCase):
             for platform in spec.platforms:
                 with self.subTest(client=client, platform=platform):
                     uri = import_uri(client, platform, URL)
-                    payload = (URL if spec.encoding == "direct" else quote(URL, safe="") if spec.encoding == "percent" else base64.b64encode(URL.encode()).decode())
+                    source = URL + "?flag=shadowrocket" if client == "shadowrocket" else URL
+                    payload = (source if spec.encoding == "direct" else quote(source, safe="") if spec.encoding == "percent" else base64.b64encode(source.encode()).decode())
                     self.assertEqual(uri, spec.prefix + payload + spec.suffix)
                     self.assertLessEqual(len(uri), 256)
 
