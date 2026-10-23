@@ -144,3 +144,5 @@ v4.x: protected Admin Control Plane, RBAC, Host Control, backup/DR, self-update,
 ## Правило дальнейшего ведения
 
 **Не добавлять новый длинный датированный раздел в начало Roadmap.** После проверки обновлять **существующую** строку gate/Issue + ссылку на новый датированный audit с tag/SHA, временем/таймзоной, scope, evidence, ограничениями, FAIL/unknown; не переписывать старые snapshots. Обязательны PR, required `test`/`title`, squash merge, независимый read-back `main` и сверка связанных Issues **до следующего пакета**. См. [GIT_WORKFLOW](GIT_WORKFLOW.md) и [LIVING_DOCS](LIVING_DOCS.md).
+
+> **#887 — D1a compact UX, Draft PR #889:** в рабочей ветке добавлены карусель одного шага (UI-only, без изменения JSON v1) и общая компактная рамка ОС. CI/visual evidence на head PENDING, real browser/WebView/entitlement acceptance PENDING. Это не merged/published/deployed. Issue #887 остаётся OPEN; в `main` синхронизация требует отдельно разрешённого merge.
