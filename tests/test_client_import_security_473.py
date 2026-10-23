@@ -14,8 +14,8 @@ URL = "https://sub.example.invalid/compat/owned-sub"
 
 class ImportTitleSecurityTests(unittest.IsolatedAsyncioTestCase):
     def test_untrusted_titles_fail_closed(self):
-        for raw in ("", " ", " bad", "bad ", "bad\nname", "bad\rname",
-                    "safe\u202eevil", "safe\u200dspoof", "a" * 65,
+        for raw in ("", " ", " bad", "bad ", ("bad" + chr(10) + "name"), ("bad" + chr(13) + "name"),
+                    ("safe" + chr(0x202e) + "evil"), ("safe" + chr(0x200d) + "spoof"), "a" * 65,
                     "https://example.invalid/" + "x" * 44, None, 123):
             with self.subTest(value=repr(raw)):
                 self.assertIsNone(safe_import_title(raw))
@@ -24,7 +24,7 @@ class ImportTitleSecurityTests(unittest.IsolatedAsyncioTestCase):
     async def test_identity_and_proxy_port_are_strict(self):
         with patch("client_import_title.aiohttp.ClientSession") as session:
             for subid in ("", "../other", "other?format=info", "other/evil",
-                          "other#fragment", "bad\nsub", None):
+                          "other#fragment", ("bad" + chr(10) + "sub"), None):
                 self.assertIsNone(await fetch_import_title(subid, proxy_port=8080))
             for port in (0, -1, 65536, True, "8080"):
                 self.assertIsNone(await fetch_import_title("valid_id", proxy_port=port))
