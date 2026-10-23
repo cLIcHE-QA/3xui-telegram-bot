@@ -243,3 +243,34 @@ html[dir=rtl] .guide-carousel-controls svg{transform:scaleX(-1)}
   .bottom-panels{grid-template-columns:minmax(0,1fr);width:100%}
   .safe-panel,.import-panel{width:100%}
 }
+
+/* #887 — subtle ambient corner light. CSS-only, original Raccoon palette.
+   Keep the center nearly black and avoid image assets, blur filters and scrolling
+   overflow. The glow never intercepts pointer/keyboard interactions. */
+.portal-shell{position:relative;isolation:isolate}
+.portal-shell::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 38rem 30rem at 0% 0%,rgba(21,113,196,.20) 0%,rgba(12,77,140,.085) 37%,transparent 76%),
+    radial-gradient(ellipse 34rem 27rem at 100% 4%,rgba(112,70,181,.13) 0%,rgba(72,53,131,.065) 40%,transparent 76%);
+  opacity:.64;
+}
+.portal-shell>.portal-container{position:relative;z-index:1}
+@keyframes raccoon-ambient-breathe{
+  0%,100%{opacity:.54}
+  50%{opacity:.81}
+}
+@media(prefers-reduced-motion:no-preference){
+  .portal-shell::before{animation:raccoon-ambient-breathe 26s ease-in-out infinite}
+}
+@media(max-width:640px){
+  .portal-shell::before{
+    background:
+      radial-gradient(ellipse 75vw 22rem at -12% 0%,rgba(21,113,196,.17),transparent 76%),
+      radial-gradient(ellipse 70vw 22rem at 112% 5%,rgba(112,70,181,.11),transparent 76%);
+    opacity:.55;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .portal-shell::before{animation:none;opacity:.64}
+}
