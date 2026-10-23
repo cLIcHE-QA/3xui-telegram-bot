@@ -232,5 +232,5 @@ test("оригинальный локальный INCY SVG доступен бе
   expect(response.headers()["content-type"]).toContain("image/svg+xml");
   const raw=await response.text();
   expect(raw).toContain('xmlns="http://www.w3.org/2000/svg"');
-  expect(raw).not.toMatch(/<script|<foreignObject|onload\s*=|https?:\/\//i);
+  expect(raw).not.toMatch(/<script|<foreignObject|onload\s*=|<image\b|<use\b|href\s*=/i);
 });
