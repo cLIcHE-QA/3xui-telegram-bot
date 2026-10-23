@@ -1,5 +1,3 @@
-> Кандидат #473, ещё не Published: добавлен private-only выбор клиента и защищённый импорт Incy/v2raytun через копирование URI или локальный QR, manual URL/QR fallback; проверка реальных client versions и targeted smoke PENDING. G-11 PARTIAL/NO-GO.
-
 # Журнал изменений
 
 > **Текущий checkpoint 2026-10-22 21:21 UTC+03:00:** GitHub Published `v5.0.0-rc.18.10` (immutable SHA `dae205ac82762723448f93827b981f89ae622231`), Deployed с точным SHA **operator-reported**; targeted HWID UI 23/23 operator-reported scoped PASS. #827/#830/#833/#834/#838/#854 CLOSED/completed по собственным критериям, [датированный audit](docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md), [Roadmap](docs/ROADMAP.md). Independent VPS/provider attestation PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Дата operator report: 2026-10-22T18:21:19Z.
@@ -20,7 +18,7 @@
 
 - #473 (ещё не Published): кандидаты V2Box/Karing/OneXray/Throne теперь используют безопасный динамический `subTitle` (если предусмотрен форматом) без `VPN` hardcode; Happ и Shadowrocket (Apple) добавлены в macOS menu, Android/Shadowrocket исключён. Новый клиентский import smoke PENDING, ручной URL/QR fallback сохраняется.
 
-- **#473, не Published:** draft [PR #882](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/882) — Incy/v2raytun private-only import URI и URL/QR fallback; [операторский 4/4](docs/audits/2026-10-23-client-import-473-operator-smoke.md) на iOS 26.5.1/Android 17, Incy 2.6.4/v2raytun 2.4.7. Только manual client import; bot-to-client deployed smoke, security review и отдельный release PENDING. G-11 PARTIAL/NO-GO.
+- **#473, не Published:** [PR #882](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/882) — private-only copy/QR импорт восьми клиентов с dynamic `subTitle` и manual fallback. [Операторский 4/4](docs/audits/2026-10-23-client-import-473-operator-smoke.md) на iOS/Android, [Incy 2.6.4 на macOS](docs/audits/2026-10-23-client-import-473-macos-incy-version-clarification.md), [Happ и Shadowrocket scoped](docs/audits/2026-10-23-happ-shadowrocket-title-checkpoint.md), [security review](docs/audits/2026-10-23-client-import-473-security-review.md); бот ещё не deployed, end-to-end acceptance PENDING, G-11 PARTIAL/NO-GO.
 
 
 - [#497](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/497): единая read-only карточка подписки показывает фактический статус доступа/entitlement, тариф, подтверждённый срок и состояние активации. Provider outage, expiry drift и unknown не выдаются за `active`; число Master Inbounds не выдается за подтверждённые работающие локации.
