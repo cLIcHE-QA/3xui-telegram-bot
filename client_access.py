@@ -20,6 +20,7 @@ from admin_ui import render_callback
 from config import load_settings
 from client_flags import ClientFeatureFlags
 from client_deep_links import IMPORT_CLIENTS, import_uri
+from client_import_title import fetch_import_title
 from client_rate_limit import SlidingWindowRateLimiter
 from customer_service import (
     CustomerDeviceDeletePrompt,
@@ -1257,7 +1258,13 @@ async def onboarding_platform_cb(call: CallbackQuery):
     url = _safe_subscription_url(
         await _service().subscription_url(call.from_user.id)
     )
-    uri = import_uri(app, platform, url) if url is not None else None
+    import_title = None
+    if app == "shadowrocket" and url is not None:
+        card = await _service().subscription_card(call.from_user.id)
+        import_title = await fetch_import_title(
+            card.profile.sub_id, proxy_port=settings.subscription_proxy_port,
+        )
+    uri = import_uri(app, platform, url, title=import_title) if url is not None else None
     if len(steps) == 3:
         if uri is None:
             await call.answer("URI импорта недоступен. Используйте обычный URL/QR.", show_alert=True)
