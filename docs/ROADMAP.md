@@ -10,6 +10,8 @@
 
 > **#473 матрица импортов (2026-10-23):** [PR #882](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/882) расширен: Happ и Shadowrocket доступны на macOS, Shadowrocket/Android не заявлен; V2Box/Karing получают safe `name=subTitle` (или URL/QR fallback), OneXray/Throne — имя в поддерживаемом формате. У шести новых клиентов независимый client/version-specific smoke отсутствует, CI/merged/Release/Deployed/Acceptance не приравниваются. #473 keep_open, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
+> **#473 Windows/Linux checkpoint (2026-10-23):** [draft PR #882](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/882) уточняет пользовательские инструкции и закрепляет пять платформ тестами. Windows: Incy/v2raytun/Karing/OneXray/Throne; Linux: Incy/Karing/OneXray/Throne; невалидные сочетания не показывать; manual URL/QR fallback обязателен. Доступность конкретных desktop builds и live import/refresh на Windows/Linux не аттестованы: PENDING, без PASS и без изменения Published/Deployed. #473 keep_open, G-11 PARTIAL/NO-GO.
+
 ## Актуальная сводка проекта
 
 **Published:** immutable [Тег `v5.0.0-rc.18.10`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.18.10), tag SHA `dae205ac82762723448f93827b981f89ae622231`, GitHub Release 2026-10-22T13:27:26Z (независимый GitHub tag/read-back). **Deployed:** operator-reported `v5.0.0-rc.18.10`, SHA `dae205ac82762723448f93827b981f89ae622231` (2026-10-22 18:12 UTC+03:00); health OK; independent VPS read-back PENDING. **Accepted:** targeted HWID 23/23 operator-reported scoped PASS (2026-10-22 21:21 UTC+03:00), six Issues completed; independent VPS/provider read-back PENDING, full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
