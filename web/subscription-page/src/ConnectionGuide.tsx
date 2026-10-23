@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import { SafeSvgIcon } from "./SafeSvgIcon";
 import { Accordion, Badge, Button, Card, Text, Title } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight, IconCircleCheck, IconDownload, IconInfoCircle, IconLink, IconLock, IconShieldCheck } from "@tabler/icons-react";
 
 type Localized = Record<string, string>;
 type Action = { text: Localized; link: string; type: string };
-type Step = { title: Localized; description: Localized; buttons: Action[] };
-type Props = { steps: Step[]; mode: string; lang: string; t: (key: string) => string; clientName?: string };
+type Step = { title: Localized; description: Localized; buttons: Action[]; svgIconKey?: string };
+type Props = { steps: Step[]; mode: string; lang: string; t: (key: string) => string; clientName?: string;svgLibrary?:Record<string,string> };
 
 const translate = (value: Localized | undefined, lang: string): string =>
   value?.[lang] ?? value?.en ?? value?.ru ?? "";
@@ -28,7 +29,7 @@ function StepBody({ step, lang, t }: { step: Step; lang: string; t: Props["t"] }
 }
 
 /** Visual-only guide: input JSON URLs and icons are never opened, copied or rendered as HTML. */
-export function ConnectionGuide({ steps, mode, lang, t, clientName }: Props) {
+export function ConnectionGuide({ steps, mode, lang, t, clientName,svgLibrary }: Props) {
   const [stepIndex,setStepIndex]=useState(0);
   useEffect(()=>setStepIndex(0),[steps,clientName,mode]);
   const active=Math.min(stepIndex,Math.max(0,steps.length-1));
@@ -53,7 +54,7 @@ export function ConnectionGuide({ steps, mode, lang, t, clientName }: Props) {
           aria-label={t("guideStepLabel")+" "+(i+1)+": "+translate(step.title,lang)} onClick={()=>setStepIndex(i)}>{i+1}</button>)}
       </div>
       <Card className="guide-carousel-card" withBorder radius="lg" padding="lg">
-        <div className="guide-carousel-step-head"><Text fw={700} size="sm">{t("guideStepLabel")} {active+1} {t("guideOf")} {steps.length}</Text><IconShieldCheck size={19}/></div>
+        <div className="guide-carousel-step-head"><Text fw={700} size="sm">{t("guideStepLabel")} {active+1} {t("guideOf")} {steps.length}</Text><SafeSvgIcon iconKey={steps[active].svgIconKey} library={svgLibrary} fallback={<IconShieldCheck size={19}/>}/></div>
         <Title order={5} className="guide-step-title">{translate(steps[active].title,lang)}</Title>
         <StepBody step={steps[active]} lang={lang} t={t}/>
       </Card>
