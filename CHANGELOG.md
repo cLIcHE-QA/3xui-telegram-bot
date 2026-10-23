@@ -12,18 +12,13 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
-## Ещё не выпущено — кандидат v5.0.0-rc.19
+## v5.0.0-rc.19 — Client Portal: карточка подписки и импорт в VPN-клиенты
 
-- #473: полная матрица платформ меню iOS/Android/Windows/macOS/Linux; для Windows показаны Incy, v2raytun, Karing, OneXray, Throne, для Linux — Incy, Karing, OneXray, Throne; manual URL/QR fallback и regression tests. Desktop import smoke PENDING, не Published.
-
-- #473 (ещё не Published): кандидаты V2Box/Karing/OneXray/Throne теперь используют безопасный динамический `subTitle` (если предусмотрен форматом) без `VPN` hardcode; Happ и Shadowrocket (Apple) добавлены в macOS menu, Android/Shadowrocket исключён. Новый клиентский import smoke PENDING, ручной URL/QR fallback сохраняется.
-
-- **#473, не Published:** [PR #882](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/882) — private-only copy/QR импорт восьми клиентов с dynamic `subTitle` и manual fallback. [Операторский 4/4](docs/audits/2026-10-23-client-import-473-operator-smoke.md) на iOS/Android, [Incy 2.6.4 на macOS](docs/audits/2026-10-23-client-import-473-macos-incy-version-clarification.md), [Happ и Shadowrocket scoped](docs/audits/2026-10-23-happ-shadowrocket-title-checkpoint.md), [security review](docs/audits/2026-10-23-client-import-473-security-review.md); бот ещё не deployed, end-to-end acceptance PENDING, G-11 PARTIAL/NO-GO.
-
-
-- [#497](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/497): единая read-only карточка подписки показывает фактический статус доступа/entitlement, тариф, подтверждённый срок и состояние активации. Provider outage, expiry drift и unknown не выдаются за `active`; число Master Inbounds не выдается за подтверждённые работающие локации.
-- Ссылка и кнопка `CopyTextButton` защищены private chat/owner/pilot; доступны переходы в подключение, существующую покупку/продление и read-only диагностику. Никаких новых `sub_id`, `provisioning/reconcile` (#498 отдельно), API, migrations, секретов или обновления operator setup.
-- Unit/UI/regression покрытие обновлено. Это **кандидат, не Published**, не Deployed и не Accepted; `rc.19` не гарантирован, действующий Published/Deployed `rc.18.10`, G-11 PARTIAL/NO-GO.
+- [#497 / PR #880](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/880): единая read-only карточка подписки показывает status/entitlement, тариф, подтверждённый срок и состояние активации; неизвестная доступность провайдера не маскируется как active. Пилот сохраняет owner/private/feature guards.
+- [#473 / PR #882](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/882): Client Portal предлагает client-specific deep-link/локальный QR для Incy, v2raytun, Happ, Shadowrocket, V2Box, Karing, OneXray и Throne с матрицей iOS/Android/Windows/macOS/Linux. Для клиентов с поддержкой заголовка используется динамический безопасный `subTitle` из 3x-ui, не фиксированное `VPN`.
+- `CopyTextButton` и локальный QR доступны только после owner/private/pilot guards; URL/QR fallback сохранён, неизвестные и неоднозначные URI fail-closed. Нет новых платежей, миграций SQLite, новых provider mutations или автоматического запуска VPN.
+- **Совместимость:** ручной URI-import Incy 2.6.4 / v2raytun 2.4.7 на iOS/Android, Incy 2.6.4 на macOS, Happ iOS/Android/macOS и Shadowrocket только Apple — operator-reported scoped PASS; исправление заголовка Shadowrocket operator-reported PASS. V2Box/Karing/OneXray/Throne и Windows/Linux version-specific smoke PENDING. Реальные клиентские версии/сборки и успешное подключение ко всем серверам не гарантированы.
+- **Controlled-canary prerelease:** публикация не запускает deployment. До post-deploy проверки Telegram→подписка→клиент, QR, privacy/ownership, safe fallback, `subTitle` и release-tag/health read-back — Issue #473/#497 keep_open, G-11 PARTIAL/NO-GO, public rollout BLOCKED. Published до этого RC: `v5.0.0-rc.18.10`; Deployed `rc.18.10` operator-reported.
 
 ## v5.0.0-rc.18.10 — безопасное распознавание Happ на Android
 
