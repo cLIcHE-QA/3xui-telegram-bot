@@ -1,5 +1,7 @@
 """#473: fail-closed deep-link import и изоляция bearer URL."""
+import base64
 import unittest
+from urllib.parse import quote
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -14,7 +16,8 @@ class ImportURI473Tests(unittest.TestCase):
             for platform in spec.platforms:
                 with self.subTest(client=client, platform=platform):
                     uri = import_uri(client, platform, URL)
-                    self.assertEqual(uri, spec.prefix + URL)
+                    payload = (URL if spec.encoding == "direct" else quote(URL, safe="") if spec.encoding == "percent" else base64.b64encode(URL.encode()).decode())
+                    self.assertEqual(uri, spec.prefix + payload + spec.suffix)
                     self.assertLessEqual(len(uri), 256)
 
     def test_malformed_or_secret_ambiguous_url_falls_back(self):
@@ -39,6 +42,28 @@ class ImportURI473Tests(unittest.TestCase):
         self.assertIsNone(import_uri("other", "ios", URL))
         self.assertIsNone(import_uri("incy", "unknown", URL))
         self.assertIsNone(import_uri("v2raytun", "linux", URL))
+        self.assertIsNone(import_uri("shadowrocket", "android", URL))
+        self.assertIsNone(import_uri("v2box", "windows", URL))
+
+
+    def test_encoded_clients_never_leak_raw_url_and_fail_closed_for_long_links(self):
+        for app in ("v2box", "shadowrocket", "karing", "onexray", "throne"):
+            platform = "ios" if app != "throne" else "macos"
+            with self.subTest(app=app):
+                uri = import_uri(app, platform, URL)
+                self.assertIsNotNone(uri)
+                self.assertNotIn(URL, uri)
+                self.assertIsNone(import_uri(app, platform, "https://example.invalid/" + "a" * 240))
+        self.assertTrue(import_uri("happ", "ios", URL).startswith("happ://add/"))
+
+    def test_security_matrix_all_supported_schemes_fail_closed(self):
+        for app, spec in IMPORT_CLIENTS.items():
+            platform = sorted(spec.platforms)[0]
+            for invalid in ("http://example.invalid/id", "https://127.0.0.1/id",
+                            "https://example.invalid/id?token=x", "https://u:p@example.invalid/id",
+                            "https://example.invalid/%2e%2e"):
+                with self.subTest(app=app, invalid=invalid):
+                    self.assertIsNone(import_uri(app, platform, invalid))
 
 
 class ImportUI473Tests(unittest.IsolatedAsyncioTestCase):
