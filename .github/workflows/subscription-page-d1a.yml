@@ -17,7 +17,7 @@ permissions:
 jobs:
   frontend-model:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -25,17 +25,38 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - name: Validate isolated TypeScript import model
-        working-directory: web/subscription-page
-        run: node --experimental-strip-types --test src/model.test.ts
-      - name: Compile standalone React TypeScript preview
+      - name: Создать проверяемый npm lock candidate
         working-directory: web/subscription-page
         run: |
-          npm install --ignore-scripts --no-audit --no-fund
-          echo 'NPM_LOCK_START'
-          cat package-lock.json
-          echo 'NPM_LOCK_END'
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
+          sha256sum package-lock.json
+      - name: Сохранить npm lock candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: d1a-npm-lock
+          path: web/subscription-page/package-lock.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Проверить модель импорта и frontend build
+        working-directory: web/subscription-page
+        run: |
+          npm run test:model
           npm run build
+      - name: Установить Chromium для browser smoke
+        working-directory: web/subscription-page
+        run: npx playwright install --with-deps chromium
+      - name: Проверить desktop/mobile browser smoke
+        working-directory: web/subscription-page
+        run: npm run test:browser
+      - name: Сохранить browser evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: d1a-browser-smoke
+          path: web/subscription-page/test-results/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Check no user configuration committed
         run: |
           ! git ls-files | grep -E '(^|/)(subpage-[0-9a-f-]+\.json|\.env$|node_modules/)'
