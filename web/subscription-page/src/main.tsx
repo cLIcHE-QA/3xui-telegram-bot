@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { MantineProvider, Container, Title, Text, Card, Tabs, Stack, Group, Badge, Select, Button, SegmentedControl, Divider } from "@mantine/core";
 import "@mantine/core/styles.css";
+import { parsePageConfig } from "./model";
 import "./style.css";
 
 type Localized = Record<string, string>;
@@ -41,8 +42,7 @@ function App() {
   function openLocalFile(file: File | null) {
     if (!file || file.size > 1024*1024) return;
     file.text().then(raw => {try {
-      const cfg: ExportConfig = JSON.parse(raw);
-      if (cfg.version !== "1" || !Array.isArray(cfg.locales) || !cfg.platforms || !cfg.baseSettings || !cfg.uiConfig) throw Error("schema");
+      const cfg: ExportConfig = parsePageConfig(raw);
       setData(cfg);setLang(cfg.locales.includes("ru")?"ru":cfg.locales[0]);setPlatform(Object.keys(cfg.platforms)[0]);setClient(0);
     } catch { alert("Неверный формат локальной конфигурации"); }});
   }
@@ -50,8 +50,8 @@ function App() {
     <Container size="lg" py="xl">
       <Stack gap="xl">
         <Group justify="space-between" align="start">
-          <div><Title order={2}>{data.brandingSettings?.title || "Subscription"}</Title><Text c="dimmed">Демонстрационная страница — без данных подписки</Text></div>
-          <Select value={lang} onChange={x=>setLang(x||"ru")} data={data.locales.map(x=>({value:x,label:x.toUpperCase()}))} w={100} />
+          <div><Title order={2}>{data.brandingSettings?.title || "Subscription"}</Title><Text c="dimmed">Демонстрационная страница — без данных подписки · импорт из локального JSON, без сети</Text></div>
+          <Select aria-label="Language" value={lang} onChange={x=>setLang(x||"ru")} data={data.locales.map(x=>({value:x,label:x.toUpperCase()}))} w={100} />
         </Group>
         <Card withBorder radius="lg" padding="lg">
           <Group justify="space-between"><Title order={4}>Моя подписка</Title><Badge color="gray">Нет данных</Badge></Group>
