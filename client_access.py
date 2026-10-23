@@ -19,6 +19,8 @@ from aiogram.types import (
 from admin_ui import render_callback
 from config import load_settings
 from client_flags import ClientFeatureFlags
+from client_deep_links import IMPORT_CLIENTS, TITLE_IMPORT_CLIENTS, import_uri
+from client_import_title import fetch_import_title
 from client_rate_limit import SlidingWindowRateLimiter
 from customer_service import (
     CustomerDeviceDeletePrompt,
@@ -1097,9 +1099,9 @@ def onboarding_menu(*, subscription_origin: bool = False) -> InlineKeyboardMarku
 _PLATFORM_GUIDES = {
     "ios": ("iOS", "Откройте поддерживаемый VPN-клиент → импорт подписки по URL → вставьте ссылку из «Моя подписка»."),
     "android": ("Android", "Откройте поддерживаемый VPN-клиент → добавьте подписку по URL → вставьте ссылку из «Моя подписка»."),
-    "windows": ("Windows", "В поддерживаемом VPN-клиенте выберите импорт подписки по URL и используйте ссылку из «Моя подписка»."),
+    "windows": ("Windows", "Выберите VPN-клиент ниже, скопируйте URI для импорта или используйте локальный QR. Если версия не распознаёт URI, импортируйте обычную HTTPS-ссылку/QR вручную."),
     "macos": ("macOS", "В поддерживаемом VPN-клиенте импортируйте подписку по URL из раздела «Моя подписка»."),
-    "linux": ("Linux", "Импортируйте subscription URL в совместимый клиент. Не передавайте ссылку через shell history или публичные логи."),
+    "linux": ("Linux", "Выберите VPN-клиент ниже и скопируйте URI импорта или используйте QR. Для неподдерживаемой сборки доступен обычный URL/QR. Не вводите секрет подписки в терминале: он может попасть в shell history и логи."),
 }
 
 
@@ -1139,14 +1141,52 @@ async def onboarding_cb(call: CallbackQuery):
     await call.answer()
 
 
+def _import_app_menu(
+    *, platform: str, app: str, prefix: str,
+    url: str | None, uri: str | None,
+) -> InlineKeyboardMarkup:
+    """Bearer values only in Telegram private-chat copy action, never callback."""
+    rows: list[list[InlineKeyboardButton]] = []
+    if uri is not None:
+        rows.append([InlineKeyboardButton(
+            text="📋 Скопировать ссылку импорта",
+            copy_text=CopyTextButton(text=uri),
+        )])
+        rows.append([InlineKeyboardButton(
+            text="🔳 QR для импорта в приложение",
+            callback_data=f"{prefix}:{platform}:{app}:qr",
+        )])
+    if url is not None and len(url) <= 256:
+        rows.append([InlineKeyboardButton(
+            text="📋 Скопировать обычный URL",
+            copy_text=CopyTextButton(text=url),
+        )])
+    if url is not None:
+        rows.append([InlineKeyboardButton(
+            text="🔳 QR обычной подписки", callback_data=f"{prefix}:qr",
+        )])
+    rows.extend([
+        [InlineKeyboardButton(text="🌐 Моя подписка", callback_data="client:subscription")],
+        [InlineKeyboardButton(text="⬅ Платформы", callback_data=f"{prefix}:{platform}")],
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
 @client_access_router.callback_query(F.data.startswith("client:onboard:"))
 async def onboarding_platform_cb(call: CallbackQuery):
     if not await guard_callback(call):
         return
-    data = call.data or ""
-    subscription_origin = data.startswith("client:onboard:subscription:")
-    platform = data.rsplit(":", 1)[-1]
-    if platform == "qr":
+    # Accept only fixed, token-free callback shapes. No subscription URL, owner
+    # identity, arbitrary scheme or redirect may enter callback_data.
+    parts = (call.data or "").split(":")
+    if len(parts) < 3 or parts[:2] != ["client", "onboard"]:
+        await call.answer("Неизвестная платформа.", show_alert=True)
+        return
+    subscription_origin = parts[2] == "subscription"
+    prefix = "client:onboard:subscription" if subscription_origin else "client:onboard"
+    steps = parts[3:] if subscription_origin else parts[2:]
+
+    if steps == ["qr"]:
         if not await _require_private_subscription_callback(call):
             return
         url = _safe_subscription_url(
@@ -1167,25 +1207,101 @@ async def onboarding_platform_cb(call: CallbackQuery):
         )
         await call.answer()
         return
-    guide = _PLATFORM_GUIDES.get(platform)
-    if guide is None:
+
+    if len(steps) not in (1, 2, 3) or steps[0] not in _PLATFORM_GUIDES:
         await call.answer("Неизвестная платформа.", show_alert=True)
         return
-    name, instructions = guide
+    platform = steps[0]
+    name, instructions = _PLATFORM_GUIDES[platform]
+    if len(steps) == 1:
+        rows: list[list[InlineKeyboardButton]] = []
+        for app, spec in IMPORT_CLIENTS.items():
+            if platform in spec.platforms:
+                rows.append([InlineKeyboardButton(
+                    text=f"🔗 {spec.name} · импорт",
+                    callback_data=f"{prefix}:{platform}:{app}",
+                )])
+        rows.extend([
+            [InlineKeyboardButton(
+                text="📋 Другой клиент · URL/QR",
+                callback_data=f"{prefix}:{platform}:manual",
+            )],
+            [InlineKeyboardButton(
+                text="🌐 Моя подписка", callback_data="client:subscription",
+            )],
+            [InlineKeyboardButton(
+                text="⬅ Платформы", callback_data=prefix,
+            )],
+        ])
+        await render_callback(
+            call,
+            f"📱 Подключение · {name}\n\n{instructions}\n\n"
+            "Выберите приложение. Для неподтверждённой версии используйте "
+            "обычный URL/QR. Импорт не подтверждает подключение к VPN.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+        )
+        await call.answer()
+        return
+
+    app = steps[1]
+    if app != "manual" and (
+        app not in IMPORT_CLIENTS
+        or platform not in IMPORT_CLIENTS[app].platforms
+    ):
+        await call.answer("Этот формат недоступен для платформы.", show_alert=True)
+        return
+    if len(steps) == 3 and steps[2] != "qr":
+        await call.answer("Неизвестное действие.", show_alert=True)
+        return
+    if not await _require_private_subscription_callback(call):
+        return
+    url = _safe_subscription_url(
+        await _service().subscription_url(call.from_user.id)
+    )
+    import_title = None
+    if app in TITLE_IMPORT_CLIENTS and url is not None:
+        profile = await _service().profile(call.from_user.id, read_access=False)
+        import_title = await fetch_import_title(
+            profile.sub_id, proxy_port=settings.subscription_proxy_port,
+        )
+    uri = import_uri(app, platform, url, title=import_title) if url is not None else None
+    if len(steps) == 3:
+        if uri is None:
+            await call.answer("URI импорта недоступен. Используйте обычный URL/QR.", show_alert=True)
+            return
+        image = qr_png(uri)
+        await call.bot.send_photo(
+            call.message.chat.id,
+            BufferedInputFile(image, filename="client-import-qr.png"),
+            caption=(
+                "🔳 QR импорта\n\n"
+                "Сканируйте в выбранном VPN-клиенте на собственном устройстве. "
+                "QR содержит секрет доступа; не пересылайте изображение. "
+                "Успешное подключение отдельно не проверено."
+            ),
+        )
+        await call.answer()
+        return
+
+    app_name = IMPORT_CLIENTS[app].name if app in IMPORT_CLIENTS else "Другой клиент"
+    hint = (
+        "Формат URI описан разработчиком приложения; работа на вашей версии "
+        "требует проверки. Скопируйте ссылку импорта или сканируйте QR "
+        "в выбранном VPN-клиенте. Telegram не открывает custom URI через URL-кнопку."
+        if uri is not None else
+        "Для выбранного приложения, URL или версии безопасный URI не сформирован. "
+        "Используйте обычный URL/QR и ручной импорт в приложении."
+    )
+    if url is None:
+        hint = "Ссылка подписки не подтверждена; импорт и QR недоступны."
     await render_callback(
         call,
-        f"📱 Подключение · {name}\n\n{instructions}\n\n"
-        "Автоматический deep-link пока не используется: формат импорта должен "
-        "быть стабилен и безопасен для конкретного клиента.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🌐 Моя подписка", callback_data="client:subscription")],
-            [InlineKeyboardButton(
-                text="⬅ Платформы",
-                callback_data=(
-                    "client:onboard:subscription" if subscription_origin else "client:onboard"
-                ),
-            )],
-        ]),
+        f"📱 {name} · {app_name}\n\n{hint}\n\n"
+        "Ссылка и QR — секреты доступа. Импорт не запускает VPN автоматически "
+        "и не изменяет подписку, HWID или оплату.",
+        reply_markup=_import_app_menu(
+            platform=platform, app=app, prefix=prefix, url=url, uri=uri,
+        ),
     )
     await call.answer()
 

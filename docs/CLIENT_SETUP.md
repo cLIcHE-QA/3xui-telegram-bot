@@ -13,6 +13,57 @@
 - Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
 - Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
 
+## #473 — импорт подписки (кандидат rc.19, не Published)
+
+**Security review #882 (2026-10-23, pre-merge):** в каталоге import URI отклоняются URL с query-delimiter (включая пустой `?`), percent/fragment/userinfo/private IP и небезопасной схемой; `subTitle` валидируется как ограниченное Unicode-имя с отказом на control/bidi, читается только через loopback после owner/private guard, без redirect. Ошибки информационного upstream-запроса логируются по типу исключения, без bearer URL. Добавлены negative tests для forged callbacks, недоступного proxy и title injection. Итог offline CI и реальный post-deploy smoke независимы от самого review; выпуск до обязательных checks запрещён.
+
+
+
+**Проверка исправленной ссылки (2026-10-23 14:42 UTC+03:00):** пользователь подтвердил устранение подмены имени при ручном импорте Shadowrocket. Для клиентов с поддержкой имени бот должен брать актуальный `subTitle` 3x-ui из `GET /compat/{sub_id}?format=info` по loopback после owner/private/pilot guards и добавлять его как URL-encoded `remark`, **не хардкодить** `VPN` или название Telegram-бота. Если title недоступен или некорректен, оставить `remark` пустым (без выдуманного названия). Ручной клиентский smoke — operator-reported PASS; получение title самим ботом до deployment не аттестовано. Изменение title в панели влияет на новые импорты, но не гарантирует переименования старых записей.
+
+**Наблюдение 2026-10-23:** оператор сообщил успешный импорт Happ на iOS/Android/macOS и Shadowrocket только на Apple-устройствах (iOS/macOS); версии PENDING. Shadowrocket/Android не проверялся. Скриншот показывает шесть серверов и заголовок VPN в Shadowrocket. Root cause в PR #882 — фиксированный `remark=VPN`; исправлено чтением `subTitle` через read-only локальный `/compat/{sub_id}?format=info`, ограниченная проверка строки и percent-encoding. Если metadata недоступна, фиктивное имя не подставляется. Исправление имени пока не проходило повторный device smoke, Issue #473 keep_open.
+
+**Happ / Shadowrocket test gate:** схема Happ `happ://add/<HTTPS URL>` для iOS/Android/macOS и Shadowrocket `shadowrocket://add/sub://<base64(HTTPS URL + ?flag=shadowrocket)>?remark=<encoded subTitle>` для iOS/macOS сверены с upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`. На устройствах ещё PENDING. Для остальных candidate URI тоже required client/version-specific smoke; статус PASS не присваивать по CI. Incy 2.6.4/macOS имеет отдельный operator-reported PASS ([audit](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md)).
+
+
+
+В личном чате: «Моя подписка» → «Подключить устройство» → платформа → клиент. Incy и v2raytun получают кандидатный URI для ручного импорта через CopyTextButton или локальный QR. Для неподдержанных приложений/URL есть обычные HTTPS URL/QR. Telegram inline URL-button не поддерживает custom схемы, поэтому external redirect/shortener не используется.
+
+| Приложение | Платформы в меню (candidate) | Название группы | Совместимость |
+| --- | --- | --- | --- |
+| Incy | iOS, Android, Windows, macOS, Linux | имя задаёт приложение / metadata подписки | iOS/Android 2.6.4 и macOS 2.6.4 operator-reported PASS |
+| v2raytun | iOS, Android, Windows, macOS | metadata подписки | iOS/Android 2.4.7 operator-reported PASS; macOS PENDING |
+| Happ | iOS, Android, macOS | metadata подписки; URI `happ://add/` | iOS/Android/macOS operator-reported PASS, версии PENDING |
+| Shadowrocket | iOS, macOS (Apple) | `?remark=<encoded subTitle>`, `flag=shadowrocket` | Apple operator-reported PASS, Android unsupported/NOT TESTED |
+| V2Box | iOS, Android | `&name=<encoded subTitle>` | candidate; версии и импорт PENDING |
+| Karing | iOS, Android, Windows, macOS, Linux | `&name=<encoded subTitle>` | candidate; версии и импорт PENDING |
+| OneXray | iOS, Android, Windows, macOS, Linux | `#<encoded subTitle>` | candidate; версии и импорт PENDING |
+| Throne | Android, Windows, macOS, Linux | Base64(`URL#subTitle`) | candidate; версии и импорт PENDING |
+
+### Полная матрица меню «Подключить устройство» — пять платформ
+
+| ОС | Кандидаты client-specific import URI | Резерв |
+| --- | --- | --- |
+| iOS | Incy, v2raytun, Happ, V2Box, Shadowrocket, Karing, OneXray | Обычный URL/QR |
+| Android | Incy, v2raytun, Happ, V2Box, Karing, OneXray, Throne | Обычный URL/QR |
+| Windows | Incy, v2raytun, Karing, OneXray, Throne | Обычный URL/QR |
+| macOS | Incy, v2raytun, Happ, Shadowrocket, Karing, OneXray, Throne | Обычный URL/QR |
+| Linux | Incy, Karing, OneXray, Throne | Обычный URL/QR |
+
+Кнопки **Windows** и **Linux** и фильтрация по ОС присутствуют в PR #882. Desktop-сценарии (особенно Windows/Linux) являются **candidate-only**, не live PASS: нужны отдельные client/version/build/import/refresh smoke, установка приложения на конкретной ОС не установлена по одному только наличию URI. На Linux инструкция запрещает подставлять bearer URL в shell history. Несовместимые клиенты не отображаются в списке платформы; «Другой клиент» сохраняет ручной URL/QR. Фактический deployed bot end-to-end PENDING.
+
+**Имя и fallback:** `subTitle` читается только после private-owner/pilot/rate guards через read-only local `/compat/{sub_id}?format=info`; ограничение длины, Unicode control/bidi и URL encoding. V2Box/Karing при отсутствии безопасного имени используют обычный URL/QR вместо `name=VPN`, Shadowrocket/OneXray/Throne не подставляют выдуманное имя. URI длиннее 256 символов → manual URL/QR. Это **не** подтверждение import у новых клиентов. Источник V2Box/Shadowrocket/Happ: upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`; форматы Karing/OneXray/Throne — соответствующая документация проектов. Happ/macOS и Shadowrocket/macOS — scoped отчёт пользователя; Shadowrocket/Android в меню отсутствует.
+
+**Адресная ручная проверка 2026-10-23 13:38 UTC+03:00:** [операторский аудит 4/4](audits/2026-10-23-client-import-473-operator-smoke.md) подтверждает **по сообщению пользователя** успешный импорт URI Incy 2.6.4 и v2raytun 2.4.7 на iOS 26.5.1 (23F81) и Android 17. Это не независимый device read-back и не тест обновлённого Client Portal после release/deploy; PR #882 остаётся draft, security review и bot end-to-end PENDING. Никаких URL/ключей не сохранено.
+
+**macOS:** Incy 2.6.4 — operator-reported scoped PASS по уточнению пользователя 2026-10-23 14:04 UTC+03:00 ([аудит](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md)); точная версия macOS неизвестна. v2raytun/macOS не проверен (PENDING). Это пятое сочетание ОС/клиента, а не шестой отдельный тест. Остальные новые клиенты также PENDING.
+
+Это candidate matrix, не гарантия установленной версии и не live PASS. До разрешённого targeted smoke для каждого приложения, платформы и версии необходимо проверить реальный import/refresh, наличие узлов и отсутствие повреждения существующих профилей. Результат PASS/UNSUPPORTED/PENDING фиксировать с точной версией, датой и evidence; до этого использовать безопасный ручной URL/QR.
+
+Ссылки и QR содержат bearer credential, не предназначены для сторонних чатов/логов. URI отвергается при HTTP, userinfo, fragment, query, неоднозначном percent encoding, частных/локальных IP, неподдержанной схеме, превышении CopyTextButton 256 символов. Existing portal switch/allowlist/rate/private chat guards обязательны до чтения owner URL. Нет нового storage, payments, HWID, provisioning, migrations или операторских параметров. Rollback: existing portal switch/штатный опубликованный release. Production acceptance, Release/Deployed и G-11 остаются PENDING/BLOCKED.
+
+
+
 ## Моя подписка: кандидат #497, ещё не в Published rc.18.10
 
 После отдельного выпуска на разрешённом pilot-аккаунте проверьте `/subscription` и `🌐 Моя подписка` в личном чате: статусы VPN/entitlement, план, срок, `CopyTextButton`, возврат из подключения, guarded покупку/продление и диагностику. Проверяйте без изменения доступа случаи «нет аккаунта», disabled/expired/provisioning/unknown, provider outage, нестыковку сроков и отсутствие подтверждённого числа локаций. «Привязки Master Inbounds» **не** означают число доступных серверов. Не переносите реальные URL, ID или ключи в лог/Issue.
