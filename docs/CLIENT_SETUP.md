@@ -19,21 +19,28 @@
 
 
 
-**Проверка исправленной ссылки (2026-10-23 14:42 UTC+03:00):** пользователь подтвердил устранение подмены имени при ручном импорте Shadowrocket. Для новых клиентов бот должен брать собственный актуальный `subTitle` 3x-ui из `GET /compat/{sub_id}?format=info` по loopback после owner/private/pilot guards и добавлять его как URL-encoded `remark`, **не хардкодить** `VPN` или название Telegram-бота. Если title недоступен или некорректен, оставить `remark` пустым (без выдуманного названия). Ручной клиентский smoke — operator-reported PASS; получение title самим ботом до deployment не аттестовано. Изменение title в панели влияет на новые импорты, но не гарантирует переименования старых записей.
+**Проверка исправленной ссылки (2026-10-23 14:42 UTC+03:00):** пользователь подтвердил устранение подмены имени при ручном импорте Shadowrocket. Для клиентов с поддержкой имени бот должен брать актуальный `subTitle` 3x-ui из `GET /compat/{sub_id}?format=info` по loopback после owner/private/pilot guards и добавлять его как URL-encoded `remark`, **не хардкодить** `VPN` или название Telegram-бота. Если title недоступен или некорректен, оставить `remark` пустым (без выдуманного названия). Ручной клиентский smoke — operator-reported PASS; получение title самим ботом до deployment не аттестовано. Изменение title в панели влияет на новые импорты, но не гарантирует переименования старых записей.
 
-**Наблюдение 2026-10-23:** оператор сообщил успешный импорт Happ и Shadowrocket на iOS, Android, macOS; фактические версии приложений и применимость Shadowrocket к Android/macOS требуют уточнения. Скриншот показывает шесть серверов и заголовок VPN в Shadowrocket. Root cause в PR #882 — фиксированный `remark=VPN`; исправлено чтением `subTitle` через read-only локальный `/compat/{sub_id}?format=info`, ограниченная проверка строки и percent-encoding. Если metadata недоступна, фиктивное имя не подставляется. Исправление имени пока не проходило повторный device smoke, Issue #473 keep_open.
+**Наблюдение 2026-10-23:** оператор сообщил успешный импорт Happ на iOS/Android/macOS и Shadowrocket только на Apple-устройствах (iOS/macOS); версии PENDING. Shadowrocket/Android не проверялся. Скриншот показывает шесть серверов и заголовок VPN в Shadowrocket. Root cause в PR #882 — фиксированный `remark=VPN`; исправлено чтением `subTitle` через read-only локальный `/compat/{sub_id}?format=info`, ограниченная проверка строки и percent-encoding. Если metadata недоступна, фиктивное имя не подставляется. Исправление имени пока не проходило повторный device smoke, Issue #473 keep_open.
 
-**Happ / Shadowrocket test gate:** схема Happ `happ://add/<HTTPS URL>` для iOS/Android и Shadowrocket `shadowrocket://add/sub://<base64(HTTPS URL + ?flag=shadowrocket)>?remark=<encoded subTitle>` для iOS сверены с upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`. На устройствах ещё PENDING. Для остальных candidate URI тоже required client/version-specific smoke; статус PASS не присваивать по CI. Incy 2.6.4/macOS имеет отдельный operator-reported PASS ([audit](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md)).
+**Happ / Shadowrocket test gate:** схема Happ `happ://add/<HTTPS URL>` для iOS/Android/macOS и Shadowrocket `shadowrocket://add/sub://<base64(HTTPS URL + ?flag=shadowrocket)>?remark=<encoded subTitle>` для iOS/macOS сверены с upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`. На устройствах ещё PENDING. Для остальных candidate URI тоже required client/version-specific smoke; статус PASS не присваивать по CI. Incy 2.6.4/macOS имеет отдельный operator-reported PASS ([audit](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md)).
 
 
 
 В личном чате: «Моя подписка» → «Подключить устройство» → платформа → клиент. Incy и v2raytun получают кандидатный URI для ручного импорта через CopyTextButton или локальный QR. Для неподдержанных приложений/URL есть обычные HTTPS URL/QR. Telegram inline URL-button не поддерживает custom схемы, поэтому external redirect/shortener не используется.
 
-| Приложение | Платформы кандидата | Формат | Источник | Приёмка |
-| --- | --- | --- | --- | --- |
-| Incy | iOS, Android, Windows, macOS, Linux | incy://import/ + HTTPS URL | https://docs.incy.cc/en/deep-links | версии/import/refresh PENDING |
-| v2raytun | iOS, Android, Windows, macOS | v2raytun://import/ + HTTPS URL | https://docs.v2raytun.com/ | версии/import/refresh PENDING |
-| Happ, Shadowrocket, V2Box, Karing, OneXray, Throne | все | manual URL/QR | совместимый subscription import контракт не подтверждён | PENDING |
+| Приложение | Платформы в меню (candidate) | Название группы | Совместимость |
+| --- | --- | --- | --- |
+| Incy | iOS, Android, Windows, macOS, Linux | имя задаёт приложение / metadata подписки | iOS/Android 2.6.4 и macOS 2.6.4 operator-reported PASS |
+| v2raytun | iOS, Android, Windows, macOS | metadata подписки | iOS/Android 2.4.7 operator-reported PASS; macOS PENDING |
+| Happ | iOS, Android, macOS | metadata подписки; URI `happ://add/` | iOS/Android/macOS operator-reported PASS, версии PENDING |
+| Shadowrocket | iOS, macOS (Apple) | `?remark=<encoded subTitle>`, `flag=shadowrocket` | Apple operator-reported PASS, Android unsupported/NOT TESTED |
+| V2Box | iOS, Android | `&name=<encoded subTitle>` | candidate; версии и импорт PENDING |
+| Karing | iOS, Android, Windows, macOS, Linux | `&name=<encoded subTitle>` | candidate; версии и импорт PENDING |
+| OneXray | iOS, Android, Windows, macOS, Linux | `#<encoded subTitle>` | candidate; версии и импорт PENDING |
+| Throne | Android, Windows, macOS, Linux | Base64(`URL#subTitle`) | candidate; версии и импорт PENDING |
+
+**Имя и fallback:** `subTitle` читается только после private-owner/pilot/rate guards через read-only local `/compat/{sub_id}?format=info`; ограничение длины, Unicode control/bidi и URL encoding. V2Box/Karing при отсутствии безопасного имени используют обычный URL/QR вместо `name=VPN`, Shadowrocket/OneXray/Throne не подставляют выдуманное имя. URI длиннее 256 символов → manual URL/QR. Это **не** подтверждение import у новых клиентов. Источник V2Box/Shadowrocket/Happ: upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`; форматы Karing/OneXray/Throne — соответствующая документация проектов. Happ/macOS и Shadowrocket/macOS — scoped отчёт пользователя; Shadowrocket/Android в меню отсутствует.
 
 **Адресная ручная проверка 2026-10-23 13:38 UTC+03:00:** [операторский аудит 4/4](audits/2026-10-23-client-import-473-operator-smoke.md) подтверждает **по сообщению пользователя** успешный импорт URI Incy 2.6.4 и v2raytun 2.4.7 на iOS 26.5.1 (23F81) и Android 17. Это не независимый device read-back и не тест обновлённого Client Portal после release/deploy; PR #882 остаётся draft, security review и bot end-to-end PENDING. Никаких URL/ключей не сохранено.
 
