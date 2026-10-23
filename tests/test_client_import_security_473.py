@@ -71,7 +71,7 @@ class ImportTitleSecurityTests(unittest.IsolatedAsyncioTestCase):
             (200, "text/html", b"<html></html>"),
             (200, "application/json", b"not-json"),
             (200, "application/json", b"[]" ),
-            (200, "application/json", json.dumps({"subTitle": "bad\\nlabel"}).encode()),
+            (200, "application/json", json.dumps({"subTitle": "bad" + chr(10) + "label"}).encode()),
             (200, "application/json", b"x" * 8193),
         ):
             with self.subTest(status=status, body=raw[:14]):
