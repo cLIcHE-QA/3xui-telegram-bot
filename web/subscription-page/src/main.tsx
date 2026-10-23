@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { MantineProvider, Container, Title, Text, Card, Tabs, Stack, Group, Badge, Select, Button, SegmentedControl, Divider, Accordion, Alert } from "@mantine/core";
 import "@mantine/core/styles.css";
 import { parsePageConfig, summary } from "./model";
+import { SubscriptionPreview, previewScenarios, type PreviewScenario } from "./SubscriptionPreview";
 import "./style.css";
 
 type Localized = Record<string, string>;
@@ -31,6 +32,13 @@ const sample: ExportConfig = {
   uiConfig:{subscriptionInfoBlockType:"expanded",installationGuidesBlockType:"cards"},
   brandingSettings:{title:"VPN Subscription"}
 };
+const stateLabels:Record<string,Record<string,string>>={
+ ru:{scenarioLabel:"Демонстрационные состояния",unknown:"Нет данных",active:"Активна · пример",expired:"Истекла · пример",pending:"Ожидает · пример",activeStatus:"Активна",expiredStatus:"Истекла",pendingStatus:"Ожидает подтверждения",noData:"Нет данных",daysRemaining:"15 дней · пример",demo:"ДЕМО",scenarioNote:"Вымышленные данные, не ваша подписка",usage:"Использовано",usageUnavailable:"Нет данных о трафике",previewOnly:"Без реальных подписок и ключей"},
+ en:{scenarioLabel:"Demo scenarios",unknown:"No data",active:"Active · example",expired:"Expired · example",pending:"Pending · example",activeStatus:"Active",expiredStatus:"Expired",pendingStatus:"Awaiting confirmation",noData:"No data",daysRemaining:"15 days · example",demo:"DEMO",scenarioNote:"Synthetic data, not your subscription",usage:"Data used",usageUnavailable:"No usage data",previewOnly:"No real subscriptions or keys"},
+ fa:{scenarioLabel:"سناریوهای نمایشی",unknown:"بدون داده",active:"فعال · نمونه",expired:"منقضی · نمونه",pending:"در انتظار · نمونه",activeStatus:"فعال",expiredStatus:"منقضی شده",pendingStatus:"در انتظار تأیید",noData:"داده‌ای موجود نیست",daysRemaining:"۱۵ روز · نمونه",demo:"نمایشی",scenarioNote:"داده آزمایشی است، نه اشتراک شما",usage:"مصرف داده",usageUnavailable:"اطلاعات مصرف موجود نیست",previewOnly:"بدون اشتراک یا کلید واقعی"},
+ fr:{scenarioLabel:"Scénarios de démonstration",unknown:"Sans données",active:"Active · exemple",expired:"Expirée · exemple",pending:"En attente · exemple",activeStatus:"Active",expiredStatus:"Expirée",pendingStatus:"En attente",noData:"Aucune donnée",daysRemaining:"15 jours · exemple",demo:"DÉMO",scenarioNote:"Données fictives, pas votre abonnement",usage:"Trafic utilisé",usageUnavailable:"Trafic indisponible",previewOnly:"Aucun abonnement ni clé réels"},
+ zh:{scenarioLabel:"演示场景",unknown:"无数据",active:"有效 · 示例",expired:"过期 · 示例",pending:"等待 · 示例",activeStatus:"有效",expiredStatus:"已过期",pendingStatus:"等待确认",noData:"无数据",daysRemaining:"15 天 · 示例",demo:"演示",scenarioNote:"模拟数据，并非您的订阅",usage:"已用流量",usageUnavailable:"流量数据不可用",previewOnly:"不提供真实订阅或密钥"}
+};
 const platformNames: Record<string,string> = {ios:"iOS",android:"Android",macos:"macOS",windows:"Windows",linux:"Linux",appleTV:"Apple TV",androidTV:"Android TV"};
 function languageText(v: Localized | undefined, lang:string) {return v?.[lang] ?? v?.ru ?? v?.en ?? "";}
 function App() {
@@ -41,6 +49,7 @@ function App() {
   const [client,setClient] = useState(0);
   const [view,setView] = useState("cards");
   const [info,setInfo] = useState("expanded");
+  const [scenario,setScenario] = useState<PreviewScenario>("unknown");
   const [error,setError] = useState("");
   const [imported,setImported] = useState(false);
   const selected = data.platforms[platform]?.apps[client];
@@ -57,7 +66,7 @@ function App() {
     en:{hero:"A safer internet.",hero2:"Without the complexity.",lead:"Your connection, under control. Choose your device and follow the steps.",preview:"Preview mode",subscription:"My subscription",status:"Status",noData:"No data",traffic:"Traffic",expires:"Expires",connect:"Connect your VPN",device:"Choose device",application:"Choose application",steps:"Follow instructions",safe:"Safe preview",safeDesc:"No live subscriptions or keys are provided. Everything remains in your browser.",import:"Import configuration",noClients:"No apps configured for this platform.",hide:"Subscription block is hidden in preview.",keys:"Keys are unavailable in preview",footer:"Preview · No real subscriptions or keys"},
     fa:{hero:"اینترنت امن‌تر.",hero2:"بدون پیچیدگی.",lead:"اتصال شما تحت کنترل است. دستگاه خود را انتخاب کنید.",preview:"حالت پیش‌نمایش",subscription:"اشتراک من",status:"وضعیت",noData:"داده‌ای موجود نیست",traffic:"ترافیک",expires:"انقضا",connect:"اتصال به VPN",device:"انتخاب دستگاه",application:"انتخاب برنامه",steps:"مراحل اتصال",safe:"پیش‌نمایش امن",safeDesc:"اشتراک واقعی و کلید نمایش داده نمی‌شود. همه چیز در مرورگر شما می‌ماند.",import:"وارد کردن تنظیمات",noClients:"برنامه‌ای برای این پلتفرم تنظیم نشده است.",hide:"بخش اشتراک پنهان شده است.",keys:"کلیدها در پیش‌نمایش در دسترس نیستند",footer:"نسخه آزمایشی · بدون اشتراک واقعی"}
   };
-  const t=(x:string)=>ui[lang]?.[x]??ui.en[x]??x;
+  const t=(x:string)=>stateLabels[lang]?.[x]??ui[lang]?.[x]??ui.en[x]??x;
   const deviceIcon=(x:string)=>x==="ios"||x==="android"?<IconDeviceMobile size={21}/>:x==="macos"?<IconDeviceLaptop size={21}/>:x.toLowerCase().includes("tv")?<IconDeviceTv size={21}/>:<IconDeviceDesktop size={21}/>;
   const steps=selected?.blocks??[];
   return <MantineProvider defaultColorScheme="dark" theme={{primaryColor:"blue"}}>
@@ -69,12 +78,8 @@ function App() {
     <main>
       <section className="hero"><div className="hero-content"><div className="hero-pill"><IconSparkles size={15}/>{t("preview")}</div><h1>{t("hero")}<br/><span>{t("hero2")}</span></h1><p>{t("lead")}</p><div className="hero-safe"><IconLock size={16}/>{t("safeDesc")}</div></div><div className="hero-art" aria-hidden="true"><div className="hero-halo"/><img src="/brand/raccoon-wrench.svg" alt=""/></div></section>
       <section className="portal-section" aria-label={t("subscription")}><div className="section-heading"><div><span className="section-eyebrow">01 — SUBSCRIPTION</span><Title order={2}>{t("subscription")}</Title></div><SegmentedControl aria-label="Вид блока подписки" data-testid="subscription-layout" value={info} onChange={setInfo} size="xs" data={["expanded","collapsed","cards","hidden"]}/></div>
-        <div data-testid="subscription-preview" data-mode={info}>
-          {info==="hidden"?<div className="hidden-subscription"><IconLock size={20}/>{t("hide")}</div>:<>
-            {info==="cards"?<div className="subscription-info-grid">{[[t("status"),t("noData"),<IconShieldCheck size={22}/>],[t("traffic"),"—",<IconWifi size={22}/>],[t("expires"),"—",<IconClock size={22}/>]].map(([heading,value,ico],i)=><Card key={i} withBorder radius="lg" padding="lg" className="metric-card"><div className="metric-icon">{ico}</div><Text size="xs" c="dimmed">{heading}</Text><Text size="xl" fw={800}>{value}</Text></Card>)}</div>:info==="collapsed"?<Card withBorder radius="lg" className="subscription-info-compact"><Group justify="space-between"><Group><div className="metric-icon"><IconShieldCheck size={23}/></div><div><Text fw={800}>{t("subscription")}</Text><Text c="dimmed" size="sm">{t("status")}</Text></div></Group><Badge color="gray">{t("noData")}</Badge></Group></Card>:<Card withBorder radius="xl" className="subscription-main-card"><div className="card-topline"><span><IconShieldCheck size={17}/>{t("safe")}</span><Badge color="gray">{t("noData")}</Badge></div><div className="card-inner"><div className="card-identity"><span className="identity-icon"><IconShieldCheck size={30}/></span><div><Text c="dimmed" size="sm">{t("status")}</Text><Title order={3}>{t("noData")}</Title></div></div><div className="card-metrics"><div><Text size="xs" c="dimmed">{t("traffic")}</Text><strong>—</strong></div><div><Text size="xs" c="dimmed">{t("expires")}</Text><strong>—</strong></div></div></div></Card>}
-            <div className="sub-actions">{!data.baseSettings.hideGetLinkButton&&<Button disabled leftSection={<IconLink size={18}/>} variant="light">Get Link</Button>}{data.baseSettings.showConnectionKeys&&<Alert color="yellow">{t("keys")}</Alert>}<Text size="xs" c="dimmed"><IconLock size={13}/>{t("preview")}</Text></div>
-          </>}
-        </div>
+        <div className="scenario-controls"><Text size="xs" c="dimmed">{t("scenarioLabel")}</Text><SegmentedControl data-testid="subscription-scenario" aria-label={t("scenarioLabel")} value={scenario} onChange={v=>setScenario(v as PreviewScenario)} size="xs" data={previewScenarios.map(v=>({value:v,label:t(v)}))}/></div>
+        <SubscriptionPreview mode={info} scenario={scenario} t={t} hideGetLinkButton={data.baseSettings.hideGetLinkButton} showConnectionKeys={data.baseSettings.showConnectionKeys}/>
       </section>
       <section className="portal-section" aria-label={t("connect")}><div className="section-heading"><div><span className="section-eyebrow">02 — QUICK START</span><Title order={2}>{t("connect")}</Title></div><SegmentedControl aria-label="Вид инструкций" data-testid="guides-layout" data={["cards","timeline","accordion","minimal"].map(x=>({label:x,value:x}))} size="xs" value={view} onChange={setView}/></div>
         <div className="setup-shell"><div className="setup-segment"><div className="setup-title"><span>01</span><strong>{t("device")}</strong></div><Tabs value={platform} onChange={x=>{if(x){setPlatform(x);setClient(0);}}}><Tabs.List className="device-tabs">{platforms.map(x=><Tabs.Tab key={x} value={x} leftSection={deviceIcon(x)}>{languageText(data.platforms[x]?.displayName,lang)||platformNames[x]||x}</Tabs.Tab>)}</Tabs.List></Tabs></div>
