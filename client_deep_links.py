@@ -5,10 +5,11 @@ Telegram callback_data, текст логов или внешние QR-серв�
 """
 from __future__ import annotations
 
+import base64
 import ipaddress
 import re
 from dataclasses import dataclass
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 
 @dataclass(frozen=True)
@@ -16,10 +17,15 @@ class ImportSpec:
     name: str
     prefix: str
     platforms: frozenset[str]
+    encoding: str = "direct"
+    suffix: str = ""
 
 
-# Только документированные схемы импорта именно SUBSCRIPTION URL (не server/routing).
-# Версии/реальный импорт требуют отдельного targeted smoke: см. docs/CLIENT_SETUP.md.
+# Только URI импорта SUBSCRIPTION URL, не settings/route/single outbound.
+# Источники: официальная документация Karing, OneXray, Throne,
+# frontend/src/pages/sub/subPageModel.ts upstream MHSanaei/3x-ui для
+# Happ/V2Box/Shadowrocket; Incy/v2raytun — адресная ручная проверка.
+# Известная схема != подтверждение версии: docs/CLIENT_SETUP.md / Issue #473.
 IMPORT_CLIENTS: dict[str, ImportSpec] = {
     "incy": ImportSpec(
         "Incy", "incy://import/",
@@ -28,6 +34,31 @@ IMPORT_CLIENTS: dict[str, ImportSpec] = {
     "v2raytun": ImportSpec(
         "v2raytun", "v2raytun://import/",
         frozenset({"ios", "android", "windows", "macos"}),
+    ),
+    "happ": ImportSpec(
+        "Happ", "happ://add/",
+        frozenset({"ios", "android"}),
+    ),
+    "v2box": ImportSpec(
+        "V2Box", "v2box://install-sub?url=",
+        frozenset({"ios", "android"}), "percent", "&name=VPN",
+    ),
+    "shadowrocket": ImportSpec(
+        "Shadowrocket", "shadowrocket://add/sub://",
+        frozenset({"ios"}), "base64", "?remark=VPN",
+    ),
+    "karing": ImportSpec(
+        "Karing", "karing://install-config?url=",
+        frozenset({"ios", "android", "windows", "macos", "linux"}),
+        "percent", "&name=VPN",
+    ),
+    "onexray": ImportSpec(
+        "OneXray", "onexray://onexray.com/sub/add?url=",
+        frozenset({"ios", "android", "windows", "macos", "linux"}), "percent",
+    ),
+    "throne": ImportSpec(
+        "Throne", "throne://addsub/",
+        frozenset({"android", "windows", "macos", "linux"}), "base64",
     ),
 }
 
@@ -81,7 +112,17 @@ def import_uri(client: str, platform: str, subscription_url: object) -> str | No
     url = _safe_import_target(subscription_url)
     if url is None:
         return None
-    candidate = spec.prefix + url
+    # Encode *only* the already validated owner's URL, never callback input.
+    # Base64 is transport encoding, NOT encryption. No provider-side fetch here.
+    if spec.encoding == "direct":
+        payload = url
+    elif spec.encoding == "percent":
+        payload = quote(url, safe="")
+    elif spec.encoding == "base64":
+        payload = base64.b64encode(url.encode("ascii")).decode("ascii")
+    else:
+        return None
+    candidate = spec.prefix + payload + spec.suffix
     if len(candidate) > MAX_IMPORT_URI_LENGTH:
         return None
     return candidate
