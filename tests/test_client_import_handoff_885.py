@@ -77,6 +77,7 @@ class HandoffProxy885Tests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.headers["Referrer-Policy"], "no-referrer")
         self.assertEqual(response.headers["Cache-Control"], "no-store, private")
         self.assertIn("default-src 'none'", response.headers["Content-Security-Policy"])
+        self.assertIn("script-src 'sha256-", response.headers["Content-Security-Policy"])
         self.assertNotIn("Location", response.headers)
         with self.assertRaises(web.HTTPNotFound):
             await proxy.handoff(request)
