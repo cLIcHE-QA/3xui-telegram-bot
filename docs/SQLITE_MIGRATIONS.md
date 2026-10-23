@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+> **Release-prep `v5.0.0-rc.19`:** SQLite schema v15, новые migrations не добавлены. Published ещё `v5.0.0-rc.18.10`; публикация GitHub Release и deployment — отдельные этапы.
+
 **Схема SQLite v15 неизменна для Published `v5.0.0-rc.18.10`.** Новых миграций в релизе нет: исправления Happ/User-Agent, Windows/OS и HWID-карточек — только read-only представление. Текущий операторский deployment и адресные HWID 23/23 `PASS` фиксируются исключительно в [Roadmap](ROADMAP.md) и [датированном audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md); независимая VPS/SQLite `PRAGMA quick_check` аттестация остаётся PENDING. Само `DB=ok` не является доказательством `PRAGMA quick_check`.
 
 Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
