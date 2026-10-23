@@ -7,6 +7,7 @@ import "@mantine/core/styles.css";
 import { parsePageConfig, summary } from "./model";
 import { SubscriptionPreview, previewScenarios, type PreviewScenario } from "./SubscriptionPreview";
 import { ClientChooser } from "./ClientChooser";
+import { SafeSvgIcon, parseLocalSvgLibrary } from "./SafeSvgIcon";
 import { PreviewModePicker } from "./PreviewModePicker";
 import { ConnectionGuide } from "./ConnectionGuide";
 import "./style.css";
@@ -56,6 +57,10 @@ function App() {
   const [scenario,setScenario] = useState<PreviewScenario>("unknown");
   const [error,setError] = useState("");
   const [imported,setImported] = useState(false);
+  const [operatorIcons,setOperatorIcons] = useState<Record<string,string>>({});
+  const [iconMessage,setIconMessage] = useState("");
+  const svgLibrary = {...operatorIcons,...((data as ExportConfig & {svgLibrary?:Record<string,string>}).svgLibrary??{})};
+  const [assetInvalid,setAssetInvalid] = useState(0);
   const selected = data.platforms[platform]?.apps[client];
   function openLocalFile(file: File | null) {
     if (!file) return;
@@ -64,6 +69,10 @@ function App() {
       const cfg: ExportConfig = parsePageConfig(raw);
       setData(cfg);setLang(cfg.locales.includes("ru")?"ru":cfg.locales[0]);setPlatform(Object.keys(cfg.platforms)[0]);setClient(0);setView(cfg.uiConfig.installationGuidesBlockType);setInfo(cfg.uiConfig.subscriptionInfoBlockType);setImported(true);setError("");
     } catch { setError("Неверный формат локальной конфигурации"); }});
+  }
+  function importSvgLibrary(file:File|null){
+    if(!file)return;
+    file.text().then(raw=>{try{const parsed=parseLocalSvgLibrary(raw);setOperatorIcons(parsed);setAssetInvalid(0);setIconMessage("SVG: "+Object.keys(parsed).length+" безопасных изображений загружено локально");}catch{setAssetInvalid(1);setIconMessage("SVG: файл отклонён проверкой");}}).catch(()=>setIconMessage("SVG: ошибка чтения файла"));
   }
   const ui:Record<string,Record<string,string>>={
     ru:{hero:"Безопасный интернет.",hero2:"Без лишних сложностей.",lead:"Ваше подключение — под контролем. Выберите устройство и следуйте простым шагам.",preview:"Демонстрационный режим",subscription:"Моя подписка",status:"Статус",noData:"Нет данных",traffic:"Трафик",expires:"Срок действия",connect:"Подключить VPN",device:"Выберите устройство",application:"Выберите приложение",steps:"Следуйте инструкции",safe:"Безопасный предпросмотр",safeDesc:"Никакие реальные подписки и ключи не выдаются. Всё работает локально в браузере.",import:"Импортировать настройки",noClients:"Для этой платформы нет настроенных клиентов.",hide:"Блок подписки скрыт настройкой предпросмотра.",keys:"Ключи не выдаются в режиме предпросмотра",footer:"Демонстрационная версия · Без выдачи ключей и реальных подписок"},
@@ -90,13 +99,14 @@ function App() {
         <SubscriptionPreview mode={info} scenario={scenario} t={t} hideGetLinkButton={data.baseSettings.hideGetLinkButton} showConnectionKeys={data.baseSettings.showConnectionKeys}/>
       </section>
       <section className="portal-section" aria-label={t("connect")}><div className="section-heading"><div><span className="section-eyebrow">02 — QUICK START</span><Title order={2}>{t("connect")}</Title></div><PreviewModePicker label={t("guidesLayoutLabel")} testId="guides-layout" value={view} onChange={setView} options={["carousel","cards","timeline","accordion","minimal"].map(x=>({value:x,label:t("layout_"+x)}))}/></div>
-        <div className="setup-shell"><div className="setup-segment platform-segment"><div className="setup-title"><span>01</span><strong>{t("device")}</strong></div><Tabs value={platform} onChange={x=>{if(x){setPlatform(x);setClient(0);}}}><Tabs.List className="device-tabs">{platforms.map(x=><Tabs.Tab key={x} value={x} leftSection={deviceIcon(x)}>{languageText(data.platforms[x]?.displayName,lang)||platformNames[x]||x}</Tabs.Tab>)}</Tabs.List></Tabs></div>
-          <div className="setup-segment"><div className="setup-title"><span>02</span><strong>{t("application")}</strong></div><ClientChooser apps={data.platforms[platform]?.apps??[]} selectedIndex={client} onSelect={setClient} t={t}/></div>
+        <div className="setup-shell"><div className="setup-segment platform-segment"><div className="setup-title"><span>01</span><strong>{t("device")}</strong></div><Tabs value={platform} onChange={x=>{if(x){setPlatform(x);setClient(0);}}}><Tabs.List className="device-tabs">{platforms.map(x=><Tabs.Tab key={x} value={x} leftSection={<SafeSvgIcon iconKey={(data.platforms[x] as any)?.svgIconKey} library={svgLibrary} fallback={deviceIcon(x)}/>}>{languageText(data.platforms[x]?.displayName,lang)||platformNames[x]||x}</Tabs.Tab>)}</Tabs.List></Tabs></div>
+          <div className="setup-segment"><div className="setup-title"><span>02</span><strong>{t("application")}</strong></div><ClientChooser apps={data.platforms[platform]?.apps??[]} selectedIndex={client} onSelect={setClient} t={t} svgLibrary={svgLibrary}/></div>
           <div className="setup-segment guide-setup"><div className="setup-title"><span>03</span><strong>{t("steps")}</strong></div>
-            <ConnectionGuide steps={steps} mode={view} lang={lang} t={t} clientName={selected?.name}/>
+            <ConnectionGuide steps={steps} mode={view} lang={lang} t={t} clientName={selected?.name} svgLibrary={svgLibrary}/>
           </div></div>
       </section>
-      <section className="bottom-panels"><div className="safe-panel"><span><IconShieldCheck size={26}/></span><div><Title order={4}>{t("safe")}</Title><Text c="dimmed" size="sm">{t("safeDesc")}</Text></div></div><div className="import-panel"><div><Text fw={800}><IconFileImport size={19}/> {t("import")}</Text><Text c="dimmed" size="xs">{t("preview")}</Text></div><label className="file-pick"><IconDownload size={16}/> JSON<input aria-label={t("import")} type="file" accept=".json,application/json" onChange={e=>openLocalFile(e.target.files?.[0]||null)}/></label></div></section>
+      <section className="svg-assets-import"><label className="file-pick">SVG JSON<input aria-label="Импортировать SVG-библиотеку" type="file" accept=".json,application/json" onChange={e=>importSvgLibrary(e.target.files?.[0]||null)}/></label><Text size="xs" role="status">{iconMessage || "Дополнительная SVG-библиотека: локальный импорт, без внешних запросов"}</Text></section>
+       <section className="bottom-panels"><div className="safe-panel"><span><IconShieldCheck size={26}/></span><div><Title order={4}>{t("safe")}</Title><Text c="dimmed" size="sm">{t("safeDesc")}</Text></div></div><div className="import-panel"><div><Text fw={800}><IconFileImport size={19}/> {t("import")}</Text><Text c="dimmed" size="xs">{t("preview")}</Text></div><label className="file-pick"><IconDownload size={16}/> JSON<input aria-label={t("import")} type="file" accept=".json,application/json" onChange={e=>openLocalFile(e.target.files?.[0]||null)}/></label></div></section>
       {error&&<Alert mt="lg" color="red">{error}</Alert>}{imported&&<Text mt="md" c="blue">{t("import")}: {summary(data as any).blocks}</Text>}
     </main><footer className="portal-footer"><span><img src="/brand/raccoon-wrench.svg" alt=""/> RACCOON VPN</span><Text size="xs">{t("footer")}</Text></footer>
   </Container></div></MantineProvider>;
