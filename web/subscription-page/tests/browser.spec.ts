@@ -86,8 +86,10 @@ test("full-page visual evidence for four instruction layouts and empty state", a
   await page.goto("/");
   const guides = page.getByTestId("guides-layout");
   const full = async (label: string) => {
-    const screenshot = await page.screenshot({ fullPage: true, animations: "disabled" });
-    await testInfo.attach(label, { body: screenshot, contentType: "image/png" });
+    const path = testInfo.outputPath(label + ".png");
+    await page.screenshot({ path, fullPage: true, animations: "disabled" });
+    const height = await page.evaluate(() => document.documentElement.scrollHeight);
+    expect(height).toBeGreaterThan(testInfo.project.use.viewport?.height ?? 700);
   };
   for (const mode of ["cards", "timeline", "accordion", "minimal"]) {
     await guides.getByText(mode, { exact: true }).click();
@@ -111,6 +113,6 @@ test("visual preview of four synthetic statuses does not unlock actions", async 
     await picker.getByText(label,{exact:true}).click();
     await expect(preview).toHaveAttribute("data-scenario",state);
     await expect(preview.getByRole("button",{name:"Получить ссылку"})).toBeDisabled();
-    await testInfo.attach("subscription-"+state+"-"+testInfo.project.name,{body:await page.screenshot({fullPage:true,animations:"disabled"}),contentType:"image/png"});
+    await page.screenshot({path:testInfo.outputPath("subscription-"+state+"-"+testInfo.project.name+".png"),fullPage:true,animations:"disabled"});
   }
 });
