@@ -101,3 +101,25 @@ Scope: #887 D1a UI polish в существующем PR #889, отдельны�
 на последнем commit PENDING до проверки GitHub Actions**, предыдущие PASS на иных SHA не переносить.
 `package-lock.json` пока не закоммичен; `audit` Python/Pillow/certifi — отдельный #890.
 #887 keep_open: полный D1a acceptance и D1b/D2/D3 отсутствуют; Roadmap в `main` SYNC PENDING.
+
+## D1a — приложение, изображения и npm lock (2026-10-23)
+
+В #887 / draft PR #889 добавлен `ClientChooser` с отдельными нейтральными пиктограммами
+для категорий приложений, явным `aria-pressed`, улучшенной мобильной сеткой и состоянием
+отсутствия приложений. Название клиента берётся из валидированной локальной конфигурации;
+официальные иконки VPN-клиентов **не импортируются без** asset provenance, license и
+trademark review. Иконки — декоративные generic Tabler, а не доказательство реальной
+поддержки клиента, устройства или протокола. Кнопки установки и импорта, содержащие
+ссылки из JSON, остаются disabled.
+
+Настоящий `package-lock.json` зафиксирован в GitHub из проверенного CI-артефакта
+(`lockfileVersion=3`, 145 записей, SHA-256 исходных байтов
+`3ab98b620697640c095f0eb439bad725edda35e1e648072e213394937560fef6`).
+CI теперь вызывает **только** `npm ci --ignore-scripts --no-audit --no-fund`, без
+генерации lockfile. Повторный frontend build и browser smoke на новом commit
+**PENDING**, пока они не завершены в GitHub Actions.
+
+Security `audit` Python-зависимостей Pillow/certifi — отдельный #890,
+не подавляется и не считается PASS. #887 keep_open (D1a продолжается,
+D1b/D2/D3 остаются), Roadmap в `main` SYNC PENDING. Merge/Release/deployment
+не выполняются.
