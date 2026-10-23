@@ -534,7 +534,7 @@ class SubscriptionProxy:
                     params=params,
                 )
             except (aiohttp.ClientError, TimeoutError) as exc:
-                LOG.warning("subscription info upstream request failed: %s", exc)
+                LOG.warning("subscription info upstream request failed: %s", type(exc).__name__)
                 raise web.HTTPBadGateway(text="subscription upstream unavailable\n")
             if status >= 400:
                 raise web.HTTPBadGateway(text="subscription upstream error\n")
