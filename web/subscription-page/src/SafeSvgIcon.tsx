@@ -123,6 +123,7 @@ export function SafeSvgIcon({ iconKey, library, fallback, testId, className }: {
     const clean = sanitizeSvg(xml);
     return clean ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(clean) : null;
   }, [xml]);
+  if (!uri && iconKey === "INCY") return <img data-testid={testId ?? "safe-svg-icon"} className={className} src="/client-icons/incy.svg" alt="" aria-hidden="true" draggable={false} decoding="async"/>;
   if (!uri) return <>{fallback}</>;
   return <img data-testid={testId ?? "safe-svg-icon"} className={className}
     src={uri} alt="" aria-hidden="true" draggable={false} decoding="async"/>;
