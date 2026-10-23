@@ -130,3 +130,26 @@
   .scenario-controls .mantine-Text-root{font-size:.875rem!important}
   .portal-container{padding-left:calc(14px + env(safe-area-inset-left,0px));padding-right:calc(14px + env(safe-area-inset-right,0px))}
 }
+
+
+/* Compact OS switch: a single shared outline, without tab underlines. */
+.platform-segment{border-bottom:0!important;padding-bottom:12px}
+.platform-segment+.setup-segment{padding-top:15px}
+.device-tabs{display:flex!important;grid-template-columns:none!important;gap:4px!important;flex-wrap:nowrap!important;padding:5px!important;background:#182939!important;border:1px solid #31506a!important;border-radius:14px!important;overflow-x:auto;scrollbar-width:none;max-width:100%}
+.device-tabs::-webkit-scrollbar{display:none}
+.device-tabs .mantine-Tabs-tab{flex:1 0 auto;min-width:0;min-height:44px;padding:10px 12px!important;border:0!important;border-radius:10px!important;background:transparent!important;white-space:nowrap;box-shadow:none!important}
+.device-tabs .mantine-Tabs-tab[data-active]{background:#25536c!important;border:0!important;color:#b6f6ec!important;box-shadow:inset 0 0 0 1px #407995!important}
+.device-tabs .mantine-Tabs-tab:focus-visible{outline:3px solid #86d7ff;outline-offset:-2px}
+.device-tabs .mantine-Tabs-tab::before,.device-tabs .mantine-Tabs-tab::after{display:none!important}
+@media(max-width:700px){.device-tabs .mantine-Tabs-tab{flex:0 0 auto;min-width:115px}.platform-segment{padding-bottom:10px}}
+/* One visible step with keyboard-operable progress and Back/Next. */
+.guide-carousel-progress{display:flex;justify-content:center;gap:10px;align-items:center;max-width:100%;overflow-x:auto;margin-bottom:16px}
+.guide-carousel-dot{min-width:44px;min-height:44px;border:1px solid #3b6079;border-radius:50%;background:#193148;color:#b1d5eb;font:800 .875rem/1 inherit;font-family:inherit;cursor:pointer}
+.guide-carousel-dot[aria-current=step]{background:#286083;border-color:#4db2e8;color:white}
+.guide-carousel-dot:focus-visible{outline:3px solid #8bdbff;outline-offset:2px}
+.guide-carousel-card{background:linear-gradient(125deg,#152b3b,#0f1f2e)!important;border:1px solid #35566f!important}
+.guide-carousel-step-head{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#95d6f8;margin-bottom:18px}
+.guide-carousel-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:13px}
+.guide-carousel-controls .mantine-Button-root{min-width:0;min-height:46px;height:auto}
+html[dir=rtl] .guide-carousel-controls svg{transform:scaleX(-1)}
+@media(max-width:480px){.guide-carousel-controls{gap:8px}.guide-carousel-card{padding:16px!important}}
