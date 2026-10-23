@@ -221,3 +221,25 @@ html[dir=rtl] .guide-carousel-controls svg{transform:scaleX(-1)}
   .subscription-stat-tile,.metric-card,.client-choice,.guide-step,.guide-carousel-card,.safe-panel,.import-panel,
   .preview-mode-button,.device-tabs .mantine-Tabs-tab,.guide-carousel-dot{transform:none!important}
 }
+
+/* 200% text / narrow viewport: fix the actual intrinsic-size overflow.
+   Never mask the issue by setting overflow-x:hidden on body/root. */
+.bottom-panels{min-width:0;flex-wrap:wrap}
+.safe-panel,.import-panel{
+  min-width:0;max-width:100%;flex:1 1 18rem;
+  overflow-wrap:anywhere;
+}
+.safe-panel>div,.import-panel>div{min-width:0;flex:1 1 0;overflow-wrap:anywhere}
+.safe-panel h4,.safe-panel .mantine-Text-root,
+.import-panel .mantine-Text-root{max-width:100%;overflow-wrap:anywhere}
+.safe-panel>span{flex:0 0 auto}
+.import-panel{flex-wrap:wrap}
+.import-panel .file-pick{max-width:100%;flex:0 0 auto}
+.client-list{min-width:0;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr))}
+.client-choice{min-width:0;max-width:100%}
+.client-copy{min-width:0;flex:1 1 0;overflow-wrap:anywhere}
+.client-copy strong,.client-copy small{max-width:100%;min-width:0;overflow-wrap:anywhere;white-space:normal}
+@media(max-width:640px){
+  .bottom-panels{grid-template-columns:minmax(0,1fr);width:100%}
+  .safe-panel,.import-panel{width:100%}
+}
