@@ -19,7 +19,7 @@ from aiogram.types import (
 from admin_ui import render_callback
 from config import load_settings
 from client_flags import ClientFeatureFlags
-from client_deep_links import IMPORT_CLIENTS, import_uri
+from client_deep_links import IMPORT_CLIENTS, TITLE_IMPORT_CLIENTS, import_uri
 from client_import_title import fetch_import_title
 from client_rate_limit import SlidingWindowRateLimiter
 from customer_service import (
@@ -1259,7 +1259,7 @@ async def onboarding_platform_cb(call: CallbackQuery):
         await _service().subscription_url(call.from_user.id)
     )
     import_title = None
-    if app == "shadowrocket" and url is not None:
+    if app in TITLE_IMPORT_CLIENTS and url is not None:
         profile = await _service().profile(call.from_user.id, read_access=False)
         import_title = await fetch_import_title(
             profile.sub_id, proxy_port=settings.subscription_proxy_port,
