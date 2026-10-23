@@ -5,7 +5,7 @@ from urllib.parse import quote
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from client_deep_links import IMPORT_CLIENTS, import_uri
+from client_deep_links import IMPORT_CLIENTS, REQUIRED_TITLE_CLIENTS, import_uri
 
 URL = "https://sub.example.invalid/compat/owned-sub"
 
@@ -15,10 +15,15 @@ class ImportURI473Tests(unittest.TestCase):
         for client, spec in IMPORT_CLIENTS.items():
             for platform in spec.platforms:
                 with self.subTest(client=client, platform=platform):
-                    uri = import_uri(client, platform, URL)
+                    uri = import_uri(client, platform, URL, title="Тест VPN")
                     source = URL + "?flag=shadowrocket" if client == "shadowrocket" else URL
+                    if client == "throne":
+                        source += "#Тест VPN"
                     payload = (source if spec.encoding == "direct" else quote(source, safe="") if spec.encoding == "percent" else base64.b64encode(source.encode()).decode())
-                    self.assertEqual(uri, spec.prefix + payload + ("" if client == "shadowrocket" else spec.suffix))
+                    suffix = ("&name=" + quote("Тест VPN", safe="") if client in REQUIRED_TITLE_CLIENTS
+                              else "?remark=" + quote("Тест VPN", safe="") if client == "shadowrocket"
+                              else "#" + quote("Тест VPN", safe="") if client == "onexray" else "")
+                    self.assertEqual(uri, spec.prefix + payload + suffix)
                     self.assertLessEqual(len(uri), 256)
 
     def test_malformed_or_secret_ambiguous_url_falls_back(self):
@@ -45,6 +50,10 @@ class ImportURI473Tests(unittest.TestCase):
         self.assertIsNone(import_uri("incy", "unknown", URL))
         self.assertIsNone(import_uri("v2raytun", "linux", URL))
         self.assertIsNone(import_uri("shadowrocket", "android", URL))
+        self.assertIsNotNone(import_uri("shadowrocket", "macos", URL))
+        self.assertIsNotNone(import_uri("happ", "macos", URL))
+        self.assertIsNone(import_uri("v2box", "ios", URL))
+        self.assertIsNone(import_uri("karing", "ios", URL))
         self.assertIsNone(import_uri("v2box", "windows", URL))
 
 
@@ -52,10 +61,10 @@ class ImportURI473Tests(unittest.TestCase):
         for app in ("v2box", "shadowrocket", "karing", "onexray", "throne"):
             platform = "ios" if app != "throne" else "macos"
             with self.subTest(app=app):
-                uri = import_uri(app, platform, URL)
+                uri = import_uri(app, platform, URL, title="Тест VPN")
                 self.assertIsNotNone(uri)
                 self.assertNotIn(URL, uri)
-                self.assertIsNone(import_uri(app, platform, "https://example.invalid/" + "a" * 240))
+                self.assertIsNone(import_uri(app, platform, "https://example.invalid/" + "a" * 240, title="Тест VPN"))
         self.assertTrue(import_uri("happ", "ios", URL).startswith("happ://add/"))
 
     def test_shadowrocket_preserves_bounded_upstream_title(self):
