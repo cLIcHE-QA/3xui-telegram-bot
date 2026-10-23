@@ -32,6 +32,9 @@ jobs:
         working-directory: web/subscription-page
         run: |
           npm install --ignore-scripts --no-audit --no-fund
+          echo 'NPM_LOCK_START'
+          cat package-lock.json
+          echo 'NPM_LOCK_END'
           npm run build
       - name: Check no user configuration committed
         run: |
