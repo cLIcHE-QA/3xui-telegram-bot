@@ -6,7 +6,7 @@
 
 > **Уточнение 2026-10-23 14:01 UTC+03:00:** на macOS проверен только Incy 2.6.4 (operator-reported scoped PASS; версия macOS неизвестна); v2raytun/macOS PENDING. [Первый аудит](audits/2026-10-23-client-import-473-macos-incy-checkpoint.md), [уточнение версии](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md).
 
-> **#473 Happ/Shadowrocket (2026-10-23 14:27 UTC+03:00):** [scoped operator report и finding](audits/2026-10-23-happ-shadowrocket-title-checkpoint.md): импорт Happ/Shadowrocket заявлен PASS на iOS/Android/macOS, но platform attribution Shadowrocket Android/macOS и версии PENDING. Обнаружена подмена названия на `VPN` через жёсткий `remark`; исправление берёт `subTitle` 3x-ui через read-only local info, без внешнего redirect. Targeted title regression после исправления PENDING; #473 OPEN, PR #882 Draft, full acceptance PARTIAL, G-11 NO-GO.
+> **#473 Happ/Shadowrocket (2026-10-23 14:27 UTC+03:00):** [scoped operator report и finding](audits/2026-10-23-happ-shadowrocket-title-checkpoint.md): импорт Happ operator-reported PASS на iOS/Android/macOS, Shadowrocket operator-reported PASS только на Apple (iOS/macOS), Android для Shadowrocket NOT TESTED; версии PENDING. [Уточнение Apple-only](audits/2026-10-23-shadowrocket-apple-only-scope.md). Обнаружена подмена названия на `VPN` через жёсткий `remark`; исправление берёт `subTitle` 3x-ui через read-only local info, без внешнего redirect. Targeted title regression после исправления PENDING; #473 OPEN, PR #882 Draft, full acceptance PARTIAL, G-11 NO-GO.
 
 ## Актуальная сводка проекта
 
