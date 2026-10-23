@@ -18,7 +18,7 @@ class ImportURI473Tests(unittest.TestCase):
                     uri = import_uri(client, platform, URL)
                     source = URL + "?flag=shadowrocket" if client == "shadowrocket" else URL
                     payload = (source if spec.encoding == "direct" else quote(source, safe="") if spec.encoding == "percent" else base64.b64encode(source.encode()).decode())
-                    self.assertEqual(uri, spec.prefix + payload + spec.suffix)
+                    self.assertEqual(uri, spec.prefix + payload + ("" if client == "shadowrocket" else spec.suffix))
                     self.assertLessEqual(len(uri), 256)
 
     def test_malformed_or_secret_ambiguous_url_falls_back(self):
@@ -56,6 +56,18 @@ class ImportURI473Tests(unittest.TestCase):
                 self.assertNotIn(URL, uri)
                 self.assertIsNone(import_uri(app, platform, "https://example.invalid/" + "a" * 240))
         self.assertTrue(import_uri("happ", "ios", URL).startswith("happ://add/"))
+
+    def test_shadowrocket_preserves_bounded_upstream_title(self):
+        from client_import_title import safe_import_title
+        self.assertEqual(
+            import_uri("shadowrocket", "ios", URL, title="Cliché VPN"),
+            "shadowrocket://add/sub://"
+            + base64.b64encode((URL + "?flag=shadowrocket").encode()).decode()
+            + "?remark=Clich%C3%A9%20VPN",
+        )
+        self.assertFalse(import_uri("shadowrocket", "ios", URL).endswith("remark=VPN"))
+        self.assertIsNone(safe_import_title("bad\\nname"))
+        self.assertIsNone(safe_import_title("a" * 65))
 
     def test_security_matrix_all_supported_schemes_fail_closed(self):
         for app, spec in IMPORT_CLIENTS.items():
