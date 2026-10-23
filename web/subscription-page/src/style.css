@@ -95,3 +95,38 @@
 .scenario-controls .preview-mode-picker{max-width:100%}
 @media(max-width:700px){.section-heading .preview-mode-picker{width:100%;margin-top:16px}.scenario-controls .preview-mode-picker{width:100%}.preview-mode-picker{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.preview-mode-button{min-height:48px;font-size:14px;padding:10px}}
 @media(prefers-reduced-motion:reduce){.preview-mode-button{transition:none}}
+
+/* D1a text-only zoom and WebView-safe layout. Rem values follow the browser's
+   configured root font size; production tokens can evolve independently. */
+:root{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.portal-shell{padding-bottom:env(safe-area-inset-bottom,0px)}
+.portal-container,.portal-header,.portal-logo,.hero-content,.subscription-body,.setup-shell{min-width:0}
+.portal-header{height:auto;min-height:91px;padding-block:12px;flex-wrap:wrap}
+.portal-logo>span:last-child{min-width:0;overflow-wrap:anywhere}
+.hero h1{font-size:clamp(2.125rem,4.1vw,3.25rem);overflow-wrap:anywhere}
+.hero p,.hero-safe{font-size:.875rem}
+.hero-pill,.section-eyebrow,.portal-logo small{font-size:.75rem;overflow-wrap:anywhere}
+.portal-logo strong{font-size:1.125rem;overflow-wrap:anywhere}
+.section-heading h2{font-size:1.6875rem;overflow-wrap:anywhere}
+.setup-title strong,.guide-step-title,.guide-accordion-label{font-size:1rem!important;overflow-wrap:anywhere}
+.guide-description,.guide-footnote,.guide-client-name,.guide-empty p{font-size:.875rem}
+.guide-action-caption,.guide-header-count,.client-copy small{font-size:.75rem}
+.client-copy strong{font-size:.875rem}
+.preview-mode-button{font-size:.8125rem}
+.preview-under-action,.subscription-fixture-note,.subscription-progress-note{font-size:.75rem}
+.subscription-metrics strong{overflow-wrap:anywhere}
+.guide-step-grid,.guide-step,.guide-step-title,.guide-actions{min-width:0}
+.hero-pill{max-width:100%;width:fit-content}
+.device-tabs .mantine-Tabs-tab{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:700px){
+  .portal-header{min-height:77px;height:auto}
+  .portal-logo strong{font-size:1rem}
+  .portal-logo small{font-size:.6875rem}
+  .hero h1{font-size:clamp(2.125rem,7vw,2.25rem)}
+  .hero p{font-size:.875rem}
+  .hero-safe{font-size:.8125rem}
+  .section-heading h2{font-size:1.4375rem}
+  .preview-mode-button{font-size:.875rem}
+  .scenario-controls .mantine-Text-root{font-size:.875rem!important}
+  .portal-container{padding-left:calc(14px + env(safe-area-inset-left,0px));padding-right:calc(14px + env(safe-area-inset-right,0px))}
+}

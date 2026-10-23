@@ -43,10 +43,10 @@ jobs:
         run: |
           npm run test:model
           npm run build
-      - name: Установить Chromium для browser smoke
+      - name: Установить Chromium и WebKit для browser smoke
         working-directory: web/subscription-page
-        run: npx playwright install --with-deps chromium
-      - name: Проверить desktop/mobile browser smoke
+        run: npx playwright install --with-deps chromium webkit
+      - name: Проверить desktop/mobile и WebKit-like browser smoke
         working-directory: web/subscription-page
         run: npm run test:browser
       - name: Сохранить browser evidence

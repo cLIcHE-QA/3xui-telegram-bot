@@ -172,3 +172,28 @@ RTL и keyboard Enter/Space. Это browser-smoke/visual-fixture scope,
 **Итоговый CI и screenshot read-back на новом SHA — PENDING до результатов GitHub Actions**.
 Общий Python `audit` FAIL по #890 отдельно; #887 `keep_open`, Roadmap `main`
 SYNC PENDING, merge/release/deploy не выполняются.
+
+## Увеличение текста и WebKit-like smoke — 2026-10-23
+
+Продолжение D1a (#887, Draft PR #889): выбранный оператором фирменный desktop
+shell сохранён; повышаем удобство без подключения новых backend-интерфейсов.
+Ключевые тексты hero, карточек, инструкций, навигации и переключателей переведены
+на `rem`, чтобы реагировать на увеличение базового браузерного шрифта
+до 200%. Контролируем перенос длинных строк и горизонтальное переполнение
+на 320/390/768 px (RU и RTL FA). Фон и текстовую палитру не подменяем.
+Контраст основных элементов проверяется на известных тёмных поверхностях
+по отношению WCAG 4.5:1; это **целевые образцы**, не полный аудит WCAG.
+
+В HTML добавлен `viewport-fit=cover` и безопасные отступы через
+`env(safe-area-inset-*)`. В CI к desktop/mobile Chromium добавлен
+`ios-webkit-simulated` (Playwright WebKit, `iPhone 13`) только для
+теста совместимости WebView-like оболочки, навигации, RTL и ограниченного
+сетевого поведения. Это **не запуск в Telegram** и не доказательство
+интеграции Telegram SDK или `initData`; D2 auth/WebView device smoke
+по-прежнему PENDING. Адаптивный/контрастный тест также генерирует
+скриншот при 200% шрифта. Не выполняется выдача ключей или вызов внешних URI.
+
+Обязательны новый frontend CI, скриншоты и независимый GitHub read-back.
+Общий Python security audit (#890) остаётся отдельным FAIL, Issue #887
+остаётся OPEN, Roadmap в `main` SYNC PENDING. Merge, release,
+deployment и принятие реальных подписок не выполняются.

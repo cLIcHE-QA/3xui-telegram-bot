@@ -129,3 +129,19 @@ Acceptance D1b: администратор может локально выпо�
 Для реализации требуются мобильный и desktop a11y smoke, owner/pilot/feature gates, multi-account isolation, чужой/просроченный `initData`, отсутствие утечек bearer в URL/логи/CDN/referrer, сохранение `/compat/` и QR/Copy fallback, честные ошибки и device import/refresh. Offline CI не заменяет устройство/VPS acceptance.
 
 Пока D0 не merged, **Roadmap sync: PENDING**. После D0 acceptance: `#887 keep_open` до D1–D3 и отдельной реальной приёмки; merge документации не закрывает feature. При сбое новой web-плоскости она отключается feature flag, старые bot/compat endpoints остаются рабочими.
+
+### D1a: типографика и имитация мобильного WebView (scope #887)
+
+Для staged Draft PR #889 предусмотрено browser-only покрытие масштабирования
+текста до 200%, контраста основных поверхностей и безопасных
+`viewport-fit=cover`/`safe-area-inset`. Android-like режим проверяется
+mobile Chromium, iOS-like — отдельным Playwright WebKit проектом; используются
+только синтетические данные, без Telegram `initData`, backend API,
+production credentials или выдачи реальных subscription URLs.
+
+**Граница приёмки:** PASS таких эмуляций подтверждает лишь отдельные
+браузерные сценарии D1a. Реальная Telegram WebView-навигация,
+обработка viewport событий, клавиатура устройства, смена системного шрифта
+и безопасная авторизация по `initData` требуют отдельных device/
+integration smoke на D2. CI нового SHA и визуальный review — PENDING до
+read-back. Issue #887 остаётся открытым, общий audit #890 отдельно.
