@@ -4,7 +4,11 @@
 
 **Текущий Published/Deployed/Accepted status:** [каноническая сводка Roadmap](ROADMAP.md) — единственный источник актуальной публикации, deployment (с маркировкой источника), scoped acceptance и решений по Issues. Guide ориентирован на release v5.0.0-rc.18.10. Перед использованием обязательно сверять фактический статус по [Roadmap](ROADMAP.md) и [датированному HWID acceptance audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md). Принятые оператором 23/23 адресных HWID UI-проверок не означают полного v5 acceptance: G-11 PARTIAL/NO-GO, public rollout BLOCKED. Независимый VPS read-back остаётся PENDING; никакие production mutations не разрешены этим документом.
 
+> **Release-prep `v5.0.0-rc.19`:** `APP_VERSION` в ветке кандидата обновляется; действующий Published/Deployed по-прежнему `v5.0.0-rc.18.10` до GitHub workflow и отдельного deployment. Новых operator setup steps нет; pilot/allowlist сохраняются.
+
 **Исторический checkpoint `rc.18.1` (не текущий статус):** оператор ранее сообщил deployed `rc.18` P0–P2/F1–F3 и scoped D1–D8/S1–S4 PASS, но независимый VPS/provider read-back отсутствует, X2 и destructive postcondition provenance PENDING. Новая версия `rc.18.1` опубликована и развернута по отчёту оператора; targeted UI A4/A5 operator-reported FAIL; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
+
+> **Кандидат release-prep (не Published):** `APP_VERSION=v5.0.0-rc.19`. Эта строка обозначает только целевую версию `APP_VERSION` и совместимость setup-процедуры; текущий Published определяет верхняя строка (`rc.18.10`) и Roadmap. VPS deployment не выполняется этим PR.
 
 ## Перед началом: границы и безопасность
 

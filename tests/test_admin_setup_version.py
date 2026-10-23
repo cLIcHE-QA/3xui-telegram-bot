@@ -18,7 +18,8 @@ class AdminSetupReleaseVersionTests(unittest.TestCase):
         version = APP_VERSION
         tag = f"v{version}"
 
-        self.assertIn(f"Guide ориентирован на release {tag}.", guide)
+        self.assertIn(f"`APP_VERSION={tag}`", guide)
+        self.assertIn("Roadmap](ROADMAP.md)", guide)
         self.assertIn(f"Для bot release `{tag}`", doc)
         self.assertIn(f"git checkout --detach {tag}", doc)
         self.assertIn("~~~text\n" + version + "\n~~~", doc)

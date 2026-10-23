@@ -115,7 +115,8 @@ class LivingDocsSemanticTests(unittest.TestCase):
 
         self.assertTrue(readme.startswith(f"# Telegram-бот для 3x-ui v{version}"))
         self.assertIn(f"## v{version} ", changelog)
-        self.assertIn(f"Guide ориентирован на release v{version}.", admin_setup)
+        self.assertIn(f"`APP_VERSION=v{version}`", admin_setup)
+        self.assertIn("Roadmap](ROADMAP.md)", admin_setup)
         procedures = (ROOT / "docs/ADMIN_SETUP_PROCEDURES.md").read_text(encoding="utf-8")
         self.assertIn(f"git checkout --detach v{version}", procedures)
 
