@@ -20,3 +20,14 @@ D1a является только прототипом: frontend `npm run build`
 - Независимый TypeScript `parsePageConfig` проверен на тех же 5 locales, 7 platforms, 24 app slots, 10 client names, 92 instruction blocks, 75 buttons, 38 original SVG; реальные strings и URL не логируются и не публикуются. Node unit tests в GitHub: `.github/workflows/subscription-page-d1a.yml`.
 - UI в PR остаётся **preview**: отображаются четыре вида инструкций (`cards`, `timeline`, `accordion`, `minimal`) и четыре вида блока подписки (`expanded`, `collapsed`, `cards`, `hidden`). Содержимое подписки синтетическое, ссылки и операции заблокированы. Реальные действия `external/subscriptionLink`, raw keys, admin publish не разрешены. Обязательные следующие gates: TypeScript/Vite `npm run build`, browser visual/a11y/RTL smoke, пакетный lockfile/dependency review. **Не называть это D1a acceptance** до этих проверок.
 - CI исходного приватного экспорта не содержит; для полной проверки оператор запускает локальный `OPERATOR_SUBPAGE_JSON=/secure/path/file.json python -m unittest discover -s tests -p 'test_subscription_page_config.py' -v`.
+
+## Автоматизированный browser smoke (D1a)
+
+`tests/browser.spec.ts` проверяет четыре варианта блока подписки и инструкций, disabled Get Link,
+отсутствие внешних запросов, RTL `fa`, клавиатуру, reduced-motion и горизонтальное переполнение
+на desktop/mobile Chromium. Применяются только фиктивные данные, никаких реальных
+подписок или внешних URI. Выполнение на новом SHA и визуальный screenshot-review
+не доказаны до запуска соответствующего CI и проверки артефактов.
+
+`package-lock.json` ещё не зафиксирован: до его получения нельзя утверждать, что
+установка воспроизводима или что `npm ci` прошёл. D1b auth и device smoke — отдельно.
