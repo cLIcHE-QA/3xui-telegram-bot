@@ -6,12 +6,17 @@
 from __future__ import annotations
 
 import html
+import base64
+import hashlib
 import re
 import secrets
 import time
 from urllib.parse import urlsplit, urlunsplit
 
 from client_deep_links import IMPORT_CLIENTS
+
+AUTO_OPEN_SCRIPT = 'window.addEventListener("load",()=>{document.getElementById("open-client").click()});'
+SCRIPT_HASH = base64.b64encode(hashlib.sha256(AUTO_OPEN_SCRIPT.encode("utf-8")).digest()).decode("ascii")
 
 TTL_SECONDS = 90
 MAX_TICKETS = 256
@@ -79,7 +84,8 @@ def handoff_html(client: str, uri: str) -> str:
         '<body><h1>Импорт подписки</h1>'
         '<p>Нажмите кнопку, чтобы открыть установленный VPN-клиент. '
         'Браузер может запросить подтверждение.</p>'
-        f'<p><a rel="noreferrer" href="{escaped_uri}">Открыть в {name}</a></p>'
+        f'<p><a id="open-client" rel="noreferrer" href="{escaped_uri}">Открыть в {name}</a></p>'
+        f'<script>{AUTO_OPEN_SCRIPT}</script>'
         '<p>Если приложение не открывается, вернитесь в Telegram '
         'и используйте копирование ссылки или QR.</p></body></html>'
     )
