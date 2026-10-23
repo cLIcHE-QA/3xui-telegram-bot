@@ -12,6 +12,37 @@
 - Новая frontend session и Telegram Mini App не дают admin RBAC, не обходят pilot/User Groups, не разрешают DELETE, billing или provisioning mutations. Telegram digital purchases только Stars; RUB/СБП и юридические публикации остаются отдельными задачами #336/#707.
 - Самостоятельная страница и Mini App не должны загружать секреты, токены, `initData`, `sub_id`, HWID или QR contents в third-party CDN, telemetry, logs или Referrer; required CSRF, CSP, no-store, cookie security, session expiry, replay/rate limits и cross-account negative tests.
 
+## Утверждённый frontend-стек (решение оператора 2026-10-23)
+
+**D1 implementation baseline — React + TypeScript + Vite + Mantine.** Изучен `remnawave/subscription-page` (публичная ветка `main`, `frontend/package.json`): это работающий пример browser-based VPN subscription portal на React, TypeScript, Vite, Mantine и Tabler Icons. Выбираем **технологии и типовые API этих библиотек**, а не исходники или готовый UI Remnawave.
+
+| Область | Утверждённое решение | Ограничение |
+| --- | --- | --- |
+| UI runtime | React 19 + TypeScript | Один self-hosted frontend build для standalone и Telegram Mini App |
+| Build | Vite | Версии и lockfile фиксируются в D1 после dependency/license/security review |
+| Компоненты и тема | Mantine, оригинальные собственные компоненты | Тёмно-синяя тема, мятные акценты, карточки и крупные touch targets |
+| Системные пиктограммы | `@tabler/icons-react`, при необходимости `react-icons` | Использовать разрешённые пакеты, self-hosted bundle, соблюдать лицензии наборов |
+| Навигация | React Router | Использовать при появлении реальных маршрутов; не дублировать backend authorization |
+| Локальное состояние | React state; Zustand по обоснованной необходимости | Никогда не сохранять `initData`, bearer subscription URL, HWID и session secrets в persistent client storage |
+| Сервер | Существующий Python backend, provider-neutral `CustomerPortalService` | NestJS/Express, Electron, Go/Mihomo и отдельный 3x-ui web backend **не** требуются |
+
+Это **утверждённый stack**, а не утверждение о готовых исходниках, уже установленных зависимостях, проверенных версиях пакетов или опубликованном продукте. В D1 требуется package manifest, pinned lockfile, license/SBOM review, baseline dependency audit, browser/mobile visual tests и проверка accessibility. Контур Telegram Web Apps/API включается только в D2 с серверной проверкой `initData`.
+
+**Лицензионная граница:** `remnawave/subscription-page` лицензирован как `AGPL-3.0-only`; `legiz-ru/Prizrak-Box` — как `GPL-3.0`. Наш репозиторий использует `Apache-2.0`. Прямое копирование UI-компонентов, HTML/CSS, изображений и производного кода из этих проектов **не разрешено этим решением**. Использование независимо опубликованных React/Vite/Mantine/Tabler-библиотек оценивается по **их собственным** лицензиям. Если понадобится внешний код, сначала отдельный copyright/license review с анализом требований распространения и сетевого использования; без ревью — оригинальная реализация.
+
+## Утверждённый визуальный ориентир и политика иконок
+
+- **Цель UI:** собственная визуальная реализация по предоставленным скриншотам RightSide VPN: тёмно-синий фон, мятные акценты, округлые карточки, адаптивная desktop/mobile компоновка, удобные platform tabs, крупный выбор VPN-приложения с логотипом справа, пошаговая установка и рабочие «Назад/Далее». Точная технология самого RightSide VPN по этим скриншотам **не подтверждена**; копировать его бренд/ассеты нельзя.
+- **Платформы:** iOS, Android, macOS, Windows, Linux; Android TV и Apple TV — только как UI-кандидаты после проверки реального поддерживаемого пути импорта. Списки клиентов определяет backend capability matrix #473, а не красивое изображение.
+- **Клиенты:** Happ, Incy, Shadowrocket, v2raytun, V2Box, Karing, OneXray, Throne; RabbitHole, Prizrak-Box и другие — отдельные кандидаты, только после проверки версии, лицензии и настоящего deep-link/import format. Не добавлять fake-PASS или неработающие кнопки.
+- **Иконки ОС:** подобрать сходные со скриншотами чистые SVG/векторные системные символы из лицензируемых наборов; различать обобщённую иконку устройства и защищённый логотип/товарный знак платформы.
+- **Логотипы VPN-клиентов:** стремиться использовать **оригинальный официальный логотип**, если есть проверенный источник и разрешение на такое использование. Лицензия SVG-файла, лицензия репозитория и товарный знак — разные вопросы. `INCY-DEV/incy-icons` — исследованный MIT-кандидат; для каждого конкретного SVG всё равно проверять применимые условия и attribution. Не извлекать логотипы из скриншотов и не объявлять «точные» иконки доступными до проверки.
+- **Asset manifest:** перед добавлением каждого бренда зафиксировать `client/platform → official source → asset license → trademark/permission outcome → attribution → stored path`; хранить очищенный SVG/PNG локально, запретить scripts, `foreignObject`, внешние `href`, remote fonts и трекеры. При неизвестных правах показывать нейтральный доступный символ + текст названия.
+- **Доступность:** клавиатура и screen reader, контраст, mobile touch targets, `prefers-reduced-motion`, светлые/тёмные системные UI-состояния внутри Telegram и устойчивость при отсутствии изображений. Иконки декоративны и не несут единственный смысл действия.
+- **Privacy:** никаких CDN, сторонних icon APIs или публичных QR-сервисов, в которые уходят bearer URL, Telegram identity или subscription metadata. Дизайн не может обойти backend owner/pilot checks.
+
+**Acceptance D1 для этого решения:** (1) общий React/Vite/Mantine shell проверен на desktop и mobile; (2) шаги платформы и приложения сохраняют независимый fallback; (3) у каждого используемого asset есть проверяемое provenance/rights evidence или нейтральная замена; (4) нет скопированных AGPL/GPL компонентов и нет unsafe asset/network dependencies; (5) screenshot-based visual/a11y regressions и browser/WebView smoke выполнены с отдельными свидетельствами.
+
 ## Отдельный внешний проект
 
 [legiz-ru/Prizrak-Box](https://github.com/legiz-ru/Prizrak-Box), ветка `v3`, — Electron/Vue/Mihomo desktop-клиент под GPL-3.0, **не** готовый Mini App или публичный subscription portal. Документированный `prizrak-box://install-config?url=...` — возможная интеграция на Windows/macOS/Linux только после независимого smoke; не копировать GPL code/assets в бот без отдельной оценки license/dependencies/attribution. #702 (page-mascot) остаётся независимым необязательным расширением после собственной страницы.
@@ -25,7 +56,7 @@
 | D2 | Mini App и standalone authentication/session API | initData signature/freshness, negative IDOR/CSRF, rate/pilot gates |
 | D3 | Контролируемый canary, per-client device smoke, provider-neutral traffic/HWID | Отдельные merge/release/deploy и targeted acceptance |
 
-Декомпозиция D1–D3 требует самостоятельных implementation PR и тестов; D0 не означает разрешения deploy. Данные пользователя не маскировать моками в production. Новую веб-плоскость включать только через явный feature flag. Точный web stack, дизайн-система, hostname и session storage утверждаются в implementation preflight с проверкой threat model. Архитектурное решение D0 не подразумевает самовольной регистрации Telegram Menu Button, новых API публичного кабинета или создания web-session из bearer subscription URL.
+Декомпозиция D1–D3 требует самостоятельных implementation PR и тестов; D0 не означает разрешения deploy. Данные пользователя не маскировать моками в production. Новую веб-плоскость включать только через явный feature flag. Утверждённый frontend-стек и визуальный ориентир определены выше; точные версии зависимостей, hostname, web-session storage и инфраструктурные параметры согласуются в D1/D2 implementation preflight с проверкой threat model. Архитектурное решение D0 не подразумевает самовольной регистрации Telegram Menu Button, новых API публичного кабинета или создания web-session из bearer subscription URL.
 
 ## Acceptance и rollback
 
