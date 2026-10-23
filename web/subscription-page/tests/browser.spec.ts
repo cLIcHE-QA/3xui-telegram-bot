@@ -81,3 +81,36 @@ test("выбор клиента использует нейтральную ик
   await expect(page.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
   expect(external).toEqual([]);
 });
+
+test("full-page visual evidence for four instruction layouts and empty state", async ({ page }, testInfo) => {
+  await page.goto("/");
+  const guides = page.getByTestId("guides-layout");
+  const full = async (label: string) => {
+    const screenshot = await page.screenshot({ fullPage: true, animations: "disabled" });
+    await testInfo.attach(label, { body: screenshot, contentType: "image/png" });
+  };
+  for (const mode of ["cards", "timeline", "accordion", "minimal"]) {
+    await guides.getByText(mode, { exact: true }).click();
+    const preview = page.getByTestId("guide-preview");
+    await expect(preview).toHaveAttribute("data-mode", mode);
+    await expect(preview.getByText("Установить приложение").first()).toBeVisible();
+    await expect(preview.getByText("Предпросмотр: ссылки, установка и импорт подписки отключены.")).toBeVisible();
+    await full("guide-" + mode + "-" + testInfo.project.name);
+  }
+  await page.getByRole("tab", { name: "Android" }).click();
+  await expect(page.getByTestId("guide-preview")).toContainText("Инструкции пока не настроены");
+  await full("guide-empty-" + testInfo.project.name);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
+test("visual preview of four synthetic statuses does not unlock actions", async ({ page }, testInfo) => {
+  await page.goto("/");
+  const picker=page.getByTestId("subscription-scenario");
+  const preview=page.getByTestId("subscription-preview");
+  for(const [state,label] of [["unknown","Нет данных"],["active","Активна · пример"],["expired","Истекла · пример"],["pending","Ожидает · пример"]]){
+    await picker.getByText(label,{exact:true}).click();
+    await expect(preview).toHaveAttribute("data-scenario",state);
+    await expect(preview.getByRole("button",{name:"Получить ссылку"})).toBeDisabled();
+    await testInfo.attach("subscription-"+state+"-"+testInfo.project.name,{body:await page.screenshot({fullPage:true,animations:"disabled"}),contentType:"image/png"});
+  }
+});
