@@ -41,6 +41,49 @@ class ImportTitleSecurityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(args[0], "http://127.0.0.1:8080/compat/valid_id?format=info")
         self.assertFalse(kwargs["allow_redirects"])
 
+    async def test_metadata_read_success_and_fail_closed_http_responses(self):
+        # Проверяем реальный async context-manager contract, а не только
+        # обработку ClientConnectionError через mock.
+        import json
+        response = MagicMock()
+        response.__aenter__ = AsyncMock(return_value=response)
+        response.__aexit__ = AsyncMock(return_value=None)
+        response.status = 200
+        response.headers = {"Content-Type": "application/json; charset=utf-8"}
+        response.content.read = AsyncMock(
+            return_value=json.dumps({"subTitle": "Тестовый VPN"}).encode(),
+        )
+        session = MagicMock()
+        session.__aenter__ = AsyncMock(return_value=session)
+        session.__aexit__ = AsyncMock(return_value=None)
+        session.get.return_value = response
+        with patch("client_import_title.aiohttp.ClientSession", return_value=session) as maker:
+            self.assertEqual(
+                await fetch_import_title("owner_sub", proxy_port=2086),
+                "Тестовый VPN",
+            )
+            maker.assert_called_once()
+            self.assertFalse(maker.call_args.kwargs["trust_env"])
+        response.content.read.assert_awaited_with(8193)
+
+        for status, content_type, raw in (
+            (302, "application/json", b"{}"),
+            (200, "text/html", b"<html></html>"),
+            (200, "application/json", b"not-json"),
+            (200, "application/json", b"[]" ),
+            (200, "application/json", json.dumps({"subTitle": "bad\\nlabel"}).encode()),
+            (200, "application/json", b"x" * 8193),
+        ):
+            with self.subTest(status=status, body=raw[:14]):
+                response.status = status
+                response.headers = {"Content-Type": content_type}
+                response.content.read = AsyncMock(return_value=raw)
+                with patch("client_import_title.aiohttp.ClientSession", return_value=session):
+                    self.assertIsNone(
+                        await fetch_import_title("owner_sub", proxy_port=2086),
+                    )
+                self.assertFalse(session.get.call_args.kwargs["allow_redirects"])
+
     async def test_foreign_chat_never_fetches_title(self):
         import client_access as ui
         call = SimpleNamespace(
