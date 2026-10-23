@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import {IconShieldCheck,IconLock,IconWifi,IconClock,IconDeviceMobile,IconDeviceDesktop,IconDeviceLaptop,IconDeviceTv,IconCheck,IconChevronRight,IconFileImport,IconDownload,IconSparkles,IconLink} from "@tabler/icons-react";
+
 import { createRoot } from "react-dom/client";
 import { MantineProvider, Container, Title, Text, Card, Tabs, Stack, Group, Badge, Select, Button, SegmentedControl, Divider, Accordion, Alert } from "@mantine/core";
 import "@mantine/core/styles.css";
@@ -50,46 +52,38 @@ function App() {
       setData(cfg);setLang(cfg.locales.includes("ru")?"ru":cfg.locales[0]);setPlatform(Object.keys(cfg.platforms)[0]);setClient(0);setView(cfg.uiConfig.installationGuidesBlockType);setInfo(cfg.uiConfig.subscriptionInfoBlockType);setImported(true);setError("");
     } catch { setError("Неверный формат локальной конфигурации"); }});
   }
-  return <MantineProvider defaultColorScheme="dark">
-    <div dir={lang==="fa"?"rtl":"ltr"}><Container size="lg" py="xl">
-      <Stack gap="xl">
-        <Group justify="space-between" align="start">
-          <div><Title order={2}>{data.brandingSettings?.title || "Subscription"}</Title><Text c="dimmed">Демонстрационная страница — без данных подписки · импорт из локального JSON, без сети</Text></div>
-          <Select aria-label="Language" value={lang} onChange={x=>setLang(x||"ru")} data={data.locales.map(x=>({value:x,label:x.toUpperCase()}))} w={100} />
-        </Group>
-        <Group justify="space-between"><Title order={4}>Моя подписка</Title><SegmentedControl aria-label="Вид блока подписки" data-testid="subscription-layout" value={info} onChange={setInfo} size="xs" data={["expanded","collapsed","cards","hidden"]}/></Group>
+  const ui:Record<string,Record<string,string>>={
+    ru:{hero:"Безопасный интернет.",hero2:"Без лишних сложностей.",lead:"Ваше подключение — под контролем. Выберите устройство и следуйте простым шагам.",preview:"Демонстрационный режим",subscription:"Моя подписка",status:"Статус",noData:"Нет данных",traffic:"Трафик",expires:"Срок действия",connect:"Подключить VPN",device:"Выберите устройство",application:"Выберите приложение",steps:"Следуйте инструкции",safe:"Безопасный предпросмотр",safeDesc:"Никакие реальные подписки и ключи не выдаются. Всё работает локально в браузере.",import:"Импортировать настройки",noClients:"Для этой платформы нет настроенных клиентов.",hide:"Блок подписки скрыт настройкой предпросмотра.",keys:"Ключи не выдаются в режиме предпросмотра",footer:"Демонстрационная версия · Без выдачи ключей и реальных подписок"},
+    en:{hero:"A safer internet.",hero2:"Without the complexity.",lead:"Your connection, under control. Choose your device and follow the steps.",preview:"Preview mode",subscription:"My subscription",status:"Status",noData:"No data",traffic:"Traffic",expires:"Expires",connect:"Connect your VPN",device:"Choose device",application:"Choose application",steps:"Follow instructions",safe:"Safe preview",safeDesc:"No live subscriptions or keys are provided. Everything remains in your browser.",import:"Import configuration",noClients:"No apps configured for this platform.",hide:"Subscription block is hidden in preview.",keys:"Keys are unavailable in preview",footer:"Preview · No real subscriptions or keys"},
+    fa:{hero:"اینترنت امن‌تر.",hero2:"بدون پیچیدگی.",lead:"اتصال شما تحت کنترل است. دستگاه خود را انتخاب کنید.",preview:"حالت پیش‌نمایش",subscription:"اشتراک من",status:"وضعیت",noData:"داده‌ای موجود نیست",traffic:"ترافیک",expires:"انقضا",connect:"اتصال به VPN",device:"انتخاب دستگاه",application:"انتخاب برنامه",steps:"مراحل اتصال",safe:"پیش‌نمایش امن",safeDesc:"اشتراک واقعی و کلید نمایش داده نمی‌شود. همه چیز در مرورگر شما می‌ماند.",import:"وارد کردن تنظیمات",noClients:"برنامه‌ای برای این پلتفرم تنظیم نشده است.",hide:"بخش اشتراک پنهان شده است.",keys:"کلیدها در پیش‌نمایش در دسترس نیستند",footer:"نسخه آزمایشی · بدون اشتراک واقعی"}
+  };
+  const t=(x:string)=>ui[lang]?.[x]??ui.en[x]??x;
+  const deviceIcon=(x:string)=>x==="ios"||x==="android"?<IconDeviceMobile size={21}/>:x==="macos"?<IconDeviceLaptop size={21}/>:x.toLowerCase().includes("tv")?<IconDeviceTv size={21}/>:<IconDeviceDesktop size={21}/>;
+  const steps=selected?.blocks??[];
+  return <MantineProvider defaultColorScheme="dark" theme={{primaryColor:"blue"}}>
+  <div className="portal-shell" dir={lang==="fa"?"rtl":"ltr"}><Container className="portal-container" size={1120}>
+    <header className="portal-header">
+      <div className="portal-logo"><span className="brand-square"><img src="/brand/raccoon-wrench.svg" alt=""/></span><span><strong>RACCOON <em>VPN</em></strong><small>YOUR SECURE CONNECTION</small></span></div>
+      <div className="header-right"><Badge leftSection={<IconShieldCheck size={13}/>} variant="light" color="blue">{t("safe")}</Badge><Select aria-label="Language" value={lang} onChange={x=>setLang(x||"ru")} data={data.locales.map(x=>({value:x,label:x.toUpperCase()}))} w={88}/></div>
+    </header>
+    <main>
+      <section className="hero"><div className="hero-content"><div className="hero-pill"><IconSparkles size={15}/>{t("preview")}</div><h1>{t("hero")}<br/><span>{t("hero2")}</span></h1><p>{t("lead")}</p><div className="hero-safe"><IconLock size={16}/>{t("safeDesc")}</div></div><div className="hero-art" aria-hidden="true"><div className="hero-halo"/><img src="/brand/raccoon-wrench.svg" alt=""/></div></section>
+      <section className="portal-section" aria-label={t("subscription")}><div className="section-heading"><div><span className="section-eyebrow">01 — SUBSCRIPTION</span><Title order={2}>{t("subscription")}</Title></div><SegmentedControl aria-label="Вид блока подписки" data-testid="subscription-layout" value={info} onChange={setInfo} size="xs" data={["expanded","collapsed","cards","hidden"]}/></div>
         <div data-testid="subscription-preview" data-mode={info}>
-          {info==="hidden" ? <Text c="dimmed" size="sm">Блок подписки скрыт настройкой предпросмотра.</Text> :
-            <>
-              {info==="cards" ? <div className="subscription-info-grid">
-                {[["Статус","Нет данных"],["Трафик","—"],["Срок","—"]].map(([heading,value])=><Card key={heading} withBorder radius="lg" padding="md"><Text size="xs" c="dimmed">{heading}</Text><Text fw={600} mt="xs">{value}</Text></Card>)}
-              </div> : info==="collapsed" ? <Card withBorder radius="lg" padding="md" className="subscription-info-compact">
-                <Group justify="space-between" align="center"><Text fw={600}>Моя подписка</Text><Badge color="gray">Нет данных</Badge></Group>
-              </Card> : <Card withBorder radius="lg" padding="lg">
-                <Group justify="space-between"><Title order={4}>Моя подписка</Title><Badge color="gray">Нет данных</Badge></Group>
-                <Text c="dimmed" size="sm" mt="sm">Статус — · Трафик — · Срок —</Text>
-              </Card>}
-              {!data.baseSettings.hideGetLinkButton&&<Button mt="md" disabled variant="light">Get Link</Button>}
-              {data.baseSettings.showConnectionKeys&&<Alert color="yellow" mt="md">Ключи не выдаются в режиме предпросмотра</Alert>}
-            </>}
+          {info==="hidden"?<div className="hidden-subscription"><IconLock size={20}/>{t("hide")}</div>:<>
+            {info==="cards"?<div className="subscription-info-grid">{[[t("status"),t("noData"),<IconShieldCheck size={22}/>],[t("traffic"),"—",<IconWifi size={22}/>],[t("expires"),"—",<IconClock size={22}/>]].map(([heading,value,ico],i)=><Card key={i} withBorder radius="lg" padding="lg" className="metric-card"><div className="metric-icon">{ico}</div><Text size="xs" c="dimmed">{heading}</Text><Text size="xl" fw={800}>{value}</Text></Card>)}</div>:info==="collapsed"?<Card withBorder radius="lg" className="subscription-info-compact"><Group justify="space-between"><Group><div className="metric-icon"><IconShieldCheck size={23}/></div><div><Text fw={800}>{t("subscription")}</Text><Text c="dimmed" size="sm">{t("status")}</Text></div></Group><Badge color="gray">{t("noData")}</Badge></Group></Card>:<Card withBorder radius="xl" className="subscription-main-card"><div className="card-topline"><span><IconShieldCheck size={17}/>{t("safe")}</span><Badge color="gray">{t("noData")}</Badge></div><div className="card-inner"><div className="card-identity"><span className="identity-icon"><IconShieldCheck size={30}/></span><div><Text c="dimmed" size="sm">{t("status")}</Text><Title order={3}>{t("noData")}</Title></div></div><div className="card-metrics"><div><Text size="xs" c="dimmed">{t("traffic")}</Text><strong>—</strong></div><div><Text size="xs" c="dimmed">{t("expires")}</Text><strong>—</strong></div></div></div></Card>}
+            <div className="sub-actions">{!data.baseSettings.hideGetLinkButton&&<Button disabled leftSection={<IconLink size={18}/>} variant="light">Get Link</Button>}{data.baseSettings.showConnectionKeys&&<Alert color="yellow">{t("keys")}</Alert>}<Text size="xs" c="dimmed"><IconLock size={13}/>{t("preview")}</Text></div>
+          </>}
         </div>
-        <Card withBorder radius="lg" padding="lg">
-          <Stack>
-            <Group justify="space-between"><Title order={3}>Установка VPN</Title><SegmentedControl aria-label="Вид инструкций" data-testid="guides-layout" data={["cards","timeline","accordion","minimal"].map(x=>({label:x,value:x}))} size="xs" value={view} onChange={setView}/></Group>
-            <Tabs value={platform} onChange={x=>{if(x){setPlatform(x);setClient(0);}}}>
-              <Tabs.List>{platforms.map(x=><Tabs.Tab key={x} value={x}>{languageText(data.platforms[x]?.displayName,lang)||platformNames[x]||x}</Tabs.Tab>)}</Tabs.List>
-            </Tabs>
-            <Group>{data.platforms[platform]?.apps.map((a,i)=><Button key={i} color={i===client?"teal":"gray"} variant={i===client?"filled":"light"} onClick={()=>setClient(i)}>{a.name}{a.featured?" ★":""}</Button>)}</Group>
-            {selected ? (view==="accordion" ? <Accordion multiple variant="separated">{selected.blocks.map((bl,i)=><Accordion.Item key={i} value={String(i)}><Accordion.Control>{i+1}. {languageText(bl.title,lang)}</Accordion.Control><Accordion.Panel><Text className="step-text">{languageText(bl.description,lang)}</Text><Group mt="md">{bl.buttons?.map((bt,j)=><Button key={j} disabled color="teal">{languageText(bt.text,lang)}</Button>)}</Group></Accordion.Panel></Accordion.Item>)}</Accordion> : <Stack className={view==="timeline"?"timeline-list":view==="minimal"?"minimal-list":""}>{selected.blocks.map((bl,i)=><Card key={i} radius="md" className="step-card" withBorder={view!=="minimal"}><Title order={5}>{i+1}. {languageText(bl.title,lang)}</Title><Text mt="sm" className="step-text">{languageText(bl.description,lang)}</Text><Group mt="md">{bl.buttons?.map((bt,j)=><Button key={j} disabled color="teal">{languageText(bt.text,lang)}</Button>)}</Group></Card>)}</Stack>) : <Text c="dimmed">Для этой платформы нет настроенных клиентов.</Text>}
-          </Stack>
-        </Card>
-        <Divider />
-        {error&&<Alert color="red">{error}</Alert>}
-        {imported&&<Text c="teal">JSON загружен локально: {summary(data as any).blocks} шагов</Text>}
-        <Text c="dimmed" size="xs">D1a local preview: внешние URL, импорт подписок, raw keys и админские функции отключены. Этот build не является клиентским кабинетом.</Text>
-        <label className="file-pick">Открыть свой JSON локально (ничего не отправляется на сервер): <input type="file" accept=".json,application/json" onChange={e=>openLocalFile(e.target.files?.[0]||null)}/></label>
-      </Stack>
-    </Container></div>
-  </MantineProvider>;
+      </section>
+      <section className="portal-section" aria-label={t("connect")}><div className="section-heading"><div><span className="section-eyebrow">02 — QUICK START</span><Title order={2}>{t("connect")}</Title></div><SegmentedControl aria-label="Вид инструкций" data-testid="guides-layout" data={["cards","timeline","accordion","minimal"].map(x=>({label:x,value:x}))} size="xs" value={view} onChange={setView}/></div>
+        <div className="setup-shell"><div className="setup-segment"><div className="setup-title"><span>01</span><strong>{t("device")}</strong></div><Tabs value={platform} onChange={x=>{if(x){setPlatform(x);setClient(0);}}}><Tabs.List className="device-tabs">{platforms.map(x=><Tabs.Tab key={x} value={x} leftSection={deviceIcon(x)}>{languageText(data.platforms[x]?.displayName,lang)||platformNames[x]||x}</Tabs.Tab>)}</Tabs.List></Tabs></div>
+          <div className="setup-segment"><div className="setup-title"><span>02</span><strong>{t("application")}</strong></div><div className="client-list">{data.platforms[platform]?.apps.map((a,i)=><button type="button" key={i} className={"client-choice "+(i===client?"active":"")} onClick={()=>setClient(i)}><span className="client-icon"><IconDeviceMobile size={22}/></span><span className="client-copy"><strong>{a.name}</strong>{a.featured&&<small><IconCheck size={13}/> {t("preview")}</small>}</span>{i===client?<IconCheck size={18}/>:<IconChevronRight size={18}/>}</button>)}</div>{!data.platforms[platform]?.apps.length&&<Text c="dimmed">{t("noClients")}</Text>}</div>
+          <div className="setup-segment"><div className="setup-title"><span>03</span><strong>{t("steps")}</strong></div>{selected?(view==="accordion"?<Accordion multiple variant="separated" defaultValue={steps.map((_,i)=>String(i))}>{steps.map((bl,i)=><Accordion.Item key={i} value={String(i)}><Accordion.Control>{i+1}. {languageText(bl.title,lang)}</Accordion.Control><Accordion.Panel><Text className="step-text">{languageText(bl.description,lang)}</Text><Group mt="md">{bl.buttons?.map((bt,j)=><Button key={j} disabled color="blue">{languageText(bt.text,lang)}</Button>)}</Group></Accordion.Panel></Accordion.Item>)}</Accordion>:<Stack className={view==="timeline"?"timeline-list":view==="minimal"?"minimal-list":"cards-list"}>{steps.map((bl,i)=><Card key={i} radius="lg" className="step-card" withBorder={view!=="minimal"}><div className="step-row"><span className="step-number">{String(i+1).padStart(2,"0")}</span><div><Title order={5}>{i+1}. {languageText(bl.title,lang)}</Title><Text mt="xs" className="step-text">{languageText(bl.description,lang)}</Text><Group mt="md">{bl.buttons?.map((bt,j)=><Button key={j} disabled color="blue">{languageText(bt.text,lang)}</Button>)}</Group></div></div></Card>)}</Stack>):<Text c="dimmed">{t("noClients")}</Text>}</div></div>
+      </section>
+      <section className="bottom-panels"><div className="safe-panel"><span><IconShieldCheck size={26}/></span><div><Title order={4}>{t("safe")}</Title><Text c="dimmed" size="sm">{t("safeDesc")}</Text></div></div><div className="import-panel"><div><Text fw={800}><IconFileImport size={19}/> {t("import")}</Text><Text c="dimmed" size="xs">{t("preview")}</Text></div><label className="file-pick"><IconDownload size={16}/> JSON<input aria-label={t("import")} type="file" accept=".json,application/json" onChange={e=>openLocalFile(e.target.files?.[0]||null)}/></label></div></section>
+      {error&&<Alert mt="lg" color="red">{error}</Alert>}{imported&&<Text mt="md" c="blue">{t("import")}: {summary(data as any).blocks}</Text>}
+    </main><footer className="portal-footer"><span><img src="/brand/raccoon-wrench.svg" alt=""/> RACCOON VPN</span><Text size="xs">{t("footer")}</Text></footer>
+  </Container></div></MantineProvider>;
 }
 createRoot(document.getElementById("root")!).render(<React.StrictMode><App/></React.StrictMode>);
