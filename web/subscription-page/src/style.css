@@ -50,3 +50,38 @@
 .empty-clients-icon{display:grid;place-items:center;width:43px;height:43px;border-radius:12px;background:#173951;color:#83cfff;flex-shrink:0}
 @media(max-width:640px){.client-list{grid-template-columns:1fr}.client-choice{min-height:80px;padding:12px}.client-icon{width:45px;height:45px}.client-choice:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){.client-choice{transition:none}.client-choice:hover{transform:none}}
+
+/* D1a: branded four-mode connection guide, with safe preview fixtures */
+.guide-setup{background:#0c1926}
+.connection-guide{min-width:0}
+.guide-header{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding-bottom:15px;border-bottom:1px solid #294255}
+.guide-header-mark{display:flex;align-items:center;gap:9px;color:#8ccefc;font-weight:800;font-size:13px}
+.guide-header-count{margin-inline-start:auto;color:#91adc3;font-size:12px}
+.guide-client-name{color:#9abacf!important;margin:12px 0 18px}
+.guide-client-name strong{color:#e1f4ff}
+.guide-step-grid{display:grid;gap:14px;min-width:0}
+.guide-cards{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}
+.guide-step{background:linear-gradient(145deg,#162a3a,#10202d)!important;border:1px solid #33506a!important;min-width:0;position:relative;overflow:hidden}
+.guide-step-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.guide-index{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;flex-shrink:0;font-size:12px;font-weight:900;color:#81d6ff;background:#173f5b;border:1px solid #2b78a6}
+.guide-step-symbol{display:grid;place-items:center;width:33px;height:33px;border-radius:10px;color:#66c4fb;background:#163449}
+.guide-step-title{font-size:16px!important;font-weight:800;line-height:1.4;overflow-wrap:anywhere;margin-bottom:10px}
+.guide-description{white-space:pre-line;overflow-wrap:anywhere;color:#b2cadc!important;font-size:13px;line-height:1.85}
+.guide-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:17px}
+.guide-action-caption{display:flex;gap:6px;align-items:center;color:#91abc1;font-size:11px}
+.guide-footnote{display:flex;gap:9px;align-items:center;color:#88a8bf;margin-top:22px;padding-top:18px;border-top:1px solid #2a4053;font-size:12px}
+.guide-timeline{grid-template-columns:1fr;position:relative;margin-inline-start:16px;padding-inline-start:24px;border-inline-start:2px solid #228ac3}
+.guide-timeline .guide-step:before{position:absolute;content:"";inset-inline-start:-32px;top:28px;background:#63c8ff;box-shadow:0 0 0 5px #153c54;width:11px;height:11px;border-radius:50%}
+.guide-minimal{grid-template-columns:1fr}
+.guide-minimal .guide-step{background:transparent!important;border:0!important;border-bottom:1px solid #284155!important;border-radius:0!important;padding-inline:4px!important}
+.guide-minimal .guide-step-top{margin-bottom:8px}
+.guide-minimal .guide-step-symbol{background:transparent}
+.guide-accordion .mantine-Accordion-item{background:#142638;border:1px solid #31506a;border-radius:13px;overflow:hidden;margin-bottom:12px}
+.guide-accordion .mantine-Accordion-control{color:#eaf6ff}
+.guide-accordion .mantine-Accordion-panel{color:#b0c8dd}
+.guide-accordion-label{font-size:14px;font-weight:700}
+.guide-empty{border:1px dashed #375975;background:linear-gradient(115deg,#14283b,#0c2030);border-radius:16px;padding:26px;display:flex;gap:16px;align-items:center}
+.guide-empty-icon{flex-shrink:0;width:50px;height:50px;display:grid;place-items:center;background:#20415b;border-radius:14px;color:#83d0ff}
+.guide-empty strong{font-size:15px;color:#dceefe}
+.guide-empty p{color:#9fbacf;margin-top:7px;line-height:1.7}
+@media(max-width:650px){.guide-cards{grid-template-columns:1fr}.guide-setup{padding:23px 15px}.guide-header-count{margin-inline-start:0}.guide-empty{align-items:flex-start}.guide-step{padding:18px!important}.guide-footnote{line-height:1.6}}
