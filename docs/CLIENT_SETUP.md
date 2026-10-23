@@ -23,6 +23,8 @@
 | v2raytun | iOS, Android, Windows, macOS | v2raytun://import/ + HTTPS URL | https://docs.v2raytun.com/ | версии/import/refresh PENDING |
 | Happ, Shadowrocket, V2Box, Karing, OneXray, Throne | все | manual URL/QR | совместимый subscription import контракт не подтверждён | PENDING |
 
+**Адресная ручная проверка 2026-10-23 13:38 UTC+03:00:** [операторский аудит 4/4](audits/2026-10-23-client-import-473-operator-smoke.md) подтверждает **по сообщению пользователя** успешный импорт URI Incy 2.6.4 и v2raytun 2.4.7 на iOS 26.5.1 (23F81) и Android 17. Это не независимый device read-back и не тест обновлённого Client Portal после release/deploy; PR #882 остаётся draft, security review и bot end-to-end PENDING. Никаких URL/ключей не сохранено.
+
 Это candidate matrix, не гарантия установленной версии и не live PASS. До разрешённого targeted smoke для каждого приложения, платформы и версии необходимо проверить реальный import/refresh, наличие узлов и отсутствие повреждения существующих профилей. Результат PASS/UNSUPPORTED/PENDING фиксировать с точной версией, датой и evidence; до этого использовать безопасный ручной URL/QR.
 
 Ссылки и QR содержат bearer credential, не предназначены для сторонних чатов/логов. URI отвергается при HTTP, userinfo, fragment, query, неоднозначном percent encoding, частных/локальных IP, неподдержанной схеме, превышении CopyTextButton 256 символов. Existing portal switch/allowlist/rate/private chat guards обязательны до чтения owner URL. Нет нового storage, payments, HWID, provisioning, migrations или операторских параметров. Rollback: existing portal switch/штатный опубликованный release. Production acceptance, Release/Deployed и G-11 остаются PENDING/BLOCKED.
