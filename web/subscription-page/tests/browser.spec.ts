@@ -13,26 +13,26 @@ test("четыре варианта подписки и инструкции д�
   const control = page.getByTestId("subscription-layout");
   const preview = page.getByTestId("subscription-preview");
   for (const mode of ["expanded", "cards", "collapsed", "hidden"]) {
-    await control.getByText(mode, { exact: true }).click();
+    await control.locator(`button:nth-child(${["expanded","cards","collapsed","hidden"].indexOf(mode)+1})`).click();
     await expect(preview).toHaveAttribute("data-mode", mode);
   }
-  await control.getByText("cards", { exact: true }).click();
+  await control.locator("button:nth-child(3)").click();
   await expect(preview.locator(".subscription-info-grid .mantine-Card-root")).toHaveCount(3);
   const scenarios = page.getByTestId("subscription-scenario");
-  await control.getByText("expanded", { exact: true }).click();
+  await control.locator("button:nth-child(1)").click();
   for (const [state,label] of [["unknown","Нет данных"],["active","Активна · пример"],["expired","Истекла · пример"],["pending","Ожидает · пример"]]) {
-    await scenarios.getByText(label, { exact: true }).click();
+    await scenarios.locator(`button:nth-child(${["unknown","active","expired","pending"].indexOf(state)+1})`).click();
     await expect(preview).toHaveAttribute("data-scenario", state);
     await expect(preview.getByText("ДЕМО")).toBeVisible();
     await expect(preview.getByText("Вымышленные данные, не ваша подписка")).toBeVisible();
     await expect(preview.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
   }
-  await control.getByText("hidden", { exact: true }).click();
+  await control.locator("button:nth-child(4)").click();
   await expect(page.getByRole("button", { name: "Получить ссылку" })).toHaveCount(0);
 
   const guides = page.getByTestId("guides-layout");
   for (const mode of ["timeline", "minimal", "accordion", "cards"]) {
-    await guides.getByText(mode, { exact: true }).click();
+    await guides.locator(`button:nth-child(${["cards","timeline","accordion","minimal"].indexOf(mode)+1})`).click();
     await expect(page.getByText("Установить приложение").first()).toBeVisible();
   }
   expect(unexpected).toEqual([]);
@@ -92,7 +92,7 @@ test("full-page visual evidence for four instruction layouts and empty state", a
     expect(height).toBeGreaterThan(testInfo.project.use.viewport?.height ?? 700);
   };
   for (const mode of ["cards", "timeline", "accordion", "minimal"]) {
-    await guides.getByText(mode, { exact: true }).click();
+    await guides.locator(`button:nth-child(${["cards","timeline","accordion","minimal"].indexOf(mode)+1})`).click();
     const preview = page.getByTestId("guide-preview");
     await expect(preview).toHaveAttribute("data-mode", mode);
     await expect(preview.getByText("Установить приложение").first()).toBeVisible();
@@ -110,9 +110,43 @@ test("visual preview of four synthetic statuses does not unlock actions", async 
   const picker=page.getByTestId("subscription-scenario");
   const preview=page.getByTestId("subscription-preview");
   for(const [state,label] of [["unknown","Нет данных"],["active","Активна · пример"],["expired","Истекла · пример"],["pending","Ожидает · пример"]]){
-    await picker.getByText(label,{exact:true}).click();
+    await picker.locator(`button:nth-child(${["unknown","active","expired","pending"].indexOf(state)+1})`).click();
     await expect(preview).toHaveAttribute("data-scenario",state);
     await expect(preview.getByRole("button",{name:"Получить ссылку"})).toBeDisabled();
     await page.screenshot({path:testInfo.outputPath("subscription-"+state+"-"+testInfo.project.name+".png"),fullPage:true,animations:"disabled"});
   }
+});
+
+test("320/390/430/768/1024px readable touch targets, five locales and keyboard", async ({page}, testInfo) => {
+  test.setTimeout(90000);
+  await page.goto("/");
+  for(const width of [320,390,430,768,1024]){
+    await page.setViewportSize({width,height:844});
+    for(const locale of (width===320||width===390?["RU","EN","FR","ZH","FA"]:["RU","FA"])){
+      const lang=page.getByRole("combobox",{name:"Language"});
+      await lang.click();
+      await page.getByRole("option",{name:locale}).click();
+      const measurements=await page.evaluate(() => [...document.querySelectorAll(".preview-mode-button")].map(e=>{
+        const rect=e.getBoundingClientRect(); return {h:rect.height,w:rect.width,left:rect.left,right:rect.right,font:parseFloat(getComputedStyle(e).fontSize)};
+      }));
+      expect(measurements).toHaveLength(12);
+      for(const m of measurements){
+        expect(m.h).toBeGreaterThanOrEqual(44);
+        expect(m.font).toBeGreaterThanOrEqual(13);
+        expect(m.left).toBeGreaterThanOrEqual(-1);
+        expect(m.right).toBeLessThanOrEqual(width+1);
+      }
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+      if(width===320&&locale==="FA")await page.screenshot({path:testInfo.outputPath("touch-320-fa.png"),fullPage:true});
+    }
+  }
+  await page.setViewportSize({width:320,height:700});
+  const lang=page.getByRole("combobox",{name:"Language"});
+  await lang.click();await page.getByRole("option",{name:"RU"}).click();
+  const hidden=page.getByTestId("subscription-layout").locator("button:nth-child(4)");
+  await hidden.focus();await page.keyboard.press("Enter");
+  await expect(hidden).toHaveAttribute("aria-pressed","true");
+  const cards=page.getByTestId("subscription-layout").locator("button:nth-child(3)");
+  await cards.focus();await page.keyboard.press("Space");
+  await expect(cards).toHaveAttribute("aria-pressed","true");
 });
