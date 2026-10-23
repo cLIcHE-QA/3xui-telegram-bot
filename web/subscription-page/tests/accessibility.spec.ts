@@ -100,3 +100,24 @@ test("WebView-like: оболочка iOS WebKit без реальных ключ
   expect(errors).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("webview-like-fa-" + testInfo.project.name + ".png"), fullPage: true, animations: "disabled" });
 });
+
+test("брендовая анимация: hover lift и отказ от движения", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion:"no-preference" });
+  await page.goto("/");
+  const tile=page.getByTestId("subscription-tile-status");
+  const headline=page.locator(".raccoon-gradient-text");
+  await expect(tile).toBeVisible();
+  await expect(headline).toBeVisible();
+  const supportsHover=await page.evaluate(()=>matchMedia("(hover: hover) and (pointer: fine)").matches);
+  if(supportsHover){
+    await tile.hover();
+    await expect.poll(()=>tile.evaluate(el=>getComputedStyle(el).transform)).not.toBe("none");
+    const anim=await headline.evaluate(el=>getComputedStyle(el).animationName);
+    expect(anim).toContain("raccoon-iridescence");
+  }
+  await page.emulateMedia({ reducedMotion:"reduce" });
+  expect(await headline.evaluate(el=>getComputedStyle(el).animationName)).toBe("none");
+  const staticTransform=await tile.evaluate(el=>getComputedStyle(el).transform);
+  expect(staticTransform).toBe("none");
+  await expect(page.getByRole("button",{name:"Получить ссылку"})).toBeDisabled();
+});
