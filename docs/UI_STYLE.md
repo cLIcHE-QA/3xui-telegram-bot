@@ -11,6 +11,8 @@
 
 ## #473 — клиентские import URI
 
+ОС → клиент: Happ и Shadowrocket доступны на macOS (Apple); Shadowrocket не предлагается на Android. V2Box/Karing используют безопасный динамический `subTitle` в `name`, OneXray — в fragment, Throne — в Base64 payload; при отсутствии валидного title для обязательного `name` применяется URL/QR fallback. Отображение не утверждает live PASS неподтверждённых версий.
+
 После выбора платформы показывается выбор клиента и ручной fallback. Custom import URI только через private-owner CopyTextButton или локальный QR; токен не попадает в callback_data, URL-кнопку Telegram, логи, redirect или внешний QR API. Unsupported client/URL/length -> ручной HTTPS URL/QR и честная инструкция без обещания VPN-соединения. Матрица и проверка версий — docs/CLIENT_SETUP.md; админка не меняется.
 
 
