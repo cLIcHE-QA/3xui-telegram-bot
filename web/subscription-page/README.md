@@ -31,3 +31,28 @@ D1a является только прототипом: frontend `npm run build`
 
 `package-lock.json` ещё не зафиксирован: до его получения нельзя утверждать, что
 установка воспроизводима или что `npm ci` прошёл. D1b auth и device smoke — отдельно.
+
+
+## Проверки CI — 2026-10-23
+
+На head `9be0aa9b617a98572b759c34acc2917d8d8fd8a7` GitHub Actions
+[Subscription Page D1a checks](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40013712158):
+`frontend-model` **PASS**, `npm ci`, модель/TypeScript/Vite **PASS**,
+Playwright desktop/mobile Chromium **4/4 PASS**. Required `test` и `title`
+также **PASS** на том SHA; общий `audit` **FAIL** по runtime Python-зависимостям
+(Pillow/certifi, #890 — отдельная remediation).
+
+CI сформировал lockfile v3 (145 записей, SHA-256
+`3ab98b620697640c095f0eb439bad725edda35e1e648072e213394937560fef6`),
+артефакт `d1a-npm-lock`. Этот файл **ещё не в Git**:
+первичная проверка bootstrap/CI не равна воспроизводимости из committed lockfile;
+до его commit временная генерация сохраняется, gate D1a — **PENDING**.
+
+Первый успешный Playwright run не загрузил screenshot artifact:
+`test-results/` был пуст (`screenshot: only-on-failure`). В следующем
+commit Playwright `screenshot: on` сохраняет скриншоты успешных сценариев
+в `test-results/` для существующего `upload-artifact`. Проверка
+артефакта именно на новом SHA и визуальный human review **PENDING**.
+
+WebView/реальные подписки, права на SVG и runtime/production acceptance
+этим offline PASS не подтверждаются. Issues #887 и #890 остаются OPEN.
