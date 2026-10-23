@@ -217,8 +217,10 @@ test("локальная SVG-библиотека: безопасный знач
   await page.goto("/");
   const valid='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#29baff"/></svg>';
   const bad='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><script>alert(1)</script></svg>';
-  await page.getByLabel("Импортировать SVG-библиотеку").setInputFiles({name:"svg-library.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify({svgLibrary:{TestIcon:valid,BadIcon:bad}}))});
+  await page.getByLabel("Импортировать SVG-библиотеку").setInputFiles({name:"svg-library.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify({svgLibrary:{DemoLogo:valid,BadIcon:bad}}))});
   await expect(page.getByRole("status")).toContainText("1 безопасных");
+  const client=page.getByTestId("client-choice").first();
+  await expect(client.locator("img[src^=\"data:image/svg+xml\"]")).toBeVisible();
   await expect(page.getByRole("button",{name:"Получить ссылку"})).toBeDisabled();
   expect(external).toEqual([]);
 });
