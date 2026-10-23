@@ -8,7 +8,7 @@
 
 **Исторический checkpoint `rc.18.1` (не текущий статус):** оператор ранее сообщил deployed `rc.18` P0–P2/F1–F3 и scoped D1–D8/S1–S4 PASS, но независимый VPS/provider read-back отсутствует, X2 и destructive postcondition provenance PENDING. Новая версия `rc.18.1` опубликована и развернута по отчёту оператора; targeted UI A4/A5 operator-reported FAIL; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
-> **Кандидат release-prep (не Published):** Guide ориентирован на release v5.0.0-rc.19. Эта строка обозначает только целевую версию `APP_VERSION` и совместимость setup-процедуры; текущий Published определяет верхняя строка (`rc.18.10`) и Roadmap. VPS deployment не выполняется этим PR.
+> **Кандидат release-prep (не Published):** `APP_VERSION=v5.0.0-rc.19`. Эта строка обозначает только целевую версию `APP_VERSION` и совместимость setup-процедуры; текущий Published определяет верхняя строка (`rc.18.10`) и Roadmap. VPS deployment не выполняется этим PR.
 
 ## Перед началом: границы и безопасность
 
