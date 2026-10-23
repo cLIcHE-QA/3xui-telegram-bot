@@ -20,7 +20,7 @@ export function parsePageConfig(raw:string):Config {
  const loc=d.locales as string[];
  check(object(d.uiConfig)&&["expanded","collapsed","cards","hidden"].includes(String(d.uiConfig.subscriptionInfoBlockType))&&["cards","timeline","accordion","minimal"].includes(String(d.uiConfig.installationGuidesBlockType)),"Invalid layout");
  check(object(d.baseSettings)&&typeof d.baseSettings.hideGetLinkButton==="boolean"&&typeof d.baseSettings.showConnectionKeys==="boolean"&&typeof d.baseSettings.metaTitle==="string"&&typeof d.baseSettings.metaDescription==="string","Invalid base settings");
- check(object(d.brandingSettings)&&["title","logoUrl","supportUrl"].every(k=>typeof d.brandingSettings[k]==="string"),"Invalid brand");
+ check(object(d.brandingSettings)&&["title","logoUrl","supportUrl"].every(k=>typeof (d.brandingSettings as Record<string,unknown>)[k]==="string"),"Invalid brand");
  check(object(d.baseTranslations),"Invalid translations");for(const v of Object.values(d.baseTranslations))translated(v,loc);
  check(object(d.svgLibrary)&&Object.values(d.svgLibrary).every(x=>typeof x==="string"),"Invalid icons");
  check(object(d.platforms),"Invalid platforms");
