@@ -1,0 +1,42 @@
+import { test, expect } from "@playwright/test";
+
+test("четыре варианта подписки и инструкции доступны без реальных действий", async ({ page }) => {
+  const unexpected: string[] = [];
+  page.on("request", (req) => {
+    if (new URL(req.url()).origin !== "http://127.0.0.1:4173") unexpected.push(req.url());
+  });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "VPN Subscription" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Get Link" })).toBeDisabled();
+  const control = page.getByTestId("subscription-layout");
+  const preview = page.getByTestId("subscription-preview");
+  for (const mode of ["expanded", "cards", "collapsed", "hidden"]) {
+    await control.getByText(mode, { exact: true }).click();
+    await expect(preview).toHaveAttribute("data-mode", mode);
+  }
+  await control.getByText("cards", { exact: true }).click();
+  await expect(preview.locator(".subscription-info-grid .mantine-Card-root")).toHaveCount(3);
+  await control.getByText("hidden", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Get Link" })).toHaveCount(0);
+
+  const guides = page.getByTestId("guides-layout");
+  for (const mode of ["timeline", "minimal", "accordion", "cards"]) {
+    await guides.getByText(mode, { exact: true }).click();
+    await expect(page.getByText("Установить приложение").first()).toBeVisible();
+  }
+  expect(unexpected).toEqual([]);
+});
+
+test("RTL, клавиатура и мобильная компоновка без горизонтального переполнения", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const language = page.getByRole("combobox", { name: "Language" });
+  await language.click();
+  await page.getByRole("option", { name: "FA" }).click();
+  await expect(page.locator("[dir=rtl]").first()).toBeVisible();
+  await page.keyboard.press("Tab");
+  const focused = await page.evaluate(() => document.activeElement?.tagName.toLowerCase());
+  expect(["button", "input", "a"]).toContain(focused);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  await expect(page.getByText("Демонстрационная страница", { exact: false })).toBeVisible();
+});

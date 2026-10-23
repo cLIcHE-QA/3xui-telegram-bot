@@ -43,7 +43,8 @@ function App() {
   const [imported,setImported] = useState(false);
   const selected = data.platforms[platform]?.apps[client];
   function openLocalFile(file: File | null) {
-    if (!file || file.size > 1024*1024) return;
+    if (!file) return;
+    if (file.size > 1024*1024) { setError("Файл превышает 1 МиБ"); return; }
     file.text().then(raw => {try {
       const cfg: ExportConfig = parsePageConfig(raw);
       setData(cfg);setLang(cfg.locales.includes("ru")?"ru":cfg.locales[0]);setPlatform(Object.keys(cfg.platforms)[0]);setClient(0);setView(cfg.uiConfig.installationGuidesBlockType);setInfo(cfg.uiConfig.subscriptionInfoBlockType);setImported(true);setError("");
@@ -56,16 +57,25 @@ function App() {
           <div><Title order={2}>{data.brandingSettings?.title || "Subscription"}</Title><Text c="dimmed">Демонстрационная страница — без данных подписки · импорт из локального JSON, без сети</Text></div>
           <Select aria-label="Language" value={lang} onChange={x=>setLang(x||"ru")} data={data.locales.map(x=>({value:x,label:x.toUpperCase()}))} w={100} />
         </Group>
-        <Group justify="space-between"><Title order={4}>Моя подписка</Title><SegmentedControl value={info} onChange={setInfo} size="xs" data={["expanded","collapsed","cards","hidden"]}/></Group>
-        {info==="hidden" ? <Text c="dimmed">Блок скрыт настройкой</Text> : <Card withBorder radius="lg" padding="lg">
-          <Group justify="space-between"><Title order={4}>Моя подписка</Title><Badge color="gray">Нет данных</Badge></Group>
-          {info!=="collapsed"&&<Text c="dimmed" size="sm" mt="sm">Статус — · Трафик — · Срок —</Text>}
-          {!data.baseSettings.hideGetLinkButton&&<Button mt="md" disabled variant="light">Get Link</Button>}
-          {data.baseSettings.showConnectionKeys&&<Alert color="yellow" mt="md">Ключи не выдаются в режиме предпросмотра</Alert>}
-        </Card>}
+        <Group justify="space-between"><Title order={4}>Моя подписка</Title><SegmentedControl aria-label="Вид блока подписки" data-testid="subscription-layout" value={info} onChange={setInfo} size="xs" data={["expanded","collapsed","cards","hidden"]}/></Group>
+        <div data-testid="subscription-preview" data-mode={info}>
+          {info==="hidden" ? <Text c="dimmed" size="sm">Блок подписки скрыт настройкой предпросмотра.</Text> :
+            <>
+              {info==="cards" ? <div className="subscription-info-grid">
+                {[["Статус","Нет данных"],["Трафик","—"],["Срок","—"]].map(([heading,value])=><Card key={heading} withBorder radius="lg" padding="md"><Text size="xs" c="dimmed">{heading}</Text><Text fw={600} mt="xs">{value}</Text></Card>)}
+              </div> : info==="collapsed" ? <Card withBorder radius="lg" padding="md" className="subscription-info-compact">
+                <Group justify="space-between" align="center"><Text fw={600}>Моя подписка</Text><Badge color="gray">Нет данных</Badge></Group>
+              </Card> : <Card withBorder radius="lg" padding="lg">
+                <Group justify="space-between"><Title order={4}>Моя подписка</Title><Badge color="gray">Нет данных</Badge></Group>
+                <Text c="dimmed" size="sm" mt="sm">Статус — · Трафик — · Срок —</Text>
+              </Card>}
+              {!data.baseSettings.hideGetLinkButton&&<Button mt="md" disabled variant="light">Get Link</Button>}
+              {data.baseSettings.showConnectionKeys&&<Alert color="yellow" mt="md">Ключи не выдаются в режиме предпросмотра</Alert>}
+            </>}
+        </div>
         <Card withBorder radius="lg" padding="lg">
           <Stack>
-            <Group justify="space-between"><Title order={3}>Установка VPN</Title><SegmentedControl data={["cards","timeline","accordion","minimal"].map(x=>({label:x,value:x}))} size="xs" value={view} onChange={setView}/></Group>
+            <Group justify="space-between"><Title order={3}>Установка VPN</Title><SegmentedControl aria-label="Вид инструкций" data-testid="guides-layout" data={["cards","timeline","accordion","minimal"].map(x=>({label:x,value:x}))} size="xs" value={view} onChange={setView}/></Group>
             <Tabs value={platform} onChange={x=>{if(x){setPlatform(x);setClient(0);}}}>
               <Tabs.List>{platforms.map(x=><Tabs.Tab key={x} value={x}>{languageText(data.platforms[x]?.displayName,lang)||platformNames[x]||x}</Tabs.Tab>)}</Tabs.List>
             </Tabs>

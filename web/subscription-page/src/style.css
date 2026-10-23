@@ -1,3 +1,8 @@
 :root { color-scheme: dark; background: #0c1422; } body { margin: 0; background: linear-gradient(135deg,#0c1422,#131f32); min-height: 100vh; color:#f0f4f7;} .step-card {background: #172536;} .file-pick {color: #9daab9; font-size: .85rem;} .file-pick input {display:block;margin-top:.6rem;} @media (max-width:700px){.mantine-Tabs-list{overflow-x:auto;flex-wrap:nowrap;}}
 
 .step-text{white-space:pre-line;overflow-wrap:anywhere;line-height:1.65}.timeline-list{border-inline-start:2px solid #40bfa1;padding-inline-start:1rem}.timeline-list .step-card{position:relative}.timeline-list .step-card:before{content:'';position:absolute;width:9px;height:9px;border-radius:50%;background:#6edabc;inset-inline-start:-21px;top:24px}.minimal-list .step-card{background:transparent!important;border-bottom:1px solid rgba(180,194,205,.16);border-radius:0}.mantine-Group-root{min-width:0}@media(max-width:680px){.mantine-SegmentedControl-root{max-width:100%;overflow-x:auto}}
+
+.subscription-info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem}
+.subscription-info-compact{background:#142334}
+@media(max-width:640px){.subscription-info-grid{grid-template-columns:1fr}.file-pick input{max-width:100%}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
