@@ -180,3 +180,44 @@ html[dir=rtl] .guide-carousel-controls svg{transform:scaleX(-1)}
 .subscription-info-grid{gap:12px}
 @media(max-width:650px){.subscription-stat-grid{padding:0 15px 18px;gap:9px}.subscription-summary{padding:20px 15px 16px}.subscription-stat-tile{padding:13px 11px;min-height:96px}.subscription-stat-label{font-size:.75rem}.subscription-stat-value{font-size:.875rem}.subscription-bottom{padding:17px 15px}}
 @media(max-width:350px){.subscription-stat-grid,.subscription-info-grid{grid-template-columns:1fr}.subscription-stat-tile{min-height:75px}}
+
+/* Brand motion: subtle hover elevation + iridescent headline, without external assets.
+   Coarse pointers, keyboard focus and reduced motion retain accessible static states. */
+:root{--raccoon-motion-fast:180ms;--raccoon-motion-ease:cubic-bezier(.2,.7,.25,1)}
+@keyframes raccoon-iridescence{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.raccoon-gradient-text{
+  color:#83d7ff!important;
+  background-image:linear-gradient(110deg,#57c6ff 0%,#80ddfa 25%,#a49bff 50%,#7cc8ff 75%,#40b5ff 100%);
+  background-size:230% 100%;background-position:0% 50%;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+  .raccoon-gradient-text{animation:raccoon-iridescence 8s ease-in-out infinite}
+  .subscription-stat-tile,.metric-card,.client-choice,.guide-step,.guide-carousel-card,.safe-panel,.import-panel,
+  .preview-mode-button,.device-tabs .mantine-Tabs-tab,.guide-carousel-dot,
+  .guide-carousel-controls .mantine-Button-root,.sub-actions .mantine-Button-root{
+    transition:transform var(--raccoon-motion-fast) var(--raccoon-motion-ease),
+      box-shadow var(--raccoon-motion-fast) var(--raccoon-motion-ease),
+      border-color var(--raccoon-motion-fast) var(--raccoon-motion-ease),
+      background-color var(--raccoon-motion-fast) var(--raccoon-motion-ease)
+  }
+  .subscription-stat-tile:hover,.metric-card:hover,.client-choice:hover,.guide-step:hover,
+  .guide-carousel-card:hover,.safe-panel:hover,.import-panel:hover{
+    transform:translateY(-3px);
+    box-shadow:0 12px 28px #00000038,0 0 0 1px #53bafb35
+  }
+  .preview-mode-button:hover:not([aria-pressed=true]),.device-tabs .mantine-Tabs-tab:hover:not([data-active]),
+  .guide-carousel-dot:hover,.guide-carousel-controls .mantine-Button-root:not(:disabled):hover,
+  .sub-actions .mantine-Button-root:not(:disabled):hover{
+    transform:translateY(-2px);box-shadow:0 7px 17px #00000036
+  }
+}
+.subscription-stat-tile:focus-within,.client-choice:focus-visible,.preview-mode-button:focus-visible,
+.device-tabs .mantine-Tabs-tab:focus-visible,.guide-carousel-dot:focus-visible{
+  outline:2px solid #8bd9ff;outline-offset:2px
+}
+@media(hover:none),(pointer:coarse),(prefers-reduced-motion:reduce){
+  .raccoon-gradient-text{animation:none;background-position:35% 50%}
+  .subscription-stat-tile,.metric-card,.client-choice,.guide-step,.guide-carousel-card,.safe-panel,.import-panel,
+  .preview-mode-button,.device-tabs .mantine-Tabs-tab,.guide-carousel-dot{transform:none!important}
+}
