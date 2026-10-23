@@ -112,14 +112,19 @@ def import_uri(client: str, platform: str, subscription_url: object) -> str | No
     url = _safe_import_target(subscription_url)
     if url is None:
         return None
-    # Encode *only* the already validated owner's URL, never callback input.
+    # Add the upstream Shadowrocket format flag only after validating the
+    # original queryless HTTPS URL. The flag is part of subscription *content*
+    # negotiation, not part of an untrusted callback or redirect destination.
+    # Reference: MHSanaei/3x-ui frontend/src/pages/sub/subPageModel.ts.
+    source_url = url + "?flag=shadowrocket" if client == "shadowrocket" else url
+    # Encode only the already validated owner's URL, never callback input.
     # Base64 is transport encoding, NOT encryption. No provider-side fetch here.
     if spec.encoding == "direct":
-        payload = url
+        payload = source_url
     elif spec.encoding == "percent":
-        payload = quote(url, safe="")
+        payload = quote(source_url, safe="")
     elif spec.encoding == "base64":
-        payload = base64.b64encode(url.encode("ascii")).decode("ascii")
+        payload = base64.b64encode(source_url.encode("ascii")).decode("ascii")
     else:
         return None
     candidate = spec.prefix + payload + spec.suffix
