@@ -154,3 +154,21 @@ mobile 390×844), не full-page evidence: `testInfo.attach()` не сохран
 `page.screenshot({path:testInfo.outputPath(...),fullPage:true})`, чтобы Actions
 действительно загрузил полноэкранные PNG. Потребуется read-back размеров и review
 архива **на новом SHA**. Общий security audit FAIL (#890), D1a PARTIAL/PENDING.
+
+## D1a — mobile touch targets и мультиязычность (2026-10-23, UTC+03:00)
+
+После полного visual-evidence PASS на SHA `f4bc291f15ad937642297e31cef0193adcae2f18`
+в #887 / PR #889 проведена точечная доработка мобильных переключателей.
+Вместо `SegmentedControl` (ранее до 9 px при ширине ≤450 px) используется
+собственный `PreviewModePicker` на нативных `button` с `aria-pressed`,
+читаемой подписью, видимым `:focus-visible`, не менее 44 px по высоте;
+при ширине ≤700 px — сетка 2×2 с 48 px и шрифтом 14 px. Режимы подписки,
+статусы и виды инструкций локализованы для `ru/en/fr/zh/fa`.
+
+Playwright покрывает viewport 320, 390, 430, 768, 1024 px,
+проверку минимумов touch target и шрифта, горизонтального переполнения,
+RTL и keyboard Enter/Space. Это browser-smoke/visual-fixture scope,
+не реальная приёмка Telegram WebView или мобильных устройств.
+**Итоговый CI и screenshot read-back на новом SHA — PENDING до результатов GitHub Actions**.
+Общий Python `audit` FAIL по #890 отдельно; #887 `keep_open`, Roadmap `main`
+SYNC PENDING, merge/release/deploy не выполняются.
