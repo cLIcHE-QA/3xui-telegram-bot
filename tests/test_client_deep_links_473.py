@@ -27,6 +27,7 @@ class ImportURI473Tests(unittest.TestCase):
             "javascript:alert(1)", "file:///etc/passwd",
             "https://sub.example.invalid/a#fragment",
             "https://sub.example.invalid/a?x=1",
+            "https://sub.example.invalid/a?",
             "https://user:pass@sub.example.invalid/a",
             "https://sub.example.invalid/a%2Fb",
             "https://sub.example.invalid\\@evil.example/a",
@@ -66,7 +67,7 @@ class ImportURI473Tests(unittest.TestCase):
             + "?remark=Clich%C3%A9%20VPN",
         )
         self.assertFalse(import_uri("shadowrocket", "ios", URL).endswith("remark=VPN"))
-        self.assertIsNone(safe_import_title("bad\\nname"))
+        self.assertIsNone(safe_import_title("bad\nname"))
         self.assertIsNone(safe_import_title("a" * 65))
 
     def test_security_matrix_all_supported_schemes_fail_closed(self):
