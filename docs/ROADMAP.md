@@ -6,6 +6,8 @@
 
 > **Уточнение 2026-10-23 14:01 UTC+03:00:** на macOS проверен только Incy 2.6.4 (operator-reported scoped PASS; версия macOS неизвестна); v2raytun/macOS PENDING. [Первый аудит](audits/2026-10-23-client-import-473-macos-incy-checkpoint.md), [уточнение версии](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md).
 
+> **#473 Happ/Shadowrocket (2026-10-23 14:27 UTC+03:00):** [scoped operator report и finding](audits/2026-10-23-happ-shadowrocket-title-checkpoint.md): импорт Happ/Shadowrocket заявлен PASS на iOS/Android/macOS, но platform attribution Shadowrocket Android/macOS и версии PENDING. Обнаружена подмена названия на `VPN` через жёсткий `remark`; исправление берёт `subTitle` 3x-ui через read-only local info, без внешнего redirect. Targeted title regression после исправления PENDING; #473 OPEN, PR #882 Draft, full acceptance PARTIAL, G-11 NO-GO.
+
 ## Актуальная сводка проекта
 
 **Published:** immutable [Тег `v5.0.0-rc.18.10`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.18.10), tag SHA `dae205ac82762723448f93827b981f89ae622231`, GitHub Release 2026-10-22T13:27:26Z (независимый GitHub tag/read-back). **Deployed:** operator-reported `v5.0.0-rc.18.10`, SHA `dae205ac82762723448f93827b981f89ae622231` (2026-10-22 18:12 UTC+03:00); health OK; independent VPS read-back PENDING. **Accepted:** targeted HWID 23/23 operator-reported scoped PASS (2026-10-22 21:21 UTC+03:00), six Issues completed; independent VPS/provider read-back PENDING, full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
