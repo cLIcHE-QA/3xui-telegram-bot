@@ -144,3 +144,13 @@ D1b/D2/D3 остаются), Roadmap в `main` SYNC PENDING. Merge/Release/deplo
 #887 `keep_open`; #890 security `audit` (Pillow/certifi) `keep_open`.
 `package-lock.json` в Git, строгий `npm ci` PASS на SHA `9e53586a`.
 Roadmap в `main` — SYNC PENDING, D1a PARTIAL/PENDING, merge/release/deploy не выполняются.
+
+**Уточнение visual gate:** CI на SHA `038b41618fc107a2d3bb3a826b205e2782a2da35` —
+`frontend-model` 12/12 Playwright PASS, build/`npm ci` PASS; однако артефакт
+`12532126063` содержит только **12 viewport screenshots** (desktop 1280×900,
+mobile 390×844), не full-page evidence: `testInfo.attach()` не сохранил
+дополнительные PNG в `test-results/`. Это **FAIL visual-evidence gate**,
+несмотря на зелёный browser run. Исправление переводит screenshot на
+`page.screenshot({path:testInfo.outputPath(...),fullPage:true})`, чтобы Actions
+действительно загрузил полноэкранные PNG. Потребуется read-back размеров и review
+архива **на новом SHA**. Общий security audit FAIL (#890), D1a PARTIAL/PENDING.
