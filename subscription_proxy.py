@@ -9,7 +9,7 @@ from urllib.parse import parse_qsl, quote, urlencode, urljoin, urlsplit, urlunsp
 
 import aiohttp
 from aiohttp import web
-from client_import_handoff import consume_handoff, handoff_html
+from client_import_handoff import SCRIPT_HASH, consume_handoff, handoff_html
 
 
 LOG = logging.getLogger(__name__)
@@ -633,7 +633,8 @@ class SubscriptionProxy:
                 "X-Content-Type-Options": "nosniff",
                 "X-Frame-Options": "DENY",
                 "Content-Security-Policy": (
-                    "default-src 'none'; style-src 'unsafe-inline'; "
+                    f"default-src 'none'; script-src 'sha256-{SCRIPT_HASH}'; "
+                    "style-src 'unsafe-inline'; "
                     "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
                 ),
             },
