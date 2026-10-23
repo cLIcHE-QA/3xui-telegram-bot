@@ -6,7 +6,9 @@ test("четыре варианта подписки и инструкции д�
     if (new URL(req.url()).origin !== "http://127.0.0.1:4173") unexpected.push(req.url());
   });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "VPN Subscription" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Безопасный интернет. Без лишних сложностей." })).toBeVisible();
+  await expect(page.locator(".portal-logo img")).toHaveAttribute("src", "/brand/raccoon-wrench.svg");
+  await expect(page.locator(".hero-art img")).toBeVisible();
   await expect(page.getByRole("button", { name: "Get Link" })).toBeDisabled();
   const control = page.getByTestId("subscription-layout");
   const preview = page.getByTestId("subscription-preview");
@@ -38,5 +40,6 @@ test("RTL, клавиатура и мобильная компоновка бе�
   const focused = await page.evaluate(() => document.activeElement?.tagName.toLowerCase());
   expect(["button", "input", "a"]).toContain(focused);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-  await expect(page.getByText("Демонстрационная страница", { exact: false })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "اینترنت امن‌تر. بدون پیچیدگی." })).toBeVisible();
+  await expect(page.locator(".hero")).toBeVisible();
 });
