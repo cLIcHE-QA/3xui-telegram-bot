@@ -20,8 +20,8 @@ test("четыре варианта подписки и инструкции д�
   await expect(preview.locator(".subscription-info-grid .mantine-Card-root")).toHaveCount(3);
   const scenarios = page.getByTestId("subscription-scenario");
   await control.getByText("expanded", { exact: true }).click();
-  for (const state of ["unknown", "active", "expired", "pending"]) {
-    await scenarios.locator('[data-value="'+state+'"]').click();
+  for (const [state,label] of [["unknown","Нет данных"],["active","Активна · пример"],["expired","Истекла · пример"],["pending","Ожидает · пример"]]) {
+    await scenarios.getByText(label, { exact: true }).click();
     await expect(preview).toHaveAttribute("data-scenario", state);
     await expect(preview.getByText("ДЕМО")).toBeVisible();
     await expect(preview.getByText("Вымышленные данные, не ваша подписка")).toBeVisible();
