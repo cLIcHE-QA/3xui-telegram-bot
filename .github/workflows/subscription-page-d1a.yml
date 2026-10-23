@@ -28,7 +28,11 @@ jobs:
       - name: Создать проверяемый npm lock candidate
         working-directory: web/subscription-page
         run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          if test -f package-lock.json; then
+            echo 'Используем зафиксированный package-lock.json'
+          else
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
           npm ci --ignore-scripts --no-audit --no-fund
           sha256sum package-lock.json
       - name: Сохранить npm lock candidate
