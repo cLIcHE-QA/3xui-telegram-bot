@@ -17,7 +17,7 @@ test("четыре варианта подписки и инструкции д�
     await expect(preview).toHaveAttribute("data-mode", mode);
   }
   await control.locator('button[data-value="cards"]').click();
-  await expect(preview.locator(".subscription-info-grid .mantine-Card-root")).toHaveCount(3);
+  await expect(preview.locator(".subscription-info-grid .mantine-Card-root")).toHaveCount(4);
   const scenarios = page.getByTestId("subscription-scenario");
   await control.locator('button[data-value="expanded"]').click();
   for (const [state,label] of [["unknown","Нет данных"],["active","Активна · пример"],["expired","Истекла · пример"],["pending","Ожидает · пример"]]) {
@@ -191,4 +191,23 @@ test("карусель — только UI, старые режимы досту
   await expect(page.getByTestId("guide-preview")).toHaveAttribute("data-mode","cards");
   await picker.locator('button[data-value="carousel"]').click();
   await expect(page.getByTestId("guide-preview")).toHaveAttribute("data-mode","carousel");
+});
+
+test("смысловые плитки подписки: план неизвестен, трафик/срок — только синтетические",async({page},testInfo)=>{
+ await page.goto("/");
+ const v=page.getByTestId("subscription-preview");
+ const sc=page.getByTestId("subscription-scenario");
+ for(const state of ["unknown","active","expired","pending"]){
+   await sc.locator('button[data-value="'+state+'"]').click();
+   await expect(v).toHaveAttribute("data-scenario",state);
+   for(const key of ["plan","status","traffic","expiry"])await expect(v.getByTestId("subscription-tile-"+key)).toBeVisible();
+   await expect(v.getByTestId("subscription-tile-plan")).toContainText("Не указан");
+   await expect(v.locator(".subscription-reset")).toContainText("Нет данных");
+   await expect(v.getByRole("button",{name:"Получить ссылку"})).toBeDisabled();
+   if(state==="active"){await expect(v.getByTestId("subscription-tile-traffic")).toContainText("24.6 / 100 GB");}
+   if(state==="unknown"){await expect(v.getByTestId("subscription-tile-traffic")).toContainText("Нет данных");}
+   await page.screenshot({path:testInfo.outputPath("subscription-theme-"+state+".png"),fullPage:true,animations:"disabled"});
+ }
+ await page.getByTestId("subscription-layout").locator('button[data-value="cards"]').click();
+ await expect(v.locator(".subscription-info-grid .mantine-Card-root")).toHaveCount(4);
 });
