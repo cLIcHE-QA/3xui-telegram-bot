@@ -9,7 +9,7 @@
     "platform": 5,
     "ui": 8
   },
-  "notes": "38 исходных SVG + RabbitHole восстановлены из операторского ZIP и сверены offline по точному SHA JSON, manifest и отдельным 39 SVG. INCY закреплён отдельно как официальный MIT-ассет в PR #889. Публикация остальных 39 SVG в GitHub/runtime запрещена до индивидуального license/trademark/security clearance.",
+  "notes": "40 SVG-кандидатов: 39 операторских оригиналов из svg.zip (включая RabbitHole) и отдельный официальный INCY. Оператор 2026-10-24 подтвердил урегулирование прав и разрешил self-hosted включение. Third-party provenance не удостоверен независимо; production acceptance отдельно.",
   "missing_keys": [],
   "assets": [
     {
@@ -18,9 +18,10 @@
       "sha256_prefix": "7a94741dd04c3185",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/TV.svg"
     },
     {
       "key": "Gear",
@@ -28,9 +29,10 @@
       "sha256_prefix": "e7f179825baefa84",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Gear.svg"
     },
     {
       "key": "Happ",
@@ -38,9 +40,10 @@
       "sha256_prefix": "3bf6319b01214242",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Happ.svg"
     },
     {
       "key": "Husi",
@@ -48,9 +51,10 @@
       "sha256_prefix": "ca41999fe30c96be",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Husi.svg"
     },
     {
       "key": "Loon",
@@ -58,9 +62,10 @@
       "sha256_prefix": "7e23e1eae383777e",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Loon.svg"
     },
     {
       "key": "Plus",
@@ -68,9 +73,10 @@
       "sha256_prefix": "a2c97c113a5a0384",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Plus.svg"
     },
     {
       "key": "Star",
@@ -78,9 +84,10 @@
       "sha256_prefix": "eca4ee33a31c4ca7",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Star.svg"
     },
     {
       "key": "Xray",
@@ -88,9 +95,10 @@
       "sha256_prefix": "ca9ba33a8a24fc06",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Xray.svg"
     },
     {
       "key": "Check",
@@ -98,9 +106,10 @@
       "sha256_prefix": "1ef938395cdea23f",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Check.svg"
     },
     {
       "key": "Stash",
@@ -108,9 +117,10 @@
       "sha256_prefix": "3ac277ac07e42673",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Stash.svg"
     },
     {
       "key": "macOS",
@@ -118,9 +128,10 @@
       "sha256_prefix": "962df55fed28c650",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/macOS.svg"
     },
     {
       "key": "Karing",
@@ -128,9 +139,10 @@
       "sha256_prefix": "4ffebd0d5a9fb6b9",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Karing.svg"
     },
     {
       "key": "Throne",
@@ -138,9 +150,10 @@
       "sha256_prefix": "9bc5499ad772c195",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Throne.svg"
     },
     {
       "key": "Ubuntu",
@@ -148,9 +161,10 @@
       "sha256_prefix": "fc0d02765859f0ba",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Ubuntu.svg"
     },
     {
       "key": "VRayNG",
@@ -158,9 +172,10 @@
       "sha256_prefix": "1a266536ec8a2930",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/VRayNG.svg"
     },
     {
       "key": "Android",
@@ -168,9 +183,10 @@
       "sha256_prefix": "952094d663c490eb",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Android.svg"
     },
     {
       "key": "ClashMi",
@@ -178,9 +194,10 @@
       "sha256_prefix": "e286fc24fc06a585",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/ClashMi.svg"
     },
     {
       "key": "Exclave",
@@ -188,9 +205,10 @@
       "sha256_prefix": "abcbed09b5f5e5ff",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Exclave.svg"
     },
     {
       "key": "FlClash",
@@ -198,9 +216,10 @@
       "sha256_prefix": "7febe87e1d560f1f",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/FlClash.svg"
     },
     {
       "key": "Hiddify",
@@ -208,9 +227,10 @@
       "sha256_prefix": "76618044138b209b",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Hiddify.svg"
     },
     {
       "key": "OneXray",
@@ -218,9 +238,10 @@
       "sha256_prefix": "bb7a3ee78c44d6e7",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/OneXray.svg"
     },
     {
       "key": "Singbox",
@@ -228,9 +249,10 @@
       "sha256_prefix": "c1d7f6c9a00eb2f2",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Singbox.svg"
     },
     {
       "key": "VTwoBox",
@@ -238,9 +260,10 @@
       "sha256_prefix": "c2052f43f615556d",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/VTwoBox.svg"
     },
     {
       "key": "Windows",
@@ -248,9 +271,10 @@
       "sha256_prefix": "7cf78d3a0773df55",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Windows.svg"
     },
     {
       "key": "vrayTUN",
@@ -258,9 +282,10 @@
       "sha256_prefix": "cd81d6d0e90cd13d",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/vrayTUN.svg"
     },
     {
       "key": "FlClashX",
@@ -268,9 +293,10 @@
       "sha256_prefix": "68f848559d9d0a49",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/FlClashX.svg"
     },
     {
       "key": "VpnForTV",
@@ -278,9 +304,10 @@
       "sha256_prefix": "2a9e200a330bdea8",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/VpnForTV.svg"
     },
     {
       "key": "AppleIcon",
@@ -288,9 +315,10 @@
       "sha256_prefix": "5b9a6818758d52f5",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/AppleIcon.svg"
     },
     {
       "key": "ClashMeta",
@@ -298,9 +326,10 @@
       "sha256_prefix": "e4165dbdd754c42f",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/ClashMeta.svg"
     },
     {
       "key": "Streisand",
@@ -308,9 +337,10 @@
       "sha256_prefix": "03aa2d461acef7f5",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Streisand.svg"
     },
     {
       "key": "ClashVerge",
@@ -318,9 +348,10 @@
       "sha256_prefix": "64c4d46b0d8ba4cc",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/ClashVerge.svg"
     },
     {
       "key": "KoalaClash",
@@ -328,9 +359,10 @@
       "sha256_prefix": "e90a4a383f4d64ad",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/KoalaClash.svg"
     },
     {
       "key": "PandoraBox",
@@ -338,9 +370,10 @@
       "sha256_prefix": "cda649dd8c3a6413",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/PandoraBox.svg"
     },
     {
       "key": "PrizrakBox",
@@ -348,9 +381,10 @@
       "sha256_prefix": "3f294a13bb0cd4a2",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/PrizrakBox.svg"
     },
     {
       "key": "DownloadIcon",
@@ -358,9 +392,10 @@
       "sha256_prefix": "f75aa8594b75334b",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/DownloadIcon.svg"
     },
     {
       "key": "ExternalLink",
@@ -368,9 +403,10 @@
       "sha256_prefix": "d4655cb50713b2ef",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/ExternalLink.svg"
     },
     {
       "key": "Shadowrocket",
@@ -378,9 +414,10 @@
       "sha256_prefix": "55c399c60588dda7",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/Shadowrocket.svg"
     },
     {
       "key": "CloudDownload",
@@ -388,9 +425,10 @@
       "sha256_prefix": "d307eeda6af11675",
       "source": "user supplied Remnawave svgLibrary",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/CloudDownload.svg"
     },
     {
       "key": "RabbitHole",
@@ -399,9 +437,10 @@
       "sha256": "61ce2f40ce0f094a144b7e5a73cb6d282598b59be36085df2aa9eae730e046f2",
       "source": "user supplied inline SVG 2026-10-23 (not included in original Remnawave export)",
       "svg_xml": "basic_static_check_pass",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "разрешено оператором 2026-10-24; стороннее provenance не подтверждено",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/library/RabbitHole.svg"
     },
     {
       "key": "INCY",
@@ -409,9 +448,10 @@
       "sha256_prefix": "pending-canonicalization",
       "source": "user supplied inline SVG 2026-10-23 (logo candidate)",
       "svg_xml": "basic_static_check_pending_full_svg_preflight",
-      "license": "pending",
-      "trademark": "pending",
-      "runtime": "do_not_ship_until_review"
+      "license": "MIT (официальный вариант); оператор подтвердил права на библиотеку",
+      "trademark": "использование в проекте разрешено оператором 2026-10-24",
+      "runtime": "self_hosted_svg_d1a_preview",
+      "local_path": "web/subscription-page/public/client-icons/incy.svg"
     }
   ],
   "original_export_json_sha256": "eaa14d5522bccd0fa5f9cc2decb07912416b0b52d3b33d6892c4a97e6e91f64d",
@@ -427,8 +467,8 @@
     "separate_incy": true,
     "integrity": "PASS",
     "static_xml_preflight": "PASS",
-    "license_trademark_redistribution": "PENDING",
-    "public_runtime_for_39": "BLOCKED",
+    "license_trademark_redistribution": "operator_permission_reported_2026-10-24",
+    "public_runtime_for_39": "added_to_draft_pr_preview; release_and_deploy_pending",
     "verification_script": "scripts/check-subscription-svg-package.py"
   }
 }

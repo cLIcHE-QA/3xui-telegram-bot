@@ -1,3 +1,4 @@
+import { STATIC_SVG_PATHS } from "./staticSvgPaths";
 import { useMemo, type ReactNode } from "react";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -123,7 +124,7 @@ export function SafeSvgIcon({ iconKey, library, fallback, testId, className }: {
     const clean = sanitizeSvg(xml);
     return clean ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(clean) : null;
   }, [xml]);
-  if (!uri && iconKey === "INCY") return <img data-testid={testId ?? "safe-svg-icon"} className={className} src="/client-icons/incy.svg" alt="" aria-hidden="true" draggable={false} decoding="async"/>;
+  if (!uri && iconKey && Object.hasOwn(STATIC_SVG_PATHS, iconKey)) return <img data-testid={testId ?? "safe-svg-icon"} className={className} src={STATIC_SVG_PATHS[iconKey]} alt="" aria-hidden="true" draggable={false} decoding="async"/>;
   if (!uri) return <>{fallback}</>;
   return <img data-testid={testId ?? "safe-svg-icon"} className={className}
     src={uri} alt="" aria-hidden="true" draggable={false} decoding="async"/>;

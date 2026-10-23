@@ -234,3 +234,20 @@ test("оригинальный локальный INCY SVG доступен бе
   expect(raw).toContain('xmlns="http://www.w3.org/2000/svg"');
   expect(raw).not.toMatch(/<script|<foreignObject|onload\s*=|<image\b|<use\b|href\s*=/i);
 });
+
+
+test("все 39 локальных SVG-кандидатов доступны без сторонних запросов", async ({page})=>{
+  const external:string[]=[];
+  page.on("request",r=>{if(new URL(r.url()).origin!=="http://127.0.0.1:4173")external.push(r.url());});
+  await page.goto("/");
+  for(const key of ["TV","Gear","Happ","Husi","Loon","Plus","Star","Xray","Check","Stash","macOS","Karing","Throne","Ubuntu","VRayNG","Android","ClashMi","Exclave","FlClash","Hiddify","OneXray","Singbox","VTwoBox","Windows","vrayTUN","FlClashX","VpnForTV","AppleIcon","ClashMeta","Streisand","ClashVerge","KoalaClash","PandoraBox","PrizrakBox","DownloadIcon","ExternalLink","Shadowrocket","CloudDownload","RabbitHole"]){
+    const response=await page.request.get("/client-icons/library/"+key+".svg");
+    expect(response.ok(),key).toBe(true);
+    const svg=await response.text();
+    expect(svg,key).toContain('xmlns="http://www.w3.org/2000/svg"');
+    expect(svg,key).not.toMatch(/<script|<foreignObject|onload\\s*=|<image\\b|href\\s*=/i);
+  }
+  const alternate=await page.request.get("/client-icons/incy-monochrome.svg");
+  expect(alternate.ok()).toBe(true);
+  expect(external).toEqual([]);
+});

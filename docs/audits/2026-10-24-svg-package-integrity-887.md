@@ -1,10 +1,10 @@
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-23 23:27 UTC+00:00
+- **Дата/время и часовой пояс:** 2026-10-24 02:27 UTC+03:00
 - **Окружение:** offline, проверка операторского вложения; GitHub read-only для инвентаря и PR
 - **Цель:** подтвердить точную идентичность 39 SVG ожидаемому набору Issue #887 без публикации raw assets
 - **Версия и immutable tag/SHA:** implementation head до checkpoint `eb4702c25114e4140d05d1dd89d7070138275334`; подтверждённый Published tag `v5.0.0-rc.19` SHA `d738dd970f2215adc346a919c7ed182abaf454b1` (этот пакет не входит в него)
 - **Scope:** `svg.zip` SHA-256 `75602476eab4b08e4e6b3c8d0e680defc1be6929d6482585277bd724656ad76b`; `svg/svgLibrary.json` SHA-256 `26101eb3ed72de8af4a4a4cecb87298309ad37746e311912efcbbe9fc41ca8ef`; 39/39 SVG byte-identical записям JSON, 39/39 ключей/хешей manifest, basic XML/static preflight; официальный INCY отдельно, не часть ZIP
-- **Фактический результат:** PARTIAL — целостность исходников `PASS`; доступность оригинальных байтов offline `PASS`; license/trademark/публикация/полная security и browser visual review `PENDING`
+- **Фактический результат:** PARTIAL — целостность исходников `PASS`; доступность оригинальных байтов offline `PASS`; на момент offline-аудита разрешение публикации/полная security и browser visual review `PENDING`; после аудита оператор дал разрешение на включение, но browser/production acceptance остаются `PENDING`
 - **Источник и evidence:** операторское локальное вложение `svg.zip` (оригинал не коммитится); [Issue #887](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/887), [Draft PR #889](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/889), `docs/assets/subscription-svg-inventory.json`; воспроизводимый `scripts/check-subscription-svg-package.py`; синтетические отрицательные тесты `tests/test_subscription_svg_package.py`
 - **Ограничения и остаточные риски:** ZIP `README_REVIEW_ONLY.txt` прямо запрещает redistribution/deploy trademarks без rights verification. Offline SHA/XML-проверка не удостоверяет право копировать чужие logos, trademark clearance, полный sanitizer/browsers/WebView или production; не подменяет отдельный audit #890
 - **Связанные Issues:** #887 (keep_open, D1a PARTIAL), #890 (keep_open, отдельный supply-chain audit FAIL)
