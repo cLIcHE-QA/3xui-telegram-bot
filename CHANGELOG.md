@@ -16,6 +16,9 @@
 
 ## Ещё не выпущено — кандидат v5.0.0-rc.19
 
+- **#473, не Published:** draft [PR #882](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/882) — Incy/v2raytun private-only import URI и URL/QR fallback; [операторский 4/4](docs/audits/2026-10-23-client-import-473-operator-smoke.md) на iOS 26.5.1/Android 17, Incy 2.6.4/v2raytun 2.4.7. Только manual client import; bot-to-client deployed smoke, security review и отдельный release PENDING. G-11 PARTIAL/NO-GO.
+
+
 - [#497](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/497): единая read-only карточка подписки показывает фактический статус доступа/entitlement, тариф, подтверждённый срок и состояние активации. Provider outage, expiry drift и unknown не выдаются за `active`; число Master Inbounds не выдается за подтверждённые работающие локации.
 - Ссылка и кнопка `CopyTextButton` защищены private chat/owner/pilot; доступны переходы в подключение, существующую покупку/продление и read-only диагностику. Никаких новых `sub_id`, `provisioning/reconcile` (#498 отдельно), API, migrations, секретов или обновления operator setup.
 - Unit/UI/regression покрытие обновлено. Это **кандидат, не Published**, не Deployed и не Accepted; `rc.19` не гарантирован, действующий Published/Deployed `rc.18.10`, G-11 PARTIAL/NO-GO.
