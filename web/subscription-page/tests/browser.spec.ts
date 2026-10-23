@@ -9,7 +9,7 @@ test("четыре варианта подписки и инструкции д�
   await expect(page.getByRole("heading", { name: "Безопасный интернет. Без лишних сложностей." })).toBeVisible();
   await expect(page.locator(".portal-logo img")).toHaveAttribute("src", "/brand/raccoon-wrench.svg");
   await expect(page.locator(".hero-art img")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Get Link" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
   const control = page.getByTestId("subscription-layout");
   const preview = page.getByTestId("subscription-preview");
   for (const mode of ["expanded", "cards", "collapsed", "hidden"]) {
@@ -25,10 +25,10 @@ test("четыре варианта подписки и инструкции д�
     await expect(preview).toHaveAttribute("data-scenario", state);
     await expect(preview.getByText("ДЕМО")).toBeVisible();
     await expect(preview.getByText("Вымышленные данные, не ваша подписка")).toBeVisible();
-    await expect(preview.getByRole("button", { name: "Get Link" })).toBeDisabled();
+    await expect(preview.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
   }
   await control.getByText("hidden", { exact: true }).click();
-  await expect(page.getByRole("button", { name: "Get Link" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Получить ссылку" })).toHaveCount(0);
 
   const guides = page.getByTestId("guides-layout");
   for (const mode of ["timeline", "minimal", "accordion", "cards"]) {
@@ -60,7 +60,8 @@ test("five locales preserve preview safety and allow navigation", async ({ page 
     await language.click();
     await page.getByRole("option", { name: locale }).click();
     await expect(page.getByTestId("subscription-scenario")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Get Link" })).toBeDisabled();
+    const linkName: Record<string,string> = { EN:"Get Link",FR:"Obtenir le lien",ZH:"获取链接",FA:"دریافت پیوند",RU:"Получить ссылку" };
+    await expect(page.getByRole("button", { name: linkName[locale] })).toBeDisabled();
     await expect(page.locator("html")).toHaveAttribute("lang", locale.toLowerCase());
   }
 });
@@ -74,9 +75,9 @@ test("выбор клиента использует нейтральную ик
   const chooser = page.getByTestId("client-choice");
   await expect(chooser).toHaveCount(1);
   await expect(chooser.first()).toHaveAttribute("aria-pressed", "true");
-  await expect(chooser.first().locator("svg")).toBeVisible();
+  await expect(chooser.first().locator(".client-icon svg")).toBeVisible();
   await page.getByRole("tab", { name: "Android" }).click();
   await expect(page.getByText("Для этой платформы нет настроенных клиентов.").first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Get Link" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
   expect(external).toEqual([]);
 });
