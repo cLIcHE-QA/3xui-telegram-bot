@@ -19,7 +19,6 @@ class ImportSpec:
     prefix: str
     platforms: frozenset[str]
     encoding: str = "direct"
-    suffix: str = ""
 
 
 # Только URI импорта SUBSCRIPTION URL, не settings/route/single outbound.
@@ -38,20 +37,20 @@ IMPORT_CLIENTS: dict[str, ImportSpec] = {
     ),
     "happ": ImportSpec(
         "Happ", "happ://add/",
-        frozenset({"ios", "android"}),
+        frozenset({"ios", "android", "macos"}),
     ),
     "v2box": ImportSpec(
         "V2Box", "v2box://install-sub?url=",
-        frozenset({"ios", "android"}), "percent", "&name=VPN",
+        frozenset({"ios", "android"}), "percent",
     ),
     "shadowrocket": ImportSpec(
         "Shadowrocket", "shadowrocket://add/sub://",
-        frozenset({"ios"}), "base64", "?remark=VPN",
+        frozenset({"ios", "macos"}), "base64",
     ),
     "karing": ImportSpec(
         "Karing", "karing://install-config?url=",
         frozenset({"ios", "android", "windows", "macos", "linux"}),
-        "percent", "&name=VPN",
+        "percent",
     ),
     "onexray": ImportSpec(
         "OneXray", "onexray://onexray.com/sub/add?url=",
@@ -62,6 +61,12 @@ IMPORT_CLIENTS: dict[str, ImportSpec] = {
         frozenset({"android", "windows", "macos", "linux"}), "base64",
     ),
 }
+
+# A display name is part of the import contract for V2Box/Karing; on metadata
+# failure, offer ordinary URL/QR instead of a hardcoded or bearer-like name.
+REQUIRED_TITLE_CLIENTS = frozenset({"v2box", "karing"})
+OPTIONAL_TITLE_CLIENTS = frozenset({"shadowrocket", "onexray", "throne"})
+TITLE_IMPORT_CLIENTS = REQUIRED_TITLE_CLIENTS | OPTIONAL_TITLE_CLIENTS
 
 # CopyTextButton: 1..256 characters, including wrapper scheme.
 MAX_IMPORT_URI_LENGTH = 256
@@ -117,21 +122,31 @@ def import_uri(client: str, platform: str, subscription_url: object, *, title: o
     # original queryless HTTPS URL. The flag is part of subscription *content*
     # negotiation, not part of an untrusted callback or redirect destination.
     # Reference: MHSanaei/3x-ui frontend/src/pages/sub/subPageModel.ts.
+    label = safe_import_title(title) if client in TITLE_IMPORT_CLIENTS else None
+    if client in REQUIRED_TITLE_CLIENTS and label is None:
+        return None
     source_url = url + "?flag=shadowrocket" if client == "shadowrocket" else url
-    # Encode only the already validated owner's URL, never callback input.
+    # Throne's documented addsub command decodes `<HTTPS URL>#<group_name>`
+    # from standard Base64. OneXray uses a plain percent-encoded URI fragment.
+    if client == "throne" and label is not None:
+        source_url += "#" + label
+    # Encode only the validated owner's URL and optional bounded title.
     # Base64 is transport encoding, NOT encryption. No provider-side fetch here.
     if spec.encoding == "direct":
         payload = source_url
     elif spec.encoding == "percent":
         payload = quote(source_url, safe="")
     elif spec.encoding == "base64":
-        payload = base64.b64encode(source_url.encode("ascii")).decode("ascii")
+        payload = base64.b64encode(source_url.encode("utf-8")).decode("ascii")
     else:
         return None
-    suffix = spec.suffix
-    if client == "shadowrocket":
-        label = safe_import_title(title)
-        suffix = "?remark=" + quote(label, safe="") if label else ""
+    suffix = ""
+    if client in REQUIRED_TITLE_CLIENTS:
+        suffix = "&name=" + quote(label, safe="")
+    elif client == "shadowrocket" and label:
+        suffix = "?remark=" + quote(label, safe="")
+    elif client == "onexray" and label:
+        suffix = "#" + quote(label, safe="")
     candidate = spec.prefix + payload + suffix
     if len(candidate) > MAX_IMPORT_URI_LENGTH:
         return None
