@@ -153,3 +153,30 @@
 .guide-carousel-controls .mantine-Button-root{min-width:0;min-height:46px;height:auto}
 html[dir=rtl] .guide-carousel-controls svg{transform:scaleX(-1)}
 @media(max-width:480px){.guide-carousel-controls{gap:8px}.guide-carousel-card{padding:16px!important}}
+
+/* Independent Raccoon palette: graphite surfaces and semantic status tiles.
+   Inspired by publicly documented color principles, not copied UI/CSS. */
+.subscription-highlight-card{--tile-blue:#58b9ff;--tile-green:#79d9b0;--tile-amber:#ffd17b;--tile-rose:#ff9cb2;--tile-muted:#b5c7d5}
+.subscription-summary{display:flex;align-items:center;gap:15px;padding:23px 24px 18px}
+.subscription-summary-copy{min-width:0}
+.subscription-summary-copy h3{font-size:1.25rem;line-height:1.35;overflow-wrap:anywhere}
+.subscription-stat-grid,.subscription-info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.subscription-stat-grid{padding:0 24px 22px}
+.subscription-stat-tile{min-width:0;min-height:99px;display:flex;flex-direction:column;justify-content:center;gap:11px;border:1px solid var(--tile-outline);border-radius:12px;padding:15px 17px;background:linear-gradient(115deg,var(--tile-surface),#17263755);color:var(--tile-ink)}
+.stat-blue{--tile-ink:#8bcfff;--tile-outline:#337bad88;--tile-surface:#173a54}
+.stat-active{--tile-ink:#96ebc6;--tile-outline:#398a6888;--tile-surface:#16382f}
+.stat-expired{--tile-ink:#ffc0b9;--tile-outline:#a0575888;--tile-surface:#462a31}
+.stat-pending,.stat-amber{--tile-ink:#ffe2a1;--tile-outline:#9d784888;--tile-surface:#3b3124}
+.stat-rose{--tile-ink:#ffc2d0;--tile-outline:#985a7188;--tile-surface:#3d2836}
+.stat-unknown{--tile-ink:#cbdae7;--tile-outline:#54758b88;--tile-surface:#293643}
+.subscription-stat-head{display:flex;align-items:center;gap:9px;min-width:0}
+.subscription-stat-icon{display:grid;place-items:center;flex-shrink:0;color:var(--tile-ink)}
+.subscription-stat-label{color:#d6e5ee;font-size:.75rem;overflow-wrap:anywhere}
+.subscription-stat-value{font-size:.9375rem;color:#f1f8ff;font-weight:800;overflow-wrap:anywhere;line-height:1.45}
+.subscription-standalone-tile{padding:0!important;min-height:0!important;overflow:hidden}
+.subscription-standalone-tile .subscription-stat-tile{height:100%;min-height:104px;border:0;border-radius:inherit}
+.subscription-reset{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:.75rem;color:#a7c2d6}
+.subscription-reset strong{color:#e5f2fb;font-weight:700}
+.subscription-info-grid{gap:12px}
+@media(max-width:650px){.subscription-stat-grid{padding:0 15px 18px;gap:9px}.subscription-summary{padding:20px 15px 16px}.subscription-stat-tile{padding:13px 11px;min-height:96px}.subscription-stat-label{font-size:.75rem}.subscription-stat-value{font-size:.875rem}.subscription-bottom{padding:17px 15px}}
+@media(max-width:350px){.subscription-stat-grid,.subscription-info-grid{grid-template-columns:1fr}.subscription-stat-tile{min-height:75px}}
