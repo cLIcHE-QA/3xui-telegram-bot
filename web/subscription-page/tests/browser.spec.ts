@@ -224,3 +224,13 @@ test("локальная SVG-библиотека: безопасный знач
   await expect(page.getByRole("button",{name:"Получить ссылку"})).toBeDisabled();
   expect(external).toEqual([]);
 });
+
+test("оригинальный локальный INCY SVG доступен без внешней сети", async ({page})=>{
+  await page.goto("/");
+  const response=await page.request.get("/client-icons/incy.svg");
+  expect(response.ok()).toBe(true);
+  expect(response.headers()["content-type"]).toContain("image/svg+xml");
+  const raw=await response.text();
+  expect(raw).toContain('xmlns="http://www.w3.org/2000/svg"');
+  expect(raw).not.toMatch(/<script|<foreignObject|onload\s*=|https?:\/\//i);
+});
