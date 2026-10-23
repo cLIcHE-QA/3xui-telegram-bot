@@ -129,7 +129,7 @@ test("320/390/430/768/1024px readable touch targets, five locales and keyboard",
       const measurements=await page.evaluate(() => [...document.querySelectorAll(".preview-mode-button")].map(e=>{
         const rect=e.getBoundingClientRect(); return {h:rect.height,w:rect.width,left:rect.left,right:rect.right,font:parseFloat(getComputedStyle(e).fontSize)};
       }));
-      expect(measurements).toHaveLength(12);
+      expect(measurements).toHaveLength(13);
       for(const m of measurements){
         expect(m.h).toBeGreaterThanOrEqual(44);
         expect(m.font).toBeGreaterThanOrEqual(13);
@@ -149,4 +149,46 @@ test("320/390/430/768/1024px readable touch targets, five locales and keyboard",
   const cards=page.getByTestId("subscription-layout").locator('button[data-value="cards"]');
   await cards.focus();await page.keyboard.press("Space");
   await expect(cards).toHaveAttribute("aria-pressed","true");
+});
+
+test("карусель: навигация, один шаг и сброс при смене ОС", async ({page}, testInfo) => {
+  await page.goto("/");
+  const carousel=page.getByTestId("guide-carousel");
+  await expect(page.getByTestId("guide-preview")).toHaveAttribute("data-mode","carousel");
+  await expect(carousel).toBeVisible();
+  await expect(carousel.getByText("Установить приложение")).toBeVisible();
+  await expect(carousel.getByText("Добавить подписку")).toHaveCount(0);
+  await expect(page.getByTestId("guide-previous")).toBeDisabled();
+  await page.getByTestId("guide-next").click();
+  await expect(carousel.getByText("Добавить подписку")).toBeVisible();
+  await expect(carousel.getByText("Установить приложение")).toHaveCount(0);
+  await expect(page.getByTestId("guide-next")).toBeDisabled();
+  await carousel.locator("button").first().focus();
+  await page.keyboard.press("Enter");
+  await expect(carousel.getByText("Установить приложение")).toBeVisible();
+  await page.getByRole("tab",{name:"Android"}).click();
+  await expect(page.getByTestId("guide-preview")).toContainText("Инструкции пока не настроены");
+  await page.getByRole("tab",{name:"iOS"}).click();
+  await expect(page.getByTestId("guide-previous")).toBeDisabled();
+  const css=await page.locator(".device-tabs").evaluate(el=>{
+    const list=getComputedStyle(el),tab=getComputedStyle(el.querySelector('[role="tab"]')!),parent=getComputedStyle(el.closest(".platform-segment")!);
+    return {outline:list.borderTopWidth,tabBottom:tab.borderBottomWidth,divider:parent.borderBottomWidth};
+  });
+  expect(parseFloat(css.outline)).toBeGreaterThan(0);
+  expect(parseFloat(css.tabBottom)).toBe(0);
+  expect(parseFloat(css.divider)).toBe(0);
+  await page.setViewportSize({width:320,height:700});
+  await expect(page.locator(".device-tabs")).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.screenshot({path:testInfo.outputPath("compact-guide-320.png"),fullPage:true});
+});
+
+test("карусель — только UI, старые режимы доступны", async ({page})=>{
+  await page.goto("/");
+  const picker=page.getByTestId("guides-layout");
+  await expect(picker.locator("button")).toHaveCount(5);
+  await picker.locator('button[data-value="cards"]').click();
+  await expect(page.getByTestId("guide-preview")).toHaveAttribute("data-mode","cards");
+  await picker.locator('button[data-value="carousel"]').click();
+  await expect(page.getByTestId("guide-preview")).toHaveAttribute("data-mode","carousel");
 });
