@@ -15,6 +15,10 @@
 
 ## #473 — импорт подписки (кандидат rc.19, не Published)
 
+**Happ / Shadowrocket test gate:** схема Happ `happ://add/<HTTPS URL>` для iOS/Android и Shadowrocket `shadowrocket://add/sub://<base64(HTTPS URL + ?flag=shadowrocket)>?remark=VPN` для iOS сверены с upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`. На устройствах ещё PENDING. Для остальных candidate URI тоже required client/version-specific smoke; статус PASS не присваивать по CI. Incy 2.6.4/macOS имеет отдельный operator-reported PASS ([audit](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md)).
+
+
+
 В личном чате: «Моя подписка» → «Подключить устройство» → платформа → клиент. Incy и v2raytun получают кандидатный URI для ручного импорта через CopyTextButton или локальный QR. Для неподдержанных приложений/URL есть обычные HTTPS URL/QR. Telegram inline URL-button не поддерживает custom схемы, поэтому external redirect/shortener не используется.
 
 | Приложение | Платформы кандидата | Формат | Источник | Приёмка |
