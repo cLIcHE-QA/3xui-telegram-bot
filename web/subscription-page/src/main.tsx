@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {IconShieldCheck,IconLock,IconWifi,IconClock,IconDeviceMobile,IconDeviceDesktop,IconDeviceLaptop,IconDeviceTv,IconCheck,IconChevronRight,IconFileImport,IconDownload,IconSparkles,IconLink} from "@tabler/icons-react";
 
 import { createRoot } from "react-dom/client";
@@ -44,6 +44,7 @@ function languageText(v: Localized | undefined, lang:string) {return v?.[lang] ?
 function App() {
   const [data,setData] = useState<ExportConfig>(sample);
   const [lang,setLang] = useState("ru");
+  useEffect(()=>{document.documentElement.lang=lang;document.documentElement.dir=lang==="fa"?"rtl":"ltr";},[lang]);
   const platforms = Object.keys(data.platforms);
   const [platform,setPlatform] = useState(platforms[0] || "ios");
   const [client,setClient] = useState(0);
@@ -66,7 +67,11 @@ function App() {
     en:{hero:"A safer internet.",hero2:"Without the complexity.",lead:"Your connection, under control. Choose your device and follow the steps.",preview:"Preview mode",subscription:"My subscription",status:"Status",noData:"No data",traffic:"Traffic",expires:"Expires",connect:"Connect your VPN",device:"Choose device",application:"Choose application",steps:"Follow instructions",safe:"Safe preview",safeDesc:"No live subscriptions or keys are provided. Everything remains in your browser.",import:"Import configuration",noClients:"No apps configured for this platform.",hide:"Subscription block is hidden in preview.",keys:"Keys are unavailable in preview",footer:"Preview · No real subscriptions or keys"},
     fa:{hero:"اینترنت امن‌تر.",hero2:"بدون پیچیدگی.",lead:"اتصال شما تحت کنترل است. دستگاه خود را انتخاب کنید.",preview:"حالت پیش‌نمایش",subscription:"اشتراک من",status:"وضعیت",noData:"داده‌ای موجود نیست",traffic:"ترافیک",expires:"انقضا",connect:"اتصال به VPN",device:"انتخاب دستگاه",application:"انتخاب برنامه",steps:"مراحل اتصال",safe:"پیش‌نمایش امن",safeDesc:"اشتراک واقعی و کلید نمایش داده نمی‌شود. همه چیز در مرورگر شما می‌ماند.",import:"وارد کردن تنظیمات",noClients:"برنامه‌ای برای این پلتفرم تنظیم نشده است.",hide:"بخش اشتراک پنهان شده است.",keys:"کلیدها در پیش‌نمایش در دسترس نیستند",footer:"نسخه آزمایشی · بدون اشتراک واقعی"}
   };
-  const t=(x:string)=>stateLabels[lang]?.[x]??ui[lang]?.[x]??ui.en[x]??x;
+  const localesExtra:Record<string,Record<string,string>>={
+    fr:{hero:"Internet plus sûr.",hero2:"Sans complication.",lead:"Choisissez un appareil et suivez quelques étapes simples.",preview:"Mode démonstration",subscription:"Mon abonnement",status:"Statut",noData:"Aucune donnée",traffic:"Trafic",expires:"Expiration",connect:"Configurer le VPN",device:"Choisissez un appareil",application:"Choisissez une application",steps:"Suivez les instructions",safe:"Aperçu sécurisé",safeDesc:"Aucun abonnement ou clé réels. Rien n'est transmis.",import:"Importer une configuration",noClients:"Aucune application configurée pour cette plateforme.",hide:"Le bloc d'abonnement est masqué.",keys:"Aucune clé réelle en démonstration",footer:"Démonstration · Aucune clé réelle"},
+    zh:{hero:"安全上网。",hero2:"简单开始。",lead:"选择设备，按照步骤完成设置。",preview:"演示模式",subscription:"我的订阅",status:"状态",noData:"无数据",traffic:"流量",expires:"到期时间",connect:"连接 VPN",device:"选择设备",application:"选择应用",steps:"按照说明操作",safe:"安全预览",safeDesc:"不提供真实订阅或密钥，数据不会上传。",import:"导入配置",noClients:"该平台暂无可用应用。",hide:"订阅信息已隐藏。",keys:"演示模式不提供密钥",footer:"演示版 · 不提供真实订阅"}
+  };
+  const t=(x:string)=>stateLabels[lang]?.[x]??localesExtra[lang]?.[x]??ui[lang]?.[x]??ui.en[x]??x;
   const deviceIcon=(x:string)=>x==="ios"||x==="android"?<IconDeviceMobile size={21}/>:x==="macos"?<IconDeviceLaptop size={21}/>:x.toLowerCase().includes("tv")?<IconDeviceTv size={21}/>:<IconDeviceDesktop size={21}/>;
   const steps=selected?.blocks??[];
   return <MantineProvider defaultColorScheme="dark" theme={{primaryColor:"blue"}}>
