@@ -4,6 +4,8 @@
 
 > **#473 scoped checkpoint (2026-10-23 13:38 UTC+03:00):** [draft PR #882](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/882) — required `test`/`title` PASS; [операторский аудит 4/4](audits/2026-10-23-client-import-473-operator-smoke.md): Incy 2.6.4 и v2raytun 2.4.7 на iOS 26.5.1 (23F81) и Android 17, manual URI import operator-reported PASS. Не end-to-end UI/deployed acceptance: PR OPEN, `main`/Published/Deployed не изменились, security review и post-release smoke PENDING. Issue #473 keep_open; G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
+> **Уточнение 2026-10-23 14:01 UTC+03:00:** на macOS проверен только Incy (operator-reported scoped PASS, версия на Mac неизвестна); v2raytun/macOS PENDING. [Датированный аудит](audits/2026-10-23-client-import-473-macos-incy-checkpoint.md).
+
 ## Актуальная сводка проекта
 
 **Published:** immutable [Тег `v5.0.0-rc.18.10`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.18.10), tag SHA `dae205ac82762723448f93827b981f89ae622231`, GitHub Release 2026-10-22T13:27:26Z (независимый GitHub tag/read-back). **Deployed:** operator-reported `v5.0.0-rc.18.10`, SHA `dae205ac82762723448f93827b981f89ae622231` (2026-10-22 18:12 UTC+03:00); health OK; independent VPS read-back PENDING. **Accepted:** targeted HWID 23/23 operator-reported scoped PASS (2026-10-22 21:21 UTC+03:00), six Issues completed; independent VPS/provider read-back PENDING, full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
