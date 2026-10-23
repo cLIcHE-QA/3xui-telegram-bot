@@ -15,7 +15,7 @@ from client_deep_links import IMPORT_CLIENTS
 
 TTL_SECONDS = 90
 MAX_TICKETS = 256
-_TOKEN = re.compile(r"[A-Za-z0-9_-]{32,128}\\Z")
+_TOKEN = re.compile(r"[A-Za-z0-9_-]{32,128}\Z")
 _TICKETS: dict[str, tuple[float, str, str]] = {}
 
 
@@ -34,7 +34,6 @@ def issue_handoff(url: str, *, client: str, uri: str, public_template: str) -> s
         or target.username or target.password or target.query or target.fragment
         or configured.query or configured.fragment
         or not configured.path.endswith("/__probe__")
-        or target.path == configured.path
         or not target.path.startswith(configured.path[:-len("__probe__")])
         or url != urlunsplit(target)
         or len(uri) > 256
