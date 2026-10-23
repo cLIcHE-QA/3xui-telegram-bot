@@ -1260,9 +1260,9 @@ async def onboarding_platform_cb(call: CallbackQuery):
     )
     import_title = None
     if app == "shadowrocket" and url is not None:
-        card = await _service().subscription_card(call.from_user.id)
+        profile = await _service().profile(call.from_user.id, read_access=False)
         import_title = await fetch_import_title(
-            card.profile.sub_id, proxy_port=settings.subscription_proxy_port,
+            profile.sub_id, proxy_port=settings.subscription_proxy_port,
         )
     uri = import_uri(app, platform, url, title=import_title) if url is not None else None
     if len(steps) == 3:
