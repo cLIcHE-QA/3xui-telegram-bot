@@ -22,7 +22,23 @@ test("200% текст: отсутствие обрезки, RTL и доступ�
       for (let i = 0; i < targets.length; i++) {
         expect(after[i], targets[i] + " 200%").toBeGreaterThanOrEqual(before[i] * 1.75);
       }
-      expect(await noHorizontalOverflow(page), "width " + width + ", language " + language).toBe(true);
+      const noOverflow = await noHorizontalOverflow(page);
+      if (!noOverflow) {
+        const offenders = await page.evaluate(() => ({
+          innerWidth, viewport: document.documentElement.clientWidth,
+          rootScroll: document.documentElement.scrollWidth, bodyScroll: document.body.scrollWidth,
+          elements: [...document.querySelectorAll("*")].map(node => {
+            const r = node.getBoundingClientRect();
+            const style = getComputedStyle(node);
+            return { tag: node.tagName, className: typeof node.className === "string" ? node.className.slice(0, 90) : "",
+              text: (node.textContent || "").trim().slice(0, 50),
+              left: Math.round(r.left), right: Math.round(r.right), scroll: (node as HTMLElement).scrollWidth,
+              client: (node as HTMLElement).clientWidth, overflowX: style.overflowX };
+          }).filter(x => x.right > innerWidth + 2 && x.left < innerWidth + 2).slice(0, 35)
+        }));
+        console.log("D1A_TEXT_ZOOM_OVERFLOW", JSON.stringify({ width, language, offenders }));
+      }
+      expect(noOverflow, "width " + width + ", language " + language).toBe(true);
       await expect(page.getByTestId("subscription-scenario").locator('button[data-value="active"]')).toBeVisible();
       await page.getByTestId("subscription-scenario").locator('button[data-value="active"]').click();
       await expect(page.getByTestId("subscription-preview")).toHaveAttribute("data-scenario", "active");
