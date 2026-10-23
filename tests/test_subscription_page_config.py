@@ -85,6 +85,26 @@ class TestSubscriptionPageConfig(unittest.TestCase):
         with self.assertRaises(InvalidSubscriptionConfig):
             parse_config(json.dumps(cfg))
 
+    def test_private_operator_export_when_available(self):
+        """Locally supply OPERATOR_SUBPAGE_JSON; never commit or print contents."""
+        import os
+        import hashlib
+        from pathlib import Path
+        source_path = os.environ.get("OPERATOR_SUBPAGE_JSON")
+        if not source_path:
+            self.skipTest("Private operator export unavailable in CI")
+        raw = Path(source_path).read_bytes()
+        expected_sha256 = "acc2a517287832fcf7e42d7482eceea55bdc2b6b670a6e5b3bab23680f323244"
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), expected_sha256)
+        original = json.loads(raw)
+        result = parse_config(raw)
+        self.assertEqual(result, original)
+        self.assertEqual(parse_config(serialize_config(result)), original)
+        self.assertEqual(config_summary(result), {
+            "languages": 5, "platforms": 7, "app_slots": 24,
+            "unique_apps": 10, "blocks": 92, "buttons": 75, "svg_icons": 38
+        })
+
     def test_file_size_limit(self):
         with self.assertRaises(InvalidSubscriptionConfig):
             parse_config(b"x" * (1024 * 1024 + 1))
