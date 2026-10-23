@@ -64,3 +64,19 @@ test("five locales preserve preview safety and allow navigation", async ({ page 
     await expect(page.locator("html")).toHaveAttribute("lang", locale.toLowerCase());
   }
 });
+
+test("выбор клиента использует нейтральную иконку и не вызывает внешних запросов", async ({ page }) => {
+  const external: string[] = [];
+  page.on("request", request => {
+    if (new URL(request.url()).origin !== "http://127.0.0.1:4173") external.push(request.url());
+  });
+  await page.goto("/");
+  const chooser = page.getByTestId("client-choice");
+  await expect(chooser).toHaveCount(1);
+  await expect(chooser.first()).toHaveAttribute("aria-pressed", "true");
+  await expect(chooser.first().locator("svg")).toBeVisible();
+  await page.getByRole("tab", { name: "Android" }).click();
+  await expect(page.getByText("Для этой платформы нет настроенных клиентов.").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Get Link" })).toBeDisabled();
+  expect(external).toEqual([]);
+});
