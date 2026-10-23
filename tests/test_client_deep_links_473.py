@@ -39,33 +39,6 @@ class ImportURI473Tests(unittest.TestCase):
                       if platform in spec.platforms}
             self.assertEqual(actual, apps, platform)
 
-    async def test_windows_linux_menu_only_shows_compatible_apps(self):
-        import client_access as ui
-        for platform, expected in (
-            ("windows", {"Incy", "v2raytun", "Karing", "OneXray", "Throne"}),
-            ("linux", {"Incy", "Karing", "OneXray", "Throne"}),
-        ):
-            with self.subTest(platform=platform):
-                call = SimpleNamespace(
-                    data=f"client:onboard:{platform}",
-                    from_user=SimpleNamespace(id=42),
-                    message=SimpleNamespace(chat=SimpleNamespace(id=42, type="private")),
-                    answer=AsyncMock(), bot=SimpleNamespace(send_photo=AsyncMock()),
-                )
-                with patch.object(ui, "guard_callback", new=AsyncMock(return_value=True)), \
-                     patch.object(ui, "render_callback", new=AsyncMock()) as render:
-                    await ui.onboarding_platform_cb(call)
-                markup = render.await_args.kwargs["reply_markup"]
-                apps = {button.text.split(" · ")[0].removeprefix("🔗 ")
-                        for row in markup.inline_keyboard for button in row
-                        if button.text.startswith("🔗 ")}
-                self.assertEqual(apps, expected)
-                self.assertTrue(any(button.callback_data ==
-                                    f"client:onboard:{platform}:manual"
-                                    for row in markup.inline_keyboard for button in row))
-                self.assertTrue(all("https://" not in (button.callback_data or "")
-                                    for row in markup.inline_keyboard for button in row))
-
     def test_malformed_or_secret_ambiguous_url_falls_back(self):
         candidates = (
             None, "", "http://sub.example.invalid/a",
@@ -130,6 +103,33 @@ class ImportURI473Tests(unittest.TestCase):
 
 
 class ImportUI473Tests(unittest.IsolatedAsyncioTestCase):
+    async def test_windows_linux_menu_only_shows_compatible_apps(self):
+        import client_access as ui
+        for platform, expected in (
+            ("windows", {"Incy", "v2raytun", "Karing", "OneXray", "Throne"}),
+            ("linux", {"Incy", "Karing", "OneXray", "Throne"}),
+        ):
+            with self.subTest(platform=platform):
+                call = SimpleNamespace(
+                    data=f"client:onboard:{platform}",
+                    from_user=SimpleNamespace(id=42),
+                    message=SimpleNamespace(chat=SimpleNamespace(id=42, type="private")),
+                    answer=AsyncMock(), bot=SimpleNamespace(send_photo=AsyncMock()),
+                )
+                with patch.object(ui, "guard_callback", new=AsyncMock(return_value=True)), \
+                     patch.object(ui, "render_callback", new=AsyncMock()) as render:
+                    await ui.onboarding_platform_cb(call)
+                markup = render.await_args.kwargs["reply_markup"]
+                apps = {button.text.split(" · ")[0].removeprefix("🔗 ")
+                        for row in markup.inline_keyboard for button in row
+                        if button.text.startswith("🔗 ")}
+                self.assertEqual(apps, expected)
+                self.assertTrue(any(button.callback_data ==
+                                    f"client:onboard:{platform}:manual"
+                                    for row in markup.inline_keyboard for button in row))
+                self.assertTrue(all("https://" not in (button.callback_data or "")
+                                    for row in markup.inline_keyboard for button in row))
+
     def _call(self, data, *, chat_id=42, chat_type="private"):
         return SimpleNamespace(
             data=data, from_user=SimpleNamespace(id=42), answer=AsyncMock(),
