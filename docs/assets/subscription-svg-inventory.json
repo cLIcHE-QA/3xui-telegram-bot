@@ -2,17 +2,16 @@
   "schema_version": 1,
   "decision_issue": 887,
   "collection": "Операторский экспорт Remnawave svgLibrary",
-  "source_json_sha256": "eaa14d5522bccd0fa5f9cc2decb07912416b0b52d3b33d6892c4a97e6e91f64d",
+  "source_json_sha256": "26101eb3ed72de8af4a4a4cecb87298309ad37746e311912efcbbe9fc41ca8ef",
   "totals": {
-    "all": 38,
-    "vpn_client": 25,
+    "all": 39,
+    "vpn_client": 26,
     "platform": 5,
     "ui": 8
   },
-  "notes": "Только inventory ключей и SHA-256 prefixes. SVG-байты не публикуются до security/license/trademark review. SHA-prefix служит индикатором, а не криптографическим доказательством.",
+  "notes": "38 SVG из исходного экспорта Remnawave плюс предоставленный отдельно RabbitHole; INCY будет нарисован позже. SVG-байты в PR не публикуются. Проверки прав и production acceptance PENDING.",
   "missing_keys": [
-    "INCY",
-    "RabbitHole"
+    "INCY"
   ],
   "assets": [
     {
@@ -394,6 +393,18 @@
       "license": "pending",
       "trademark": "pending",
       "runtime": "do_not_ship_until_review"
+    },
+    {
+      "key": "RabbitHole",
+      "category": "vpn_client",
+      "sha256_prefix": "61ce2f40ce0f094a",
+      "sha256": "61ce2f40ce0f094a144b7e5a73cb6d282598b59be36085df2aa9eae730e046f2",
+      "source": "user supplied inline SVG 2026-10-23 (not included in original Remnawave export)",
+      "svg_xml": "basic_static_check_pass",
+      "license": "pending",
+      "trademark": "pending",
+      "runtime": "do_not_ship_until_review"
     }
-  ]
+  ],
+  "original_export_json_sha256": "eaa14d5522bccd0fa5f9cc2decb07912416b0b52d3b33d6892c4a97e6e91f64d"
 }
