@@ -274,7 +274,7 @@ Streisand не передаёт совместимый `X-HWID` в raw subscript
 - для raw/machine subscription преобразует 3x-ui AmneziaWG `vpn://` в `amneziawg://`;
 - сохраняет штатное HTML-представление 3x-ui;
 - проксирует assets встроенной subscription page через `/compat/assets/`;
-- содержит отдельный короткоживущий HTTPS handoff `/compat/open/{ticket}` для Telegram Client Portal: одноразовый opaque ticket вместо bearer URL в inline-кнопке; защищённая страница предлагает вручную открыть import URI поддерживаемого клиента, Copy/QR fallback остаётся;
+- содержит отдельный короткоживущий HTTPS handoff `/compat/open/{ticket}` для Telegram Client Portal: одноразовый opaque ticket вместо bearer URL в inline-кнопке; защищённая страница пробует auto-open import URI и даёт кнопку ручного повтора для WebView fallback, Copy/QR fallback остаётся;
 - применяет ограниченную Shadowrocket compatibility только к соответствующим VLESS/XHTTP/Reality links;
 - для Happ requests явно пропускает upstream `Routing` / `Routing-Enable`, не раскрывая эти client-specific headers INCY или generic clients.
 
