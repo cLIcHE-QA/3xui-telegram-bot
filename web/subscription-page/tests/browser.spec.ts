@@ -211,3 +211,14 @@ test("смысловые плитки подписки: план неизвес�
  await page.getByTestId("subscription-layout").locator('button[data-value="cards"]').click();
  await expect(v.locator(".subscription-info-grid .mantine-Card-root")).toHaveCount(4);
 });
+
+test("локальная SVG-библиотека: безопасный значок и отказ от вредоносного содержимого",async({page})=>{
+  const external:string[]=[];page.on("request",r=>{if(new URL(r.url()).origin!=="http://127.0.0.1:4173")external.push(r.url())});
+  await page.goto("/");
+  const valid='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#29baff"/></svg>';
+  const bad='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><script>alert(1)</script></svg>';
+  await page.getByLabel("Импортировать SVG-библиотеку").setInputFiles({name:"svg-library.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify({svgLibrary:{TestIcon:valid,BadIcon:bad}}))});
+  await expect(page.getByRole("status")).toContainText("1 безопасных");
+  await expect(page.getByRole("button",{name:"Получить ссылку"})).toBeDisabled();
+  expect(external).toEqual([]);
+});
