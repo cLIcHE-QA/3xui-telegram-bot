@@ -67,7 +67,7 @@ class ImportURI473Tests(unittest.TestCase):
             + "?remark=Clich%C3%A9%20VPN",
         )
         self.assertFalse(import_uri("shadowrocket", "ios", URL).endswith("remark=VPN"))
-        self.assertIsNone(safe_import_title("bad\nname"))
+        self.assertIsNone(safe_import_title(("bad" + chr(10) + "name")))
         self.assertIsNone(safe_import_title("a" * 65))
 
     def test_security_matrix_all_supported_schemes_fail_closed(self):
