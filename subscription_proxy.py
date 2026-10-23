@@ -9,6 +9,7 @@ from urllib.parse import parse_qsl, quote, urlencode, urljoin, urlsplit, urlunsp
 
 import aiohttp
 from aiohttp import web
+from client_import_handoff import consume_handoff, handoff_html
 
 
 LOG = logging.getLogger(__name__)
@@ -617,6 +618,27 @@ class SubscriptionProxy:
         headers["Content-Type"] = "text/plain; charset=utf-8"
         return web.Response(body=body, headers=headers)
 
+    async def handoff(self, request: web.Request) -> web.Response:
+        """One-time browser handoff; never fetches provider or follows redirects."""
+        ticket = consume_handoff(request.match_info.get("ticket", ""))
+        if ticket is None:
+            raise web.HTTPNotFound()
+        client, uri = ticket
+        return web.Response(
+            text=handoff_html(client, uri),
+            content_type="text/html", charset="utf-8",
+            headers={
+                "Cache-Control": "no-store, private",
+                "Referrer-Policy": "no-referrer",
+                "X-Content-Type-Options": "nosniff",
+                "X-Frame-Options": "DENY",
+                "Content-Security-Policy": (
+                    "default-src 'none'; style-src 'unsafe-inline'; "
+                    "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+                ),
+            },
+        )
+
     async def asset(self, request: web.Request) -> web.Response:
         tail = request.match_info.get("tail", "").lstrip("/")
         if not tail or any(part == ".." for part in tail.split("/")):
@@ -669,6 +691,7 @@ class SubscriptionProxy:
             )
         # Register assets before /compat/{sub_id}.
         app.router.add_get("/compat/assets/{tail:.*}", self.asset)
+        app.router.add_get("/compat/open/{ticket}", self.handoff)
         app.router.add_get("/compat/{sub_id}", self.subscription)
         # /compat/{sub_id} carries a bearer-like subscription credential in the URI.
         # Never let aiohttp's raw access logger persist that path.
