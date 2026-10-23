@@ -15,7 +15,7 @@
 
 ОС → клиент: Happ и Shadowrocket доступны на macOS (Apple); Shadowrocket не предлагается на Android. V2Box/Karing используют безопасный динамический `subTitle` в `name`, OneXray — в fragment, Throne — в Base64 payload; при отсутствии валидного title для обязательного `name` применяется URL/QR fallback. Отображение не утверждает live PASS неподтверждённых версий.
 
-После выбора платформы показывается выбор клиента и ручной fallback. Custom import URI только через private-owner CopyTextButton или локальный QR; токен не попадает в callback_data, URL-кнопку Telegram, логи, redirect или внешний QR API. Unsupported client/URL/length -> ручной HTTPS URL/QR и честная инструкция без обещания VPN-соединения. Матрица и проверка версий — docs/CLIENT_SETUP.md; админка не меняется.
+После выбора платформы показывается выбор клиента и ручной fallback. Для подтверждённого безопасного URI и корректного HTTPS `COMPAT_SUBSCRIPTION_URL_TEMPLATE` дополнительно показывается «🚀 Открыть в <клиент>» через короткоживущую одноразовую страницу `/compat/open/{ticket}`; кнопка не содержит raw `sub_id`. Страница делает best-effort auto-open по загрузке и сохраняет отдельную кнопку ручного запуска, если WebView блокирует автоматический переход; бесшовный запуск приложения из Telegram не гарантирован. CopyTextButton/QR сохраняются при недоступном handoff. Custom import URI только через private-owner CopyTextButton, локальный QR или внутренний ephemeral HTTPS handoff без сторонних redirects; токен не попадает в callback_data, URL-кнопку Telegram, логи, redirect или внешний QR API. Unsupported client/URL/length -> ручной HTTPS URL/QR и честная инструкция без обещания VPN-соединения. Матрица и проверка версий — docs/CLIENT_SETUP.md; админка не меняется.
 
 
 

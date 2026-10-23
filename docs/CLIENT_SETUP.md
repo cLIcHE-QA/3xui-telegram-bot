@@ -4,7 +4,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18.10` SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.19` SHA `d738dd970f2215adc346a919c7ed182abaf454b1`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
 
 ## Client Portal: тарифы и платежные ограничения
 
@@ -27,7 +27,7 @@
 
 
 
-В личном чате: «Моя подписка» → «Подключить устройство» → платформа → клиент. Incy и v2raytun получают кандидатный URI для ручного импорта через CopyTextButton или локальный QR. Для неподдержанных приложений/URL есть обычные HTTPS URL/QR. Telegram inline URL-button не поддерживает custom схемы, поэтому external redirect/shortener не используется.
+В личном чате: «Моя подписка» → «Подключить устройство» → платформа → клиент. Кандидат #885: при корректном public HTTPS compatibility template и валидном import URI бот дополнительно показывает «🚀 Открыть в <клиент>». Это одноразовый link на локальную HTML handoff-страницу (`/compat/open/{ticket}`, TTL 90 секунд; память процесса, максимум 256 активных tickets). В Telegram URL нет bearer `sub_id`; на странице есть best-effort автоматическая попытка открытия custom URI и отдельная кнопка повтора, т. к. WebView может блокировать автоматический переход. Ссылку не пересылать: она временно открывает доступ к URI подписки. При истечении времени, перезапуске контейнера или повторном посещении нужен новый переход из Telegram. CopyTextButton и QR остаются fallback; полноценный one-tap в конкретных клиентах не подтверждён. Production deployment и device acceptance #885 PENDING. Incy и v2raytun получают кандидатный URI для ручного импорта через CopyTextButton или локальный QR. Для неподдержанных приложений/URL есть обычные HTTPS URL/QR. Telegram inline URL-button не поддерживает custom схемы, поэтому external redirect/shortener не используется.
 
 | Приложение | Платформы в меню (candidate) | Название группы | Совместимость |
 | --- | --- | --- | --- |
