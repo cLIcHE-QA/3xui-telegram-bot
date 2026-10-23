@@ -22,7 +22,7 @@ def safe_import_title(value: object) -> str | None:
     if not isinstance(value, str):
         return None
     title = value.strip()
-    if not title or len(title) > 64:
+    if title != value or not title or len(title) > 64:
         return None
     if any(
         unicodedata.category(char) in {"Cc", "Cf", "Cs", "Zl", "Zp"}
@@ -63,5 +63,5 @@ async def fetch_import_title(sub_id: object, *, proxy_port: int) -> str | None:
                 if not isinstance(info, dict):
                     return None
                 return safe_import_title(info.get("subTitle"))
-    except (aiohttp.ClientError, asyncio.TimeoutError, UnicodeError, ValueError):
+    except (aiohttp.ClientError, asyncio.TimeoutError, UnicodeError, ValueError, TypeError):
         return None
