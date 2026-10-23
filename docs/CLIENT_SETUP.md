@@ -40,6 +40,18 @@
 | OneXray | iOS, Android, Windows, macOS, Linux | `#<encoded subTitle>` | candidate; версии и импорт PENDING |
 | Throne | Android, Windows, macOS, Linux | Base64(`URL#subTitle`) | candidate; версии и импорт PENDING |
 
+### Полная матрица меню «Подключить устройство» — пять платформ
+
+| ОС | Кандидаты client-specific import URI | Резерв |
+| --- | --- | --- |
+| iOS | Incy, v2raytun, Happ, V2Box, Shadowrocket, Karing, OneXray | Обычный URL/QR |
+| Android | Incy, v2raytun, Happ, V2Box, Karing, OneXray, Throne | Обычный URL/QR |
+| Windows | Incy, v2raytun, Karing, OneXray, Throne | Обычный URL/QR |
+| macOS | Incy, v2raytun, Happ, Shadowrocket, Karing, OneXray, Throne | Обычный URL/QR |
+| Linux | Incy, Karing, OneXray, Throne | Обычный URL/QR |
+
+Кнопки **Windows** и **Linux** и фильтрация по ОС присутствуют в PR #882. Desktop-сценарии (особенно Windows/Linux) являются **candidate-only**, не live PASS: нужны отдельные client/version/build/import/refresh smoke, установка приложения на конкретной ОС не установлена по одному только наличию URI. На Linux инструкция запрещает подставлять bearer URL в shell history. Несовместимые клиенты не отображаются в списке платформы; «Другой клиент» сохраняет ручной URL/QR. Фактический deployed bot end-to-end PENDING.
+
 **Имя и fallback:** `subTitle` читается только после private-owner/pilot/rate guards через read-only local `/compat/{sub_id}?format=info`; ограничение длины, Unicode control/bidi и URL encoding. V2Box/Karing при отсутствии безопасного имени используют обычный URL/QR вместо `name=VPN`, Shadowrocket/OneXray/Throne не подставляют выдуманное имя. URI длиннее 256 символов → manual URL/QR. Это **не** подтверждение import у новых клиентов. Источник V2Box/Shadowrocket/Happ: upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`; форматы Karing/OneXray/Throne — соответствующая документация проектов. Happ/macOS и Shadowrocket/macOS — scoped отчёт пользователя; Shadowrocket/Android в меню отсутствует.
 
 **Адресная ручная проверка 2026-10-23 13:38 UTC+03:00:** [операторский аудит 4/4](audits/2026-10-23-client-import-473-operator-smoke.md) подтверждает **по сообщению пользователя** успешный импорт URI Incy 2.6.4 и v2raytun 2.4.7 на iOS 26.5.1 (23F81) и Android 17. Это не независимый device read-back и не тест обновлённого Client Portal после release/deploy; PR #882 остаётся draft, security review и bot end-to-end PENDING. Никаких URL/ключей не сохранено.
