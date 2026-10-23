@@ -68,7 +68,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.18.10` исходный native API contract pinned к 3x-ui `v3.10.2`; **Pinned supported 3x-ui для текущего `main`: `v3.10.2`**. Сверяйте этот контракт с [3x-ui OpenAPI](3XUI_OPENAPI_CONTRACT.md) и [current manifest](../contracts/3xui/contract.json), а реальную версию каждой панели Master/direct node — отдельно при preflight. Совпадение контрактного API не доказывает rollout, VPS upgrade, совместимость Xray data plane или acceptance. Для upstream upgrade требуются самостоятельные backup, TLS/CA, systemd, routing, staging и targeted verification; source старой длинной rc.9–rc.16 сводки сохранён в immutable snapshot выше.
+Для bot release `v5.0.0-rc.19` исходный native API contract pinned к 3x-ui `v3.10.2`; **Pinned supported 3x-ui для текущего `main`: `v3.10.2`**. Сверяйте этот контракт с [3x-ui OpenAPI](3XUI_OPENAPI_CONTRACT.md) и [current manifest](../contracts/3xui/contract.json), а реальную версию каждой панели Master/direct node — отдельно при preflight. Совпадение контрактного API не доказывает rollout, VPS upgrade, совместимость Xray data plane или acceptance. Для upstream upgrade требуются самостоятельные backup, TLS/CA, systemd, routing, staging и targeted verification; source старой длинной rc.9–rc.16 сводки сохранён в immutable snapshot выше.
 
 ## 2. Базовая подготовка Master VPS
 
