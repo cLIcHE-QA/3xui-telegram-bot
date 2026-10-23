@@ -60,7 +60,7 @@ function App() {
   const [operatorIcons,setOperatorIcons] = useState<Record<string,string>>({});
   const [iconMessage,setIconMessage] = useState("");
   const svgLibrary = {...operatorIcons,...((data as ExportConfig & {svgLibrary?:Record<string,string>}).svgLibrary??{})};
-  const [assetInvalid,setAssetInvalid] = useState(0);
+
   const selected = data.platforms[platform]?.apps[client];
   function openLocalFile(file: File | null) {
     if (!file) return;
@@ -72,7 +72,7 @@ function App() {
   }
   function importSvgLibrary(file:File|null){
     if(!file)return;
-    file.text().then(raw=>{try{const parsed=parseLocalSvgLibrary(raw);setOperatorIcons(parsed);setAssetInvalid(0);setIconMessage("SVG: "+Object.keys(parsed).length+" безопасных изображений загружено локально");}catch{setAssetInvalid(1);setIconMessage("SVG: файл отклонён проверкой");}}).catch(()=>setIconMessage("SVG: ошибка чтения файла"));
+    file.text().then(raw=>{try{const parsed=parseLocalSvgLibrary(raw);setOperatorIcons(parsed);setIconMessage("SVG: "+Object.keys(parsed).length+" безопасных изображений загружено локально");}catch{setIconMessage("SVG: файл отклонён проверкой");}}).catch(()=>setIconMessage("SVG: ошибка чтения файла"));
   }
   const ui:Record<string,Record<string,string>>={
     ru:{hero:"Безопасный интернет.",hero2:"Без лишних сложностей.",lead:"Ваше подключение — под контролем. Выберите устройство и следуйте простым шагам.",preview:"Демонстрационный режим",subscription:"Моя подписка",status:"Статус",noData:"Нет данных",traffic:"Трафик",expires:"Срок действия",connect:"Подключить VPN",device:"Выберите устройство",application:"Выберите приложение",steps:"Следуйте инструкции",safe:"Безопасный предпросмотр",safeDesc:"Никакие реальные подписки и ключи не выдаются. Всё работает локально в браузере.",import:"Импортировать настройки",noClients:"Для этой платформы нет настроенных клиентов.",hide:"Блок подписки скрыт настройкой предпросмотра.",keys:"Ключи не выдаются в режиме предпросмотра",footer:"Демонстрационная версия · Без выдачи ключей и реальных подписок"},
