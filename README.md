@@ -3,7 +3,7 @@
 > **Published:** GitHub Release `v5.0.0-rc.19` подтверждён 2026-10-23T13:55:49Z; VPS Deployed `v5.0.0-rc.18.10` (operator-reported); post-deploy acceptance #473/#497 PENDING, G-11 PARTIAL/NO-GO.
 
 
-**Последний подтверждённый Published до rc.19: `v5.0.0-rc.18.10` (2026-10-22T13:27:26Z):** [PR #864](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/864) и [PR #865](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/865) MERGED, SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported, HWID 23/23 targeted scoped PASS ([audit](docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)), G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+**Предыдущий Published до rc.19: `v5.0.0-rc.18.10` (2026-10-22T13:27:26Z; исторический checkpoint):** [PR #864](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/864) и [PR #865](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/865) MERGED, SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported, HWID 23/23 targeted scoped PASS ([audit](docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)), G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 **Предыдущий GitHub Published `v5.0.0-rc.18.9` (Deployed/Accepted PENDING):** [PR #861](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/861) MERGED; [release PR #862](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/862) MERGED, tag SHA `7a4ff6be9a6836a2a58547c20b1c916ddea8d88e`, 2026-10-22T11:53:55Z. #834 keep_open до live targeted verification, public rollout BLOCKED.
 
