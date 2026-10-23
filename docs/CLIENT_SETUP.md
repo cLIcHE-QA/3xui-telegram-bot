@@ -15,6 +15,8 @@
 
 ## #473 — импорт подписки (кандидат rc.19, не Published)
 
+**Наблюдение 2026-10-23:** оператор сообщил успешный импорт Happ и Shadowrocket на iOS, Android, macOS; фактические версии приложений и применимость Shadowrocket к Android/macOS требуют уточнения. Скриншот показывает шесть серверов и заголовок VPN в Shadowrocket. Root cause в PR #882 — фиксированный `remark=VPN`; исправлено чтением `subTitle` через read-only локальный `/compat/{sub_id}?format=info`, ограниченная проверка строки и percent-encoding. Если metadata недоступна, фиктивное имя не подставляется. Исправление имени пока не проходило повторный device smoke, Issue #473 keep_open.
+
 **Happ / Shadowrocket test gate:** схема Happ `happ://add/<HTTPS URL>` для iOS/Android и Shadowrocket `shadowrocket://add/sub://<base64(HTTPS URL + ?flag=shadowrocket)>?remark=VPN` для iOS сверены с upstream `MHSanaei/3x-ui/frontend/src/pages/sub/subPageModel.ts`. На устройствах ещё PENDING. Для остальных candidate URI тоже required client/version-specific smoke; статус PASS не присваивать по CI. Incy 2.6.4/macOS имеет отдельный operator-reported PASS ([audit](audits/2026-10-23-client-import-473-macos-incy-version-clarification.md)).
 
 
