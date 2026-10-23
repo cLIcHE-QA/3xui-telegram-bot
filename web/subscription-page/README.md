@@ -123,3 +123,24 @@ Security `audit` Python-зависимостей Pillow/certifi — отдель
 не подавляется и не считается PASS. #887 keep_open (D1a продолжается,
 D1b/D2/D3 остаются), Roadmap в `main` SYNC PENDING. Merge/Release/deployment
 не выполняются.
+
+## D1a — визуальный мастер подключения и полноэкранный smoke (2026-10-23)
+
+После **подтверждённого PASS 8/8** на SHA `9e53586a5b2b01bdf2b48ee8b347ed5db7ebe303`
+([Actions 40021764054](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40021764054))
+реализован отдельный `ConnectionGuide.tsx`. Режимы `cards/timeline/accordion/minimal`
+получили индивидуальную композицию, явную нумерацию шагов, состояние «нет инструкций»
+и нейтральные иконки Tabler. Все кнопки, содержащие реальные JSON URLs, **disabled**;
+никакого открытия URI, копирования bearer-токена или обращения к внешнему CDN нет.
+
+Для визуальной проверки добавлены `fullPage: true` attachments для всех 4 режимов,
+пустого Android и четырёх синтетических состояний подписки, отдельно desktop/mobile.
+Это дополнение к 8 предыдущим smoke-тестам, не свидетельство реальных клиентских
+подключений или WebView/Telegram Mini App. Предыдущий артефакт
+`d1a-browser-smoke` (ID `12531265902`) содержал лишь 8 **viewport** PNG:
+они проверены, но не позволяют видеть нижнюю часть страницы. На новом SHA
+**build / smoke / screenshots PENDING** до фактического CI и read-back.
+
+#887 `keep_open`; #890 security `audit` (Pillow/certifi) `keep_open`.
+`package-lock.json` в Git, строгий `npm ci` PASS на SHA `9e53586a`.
+Roadmap в `main` — SYNC PENDING, D1a PARTIAL/PENDING, merge/release/deploy не выполняются.
