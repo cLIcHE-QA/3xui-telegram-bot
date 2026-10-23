@@ -26,6 +26,46 @@ class ImportURI473Tests(unittest.TestCase):
                     self.assertEqual(uri, spec.prefix + payload + suffix)
                     self.assertLessEqual(len(uri), 256)
 
+    def test_full_os_matrix_includes_windows_and_linux(self):
+        expected = {
+            "ios": {"incy", "v2raytun", "happ", "v2box", "shadowrocket", "karing", "onexray"},
+            "android": {"incy", "v2raytun", "happ", "v2box", "karing", "onexray", "throne"},
+            "windows": {"incy", "v2raytun", "karing", "onexray", "throne"},
+            "macos": {"incy", "v2raytun", "happ", "shadowrocket", "karing", "onexray", "throne"},
+            "linux": {"incy", "karing", "onexray", "throne"},
+        }
+        for platform, apps in expected.items():
+            actual = {app for app, spec in IMPORT_CLIENTS.items()
+                      if platform in spec.platforms}
+            self.assertEqual(actual, apps, platform)
+
+    async def test_windows_linux_menu_only_shows_compatible_apps(self):
+        import client_access as ui
+        for platform, expected in (
+            ("windows", {"Incy", "v2raytun", "Karing", "OneXray", "Throne"}),
+            ("linux", {"Incy", "Karing", "OneXray", "Throne"}),
+        ):
+            with self.subTest(platform=platform):
+                call = SimpleNamespace(
+                    data=f"client:onboard:{platform}",
+                    from_user=SimpleNamespace(id=42),
+                    message=SimpleNamespace(chat=SimpleNamespace(id=42, type="private")),
+                    answer=AsyncMock(), bot=SimpleNamespace(send_photo=AsyncMock()),
+                )
+                with patch.object(ui, "guard_callback", new=AsyncMock(return_value=True)), \
+                     patch.object(ui, "render_callback", new=AsyncMock()) as render:
+                    await ui.onboarding_platform_cb(call)
+                markup = render.await_args.kwargs["reply_markup"]
+                apps = {button.text.split(" · ")[0].removeprefix("🔗 ")
+                        for row in markup.inline_keyboard for button in row
+                        if button.text.startswith("🔗 ")}
+                self.assertEqual(apps, expected)
+                self.assertTrue(any(button.callback_data ==
+                                    f"client:onboard:{platform}:manual"
+                                    for row in markup.inline_keyboard for button in row))
+                self.assertTrue(all("https://" not in (button.callback_data or "")
+                                    for row in markup.inline_keyboard for button in row))
+
     def test_malformed_or_secret_ambiguous_url_falls_back(self):
         candidates = (
             None, "", "http://sub.example.invalid/a",
