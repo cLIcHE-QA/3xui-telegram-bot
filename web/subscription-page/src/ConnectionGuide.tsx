@@ -52,7 +52,7 @@ export function ConnectionGuide({ steps, mode, lang, t, clientName }: Props) {
         </Accordion.Item>)}
       </Accordion>
     ) : (
-      <div className={"guide-step-grid " + (mode === "timeline" ? "timeline-list" : mode === "minimal" ? "minimal-list" : "cards-list")}>
+      <div className={"guide-step-grid guide-" + mode}>
         {steps.map((step,i) => <Card key={i} className="guide-step" padding={mode === "minimal" ? "sm" : "lg"} radius="lg" withBorder={mode !== "minimal"}>
           <div className="guide-step-top">
             <span className="guide-index">{String(i + 1).padStart(2,"0")}</span>
