@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-10-23",
+  "related_issue": 887,
+  "review_scope": "Обезличенный структурный inventory для D0 #887; экспорт содержит неаудированные внешние URL и SVG, сырой JSON не коммитить.",
+  "source": {
+    "kind": "operator-provided Remnawave Subscription Page JSON export",
+    "config_version": "1",
+    "sha256": "acc2a517287832fcf7e42d7482eceea55bdc2b6b670a6e5b3bab23680f323244",
+    "raw_file_committed": false,
+    "content_or_urls_committed": false
+  },
+  "configuration_structure": {
+    "root_fields": [
+      "locales",
+      "version",
+      "uiConfig",
+      "platforms",
+      "svgLibrary",
+      "baseSettings",
+      "baseTranslations",
+      "brandingSettings"
+    ],
+    "branding_fields": [
+      "title",
+      "logoUrl",
+      "supportUrl"
+    ],
+    "base_settings_fields": [
+      "metaTitle",
+      "metaDescription",
+      "hideGetLinkButton",
+      "showConnectionKeys"
+    ],
+    "base_settings_selection": {
+      "hideGetLinkButton": false,
+      "showConnectionKeys": false
+    },
+    "ui_config_selection": {
+      "subscriptionInfoBlockType": "expanded",
+      "installationGuidesBlockType": "cards"
+    },
+    "enabled_locales": [
+      "en",
+      "ru",
+      "zh",
+      "fa",
+      "fr"
+    ],
+    "base_translation_keys": 20,
+    "base_translation_complete_per_language": true,
+    "app_step_text_complete_per_language": true,
+    "svg_count_in_original_export": 38,
+    "svg_count_with_operator_added_RabbitHole": 39,
+    "INCY_in_library": false
+  },
+  "platforms": {
+    "ios": {
+      "app_slots": 4
+    },
+    "linux": {
+      "app_slots": 3
+    },
+    "macos": {
+      "app_slots": 4
+    },
+    "android": {
+      "app_slots": 4
+    },
+    "appleTV": {
+      "app_slots": 3
+    },
+    "windows": {
+      "app_slots": 4
+    },
+    "androidTV": {
+      "app_slots": 2
+    }
+  },
+  "app_slots_total": 24,
+  "unique_app_names": [
+    "Clash Meta",
+    "FlClashX",
+    "Happ",
+    "Koala Clash",
+    "Prizrak-Box",
+    "Shadowrocket",
+    "Stash",
+    "Streisand",
+    "v2rayNG",
+    "vpn4tv"
+  ],
+  "featured_app_slots": 10,
+  "instruction_blocks_total": 92,
+  "instruction_buttons_total": 75,
+  "button_types_used_by_this_export": {
+    "external": 51,
+    "subscriptionLink": 24,
+    "copyButton": 0
+  },
+  "upstream_supported_beyond_current_export": {
+    "subscription_info_layouts": [
+      "expanded",
+      "collapsed",
+      "cards",
+      "hidden"
+    ],
+    "installation_guide_layouts": [
+      "cards",
+      "timeline",
+      "accordion",
+      "minimal"
+    ],
+    "additional_button_type": "copyButton",
+    "config_import_modes": [
+      "full",
+      "baseTranslations",
+      "platforms",
+      "svgLibrary"
+    ]
+  },
+  "security": "No personal subscription links, external install URLs, instruction body texts, raw SVG, auth/session tokens, panel credentials or full export stored here. All imported links, per-client URL schemes and SVG rights require independent review before production."
+}
