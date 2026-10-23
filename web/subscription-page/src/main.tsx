@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { MantineProvider, Container, Title, Text, Card, Tabs, Stack, Group, Badge, Select, Button, SegmentedControl, Divider } from "@mantine/core";
+import { MantineProvider, Container, Title, Text, Card, Tabs, Stack, Group, Badge, Select, Button, SegmentedControl, Divider, Accordion, Alert } from "@mantine/core";
 import "@mantine/core/styles.css";
-import { parsePageConfig } from "./model";
+import { parsePageConfig, summary } from "./model";
 import "./style.css";
 
 type Localized = Record<string, string>;
@@ -38,44 +38,48 @@ function App() {
   const [platform,setPlatform] = useState(platforms[0] || "ios");
   const [client,setClient] = useState(0);
   const [view,setView] = useState("cards");
+  const [info,setInfo] = useState("expanded");
+  const [error,setError] = useState("");
+  const [imported,setImported] = useState(false);
   const selected = data.platforms[platform]?.apps[client];
   function openLocalFile(file: File | null) {
     if (!file || file.size > 1024*1024) return;
     file.text().then(raw => {try {
       const cfg: ExportConfig = parsePageConfig(raw);
-      setData(cfg);setLang(cfg.locales.includes("ru")?"ru":cfg.locales[0]);setPlatform(Object.keys(cfg.platforms)[0]);setClient(0);
-    } catch { alert("Неверный формат локальной конфигурации"); }});
+      setData(cfg);setLang(cfg.locales.includes("ru")?"ru":cfg.locales[0]);setPlatform(Object.keys(cfg.platforms)[0]);setClient(0);setView(cfg.uiConfig.installationGuidesBlockType);setInfo(cfg.uiConfig.subscriptionInfoBlockType);setImported(true);setError("");
+    } catch { setError("Неверный формат локальной конфигурации"); }});
   }
   return <MantineProvider defaultColorScheme="dark">
-    <Container size="lg" py="xl">
+    <div dir={lang==="fa"?"rtl":"ltr"}><Container size="lg" py="xl">
       <Stack gap="xl">
         <Group justify="space-between" align="start">
           <div><Title order={2}>{data.brandingSettings?.title || "Subscription"}</Title><Text c="dimmed">Демонстрационная страница — без данных подписки · импорт из локального JSON, без сети</Text></div>
           <Select aria-label="Language" value={lang} onChange={x=>setLang(x||"ru")} data={data.locales.map(x=>({value:x,label:x.toUpperCase()}))} w={100} />
         </Group>
-        <Card withBorder radius="lg" padding="lg">
+        <Group justify="space-between"><Title order={4}>Моя подписка</Title><SegmentedControl value={info} onChange={setInfo} size="xs" data={["expanded","collapsed","cards","hidden"]}/></Group>
+        {info==="hidden" ? <Text c="dimmed">Блок скрыт настройкой</Text> : <Card withBorder radius="lg" padding="lg">
           <Group justify="space-between"><Title order={4}>Моя подписка</Title><Badge color="gray">Нет данных</Badge></Group>
-          <Text c="dimmed" size="sm" mt="sm">Статус, трафик и ключи появятся после защищённого подключения к Python backend. Сейчас показываются только демонстрационные данные.</Text>
-        </Card>
+          {info!=="collapsed"&&<Text c="dimmed" size="sm" mt="sm">Статус — · Трафик — · Срок —</Text>}
+          {!data.baseSettings.hideGetLinkButton&&<Button mt="md" disabled variant="light">Get Link</Button>}
+          {data.baseSettings.showConnectionKeys&&<Alert color="yellow" mt="md">Ключи не выдаются в режиме предпросмотра</Alert>}
+        </Card>}
         <Card withBorder radius="lg" padding="lg">
           <Stack>
             <Group justify="space-between"><Title order={3}>Установка VPN</Title><SegmentedControl data={["cards","timeline","accordion","minimal"].map(x=>({label:x,value:x}))} size="xs" value={view} onChange={setView}/></Group>
             <Tabs value={platform} onChange={x=>{if(x){setPlatform(x);setClient(0);}}}>
-              <Tabs.List>{platforms.map(x=><Tabs.Tab key={x} value={x}>{platformNames[x]||x}</Tabs.Tab>)}</Tabs.List>
+              <Tabs.List>{platforms.map(x=><Tabs.Tab key={x} value={x}>{languageText(data.platforms[x]?.displayName,lang)||platformNames[x]||x}</Tabs.Tab>)}</Tabs.List>
             </Tabs>
             <Group>{data.platforms[platform]?.apps.map((a,i)=><Button key={i} color={i===client?"teal":"gray"} variant={i===client?"filled":"light"} onClick={()=>setClient(i)}>{a.name}{a.featured?" ★":""}</Button>)}</Group>
-            {selected ? <Stack>{selected.blocks.map((bl,i)=><Card key={i} radius="md" className="step-card" withBorder>
-              <Group justify="space-between"><Title order={5}>{i+1}. {languageText(bl.title,lang)}</Title><Badge variant="outline">{view}</Badge></Group>
-              <Text mt="sm">{languageText(bl.description,lang)}</Text>
-              {bl.buttons?.length>0 && <Group mt="md">{bl.buttons.map((bt,j)=><Button key={j} disabled title="Безопасный демонстрационный режим: внешние ссылки и глубокий импорт отключены">{languageText(bt.text,lang)}</Button>)}</Group>}
-            </Card>)}</Stack>:<Text c="dimmed">Для этой платформы нет настроенных клиентов.</Text>}
+            {selected ? (view==="accordion" ? <Accordion multiple variant="separated">{selected.blocks.map((bl,i)=><Accordion.Item key={i} value={String(i)}><Accordion.Control>{i+1}. {languageText(bl.title,lang)}</Accordion.Control><Accordion.Panel><Text className="step-text">{languageText(bl.description,lang)}</Text><Group mt="md">{bl.buttons?.map((bt,j)=><Button key={j} disabled color="teal">{languageText(bt.text,lang)}</Button>)}</Group></Accordion.Panel></Accordion.Item>)}</Accordion> : <Stack className={view==="timeline"?"timeline-list":view==="minimal"?"minimal-list":""}>{selected.blocks.map((bl,i)=><Card key={i} radius="md" className="step-card" withBorder={view!=="minimal"}><Title order={5}>{i+1}. {languageText(bl.title,lang)}</Title><Text mt="sm" className="step-text">{languageText(bl.description,lang)}</Text><Group mt="md">{bl.buttons?.map((bt,j)=><Button key={j} disabled color="teal">{languageText(bt.text,lang)}</Button>)}</Group></Card>)}</Stack>) : <Text c="dimmed">Для этой платформы нет настроенных клиентов.</Text>}
           </Stack>
         </Card>
         <Divider />
+        {error&&<Alert color="red">{error}</Alert>}
+        {imported&&<Text c="teal">JSON загружен локально: {summary(data as any).blocks} шагов</Text>}
         <Text c="dimmed" size="xs">D1a local preview: внешние URL, импорт подписок, raw keys и админские функции отключены. Этот build не является клиентским кабинетом.</Text>
         <label className="file-pick">Открыть свой JSON локально (ничего не отправляется на сервер): <input type="file" accept=".json,application/json" onChange={e=>openLocalFile(e.target.files?.[0]||null)}/></label>
       </Stack>
-    </Container>
+    </Container></div>
   </MantineProvider>;
 }
 createRoot(document.getElementById("root")!).render(<React.StrictMode><App/></React.StrictMode>);
