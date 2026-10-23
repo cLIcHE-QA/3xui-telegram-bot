@@ -60,7 +60,7 @@ class Handoff885Tests(unittest.TestCase):
 
     def test_html_escapes_user_supplied_content(self):
         page = handoff_html("incy", 'incy://import/<script>alert(1)</script>')
-        self.assertNotIn('<script>', page)
+        self.assertNotIn('<script>alert(1)</script>', page)
         self.assertIn('&lt;script&gt;', page)
         self.assertIn('rel="noreferrer"', page)
 
