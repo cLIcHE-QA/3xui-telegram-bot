@@ -203,26 +203,6 @@ class EncryptedDrafts:
                                "ORDER BY revision DESC LIMIT 50").fetchall()
         return [dict(r) for r in rows]
 
-    def consume_totp_step(self, username: str, step: int) -> bool:
-        """Persist MFA anti-replay across server restarts and worker instances."""
-        if not isinstance(step, int) or step < 0:
-            raise ValueError("Invalid TOTP step")
-        # An IMMEDIATE SQLite transaction serializes competing workers.
-        with self.connect() as con:
-            con.execute("BEGIN IMMEDIATE")
-            row = con.execute(
-                "SELECT last_step FROM admin_totp_replay WHERE username = ?",
-                (username,)).fetchone()
-            if row is not None and row["last_step"] >= step:
-                con.rollback()
-                return False
-            con.execute(
-                "INSERT INTO admin_totp_replay(username, last_step) VALUES(?, ?) "
-                "ON CONFLICT(username) DO UPDATE SET last_step = excluded.last_step",
-                (username, step))
-            con.commit()
-        return True
-
     def issue_session(self, username: str, step: int, token_hash: str, csrf: str,
                       ttl: int, previous_hash: str | None = None) -> bool:
         """Atomically enforce TOTP replay, global capacity and session rotation.
@@ -230,6 +210,10 @@ class EncryptedDrafts:
         Cookie tokens never enter SQLite. CSRF is encrypted with the draft key.
         All instances using the same private SQLite share expiry and revocation.
         """
+        if not isinstance(step, int) or isinstance(step, bool) or step < 0:
+            raise ValueError("Invalid TOTP step")
+        if not 60 <= ttl <= 3600:
+            raise ValueError("Invalid session duration")
         now = time.time()
         encrypted_csrf = self.cipher.encrypt(csrf.encode("ascii"))
         with self.connect() as con:
