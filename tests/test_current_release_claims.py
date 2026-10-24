@@ -109,6 +109,12 @@ class CurrentReleaseClaimsTests(unittest.TestCase):
         self.change("CHANGELOG.md", f"GitHub Published `{tag}`",
                     f"GitHub Published `{other}`")
         self.assertEqual(semantics.current_release_claims_ok(self.root), [])
+        # Новая публикация без нового deployment не отменяет доказанный scoped PASS:
+        # общий "Deployed/Accepted PENDING" в текущем operator guide — ошибка.
+        self.change("docs/ADMIN_SETUP.md", f"Guide ориентирован на release {other}",
+                    f"Deployed/Accepted PENDING. Guide ориентирован на release {other}")
+        self.assertIn("ADMIN_SETUP: противоречивый текущий Published/Deployed/Accepted",
+                      semantics.current_release_claims_ok(self.root))
 
     def test_completed_issue_cannot_be_open_in_admin(self):
         decisions = json.loads((self.root / "docs/roadmap/issue-closure-decisions.json").read_text(encoding="utf-8"))
