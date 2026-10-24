@@ -12,6 +12,7 @@ import os
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from aiohttp.test_utils import TestClient, TestServer
@@ -85,6 +86,20 @@ class DraftStoreTests(unittest.TestCase):
         self.assertEqual(self.store.history()[0]["actor"], "alice")
         self.assertEqual(self.store.history()[0]["digest"], stored["digest"])
         self.assertNotIn("content", self.store.history()[0])
+
+    def test_totp_replay_ledger_persists_across_connections(self):
+        # Never persist an MFA secret/code; only account identity and used step.
+        other = EncryptedDrafts(self.path, self.key)
+        self.assertTrue(self.store.consume_totp_step("owner1", 1000))
+        self.assertFalse(other.consume_totp_step("owner1", 1000))
+        self.assertFalse(self.store.consume_totp_step("owner1", 999))
+        self.assertTrue(other.consume_totp_step("owner1", 1001))
+        self.assertTrue(self.store.consume_totp_step("editor1", 1000))
+        with sqlite3.connect(self.path) as db:
+            rows = db.execute(
+                "SELECT username,last_step FROM admin_totp_replay ORDER BY username"
+            ).fetchall()
+        self.assertEqual(rows, [("editor1", 1000), ("owner1", 1001)])
 
     def test_optimistic_lock_and_proposal_do_not_publish(self):
         doc = fixture()
@@ -294,6 +309,42 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
             json={"username": "owner1", "password": "strong-test-password", "otp": one_time_code},
             headers=self.origin)
         self.assertEqual(replay.status, 401)
+
+    async def test_mfa_replay_rejected_across_process_like_instances(self):
+        # A new aiohttp application with the same SQLite DB models a restart
+        # or a second worker, not merely another session in the same process.
+        otp = current_otp("owner1")
+        self.assertEqual((await self.login("owner1", otp=otp)).status, 200)
+        other_app = create_editor_app(
+            accounts=[AdminAccount(
+                "owner1", password_verifier("strong-test-password"),
+                "owner", TEST_MFA_B32["owner1"])],
+            db_path=Path(self.dir.name) / "drafts.sqlite3",
+            encryption_key=self.key,
+            https_origin="https://admin.example.test",
+            session_ttl=120)
+        async with TestClient(TestServer(other_app)) as other_client:
+            replay = await other_client.post(
+                self.url + "/session",
+                json={"username": "owner1", "password": "strong-test-password", "otp": otp},
+                headers=self.origin)
+            self.assertEqual(replay.status, 401)
+        # The durable record also rejects replay in the original instance.
+        again = await self.client.post(
+            self.url + "/session",
+            json={"username": "owner1", "password": "strong-test-password", "otp": otp},
+            headers=self.origin)
+        self.assertEqual(again.status, 401)
+
+    async def test_mfa_replay_storage_failure_fails_closed(self):
+        with patch.object(EncryptedDrafts, "consume_totp_step",
+                          side_effect=sqlite3.OperationalError("synthetic failure")):
+            response = await self.client.post(
+                self.url + "/session",
+                json={"username": "owner1", "password": "strong-test-password",
+                      "otp": current_otp("owner1")},
+                headers=self.origin)
+        self.assertEqual(response.status, 503)
 
     async def test_cross_host_authenticated_requests_fail(self):
         await self.login("viewer1")
