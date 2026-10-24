@@ -169,6 +169,9 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("default-src 'none'", r.headers.get("Content-Security-Policy", ""))
         r = await self.client.put(self.url + "/draft", json={"config": fixture()}, headers=self.origin)
         self.assertEqual(r.status, 401)
+        # A bearer-like subscription token is not an independent web-admin login.
+        bearer = await self.client.get(self.url + "/draft", headers={**self.origin, "Authorization": "Bearer synthetic-subscription-token"})
+        self.assertEqual(bearer.status, 401)
         r = await self.client.post(self.url + "/proposals", json={}, headers=self.origin)
         self.assertEqual(r.status, 401)
         r = await self.client.post(self.url + "/publish", json={}, headers=self.origin)
@@ -207,6 +210,9 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         no_csrf = await self.client.put(self.url + "/draft", json={"config": fixture()},
                                         headers=self.headers("editor1", revision=0))
         self.assertEqual(no_csrf.status, 403)
+        wrong_csrf = await self.client.put(self.url + "/draft", json={"config": fixture()},
+                                           headers={**self.headers("editor1", csrf=True, revision=0), "X-CSRF-Token": "invalid"})
+        self.assertEqual(wrong_csrf.status, 403)
         foreign_origin = await self.client.put(self.url + "/draft", json={"config": fixture()},
                                                headers={**self.headers("editor1", csrf=True, revision=0),
                                                         "Origin": "https://evil.example"})
