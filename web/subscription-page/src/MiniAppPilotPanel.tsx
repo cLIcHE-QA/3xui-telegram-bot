@@ -102,8 +102,8 @@ export function MiniAppPilotPanel({ language }: Props) {
       {notice && <Alert color={phase === "error" ? "orange" : "blue"} role="status">{notice}</Alert>}
       <Group>
         {summary && phase === "ready"
-          ? <Button onClick={() => { void signOut(); }} loading={busy.current || phase === "loading"}>{t.logout}</Button>
-          : <Button onClick={() => { void signIn(); }} loading={busy.current || phase === "loading"}>{t.login}</Button>}
+          ? <Button onClick={() => { void signOut(); }} loading={busy.current}>{t.logout}</Button>
+          : <Button onClick={() => { void signIn(); }} loading={busy.current}>{t.login}</Button>}
       </Group>
     </Stack>
   </Card>;
