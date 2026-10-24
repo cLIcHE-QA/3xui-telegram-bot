@@ -332,3 +332,11 @@ Regression tests: смена verifier, TOTP и роли, отключение п
 `SafeSvgIcon` запрашивает 39 локальных `/client-icons/library/[A-Za-z0-9_-]+.svg` и точный `/client-icons/incy.svg`. Изначальный HTTPS Nginx preview разрешал лишь `admin.html` и Vite `/assets/`, поэтому при будущем включении иконки отвечали бы `404`. В неактивном `deploy/subpage-admin/nginx-d1b-admin.conf.example` теперь разрешены только эти пути, **не весь** `/client-icons/`; текст лицензии и альтернативные SVG остаются запрещены. Проверка `tests/test_d1b_https_edge_contract.py` включает 40 реальных файлов, узкие маршруты и отрицательные пути, не отключая synthetic `nginx -t`.
 
 Это только изолированная ветка Draft PR #896. Реальная HTTPS-конфигурация, выдача SVG с целевого VPS, TLS/HA, operator credentials, клиентские устройства, acceptance и production deployment остаются PENDING.
+
+## D1b — HTTP/HTTPS smoke на локальном Nginx, не в production (2026-10-24, #887)
+
+`tests/test_d1b_https_edge_runtime.py` дополняет статические проверки `nginx -t` полноценными **синтетическими TLS+HTTP** запросами к временному Nginx на `127.0.0.1:ephemeral` и mock Python API на другом loopback-порту. Никакого deploy, работающего production admin API, чужих ключей, подписок или телеметрии.
+
+Проверяются 40 утверждённых локальных SVG в синтетическом `dist` и заголовки `no-store`/CSP/nosniff, недоступность `/compat/`, `index.html`, текстовой лицензии и альтернативных assets, отказ неправильным Host/SNI и отсутствие SNI, проброс браузерного `Origin`, замена client-controlled `X-Forwarded-*`, ограничение `POST /session` с `429`. Ресурсы SVG искусственные, имена получены из `staticSvgPaths.ts`; права пользователей и CSRF проверяются в отдельных API unit tests. Код `nginx-d1b-admin.conf.example` не устанавливает сервер и не открывает production-порт.
+
+Запуск: `python -m unittest discover -s tests -p 'test_d1b_https_edge_runtime.py' -v`. Для реального теста требуются `nginx` и `openssl`, иначе явный skip, не доказанный PASS. Безопасность настоящего origin, доверенная TLS chain, сертификаты/renewal, nginx-default-host/failover, удалённая сеть, операторские секреты и clean-host DR по-прежнему PENDING.

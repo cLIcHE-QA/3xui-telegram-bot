@@ -34,6 +34,8 @@
 
 - D1b HTTPS edge SVG paths (#887, только Draft PR #896): исправлен будущий `404` для 39 утверждённых self-hosted SVG и точного `/client-icons/incy.svg` в неактивном Nginx preview. Широкий `/client-icons/` и альтернативные файлы не открываются, а контрактный тест сверяет `staticSvgPaths.ts`, реальные файлы и узкие `location`. Настоящий TLS/VPS, acceptance, Merge, Release и Deployment PENDING.
 
+- D1b HTTPS loopback smoke (#887, **только Draft PR #896**): добавлены отдельный `nginx`+`openssl` TLS/HTTP тест на ephemeral `127.0.0.1`, synthetic admin backend, 40 SVG/asset `200`, запреты `404`, Host/SNI `444`, no-store/CSP, forwarded-header hardening и `429` login. Это не VPS/deployment; дальнейшая проверка production TLS, HA, admin RBAC/CSRF совместно с реальным edge, D2/D3 и полная приёмка PENDING.
+
 ## Неопубликованные изменения в main — D1a preview #887 (2026-10-24)
 
 - [PR #889](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/889) **Squash MERGED** в `main` `74038c37ddbc13d312727c5f1e5c247c8eb1d8ba`. Добавлен **изолированный offline React 19/TypeScript/Vite/Mantine предпросмотр** страницы подписки и инструкций, локальный JSON v1 импорт, UI с пятью языками и семью платформами, 39 оригинальных SVG из операторского набора и отдельная MIT-иконка INCY. Ссылки и действия в превью заблокированы; auth, API, реальная выдача подписок и deployment не добавлены.
