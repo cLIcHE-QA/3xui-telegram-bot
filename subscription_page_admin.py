@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import ipaddress
 import json
 import os
 import re
@@ -34,6 +35,18 @@ SESSION_TTL = 1200
 MAX_IDLE_SECONDS = 300
 MAX_LIVE_SESSIONS = 64
 MAX_LOGIN_BUCKETS = 2048
+LOGIN_FAILURE_WINDOW = 900
+
+
+def _prune_login_failures(failures: dict[str, list[float]], now: float) -> None:
+    """Recover bounded per-client capacity when old denial entries expire."""
+    for address, attempts in list(failures.items()):
+        active = [stamp for stamp in attempts if now - stamp < LOGIN_FAILURE_WINDOW]
+        if active:
+            failures[address] = active
+        else:
+            del failures[address]
+
 
 
 @dataclass(frozen=True)
@@ -340,7 +353,8 @@ def create_editor_app(*, accounts: list[AdminAccount] | None = None,
                       accounts_loader: Callable[[], list[AdminAccount]] | None = None,
                       db_path: str | Path, encryption_key: bytes,
                       https_origin: str,
-                      session_ttl: int = SESSION_TTL) -> web.Application:
+                      session_ttl: int = SESSION_TTL,
+                      trusted_loopback_proxy: bool = False) -> web.Application:
     """Explicitly opt-in admin API; this function does not start a listener."""
     origin = urlsplit(https_origin)
     if (origin.scheme != "https" or not origin.hostname or origin.username or
@@ -348,6 +362,8 @@ def create_editor_app(*, accounts: list[AdminAccount] | None = None,
         raise ValueError("Require a canonical HTTPS origin")
     if not 60 <= session_ttl <= 3600:
         raise ValueError("Bounded sessions required")
+    if type(trusted_loopback_proxy) is not bool:
+        raise ValueError("Explicit trusted-loopback-proxy switch must be a boolean")
     if (accounts is None) == (accounts_loader is None):
         raise ValueError("Provide exactly one admin account source")
 
@@ -396,6 +412,32 @@ def create_editor_app(*, accounts: list[AdminAccount] | None = None,
         }
 
     failures: dict[str, list[float]] = {}
+
+    def login_source(request: web.Request) -> str:
+        """Use edge-assigned client IP only behind an explicitly trusted peer.
+
+        The reviewed Nginx template connects from 127.0.0.1 and OVERWRITES
+        forwarded headers. Never trust caller-supplied X-Forwarded-For by
+        default, from other peers or when an edge header is ambiguous.
+        """
+        if not trusted_loopback_proxy:
+            return request.remote or "unknown"
+        if request.remote != "127.0.0.1":
+            raise web.HTTPForbidden(text="Untrusted admin proxy peer")
+        for key, expected in (("X-Forwarded-Proto", "https"),
+                              ("X-Forwarded-Host", origin.netloc)):
+            if request.headers.getall(key, []) != [expected]:
+                raise web.HTTPForbidden(text="Untrusted admin proxy headers")
+        forwarded = request.headers.getall("X-Forwarded-For", [])
+        if len(forwarded) != 1 or not forwarded[0] or len(forwarded[0]) > 45:
+            raise web.HTTPForbidden(text="Untrusted admin proxy client")
+        candidate = forwarded[0]
+        if candidate != candidate.strip() or "," in candidate:
+            raise web.HTTPForbidden(text="Untrusted admin proxy client")
+        try:
+            return str(ipaddress.ip_address(candidate))
+        except ValueError as exc:
+            raise web.HTTPForbidden(text="Untrusted admin proxy client") from exc
 
     def secure_headers(response: web.StreamResponse) -> web.StreamResponse:
         response.headers["Cache-Control"] = "no-store"
@@ -486,11 +528,15 @@ def create_editor_app(*, accounts: list[AdminAccount] | None = None,
     async def login(request: web.Request) -> web.Response:
         origin_check(request)
         now = time.monotonic()
-        address = request.remote or "unknown"  # never trust browser-supplied X-Forwarded-For
+        address = login_source(request)
         if address not in failures and len(failures) >= MAX_LOGIN_BUCKETS:
-            # Fail closed; a real HTTPS edge must also provide distributed rate limits.
-            raise web.HTTPTooManyRequests(text="Login protection capacity reached")
-        recent = [t for t in failures.get(address, []) if now - t < 900]
+            # Evict expired entries before denying new clients permanently;
+            # keep the bounded fail-closed cap for genuine saturation.
+            _prune_login_failures(failures, now)
+            if len(failures) >= MAX_LOGIN_BUCKETS:
+                raise web.HTTPTooManyRequests(text="Login protection capacity reached")
+        recent = [t for t in failures.get(address, [])
+                  if now - t < LOGIN_FAILURE_WINDOW]
         if len(recent) >= 5:
             raise web.HTTPTooManyRequests(text="Too many login attempts")
         credentials = await body(request, 2048)

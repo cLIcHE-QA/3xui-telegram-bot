@@ -40,6 +40,8 @@
 
 - D1b aiohttp deny-path compatibility (#887, **только Draft PR #896**): защищённая middleware теперь `raise` для `web.HTTPException` после добавления `no-store`/CSP/frame/nosniff, вместо устаревающего возврата объекта исключения. Отдельный test фиксирует guest `401`/wrong-origin `403`, security headers и отсутствие соответствующего `aiohttp` deprecation warning; это не изменение привилегий, auth-политики или production deployment.
 
+- D1b pre-merge edge login hardening (#887, только Draft PR #896): backend больше не обязан использовать единственный `request.remote=127.0.0.1` bucket для всех клиентов доверенного Nginx. Добавлен explicit `trusted_loopback_proxy` (default OFF), fail-closed проверка peer/Proto/Host/единственного canonical forwarded client IP и очистка истёкших buckets без ослабления active 429. Новые offline unit/real TLS 2-client tests; никаких изменений deployed bot, DNS/TLS, Release и production.
+
 ## Неопубликованные изменения в main — D1a preview #887 (2026-10-24)
 
 - [PR #889](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/889) **Squash MERGED** в `main` `74038c37ddbc13d312727c5f1e5c247c8eb1d8ba`. Добавлен **изолированный offline React 19/TypeScript/Vite/Mantine предпросмотр** страницы подписки и инструкций, локальный JSON v1 импорт, UI с пятью языками и семью платформами, 39 оригинальных SVG из операторского набора и отдельная MIT-иконка INCY. Ссылки и действия в превью заблокированы; auth, API, реальная выдача подписок и deployment не добавлены.

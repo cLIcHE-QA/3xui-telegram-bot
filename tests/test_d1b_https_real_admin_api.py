@@ -65,7 +65,8 @@ def synthetic_config() -> dict:
 
 def https_request(port: int, method: str, path: str, *,
                   headers: dict[str, str] | None = None,
-                  payload: dict | None = None) -> tuple[int, dict[str, str], bytes]:
+                  payload: dict | None = None,
+                  source_ip: str = "127.0.0.1") -> tuple[int, dict[str, str], bytes]:
     """Sync HTTPS клиент только localhost; вызывается через asyncio.to_thread."""
     # Исключение проверки self-signed certificate применяется ТОЛЬКО к
     # синтетическому сертификату этого одноразового теста, не к runtime.
@@ -85,7 +86,8 @@ def https_request(port: int, method: str, path: str, *,
     lines = [f"{method} {path} HTTP/1.1"]
     lines.extend(f"{name}: {value}" for name, value in request_headers.items())
     message = "\r\n".join(lines).encode("ascii") + b"\r\n\r\n" + body
-    with socket.create_connection(("127.0.0.1", port), timeout=4) as raw:
+    with socket.create_connection(("127.0.0.1", port), timeout=4,
+                                  source_address=(source_ip, 0)) as raw:
         with tls.wrap_socket(raw, server_hostname=DOMAIN) as secured:
             secured.settimeout(4)
             secured.sendall(message)
@@ -115,7 +117,8 @@ class D1bRealAdminHttpsTests(unittest.IsolatedAsyncioTestCase):
         app = create_editor_app(
             accounts=self.accounts, db_path=root / "drafts.sqlite3",
             encryption_key=Fernet.generate_key(),
-            https_origin=ORIGIN, session_ttl=120)
+            https_origin=ORIGIN, session_ttl=120,
+            trusted_loopback_proxy=True)
         self.runner = web.AppRunner(app, access_log=None, handle_signals=False)
         await self.runner.setup()
         self.addAsyncCleanup(self.runner.cleanup)
@@ -332,6 +335,33 @@ class D1bRealAdminHttpsTests(unittest.IsolatedAsyncioTestCase):
             unavailable, _, _ = await self.request(
                 "POST", path, headers=self.headers(owner_cookie, owner_csrf))
             self.assertEqual(unavailable, 404)
+
+    async def test_real_tls_edge_isolates_failed_logins_by_tcp_client(self):
+        # A browser-forged XFF is replaced by Nginx's $remote_addr.
+        # Reproduce two distinct loopback TCP clients without outside traffic.
+        invalid = {"username": "owner1", "password": "synthetic-invalid",
+                   "otp": "000000"}
+        for _ in range(5):
+            denied, _, _ = await self.request(
+                "POST", "/session", source_ip="127.0.0.2",
+                headers={"Origin": ORIGIN, "X-Forwarded-For": "203.0.113.77"},
+                payload=invalid)
+            self.assertEqual(denied, 401)
+        limited, _, _ = await self.request(
+            "POST", "/session", source_ip="127.0.0.2",
+            headers={"Origin": ORIGIN, "X-Forwarded-For": "203.0.113.77"},
+            payload=invalid)
+        self.assertEqual(limited, 429)
+        # Nginx overwrites the spoofed header and the actual D1b backend
+        # now sees a separate client bucket through its trusted loopback peer.
+        other, headers, body = await self.request(
+            "POST", "/session", source_ip="127.0.0.3",
+            headers={"Origin": ORIGIN, "X-Forwarded-For": "127.0.0.2"},
+            payload={"username": "owner1", "password": PASSWORD,
+                     "otp": self.otp("owner1")})
+        self.assertEqual(other, 200)
+        self.assertEqual(json.loads(body)["username"], "owner1")
+        self.assertIn("Secure", headers.get("set-cookie", ""))
 
     async def test_otp_replay_and_revocation_through_tls(self):
         owner_cookie, owner_csrf = await self.login("owner1")

@@ -22,7 +22,7 @@ from cryptography.fernet import Fernet
 
 from subscription_page_admin import (
     COOKIE, AdminAccount, EncryptedDrafts, SessionCapacityReached, StaleDraft, create_editor_app,
-    password_verifier, _account_binding, _totp_at,
+    password_verifier, _account_binding, _totp_at, _prune_login_failures,
 )
 
 
@@ -307,6 +307,14 @@ class DraftStoreTests(unittest.TestCase):
                               https_origin="http://admin.example.test")
 
 
+class AdminLoginRateLimitReviewTests(unittest.TestCase):
+    def test_expired_client_buckets_are_reclaimed_without_erasing_live_buckets(self):
+        failures = {"expired": [0.0, 1.0], "active": [250.0],
+                    "mixed": [2.0, 250.0]}
+        _prune_login_failures(failures, 1000.0)
+        self.assertEqual(failures, {"active": [250.0], "mixed": [250.0]})
+
+
 class AdminApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.dir = tempfile.TemporaryDirectory()
@@ -396,6 +404,65 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(any(
             "returning HTTPException object is deprecated" in str(item.message)
             for item in seen), "aiohttp HTTPException must be raised, not returned")
+
+    async def test_trusted_loopback_proxy_fail_closed_and_separate_client_buckets(self):
+        accounts = [
+            AdminAccount(name, self.verifiers[name], role, TEST_MFA_B32[name])
+            for name, role in (("owner1", "owner"), ("editor1", "editor"))
+        ]
+        app = create_editor_app(
+            accounts=accounts, db_path=Path(self.dir.name) / "trusted-proxy.sqlite3",
+            encryption_key=Fernet.generate_key(),
+            https_origin="https://admin.example.test",
+            trusted_loopback_proxy=True)
+        client = TestClient(TestServer(app))
+        await client.start_server()
+        try:
+            edge = {
+                "Origin": "https://admin.example.test",
+                "Host": "admin.example.test",
+                "X-Forwarded-Proto": "https",
+                "X-Forwarded-Host": "admin.example.test",
+            }
+            payload = {"username": "owner1", "password": "synthetic-invalid",
+                       "otp": "000000"}
+            async def attempt(ip=None, overrides=None):
+                headers = {**edge}
+                if ip is not None:
+                    headers["X-Forwarded-For"] = ip
+                if overrides:
+                    headers.update(overrides)
+                response = await client.post(self.url + "/session",
+                                             json=payload, headers=headers)
+                return response.status
+
+            self.assertEqual(await attempt(), 403)  # missing edge-assigned IP
+            for forged in ("198.51.100.7, 127.0.0.1", "not-an-ip", " 198.51.100.7",
+                           "198.51.100.7 "):
+                self.assertEqual(await attempt(forged), 403)
+            self.assertEqual(await attempt("198.51.100.7",
+                             {"X-Forwarded-Proto": "http"}), 403)
+            self.assertEqual(await attempt("198.51.100.7",
+                             {"X-Forwarded-Host": "untrusted.example"}), 403)
+            for _ in range(5):
+                self.assertEqual(await attempt("198.51.100.7"), 401)
+            self.assertEqual(await attempt("198.51.100.7"), 429)
+            # Other clients must not inherit the first client's failed logins.
+            self.assertEqual(await attempt("198.51.100.8"), 401)
+            self.assertEqual(await attempt("2001:db8::11"), 401)
+        finally:
+            await client.close()
+
+    def test_proxy_opt_in_rejects_non_boolean_configuration(self):
+        for flag in ("true", 1, None):
+            with self.subTest(flag=flag), self.assertRaises(ValueError):
+                create_editor_app(
+                    accounts=[AdminAccount(
+                        "owner1", self.verifiers["owner1"], "owner",
+                        TEST_MFA_B32["owner1"])],
+                    db_path=Path(self.dir.name) / "wrong-proxy-switch.sqlite3",
+                    encryption_key=self.key, https_origin="https://admin.example.test",
+                    trusted_loopback_proxy=flag)
 
     async def test_login_denial_and_rate_limit(self):
         missing_origin = await self.client.post(
