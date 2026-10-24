@@ -390,16 +390,24 @@ class OfflineD1bRecovery:
             memory.close()
 
     def stage_rotation(self, destination: str | Path,
-                       new_key: bytes) -> RecoveryResult:
-        """Stage both encrypted stores under a new key without touching source.
+                       new_key: bytes, *,
+                       backup_path: str | Path,
+                       backup_key: bytes) -> RecoveryResult:
+        """Stage only with a verified, matching independent sealed backup.
 
-        Requires all writers offline and a separately verified sealed backup.
-        No automatic deployment/promotion or key-file write.
+        The backup must capture exactly the frozen roster and SQLite snapshot.
+        Never stage against stale escrow; promotion remains an operator action.
         """
         if secrets.compare_digest(self.key, new_key):
             raise ValueError("New key must differ from current key")
         Fernet(new_key)
         revision, accounts, serialized = self._snapshot()
+        backed_rev, backed_accounts, backed_blob, backed_old_key = self._read_backup(
+            Path(backup_path), backup_key, self.roster_name, self.db_name)
+        if (backed_rev != revision or backed_accounts != accounts
+                or backed_blob != serialized
+                or not secrets.compare_digest(backed_old_key, self.key)):
+            raise ValueError("Backup escrow does not match frozen source snapshot")
         memory, drafts = _decode_database(serialized, self.key)
         try:
             sessions = memory.execute("SELECT COUNT(*) FROM admin_sessions").fetchone()[0]
