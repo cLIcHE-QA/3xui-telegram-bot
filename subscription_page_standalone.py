@@ -340,7 +340,7 @@ class StandalonePilot:
         current = self._clock()
         self._prune(current)
         binding = self._binding(request)
-        row = self.pending.get(code) if isinstance(code, str) else None
+        row = self.pending.get(code) if isinstance(code, str) and CHALLENGE_PATTERN.fullmatch(code) else None
         if binding is None or row is None or row.binding != binding:
             raise web.HTTPUnauthorized(text="Standalone challenge invalid")
         del self.pending[code]
