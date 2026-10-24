@@ -73,6 +73,7 @@ test("неизвестные DTO поля не становятся полном
     { subscription: { ...minimal.subscription, planName: null } },
     { subscription: { ...minimal.subscription, periodStatus: null } },
     { subscription: { ...minimal.subscription, expiryTime: -1 } },
+    { subscription: { ...minimal.subscription, expiryTime: 8_640_000_000_000_001 } },
     { subscription: { ...minimal.subscription, availableLocations: "4" } },
     { subscription: { ...minimal.subscription, availableLocations: 2000 } },
   ]) {
