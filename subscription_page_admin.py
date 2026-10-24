@@ -15,13 +15,13 @@ import stat
 import secrets
 import sqlite3
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from aiohttp import web
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from subscription_page_config import InvalidSubscriptionConfig, MAX_BYTES, parse_config, serialize_config
 
 COOKIE = "__Host-subpage-admin"
@@ -53,6 +53,10 @@ class Session:
 
 
 class StaleDraft(ValueError):
+    pass
+
+
+class SessionCapacityReached(ValueError):
     pass
 
 
@@ -151,6 +155,10 @@ class EncryptedDrafts:
                 state TEXT NOT NULL CHECK(state='pending_manual_review'))""")
             con.execute("""CREATE TABLE IF NOT EXISTS admin_totp_replay(
                 username TEXT PRIMARY KEY, last_step INTEGER NOT NULL)""")
+            con.execute("""CREATE TABLE IF NOT EXISTS admin_sessions(
+                token_hash TEXT PRIMARY KEY, username TEXT NOT NULL,
+                csrf_ciphertext BLOB NOT NULL, expires_at REAL NOT NULL,
+                last_seen_at REAL NOT NULL)""")
         os.chmod(self.path, 0o600)
 
     def connect(self) -> sqlite3.Connection:
@@ -215,6 +223,74 @@ class EncryptedDrafts:
             con.commit()
         return True
 
+    def issue_session(self, username: str, step: int, token_hash: str, csrf: str,
+                      ttl: int, previous_hash: str | None = None) -> bool:
+        """Atomically enforce TOTP replay, global capacity and session rotation.
+
+        Cookie tokens never enter SQLite. CSRF is encrypted with the draft key.
+        All instances using the same private SQLite share expiry and revocation.
+        """
+        now = time.time()
+        encrypted_csrf = self.cipher.encrypt(csrf.encode("ascii"))
+        with self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            con.execute(
+                "DELETE FROM admin_sessions WHERE expires_at <= ? OR last_seen_at <= ?",
+                (now, now - MAX_IDLE_SECONDS))
+            count = con.execute("SELECT COUNT(*) FROM admin_sessions").fetchone()[0]
+            already = bool(previous_hash and con.execute(
+                "SELECT 1 FROM admin_sessions WHERE token_hash=?", (previous_hash,)).fetchone())
+            if count - int(already) >= MAX_LIVE_SESSIONS:
+                con.rollback()
+                raise SessionCapacityReached("Admin session capacity reached")
+            last = con.execute(
+                "SELECT last_step FROM admin_totp_replay WHERE username = ?",
+                (username,)).fetchone()
+            if last is not None and last["last_step"] >= step:
+                con.rollback()
+                return False
+            if previous_hash:
+                con.execute("DELETE FROM admin_sessions WHERE token_hash = ?", (previous_hash,))
+            con.execute(
+                "INSERT INTO admin_totp_replay(username,last_step) VALUES(?,?) "
+                "ON CONFLICT(username) DO UPDATE SET last_step=excluded.last_step",
+                (username, step))
+            con.execute(
+                "INSERT INTO admin_sessions VALUES(?,?,?,?,?)",
+                (token_hash, username, encrypted_csrf, now + ttl, now))
+            con.commit()
+        return True
+
+    def touch_session(self, token_hash: str) -> tuple[str, str, float, float] | None:
+        """Return a live session and refresh idle time with one SQLite writer lock."""
+        now = time.time()
+        with self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            row = con.execute(
+                "SELECT username,csrf_ciphertext,expires_at,last_seen_at "
+                "FROM admin_sessions WHERE token_hash=?", (token_hash,)).fetchone()
+            if row is None:
+                con.rollback()
+                return None
+            if row["expires_at"] <= now or row["last_seen_at"] <= now - MAX_IDLE_SECONDS:
+                con.execute("DELETE FROM admin_sessions WHERE token_hash=?", (token_hash,))
+                con.commit()
+                return None
+            try:
+                csrf = self.cipher.decrypt(row["csrf_ciphertext"]).decode("ascii")
+            except (InvalidToken, UnicodeError):
+                con.execute("DELETE FROM admin_sessions WHERE token_hash=?", (token_hash,))
+                con.commit()
+                return None
+            con.execute("UPDATE admin_sessions SET last_seen_at=? WHERE token_hash=?",
+                        (now, token_hash))
+            con.commit()
+        return row["username"], csrf, row["expires_at"], now
+
+    def revoke_session(self, token_hash: str) -> None:
+        with self.connect() as con:
+            con.execute("DELETE FROM admin_sessions WHERE token_hash=?", (token_hash,))
+
     def propose(self, actor: str, expected: int) -> dict:
         with self.connect() as con:
             con.execute("BEGIN IMMEDIATE")
@@ -255,7 +331,6 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
         enrolled_otp_keys.add(otp_key)
         users[account.username] = account
     drafts = EncryptedDrafts(db_path, encryption_key)
-    sessions: dict[str, Session] = {}
     failures: dict[str, list[float]] = {}
 
     @web.middleware
@@ -279,26 +354,34 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
             raise web.HTTPForbidden(text="Invalid admin origin")
 
     def session_for(request: web.Request, role: str = "viewer") -> Session:
-        token = request.cookies.get(COOKIE, "")
-        if not token or len(token) > 128:
-            raise web.HTTPUnauthorized(text="Login required")
-        hashed = hashlib.sha256(token.encode()).hexdigest()
-        session = sessions.get(hashed)
-        if not session:
-            raise web.HTTPUnauthorized(text="Login required")
-        now = time.monotonic()
-        if session.expires_at <= now or now - session.last_seen_at > MAX_IDLE_SECONDS:
-            sessions.pop(hashed, None)
-            raise web.HTTPUnauthorized(text="Session expired")
+        # Invalid host/origin must not refresh the idle timeout.
         if request.headers.get("Host") != origin.netloc:
             raise web.HTTPForbidden(text="Invalid host")
         if request.headers.get("Origin") not in (None, https_origin):
             raise web.HTTPForbidden(text="Invalid origin")
-        if ROLES[session.role] < ROLES[role]:
+        token = request.cookies.get(COOKIE, "")
+        if not token or len(token) > 128:
+            raise web.HTTPUnauthorized(text="Login required")
+        hashed = hashlib.sha256(token.encode()).hexdigest()
+        try:
+            record = drafts.touch_session(hashed)
+        except sqlite3.Error as exc:
+            raise web.HTTPServiceUnavailable(text="Admin session store unavailable") from exc
+        if record is None:
+            raise web.HTTPUnauthorized(text="Login required")
+        username, csrf, expires_at, last_seen_at = record
+        # Live account configuration, never the role from a persisted session,
+        # controls permissions after an admin is removed or demoted.
+        user = users.get(username)
+        if user is None:
+            try:
+                drafts.revoke_session(hashed)
+            except sqlite3.Error as exc:
+                raise web.HTTPServiceUnavailable(text="Admin session store unavailable") from exc
+            raise web.HTTPUnauthorized(text="Login required")
+        if ROLES[user.role] < ROLES[role]:
             raise web.HTTPForbidden(text="Insufficient role")
-        updated = replace(session, last_seen_at=now)
-        sessions[hashed] = updated
-        return updated
+        return Session(username, user.role, csrf, expires_at, last_seen_at)
 
     def mutation(request: web.Request, role: str = "editor") -> Session:
         origin_check(request)
@@ -349,25 +432,24 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
         if not valid_password or step is None:
             failures[address] = recent + [now]
             raise web.HTTPUnauthorized(text="Invalid credentials")
-        failures.pop(address, None)
-        moment = time.monotonic()
-        for key, item in list(sessions.items()):
-            if item.expires_at <= moment or moment - item.last_seen_at > MAX_IDLE_SECONDS:
-                sessions.pop(key, None)
-        if len(sessions) >= MAX_LIVE_SESSIONS:
-            raise web.HTTPServiceUnavailable(text="Session capacity reached")
-        try:
-            consumed = drafts.consume_totp_step(user.username, step)
-        except sqlite3.Error as exc:
-            # A failed durable replay check must never silently allow a login.
-            raise web.HTTPServiceUnavailable(text="MFA replay state unavailable") from exc
-        if not consumed:
-            failures[address] = recent + [now]
-            raise web.HTTPUnauthorized(text="Invalid credentials")
         cookie = secrets.token_urlsafe(32)
         csrf = secrets.token_urlsafe(32)
-        sessions[hashlib.sha256(cookie.encode()).hexdigest()] = Session(
-            user.username, user.role, csrf, now + session_ttl, now)
+        previous = request.cookies.get(COOKIE, "")
+        previous_hash = (hashlib.sha256(previous.encode()).hexdigest()
+                         if previous and len(previous) <= 128 else None)
+        try:
+            accepted = drafts.issue_session(
+                user.username, step, hashlib.sha256(cookie.encode()).hexdigest(),
+                csrf, session_ttl, previous_hash)
+        except SessionCapacityReached as exc:
+            raise web.HTTPServiceUnavailable(text="Session capacity reached") from exc
+        except sqlite3.Error as exc:
+            # MFA must not succeed without durable replay and session records.
+            raise web.HTTPServiceUnavailable(text="Admin session store unavailable") from exc
+        if not accepted:
+            failures[address] = recent + [now]
+            raise web.HTTPUnauthorized(text="Invalid credentials")
+        failures.pop(address, None)
         response = web.json_response({"username": user.username, "role": user.role,
                                       "csrfToken": csrf, "expiresIn": session_ttl})
         response.set_cookie(COOKIE, cookie, path="/", secure=True, httponly=True,
@@ -378,12 +460,15 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
         who = session_for(request)
         return web.json_response({"username": who.username, "role": who.role,
                                   "csrfToken": who.csrf,
-                                  "expiresIn": max(0, int(who.expires_at - time.monotonic()))})
+                                  "expiresIn": max(0, int(who.expires_at - time.time()))})
 
     async def logout(request: web.Request) -> web.Response:
         mutation(request, "viewer")
         token = request.cookies.get(COOKIE, "")
-        sessions.pop(hashlib.sha256(token.encode()).hexdigest(), None)
+        try:
+            drafts.revoke_session(hashlib.sha256(token.encode()).hexdigest())
+        except sqlite3.Error as exc:
+            raise web.HTTPServiceUnavailable(text="Admin session store unavailable") from exc
         response = web.json_response({"loggedOut": True})
         response.del_cookie(COOKIE, path="/", secure=True, httponly=True, samesite="Strict")
         return response
