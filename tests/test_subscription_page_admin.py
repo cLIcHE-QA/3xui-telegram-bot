@@ -151,8 +151,9 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         await self.client.close()
 
-    async def login(self, username: str, password: str = "strong-test-password"):
-        resp = await self.client.post(self.url + "/session", json={"username": username, "password": password, "otp": current_otp(username)},
+    async def login(self, username: str, password: str = "strong-test-password",
+                    otp: str | None = None):
+        resp = await self.client.post(self.url + "/session", json={"username": username, "password": password, "otp": otp if otp is not None else current_otp(username)},
                                       headers=self.origin)
         if resp.status != 200:
             return resp
@@ -287,9 +288,10 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
             response = await self.client.post(self.url + "/session",
                 json=credentials, headers=self.origin)
             self.assertEqual(response.status, 401)
-        self.assertEqual((await self.login("owner1")).status, 200)
+        one_time_code = current_otp("owner1")
+        self.assertEqual((await self.login("owner1", otp=one_time_code)).status, 200)
         replay = await self.client.post(self.url + "/session",
-            json={"username": "owner1", "password": "strong-test-password", "otp": current_otp()},
+            json={"username": "owner1", "password": "strong-test-password", "otp": one_time_code},
             headers=self.origin)
         self.assertEqual(replay.status, 401)
 
