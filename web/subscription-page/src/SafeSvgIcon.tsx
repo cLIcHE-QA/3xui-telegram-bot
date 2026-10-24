@@ -111,20 +111,23 @@ export function parseLocalSvgLibrary(raw: string): Record<string, string> {
   return output;
 }
 
-export function SafeSvgIcon({ iconKey, library, fallback, testId, className }: {
+export function SafeSvgIcon({ iconKey, library, fallback, testId, className, preferStatic = false }: {
   iconKey?: string;
   library?: Record<string, string>;
   fallback: ReactNode;
   testId?: string;
   className?: string;
+  /** Admin preview uses the reviewed, self-hosted operator asset over JSON. */
+  preferStatic?: boolean;
 }) {
-  const xml = iconKey ? library?.[iconKey] : undefined;
+  const staticPath = iconKey && Object.hasOwn(STATIC_SVG_PATHS, iconKey) ? STATIC_SVG_PATHS[iconKey] : null;
+  const xml = !preferStatic || !staticPath ? (iconKey ? library?.[iconKey] : undefined) : undefined;
   const uri = useMemo(() => {
     if (!xml) return null;
     const clean = sanitizeSvg(xml);
     return clean ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(clean) : null;
   }, [xml]);
-  if (!uri && iconKey && Object.hasOwn(STATIC_SVG_PATHS, iconKey)) return <img data-testid={testId ?? "safe-svg-icon"} className={className} src={STATIC_SVG_PATHS[iconKey]} alt="" aria-hidden="true" draggable={false} decoding="async"/>;
+  if (!uri && staticPath) return <img data-testid={testId ?? "safe-svg-icon"} className={className} src={staticPath} alt="" aria-hidden="true" draggable={false} decoding="async"/>;
   if (!uri) return <>{fallback}</>;
   return <img data-testid={testId ?? "safe-svg-icon"} className={className}
     src={uri} alt="" aria-hidden="true" draggable={false} decoding="async"/>;
