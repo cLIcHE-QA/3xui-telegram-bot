@@ -236,7 +236,7 @@ class SharedLedgerTests(unittest.IsolatedAsyncioTestCase):
             unsafe = Path(invalid) / "unsafe.sqlite3"
             unsafe.symlink_to(self.path)
             with self.assertRaises(ValueError):
-                StandaloneSQLiteLedger(unsafe)
+                StandaloneSQLiteLedger(unsafe, https_origin=ORIGIN)
         self.clock += 1
         async with self.clients[0].post(
             BASE + "/start", json={}, headers=self.headers()
@@ -248,7 +248,7 @@ class SharedLedgerTests(unittest.IsolatedAsyncioTestCase):
         worker = Path(__file__).with_name("d2b_ledger_readback_worker.py")
         command = [
             sys.executable, "-I", str(worker), self.path,
-            hashlib.sha256(code.encode()).hexdigest(), str(self.clock),
+            hashlib.sha256(code.encode()).hexdigest(), str(self.clock), ORIGIN,
         ]
         pending = subprocess.run(
             command, capture_output=True, text=True, timeout=12, check=True,
@@ -265,6 +265,22 @@ class SharedLedgerTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(revoked.stdout.strip(), "ABSENT")
         self.assertEqual(revoked.stderr, "")
+
+    async def test_different_https_origin_cannot_reuse_shared_ledger(self):
+        code, cookie = await self.begin(0)
+        with self.assertRaisesRegex(ValueError, "origin mismatch"):
+            create_standalone_pilot(
+                https_origin="https://other.example.invalid",
+                customer_service=self.service, feature_flags=self.flags,
+                pilot_ids=frozenset({OWNER}), now=lambda: self.clock,
+                sqlite_path=self.path,
+            )
+        # Failed mismatched factory must not destroy the real challenge.
+        self.assertTrue(self.pilots[2].challenge_pending(code, self.clock))
+        with sqlite3.connect(self.path) as con:
+            row = con.execute("SELECT origin_hash FROM standalone_origin").fetchone()
+            self.assertEqual(len(row[0]), 32)
+            self.assertNotIn(ORIGIN.encode(), row[0])
 
     async def test_global_pending_capacity_atomic_and_no_raw_credentials(self):
         from subscription_page_standalone_sqlite import MAX_PENDING
