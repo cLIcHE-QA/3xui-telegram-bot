@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import socket
 import subprocess
 import tempfile
 import unittest
@@ -90,7 +91,15 @@ class D1bHttpsEdgeTests(unittest.TestCase):
                 "-out", str(cert)
             ], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                check=True, timeout=20)
+            # nginx -t probes socket binding on some versions. The CI
+            # process is non-root: lint the same 443/TLS block on a temporary
+            # LOOPBACK high port rather than touching privileged :443.
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+                probe.bind(("127.0.0.1", 0))
+                port = probe.getsockname()[1]
             conf = self.conf.replace(
+                "listen 443 ssl http2;",
+                f"listen 127.0.0.1:{port} ssl http2;").replace(
                 "/etc/d1b-admin/tls/fullchain.pem", str(cert)).replace(
                 "/etc/d1b-admin/tls/privkey.pem", str(key))
             snippet = root / "snippet.conf"
