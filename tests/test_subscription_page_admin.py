@@ -21,7 +21,7 @@ from cryptography.fernet import Fernet
 
 from subscription_page_admin import (
     COOKIE, AdminAccount, EncryptedDrafts, SessionCapacityReached, StaleDraft, create_editor_app,
-    password_verifier, _totp_at,
+    password_verifier, _account_binding, _totp_at,
 )
 
 
@@ -70,6 +70,14 @@ class DraftStoreTests(unittest.TestCase):
         self.path = Path(self.dir.name) / "drafts.sqlite3"
         self.key = Fernet.generate_key()
         self.store = EncryptedDrafts(self.path, self.key)
+        self.binding = "a" * 64
+        self.bindings = {"owner1": self.binding, "editor1": self.binding}
+
+    def issue(self, store, *args, **kwargs):
+        return store.issue_session(*args, account_binding=self.binding, **kwargs)
+
+    def touch(self, store, token_hash):
+        return store.touch_session(token_hash, self.bindings)
 
     def test_revisions_are_encrypted_and_lossless(self):
         doc = fixture()
@@ -91,11 +99,11 @@ class DraftStoreTests(unittest.TestCase):
     def test_totp_replay_ledger_persists_across_connections(self):
         # Never persist an MFA secret/code; only account identity and used step.
         other = EncryptedDrafts(self.path, self.key)
-        self.assertTrue(self.store.issue_session("owner1", 1000, "token-a", "csrf-a", 120))
-        self.assertFalse(other.issue_session("owner1", 1000, "token-b", "csrf-b", 120))
-        self.assertFalse(self.store.issue_session("owner1", 999, "token-c", "csrf-c", 120))
-        self.assertTrue(other.issue_session("owner1", 1001, "token-d", "csrf-d", 120))
-        self.assertTrue(self.store.issue_session("editor1", 1000, "token-e", "csrf-e", 120))
+        self.assertTrue(self.issue(self.store, "owner1", 1000, "token-a", "csrf-a", 120))
+        self.assertFalse(self.issue(other, "owner1", 1000, "token-b", "csrf-b", 120))
+        self.assertFalse(self.issue(self.store, "owner1", 999, "token-c", "csrf-c", 120))
+        self.assertTrue(self.issue(other, "owner1", 1001, "token-d", "csrf-d", 120))
+        self.assertTrue(self.issue(self.store, "editor1", 1000, "token-e", "csrf-e", 120))
         with sqlite3.connect(self.path) as db:
             rows = db.execute(
                 "SELECT username,last_step FROM admin_totp_replay ORDER BY username"
@@ -111,7 +119,7 @@ class DraftStoreTests(unittest.TestCase):
 
         def issue(store, suffix):
             barrier.wait(timeout=5)
-            return store.issue_session("owner1", 77777, "token-" + suffix,
+            return self.issue(store, "owner1", 77777, "token-" + suffix,
                                        "csrf-" + suffix, 120)
 
         with ThreadPoolExecutor(max_workers=2) as pool:
@@ -127,12 +135,12 @@ class DraftStoreTests(unittest.TestCase):
         cookie = "synthetic-cookie-not-to-store"
         token_hash = hashlib.sha256(cookie.encode()).hexdigest()
         csrf = "synthetic-private-csrf-must-be-encrypted"
-        self.assertTrue(self.store.issue_session("owner1", 100, token_hash, csrf, 120))
+        self.assertTrue(self.issue(self.store, "owner1", 100, token_hash, csrf, 120))
         raw = self.path.read_bytes()
         self.assertNotIn(cookie.encode(), raw)
         self.assertNotIn(csrf.encode(), raw)
         replica = EncryptedDrafts(self.path, self.key)
-        username, token, deadline, last_seen = replica.touch_session(token_hash)
+        username, token, deadline, last_seen = self.touch(replica, token_hash)
         self.assertEqual((username, token), ("owner1", csrf))
         self.assertGreater(deadline, last_seen)
         with sqlite3.connect(self.path) as db:
@@ -143,47 +151,47 @@ class DraftStoreTests(unittest.TestCase):
             self.assertEqual(fields[1], "owner1")
             self.assertNotIn(csrf.encode(), fields[2])
         replica.revoke_session(token_hash)
-        self.assertIsNone(self.store.touch_session(token_hash))
+        self.assertIsNone(self.touch(self.store, token_hash))
 
     def test_session_rotation_keeps_old_token_when_totp_replayed(self):
-        self.assertTrue(self.store.issue_session("owner1", 1000, "old-hash", "first-csrf", 120))
-        self.assertFalse(self.store.issue_session(
+        self.assertTrue(self.issue(self.store, "owner1", 1000, "old-hash", "first-csrf", 120))
+        self.assertFalse(self.issue(self.store, 
             "owner1", 1000, "new-hash", "bad-csrf", 120, "old-hash"))
-        self.assertEqual(self.store.touch_session("old-hash")[1], "first-csrf")
-        self.assertIsNone(self.store.touch_session("new-hash"))
-        self.assertTrue(self.store.issue_session(
+        self.assertEqual(self.touch(self.store, "old-hash")[1], "first-csrf")
+        self.assertIsNone(self.touch(self.store, "new-hash"))
+        self.assertTrue(self.issue(self.store, 
             "owner1", 1001, "new-hash", "new-csrf", 120, "old-hash"))
-        self.assertIsNone(self.store.touch_session("old-hash"))
-        self.assertEqual(self.store.touch_session("new-hash")[1], "new-csrf")
+        self.assertIsNone(self.touch(self.store, "old-hash"))
+        self.assertEqual(self.touch(self.store, "new-hash")[1], "new-csrf")
 
     def test_capacity_denial_does_not_consume_mfa_step(self):
         with patch("subscription_page_admin.MAX_LIVE_SESSIONS", 1):
-            self.assertTrue(self.store.issue_session("owner1", 100, "first", "c1", 120))
+            self.assertTrue(self.issue(self.store, "owner1", 100, "first", "c1", 120))
             with self.assertRaises(SessionCapacityReached):
-                self.store.issue_session("editor1", 200, "second", "c2", 120)
+                self.issue(self.store, "editor1", 200, "second", "c2", 120)
             with sqlite3.connect(self.path) as db:
                 self.assertIsNone(db.execute(
                     "SELECT last_step FROM admin_totp_replay WHERE username='editor1'"
                 ).fetchone())
             self.store.revoke_session("first")
-            self.assertTrue(self.store.issue_session("editor1", 200, "second", "c2", 120))
+            self.assertTrue(self.issue(self.store, "editor1", 200, "second", "c2", 120))
 
     def test_expired_and_idle_sessions_are_removed(self):
-        self.assertTrue(self.store.issue_session("owner1", 100, "idle-hash", "csrf", 120))
+        self.assertTrue(self.issue(self.store, "owner1", 100, "idle-hash", "csrf", 120))
         with sqlite3.connect(self.path) as db:
             db.execute("UPDATE admin_sessions SET last_seen_at = last_seen_at - 400")
-        self.assertIsNone(self.store.touch_session("idle-hash"))
-        self.assertTrue(self.store.issue_session("owner1", 101, "expiry-hash", "csrf2", 120))
+        self.assertIsNone(self.touch(self.store, "idle-hash"))
+        self.assertTrue(self.issue(self.store, "owner1", 101, "expiry-hash", "csrf2", 120))
         with sqlite3.connect(self.path) as db:
             db.execute("UPDATE admin_sessions SET expires_at = expires_at - 1000")
-        self.assertIsNone(self.store.touch_session("expiry-hash"))
+        self.assertIsNone(self.touch(self.store, "expiry-hash"))
 
     def test_tampered_session_secret_is_fail_closed_and_evicted(self):
-        self.assertTrue(self.store.issue_session("owner1", 100, "tamper-hash", "csrf", 120))
+        self.assertTrue(self.issue(self.store, "owner1", 100, "tamper-hash", "csrf", 120))
         with sqlite3.connect(self.path) as db:
             db.execute("UPDATE admin_sessions SET csrf_ciphertext=? WHERE token_hash=?",
                        (b"invalid-token", "tamper-hash"))
-        self.assertIsNone(self.store.touch_session("tamper-hash"))
+        self.assertIsNone(self.touch(self.store, "tamper-hash"))
         with sqlite3.connect(self.path) as db:
             self.assertEqual(db.execute(
                 "SELECT count(*) FROM admin_sessions WHERE token_hash='tamper-hash'"
@@ -236,10 +244,10 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(self.dir.cleanup)
         self.key = Fernet.generate_key()
         password = "strong-test-password"
+        self.verifiers = {name: password_verifier(password) for name in TEST_MFA_B32}
         accounts = [
-            AdminAccount("owner1", password_verifier(password), "owner", TEST_MFA_B32["owner1"]),
-            AdminAccount("editor1", password_verifier(password), "editor", TEST_MFA_B32["editor1"]),
-            AdminAccount("viewer1", password_verifier(password), "viewer", TEST_MFA_B32["viewer1"]),
+            AdminAccount(name, self.verifiers[name], role, TEST_MFA_B32[name])
+            for name, role in (("owner1", "owner"), ("editor1", "editor"), ("viewer1", "viewer"))
         ]
         self.app = create_editor_app(
             accounts=accounts, db_path=Path(self.dir.name) / "drafts.sqlite3",
@@ -438,7 +446,7 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_session_survives_new_api_instance_and_remote_logout(self):
         self.assertEqual((await self.login("owner1")).status, 200)
         account = AdminAccount(
-            "owner1", password_verifier("strong-test-password"),
+            "owner1", self.verifiers["owner1"],
             "owner", TEST_MFA_B32["owner1"])
         other = create_editor_app(
             accounts=[account], db_path=Path(self.dir.name) / "drafts.sqlite3",
@@ -457,31 +465,38 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         original = await self.client.get(self.url + "/draft", headers=self.headers("owner1"))
         self.assertEqual(original.status, 401)
 
-    async def test_session_role_is_not_trusted_from_storage(self):
+    async def test_changed_role_invalidates_old_session_on_updated_instance(self):
         self.assertEqual((await self.login("owner1")).status, 200)
         demoted = create_editor_app(
             accounts=[AdminAccount(
-                "owner1", password_verifier("strong-test-password"),
+                "owner1", self.verifiers["owner1"],
                 "viewer", TEST_MFA_B32["owner1"])],
             db_path=Path(self.dir.name) / "drafts.sqlite3",
             encryption_key=self.key, https_origin="https://admin.example.test")
         async with TestClient(TestServer(demoted)) as second:
             status = await second.get(self.url + "/session",
                                       headers=self.headers("owner1"))
-            self.assertEqual(status.status, 200)
-            self.assertEqual((await status.json())["role"], "viewer")
+            self.assertEqual(status.status, 401)
             attempted = await second.post(
                 self.url + "/proposals", headers=self.headers("owner1", csrf=True, revision=1))
-            self.assertEqual(attempted.status, 403)
+            self.assertEqual(attempted.status, 401)
+        # Updated worker deletes the shared token, so old workers also reject it.
+        old = await self.client.get(self.url + "/session", headers=self.headers("owner1"))
+        self.assertEqual(old.status, 401)
+
+    async def test_removed_account_invalidates_shared_session(self):
+        self.assertEqual((await self.login("owner1")).status, 200)
         removed = create_editor_app(
             accounts=[AdminAccount(
-                "viewer1", password_verifier("strong-test-password"),
+                "viewer1", self.verifiers["viewer1"],
                 "viewer", TEST_MFA_B32["viewer1"])],
             db_path=Path(self.dir.name) / "drafts.sqlite3",
             encryption_key=self.key, https_origin="https://admin.example.test")
-        async with TestClient(TestServer(removed)) as third:
-            access = await third.get(self.url + "/session", headers=self.headers("owner1"))
+        async with TestClient(TestServer(removed)) as second:
+            access = await second.get(self.url + "/session", headers=self.headers("owner1"))
             self.assertEqual(access.status, 401)
+        old = await self.client.get(self.url + "/session", headers=self.headers("owner1"))
+        self.assertEqual(old.status, 401)
 
     async def test_session_sqlite_failure_fails_closed(self):
         self.assertEqual((await self.login("viewer1")).status, 200)
