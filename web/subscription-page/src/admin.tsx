@@ -185,12 +185,30 @@ function App(){
   }catch(error){setAlert(messageOf(error));}
   finally{setBusy(false);}
  }
+ function clearSession(){
+  setSession(null);setDraft(null);setBaseline(null);setHistory([]);setDirty(false);
+  setSuccess("");
+ }
  async function logOut(){
-  setBusy(true);setAlert("");
+  setBusy(true);setAlert("");setSuccess("");
   try{
-   await fetch(API+"/session",{method:"DELETE",credentials:"same-origin",
+   const response=await fetch(API+"/session",{method:"DELETE",credentials:"same-origin",
     headers:{"X-CSRF-Token":session?.csrfToken??""}});
-   setSession(null);setDraft(null);setBaseline(null);setHistory([]);setDirty(false);
+   if(!response.ok)throw new Error("Сервер не подтвердил выход: повторите попытку");
+   clearSession();
+  }catch(error){setAlert(messageOf(error));}
+  finally{setBusy(false);}
+ }
+ async function revokeMySessions(){
+  if(!session)return;
+  setBusy(true);setAlert("");setSuccess("");
+  try{
+   const response=await fetch(API+"/sessions/revoke",{
+    method:"POST",credentials:"same-origin",
+    headers:{...HEADER,"X-CSRF-Token":session.csrfToken},
+    body:JSON.stringify({})});
+   if(!response.ok)throw new Error("Не удалось отозвать сеансы: повторите попытку");
+   clearSession();
   }catch(error){setAlert(messageOf(error));}
   finally{setBusy(false);}
  }
@@ -257,7 +275,9 @@ function App(){
   <header className="admin-header"><Group justify="space-between" align="flex-start">
    <div><Badge color="cyan" variant="light">D1b · draft-only</Badge><Title order={1}>Редактор страницы подписки</Title>
     <Text c="dimmed">Отдельная веб-админка · безопасный импорт и локальный предпросмотр</Text></div>
-   <Group><Badge color="teal">{session.role}</Badge><Text size="sm">{session.username}</Text><Button variant="default" onClick={()=>void logOut()} disabled={busy}>Выйти</Button></Group>
+   <Group><Badge color="teal">{session.role}</Badge><Text size="sm">{session.username}</Text>
+    <Button variant="subtle" color="red" onClick={()=>void revokeMySessions()} disabled={busy}>Завершить все сеансы</Button>
+    <Button variant="default" onClick={()=>void logOut()} disabled={busy}>Выйти</Button></Group>
   </Group></header>
   <Stack gap="md" mt="lg">
    {alert&&<Alert role="alert" color="red" withCloseButton onClose={()=>setAlert("")}>{alert}</Alert>}
