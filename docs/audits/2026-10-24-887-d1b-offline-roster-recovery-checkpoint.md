@@ -1,7 +1,7 @@
 # D1b #887 — pre-merge checkpoint: приватный offline roster и контролируемый MFA recovery
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-24T13:51:19.486Z UTC
+- **Дата/время и часовой пояс:** 2026-10-24 16:51 UTC+03:00
 - **Окружение:** GitHub connector, отдельная Draft PR #896 ветка `feature/887-d1b-protected-drafts`, изолированные synthetic Python/aiohttp tests и GitHub Actions. Реальные пароли, TOTP-enrollment, Fernet keys, VPN customer data, production VPS, HTTPS и Telegram WebView не использованы
 - **Цель:** исключить хранение MFA-секретов и verifier вне доверенного контура, обеспечить проверяемую офлайн-ротацию и восстановление MFA существующего администратора с подтверждением нового кода; сделать предыдущий D1b механический `account_binding` действенным **без рестарта** API
 - **Версия и immutable tag/SHA:** `main` base `f8ff9a18125e24813f9974531e5257d0f8258534`, предыдущий проверенный D1b head `8d61c41aa6d1cc6285c2764ce4237c3b7660cdb0`; реализация offline roster commit `bcf23b753997ac48bf6a5976f40dc8ab3a653cd6`, динамическая авторизация commit `aa04479aa03f1391ac16f4e945d871c6290f2252`, тесты commit `992df9531b54d0e9a5dbcf06ddb664102f02f0ac`, защита `repr` commits `0fd0e22285bbd28c00da1c72bf48d282ba60bf0a` / `bcbd2c9991547ad43359a7794abbaf2ef10302a0`; перед этим audit новый head `5c275c1fe4178dc8b9c4c75ba9b586fb74266896`. Published immutable `v5.0.0-rc.19` tag `d738dd970f2215adc346a919c7ed182abaf454b1` без D1b
