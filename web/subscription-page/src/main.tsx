@@ -12,9 +12,12 @@ import { PreviewModePicker } from "./PreviewModePicker";
 import { ConnectionGuide } from "./ConnectionGuide";
 import "./style.css";
 import { MiniAppPilotPanel } from "./MiniAppPilotPanel";
+import { StandalonePilotPanel } from "./StandalonePilotPanel";
 
 // D2a cannot activate in the normal build; public preview remains synthetic.
 const ENABLE_D2A_PILOT_UI = import.meta.env.VITE_D2A_PILOT_UI === "true";
+// D2b has an independent, deliberately disabled standalone owner-proof flow.
+const ENABLE_D2B_STANDALONE_PILOT_UI = import.meta.env.VITE_D2B_STANDALONE_PILOT_UI === "true";
 
 type Localized = Record<string, string>;
 type ButtonSpec = { text: Localized; link: string; type: string };
@@ -111,6 +114,7 @@ function App() {
     <main>
       <section className="hero"><div className="hero-content"><div className="hero-pill"><IconSparkles size={15}/>{t("preview")}</div><h1>{t("hero")}<br/><span className="raccoon-gradient-text">{t("hero2")}</span></h1><p>{t("lead")}</p><div className="hero-safe"><IconLock size={16}/>{t("safeDesc")}</div></div><div className="hero-art" aria-hidden="true"><div className="hero-halo"/><img src="/brand/raccoon-wrench.svg" alt=""/></div></section>
       {ENABLE_D2A_PILOT_UI && <section className="portal-section" aria-label="Telegram Mini App"><MiniAppPilotPanel language={lang}/></section>}
+      {ENABLE_D2B_STANDALONE_PILOT_UI && <section className="portal-section" aria-label="Standalone pilot"><StandalonePilotPanel language={lang}/></section>}
       <section className="portal-section" aria-label={t("subscription")}><div className="section-heading"><div><span className="section-eyebrow">01 — SUBSCRIPTION</span><Title order={2}>{t("subscription")}</Title></div><PreviewModePicker label={t("subscriptionLayoutLabel")} testId="subscription-layout" value={info} onChange={setInfo} options={["expanded","collapsed","cards","hidden"].map(x=>({value:x,label:t("layout_"+x)}))}/></div>
         <div className="scenario-controls"><Text size="xs" c="dimmed">{t("scenarioLabel")}</Text><PreviewModePicker testId="subscription-scenario" label={t("scenarioLabel")} value={scenario} onChange={v=>setScenario(v as PreviewScenario)} options={previewScenarios.map(v=>({value:v,label:t(v)}))}/></div>
         <SubscriptionPreview mode={info} scenario={scenario} t={t} hideGetLinkButton={data.baseSettings.hideGetLinkButton} showConnectionKeys={data.baseSettings.showConnectionKeys}/>

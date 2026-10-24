@@ -2,7 +2,7 @@
 
 No listener is started and app_runtime never imports this module.  In particular,
 subscription URLs, sub_id, initDataUnsafe and admin sessions are not credentials.
-Standalone authentication is a separate, not-yet-implemented protocol.
+Standalone authentication has its own opt-in challenge-based pilot API.
 """
 from __future__ import annotations
 
@@ -106,6 +106,25 @@ def verify_telegram_init_data(
         if isinstance(exc, InvalidMiniAppAuth):
             raise
         raise InvalidMiniAppAuth("Invalid Mini App authentication") from None
+
+
+def public_customer_summary(profile: object) -> dict[str, str | int | None]:
+    """One shared read-only DTO for Mini App and standalone sessions.
+
+    No URL, sub_id, email, 3x-ui credentials, HWID or admin privileges.
+    The caller must have independently verified the owner and profile.exists.
+    """
+    access = profile.access_status
+    if access not in {"active", "disabled", "expired", "suspended", "provisioning", "unknown"}:
+        access = "unknown"
+    expiry = profile.expiry_time
+    return {
+        "status": access,
+        "periodStatus": profile.period_status if isinstance(profile.period_status, str) else "unknown",
+        "planName": profile.plan_name[:128] if isinstance(profile.plan_name, str) else "",
+        "expiryTime": expiry if profile.expiry_known and type(expiry) is int and expiry >= 0 else None,
+        "availableLocations": profile.available_locations if type(profile.available_locations) is int else None,
+    }
 
 
 class MiniAppSessions:
@@ -274,20 +293,7 @@ def create_customer_mini_app(
             raise web.HTTPServiceUnavailable(text="Customer data unavailable") from None
         if not profile.exists:
             raise web.HTTPForbidden(text="Customer access denied")
-        # Explicit DTO allowlist: never serialize email, sub_id, URL, HWID or keys.
-        access = profile.access_status
-        if access not in {"active", "disabled", "expired", "suspended", "provisioning", "unknown"}:
-            access = "unknown"
-        expiry = profile.expiry_time
-        return web.json_response({
-            "subscription": {
-                "status": access,
-                "periodStatus": profile.period_status if isinstance(profile.period_status, str) else "unknown",
-                "planName": profile.plan_name[:128] if isinstance(profile.plan_name, str) else "",
-                "expiryTime": expiry if profile.expiry_known and type(expiry) is int and expiry >= 0 else None,
-                "availableLocations": profile.available_locations if type(profile.available_locations) is int else None,
-            }
-        })
+        return web.json_response({"subscription": public_customer_summary(profile)})
 
     async def logout(request: web.Request) -> web.Response:
         guard_origin(request)
