@@ -18,6 +18,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Mapping
 from urllib.parse import urlsplit
 
 from aiohttp import web
@@ -58,6 +59,20 @@ class StaleDraft(ValueError):
 
 class SessionCapacityReached(ValueError):
     pass
+
+
+def _account_binding(account: AdminAccount, encryption_key: bytes) -> str:
+    """Keyed, non-reversible link to the *current* admin credential/role set.
+
+    A new password verifier, MFA seed, role or username invalidates old sessions;
+    never persist those credentials or their unkeyed hashes in the session DB.
+    """
+    attributes = json.dumps(
+        [account.username, account.password_hash, account.totp_secret_b32, account.role],
+        ensure_ascii=True, separators=(",", ":")).encode("utf-8")
+    return hmac.new(
+        base64.urlsafe_b64decode(encryption_key),
+        b"d1b-account-binding-v1:" + attributes, hashlib.sha256).hexdigest()
 
 
 def password_verifier(password: str, salt: bytes | None = None) -> str:
@@ -146,6 +161,7 @@ class EncryptedDrafts:
             raise ValueError("Draft DB must be private, owned, with no hardlinks")
         self.cipher = Fernet(key)
         with self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
             con.execute("""CREATE TABLE IF NOT EXISTS draft_revisions(
                 revision INTEGER PRIMARY KEY, content BLOB NOT NULL,
                 digest TEXT NOT NULL, actor TEXT NOT NULL, saved_at TEXT NOT NULL)""")
@@ -158,7 +174,15 @@ class EncryptedDrafts:
             con.execute("""CREATE TABLE IF NOT EXISTS admin_sessions(
                 token_hash TEXT PRIMARY KEY, username TEXT NOT NULL,
                 csrf_ciphertext BLOB NOT NULL, expires_at REAL NOT NULL,
-                last_seen_at REAL NOT NULL)""")
+                last_seen_at REAL NOT NULL, account_binding TEXT NOT NULL)""")
+            # Existing draft DBs may have pre-binding sessions. Fail closed: do
+            # not inherit them. The additive migration is serialized by SQLite.
+            columns = {row["name"] for row in con.execute("PRAGMA table_info(admin_sessions)")}
+            if "account_binding" not in columns:
+                con.execute("ALTER TABLE admin_sessions ADD COLUMN "
+                            "account_binding TEXT NOT NULL DEFAULT ''")
+                con.execute("DELETE FROM admin_sessions")
+            con.commit()
         os.chmod(self.path, 0o600)
 
     def connect(self) -> sqlite3.Connection:
@@ -204,7 +228,8 @@ class EncryptedDrafts:
         return [dict(r) for r in rows]
 
     def issue_session(self, username: str, step: int, token_hash: str, csrf: str,
-                      ttl: int, previous_hash: str | None = None) -> bool:
+                      ttl: int, previous_hash: str | None = None, *,
+                      account_binding: str) -> bool:
         """Atomically enforce TOTP replay, global capacity and session rotation.
 
         Cookie tokens never enter SQLite. CSRF is encrypted with the draft key.
@@ -214,6 +239,8 @@ class EncryptedDrafts:
             raise ValueError("Invalid TOTP step")
         if not 60 <= ttl <= 3600:
             raise ValueError("Invalid session duration")
+        if not isinstance(account_binding, str) or not re.fullmatch(r"[0-9a-f]{64}", account_binding):
+            raise ValueError("Invalid session credential binding")
         now = time.time()
         encrypted_csrf = self.cipher.encrypt(csrf.encode("ascii"))
         with self.connect() as con:
@@ -240,23 +267,32 @@ class EncryptedDrafts:
                 "ON CONFLICT(username) DO UPDATE SET last_step=excluded.last_step",
                 (username, step))
             con.execute(
-                "INSERT INTO admin_sessions VALUES(?,?,?,?,?)",
-                (token_hash, username, encrypted_csrf, now + ttl, now))
+                "INSERT INTO admin_sessions "
+                "(token_hash,username,csrf_ciphertext,expires_at,last_seen_at,account_binding) "
+                "VALUES(?,?,?,?,?,?)",
+                (token_hash, username, encrypted_csrf, now + ttl, now, account_binding))
             con.commit()
         return True
 
-    def touch_session(self, token_hash: str) -> tuple[str, str, float, float] | None:
-        """Return a live session and refresh idle time with one SQLite writer lock."""
+    def touch_session(self, token_hash: str,
+                      account_bindings: Mapping[str, str]) -> tuple[str, str, float, float] | None:
+        """Refresh only sessions with the current keyed account credential binding."""
         now = time.time()
         with self.connect() as con:
             con.execute("BEGIN IMMEDIATE")
             row = con.execute(
-                "SELECT username,csrf_ciphertext,expires_at,last_seen_at "
+                "SELECT username,csrf_ciphertext,expires_at,last_seen_at,account_binding "
                 "FROM admin_sessions WHERE token_hash=?", (token_hash,)).fetchone()
             if row is None:
                 con.rollback()
                 return None
             if row["expires_at"] <= now or row["last_seen_at"] <= now - MAX_IDLE_SECONDS:
+                con.execute("DELETE FROM admin_sessions WHERE token_hash=?", (token_hash,))
+                con.commit()
+                return None
+            current_binding = account_bindings.get(row["username"])
+            if (current_binding is None or
+                    not hmac.compare_digest(row["account_binding"], current_binding)):
                 con.execute("DELETE FROM admin_sessions WHERE token_hash=?", (token_hash,))
                 con.commit()
                 return None
@@ -274,6 +310,14 @@ class EncryptedDrafts:
     def revoke_session(self, token_hash: str) -> None:
         with self.connect() as con:
             con.execute("DELETE FROM admin_sessions WHERE token_hash=?", (token_hash,))
+
+    def revoke_account_sessions(self, username: str) -> int:
+        """Revoke all sessions for one administrator in the shared private DB."""
+        with self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            deleted = con.execute("DELETE FROM admin_sessions WHERE username=?", (username,))
+            con.commit()
+        return deleted.rowcount
 
     def propose(self, actor: str, expected: int) -> dict:
         with self.connect() as con:
@@ -315,6 +359,9 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
         enrolled_otp_keys.add(otp_key)
         users[account.username] = account
     drafts = EncryptedDrafts(db_path, encryption_key)
+    account_bindings = {
+        name: _account_binding(account, encryption_key) for name, account in users.items()
+    }
     failures: dict[str, list[float]] = {}
 
     @web.middleware
@@ -348,7 +395,7 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
             raise web.HTTPForbidden(text="Invalid origin")
         hashed = hashlib.sha256(token.encode()).hexdigest()
         try:
-            record = drafts.touch_session(hashed)
+            record = drafts.touch_session(hashed, account_bindings)
         except sqlite3.Error as exc:
             raise web.HTTPServiceUnavailable(text="Admin session store unavailable") from exc
         if record is None:
@@ -424,7 +471,8 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
         try:
             accepted = drafts.issue_session(
                 user.username, step, hashlib.sha256(cookie.encode()).hexdigest(),
-                csrf, session_ttl, previous_hash)
+                csrf, session_ttl, previous_hash,
+                account_binding=account_bindings[user.username])
         except SessionCapacityReached as exc:
             raise web.HTTPServiceUnavailable(text="Session capacity reached") from exc
         except sqlite3.Error as exc:
@@ -455,6 +503,26 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
             raise web.HTTPServiceUnavailable(text="Admin session store unavailable") from exc
         response = web.json_response({"loggedOut": True})
         response.del_cookie(COOKIE, path="/", secure=True, httponly=True, samesite="Strict")
+        return response
+
+    async def revoke_all_sessions(request: web.Request) -> web.Response:
+        """Explicit CSRF-protected shared revocation; no credential mutation."""
+        who = mutation(request, "viewer")
+        payload = await body(request, 256)
+        if set(payload) - {"username"}:
+            raise web.HTTPBadRequest(text="Invalid revocation request")
+        target = payload.get("username", who.username)
+        if not isinstance(target, str) or not re.fullmatch(r"[A-Za-z0-9_-]{3,64}", target):
+            raise web.HTTPBadRequest(text="Invalid username")
+        if target != who.username and who.role != "owner":
+            raise web.HTTPForbidden(text="Owner role required")
+        try:
+            count = drafts.revoke_account_sessions(target)
+        except sqlite3.Error as exc:
+            raise web.HTTPServiceUnavailable(text="Admin session store unavailable") from exc
+        response = web.json_response({"revoked": True, "count": count})
+        if target == who.username:
+            response.del_cookie(COOKIE, path="/", secure=True, httponly=True, samesite="Strict")
         return response
 
     async def get_draft(request: web.Request) -> web.Response:
@@ -495,6 +563,7 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
     app.router.add_post(prefix + "/session", login)
     app.router.add_get(prefix + "/session", status)
     app.router.add_delete(prefix + "/session", logout)
+    app.router.add_post(prefix + "/sessions/revoke", revoke_all_sessions)
     app.router.add_get(prefix + "/draft", get_draft)
     app.router.add_put(prefix + "/draft", put_draft)
     app.router.add_get(prefix + "/history", get_history)
