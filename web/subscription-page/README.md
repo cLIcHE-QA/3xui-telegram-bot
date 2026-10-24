@@ -364,3 +364,10 @@ Regression tests: смена verifier, TOTP и роли, отключение п
 
 - `subscription_page_customer.py` и `tests/test_subscription_page_customer.py` реализуют серверный `initData` HMAC, freshness, ограниченные cookie-сессии/replay/Origin/Host, per-request pilot + durable feature checks. `/api/subpage/v1` **не** подключён к `app_runtime`.
 - Ни Mini App WebView, ни production TLS/edge, ни standalone login не прошли smoke. React D1a продолжает показывать только synthetic preview и disabled links; отдельный standalone session exchange и frontend bridge — будущая D2 работа. Issue #887 остаётся OPEN, G-11 NO-GO.
+
+
+## D2a — локальный frontend bridge, по умолчанию выключен
+
+`src/miniAppClient.ts` ограничивает вызовы raw `Telegram.WebApp.initData` только явным POST body. `MiniAppPilotPanel.tsx` монтируется в `main.tsx` только при compile-time `VITE_D2A_PILOT_UI=true`; обычные сборки не показывают панель и никогда не запускают auth автоматически. После подтверждённого backend login запрос `/me` возвращает только plan/status/expiry/locations; отсутствуют bearer subscription URLs, keys и admin права. Пилотный UI и D1a синтетическая карточка не смешиваются, кнопки импорта остаются disabled.
+
+Тесты `npm run test:model` включают `src/miniAppClient.test.ts` (negative auth, no URL leaks, DTO allowlist, failed logout), `npm run test:browser` дополнительно требует отсутствие API-запросов и пилотной панели в default preview. Все функции D2a остаются **только в Draft PR #898**; backend не привязан к runtime, standalone login и реальные WebView/TLS/edge/sessions/release PENDING. **Не включать `VITE_D2A_PILOT_UI` в production build**.
