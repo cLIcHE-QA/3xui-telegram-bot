@@ -53,7 +53,7 @@
 
 **Права:** эксплуатация иконки в других проектах не доказывает разрешение на копирование. Экспорт из Remnawave тоже не присваивает нам права третьих лиц на дизайн логотипов. Утверждённое решение означает: **использовать предоставленный набор для дизайна, тестов и сопоставления**, затем для каждой публикуемой брендовой иконки проверить исходный официальный источник, лицензию, trademark/attribution и зафиксировать evidence в asset inventory. Если источник или разрешение не установлен, искать официальный аналог; только при отсутствии проверенной альтернативы применять нейтральный fallback с названием клиента. Не переносить вместе с SVG UI-код Remnawave под AGPL-3.0.
 
-**Границы:** текущий PR #888 фиксирует решение и непубликуемый inventory ключей/хэшей, **не коммитит оригинальные SVG в публичный репозиторий до проверки прав**. Создание рабочего каталога/компонентов и встраивание разрешённых SVG — D1 в отдельном implementation PR. Не выставлять визуальный smoke, юридический review или production как PASS лишь на основании XML-разбора.
+**Границы:** слитый docs-only PR #888 фиксирует архитектурное решение и обезличенный inventory ключей/хэшей, **не коммитит оригинальные SVG в публичный репозиторий**. Создание рабочего каталога/компонентов и встраивание разрешённых SVG — D1 в отдельном implementation PR. Не выставлять визуальный smoke, юридический review или production как PASS лишь на основании XML-разбора.
 
 ## Полный функциональный паритет Subscription Page и защищённый веб-редактор — решение оператора 2026-10-23
 
@@ -91,7 +91,7 @@
 
 | Gate | Объём будущего implementation PR | Проверка / переход |
 | --- | --- | --- |
-| **D0** (документационный PR #888) | Зафиксировать паритет и защищённый редактор; import/export схему, инвентарь и safety contract | Required `test/title`, затем разрешённый merge и независимый `main`/Roadmap read-back; не runtime-acceptance |
+| **D0** ([docs-only PR #888](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/888), MERGED) | Паритет и защищённый редактор; import/export схема, инвентарь и safety contract | Squash merge `3828a417bc0de6fe61f9df878cce043c15bfd343`; предмерджевые `test/title` и post-merge `main test` PASS, независимый GitHub read-back PASS. Это D0 docs-only, не runtime-acceptance |
 | **D1a** | React 19 + TypeScript + Vite + Mantine; собственный responsive public shell и конфигурационные `expanded/collapsed/cards/hidden`, `cards/timeline/accordion/minimal`; 5 языков, 7 платформ, validated import fixtures и 40 SVG-кандидатов (права отдельно) | Unit/snapshot/a11y/RTL/mobile/desktop/WebView visual smoke; fake fixtures; безопасные fallback, никаких live mutations |
 | **D1b** | **Отдельная защищённая веб-админка**: admin-only login/RBAC, browser config editor, translations/platforms/apps/steps/buttons, preview, full/selective JSON import/export, draft, audit, publish proposal + rollback model | Threat model, auth/CSRF/role-negative тесты, конфигурационная schema validator и migration/version conflict тесты; реальные publish actions только после authorization gate |
 | **D2** | Клиентский standalone login и Telegram Mini App `initData` verification; provider-neutral customer DTO, safe subscription-link/QR issuance, raw-key/HWID policy | Owner/pilot/expired/replay/IDOR/CSP/session/secret-leak negative tests, `/compat/` unchanged |
@@ -130,4 +130,4 @@ Acceptance D1b: администратор может локально выпо�
 
 Для реализации требуются мобильный и desktop a11y smoke, owner/pilot/feature gates, multi-account isolation, чужой/просроченный `initData`, отсутствие утечек bearer в URL/логи/CDN/referrer, сохранение `/compat/` и QR/Copy fallback, честные ошибки и device import/refresh. Offline CI не заменяет устройство/VPS acceptance.
 
-Действительный D0 merge подтверждается только GitHub PR state, immutable `main` SHA, required CI и независимым `main`/Roadmap read-back; до этих событий **Roadmap sync: PENDING**. После D0 acceptance: `#887 keep_open` до D1–D3, инструкций INCY/RabbitHole и отдельной реальной приёмки; merge документации не закрывает feature. При сбое новой web-плоскости она отключается feature flag, старые bot/compat endpoints остаются рабочими.
+D0 docs-only PR #888 **MERGED** 2026-10-24 в `main` `3828a417bc0de6fe61f9df878cce043c15bfd343` (required `test/title` pre-merge и `main test` post-merge PASS; независимый GitHub read-back подтверждён). Фактический D0 Roadmap checkpoint фиксируется отдельным docs-only PR: пока тот не merged и не проверен в `main`, **Roadmap sync: PENDING**. После архитектурного D0: `#887 keep_open` до D1–D3, инструкций INCY/RabbitHole и отдельной реальной приёмки; merge документации не закрывает feature. При сбое новой web-плоскости она отключается feature flag, старые bot/compat endpoints остаются рабочими.
