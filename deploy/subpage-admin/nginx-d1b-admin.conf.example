@@ -54,6 +54,16 @@ server {
         try_files $uri =404;
     }
 
+    # D1b SafeSvgIcon использует ровно согласованные локальные SVG.
+    # Не открывать весь /client-icons/: там есть альтернативы и текст лицензии.
+    location ~ ^/client-icons/library/[A-Za-z0-9_-]+\.svg$ {
+        try_files $uri =404;
+    }
+
+    location = /client-icons/incy.svg {
+        try_files $uri =404;
+    }
+
     location ^~ /admin/subpage/api/ {
         limit_req zone=d1b_api burst=20 nodelay;
         limit_req zone=d1b_login burst=4 nodelay;

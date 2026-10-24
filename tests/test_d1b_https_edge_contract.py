@@ -44,6 +44,39 @@ class D1bHttpsEdgeTests(unittest.TestCase):
         self.assertNotIn("proxy_pass http://0.0.0.0", s)
         self.assertIn("autoindex off;", s)
 
+    def test_editor_svg_paths_are_narrowly_allowlisted(self):
+        # Frontend's self-hosted SVG catalog must remain visible on the
+        # isolated admin origin without publishing other client-icons files.
+        s = self.conf
+        self.assertIn("root /srv/d1b-subscription-editor/dist;", s)
+        self.assertIn(
+            "location ~ ^/client-icons/library/[A-Za-z0-9_-]+\\.svg$ {\n"
+            "        try_files $uri =404;\n    }", s)
+        self.assertIn(
+            "location = /client-icons/incy.svg {\n"
+            "        try_files $uri =404;\n    }", s)
+        self.assertNotIn("location ^~ /client-icons/ {", s)
+        catalog = (Path(__file__).resolve().parents[1] / "web" / "subscription-page"
+                   / "src" / "staticSvgPaths.ts").read_text(encoding="utf-8")
+        paths = re.findall(r':\s*"(/client-icons/[A-Za-z0-9_/-]+\.svg)"', catalog)
+        self.assertEqual(len(paths), 40)
+        self.assertEqual(len(set(paths)), 40)
+        public = Path(__file__).resolve().parents[1] / "web" / "subscription-page" / "public"
+        library_route = re.compile(r"/client-icons/library/[A-Za-z0-9_-]+\.svg")
+        for uri in paths:
+            self.assertTrue((public / uri.lstrip("/")).is_file(), uri)
+            self.assertTrue(uri == "/client-icons/incy.svg" or
+                            library_route.fullmatch(uri), uri)
+        for denied in (
+            "/client-icons/INCY-LICENSE.txt",
+            "/client-icons/incy-monochrome.svg",
+            "/client-icons/library/Happ.svg.map",
+            "/client-icons/library/.hidden.svg",
+            "/client-icons/library/Happ.svg/other",
+        ):
+            self.assertNotEqual(denied, "/client-icons/incy.svg")
+            self.assertIsNone(library_route.fullmatch(denied), denied)
+
     def test_rate_limit_and_client_origin_are_not_forged(self):
         s = self.conf
         self.assertIn('"POST:/admin/subpage/api/session" $binary_remote_addr;', s)
