@@ -133,7 +133,6 @@ def _decode_database(blob: bytes, key: bytes) -> tuple[sqlite3.Connection, int]:
 
 
 def _write_db(path: Path, db: sqlite3.Connection) -> None:
-    _write_new_file(path, b"") if False else None  # kept out of the file system
     fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_EXCL
                  | getattr(os, "O_NOFOLLOW", 0), 0o600)
     os.close(fd)
@@ -252,10 +251,28 @@ class OfflineD1bRecovery:
         sealed = wrapper.encrypt(payload)
         if len(sealed) > _MAX_BACKUP_BYTES:
             raise ValueError("Sealed backup too large")
-        _write_new_file(Path(backup_path), sealed)
-        _fsync_dir(Path(backup_path).parent)
-        if _private_bytes(Path(backup_path), _MAX_BACKUP_BYTES) != sealed:
-            raise ValueError("Sealed backup verification failed")
+        target = Path(backup_path)
+        if target.exists() or target.is_symlink():
+            raise FileExistsError("Sealed backup already exists")
+        temporary = target.with_name("." + target.name + "."
+                                     + secrets.token_hex(12) + ".stage")
+        try:
+            _write_new_file(temporary, sealed)
+            # A successful write is not enough: independently decrypt the
+            # sealed file and validate both stores before publishing the backup.
+            verified_rev, verified_accounts, verified_blob = self._read_backup(
+                temporary, backup_key, self.roster_name, self.db_name)
+            if (verified_rev != revision or verified_accounts != accounts
+                    or verified_blob != serialized):
+                raise ValueError("Sealed backup verification mismatch")
+            check_db, _ = _decode_database(verified_blob, self.key)
+            check_db.close()
+            # os.link refuses overwriting an existing backup atomically.
+            os.link(temporary, target, follow_symlinks=False)
+            _fsync_dir(target.parent)
+        finally:
+            if temporary.exists():
+                temporary.unlink()
         return revision
 
     @staticmethod
