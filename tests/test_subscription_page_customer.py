@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from urllib.parse import urlencode
 
+from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
 from customer_service import CustomerProfile
@@ -123,7 +124,7 @@ class CustomerSessionsTests(unittest.TestCase):
         store = MiniAppSessions()
         with patch("subscription_page_customer.MAX_SESSIONS", 1):
             store.issue(VerifiedMiniAppIdentity(USER1, NOW, b"one"), NOW)
-            with self.assertRaisesRegex(Exception, "503"):
+            with self.assertRaises(web.HTTPServiceUnavailable):
                 store.issue(VerifiedMiniAppIdentity(USER2, NOW, b"two"), NOW)
 
 
