@@ -91,17 +91,37 @@ class DraftStoreTests(unittest.TestCase):
     def test_totp_replay_ledger_persists_across_connections(self):
         # Never persist an MFA secret/code; only account identity and used step.
         other = EncryptedDrafts(self.path, self.key)
-        self.assertTrue(self.store.consume_totp_step("owner1", 1000))
-        self.assertFalse(other.consume_totp_step("owner1", 1000))
-        self.assertFalse(self.store.consume_totp_step("owner1", 999))
-        self.assertTrue(other.consume_totp_step("owner1", 1001))
-        self.assertTrue(self.store.consume_totp_step("editor1", 1000))
+        self.assertTrue(self.store.issue_session("owner1", 1000, "token-a", "csrf-a", 120))
+        self.assertFalse(other.issue_session("owner1", 1000, "token-b", "csrf-b", 120))
+        self.assertFalse(self.store.issue_session("owner1", 999, "token-c", "csrf-c", 120))
+        self.assertTrue(other.issue_session("owner1", 1001, "token-d", "csrf-d", 120))
+        self.assertTrue(self.store.issue_session("editor1", 1000, "token-e", "csrf-e", 120))
         with sqlite3.connect(self.path) as db:
             rows = db.execute(
                 "SELECT username,last_step FROM admin_totp_replay ORDER BY username"
             ).fetchall()
         self.assertEqual(rows, [("editor1", 1000), ("owner1", 1001)])
 
+
+    def test_concurrent_instances_only_accept_one_totp_step(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+        replica = EncryptedDrafts(self.path, self.key)
+        barrier = Barrier(2)
+
+        def issue(store, suffix):
+            barrier.wait(timeout=5)
+            return store.issue_session("owner1", 77777, "token-" + suffix,
+                                       "csrf-" + suffix, 120)
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            a = pool.submit(issue, self.store, "first")
+            b = pool.submit(issue, replica, "second")
+            self.assertEqual([a.result(), b.result()].count(True), 1)
+        with sqlite3.connect(self.path) as db:
+            self.assertEqual(db.execute(
+                "SELECT count(*) FROM admin_sessions WHERE username='owner1'"
+            ).fetchone()[0], 1)
 
     def test_shared_sessions_are_encrypted_and_revoked_across_connections(self):
         cookie = "synthetic-cookie-not-to-store"
