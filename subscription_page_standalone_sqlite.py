@@ -9,7 +9,6 @@ All stored challenge, binding and session identifiers are SHA-256 digests.
 from __future__ import annotations
 
 import os
-import secrets
 import sqlite3
 import stat
 from contextlib import contextmanager
@@ -63,7 +62,7 @@ class StandaloneSQLiteLedger:
                 con.execute(
                     "CREATE TABLE IF NOT EXISTS standalone_sessions ("
                     "session_hash BLOB PRIMARY KEY, owner INTEGER NOT NULL, "
-                    "expires REAL NOT NULL)"
+                    "issued REAL NOT NULL, expires REAL NOT NULL)"
                 )
                 con.execute("PRAGMA user_version=1")
                 check = con.execute("PRAGMA quick_check").fetchone()
@@ -106,8 +105,8 @@ class StandaloneSQLiteLedger:
                 (current, current),
             )
             con.execute(
-                "DELETE FROM standalone_sessions WHERE expires <= ?",
-                (current,),
+                "DELETE FROM standalone_sessions WHERE expires <= ? OR issued > ?",
+                (current, current),
             )
             yield con
             con.execute("COMMIT")
@@ -203,9 +202,9 @@ class StandaloneSQLiteLedger:
                 (challenge_hash,),
             )
             con.execute(
-                "INSERT INTO standalone_sessions(session_hash,owner,expires)"
-                " VALUES(?,?,?)",
-                (session_hash, owner, current + session_ttl),
+                "INSERT INTO standalone_sessions(session_hash,owner,issued,expires)"
+                " VALUES(?,?,?,?)",
+                (session_hash, owner, current, current + session_ttl),
             )
             return True
 
