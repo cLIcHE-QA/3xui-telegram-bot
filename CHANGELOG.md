@@ -22,6 +22,8 @@
 
 - D1b security follow-up (#887): анти-replay TOTP переведён из памяти процесса в приватную SQLite-таблицу с атомарным `BEGIN IMMEDIATE`, отказом повторного шага между экземплярами с общей базой и fail-closed `503` при ошибке записи. Добавлены тесты устойчивости после пересоздания API; подтверждение нового head CI и эксплуатационная проверка распределённой инфраструктуры остаются PENDING. Это **не** release/deployment/acceptance.
 
+- D1b admin session hardening (#887, только Draft PR #896): session cookie теперь представлен в private SQLite только SHA-256, CSRF — Fernet ciphertext; TTL/idle-expiry и общий logout сохраняются после перезапуска и между экземплярами с одной SQLite. Выдача сессии и TOTP anti-replay стали атомарной операцией; при отказе SQLite вход/проверка/отзыв fail-closed. Добавлены тесты межэкземплярных сессий, лимита, ротации, ролей и race. Это **не** включение runtime или security approval: HTTPS/HA/rate-limits/enrollment/key rotation и реальный canary PENDING.
+
 ## Неопубликованные изменения в main — D1a preview #887 (2026-10-24)
 
 - [PR #889](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/889) **Squash MERGED** в `main` `74038c37ddbc13d312727c5f1e5c247c8eb1d8ba`. Добавлен **изолированный offline React 19/TypeScript/Vite/Mantine предпросмотр** страницы подписки и инструкций, локальный JSON v1 импорт, UI с пятью языками и семью платформами, 39 оригинальных SVG из операторского набора и отдельная MIT-иконка INCY. Ссылки и действия в превью заблокированы; auth, API, реальная выдача подписок и deployment не добавлены.
