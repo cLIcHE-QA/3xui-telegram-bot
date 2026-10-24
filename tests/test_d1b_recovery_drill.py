@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -58,9 +59,10 @@ class IsolatedDisasterRecoveryDrillTests(unittest.TestCase):
         self.archive = self.root / "sealed-disaster.fernet"
         OfflineD1bRecovery(self.source, self.primary).backup(
             self.archive, self.backup)
-        # Simulate a completely missing source installation. Caller does not
-        # provide the vanished primary key to the subprocess at all.
-        self.source.rename(self.root / "lost-installation")
+        # Destroy ONLY ephemeral synthetic fixture files: the child process
+        # cannot read or discover a surviving copy of the original roster/DB.
+        # The old key stays solely in this parent test process.
+        shutil.rmtree(self.source)
         self.assertFalse(self.source.exists())
         self.target = self.root / "recovered-from-backup"
 
