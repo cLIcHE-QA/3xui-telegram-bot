@@ -4,7 +4,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.18.10` SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.19` SHA `d738dd970f2215adc346a919c7ed182abaf454b1`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
 
 ## Client Portal: тарифы и платежные ограничения
 
@@ -13,7 +13,7 @@
 - Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
 - Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
 
-## #473 — импорт подписки (кандидат rc.19, не Published)
+## #473 — импорт подписки (Published rc.19; deployment и приёмка PENDING)
 
 **Security review #882 (2026-10-23, pre-merge):** в каталоге import URI отклоняются URL с query-delimiter (включая пустой `?`), percent/fragment/userinfo/private IP и небезопасной схемой; `subTitle` валидируется как ограниченное Unicode-имя с отказом на control/bidi, читается только через loopback после owner/private guard, без redirect. Ошибки информационного upstream-запроса логируются по типу исключения, без bearer URL. Добавлены negative tests для forged callbacks, недоступного proxy и title injection. Итог offline CI и реальный post-deploy smoke независимы от самого review; выпуск до обязательных checks запрещён.
 
@@ -64,7 +64,7 @@
 
 
 
-## Моя подписка: кандидат #497, ещё не в Published rc.18.10
+## Моя подписка: #497 Published в rc.19; deployment и приёмка PENDING
 
 После отдельного выпуска на разрешённом pilot-аккаунте проверьте `/subscription` и `🌐 Моя подписка` в личном чате: статусы VPN/entitlement, план, срок, `CopyTextButton`, возврат из подключения, guarded покупку/продление и диагностику. Проверяйте без изменения доступа случаи «нет аккаунта», disabled/expired/provisioning/unknown, provider outage, нестыковку сроков и отсутствие подтверждённого числа локаций. «Привязки Master Inbounds» **не** означают число доступных серверов. Не переносите реальные URL, ID или ключи в лог/Issue.
 
