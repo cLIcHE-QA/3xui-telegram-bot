@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D1b scoped offline code security review and PR #896 merge PASS; no Published/Deployed/production acceptance",
-      "evidence": "docs/audits/2026-10-24-887-d1b-postmerge-roadmap-checkpoint.md",
+      "accepted": "D2a #898 squash merged and pre-merge 1436 Python (3 skipped), 9 Node, 57 default + 2 opt-in Playwright, required test/title and supply-chain PASS; no production or D2/D3 acceptance",
+      "evidence": "docs/audits/2026-10-24-887-d2a-postmerge-roadmap-checkpoint.md",
       "date": "2026-10-24",
-      "comment": "D0/D1a/D1b implementation merged; D1b draft-only and unshipped. Original private JSON 1:1, D2 Telegram initData, D3 client/WebView, trusted TLS/VPS/DR, and G-11 production gates PENDING; Issue #887 remains OPEN."
+      "comment": "#887 keep_open: D0/D1a/D1b/D2a in main; D2a off-by-default, not Published/Deployed, post-merge push CI UNKNOWN. D2b standalone owner proof, full D3 client/WebView, trusted HTTPS/edge/multi-worker, private 1:1 JSON, runtime rollout and G-11 acceptance PENDING."
     }
   ]
 }
