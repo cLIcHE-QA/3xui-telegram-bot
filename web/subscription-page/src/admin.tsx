@@ -49,7 +49,7 @@ function blockedLinks(config:Config):number {
 function deltaSections(base:Config|null,current:Config|null):string[]{
  if(!current)return [];
  if(!base)return ["Вся конфигурация импортирована локально"];
- const sections:Section[]=["brandingSettings","baseSettings","uiConfig","baseTranslations","platforms","svgLibrary"];
+ const sections:Exclude<Section,"all">[]=["brandingSettings","baseSettings","uiConfig","baseTranslations","platforms","svgLibrary"];
  return sections.filter(key=>JSON.stringify(base[key])!==JSON.stringify(current[key]));
 }
 function safeFilename(name:string){return name.replace(/[^a-z0-9_-]/gi,"-").slice(0,40);}
