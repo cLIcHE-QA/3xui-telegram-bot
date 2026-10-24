@@ -1,5 +1,19 @@
 import { test, expect } from "@playwright/test";
 
+test("D2a выключен в обычном preview: нет Mini App cookie/login и исходящих API", async ({ page }) => {
+  const authRequests: string[] = [];
+  page.on("request", req => {
+    if (req.url().includes("/api/subpage/v1/")) authRequests.push(req.url());
+  });
+  await page.goto("/");
+  await expect(page.getByTestId("d2a-mini-app-pilot")).toHaveCount(0);
+  await expect(page.getByTestId("subscription-preview")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
+  await page.waitForTimeout(100);
+  expect(authRequests).toEqual([]);
+});
+
+
 test("четыре варианта подписки и инструкции доступны без реальных действий", async ({ page }) => {
   const unexpected: string[] = [];
   page.on("request", (req) => {

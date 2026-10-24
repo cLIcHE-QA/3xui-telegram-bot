@@ -49,6 +49,11 @@ jobs:
       - name: Проверить desktop/mobile и WebKit-like browser smoke
         working-directory: web/subscription-page
         run: npm run test:browser
+      - name: Проверить D2a opt-in Mini App в изолированном браузере
+        working-directory: web/subscription-page
+        env:
+          VITE_D2A_PILOT_UI: 'true'
+        run: npx playwright test --grep "D2a opt-in" --project desktop-chromium
       - name: Сохранить browser evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

@@ -1,0 +1,14 @@
+# #887 D2a — изолированный вход Telegram Mini App и customer API
+
+<!-- audit-schema: 1 -->
+- **Дата/время и часовой пояс:** 2026-10-24 21:52 UTC+03:00 (начало scoped D2a по запросу оператора)
+- **Окружение:** GitHub connector, изолированная feature branch и GitHub Actions; без реального bot token, Telegram WebView, VPS, внешнего HTTPS endpoint, production-клиентов или deployment
+- **Цель:** заложить проверяемую доверенную границу будущего D2: серверный Telegram HMAC/auth_date, короткоживущая клиентская сессия и read-only owner/pilot DTO без передачи subscriber bearer-данных
+- **Версия и immutable tag/SHA:** base cbd85af759a3c77aca36e2635e926b97763a4ca2; Published immutable `v5.0.0-rc.19` SHA `d738dd970f2215adc346a919c7ed182abaf454b1`, не содержит D2a
+- **Scope:** `subscription_page_customer.py` (опциональный isolated aiohttp API, без listener в app_runtime), `tests/test_subscription_page_customer.py` (синтетические HMAC/negative HTTP/IDOR/replay/expiry/CSRF tests), канонический `docs/WEB_SUBSCRIPTION_MINI_APP.md` и проектный README/CHANGELOG. Standalone auth/session exchange, safe raw keys/QR issuance, frontend integration и публикация сознательно не входят в D2a
+- **Фактический результат:** PENDING — код и регрессии записаны в отдельную ветку; required `test/title` и независимый GitHub exact-head read-back должны подтвердить результат. **До завершения CI не считать scoped code gate PASS.** #887 OPEN, G-11 PARTIAL/NO-GO, никаких product/device/VPS acceptance
+- **Источник и evidence:** [Issue #887](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/887); [план D0-D3](../WEB_SUBSCRIPTION_MINI_APP.md); [Telegram Mini Apps: validating data](https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app); новая ветка `feature/887-d2-auth-boundary`, PR и CI — после открытия
+- **Ограничения и остаточные риски:** TLS/SNI, реальные cookie/WebView, origin behind trusted edge, multi-worker session/replay consistency, fail-closed throttle при общем proxy IP, session durability/restart UX, standalone независимое доказательство владельца, raw URL/QR/HWID policy, исходный закрытый JSON 1:1, отдельные #885/#890 — PENDING. Cookie, HMAC и pilot-политика offline сами по себе не запускают публичную страницу и не подтверждают полноценный D2
+- **Связанные Issues:** #887 OPEN / keep_open, новое Issue не требуется (тот же архитектурный scope)
+- **Следующий шаг:** required `test/title` на PR head, поправить найденное, независимый read-back; до merge провести security review; D2b standalone и frontend session bridge отдельным PR после согласованного checkpoint. Release, deploy, production smoke только по отдельному разрешению
+- **Раздельные состояния:** merged=только #897 и предыдущие D0/D1a/D1b в main; published=`v5.0.0-rc.19`; deployed=`v5.0.0-rc.18.10` только operator-reported; accepted=D2a PENDING, full #887/G-11 PARTIAL/NO-GO
