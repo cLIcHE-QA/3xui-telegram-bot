@@ -139,6 +139,10 @@ test("D1b preview matches approved self-hosted SVG catalog without executing imp
  await page.getByTestId("admin-svg-gallery").locator("summary").click();
  await expect(page.getByTestId("admin-library-svg")).toHaveCount(40);
  await expect(page.getByTestId("admin-library-svg").last()).toHaveAttribute("src","/client-icons/incy.svg");
+ await expect.poll(async()=>page.getByTestId("admin-library-svg").evaluateAll(
+    nodes=>nodes.filter(node=>node instanceof HTMLImageElement && node.complete && node.naturalWidth>0).length
+ )).toBe(40);
+ await page.screenshot({path:"test-results/d1b-svg-approved-library-desktop.png",fullPage:true});
  expect(network).toEqual([]);
 });
 
@@ -160,4 +164,5 @@ test("D1b SVG gallery remains readable at mobile width and 200% text",async({pag
  await expect(page.getByTestId("admin-svg-gallery")).toBeVisible();
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
  expect(overflow).toBe(false);
+ await page.screenshot({path:"test-results/d1b-svg-approved-library-mobile-200-percent.png",fullPage:true});
 });

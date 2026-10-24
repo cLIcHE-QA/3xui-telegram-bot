@@ -23,12 +23,17 @@ from subscription_page_admin import (
 )
 
 
-TEST_MFA_SEED = b"test admin otp seed!"  # synthetic 160-bit secret
-TEST_MFA_B32 = base64.b32encode(TEST_MFA_SEED).decode("ascii")
+TEST_MFA_SEEDS = {
+    "owner1": b"test owner mfa seed!!",
+    "editor1": b"test editor mfa seed!",
+    "viewer1": b"test viewer mfa seed!",
+}
+TEST_MFA_B32 = {name: base64.b32encode(value).decode("ascii")
+                 for name, value in TEST_MFA_SEEDS.items()}
 
 
-def current_otp() -> str:
-    return _totp_at(TEST_MFA_SEED, int(time.time() // 30))
+def current_otp(username: str = "owner1") -> str:
+    return _totp_at(TEST_MFA_SEEDS[username], int(time.time() // 30))
 
 
 def fixture() -> dict:
@@ -129,9 +134,9 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         self.key = Fernet.generate_key()
         password = "strong-test-password"
         accounts = [
-            AdminAccount("owner1", password_verifier(password), "owner", TEST_MFA_B32),
-            AdminAccount("editor1", password_verifier(password), "editor", TEST_MFA_B32),
-            AdminAccount("viewer1", password_verifier(password), "viewer", TEST_MFA_B32),
+            AdminAccount("owner1", password_verifier(password), "owner", TEST_MFA_B32["owner1"]),
+            AdminAccount("editor1", password_verifier(password), "editor", TEST_MFA_B32["editor1"]),
+            AdminAccount("viewer1", password_verifier(password), "viewer", TEST_MFA_B32["viewer1"]),
         ]
         self.app = create_editor_app(
             accounts=accounts, db_path=Path(self.dir.name) / "drafts.sqlite3",
@@ -147,7 +152,7 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         await self.client.close()
 
     async def login(self, username: str, password: str = "strong-test-password"):
-        resp = await self.client.post(self.url + "/session", json={"username": username, "password": password, "otp": current_otp()},
+        resp = await self.client.post(self.url + "/session", json={"username": username, "password": password, "otp": current_otp(username)},
                                       headers=self.origin)
         if resp.status != 200:
             return resp
@@ -296,6 +301,16 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         foreign_write = await self.client.delete(self.url + "/session",
             headers={**self.headers("viewer1", csrf=True), "Host": "evil.example"})
         self.assertEqual(foreign_write.status, 403)
+
+    def test_reject_duplicate_admin_totp_secrets(self):
+        with self.assertRaises(ValueError):
+            create_editor_app(accounts=[
+                AdminAccount("owner1", password_verifier("strong-test-password"),
+                             "owner", TEST_MFA_B32["owner1"]),
+                AdminAccount("viewer1", password_verifier("strong-test-password"),
+                             "viewer", TEST_MFA_B32["owner1"]),
+            ], db_path=Path(self.dir.name) / "duplicate-seeds.sqlite3",
+               encryption_key=self.key, https_origin="https://admin.example.test")
 
     def test_admin_mfa_mandatory_even_for_viewer(self):
         with self.assertRaises(ValueError):

@@ -219,12 +219,16 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
     if not accounts or not 60 <= session_ttl <= 3600:
         raise ValueError("Accounts and bounded sessions required")
     users: dict[str, AdminAccount] = {}
+    enrolled_otp_keys: set[bytes] = set()
     for account in accounts:
         if (not re.fullmatch(r"[A-Za-z0-9_-]{3,64}", account.username)
                 or account.username in users or account.role not in ROLES
                 or not VERIFIER.fullmatch(account.password_hash)):
             raise ValueError("Invalid admin account setup")
-        _totp_key(account.totp_secret_b32)
+        otp_key = _totp_key(account.totp_secret_b32)
+        if otp_key in enrolled_otp_keys:
+            raise ValueError("Each administrator must enroll a different MFA secret")
+        enrolled_otp_keys.add(otp_key)
         users[account.username] = account
     drafts = EncryptedDrafts(db_path, encryption_key)
     sessions: dict[str, Session] = {}
