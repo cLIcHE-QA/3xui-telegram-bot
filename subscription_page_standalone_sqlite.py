@@ -8,6 +8,8 @@ All stored challenge, binding and session identifiers are SHA-256 digests.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
 import sqlite3
 import stat
@@ -23,7 +25,10 @@ _SCHEMA_VERSION = 1
 
 
 class StandaloneSQLiteLedger:
-    def __init__(self, db_path: str | os.PathLike) -> None:
+    def __init__(self, db_path: str | os.PathLike, *, https_origin: str) -> None:
+        if not isinstance(https_origin, str) or not https_origin.startswith("https://"):
+            raise ValueError("An exact HTTPS origin is required")
+        self.origin_hash = hashlib.sha256(https_origin.encode("utf-8")).digest()
         path = Path(db_path)
         if not path.is_absolute() or not path.name.endswith(".sqlite3"):
             raise ValueError("A separate absolute .sqlite3 path is required")
@@ -49,6 +54,20 @@ class StandaloneSQLiteLedger:
                 version = con.execute("PRAGMA user_version").fetchone()[0]
                 if version not in (0, _SCHEMA_VERSION):
                     raise ValueError("Incompatible standalone ledger version")
+                con.execute(
+                    "CREATE TABLE IF NOT EXISTS standalone_origin ("
+                    "id INTEGER PRIMARY KEY CHECK(id=1), origin_hash BLOB NOT NULL)"
+                )
+                origin = con.execute(
+                    "SELECT origin_hash FROM standalone_origin WHERE id=1"
+                ).fetchone()
+                if origin is None:
+                    con.execute(
+                        "INSERT INTO standalone_origin(id,origin_hash) VALUES(1,?)",
+                        (self.origin_hash,),
+                    )
+                elif not hmac.compare_digest(bytes(origin[0]), self.origin_hash):
+                    raise ValueError("Standalone ledger origin mismatch")
                 con.execute(
                     "CREATE TABLE IF NOT EXISTS standalone_pending ("
                     "challenge_hash BLOB PRIMARY KEY, binding_hash BLOB NOT NULL, "
@@ -100,6 +119,11 @@ class StandaloneSQLiteLedger:
         try:
             con = self._connect()
             con.execute("BEGIN IMMEDIATE")
+            origin = con.execute(
+                "SELECT origin_hash FROM standalone_origin WHERE id=1"
+            ).fetchone()
+            if origin is None or not hmac.compare_digest(bytes(origin[0]), self.origin_hash):
+                raise web.HTTPServiceUnavailable(text="Standalone ledger unavailable")
             con.execute(
                 "DELETE FROM standalone_pending WHERE expires <= ? OR issued > ?",
                 (current, current),
