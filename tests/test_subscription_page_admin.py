@@ -4,8 +4,10 @@ Synthetic fixtures only. Never log/export real URLs or customer tokens.
 """
 from __future__ import annotations
 
+import base64
 import copy
 import json
+import time
 import os
 import sqlite3
 import tempfile
@@ -17,8 +19,16 @@ from cryptography.fernet import Fernet
 
 from subscription_page_admin import (
     COOKIE, AdminAccount, EncryptedDrafts, StaleDraft, create_editor_app,
-    password_verifier,
+    password_verifier, _totp_at,
 )
+
+
+TEST_MFA_SEED = b"test admin otp seed!"  # synthetic 160-bit secret
+TEST_MFA_B32 = base64.b32encode(TEST_MFA_SEED).decode("ascii")
+
+
+def current_otp() -> str:
+    return _totp_at(TEST_MFA_SEED, int(time.time() // 30))
 
 
 def fixture() -> dict:
@@ -119,9 +129,9 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         self.key = Fernet.generate_key()
         password = "strong-test-password"
         accounts = [
-            AdminAccount("owner1", password_verifier(password), "owner"),
-            AdminAccount("editor1", password_verifier(password), "editor"),
-            AdminAccount("viewer1", password_verifier(password), "viewer"),
+            AdminAccount("owner1", password_verifier(password), "owner", TEST_MFA_B32),
+            AdminAccount("editor1", password_verifier(password), "editor", TEST_MFA_B32),
+            AdminAccount("viewer1", password_verifier(password), "viewer", TEST_MFA_B32),
         ]
         self.app = create_editor_app(
             accounts=accounts, db_path=Path(self.dir.name) / "drafts.sqlite3",
@@ -137,7 +147,7 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         await self.client.close()
 
     async def login(self, username: str, password: str = "strong-test-password"):
-        resp = await self.client.post(self.url + "/session", json={"username": username, "password": password},
+        resp = await self.client.post(self.url + "/session", json={"username": username, "password": password, "otp": current_otp()},
                                       headers=self.origin)
         if resp.status != 200:
             return resp
@@ -179,10 +189,10 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_login_denial_and_rate_limit(self):
         missing_origin = await self.client.post(
-            self.url + "/session", json={"username": "owner1", "password": "strong-test-password"})
+            self.url + "/session", json={"username": "owner1", "password": "strong-test-password", "otp": current_otp()})
         self.assertEqual(missing_origin.status, 403)
         wrong_origin = await self.client.post(
-            self.url + "/session", json={"username": "owner1", "password": "strong-test-password"},
+            self.url + "/session", json={"username": "owner1", "password": "strong-test-password", "otp": current_otp()},
             headers={"Origin": "https://evil.example", "Host": "admin.example.test"})
         self.assertEqual(wrong_origin.status, 403)
         for _ in range(5):
@@ -190,7 +200,7 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
                                        json={"username": "owner1", "password": "wrong"}, headers=self.origin)
             self.assertEqual(r.status, 401)
         locked = await self.client.post(
-            self.url + "/session", json={"username": "owner1", "password": "strong-test-password"},
+            self.url + "/session", json={"username": "owner1", "password": "strong-test-password", "otp": current_otp()},
             headers=self.origin)
         self.assertEqual(locked.status, 429)
 
@@ -263,6 +273,36 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
                                   headers=self.headers("owner1", csrf=True, revision=0))
         self.assertEqual(r.status, 200)
         self.assertEqual((await self.client.get(self.url + "/draft", headers=self.headers("owner1"))).status, 200)
+
+    async def test_mfa_required_and_one_time_code_replay_rejected(self):
+        for otp in [None, "12345", "invalid"]:
+            credentials = {"username": "owner1", "password": "strong-test-password"}
+            if otp is not None:
+                credentials["otp"] = otp
+            response = await self.client.post(self.url + "/session",
+                json=credentials, headers=self.origin)
+            self.assertEqual(response.status, 401)
+        self.assertEqual((await self.login("owner1")).status, 200)
+        replay = await self.client.post(self.url + "/session",
+            json={"username": "owner1", "password": "strong-test-password", "otp": current_otp()},
+            headers=self.origin)
+        self.assertEqual(replay.status, 401)
+
+    async def test_cross_host_authenticated_requests_fail(self):
+        await self.login("viewer1")
+        foreign = await self.client.get(self.url + "/draft",
+            headers={**self.headers("viewer1"), "Host": "evil.example"})
+        self.assertEqual(foreign.status, 403)
+        foreign_write = await self.client.delete(self.url + "/session",
+            headers={**self.headers("viewer1", csrf=True), "Host": "evil.example"})
+        self.assertEqual(foreign_write.status, 403)
+
+    def test_admin_mfa_mandatory_even_for_viewer(self):
+        with self.assertRaises(ValueError):
+            create_editor_app(accounts=[AdminAccount("viewer1",
+                password_verifier("strong-test-password"), "viewer")],
+                db_path=Path(self.dir.name) / "mfa.sqlite3",
+                encryption_key=self.key, https_origin="https://admin.example.test")
 
 
 if __name__ == "__main__":

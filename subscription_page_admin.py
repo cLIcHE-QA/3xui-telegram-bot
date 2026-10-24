@@ -5,15 +5,17 @@ explicitly provide admin password verifiers, HTTPS origin and a Fernet key.
 Never use a subscription URL, initDataUnsafe or Telegram ID for web admin auth.
 """
 from __future__ import annotations
+import base64
 import hashlib
 import hmac
 import json
 import os
 import re
+import stat
 import secrets
 import sqlite3
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -28,6 +30,9 @@ ROUNDS = 310_000
 VERIFIER = re.compile(r"pbkdf2_sha256\$310000\$([0-9a-f]{32})\$([0-9a-f]{64})")
 ETAG = re.compile(r'"rev-(0|[1-9][0-9]*)"')
 SESSION_TTL = 1200
+MAX_IDLE_SECONDS = 300
+MAX_LIVE_SESSIONS = 64
+MAX_LOGIN_BUCKETS = 2048
 
 
 @dataclass(frozen=True)
@@ -35,6 +40,7 @@ class AdminAccount:
     username: str
     password_hash: str
     role: str
+    totp_secret_b32: str = ""  # Enrolled offline; NEVER commit a real secret.
 
 
 @dataclass(frozen=True)
@@ -43,6 +49,7 @@ class Session:
     role: str
     csrf: str
     expires_at: float
+    last_seen_at: float
 
 
 class StaleDraft(ValueError):
@@ -69,6 +76,35 @@ def _password_matches(encoded: str, password: str) -> bool:
     return hmac.compare_digest(trial, bytes.fromhex(match.group(2)))
 
 
+def _totp_key(encoded: str) -> bytes:
+    """Require unique >=160-bit RFC6238 secret for every admin account."""
+    if not isinstance(encoded, str) or not re.fullmatch(r"[A-Z2-7]{32,104}", encoded) or len(encoded) % 8:
+        raise ValueError("D1b administrator MFA seed missing or malformed")
+    try:
+        raw = base64.b32decode(encoded)
+    except ValueError as exc:
+        raise ValueError("D1b administrator MFA seed malformed") from exc
+    if not 20 <= len(raw) <= 64:
+        raise ValueError("D1b administrator MFA seed too short")
+    return raw
+
+
+def _totp_at(secret: bytes, step: int) -> str:
+    digest = hmac.new(secret, step.to_bytes(8, "big"), hashlib.sha1).digest()
+    start = digest[-1] & 15
+    value = int.from_bytes(digest[start:start + 4], "big") & 0x7FFFFFFF
+    return f"{value % 1000000:06d}"
+
+
+def _verify_totp(secret: bytes, otp: object, used_step: int) -> int | None:
+    if not isinstance(otp, str) or not re.fullmatch(r"[0-9]{6}", otp):
+        return None
+    current = int(time.time() // 30)
+    matches = [step for step in range(max(0, current - 1), current + 2)
+               if step > used_step and hmac.compare_digest(_totp_at(secret, step), otp)]
+    return max(matches) if matches else None
+
+
 def _safe_tree(value: object) -> None:
     stack = [(value, 0)]
     count = 0
@@ -90,18 +126,18 @@ class EncryptedDrafts:
 
     def __init__(self, filename: str | Path, key: bytes):
         self.path = Path(filename)
-        if self.path.is_symlink() or self.path.is_dir() or not self.path.parent.is_dir():
+        if self.path.is_symlink() or not self.path.parent.is_dir() or self.path.parent.is_symlink():
             raise ValueError("Invalid draft DB path")
-        if self.path.parent.stat().st_mode & 0o022:
-            raise ValueError("Draft directory must not be group/world-writable")
-        if self.path.exists():
-            if not self.path.is_file() or self.path.stat().st_mode & 0o077:
-                raise ValueError("Draft DB must be an owner-only regular file")
-        else:
-            # Reserve the file with owner-only permissions before SQLite touches it.
+        if self.path.parent.stat().st_mode & 0o077:
+            raise ValueError("Draft directory must be owner-only (0700)")
+        if not self.path.exists():
             flags = os.O_CREAT | os.O_EXCL | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
             descriptor = os.open(self.path, flags, 0o600)
             os.close(descriptor)
+        info = self.path.lstat()
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                or info.st_uid != os.geteuid() or info.st_mode & 0o077):
+            raise ValueError("Draft DB must be private, owned, with no hardlinks")
         self.cipher = Fernet(key)
         with self.connect() as con:
             con.execute("""CREATE TABLE IF NOT EXISTS draft_revisions(
@@ -188,10 +224,12 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
                 or account.username in users or account.role not in ROLES
                 or not VERIFIER.fullmatch(account.password_hash)):
             raise ValueError("Invalid admin account setup")
+        _totp_key(account.totp_secret_b32)
         users[account.username] = account
     drafts = EncryptedDrafts(db_path, encryption_key)
     sessions: dict[str, Session] = {}
     failures: dict[str, list[float]] = {}
+    used_otp_steps: dict[str, int] = {}
 
     @web.middleware
     async def secure_response(request: web.Request, handler):
@@ -221,12 +259,19 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
         session = sessions.get(hashed)
         if not session:
             raise web.HTTPUnauthorized(text="Login required")
-        if session.expires_at < time.monotonic():
+        now = time.monotonic()
+        if session.expires_at <= now or now - session.last_seen_at > MAX_IDLE_SECONDS:
             sessions.pop(hashed, None)
             raise web.HTTPUnauthorized(text="Session expired")
+        if request.headers.get("Host") != origin.netloc:
+            raise web.HTTPForbidden(text="Invalid host")
+        if request.headers.get("Origin") not in (None, https_origin):
+            raise web.HTTPForbidden(text="Invalid origin")
         if ROLES[session.role] < ROLES[role]:
             raise web.HTTPForbidden(text="Insufficient role")
-        return session
+        updated = replace(session, last_seen_at=now)
+        sessions[hashed] = updated
+        return updated
 
     def mutation(request: web.Request, role: str = "editor") -> Session:
         origin_check(request)
@@ -260,21 +305,35 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
     async def login(request: web.Request) -> web.Response:
         origin_check(request)
         now = time.monotonic()
-        address = request.remote or "unknown"  # ignore untrusted X-Forwarded-For
+        address = request.remote or "unknown"  # never trust browser-supplied X-Forwarded-For
+        if address not in failures and len(failures) >= MAX_LOGIN_BUCKETS:
+            # Fail closed; a real HTTPS edge must also provide distributed rate limits.
+            raise web.HTTPTooManyRequests(text="Login protection capacity reached")
         recent = [t for t in failures.get(address, []) if now - t < 900]
         if len(recent) >= 5:
             raise web.HTTPTooManyRequests(text="Too many login attempts")
         credentials = await body(request, 2048)
-        name, password = credentials.get("username"), credentials.get("password")
+        name, password, otp = credentials.get("username"), credentials.get("password"), credentials.get("otp")
         user = users.get(name) if isinstance(name, str) else None
-        if not user or not isinstance(password, str) or not _password_matches(user.password_hash, password):
+        valid_password = bool(user and isinstance(password, str) and
+                              _password_matches(user.password_hash, password))
+        step = (_verify_totp(_totp_key(user.totp_secret_b32), otp,
+                             used_otp_steps.get(user.username, -1)) if valid_password else None)
+        if not valid_password or step is None:
             failures[address] = recent + [now]
             raise web.HTTPUnauthorized(text="Invalid credentials")
         failures.pop(address, None)
+        moment = time.monotonic()
+        for key, item in list(sessions.items()):
+            if item.expires_at <= moment or moment - item.last_seen_at > MAX_IDLE_SECONDS:
+                sessions.pop(key, None)
+        if len(sessions) >= MAX_LIVE_SESSIONS:
+            raise web.HTTPServiceUnavailable(text="Session capacity reached")
+        used_otp_steps[user.username] = step
         cookie = secrets.token_urlsafe(32)
         csrf = secrets.token_urlsafe(32)
         sessions[hashlib.sha256(cookie.encode()).hexdigest()] = Session(
-            user.username, user.role, csrf, now + session_ttl)
+            user.username, user.role, csrf, now + session_ttl, now)
         response = web.json_response({"username": user.username, "role": user.role,
                                       "csrfToken": csrf, "expiresIn": session_ttl})
         response.set_cookie(COOKIE, cookie, path="/", secure=True, httponly=True,
