@@ -39,6 +39,14 @@ test("200% текст: отсутствие обрезки, RTL и доступ�
         console.log("D1A_TEXT_ZOOM_OVERFLOW", JSON.stringify({ width, language, offenders }));
       }
       expect(noOverflow, "width " + width + ", language " + language).toBe(true);
+      if (language === "FA") {
+        const typography = await page.locator(".hero h1").evaluate(node => {
+          const css = getComputedStyle(node);
+          return { letterSpacing: css.letterSpacing, lineHeightRatio: parseFloat(css.lineHeight) / parseFloat(css.fontSize) };
+        });
+        expect(typography.letterSpacing, "RTL glyph shaping at 200%").toBe("normal");
+        expect(typography.lineHeightRatio, "RTL hero heading leading at 200%").toBeGreaterThanOrEqual(1.35);
+      }
       await expect(page.getByTestId("subscription-scenario").locator('button[data-value="active"]')).toBeVisible();
       await page.getByTestId("subscription-scenario").locator('button[data-value="active"]').click();
       await expect(page.getByTestId("subscription-preview")).toHaveAttribute("data-scenario", "active");

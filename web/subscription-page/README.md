@@ -235,3 +235,13 @@ deployment и принятие реальных подписок не выпол
 В self-hosted build добавлен **официальный** `client-icons/incy.svg`, источник [INCY-DEV/incy-icons](https://github.com/INCY-DEV/incy-icons/blob/3d6e4a076d54ea036c61b34302ecee01bea30a80/INCY-00002.svg), Git blob `cb6c0417b41d77537d2c5fd90225110ad3e57e43`, лицензия MIT сохранена в `client-icons/INCY-LICENSE.txt` (Git blob `9aa242dfc6cba1f491c5d9b198e2ddceb6011860`). При ключе `INCY` используется локальный значок без CDN, если не предоставлен отдельный безопасный operator SVG.
 
 **Граница:** это **1** подтверждённый файл из 40 кандидатов и **не** byte-identical копия инвентаризованного оператором SVG INCY: у того исходная каноникализация не завершена. Остальные 39 исходных SVG по-прежнему отсутствуют как проверяемые байты; не заменять их другими картинками без evidence. Отдельный SVG-прогресс длинных инструкций и scroll-reveal намеренно **не включены**: текущая карусель короткая, а приёмка keyboard/RTL/reduced-motion важнее декоративного scroll. CI на новом SHA PENDING.
+
+## Независимый visual QA — 2026-10-24, Issue #887 / Draft PR #889
+
+Проверены GitHub Actions browser artifact `d1a-browser-smoke` ID `12556500080` на head `437957dd8c39c2c62652113a2ee672525c854d2c` (80 PNG), desktop/mobile Chromium, WebKit-like, полные карточки/карусель, пустые TV-состояния, RU/FA RTL и экран 320 px с увеличением базового текста до 200%. Предыдущий Playwright 41/41 PASS подтверждает browser-test scope, **не** ручную аттестацию устройства или защищённого source JSON.
+
+По независимой проверке PNG выявлен чрезмерно тесный RTL hero-заголовок при 200% увеличении: отрицательный letter-spacing и `line-height:1.11` не подходят для фарси. Добавлены RTL-specific `letter-spacing:normal;line-height:1.4` и computed-style assertions в существующий a11y smoke для FA на 320/390/768 px.
+
+Исправлен конфликт приоритета SVG: **явно импортированная оператором и локально проверенная** SVG-библиотека теперь перекрывает одноимённый SVG из импортируемого конфигурационного JSON, а не наоборот. Перед чтением SVG JSON проверяется лимит 4 МиБ, ошибки локального JSON File.text() показываются пользователю. Добавлен browser regression test на safe SVG override, отказ от oversized input и отсутствие внешних запросов.
+
+**Границы:** это только D1a preview; отсутствующие INCY/RabbitHole инструкции ожидаются от оператора (PENDING), все импортные ссылки `disabled`. Изолированный визуальный review, CI нового head и независимые screenshot read-back после фикса **PENDING до GitHub Actions**; real Telegram WebView/клиентские устройства, 1:1 закрытый экспорт, D1b/D2/D3 и production acceptance не выполнялись. Merge/release/deploy не разрешены.

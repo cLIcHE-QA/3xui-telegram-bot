@@ -294,3 +294,10 @@ html[dir=rtl] .guide-carousel-controls svg{transform:scaleX(-1)}
 .guide-import-platform{padding:11px;background:#152e40;border-radius:9px;display:grid;gap:5px;min-width:0}
 .guide-import-platform strong{color:#cdeaff;font-size:.875rem}
 .guide-import-platform span{color:#a2bcd1;font-size:.75rem;overflow-wrap:anywhere}
+
+/* D1a visual QA: Persian/RTL glyphs need natural shaping and enough leading,
+   especially at 200% browser text zoom and a 320px viewport. */
+.portal-shell[dir="rtl"] .hero h1{
+  letter-spacing:normal;
+  line-height:1.4;
+}

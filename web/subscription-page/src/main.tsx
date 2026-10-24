@@ -66,7 +66,8 @@ function App() {
   const [imported,setImported] = useState(false);
   const [operatorIcons,setOperatorIcons] = useState<Record<string,string>>({});
   const [iconMessage,setIconMessage] = useState("");
-  const svgLibrary = {...operatorIcons,...((data as ExportConfig & {svgLibrary?:Record<string,string>}).svgLibrary??{})};
+  // Explicitly reviewed local SVG overrides take precedence over untrusted config entries.
+  const svgLibrary = {...((data as ExportConfig & {svgLibrary?:Record<string,string>}).svgLibrary??{}),...operatorIcons};
 
   const selected = data.platforms[platform]?.apps[client];
   function openLocalFile(file: File | null) {
@@ -75,10 +76,12 @@ function App() {
     file.text().then(raw => {try {
       const cfg: ExportConfig = parsePageConfig(raw);
       setData(cfg);setLang(cfg.locales.includes("ru")?"ru":cfg.locales[0]);setPlatform(Object.keys(cfg.platforms)[0]);setClient(0);setView(cfg.uiConfig.installationGuidesBlockType);setInfo(cfg.uiConfig.subscriptionInfoBlockType);setImported(true);setError("");
-    } catch { setError("Неверный формат локальной конфигурации"); }});
+    } catch { setError("Неверный формат локальной конфигурации"); }}).catch(()=>setError("Ошибка чтения локальной конфигурации"));
   }
   function importSvgLibrary(file:File|null){
     if(!file)return;
+    // Reject oversized files before File.text() allocates a potentially large string.
+    if(file.size>4194304){setIconMessage("SVG: файл превышает 4 МиБ");return;}
     file.text().then(raw=>{try{const parsed=parseLocalSvgLibrary(raw);setOperatorIcons(parsed);setIconMessage("SVG: "+Object.keys(parsed).length+" безопасных изображений загружено локально");}catch{setIconMessage("SVG: файл отклонён проверкой");}}).catch(()=>setIconMessage("SVG: ошибка чтения файла"));
   }
   const ui:Record<string,Record<string,string>>={

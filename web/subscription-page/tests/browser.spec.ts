@@ -225,6 +225,46 @@ test("локальная SVG-библиотека: безопасный знач
   expect(external).toEqual([]);
 });
 
+test("локальная SVG-библиотека переопределяет иконку JSON и отклоняет большие файлы до чтения", async ({ page }) => {
+  const external: string[] = [];
+  page.on("request", r => { if (new URL(r.url()).origin !== "http://127.0.0.1:4173") external.push(r.url()); });
+  await page.goto("/");
+  const configSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ba3355"/></svg>';
+  const localSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#26b6ff"/></svg>';
+  const localized = (text: string) => ({ en: text, ru: text });
+  const config = {
+    version: "1", locales: ["en", "ru"],
+    uiConfig: { subscriptionInfoBlockType: "expanded", installationGuidesBlockType: "cards" },
+    baseSettings: { metaTitle: "", metaDescription: "", hideGetLinkButton: false, showConnectionKeys: false },
+    baseTranslations: {}, brandingSettings: { title: "Demo", logoUrl: "", supportUrl: "" },
+    svgLibrary: { DemoLogo: configSvg },
+    platforms: { ios: { svgIconKey: "", displayName: localized("iOS"),
+      apps: [{ name: "Тестовый клиент", featured: false, svgIconKey: "DemoLogo", blocks: [] }] } },
+  };
+  await page.getByLabel("Импортировать настройки").setInputFiles({
+    name: "safe-config.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(config)),
+  });
+  const icon = page.getByTestId("client-choice").first().locator('img[src^="data:image/svg+xml"]');
+  await expect(icon).toBeVisible();
+  expect(decodeURIComponent((await icon.getAttribute("src")) ?? "")).toContain("#ba3355");
+
+  const svgInput = page.getByLabel("Импортировать SVG-библиотеку");
+  await svgInput.setInputFiles({
+    name: "safe-icons.json", mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ svgLibrary: { DemoLogo: localSvg } })),
+  });
+  await expect(page.locator(".svg-assets-import [role=status]")).toContainText("1 безопасных");
+  await expect.poll(async () => decodeURIComponent((await icon.getAttribute("src")) ?? "")).toContain("#26b6ff");
+  expect(decodeURIComponent((await icon.getAttribute("src")) ?? "")).not.toContain("#ba3355");
+
+  await svgInput.setInputFiles({
+    name: "too-large.json", mimeType: "application/json", buffer: Buffer.alloc(4194305, 32),
+  });
+  await expect(page.locator(".svg-assets-import [role=status]")).toContainText("превышает 4 МиБ");
+  expect(decodeURIComponent((await icon.getAttribute("src")) ?? "")).toContain("#26b6ff");
+  expect(external).toEqual([]);
+});
+
 test("оригинальный локальный INCY SVG доступен без внешней сети", async ({page})=>{
   await page.goto("/");
   const response=await page.request.get("/client-icons/incy.svg");
