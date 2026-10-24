@@ -106,8 +106,11 @@ class D1bHttpsEdgeTests(unittest.TestCase):
                 [shutil.which("nginx"), "-t", "-p", str(root) + "/",
                  "-c", str(final)],
                 capture_output=True, text=True, timeout=12, check=False)
+            # Only synthetic ephemeral temp path and parser diagnostic;
+            # never include a certificate, private key or request payload.
+            detail = check.stderr.replace(str(root), "<synthetic-root>").strip()
             self.assertEqual(check.returncode, 0,
-                             "nginx synthetic syntax validation failed")
+                             "nginx synthetic syntax validation failed: " + detail)
 
 
 if __name__ == "__main__":
