@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -102,7 +101,7 @@ def main() -> int:
         for name in ("drafts.sqlite3", "private-accounts.enc"):
             if (destination / name).stat().st_mode & 0o777 != 0o600:
                 raise AssertionError("Recovered file permissions unsafe")
-        if not destination.with_name(destination.name + "/private-accounts.enc").is_file():
+        if not (destination / "private-accounts.enc").is_file():
             raise AssertionError("Roster missing")
         app = create_editor_app(
             accounts_loader=roster.load_accounts,
