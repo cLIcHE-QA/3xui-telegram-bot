@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 from aiohttp import web
 
 from subscription_page_customer import PATH, public_customer_summary
+from subscription_page_standalone_sqlite import StandaloneSQLiteLedger
 
 PENDING_COOKIE = "__Host-subpage-standalone-bind"
 SESSION_COOKIE = "__Host-subpage-standalone"
@@ -59,6 +60,7 @@ class StandalonePilot:
         now: Callable[[], float] = time.time,
         pending_ttl: int = CHALLENGE_TTL,
         session_ttl: int = SESSION_TTL,
+        sqlite_path: str | None = None,
     ) -> None:
         url = urlsplit(https_origin)
         if (url.scheme != "https" or not url.hostname or not url.netloc
@@ -82,6 +84,8 @@ class StandalonePilot:
         self.now = now
         self.pending_ttl = pending_ttl
         self.session_ttl = session_ttl
+        # Optional isolated atomic state, never the bot's production database.
+        self.ledger = StandaloneSQLiteLedger(sqlite_path) if sqlite_path is not None else None
         self.pending: dict[str, _Pending] = {}
         # Only digests are stored server-side; neither cookie token is logged.
         self.sessions: dict[bytes, tuple[int, float]] = {}
@@ -103,6 +107,9 @@ class StandalonePilot:
         return float(current)
 
     def _prune(self, current: float) -> None:
+        if self.ledger is not None:
+            # Atomic transactions in the ledger prune themselves.
+            return
         for code, row in list(self.pending.items()):
             if current >= row.expires_at or current < row.issued_at:
                 del self.pending[code]
@@ -124,10 +131,23 @@ class StandalonePilot:
         token = request.cookies.get(SESSION_COOKIE, "")
         if not isinstance(token, str) or not 40 <= len(token) <= 96:
             return None
+        if self.ledger is not None:
+            return self.ledger.session_owner(self._hash(token), current=current)
         row = self.sessions.get(self._hash(token))
         if row is None or current >= row[1]:
             return None
         return row[0]
+
+    def challenge_pending(self, challenge: str, current: float) -> bool:
+        """Only current, unapproved challenges may open a private prompt."""
+        if not isinstance(challenge, str) or not CHALLENGE_PATTERN.fullmatch(challenge):
+            return False
+        if self.ledger is not None:
+            row = self.ledger.pending(self._hash(challenge), current=current)
+            return row is not None and row[1] is None
+        self._prune(current)
+        row = self.pending.get(challenge)
+        return row is not None and row.approved_owner is None
 
     async def _enabled(self, user_id: int | None = None) -> bool:
         try:
@@ -225,29 +245,44 @@ class StandalonePilot:
             raise web.HTTPForbidden(text="Standalone unavailable")
         self._prune(current)
         old_binding = self._binding(request)
-        if old_binding is not None:
-            for code, row in list(self.pending.items()):
-                if row.binding == old_binding:
-                    del self.pending[code]
-        if len(self.pending) >= MAX_PENDING:
-            raise web.HTTPServiceUnavailable(text="Standalone capacity reached")
-        for _ in range(5):
-            challenge = secrets.token_urlsafe(12)  # 96-bit, readable; NOT authentication
-            if challenge not in self.pending:
-                break
+        existing = request.cookies.get(SESSION_COOKIE, "")
+        if self.ledger is not None:
+            binding_token = secrets.token_urlsafe(32)
+            old_session = self._hash(existing) if existing else None
+            for _ in range(5):
+                challenge = secrets.token_urlsafe(12)
+                if self.ledger.begin(
+                    self._hash(challenge), self._hash(binding_token),
+                    current=current, expires=current + self.pending_ttl,
+                    old_binding=old_binding, old_session_hash=old_session,
+                ):
+                    break
+            else:
+                raise web.HTTPServiceUnavailable(text="Standalone capacity reached")
         else:
-            raise web.HTTPServiceUnavailable(text="Standalone capacity reached")
-        binding_token = secrets.token_urlsafe(32)
-        self.pending[challenge] = _Pending(
-            binding=self._hash(binding_token),
-            issued_at=current, expires_at=current + self.pending_ttl,
-        )
+            if old_binding is not None:
+                for code, row in list(self.pending.items()):
+                    if row.binding == old_binding:
+                        del self.pending[code]
+            if len(self.pending) >= MAX_PENDING:
+                raise web.HTTPServiceUnavailable(text="Standalone capacity reached")
+            for _ in range(5):
+                challenge = secrets.token_urlsafe(12)
+                if challenge not in self.pending:
+                    break
+            else:
+                raise web.HTTPServiceUnavailable(text="Standalone capacity reached")
+            binding_token = secrets.token_urlsafe(32)
+            self.pending[challenge] = _Pending(
+                binding=self._hash(binding_token),
+                issued_at=current, expires_at=current + self.pending_ttl,
+            )
         response = web.json_response({"challenge": challenge, "expiresIn": self.pending_ttl})
         self._set_cookie(response, PENDING_COOKIE, binding_token, self.pending_ttl)
         # Starting a new login never silently reuses an authenticated cookie.
-        existing = request.cookies.get(SESSION_COOKIE, "")
         if isinstance(existing, str) and existing:
-            self.sessions.pop(self._hash(existing), None)
+            if self.ledger is None:
+                self.sessions.pop(self._hash(existing), None)
             self._clear_cookie(response, SESSION_COOKIE)
         return response
 
@@ -265,19 +300,17 @@ class StandalonePilot:
                 or explicitly_confirmed is not True):
             return False
         current = self._clock()
-        self._prune(current)
-        row = self.pending.get(challenge)
-        if row is None or row.approved_owner is not None:
+        if not self.challenge_pending(challenge, current):
             return False
         if not await self._verified_owner(actor_id):
             return False
         # Critical re-check after awaits: an expired/replaced challenge cannot revive.
         current = self._clock()
-        self._prune(current)
-        row = self.pending.get(challenge)
-        if row is None or row.approved_owner is not None:
+        if not self.challenge_pending(challenge, current):
             return False
-        row.approved_owner = actor_id
+        if self.ledger is not None:
+            return self.ledger.approve(self._hash(challenge), actor_id, current=current)
+        self.pending[challenge].approved_owner = actor_id
         return True
 
     async def _complete(self, request: web.Request) -> web.Response:
@@ -290,25 +323,41 @@ class StandalonePilot:
         self._throttle(request, current)
         self._prune(current)
         binding = self._binding(request)
-        row = self.pending.get(code)
+        if self.ledger is not None:
+            record = self.ledger.pending(self._hash(code), current=current)
+            row = (_Pending(binding=record[0], issued_at=current,
+                            expires_at=current + self.pending_ttl,
+                            approved_owner=record[1]) if record else None)
+        else:
+            row = self.pending.get(code)
         if binding is None or row is None or row.binding != binding:
             raise web.HTTPUnauthorized(text="Standalone challenge invalid")
         if row.approved_owner is None:
             return web.json_response({"state": "pending"}, status=202)
         owner = row.approved_owner
         if not await self._verified_owner(owner):
-            self.pending.pop(code, None)
+            if self.ledger is not None:
+                self.ledger.cancel(self._hash(code), binding, current=current)
+            else:
+                self.pending.pop(code, None)
             raise web.HTTPForbidden(text="Standalone unavailable")
         current = self._clock()
         self._prune(current)
-        row = self.pending.get(code)
-        if row is None or row.binding != binding or row.approved_owner != owner:
-            raise web.HTTPUnauthorized(text="Standalone challenge invalid")
-        if len(self.sessions) >= MAX_SESSIONS:
-            raise web.HTTPServiceUnavailable(text="Standalone capacity reached")
-        del self.pending[code]  # One-time proof is consumed BEFORE cookie issue.
         token = secrets.token_urlsafe(32)
-        self.sessions[self._hash(token)] = (owner, current + self.session_ttl)
+        if self.ledger is not None:
+            if not self.ledger.exchange(
+                self._hash(code), binding, owner, self._hash(token),
+                current=current, session_ttl=self.session_ttl,
+            ):
+                raise web.HTTPUnauthorized(text="Standalone challenge invalid")
+        else:
+            row = self.pending.get(code)
+            if row is None or row.binding != binding or row.approved_owner != owner:
+                raise web.HTTPUnauthorized(text="Standalone challenge invalid")
+            if len(self.sessions) >= MAX_SESSIONS:
+                raise web.HTTPServiceUnavailable(text="Standalone capacity reached")
+            del self.pending[code]
+            self.sessions[self._hash(token)] = (owner, current + self.session_ttl)
         response = web.json_response({"state": "authenticated", "mode": "standalone"})
         self._set_cookie(response, SESSION_COOKIE, token, self.session_ttl)
         self._clear_cookie(response, PENDING_COOKIE)
@@ -323,7 +372,10 @@ class StandalonePilot:
             raise web.HTTPUnauthorized(text="Standalone authentication required")
         if not await self._verified_owner(owner):
             token = request.cookies.get(SESSION_COOKIE, "")
-            self.sessions.pop(self._hash(token), None)
+            if self.ledger is not None:
+                self.ledger.revoke_session(self._hash(token), current=current)
+            else:
+                self.sessions.pop(self._hash(token), None)
             raise web.HTTPForbidden(text="Standalone unavailable")
         try:
             profile = await self.service.profile(owner)
@@ -340,10 +392,16 @@ class StandalonePilot:
         current = self._clock()
         self._prune(current)
         binding = self._binding(request)
-        row = self.pending.get(code) if isinstance(code, str) and CHALLENGE_PATTERN.fullmatch(code) else None
-        if binding is None or row is None or row.binding != binding:
+        if not isinstance(code, str) or not CHALLENGE_PATTERN.fullmatch(code) or binding is None:
             raise web.HTTPUnauthorized(text="Standalone challenge invalid")
-        del self.pending[code]
+        if self.ledger is not None:
+            if not self.ledger.cancel(self._hash(code), binding, current=current):
+                raise web.HTTPUnauthorized(text="Standalone challenge invalid")
+        else:
+            row = self.pending.get(code)
+            if row is None or row.binding != binding:
+                raise web.HTTPUnauthorized(text="Standalone challenge invalid")
+            del self.pending[code]
         response = web.json_response({"state": "cancelled"})
         self._clear_cookie(response, PENDING_COOKIE)
         return response
@@ -354,13 +412,19 @@ class StandalonePilot:
         current = self._clock()
         self._prune(current)
         token = request.cookies.get(SESSION_COOKIE, "")
-        if isinstance(token, str) and token:
-            self.sessions.pop(self._hash(token), None)
         binding = self._binding(request)
-        if binding:
-            for code, row in list(self.pending.items()):
-                if row.binding == binding:
-                    del self.pending[code]
+        if self.ledger is not None:
+            self.ledger.logout(
+                session_hash=self._hash(token) if token else None,
+                binding_hash=binding, current=current,
+            )
+        else:
+            if isinstance(token, str) and token:
+                self.sessions.pop(self._hash(token), None)
+            if binding:
+                for code, row in list(self.pending.items()):
+                    if row.binding == binding:
+                        del self.pending[code]
         response = web.json_response({"authenticated": False})
         self._clear_cookie(response, SESSION_COOKIE)
         self._clear_cookie(response, PENDING_COOKIE)
