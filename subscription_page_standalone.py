@@ -85,7 +85,8 @@ class StandalonePilot:
         self.pending_ttl = pending_ttl
         self.session_ttl = session_ttl
         # Optional isolated atomic state, never the bot's production database.
-        self.ledger = StandaloneSQLiteLedger(sqlite_path) if sqlite_path is not None else None
+        self.ledger = (StandaloneSQLiteLedger(sqlite_path, https_origin=https_origin)
+                       if sqlite_path is not None else None)
         self.pending: dict[str, _Pending] = {}
         # Only digests are stored server-side; neither cookie token is logged.
         self.sessions: dict[bytes, tuple[int, float]] = {}
