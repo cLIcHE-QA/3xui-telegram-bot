@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Mapping
+from typing import Callable, Mapping
 from urllib.parse import urlsplit
 
 from aiohttp import web
@@ -336,32 +336,65 @@ class EncryptedDrafts:
         return result
 
 
-def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
-                      encryption_key: bytes, https_origin: str,
+def create_editor_app(*, accounts: list[AdminAccount] | None = None,
+                      accounts_loader: Callable[[], list[AdminAccount]] | None = None,
+                      db_path: str | Path, encryption_key: bytes,
+                      https_origin: str,
                       session_ttl: int = SESSION_TTL) -> web.Application:
     """Explicitly opt-in admin API; this function does not start a listener."""
     origin = urlsplit(https_origin)
     if (origin.scheme != "https" or not origin.hostname or origin.username or
             origin.password or origin.path or origin.query or origin.fragment):
         raise ValueError("Require a canonical HTTPS origin")
-    if not accounts or not 60 <= session_ttl <= 3600:
-        raise ValueError("Accounts and bounded sessions required")
-    users: dict[str, AdminAccount] = {}
-    enrolled_otp_keys: set[bytes] = set()
-    for account in accounts:
-        if (not re.fullmatch(r"[A-Za-z0-9_-]{3,64}", account.username)
-                or account.username in users or account.role not in ROLES
-                or not VERIFIER.fullmatch(account.password_hash)):
-            raise ValueError("Invalid admin account setup")
-        otp_key = _totp_key(account.totp_secret_b32)
-        if otp_key in enrolled_otp_keys:
-            raise ValueError("Each administrator must enroll a different MFA secret")
-        enrolled_otp_keys.add(otp_key)
-        users[account.username] = account
+    if not 60 <= session_ttl <= 3600:
+        raise ValueError("Bounded sessions required")
+    if (accounts is None) == (accounts_loader is None):
+        raise ValueError("Provide exactly one admin account source")
+
+    def validate_accounts(roster: list[AdminAccount]) -> dict[str, AdminAccount]:
+        if not isinstance(roster, list) or not roster:
+            raise ValueError("Admin accounts required")
+        result: dict[str, AdminAccount] = {}
+        enrolled_keys: set[bytes] = set()
+        for account in roster:
+            if (not isinstance(account, AdminAccount)
+                    or not isinstance(account.username, str)
+                    or not re.fullmatch(r"[A-Za-z0-9_-]{3,64}", account.username)
+                    or account.username in result or account.role not in ROLES
+                    or not isinstance(account.password_hash, str)
+                    or not VERIFIER.fullmatch(account.password_hash)):
+                raise ValueError("Invalid admin account setup")
+            otp_key = _totp_key(account.totp_secret_b32)
+            if otp_key in enrolled_keys:
+                raise ValueError("Each administrator must enroll a different MFA secret")
+            enrolled_keys.add(otp_key)
+            result[account.username] = account
+        return result
+
+    # Static accounts preserve the earlier D1b isolated-preview constructor.
+    # A loader must read the encrypted offline roster on every request, not
+    # only once at startup: revoked credentials cannot linger in old workers.
+    initial = validate_accounts(
+        accounts_loader() if accounts_loader is not None else accounts)
     drafts = EncryptedDrafts(db_path, encryption_key)
-    account_bindings = {
-        name: _account_binding(account, encryption_key) for name, account in users.items()
+    static_bindings = {
+        name: _account_binding(account, encryption_key)
+        for name, account in initial.items()
     }
+
+    def live_accounts() -> tuple[dict[str, AdminAccount], dict[str, str]]:
+        if accounts_loader is None:
+            return initial, static_bindings
+        try:
+            fresh = validate_accounts(accounts_loader())
+        except (OSError, ValueError, TypeError) as exc:
+            # Never leak roster contents, keys or file paths over HTTP.
+            raise web.HTTPServiceUnavailable(text="Admin roster unavailable") from exc
+        return fresh, {
+            name: _account_binding(account, encryption_key)
+            for name, account in fresh.items()
+        }
+
     failures: dict[str, list[float]] = {}
 
     @web.middleware
@@ -394,6 +427,7 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
         if request.headers.get("Origin") not in (None, https_origin):
             raise web.HTTPForbidden(text="Invalid origin")
         hashed = hashlib.sha256(token.encode()).hexdigest()
+        users, account_bindings = live_accounts()
         try:
             record = drafts.touch_session(hashed, account_bindings)
         except sqlite3.Error as exc:
@@ -454,6 +488,7 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
         if len(recent) >= 5:
             raise web.HTTPTooManyRequests(text="Too many login attempts")
         credentials = await body(request, 2048)
+        users, account_bindings = live_accounts()
         name, password, otp = credentials.get("username"), credentials.get("password"), credentials.get("otp")
         user = users.get(name) if isinstance(name, str) else None
         valid_password = bool(user and isinstance(password, str) and
