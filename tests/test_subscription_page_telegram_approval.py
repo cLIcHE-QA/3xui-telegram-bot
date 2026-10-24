@@ -100,7 +100,9 @@ class TelegramApprovalTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(router.name, "d2b_standalone_approval")
         self.assertEqual(len(router.message.handlers), 1)
         self.assertEqual(len(router.callback_query.handlers), 1)
-        self.assertEqual(len(self.pilot.app.router.routes()), 5)
+        paths = [resource.canonical for resource in self.pilot.app.router.resources()]
+        self.assertEqual(len(paths), 5)
+        self.assertFalse(any(path.endswith("/approve") for path in paths))
         self.assertNotIn("d2b", self.pilot.app.keys())
 
     async def test_private_bot_confirmation_is_required_to_issue_browser_session(self):
