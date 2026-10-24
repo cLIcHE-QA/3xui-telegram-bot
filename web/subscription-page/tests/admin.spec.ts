@@ -101,6 +101,7 @@ test("D1b выборочный экспорт не выдаёт внешние U
 });
 
 test("D1b preview matches approved self-hosted SVG catalog without executing imported SVG",async({page})=>{
+ await page.setViewportSize({width:1280,height:900});
  const network:string[]=[];
  page.on("request",r=>{if(new URL(r.url()).origin!=="http://127.0.0.1:4173")network.push(r.url());});
  const config=structuredClone(fixture);
