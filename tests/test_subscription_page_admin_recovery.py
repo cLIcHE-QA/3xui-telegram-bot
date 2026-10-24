@@ -88,6 +88,12 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
         with sqlite3.connect(path) as conn:
             return conn.execute("SELECT COUNT(*) FROM admin_sessions").fetchone()[0]
 
+    def rotate(self, destination: Path, new_key: bytes,
+               *, backup_key: bytes | None = None):
+        return self.recovery.stage_rotation(
+            destination, new_key, backup_path=self.sealed,
+            backup_key=backup_key if backup_key is not None else self.backup_key)
+
     def test_complete_encrypted_backup_restore_roundtrip(self):
         original_roster = self.roster_path.read_bytes()
         original_db = self.db_path.read_bytes()
@@ -124,7 +130,7 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
         old_roster = self.roster_path.read_bytes()
         old_db = self.db_path.read_bytes()
         destination = self.root / "rotation-stage"
-        receipt = self.recovery.stage_rotation(destination, self.new_key)
+        receipt = self.rotate(destination, self.new_key)
         self.assertEqual((receipt.revision, receipt.drafts, receipt.revoked_sessions),
                          (1, 1, 1))
         self.assertEqual(EncryptedAdminRoster(
@@ -181,11 +187,13 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
             self.recovery.backup(self.sealed, self.backup_key)
         self.assertFalse(self.sealed.exists())
         with self.assertRaises(ValueError):
-            self.recovery.stage_rotation(self.root / "corrupt", self.new_key)
+            self.rotate(self.root / "corrupt", self.new_key)
         self.assertFalse((self.root / "corrupt").exists())
         wrong = OfflineD1bRecovery(self.source, Fernet.generate_key())
         with self.assertRaises(ValueError):
-            wrong.stage_rotation(self.root / "bad-key", self.new_key)
+            wrong.stage_rotation(
+                self.root / "bad-key", self.new_key,
+                backup_path=self.sealed, backup_key=self.backup_key)
         self.assertFalse((self.root / "bad-key").exists())
 
     def test_existing_restore_or_rotation_target_is_never_overwritten(self):
@@ -197,12 +205,12 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             self.recovery.restore(self.sealed, self.backup_key, existing)
         with self.assertRaises(FileExistsError):
-            self.recovery.stage_rotation(existing, self.new_key)
+            self.rotate(existing, self.new_key)
         self.assertEqual(sentinel.read_text(), "original")
 
     def test_wrong_rotation_key_and_source_filename_rejected(self):
         with self.assertRaises(ValueError):
-            self.recovery.stage_rotation(self.root / "same-key", self.key)
+            self.rotate(self.root / "same-key", self.key)
         self.assertFalse((self.root / "same-key").exists())
         with self.assertRaises(ValueError):
             OfflineD1bRecovery(self.source, self.key, db_name="../other.sqlite3")
@@ -217,6 +225,25 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
                 self.recovery.backup(self.sealed, self.backup_key)
         self.assertFalse(self.sealed.exists())
         self.assertFalse(list(self.root.glob("*.stage")))
+
+    def test_rotation_refuses_missing_wrong_key_or_stale_backup(self):
+        with self.assertRaises(ValueError):
+            self.rotate(self.root / "no-backup", self.new_key)
+        self.assertFalse((self.root / "no-backup").exists())
+        self.recovery.backup(self.sealed, self.backup_key)
+        with self.assertRaises(ValueError):
+            self.rotate(self.root / "wrong-backup-key", self.new_key,
+                        backup_key=Fernet.generate_key())
+        self.assertFalse((self.root / "wrong-backup-key").exists())
+        # A valid archived copy is not sufficient if fresh writes occurred
+        # after the sealed snapshot. The operator must freeze/backup again.
+        newer = fixture()
+        newer["brandingSettings"]["title"] = "Synthetic updated after backup"
+        self.store.save("owner1", 1, newer)
+        with self.assertRaises(ValueError):
+            self.rotate(self.root / "stale-archive", self.new_key)
+        self.assertFalse((self.root / "stale-archive").exists())
+        self.assertEqual(self.store.current(), (2, newer))
 
     def test_recovery_refuses_unsafe_parent_and_source_files(self):
         public = self.root / "public"
@@ -303,7 +330,7 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
         with sqlite3.connect(self.db_path) as db:
             db.execute("DELETE FROM admin_sessions")
         self.recovery.backup(self.sealed, self.backup_key)
-        rotated = self.recovery.stage_rotation(self.root / "rotated-empty", self.new_key)
+        rotated = self.rotate(self.root / "rotated-empty", self.new_key)
         self.assertEqual(rotated.revoked_sessions, 0)
         self.assertEqual(rotated.drafts, 1)
 
