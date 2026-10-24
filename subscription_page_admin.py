@@ -149,6 +149,8 @@ class EncryptedDrafts:
                 id TEXT PRIMARY KEY, revision INTEGER NOT NULL, digest TEXT NOT NULL,
                 actor TEXT NOT NULL, created_at TEXT NOT NULL,
                 state TEXT NOT NULL CHECK(state='pending_manual_review'))""")
+            con.execute("""CREATE TABLE IF NOT EXISTS admin_totp_replay(
+                username TEXT PRIMARY KEY, last_step INTEGER NOT NULL)""")
         os.chmod(self.path, 0o600)
 
     def connect(self) -> sqlite3.Connection:
@@ -193,6 +195,26 @@ class EncryptedDrafts:
                                "ORDER BY revision DESC LIMIT 50").fetchall()
         return [dict(r) for r in rows]
 
+    def consume_totp_step(self, username: str, step: int) -> bool:
+        """Persist MFA anti-replay across server restarts and worker instances."""
+        if not isinstance(step, int) or step < 0:
+            raise ValueError("Invalid TOTP step")
+        # An IMMEDIATE SQLite transaction serializes competing workers.
+        with self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            row = con.execute(
+                "SELECT last_step FROM admin_totp_replay WHERE username = ?",
+                (username,)).fetchone()
+            if row is not None and row["last_step"] >= step:
+                con.rollback()
+                return False
+            con.execute(
+                "INSERT INTO admin_totp_replay(username, last_step) VALUES(?, ?) "
+                "ON CONFLICT(username) DO UPDATE SET last_step = excluded.last_step",
+                (username, step))
+            con.commit()
+        return True
+
     def propose(self, actor: str, expected: int) -> dict:
         with self.connect() as con:
             con.execute("BEGIN IMMEDIATE")
@@ -235,7 +257,6 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
     drafts = EncryptedDrafts(db_path, encryption_key)
     sessions: dict[str, Session] = {}
     failures: dict[str, list[float]] = {}
-    used_otp_steps: dict[str, int] = {}
 
     @web.middleware
     async def secure_response(request: web.Request, handler):
@@ -323,8 +344,8 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
         user = users.get(name) if isinstance(name, str) else None
         valid_password = bool(user and isinstance(password, str) and
                               _password_matches(user.password_hash, password))
-        step = (_verify_totp(_totp_key(user.totp_secret_b32), otp,
-                             used_otp_steps.get(user.username, -1)) if valid_password else None)
+        step = (_verify_totp(_totp_key(user.totp_secret_b32), otp, -1)
+                if valid_password else None)
         if not valid_password or step is None:
             failures[address] = recent + [now]
             raise web.HTTPUnauthorized(text="Invalid credentials")
@@ -335,7 +356,14 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
                 sessions.pop(key, None)
         if len(sessions) >= MAX_LIVE_SESSIONS:
             raise web.HTTPServiceUnavailable(text="Session capacity reached")
-        used_otp_steps[user.username] = step
+        try:
+            consumed = drafts.consume_totp_step(user.username, step)
+        except sqlite3.Error as exc:
+            # A failed durable replay check must never silently allow a login.
+            raise web.HTTPServiceUnavailable(text="MFA replay state unavailable") from exc
+        if not consumed:
+            failures[address] = recent + [now]
+            raise web.HTTPUnauthorized(text="Invalid credentials")
         cookie = secrets.token_urlsafe(32)
         csrf = secrets.token_urlsafe(32)
         sessions[hashlib.sha256(cookie.encode()).hexdigest()] = Session(
