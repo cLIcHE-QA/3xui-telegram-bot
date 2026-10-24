@@ -338,14 +338,14 @@ def create_editor_app(*, accounts: list[AdminAccount], db_path: str | Path,
             raise web.HTTPForbidden(text="Invalid admin origin")
 
     def session_for(request: web.Request, role: str = "viewer") -> Session:
-        # Invalid host/origin must not refresh the idle timeout.
+        token = request.cookies.get(COOKIE, "")
+        if not token or len(token) > 128:
+            raise web.HTTPUnauthorized(text="Login required")
+        # Invalid host/origin must not refresh any authenticated idle timeout.
         if request.headers.get("Host") != origin.netloc:
             raise web.HTTPForbidden(text="Invalid host")
         if request.headers.get("Origin") not in (None, https_origin):
             raise web.HTTPForbidden(text="Invalid origin")
-        token = request.cookies.get(COOKIE, "")
-        if not token or len(token) > 128:
-            raise web.HTTPUnauthorized(text="Login required")
         hashed = hashlib.sha256(token.encode()).hexdigest()
         try:
             record = drafts.touch_session(hashed)
