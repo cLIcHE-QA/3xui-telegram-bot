@@ -12,3 +12,9 @@
 - **Связанные Issues:** #887 OPEN/keep_open, scoped finding в рамках уже одобренного D1b security review; #885/#890 самостоятельные OPEN, не считать их завершёнными
 - **Следующий шаг:** дождаться exact head CI с подтверждёнными test cases, проверить документацию/тесты, оформить независимый final review checkpoint, оставить Draft #896. Решение о merge требует отдельного одобрения и не заменяет acceptance
 - **Раздельные состояния:** merged=D0/D1a only, D1b Draft NOT MERGED; published=v5.0.0-rc.19 immutable; deployed=v5.0.0-rc.18.10 operator-reported only, VPS read-back PENDING; accepted=этот finding remediation CI PENDING, общий #887 PARTIAL, G-11 PARTIAL/NO-GO, public rollout BLOCKED
+
+## Дополнение: подмена URL-маркера обходила индикатор риска (2026-10-24)
+
+- **Finding (scoped):** frontend `blockedLinks` принимал любые `{{SUBSCRIPTION_LINK}}` и потому не предупреждал о `javascript:...{{SUBSCRIPTION_LINK}}`. В изолированном D1b ссылки не открываются, XSS/утечка не подтверждены; однако ручная оценка riskCount могла ошибочно дать 0. Это отдельная часть pre-merge review по #887.
+- **Remediation:** только проверяемый абсолютный HTTPS URL без credentials, `{{...}}`, пробелов или backslash не поднимает дополнительный флаг. Даже такой HTTPS остаётся **unreviewed**, не исполняется, server-side URL host allowlist и real deep-link gating PENDING. Исходный операторский JSON не изменён. Playwright добавляет negative cases и отсутствие network-outbound.
+- **Evidence:** `web/subscription-page/src/admin.tsx`, `web/subscription-page/tests/admin.spec.ts`; exact head `test/title/frontend-model` ещё должен быть подтверждён. Данные Published/Deployed/Accepted не менялись, #887 остаётся OPEN.

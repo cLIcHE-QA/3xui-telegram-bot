@@ -43,13 +43,24 @@ function move<T>(items:T[],index:number,delta:number):T[]{
 function labels(languages:string[],value:string):Localized {
  return Object.fromEntries(languages.map(lang=>[lang,value]));
 }
+/** HTTPS is only a candidate for manual review, never an allowlisted target.
+ * All placeholders/custom schemes/credentials/empty links require a warning.
+ */
+function candidateHttpsLink(link:string):boolean {
+ if(!link.startsWith("https://") || /[\\\s]/.test(link) || link.includes("{{") || link.includes("}}"))return false;
+ try {
+  const parsed=new URL(link);
+  return parsed.protocol==="https:"&&Boolean(parsed.hostname)&&
+   !parsed.username&&!parsed.password;
+ }catch{return false;}
+}
 function blockedLinks(config:Config):number {
  let unsafe=0;
  for(const platform of Object.values(config.platforms)){
   for(const app of platform.apps)for(const step of app.blocks)for(const button of step.buttons){
-   const link=button.link.trim();
-   // Conservative quarantine only; this report never authorizes any actual URL.
-   if(link&&!(link.startsWith("https://") || link.includes("{{SUBSCRIPTION_LINK}}"))) unsafe++;
+   // A subscription placeholder must never bless e.g. javascript:foo{{SUBSCRIPTION_LINK}}.
+   // Only syntactic HTTPS candidates avoid this extra manual-review warning.
+   if(!candidateHttpsLink(button.link.trim()))unsafe++;
   }
  }
  return unsafe;

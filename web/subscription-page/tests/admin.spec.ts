@@ -183,3 +183,34 @@ test("D1b SVG gallery remains readable at mobile width and 200% text",async({pag
  expect(overflow).toBe(false);
  await page.screenshot({path:"test-results/d1b-svg-approved-library-mobile-200-percent.png",fullPage:true});
 });
+
+test("D1b карантин: marker подписки не обеляет javascript URL и непроверенные schemes",async({page})=>{
+ const suspicious=structuredClone(fixture);
+ const base=suspicious.platforms.ios.apps[0].blocks[0].buttons[0];
+ suspicious.platforms.ios.apps[0].blocks[0].buttons=[
+  {...base,link:"https://example.invalid/demo"},
+  {...base,link:"javascript:alert(1){{SUBSCRIPTION_LINK}}"},
+  {...base,link:"client://import/{{SUBSCRIPTION_LINK}}"},
+  {...base,link:"https://user:password@example.invalid/private"},
+  {...base,link:"https://example.invalid/{{SUBSCRIPTION_LINK}}"},
+  {...base,link:""},
+ ];
+ const remote:string[]=[];
+ page.on("request",r=>{
+  if(new URL(r.url()).origin!=="http://127.0.0.1:4173")remote.push(r.url());
+ });
+ await page.route("**/admin/subpage/api/**",async route=>{
+  const pathname=new URL(route.request().url()).pathname;
+  const body=pathname.endsWith("/session")
+   ? {username:"viewer1",role:"viewer",csrfToken:"synthetic",expiresIn:120}
+   : pathname.endsWith("/draft")
+   ? {revision:1,config:suspicious}:{revisions:[]};
+  await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(body)});
+ });
+ await page.goto("/admin.html");
+ await expect(page.getByRole("heading",{name:"Редактор страницы подписки"})).toBeVisible();
+ await expect(page.getByText("Подозрительных URL/схем в исходных текстах: 5.")).toBeVisible();
+ await expect(page.getByTestId("admin-disabled-action")).toHaveCount(6);
+ await expect(page.getByRole("button",{name:"Опубликовать (заблокировано)"})).toBeDisabled();
+ expect(remote).toEqual([]);
+});
