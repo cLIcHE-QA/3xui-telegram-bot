@@ -130,4 +130,81 @@ Acceptance D1b: администратор может локально выпо�
 
 Для реализации требуются мобильный и desktop a11y smoke, owner/pilot/feature gates, multi-account isolation, чужой/просроченный `initData`, отсутствие утечек bearer в URL/логи/CDN/referrer, сохранение `/compat/` и QR/Copy fallback, честные ошибки и device import/refresh. Offline CI не заменяет устройство/VPS acceptance.
 
-D0 docs-only PR #888 **MERGED** 2026-10-24 в `main` `3828a417bc0de6fe61f9df878cce043c15bfd343` (required `test/title` pre-merge и `main test` post-merge PASS; независимый GitHub read-back подтверждён). Фактический D0 Roadmap checkpoint фиксируется отдельным docs-only PR: пока тот не merged и не проверен в `main`, **Roadmap sync: PENDING**. После архитектурного D0: `#887 keep_open` до D1–D3, инструкций INCY/RabbitHole и отдельной реальной приёмки; merge документации не закрывает feature. При сбое новой web-плоскости она отключается feature flag, старые bot/compat endpoints остаются рабочими.
+D0 docs-only PR #888 **MERGED** 2026-10-24 в `main` `3828a417bc0de6fe61f9df878cce043c15bfd343` (required `test/title` pre-merge и `main test` post-merge PASS; независимый GitHub read-back подтверждён). D0 Roadmap checkpoint [PR #894](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/894) **MERGED** в `main` `a59da4ede21803b634eea5da584efea2a13e7efa`; GitHub PR/file/read-back подтверждён, предмерджевые `test/title` PASS. Это не runtime/product acceptance. После архитектурного D0: `#887 keep_open` до D1–D3, инструкций INCY/RabbitHole и отдельной реальной приёмки; merge документации не закрывает feature. При сбое новой web-плоскости она отключается feature flag, старые bot/compat endpoints остаются рабочими.
+
+### D1a: типографика и имитация мобильного WebView (scope #887)
+
+Для staged Draft PR #889 предусмотрено browser-only покрытие масштабирования
+текста до 200%, контраста основных поверхностей и безопасных
+`viewport-fit=cover`/`safe-area-inset`. Android-like режим проверяется
+mobile Chromium, iOS-like — отдельным Playwright WebKit проектом; используются
+только синтетические данные, без Telegram `initData`, backend API,
+production credentials или выдачи реальных subscription URLs.
+
+**Граница приёмки:** PASS таких эмуляций подтверждает лишь отдельные
+браузерные сценарии D1a. Реальная Telegram WebView-навигация,
+обработка viewport событий, клавиатура устройства, смена системного шрифта
+и безопасная авторизация по `initData` требуют отдельных device/
+integration smoke на D2. CI нового SHA и визуальный review — PENDING до
+read-back. Issue #887 остаётся открытым, общий audit #890 отдельно.
+
+### D1a — компактная карусель инструкций и рамка ОС
+
+По предложению оператора на основе референса RightSide VPN используется **оригинальный** UI-only режим `carousel` с одним шагом на экране, нумерацией и навигацией. Четыре контрактных вида из JSON v1 (`cards/timeline/accordion/minimal`) остаются без изменений; при локальном импорте исходная настройка не подменяется. Действия с URL и ключами остаются заблокированы.
+
+Выбор ОС помещён в общую округлую рамку без нижней линии и отдельных контуров; mobile-список прокручивается локально с touch targets и клавиатурой. Новый UI не доказывает реальное подключение VPN или готовность Telegram Mini App. Scoped browser CI и visual evidence требуют независимого подтверждения на head PR #889; #887 OPEN, security #890 отдельно.
+
+### D1a — статус, тариф, трафик, окончание и сброс
+
+Новый фирменный Demo Preview для `expanded` и `cards` показывает четыре смысловые плитки: тариф, статус, трафик и срок действия, плюс отдельное поле сброса трафика. В основе собственные графитовые поверхности и цветовая кодировка статусов: синий/cyan, зелёный, янтарный, розовый/красный. Подлинный `plan`, `traffic reset`, `expiresAt` и quota должны поступать только из авторизованного provider-neutral DTO при D2. Неизвестное значение всегда «Нет данных»/«Не указан», не ACTIVE. В демо 24.6/100 GB и 15 дней вымышленные и обозначены. Схема экспортируемого JSON не изменена, real credentials и bearer URLs не рендерятся. Reference Remnawave использован только для смысловой группировки цветов; AGPL CSS/код не копировался. #887 OPEN, #497 отдельный backend/Telegram issue, CI нового head PENDING.
+
+### D1a — умеренная анимация и доступность
+
+Внешний вид Raccoon VPN допускает original micro-interactions: подъём карточек 3px, кнопок 2px при десктопном hover и медленный 8-секундный перелив фирменного текста hero в голубой/сиреневой гамме. Нельзя имитировать доступность disabled CTA, вводить внешний CDN или копировать визуальные ассеты из пользовательского видеореференса. При coarse pointer, отсутствии hover и `prefers-reduced-motion:reduce` движение отсутствует; focus-visible сохраняется. Playwright проверяет hover и reduced-motion отдельно, новый SHA требует CI read-back. #887 OPEN; backend, реальные подписки, Mini App и security #890 отдельно.
+
+### D1a — фоновые световые акценты
+
+В D1a Draft #889 добавлены оригинальные негромкие ambient-градиенты в верхних углах тёмной страницы на чистом CSS без ассетов внешнего референса: голубой и приглушённый фиолетовый. Слой находится под содержимым, не блокирует клики/фокус, центр почти чёрный, на мобильных интенсивность меньше. Лёгкая 26-секундная вариация прозрачности отключается при reduced motion. Scoped CI и снимки desktop/mobile обязательны, реальный Telegram WebView отдельно; #887 OPEN.
+
+
+### D1a — локальная интеграция проверяемых SVG
+
+Оператор подтвердил допустимость использования ранее согласованных внешних SVG-кандидатов. Реестр `docs/assets/subscription-svg-inventory.json` содержит 40 ключей и SHA-префиксы, **не содержит байты SVG** и не является доказательством их технического включения в публичный build. Поэтому D1a добавляет локальный операторский импорт `svgLibrary` из JSON с allowlist sanitizer и fallback. SVG показаны только в пассивных `img` с data URI; опасные XML/SVG конструкты не проходят, никаких CDN/JS/сырого `dangerouslySetInnerHTML` нет. Реальное закрепление всех 40 статических ассетов и SVG lifecycle — отдельный шаг после точного подтверждения содержимого. Scroll-driven эффекты необязательны и не вводятся для ключевого UI.
+
+
+### D1a — закреплённый исходный SVG INCY
+
+В self-hosted build добавлен **официальный** `client-icons/incy.svg`, источник [INCY-DEV/incy-icons](https://github.com/INCY-DEV/incy-icons/blob/3d6e4a076d54ea036c61b34302ecee01bea30a80/INCY-00002.svg), Git blob `cb6c0417b41d77537d2c5fd90225110ad3e57e43`, лицензия MIT сохранена в `client-icons/INCY-LICENSE.txt` (Git blob `9aa242dfc6cba1f491c5d9b198e2ddceb6011860`). При ключе `INCY` используется локальный значок без CDN, если не предоставлен отдельный безопасный operator SVG.
+
+**Граница:** это **1** подтверждённый файл из 40 кандидатов и **не** byte-identical копия инвентаризованного оператором SVG INCY: у того исходная каноникализация не завершена. Исходные 39 SVG получены от оператора локальным `svg.zip` и точно сопоставлены с каталогом и реестром; **в GitHub/runtime их байты не размещены** до отдельного review прав. Не заменять их другими картинками без evidence. Отдельный SVG-прогресс длинных инструкций и scroll-reveal намеренно **не включены**: текущая карусель короткая, а приёмка keyboard/RTL/reduced-motion важнее декоративного scroll. CI на новом SHA PENDING.
+
+
+### D1a — восстановлен SVG-пакет и проверена целостность (2026-10-24)
+
+Оператор предоставил локальный архив `svg.zip`: `svg/svgLibrary.json`, `svg/manifest.json`, 39 отдельных `svg/icons/*.svg` и `README_REVIEW_ONLY.txt`. **SHA-256 ZIP:** `75602476eab4b08e4e6b3c8d0e680defc1be6929d6482585277bd724656ad76b`. **SHA-256 `svgLibrary.json`:** `26101eb3ed72de8af4a4a4cecb87298309ad37746e311912efcbbe9fc41ca8ef` — точное совпадение с ранее зафиксированным источником. Проверены 39/39 имён, индивидуальные SHA по manifest/inventory, 39/39 побайтовых соответствий отдельного SVG содержимому JSON и статический XML preflight. `RabbitHole` входит в 39; `INCY` — отдельный, ранее закреплённый официальный MIT-ассет, не часть ZIP.
+
+Веточная проверка воспроизводима локально: `python3 scripts/check-subscription-svg-package.py --archive /private/path/svg.zip`. Тесты `tests/test_subscription_svg_package.py` используют **только синтетические SVG** и отрицательные сценарии; реальные 39 файлов в GitHub и CI не передаются. Ни SVG-содержимое, ни приватный конфигурационный экспорт, ни источники подписок не помещаются в PR/логи.
+
+Проверка целостности **PASS** не заменяет индивидуальные provenance, license, trademark, полноценный security review и визуальную аттестацию: для 39 SVG `PENDING/BLOCKED`, нейтральный fallback сохраняется. Это offline D1a evidence, не `Published`, `Deployed` или production `Accepted`; Issue #887 `keep_open`. См. [датированный audit](audits/2026-10-24-svg-package-integrity-887.md) и [inventory](assets/subscription-svg-inventory.json).
+
+### D1a — операторское разрешение и локальная поставка 40 SVG (2026-10-24)
+
+Оператор 2026-10-24 **подтвердил урегулирование лицензий и товарных знаков и явно разрешил включить весь набор в репозиторий/интерфейс**. Это operator-reported permission, не независимая юридическая экспертиза. В Draft PR #889 включены **39 исходных** self-hosted SVG, сверенных с JSON/manifest, и отдельный ранее закреплённый официальный MIT INCY; дополнительный предоставленный монохромный INCY сохранён отдельным вариантом и не заменяет основной. Статический список ключей `staticSvgPaths.ts` не позволяет формировать произвольные URL. Приоритет имеет безопасный локальный импорт; при его отсутствии используется проверенный статический asset, иначе — нейтральный fallback. CDN и внешние запросы не добавлены.
+
+**Область разрешения:** D1a preview/статические ресурсы в ветке PR; это не автоматическое разрешение merge/release/deployment и не PASS реального WebView/production. Исходный приватный конфигурационный экспорт по-прежнему не коммитится. Ранее зафиксированные `PENDING` по отсутствующим байтам/разрешению оператора в исторических блоках отражают прежнее состояние; текущий статус задан этим новым checkpoint и inventory.
+
+### D1a — проверяемый импорт и покрытие пошаговых инструкций (2026-10-24)
+
+Предпросмотр PR #889 теперь показывает **только структурный отчёт локально импортированной конфигурации**: число платформ, слотов приложений, шагов и кнопок, отдельные счётчики типов `external`/`subscriptionLink`/`copyButton` и покрытие по каждой из семи платформ. Названия, тексты, пользовательские URL, SVG и маркеры `{{SUBSCRIPTION_LINK}}` в отчёт не попадают. Сами шаги уже рендерятся строго в порядке импорта на пяти языках, включая RTL `fa`; клиентские кнопки **всегда disabled** в D1a независимо от формата ссылки. Никакого сетевого запроса или выполнения импортируемого URL в preview не возникает.
+
+Добавлен чисто **синтетический** golden test на структуру известного baseline `5 локалей / 7 платформ / 24 app slots / 10 уникальных клиентов / 92 шага / 75 кнопок (51 external + 24 subscriptionLink) / 20 базовых переводов / 38 встроенных SVG`; тест проверяет точный JSON roundtrip, порядок платформ, счётчики и отсутствие URL в отчёте. Browser test покрывает смену платформы, `ru/fa` и RTL, а также инертность вредоносного `javascript:` в импортируемом JSON. **Это не утверждение о побайтовом совпадении с оригинальным экспортом**, которого нет в публичном репозитории: original SHA `acc2a517287832fcf7e42d7482eceea55bdc2b6b670a6e5b3bab23680f323244` можно проверить только в операторском закрытом окружении (существующий optional test `OPERATOR_SUBPAGE_JSON`). Подмена оригинальных текстов и URL синтетикой запрещена; контент/проверенные клиентские deep-links, D2 auth, D3 device/WebView acceptance — PENDING. #887 keep_open.
+
+D1a default synthetic UI показывает **все 7 платформ**. У Apple TV и Android TV до импорта проверенной конфигурации — **пустой список клиентов** и честное сообщение об отсутствии инструкций; это не утверждение о поддержанном VPN-приложении или протестированном TV-deeplink. Реальный TV client/import требует D3 capability/device evidence.
+
+### D1a — синхронизация с D0 и Roadmap main после #894 (2026-10-24)
+
+GitHub-проверка: архитектурный docs-only PR #888 Squash MERGED (`3828a417bc0de6fe61f9df878cce043c15bfd343`), отдельный Roadmap checkpoint #894 Squash MERGED (`a59da4ede21803b634eea5da584efea2a13e7efa`). Ветвь D1a PR #889 синхронизируется через **двухродительский merge commit без force-push**: `docs/ROADMAP.md` взят целиком из `main`, нормативная D0-основа `docs/WEB_SUBSCRIPTION_MINI_APP.md` взята из `main` и дополнена сохранёнными выше 9 разделами D1a, операторский SVG inventory и весь исходный D1a код/тесты оставлены в исходной ветке. Датированный D0 audit #894 сохранён из `main`. Это не merge PR #889 и не release.
+
+**Отложено по решению оператора:** проверенные инструкции для `INCY` и `RabbitHole` будут предоставлены позднее (срок не определён), исходный JSON v1 их не содержит; исходный экспорт неизменен, SVG ≠ инструкции. В D1a действия и ссылки остаются `disabled`/PENDING; не конструировать сценарии без проверенных материалов. 
+
+Новые required `test/title/audit/frontend-model` и независимый GitHub read-back **PENDING** до CI на новом head PR #889; прежний 41/41 Playwright PASS относится только к предыдущему SHA. D1a/D1b/D2/D3 product acceptance, реальный приватный 1:1 JSON, Telegram WebView, device import и release/deploy остаются PENDING. #887 OPEN/keep_open.
