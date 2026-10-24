@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -239,6 +242,29 @@ class SharedLedgerTests(unittest.IsolatedAsyncioTestCase):
             BASE + "/start", json={}, headers=self.headers()
         ) as r:
             self.assertEqual(r.status, 200)
+
+    async def test_new_isolated_python_process_sees_pending_and_cancel(self):
+        code, binding = await self.begin(0)
+        worker = Path(__file__).with_name("d2b_ledger_readback_worker.py")
+        command = [
+            sys.executable, "-I", str(worker), self.path,
+            hashlib.sha256(code.encode()).hexdigest(), str(self.clock),
+        ]
+        pending = subprocess.run(
+            command, capture_output=True, text=True, timeout=12, check=True,
+        )
+        self.assertEqual(pending.stdout.strip(), "PENDING")
+        self.assertEqual(pending.stderr, "")
+        async with self.clients[2].post(
+            BASE + "/cancel", json={"challenge": code},
+            headers=self.headers(binding),
+        ) as r:
+            self.assertEqual(r.status, 200)
+        revoked = subprocess.run(
+            command, capture_output=True, text=True, timeout=12, check=True,
+        )
+        self.assertEqual(revoked.stdout.strip(), "ABSENT")
+        self.assertEqual(revoked.stderr, "")
 
     async def test_global_pending_capacity_atomic_and_no_raw_credentials(self):
         from subscription_page_standalone_sqlite import MAX_PENDING
