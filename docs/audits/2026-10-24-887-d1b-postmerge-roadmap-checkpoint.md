@@ -1,7 +1,7 @@
 # #887 D1b — post-merge GitHub/Roadmap checkpoint
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-24 21:27:06 UTC+03:00 (фактическое время GitHub merge `2026-10-24T18:27:06Z`)
+- **Дата/время и часовой пояс:** 2026-10-24 21:27 UTC+03:00 (фактическое время GitHub merge `2026-10-24T18:27:06Z`)
 - **Окружение:** GitHub repository/PR REST read-back и GitHub Actions; **без** production/VPS, реальных DNS/TLS сертификатов, секретов или запуска D1b
 - **Цель:** проверить разрешённый squash merge D1b в защищённую main, отделить CI/code готовность от Published/Deployed/Accepted и синхронизировать активный #887 Roadmap/closure decision
 - **Версия и immutable tag/SHA:** post-merge `main` commit `75bcbba6d7c05eb8b530ce273a79d36c232a8c72` (parent `f8ff9a18125e24813f9974531e5257d0f8258534`); pre-merge PR head `280e2e84bffe8313b9455745619173eeae0c62ef`; Published immutable tag `v5.0.0-rc.19` SHA `d738dd970f2215adc346a919c7ed182abaf454b1` **до** D1b
