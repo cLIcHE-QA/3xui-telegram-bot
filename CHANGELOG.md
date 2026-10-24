@@ -17,7 +17,7 @@
 ## D1b защищённый редактор — feature branch, не опубликован (2026-10-24)
 
 - Отдельные admin login/roles, CSRF, Fernet-encrypted SQLite drafts, optimistic revision locks, audit metadata, React editor (брендинг, переводы, платформы, шаги, кнопки, full/selective JSON import/export, инертный preview); metadata-only review proposal.
-- UI D1b предпросмотра показывает те же 39 исходных локальных SVG + INCY (MIT), что D1a, включая платформы, клиентов и шаги; подозрительные ключи остаются fallback, любые кнопки неактивны. Browser tests проверяют фактическую загрузку иконок и 320px/200% масштаб.
+- UI D1b предпросмотра показывает те же 39 исходных локальных SVG + INCY (MIT), что D1a, включая платформы, клиентов, шаги и инертные кнопки; подозрительные ключи остаются fallback. Browser tests проверяют фактическую загрузку всех 40 иконок, контраст исходных светлых/тёмных SVG и адаптацию 320px/200% (включая длинные подписи переключателей). Исходные ассеты не переписаны.
 - Изолированный admin API усилен обязательным отдельным TOTP для каждого пользователя, replay и shared-seed denial, bounded/idle sessions, строгими Host/Origin/CSRF и owner-only encrypted SQLite. В production не интегрирован. Реальная публикация/rollback, TLS/MFA enrollment, key rotation, multi-node sessions, оригинальный JSON 1:1 и инструкции INCY/RabbitHole — PENDING. Issue #887 keep_open.
 
 ## Неопубликованные изменения в main — D1a preview #887 (2026-10-24)

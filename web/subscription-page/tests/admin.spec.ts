@@ -173,6 +173,11 @@ test("D1b SVG gallery remains readable at mobile width and 200% text",async({pag
  await expect(badge).toBeVisible();
  const badgeFits=await badge.evaluate(node=>node.scrollWidth<=node.clientWidth+1);
  expect(badgeFits,"200%-text D1b status badge must not be clipped").toBe(true);
+ const switchBody=page.locator(".admin-editor .mantine-Switch-body").first();
+ await expect(switchBody).toHaveCSS("flex-direction","column");
+ const switchLabel=page.locator(".admin-editor .mantine-Switch-label").first();
+ const switchUnclipped=await switchLabel.evaluate(node=>node.scrollWidth<=node.clientWidth+1);
+ expect(switchUnclipped,"200%-text admin toggle description must not be clipped").toBe(true);
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
  expect(overflow).toBe(false);
  await page.screenshot({path:"test-results/d1b-svg-approved-library-mobile-200-percent.png",fullPage:true});
