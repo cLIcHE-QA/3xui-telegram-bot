@@ -15,7 +15,7 @@ import stat
 import secrets
 import sqlite3
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Mapping
@@ -39,9 +39,9 @@ MAX_LOGIN_BUCKETS = 2048
 @dataclass(frozen=True)
 class AdminAccount:
     username: str
-    password_hash: str
+    password_hash: str = field(repr=False)
     role: str
-    totp_secret_b32: str = ""  # Enrolled offline; NEVER commit a real secret.
+    totp_secret_b32: str = field(default="", repr=False)  # Never print MFA seed.
 
 
 @dataclass(frozen=True)
