@@ -1,6 +1,6 @@
 # Subscription Page: D1a preview и D1b draft-editor
 
-**Текущее разграничение на 2026-10-24:** D1a изолированный React 19/TypeScript/Vite/Mantine preview уже находится в `main` (PR #889 и docs-sync #895). Независимый D1b `admin.html` и серверный `subscription_page_admin.py` находятся **только в Draft PR #896** по Issue #887: они не подключены к `app_runtime`/3x-ui, не создают production listener и не опубликованы. Клиентские ссылки и подписи на D1a экране синтетические, действия выключены. Ниже сохранены датированные промежуточные CI checkpoints; их старые PENDING относятся только к указанным SHA, а не к текущему `main`.
+**Текущее разграничение на 2026-10-24:** D0/D1a/D1b (PR #896) и Roadmap checkpoint #897 **MERGED**. D1b остаётся opt-in draft-only backend без production. Новый D2a Mini App auth API — только feature branch `feature/887-d2-auth-boundary`; не запускается listener, не подключён frontend, не опубликован и не deployed. `/compat/` и бот не меняются. Нижеследующие датированные промежуточные checkpoints — исторические снимки, их PENDING относятся к указанным SHA.
 
 Локально после фиксации lockfile: `npm ci`, `npm run dev`, `npm run build`, `npm run test:model`, `npm run test:browser`. До подтверждения нового SHA в CI это план проверки, не PASS. Import JSON — исключительно локальный preview с заблокированными ссылками и действиями; production импорт/валидация и серверные админские endpoints относятся к D1b.
 
@@ -358,3 +358,9 @@ Regression tests: смена verifier, TOTP и роли, отключение п
 ## D1b — URL review не разрешает ссылки по одному маркеру (2026-10-24, #887)
 
 `blockedLinks()` раньше принимал любой `link.includes("{{SUBSCRIPTION_LINK}}")`, включая `javascript:` с таким текстом. В новом preview это не XSS (actions disabled), но отчёт ручного review мог скрывать подозрительный URL. Теперь синтаксически безопасная форма-кандидат — только полный `https://` без login/password/placeholder/backslash/пробелов; остальные схемы, empty и шаблонные ссылки отмечаются к ручной проверке. Даже `https://`-кандидат **не** разрешён к исполнению: host allowlist, клиентские deep links и публикация отсутствуют. Новый Playwright regression проверяет, что 5 подозрительных из 6 links отмечены, все действия остаются disabled и нет внешних запросов.
+
+
+## D2a — только opt-in backend, без публикации
+
+- `subscription_page_customer.py` и `tests/test_subscription_page_customer.py` реализуют серверный `initData` HMAC, freshness, ограниченные cookie-сессии/replay/Origin/Host, per-request pilot + durable feature checks. `/api/subpage/v1` **не** подключён к `app_runtime`.
+- Ни Mini App WebView, ни production TLS/edge, ни standalone login не прошли smoke. React D1a продолжает показывать только synthetic preview и disabled links; отдельный standalone session exchange и frontend bridge — будущая D2 работа. Issue #887 остаётся OPEN, G-11 NO-GO.
