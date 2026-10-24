@@ -94,8 +94,14 @@ class EncryptedDrafts:
             raise ValueError("Invalid draft DB path")
         if self.path.parent.stat().st_mode & 0o022:
             raise ValueError("Draft directory must not be group/world-writable")
-        if self.path.exists() and self.path.stat().st_mode & 0o077:
-            raise ValueError("Draft DB must be owner-only")
+        if self.path.exists():
+            if not self.path.is_file() or self.path.stat().st_mode & 0o077:
+                raise ValueError("Draft DB must be an owner-only regular file")
+        else:
+            # Reserve the file with owner-only permissions before SQLite touches it.
+            flags = os.O_CREAT | os.O_EXCL | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+            descriptor = os.open(self.path, flags, 0o600)
+            os.close(descriptor)
         self.cipher = Fernet(key)
         with self.connect() as con:
             con.execute("""CREATE TABLE IF NOT EXISTS draft_revisions(

@@ -164,8 +164,6 @@ function App(){
   update(w=>{w.brandingSettings[field]=value;});
  const setBase=(field:keyof Config["baseSettings"],value:boolean|string)=>
   update(w=>{(w.baseSettings as unknown as Record<string,boolean|string>)[field]=value;});
- const setLocal=(value:Localized,text:string)=>
-  update(w=>{void w;value[selectedLang]=text;}); // use explicit paths below instead
 
  async function logIn(event:FormEvent){
   event.preventDefault();setAlert("");setSuccess("");setBusy(true);
