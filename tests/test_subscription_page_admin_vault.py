@@ -59,6 +59,8 @@ class AdminRosterTests(unittest.TestCase):
         self.assertEqual(self.path.with_name(self.path.name + ".lock").stat().st_mode & 0o777, 0o600)
         version, loaded = self.roster.snapshot()
         self.assertEqual((version, loaded), (1, self.initial))
+        self.assertNotIn(OWNER_SEED, repr(loaded[0]))
+        self.assertNotIn(loaded[0].password_hash, repr(loaded[0]))
         with self.assertRaises(FileExistsError):
             self.roster.initialize(self.initial)
         self.assertEqual(self.roster.snapshot(), (1, self.initial))
