@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Code, Group, Stack, Text, Title } from "@mantine/core";
 import { IconBrowser, IconLock } from "@tabler/icons-react";
+import type { CustomerSummary } from "./miniAppClient";
 import {
-  type CustomerSummary, startStandalone, completeStandalone,
+  startStandalone, completeStandalone,
   cancelStandalone, logoutStandalone,
 } from "./standaloneClient";
 
