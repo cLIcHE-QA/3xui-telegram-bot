@@ -20,8 +20,8 @@ class D1bHttpsEdgeTests(unittest.TestCase):
 
     def test_tls_is_mandatory_and_example_domain_unusable(self):
         s = self.conf
-        self.assertIn("listen 443 ssl;", s)
-        self.assertIn("http2 on;", s)
+        self.assertIn("listen 443 ssl http2;", s)
+        self.assertNotIn("http2 on;", s)
         self.assertNotRegex(s, r"(?m)^\s*listen 80\b")
         self.assertNotRegex(s, r"(?m)^\s*listen .*default_server")
         self.assertIn("server_name admin.example.invalid;", s)
