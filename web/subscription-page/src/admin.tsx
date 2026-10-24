@@ -7,6 +7,8 @@ import {
 } from "@mantine/core";
 import "@mantine/core/styles.css";
 import {parsePageConfig, summary, type Config, type Localized} from "./model";
+import {SafeSvgIcon, sanitizeSvg} from "./SafeSvgIcon";
+import {STATIC_SVG_PATHS} from "./staticSvgPaths";
 import "./admin.css";
 
 /** D1b private UI: all authorization is enforced by the separate Python API.
@@ -25,6 +27,12 @@ const SECTIONS:{value:Section;label:string}[]=[
   {value:"svgLibrary",label:"Библиотека SVG (данные)"}
 ];
 const AVAILABLE_PLATFORMS=["ios","android","macos","windows","linux","appleTV","androidTV"];
+const APPROVED_SVG_KEYS=Object.keys(STATIC_SVG_PATHS);
+/** A missing or quarantined imported key must never look like an approved icon. */
+function hasPreviewSvg(key:string|undefined,library:Record<string,string>){
+ return Boolean(key&&(Object.hasOwn(STATIC_SVG_PATHS,key)||
+   (Object.hasOwn(library,key)&&Boolean(sanitizeSvg(library[key])))));
+}
 const HEADER={"Content-Type":"application/json"};
 function messageOf(error:unknown){return error instanceof Error?error.message:"Неизвестная ошибка";}
 function move<T>(items:T[],index:number,delta:number):T[]{
@@ -392,20 +400,61 @@ function App(){
        <Text size="sm">Инструкции: {draft.uiConfig.installationGuidesBlockType}</Text>
       </Paper>
       <Text fw={700} mt="lg">Выбор устройства</Text>
-      <Group mt="xs" gap="xs">{Object.entries(draft.platforms).map(([key,p])=><Button key={key} size="xs" variant={key===platformKey?"filled":"light"}
-       onClick={()=>{setPlatformKey(key);setAppIndex(0);setStepIndex(0);}}>{p.displayName[selectedLang]||key}</Button>)}</Group>
-      {platform&&<><Text fw={700} mt="lg">Клиенты</Text><Stack gap="xs" mt="xs">
+      <Group mt="xs" gap="xs" className="admin-platforms" data-testid="admin-platforms">{Object.entries(draft.platforms).map(([key,p])=>
+       <Button key={key} size="xs" variant={key===platformKey?"filled":"light"}
+        leftSection={<SafeSvgIcon iconKey={p.svgIconKey} library={draft.svgLibrary}
+          preferStatic testId="admin-platform-svg" className="admin-svg-icon"
+          fallback={<span className="admin-svg-missing" aria-hidden="true">◇</span>}/>}
+        onClick={()=>{setPlatformKey(key);setAppIndex(0);setStepIndex(0);}}>{p.displayName[selectedLang]||key}</Button>)}</Group>
+      {platform&&<><Text fw={700} mt="lg">Клиенты</Text><Stack gap="xs" mt="xs" data-testid="admin-preview-clients">
        {platform.apps.length===0?<Text c="dimmed">Для платформы нет приложений.</Text>:platform.apps.map((a,i)=>
         <Paper key={i} p="sm" className="admin-demo-card">
-          <Group justify="space-between"><Text>{a.name}</Text>{a.featured&&<Badge color="teal">Выделен</Badge>}</Group>
-          {a.blocks.map((b,k)=><Text key={k} size="xs" c="dimmed">{k+1}. {b.title[selectedLang]??""}</Text>)}
+         <Group gap="sm" align="flex-start" wrap="nowrap">
+          <SafeSvgIcon iconKey={a.svgIconKey} library={draft.svgLibrary} preferStatic
+           testId="admin-client-svg" className="admin-svg-client"
+           fallback={<span className="admin-svg-missing admin-svg-client" aria-hidden="true">◇</span>}/>
+          <div className="admin-preview-copy">
+           <Group gap="xs"><Text fw={600}>{a.name}</Text>{a.featured&&<Badge color="teal">Выделен</Badge>}
+            {!hasPreviewSvg(a.svgIconKey,draft.svgLibrary)&&<Badge color="yellow">Нет проверенной SVG</Badge>}</Group>
+           {a.blocks.length===0?<Text size="xs" c="dimmed">Шаги ещё не указаны.</Text>:
+            <Stack gap={6} mt="xs">{a.blocks.map((b,k)=>
+             <Group key={k} className="admin-preview-step" gap="xs" align="flex-start" wrap="nowrap">
+              <SafeSvgIcon iconKey={b.svgIconKey} library={draft.svgLibrary} preferStatic
+               testId="admin-step-svg" className="admin-svg-icon"
+               fallback={<span className="admin-svg-missing" aria-hidden="true">◇</span>}/>
+              <div className="admin-preview-copy">
+               <Text size="xs">{k+1}. {b.title[selectedLang]??""}</Text>
+               <Text size="xs" c="dimmed">{b.description[selectedLang]??""}</Text>
+               {b.buttons.map((button,index)=>
+                <span key={index} className="admin-preview-action" aria-disabled="true"
+                  data-testid="admin-disabled-action">
+                 <SafeSvgIcon iconKey={button.svgIconKey} library={draft.svgLibrary} preferStatic
+                  testId="admin-action-svg" className="admin-svg-icon"
+                  fallback={<span className="admin-svg-missing" aria-hidden="true">◇</span>}/>
+                 {button.text[selectedLang]??"Действие"} · заблокировано
+                </span>)}
+              </div>
+             </Group>)}</Stack>}
+          </div>
+         </Group>
         </Paper>)}
       </Stack></>}
+      <details className="admin-svg-gallery" data-testid="admin-svg-gallery">
+       <summary>Проверенная SVG-библиотека · {APPROVED_SVG_KEYS.length} локальных иконок</summary>
+       <Text size="xs" c="dimmed" mt="xs">Самостоятельные локальные файлы; ключи в конфигурации должны совпадать. Сырые SVG не вставляются в HTML.</Text>
+       <div className="admin-svg-grid" data-testid="admin-svg-grid">
+        {APPROVED_SVG_KEYS.map(key=><div key={key} className="admin-svg-cell">
+         <SafeSvgIcon iconKey={key} preferStatic testId="admin-library-svg"
+          className="admin-svg-gallery-icon" fallback={<span aria-hidden="true">◇</span>}/>
+         <Text size="xs" title={key}>{key}</Text>
+        </div>)}
+       </div>
+      </details>
       <Divider my="lg"/>
       <Text fw={700}>Проверка перед публикацией</Text>
       <Text size="sm" c="dimmed">Изменённые разделы: {changes.join(", ")||"нет"}</Text>
       <Text size="sm" c={riskCount?"red":"dimmed"}>Подозрительных URL/схем в исходных текстах: {riskCount}. Они сохраняются без выполнения и требуют отдельной ручной проверки.</Text>
-      <Text size="sm">SVG-ключей: {Object.keys(draft.svgLibrary).length}. Сырые SVG не вставляются в HTML предпросмотра.</Text>
+      <Text size="sm">SVG-ключей в импортированном JSON: {Object.keys(draft.svgLibrary).length}. Локально утверждённых файлов: {APPROVED_SVG_KEYS.length}. Изображения загружаются с этого же origin или проходят SVG sanitizer и показываются только как passive img.</Text>
       <Group mt="lg"><Button variant="light" disabled={!isOwner||!revision||dirty||busy||Boolean(valid)}
        onClick={()=>void propose()}>Предложить к проверке</Button>
        <Button disabled>Опубликовать (заблокировано)</Button></Group>

@@ -97,3 +97,65 @@ test("D1b выборочный экспорт не выдаёт внешние U
  await expect(page.getByRole("button",{name:"Опубликовать (заблокировано)"})).toBeDisabled();
  expect(remote).toEqual([]);
 });
+
+test("D1b preview matches approved self-hosted SVG catalog without executing imported SVG",async({page})=>{
+ const network:string[]=[];
+ page.on("request",r=>{if(new URL(r.url()).origin!=="http://127.0.0.1:4173")network.push(r.url());});
+ const config=structuredClone(fixture);
+ config.platforms.ios.apps=[
+  {...structuredClone(fixture.platforms.ios.apps[0]),name:"Синтетический Happ",svgIconKey:"Happ"},
+  {...structuredClone(fixture.platforms.ios.apps[0]),name:"Синтетический RabbitHole",svgIconKey:"RabbitHole"},
+  {...structuredClone(fixture.platforms.ios.apps[0]),name:"Синтетический INCY",svgIconKey:"INCY"},
+  {...structuredClone(fixture.platforms.ios.apps[0]),name:"Без SVG",svgIconKey:"unsafeIcon"},
+ ];
+ config.svgLibrary={
+  ...fixture.svgLibrary,
+  Happ:'<svg xmlns="http://www.w3.org/2000/svg"><circle cx="5" cy="5" r="4" fill="#f55"/></svg>',
+  unsafeIcon:'<svg xmlns="http://www.w3.org/2000/svg"><script>alert("unsafe")</script></svg>',
+ };
+ await page.route("**/admin/subpage/api/**",async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const body=path.endsWith("/session")?
+   {username:"viewer1",role:"viewer",csrfToken:"only-test",expiresIn:120}:
+   path.endsWith("/draft")?{revision:1,config}:{revisions:[]};
+  await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(body)});
+ });
+ await page.goto("/admin.html");
+ await expect(page.getByRole("heading",{name:"Редактор страницы подписки"})).toBeVisible();
+ await expect(page.getByTestId("admin-platform-svg").first()).toHaveAttribute("src","/client-icons/library/AppleIcon.svg");
+ const icons=page.getByTestId("admin-client-svg");
+ await expect(icons).toHaveCount(3);
+ await expect(icons.nth(0)).toHaveAttribute("src","/client-icons/library/Happ.svg");
+ await expect(icons.nth(1)).toHaveAttribute("src","/client-icons/library/RabbitHole.svg");
+ await expect(icons.nth(2)).toHaveAttribute("src","/client-icons/incy.svg");
+ await expect(page.getByText("Нет проверенной SVG")).toBeVisible();
+ await expect(page.getByTestId("admin-step-svg")).toHaveCount(4);
+ const buttons=page.getByTestId("admin-disabled-action");
+ await expect(buttons).toHaveCount(4);
+ await expect(buttons.first()).toHaveAttribute("aria-disabled","true");
+ await expect(buttons.first().getByTestId("admin-action-svg")).toHaveAttribute("src","/client-icons/library/ExternalLink.svg");
+ await page.getByTestId("admin-svg-gallery").locator("summary").click();
+ await expect(page.getByTestId("admin-library-svg")).toHaveCount(40);
+ await expect(page.getByTestId("admin-library-svg").last()).toHaveAttribute("src","/client-icons/incy.svg");
+ expect(network).toEqual([]);
+});
+
+test("D1b SVG gallery remains readable at mobile width and 200% text",async({page})=>{
+ const config=structuredClone(fixture);
+ config.platforms.ios.apps[0].svgIconKey="Shadowrocket";
+ await page.route("**/admin/subpage/api/**",async route=>{
+  const path=new URL(route.request().url()).pathname;
+  const response=path.endsWith("/session")?
+    {username:"viewer1",role:"viewer",csrfToken:"test",expiresIn:120}:
+    path.endsWith("/draft")?{revision:1,config}:{revisions:[]};
+  await route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(response)});
+ });
+ await page.setViewportSize({width:320,height:720});
+ await page.goto("/admin.html");
+ await expect(page.getByTestId("admin-client-svg")).toHaveAttribute("src","/client-icons/library/Shadowrocket.svg");
+ await page.getByTestId("admin-svg-gallery").locator("summary").click();
+ await page.addStyleTag({content:":root{font-size:200% !important}"});
+ await expect(page.getByTestId("admin-svg-gallery")).toBeVisible();
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
+ expect(overflow).toBe(false);
+});

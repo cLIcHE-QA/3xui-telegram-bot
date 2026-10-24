@@ -20,3 +20,18 @@ body{margin:0;background:#060b11;color:#e9f5ff}
 @media(max-width:860px){.admin-panels{grid-template-columns:minmax(0,1fr)}.admin-toolbar{align-items:stretch!important}.admin-toolbar>.mantine-Group-root{justify-content:flex-start}}
 @media(max-width:520px){.admin-shell{padding:5px 0 38px}.admin-header{padding:10px 0 16px}.admin-header .mantine-Group-root{align-items:flex-start}.admin-toolbar{padding:11px}.admin-toolbar .mantine-Group-root{width:100%}.admin-toolbar .mantine-Select-root{width:100%}.admin-toolbar .mantine-Button-root{min-height:43px}.admin-editor .mantine-Tabs-tab{font-size:12px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* D1b: the exact same self-hosted SVG catalog as the D1a client page. */
+.admin-svg-icon{width:20px;height:20px;flex-shrink:0;object-fit:contain}
+.admin-svg-client{width:40px;height:40px;flex-shrink:0;object-fit:contain;border-radius:8px}
+.admin-svg-missing{display:inline-flex;align-items:center;justify-content:center;color:#aebdc9;border:1px dashed #65809c;border-radius:7px}
+.admin-preview-copy{min-width:0;flex:1;overflow-wrap:anywhere}
+.admin-preview-step{padding:7px 0;border-top:1px solid #25445a}
+.admin-preview-action{display:inline-flex;align-items:center;gap:5px;max-width:100%;margin:5px 5px 0 0;padding:5px 9px;border-radius:7px;border:1px solid #345169;color:#b7c8d3;font-size:12px;user-select:none;cursor:not-allowed;overflow-wrap:anywhere}
+.admin-svg-gallery{margin-top:18px;border:1px solid #2b4b63;border-radius:10px;padding:12px;background:#102031}
+.admin-svg-gallery summary{cursor:pointer;font-weight:650;line-height:1.5}
+.admin-svg-gallery summary:focus-visible{outline:2px solid #38bdf8;outline-offset:4px}
+.admin-svg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:8px;margin-top:12px}
+.admin-svg-cell{display:flex;align-items:center;flex-direction:column;justify-content:center;min-width:0;gap:9px;padding:10px 5px;border:1px solid #36516a;border-radius:9px;text-align:center}
+.admin-svg-cell .mantine-Text-root{max-width:100%;overflow-wrap:anywhere}
+.admin-svg-gallery-icon{width:32px;height:32px;object-fit:contain}
+@media(max-width:520px){.admin-svg-grid{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}.admin-preview-action{font-size:11px}}
