@@ -38,6 +38,8 @@
 
 - D1b TLS→real-admin API integration security smoke (#887, **только Draft PR #896**): изолированный HTTPS Nginx теперь проверяется с настоящим `create_editor_app` и синтетическим owner/editor/viewer MFA/TOTP, encrypted SQLite и сессиями; проверяются guest/Bearer, Origin/forged headers, CSRF, RBAC, `428`/`409`, anti-replay, отзыв cookies, запрет publish/rollback и CORS. Публичный port/DNS, реальный cert/key, recovery/VPS и полная приёмка не проверялись, Merge/Release/Deployment отсутствуют.
 
+- D1b aiohttp deny-path compatibility (#887, **только Draft PR #896**): защищённая middleware теперь `raise` для `web.HTTPException` после добавления `no-store`/CSP/frame/nosniff, вместо устаревающего возврата объекта исключения. Отдельный test фиксирует guest `401`/wrong-origin `403`, security headers и отсутствие соответствующего `aiohttp` deprecation warning; это не изменение привилегий, auth-политики или production deployment.
+
 ## Неопубликованные изменения в main — D1a preview #887 (2026-10-24)
 
 - [PR #889](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/889) **Squash MERGED** в `main` `74038c37ddbc13d312727c5f1e5c247c8eb1d8ba`. Добавлен **изолированный offline React 19/TypeScript/Vite/Mantine предпросмотр** страницы подписки и инструкций, локальный JSON v1 импорт, UI с пятью языками и семью платформами, 39 оригинальных SVG из операторского набора и отдельная MIT-иконка INCY. Ссылки и действия в превью заблокированы; auth, API, реальная выдача подписок и deployment не добавлены.

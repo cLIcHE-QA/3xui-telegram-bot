@@ -13,6 +13,7 @@ import os
 import sqlite3
 import tempfile
 import unittest
+import warnings
 from unittest.mock import patch
 from pathlib import Path
 
@@ -371,6 +372,30 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(r.status, 401)
         r = await self.client.post(self.url + "/publish", json={}, headers=self.origin)
         self.assertEqual(r.status, 404)
+
+    async def test_denials_raise_http_exceptions_with_security_headers(self):
+        # aiohttp 3.13 warns if middleware returns HTTPException as a response.
+        # A denied login/session must be RAISED, preserving all security headers.
+        with warnings.catch_warnings(record=True) as seen:
+            warnings.simplefilter("always", DeprecationWarning)
+            guest = await self.client.get(self.url + "/draft")
+            foreign = await self.client.post(
+                self.url + "/session",
+                json={"username": "owner1", "password": "synthetic-invalid",
+                      "otp": "123456"},
+                headers={"Host": "admin.example.test",
+                         "Origin": "https://untrusted.example"})
+        self.assertEqual(guest.status, 401)
+        self.assertEqual(foreign.status, 403)
+        for response in (guest, foreign):
+            self.assertEqual(response.headers.get("Cache-Control"), "no-store")
+            self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
+            self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+            self.assertIn("default-src 'none'", response.headers.get(
+                "Content-Security-Policy", ""))
+        self.assertFalse(any(
+            "returning HTTPException object is deprecated" in str(item.message)
+            for item in seen), "aiohttp HTTPException must be raised, not returned")
 
     async def test_login_denial_and_rate_limit(self):
         missing_origin = await self.client.post(

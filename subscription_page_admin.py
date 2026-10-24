@@ -397,12 +397,7 @@ def create_editor_app(*, accounts: list[AdminAccount] | None = None,
 
     failures: dict[str, list[float]] = {}
 
-    @web.middleware
-    async def secure_response(request: web.Request, handler):
-        try:
-            response = await handler(request)
-        except web.HTTPException as exc:
-            response = exc
+    def secure_headers(response: web.StreamResponse) -> web.StreamResponse:
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -410,6 +405,17 @@ def create_editor_app(*, accounts: list[AdminAccount] | None = None,
         response.headers["Content-Security-Policy"] = (
             "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
         return response
+
+    @web.middleware
+    async def secure_response(request: web.Request, handler):
+        try:
+            return secure_headers(await handler(request))
+        except web.HTTPException as exc:
+            # aiohttp 3.13 deprecates returning HTTPException objects.
+            # Preserve the same no-store/CSP guards on negative responses,
+            # but propagate denial through aiohttp's documented raise path.
+            secure_headers(exc)
+            raise
 
     app = web.Application(middlewares=[secure_response], client_max_size=MAX_BYTES + 4096)
 
