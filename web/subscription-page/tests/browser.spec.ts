@@ -7,6 +7,7 @@ test("D2a выключен в обычном preview: нет Mini App cookie/log
   });
   await page.goto("/");
   await expect(page.getByTestId("d2a-mini-app-pilot")).toHaveCount(0);
+  await expect(page.getByTestId("d2b-standalone-pilot")).toHaveCount(0);
   await expect(page.getByTestId("subscription-preview")).toBeVisible();
   await expect(page.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
   await page.waitForTimeout(100);
