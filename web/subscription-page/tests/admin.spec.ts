@@ -169,6 +169,10 @@ test("D1b SVG gallery remains readable at mobile width and 200% text",async({pag
  await expect(title).toBeVisible();
  const unclipped=await title.evaluate(node=>node.scrollWidth<=node.clientWidth+1);
  expect(unclipped,"200%-text mobile preview heading must not be clipped").toBe(true);
+ const badge=page.locator(".admin-preview-status");
+ await expect(badge).toBeVisible();
+ const badgeFits=await badge.evaluate(node=>node.scrollWidth<=node.clientWidth+1);
+ expect(badgeFits,"200%-text D1b status badge must not be clipped").toBe(true);
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
  expect(overflow).toBe(false);
  await page.screenshot({path:"test-results/d1b-svg-approved-library-mobile-200-percent.png",fullPage:true});

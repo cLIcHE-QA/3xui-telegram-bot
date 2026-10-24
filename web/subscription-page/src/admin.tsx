@@ -392,7 +392,7 @@ function App(){
       </Tabs>
      </Card>
      <Card className="admin-preview" padding="lg">
-      <Group justify="space-between"><Title order={3}>Безопасный предпросмотр</Title><Badge color="cyan">Без реальных действий</Badge></Group>
+      <Group justify="space-between"><Title order={3}>Безопасный предпросмотр</Title><Badge color="cyan" className="admin-preview-status">Без реальных действий</Badge></Group>
       <Title order={2} mt="lg">{draft.brandingSettings.title||"Страница подписки"}</Title>
       <Text c="dimmed" mt="xs">{draft.baseSettings.metaDescription||"Предпросмотр конфигурации"}</Text>
       <Paper p="md" mt="lg" className="admin-demo-card">
