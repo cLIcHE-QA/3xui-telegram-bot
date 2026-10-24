@@ -291,3 +291,18 @@ test("локальные инструкции 5 языков / 7 платфор�
  expect(pageText).not.toContain("{{SUBSCRIPTION_LINK}}");
  expect(external).toEqual([]);
 });
+
+
+test("в D1a доступны 7 платформ, Apple TV/Android TV не обещают неподтверждённые клиенты",async({page})=>{
+ await page.goto("/");
+ for(const label of ["iOS","Android","macOS","Windows","Linux","Apple TV","Android TV"]){
+  await expect(page.getByRole("tab",{name:label,exact:true})).toBeVisible();
+ }
+ for(const label of ["Apple TV","Android TV"]){
+  await page.getByRole("tab",{name:label,exact:true}).click();
+  await expect(page.getByTestId("client-choice")).toHaveCount(0);
+  await expect(page.getByTestId("guide-preview")).toContainText("Инструкции пока не настроены");
+ }
+ await page.getByRole("tab",{name:"iOS",exact:true}).click();
+ await expect(page.getByTestId("guide-preview")).toContainText("Установить приложение");
+});

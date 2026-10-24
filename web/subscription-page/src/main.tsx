@@ -30,7 +30,7 @@ const sample: ExportConfig = {
     ios: { apps: [{name:"Демонстрационный клиент",featured:true,svgIconKey:"DemoLogo",blocks:[
       {title:{ru:"Установить приложение"},description:{ru:"Установите совместимый VPN-клиент."},buttons:[]},
       {title:{ru:"Добавить подписку"},description:{ru:"Ссылка появится только после авторизации."},buttons:[]}
-    ]}]}, android:{apps:[]},macos:{apps:[]},windows:{apps:[]},linux:{apps:[]}
+    ]}]}, android:{apps:[]},macos:{apps:[]},windows:{apps:[]},linux:{apps:[]},appleTV:{apps:[]},androidTV:{apps:[]}
   },
   baseSettings:{showConnectionKeys:false,hideGetLinkButton:false},
   uiConfig:{subscriptionInfoBlockType:"expanded",installationGuidesBlockType:"cards"},
