@@ -279,7 +279,7 @@ test("локальные инструкции 5 языков / 7 платфор�
  await expect(page.getByTestId("guide-preview")).toContainText("Install-ru");
  const dangerous=page.getByRole("button",{name:"Untrusted link-ru"});
  await expect(dangerous).toBeDisabled();
- await page.getByRole("tab",{name:"android-ru"}).click();
+ await page.getByRole("tab",{name:"android"}).click();
  await expect(page.getByTestId("guide-preview")).toContainText("Install-ru");
  const select=page.getByRole("combobox",{name:"Language"});await select.click();await page.getByRole("option",{name:"FA"}).click();
  await expect(page.getByTestId("guide-preview")).toContainText("Install-fa");
