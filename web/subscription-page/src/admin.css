@@ -75,3 +75,24 @@ body{margin:0;background:#060b11;color:#e9f5ff}
 /* Multi-line status badges at 200% text scaling, without clipped text. */
 .admin-preview-status{height:auto!important;max-width:100%;min-height:28px;white-space:normal!important;line-height:1.35;padding-block:5px}
 .admin-preview-status .mantine-Badge-label{white-space:normal!important;overflow-wrap:break-word;line-height:1.35;max-width:100%}
+
+/* D1b account/session controls: 320px viewport at 200% text must reflow.
+   Never clip a security action or force horizontal scrolling. */
+@media(max-width:520px){
+ .admin-header>.mantine-Group-root{
+  flex-direction:column;align-items:stretch!important;min-width:0;max-width:100%;
+ }
+ .admin-header>.mantine-Group-root>div{
+  min-width:0;max-width:100%;overflow-wrap:anywhere
+ }
+ .admin-header>.mantine-Group-root>.mantine-Group-root{
+  width:100%;min-width:0;max-width:100%;justify-content:flex-start;flex-wrap:wrap!important
+ }
+ .admin-header .mantine-Button-root{
+  flex:1 1 130px;min-width:0;max-width:100%;height:auto;min-height:44px;
+  padding-block:10px;white-space:normal!important
+ }
+ .admin-header .mantine-Button-label{
+  white-space:normal!important;overflow-wrap:anywhere;text-align:center;line-height:1.3
+ }
+}
