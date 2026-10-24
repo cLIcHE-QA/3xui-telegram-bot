@@ -76,7 +76,7 @@ test("выбор клиента использует нейтральную ик
   await expect(chooser).toHaveCount(1);
   await expect(chooser.first()).toHaveAttribute("aria-pressed", "true");
   await expect(chooser.first().locator(".client-icon svg")).toBeVisible();
-  await page.getByRole("tab", { name: "Android" }).click();
+  await page.getByRole("tab",{name:"Android",exact:true}).click();
   await expect(page.getByText("Для этой платформы нет настроенных клиентов.").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Получить ссылку" })).toBeDisabled();
   expect(external).toEqual([]);
@@ -99,7 +99,7 @@ test("full-page visual evidence for four instruction layouts and empty state", a
     await expect(preview.getByText("Предпросмотр: ссылки, установка и импорт подписки отключены.")).toBeVisible();
     await full("guide-" + mode + "-" + testInfo.project.name);
   }
-  await page.getByRole("tab", { name: "Android" }).click();
+  await page.getByRole("tab",{name:"Android",exact:true}).click();
   await expect(page.getByTestId("guide-preview")).toContainText("Инструкции пока не настроены");
   await full("guide-empty-" + testInfo.project.name);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
@@ -166,7 +166,7 @@ test("карусель: навигация, один шаг и сброс при
   await carousel.locator("button").first().focus();
   await page.keyboard.press("Enter");
   await expect(carousel.getByText("Установить приложение")).toBeVisible();
-  await page.getByRole("tab",{name:"Android"}).click();
+  await page.getByRole("tab",{name:"Android",exact:true}).click();
   await expect(page.getByTestId("guide-preview")).toContainText("Инструкции пока не настроены");
   await page.getByRole("tab",{name:"iOS"}).click();
   await expect(page.getByTestId("guide-previous")).toBeDisabled();
