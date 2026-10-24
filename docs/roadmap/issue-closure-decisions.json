@@ -3,6 +3,30 @@
   "description": "Явные решения по scoped acceptance; CI запрещает accepted-but-open и completed-but-active. Исторические записи не означают независимую production аттестацию.",
   "decisions": [
     {
+      "issue": 470,
+      "decision": "completed",
+      "date": "2026-10-20",
+      "accepted": "operator-reported rc.17 Stars Orders scoped UI/RBAC PASS + offline pending/payment/pagination regression PASS",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/804",
+      "comment": "#470 CLOSED/completed after published/deployed rc.17, PR #801 and test/title PASS; S3/S6 conditional covered by offline fixture, not live sample. G-11 PARTIAL/NO-GO."
+    },
+    {
+      "issue": 471,
+      "decision": "completed",
+      "accepted": "operator-reported production H1-H8 applicable PASS + A1-A6/B1-B6/C1-C3 UI 15/15 and offline PR #821 test/title PASS; independent VPS read-back PENDING",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
+      "date": "2026-10-20",
+      "comment": "completed: read-only real HWID, stable ID, unknown limit/provider, ownership/privacy H7/H8 and earlier D1-D8 operator-reported."
+    },
+    {
+      "issue": 472,
+      "decision": "completed",
+      "accepted": "operator-reported S1-S4 and H9/H10 PASS, explicit owner confirmation on 2026-10-20 22:59 EEST: close #472; destructive X1/X3 and X2 detailed provenance not independently supplied",
+      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-owner-final-closure.md",
+      "date": "2026-10-20",
+      "comment": "completed by explicit owner acceptance; no independent VPS or mutation/postcondition attestation; G-11 PARTIAL/NO-GO, no new DELETE performed"
+    },
+    {
       "issue": 705,
       "decision": "completed",
       "accepted": "operator-reported scoped PASS",
@@ -83,6 +107,22 @@
       "comment": "PR #775 squash MERGED df6d7d2d9b1a160456072c65a89228b1e63e26c2; test/title PASS; Issue #774 closed/completed, docs-only."
     },
     {
+      "issue": 777,
+      "decision": "completed",
+      "accepted": "docs/CI scoped PASS, independent GitHub main read-back",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/794",
+      "date": "2026-10-19",
+      "comment": "PR #794 squash MERGED d1166caa72207bbd00bff2173a73e474e592732f after required test/title PASS. Admin Setup 1468 to 43 lines with separate current procedures and immutable historical provenance. Issue #777 CLOSED/completed after independent main read-back. No production/release/deploy."
+    },
+    {
+      "issue": 778,
+      "decision": "completed",
+      "accepted": "docs/CI scoped PASS, independent GitHub read-back",
+      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/792",
+      "date": "2026-10-19",
+      "comment": "PR #792 squash MERGED a5212bd39d9e1e19b1d87c491153137799999e09 after test/title PASS. Three current normative living docs and negative regression tests in main; historical snapshot preserved; Issue #778 CLOSED/completed after main read-back. No runtime/deploy/release."
+    },
+    {
       "issue": 780,
       "decision": "completed",
       "accepted": "docs/CI scoped PASS, independent GitHub read-back",
@@ -115,22 +155,6 @@
       "comment": "PR #790 squash MERGED 8d5b9ad1ce1fecf8f5f1808c786f3b2b3cf32f0b; required test/title PASS, current Roadmap 1948-char summary, immutable history, #789 CLOSED/completed after main read-back, no release/deploy."
     },
     {
-      "issue": 778,
-      "decision": "completed",
-      "accepted": "docs/CI scoped PASS, independent GitHub read-back",
-      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/792",
-      "date": "2026-10-19",
-      "comment": "PR #792 squash MERGED a5212bd39d9e1e19b1d87c491153137799999e09 after test/title PASS. Three current normative living docs and negative regression tests in main; historical snapshot preserved; Issue #778 CLOSED/completed after main read-back. No runtime/deploy/release."
-    },
-    {
-      "issue": 777,
-      "decision": "completed",
-      "accepted": "docs/CI scoped PASS, independent GitHub main read-back",
-      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/794",
-      "date": "2026-10-19",
-      "comment": "PR #794 squash MERGED d1166caa72207bbd00bff2173a73e474e592732f after required test/title PASS. Admin Setup 1468 to 43 lines with separate current procedures and immutable historical provenance. Issue #777 CLOSED/completed after independent main read-back. No production/release/deploy."
-    },
-    {
       "issue": 796,
       "decision": "completed",
       "accepted": "docs/CI scoped PASS, independent GitHub main read-back",
@@ -147,14 +171,6 @@
       "comment": "PR #804 squash MERGED 03ddd1d32f50a19d43b5f9c2f9e8c11aae95ed51; required test/title PASS; main read-back confirms canonical checklist and regression test; #805 CLOSED/completed; no release/deploy."
     },
     {
-      "issue": 470,
-      "decision": "completed",
-      "date": "2026-10-20",
-      "accepted": "operator-reported rc.17 Stars Orders scoped UI/RBAC PASS + offline pending/payment/pagination regression PASS",
-      "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/804",
-      "comment": "#470 CLOSED/completed after published/deployed rc.17, PR #801 and test/title PASS; S3/S6 conditional covered by offline fixture, not live sample. G-11 PARTIAL/NO-GO."
-    },
-    {
       "issue": 814,
       "decision": "completed",
       "accepted": "operator-reported production H1-H8 applicable PASS + A1-A6/B1-B6/C1-C3 UI 15/15 and offline PR #821 test/title PASS; independent VPS read-back PENDING",
@@ -169,22 +185,6 @@
       "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
       "date": "2026-10-20",
       "comment": "completed: Happ/Incy/Shadowrocket and unknown fallback in live H1-H3, raw UA not exposed, safe offline parser regressions."
-    },
-    {
-      "issue": 471,
-      "decision": "completed",
-      "accepted": "operator-reported production H1-H8 applicable PASS + A1-A6/B1-B6/C1-C3 UI 15/15 and offline PR #821 test/title PASS; independent VPS read-back PENDING",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-final-closure-review.md",
-      "date": "2026-10-20",
-      "comment": "completed: read-only real HWID, stable ID, unknown limit/provider, ownership/privacy H7/H8 and earlier D1-D8 operator-reported."
-    },
-    {
-      "issue": 472,
-      "decision": "completed",
-      "accepted": "operator-reported S1-S4 and H9/H10 PASS, explicit owner confirmation on 2026-10-20 22:59 EEST: close #472; destructive X1/X3 and X2 detailed provenance not independently supplied",
-      "evidence": "docs/audits/2026-10-20-v5-rc18-2-hwid-owner-final-closure.md",
-      "date": "2026-10-20",
-      "comment": "completed by explicit owner acceptance; no independent VPS or mutation/postcondition attestation; G-11 PARTIAL/NO-GO, no new DELETE performed"
     },
     {
       "issue": 820,
@@ -257,6 +257,14 @@
       "evidence": "https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39852064442/job/120080570667",
       "date": "2026-10-22",
       "comment": "GitHub Issue #870 CLOSED/completed after main read-back; no production changes; G-11 PARTIAL/NO-GO."
+    },
+    {
+      "issue": 887,
+      "decision": "keep_open",
+      "accepted": "D1b scoped offline code security review and PR #896 merge PASS; no Published/Deployed/production acceptance",
+      "evidence": "docs/audits/2026-10-24-887-d1b-postmerge-roadmap-checkpoint.md",
+      "date": "2026-10-24",
+      "comment": "D0/D1a/D1b implementation merged; D1b draft-only and unshipped. Original private JSON 1:1, D2 Telegram initData, D3 client/WebView, trusted TLS/VPS/DR, and G-11 production gates PENDING; Issue #887 remains OPEN."
     }
   ]
 }
