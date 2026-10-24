@@ -51,7 +51,12 @@ def _private_dir(path: Path) -> None:
 
 
 def _private_bytes(path: Path, limit: int) -> bytes:
-    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError as exc:
+        # Missing paths, symlinks and unreadable files are all fail-closed;
+        # do not include operator filenames in user-visible error messages.
+        raise ValueError("Private file cannot be read securely") from exc
     try:
         info = os.fstat(fd)
         if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
