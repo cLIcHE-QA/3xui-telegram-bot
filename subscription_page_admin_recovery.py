@@ -7,6 +7,7 @@ D1b writer and activate a verified, staged private directory separately.
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import json
 import os
@@ -132,6 +133,20 @@ def _decode_database(blob: bytes, key: bytes) -> tuple[sqlite3.Connection, int]:
     return db, count
 
 
+def _reencrypt_drafts(db: sqlite3.Connection, old_key: bytes,
+                      new_key: bytes) -> None:
+    """Rewrap every immutable revision and revoke all cookie sessions."""
+    old_cipher, new_cipher = Fernet(old_key), Fernet(new_key)
+    db.execute("BEGIN IMMEDIATE")
+    for revision_id, ciphertext in db.execute(
+            "SELECT revision,content FROM draft_revisions").fetchall():
+        db.execute("UPDATE draft_revisions SET content=? WHERE revision=?",
+                   (new_cipher.encrypt(old_cipher.decrypt(ciphertext)),
+                    revision_id))
+    db.execute("DELETE FROM admin_sessions")
+    db.commit()
+
+
 def _write_db(path: Path, db: sqlite3.Connection) -> None:
     fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_EXCL
                  | getattr(os, "O_NOFOLLOW", 0), 0o600)
@@ -246,6 +261,9 @@ class OfflineD1bRecovery:
             "roster": roster_payload,
             "db_sha256": hashlib.sha256(serialized).hexdigest(),
             "db": base64.b64encode(serialized).decode("ascii"),
+            # Independently sealed key escrow is essential for recovery after
+            # loss of the original Fernet key. Never store this in plaintext.
+            "fernet_key": self.key.decode("ascii"),
             "roster_name": self.roster_name, "db_name": self.db_name,
         }, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
         sealed = wrapper.encrypt(payload)
@@ -260,10 +278,11 @@ class OfflineD1bRecovery:
             _write_new_file(temporary, sealed)
             # A successful write is not enough: independently decrypt the
             # sealed file and validate both stores before publishing the backup.
-            verified_rev, verified_accounts, verified_blob = self._read_backup(
+            verified_rev, verified_accounts, verified_blob, restored_key = self._read_backup(
                 temporary, backup_key, self.roster_name, self.db_name)
             if (verified_rev != revision or verified_accounts != accounts
-                    or verified_blob != serialized):
+                    or verified_blob != serialized or
+                    not secrets.compare_digest(restored_key, self.key)):
                 raise ValueError("Sealed backup verification mismatch")
             check_db, _ = _decode_database(verified_blob, self.key)
             check_db.close()
@@ -277,7 +296,7 @@ class OfflineD1bRecovery:
 
     @staticmethod
     def _read_backup(path: Path, backup_key: bytes,
-                     roster_name: str, db_name: str) -> tuple[int, list, bytes]:
+                     roster_name: str, db_name: str) -> tuple[int, list, bytes, bytes]:
         _private_dir(path.parent)
         try:
             payload = Fernet(backup_key).decrypt(_private_bytes(path, _MAX_BACKUP_BYTES))
@@ -286,7 +305,7 @@ class OfflineD1bRecovery:
             obj = json.loads(payload)
             if (not isinstance(obj, dict)
                     or set(obj) != {"schema", "revision", "roster",
-                                   "db_sha256", "db", "roster_name", "db_name"}
+                                   "db_sha256", "db", "fernet_key", "roster_name", "db_name"}
                     or obj["schema"] != 1 or not isinstance(obj["revision"], int)
                     or isinstance(obj["revision"], bool) or obj["revision"] < 1
                     or obj["roster_name"] != roster_name or obj["db_name"] != db_name
@@ -306,15 +325,23 @@ class OfflineD1bRecovery:
             if (len(serialized) > _MAX_DB_BYTES or
                     hashlib.sha256(serialized).hexdigest() != obj["db_sha256"]):
                 raise ValueError("Sealed backup digest invalid")
-            return obj["revision"], acc, serialized
-        except (InvalidToken, TypeError, KeyError, ValueError, UnicodeError) as exc:
+            key = obj["fernet_key"]
+            if not isinstance(key, str):
+                raise ValueError("Sealed backup key invalid")
+            old_key = key.encode("ascii")
+            Fernet(old_key)  # Reject malformed key escrow before publishing.
+            return obj["revision"], acc, serialized, old_key
+        except (InvalidToken, TypeError, KeyError, ValueError, UnicodeError,
+                binascii.Error) as exc:
             raise ValueError("Sealed backup invalid, inaccessible or wrong key") from exc
 
     def restore(self, backup_path: str | Path, backup_key: bytes,
                 destination: str | Path) -> RecoveryResult:
         """Offline restore to a NEW 0700 dir; keep original source intact."""
-        revision, accounts, serialized = self._read_backup(
+        revision, accounts, serialized, backed_key = self._read_backup(
             Path(backup_path), backup_key, self.roster_name, self.db_name)
+        if not secrets.compare_digest(backed_key, self.key):
+            raise ValueError("Backup was encrypted with a different primary key")
         memory, drafts = _decode_database(serialized, self.key)
         try:
             # Recovered cookie sessions may be compromised, always revoke.
@@ -323,6 +350,37 @@ class OfflineD1bRecovery:
             memory.commit()
             return self._create_stage(Path(destination), accounts, revision, memory,
                                       self.key, drafts, sessions)
+        finally:
+            memory.close()
+
+    @classmethod
+    def recover_lost_key(cls, backup_path: str | Path, backup_key: bytes,
+                         destination: str | Path, new_key: bytes, *,
+                         roster_name: str = "private-accounts.enc",
+                         db_name: str = "drafts.sqlite3") -> RecoveryResult:
+        """Recover a sealed primary key solely in memory and stage under NEW key.
+
+        Does not need the original source directory or the lost Fernet key.
+        Sealed backup key custody and service activation are operator gates.
+        """
+        dest = Path(destination)
+        revision, accounts, serialized, old_key = cls._read_backup(
+            Path(backup_path), backup_key, roster_name, db_name)
+        if secrets.compare_digest(old_key, new_key):
+            raise ValueError("Disaster recovery requires a fresh primary key")
+        Fernet(new_key)
+        memory, drafts = _decode_database(serialized, old_key)
+        try:
+            sessions = memory.execute("SELECT COUNT(*) FROM admin_sessions").fetchone()[0]
+            _reencrypt_drafts(memory, old_key, new_key)
+            if _validate_memory(memory, new_key) != drafts:
+                raise ValueError("Disaster recovery verification failed")
+            # Construct only against a private recovery parent, never any
+            # source files from the missing original installation.
+            staging = cls(dest.parent, new_key,
+                          roster_name=roster_name, db_name=db_name)
+            return staging._create_stage(dest, accounts, revision, memory,
+                                         new_key, drafts, sessions)
         finally:
             memory.close()
 
@@ -335,20 +393,12 @@ class OfflineD1bRecovery:
         """
         if secrets.compare_digest(self.key, new_key):
             raise ValueError("New key must differ from current key")
-        new_cipher = Fernet(new_key)
+        Fernet(new_key)
         revision, accounts, serialized = self._snapshot()
         memory, drafts = _decode_database(serialized, self.key)
         try:
             sessions = memory.execute("SELECT COUNT(*) FROM admin_sessions").fetchone()[0]
-            memory.execute("BEGIN IMMEDIATE")
-            for revision_id, ciphertext in memory.execute(
-                    "SELECT revision,content FROM draft_revisions").fetchall():
-                plaintext = self.cipher.decrypt(ciphertext)
-                memory.execute(
-                    "UPDATE draft_revisions SET content=? WHERE revision=?",
-                    (new_cipher.encrypt(plaintext), revision_id))
-            memory.execute("DELETE FROM admin_sessions")
-            memory.commit()
+            _reencrypt_drafts(memory, self.key, new_key)
             if _validate_memory(memory, new_key) != drafts:
                 raise ValueError("Key rotation verification failed")
             return self._create_stage(Path(destination), accounts, revision, memory,
