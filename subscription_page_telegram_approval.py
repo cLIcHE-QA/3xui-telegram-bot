@@ -181,6 +181,7 @@ class StandaloneTelegramApproval:
             await callback.answer("Подтверждение доступно только в личном чате.", show_alert=True)
             return
         now = self.pilot._clock()
+        self.pilot._prune(now)
         self._prune(now)
         nonce = match.group(2)
         prompt = self.prompts.get(nonce)
