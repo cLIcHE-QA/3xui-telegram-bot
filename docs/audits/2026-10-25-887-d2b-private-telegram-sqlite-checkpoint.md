@@ -1,7 +1,7 @@
 # #887 D2b — private Telegram подтверждение и shared SQLite CAS
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-25 UTC+03:00, продолжение D2b Draft PR #900 после согласованного D2a docs checkpoint #899 (точные commits и GitHub CI timestamps доступны на страницах PR)
+- **Дата/время и часовой пояс:** 2026-10-25 00:11 UTC+03:00 (время по первому GitHub CI логу: 2026-10-24T21:11:05Z), продолжение D2b Draft PR #900 после D2a docs checkpoint #899; commits и Actions содержат собственные точные timestamps
 - **Окружение:** исключительно GitHub connector, отдельная feature branch, синтетические Python/aiogram/aiohttp/SQLite и frontend browser unit tests. Нет реального Bot API Update, владельческих VPS/secrets, общего cloud multi-host storage, live cookie/WebView/TLS, operator private JSON/подписок.
 - **Цель:** не выдавать самостоятельный браузерный login по `sub_id`/VPN bearer URL или публичному challenge. Реальное событие private Telegram Bot API должно пройти явный owner confirmation, callback replay/cross-chat protection и атомарный SQLite state между ботом и браузером, при сохранении default-OFF pilot.
 - **Версия и immutable tag/SHA:** base `main` `b59076d16f518502dd13e4fd984a838e7be80296` — docs-only PR #899 MERGED; D2b новая работа **только в Draft PR #900**; Published `v5.0.0-rc.19` tag SHA `d738dd970f2215adc346a919c7ed182abaf454b1` без D2b; Deployed `v5.0.0-rc.18.10` SHA `dae205ac82762723448f93827b981f89ae622231` только operator-reported.
@@ -12,4 +12,4 @@
 - **Связанные Issues:** #887 OPEN/keep_open, D2b — часть существующего UX/security контракта; #885/#890 остаются независимы.
 - **Решение по Issues:** #887: keep_open — код opt-in private Telegram Router + SQLite ledger, реальное подключение Bot API/edge, multi-host storage, антифишинговый UX, Telegram/device/security acceptance и D3 ещё не готовы.
 - **Следующий шаг:** подтвердить exact PR-head required `test/title`, frontend/node/browser checks, независимый GitHub code read-back, зафиксировать CI evidence в PR и #887; **не merge #900** без нового отдельного разрешения. После разрешённого merge сделать docs-only Roadmap checkpoint с required CI. Только затем отдельно reviewed бот/HTTPS pilot wiring и device smoke, без автоматического release/deploy.
-- **Раздельные состояния:** Merged D2a #898 / Roadmap #899 в `main`; D2b #900 OPEN/Draft. Published `v5.0.0-rc.19`, Deployed `v5.0.0-rc.18.10` operator-reported, Accepted D2b code PENDING/real private Bot PENDING, общий #887 PARTIAL, G-11 PARTIAL/NO-GO.
+- **Раздельные состояния:** merged=D2a #898 и Roadmap #899 в `main` SHA `b59076d16f518502dd13e4fd984a838e7be80296`; D2b PR #900 OPEN/Draft, не merged; published=`v5.0.0-rc.19` (без D2b); deployed=`v5.0.0-rc.18.10` только operator-reported; accepted=D2b code/real private Bot/HTTPS PENDING, #887 PARTIAL, G-11 PARTIAL/NO-GO.
