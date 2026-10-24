@@ -5,6 +5,7 @@ Synthetic data only; tests MUST NOT contain operator credentials or keys.
 from __future__ import annotations
 
 import base64
+import json
 import os
 import sqlite3
 import tempfile
@@ -232,6 +233,64 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             OfflineD1bRecovery(self.source, self.key, db_name="db-link.sqlite3").backup(
                 self.root / "backup-of-link", self.backup_key)
+
+    def test_disaster_recovery_without_original_fernet_key_or_source(self):
+        # The operator knows only the independently held backup key and has
+        # generated a fresh replacement key. No original key is passed in.
+        self.recovery.backup(self.sealed, self.backup_key)
+        destination = self.root / "lost-key-recovery"
+        result = OfflineD1bRecovery.recover_lost_key(
+            self.sealed, self.backup_key, destination, self.new_key)
+        self.assertEqual((result.revision, result.drafts, result.revoked_sessions),
+                         (1, 1, 1))
+        self.assertEqual(EncryptedAdminRoster(
+            destination / "private-accounts.enc", self.new_key).snapshot(),
+            (1, self.accounts))
+        self.assertEqual(EncryptedDrafts(
+            destination / "drafts.sqlite3", self.new_key).current(),
+            (1, self.document))
+        self.assertEqual(self._session_count(destination / "drafts.sqlite3"), 0)
+        with sqlite3.connect(destination / "drafts.sqlite3") as db:
+            self.assertEqual(db.execute(
+                "SELECT last_step FROM admin_totp_replay WHERE username='owner1'"
+            ).fetchone()[0], 17000000)
+            self.assertEqual(db.execute(
+                "SELECT COUNT(*) FROM draft_proposals").fetchone()[0], 1)
+        # Original source and sealed backup remain available for rollback.
+        self.assertEqual(self.store.current(), (1, self.document))
+        self.assertFalse((self.root / "replacement-primary-key").exists())
+
+    def test_recovery_wrong_backup_key_and_reused_primary_key_rejected(self):
+        self.recovery.backup(self.sealed, self.backup_key)
+        with self.assertRaises(ValueError):
+            OfflineD1bRecovery.recover_lost_key(
+                self.sealed, Fernet.generate_key(), self.root / "unauthorized",
+                self.new_key)
+        with self.assertRaises(ValueError):
+            OfflineD1bRecovery.recover_lost_key(
+                self.sealed, self.backup_key, self.root / "reused",
+                self.key)
+        self.assertFalse((self.root / "unauthorized").exists())
+        self.assertFalse((self.root / "reused").exists())
+
+    def test_key_escrow_is_inside_sealed_payload_not_exposed_on_disk(self):
+        self.recovery.backup(self.sealed, self.backup_key)
+        sealed = self.sealed.read_bytes()
+        self.assertNotIn(self.key, sealed)
+        self.assertNotIn(self.backup_key, sealed)
+        contents = json.loads(Fernet(self.backup_key).decrypt(sealed))
+        self.assertEqual(contents["fernet_key"], self.key.decode("ascii"))
+        # Old non-escrow schema cannot falsely advertise full key recovery.
+        del contents["fernet_key"]
+        broken = self.root / "legacy-without-escrow.bin"
+        broken.write_bytes(Fernet(self.backup_key).encrypt(
+            json.dumps(contents).encode("utf-8")))
+        os.chmod(broken, 0o600)
+        with self.assertRaises(ValueError):
+            OfflineD1bRecovery.recover_lost_key(
+                broken, self.backup_key, self.root / "invalid-schema",
+                self.new_key)
+        self.assertFalse((self.root / "invalid-schema").exists())
 
     def test_backup_rotation_with_no_live_sessions(self):
         with sqlite3.connect(self.db_path) as db:
