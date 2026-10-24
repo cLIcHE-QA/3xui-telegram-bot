@@ -5,6 +5,7 @@ Synthetic fixtures only. Never log/export real URLs or customer tokens.
 from __future__ import annotations
 
 import base64
+import hashlib
 import copy
 import json
 import time
@@ -19,7 +20,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from cryptography.fernet import Fernet
 
 from subscription_page_admin import (
-    COOKIE, AdminAccount, EncryptedDrafts, StaleDraft, create_editor_app,
+    COOKIE, AdminAccount, EncryptedDrafts, SessionCapacityReached, StaleDraft, create_editor_app,
     password_verifier, _totp_at,
 )
 
@@ -100,6 +101,73 @@ class DraftStoreTests(unittest.TestCase):
                 "SELECT username,last_step FROM admin_totp_replay ORDER BY username"
             ).fetchall()
         self.assertEqual(rows, [("editor1", 1000), ("owner1", 1001)])
+
+
+    def test_shared_sessions_are_encrypted_and_revoked_across_connections(self):
+        cookie = "synthetic-cookie-not-to-store"
+        token_hash = hashlib.sha256(cookie.encode()).hexdigest()
+        csrf = "synthetic-private-csrf-must-be-encrypted"
+        self.assertTrue(self.store.issue_session("owner1", 100, token_hash, csrf, 120))
+        raw = self.path.read_bytes()
+        self.assertNotIn(cookie.encode(), raw)
+        self.assertNotIn(csrf.encode(), raw)
+        replica = EncryptedDrafts(self.path, self.key)
+        username, token, deadline, last_seen = replica.touch_session(token_hash)
+        self.assertEqual((username, token), ("owner1", csrf))
+        self.assertGreater(deadline, last_seen)
+        with sqlite3.connect(self.path) as db:
+            fields = db.execute(
+                "SELECT token_hash,username,csrf_ciphertext FROM admin_sessions"
+            ).fetchone()
+            self.assertEqual(fields[0], token_hash)
+            self.assertEqual(fields[1], "owner1")
+            self.assertNotIn(csrf.encode(), fields[2])
+        replica.revoke_session(token_hash)
+        self.assertIsNone(self.store.touch_session(token_hash))
+
+    def test_session_rotation_keeps_old_token_when_totp_replayed(self):
+        self.assertTrue(self.store.issue_session("owner1", 1000, "old-hash", "first-csrf", 120))
+        self.assertFalse(self.store.issue_session(
+            "owner1", 1000, "new-hash", "bad-csrf", 120, "old-hash"))
+        self.assertEqual(self.store.touch_session("old-hash")[1], "first-csrf")
+        self.assertIsNone(self.store.touch_session("new-hash"))
+        self.assertTrue(self.store.issue_session(
+            "owner1", 1001, "new-hash", "new-csrf", 120, "old-hash"))
+        self.assertIsNone(self.store.touch_session("old-hash"))
+        self.assertEqual(self.store.touch_session("new-hash")[1], "new-csrf")
+
+    def test_capacity_denial_does_not_consume_mfa_step(self):
+        with patch("subscription_page_admin.MAX_LIVE_SESSIONS", 1):
+            self.assertTrue(self.store.issue_session("owner1", 100, "first", "c1", 120))
+            with self.assertRaises(SessionCapacityReached):
+                self.store.issue_session("editor1", 200, "second", "c2", 120)
+            with sqlite3.connect(self.path) as db:
+                self.assertIsNone(db.execute(
+                    "SELECT last_step FROM admin_totp_replay WHERE username='editor1'"
+                ).fetchone())
+            self.store.revoke_session("first")
+            self.assertTrue(self.store.issue_session("editor1", 200, "second", "c2", 120))
+
+    def test_expired_and_idle_sessions_are_removed(self):
+        self.assertTrue(self.store.issue_session("owner1", 100, "idle-hash", "csrf", 120))
+        with sqlite3.connect(self.path) as db:
+            db.execute("UPDATE admin_sessions SET last_seen_at = last_seen_at - 400")
+        self.assertIsNone(self.store.touch_session("idle-hash"))
+        self.assertTrue(self.store.issue_session("owner1", 101, "expiry-hash", "csrf2", 120))
+        with sqlite3.connect(self.path) as db:
+            db.execute("UPDATE admin_sessions SET expires_at = expires_at - 1000")
+        self.assertIsNone(self.store.touch_session("expiry-hash"))
+
+    def test_tampered_session_secret_is_fail_closed_and_evicted(self):
+        self.assertTrue(self.store.issue_session("owner1", 100, "tamper-hash", "csrf", 120))
+        with sqlite3.connect(self.path) as db:
+            db.execute("UPDATE admin_sessions SET csrf_ciphertext=? WHERE token_hash=?",
+                       (b"invalid-token", "tamper-hash"))
+        self.assertIsNone(self.store.touch_session("tamper-hash"))
+        with sqlite3.connect(self.path) as db:
+            self.assertEqual(db.execute(
+                "SELECT count(*) FROM admin_sessions WHERE token_hash='tamper-hash'"
+            ).fetchone()[0], 0)
 
     def test_optimistic_lock_and_proposal_do_not_publish(self):
         doc = fixture()
@@ -337,7 +405,7 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(again.status, 401)
 
     async def test_mfa_replay_storage_failure_fails_closed(self):
-        with patch.object(EncryptedDrafts, "consume_totp_step",
+        with patch.object(EncryptedDrafts, "issue_session",
                           side_effect=sqlite3.OperationalError("synthetic failure")):
             response = await self.client.post(
                 self.url + "/session",
@@ -345,6 +413,71 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
                       "otp": current_otp("owner1")},
                 headers=self.origin)
         self.assertEqual(response.status, 503)
+
+
+    async def test_session_survives_new_api_instance_and_remote_logout(self):
+        self.assertEqual((await self.login("owner1")).status, 200)
+        account = AdminAccount(
+            "owner1", password_verifier("strong-test-password"),
+            "owner", TEST_MFA_B32["owner1"])
+        other = create_editor_app(
+            accounts=[account], db_path=Path(self.dir.name) / "drafts.sqlite3",
+            encryption_key=self.key, https_origin="https://admin.example.test",
+            session_ttl=120)
+        async with TestClient(TestServer(other)) as second:
+            status = await second.get(self.url + "/session",
+                                      headers=self.headers("owner1"))
+            self.assertEqual(status.status, 200)
+            self.assertEqual((await status.json())["role"], "owner")
+            draft = await second.get(self.url + "/draft", headers=self.headers("owner1"))
+            self.assertEqual(draft.status, 200)
+            deleted = await second.delete(self.url + "/session",
+                                           headers=self.headers("owner1", csrf=True))
+            self.assertEqual(deleted.status, 200)
+        original = await self.client.get(self.url + "/draft", headers=self.headers("owner1"))
+        self.assertEqual(original.status, 401)
+
+    async def test_session_role_is_not_trusted_from_storage(self):
+        self.assertEqual((await self.login("owner1")).status, 200)
+        demoted = create_editor_app(
+            accounts=[AdminAccount(
+                "owner1", password_verifier("strong-test-password"),
+                "viewer", TEST_MFA_B32["owner1"])],
+            db_path=Path(self.dir.name) / "drafts.sqlite3",
+            encryption_key=self.key, https_origin="https://admin.example.test")
+        async with TestClient(TestServer(demoted)) as second:
+            status = await second.get(self.url + "/session",
+                                      headers=self.headers("owner1"))
+            self.assertEqual(status.status, 200)
+            self.assertEqual((await status.json())["role"], "viewer")
+            attempted = await second.post(
+                self.url + "/proposals", headers=self.headers("owner1", csrf=True, revision=1))
+            self.assertEqual(attempted.status, 403)
+        removed = create_editor_app(
+            accounts=[AdminAccount(
+                "viewer1", password_verifier("strong-test-password"),
+                "viewer", TEST_MFA_B32["viewer1"])],
+            db_path=Path(self.dir.name) / "drafts.sqlite3",
+            encryption_key=self.key, https_origin="https://admin.example.test")
+        async with TestClient(TestServer(removed)) as third:
+            access = await third.get(self.url + "/session", headers=self.headers("owner1"))
+            self.assertEqual(access.status, 401)
+
+    async def test_session_sqlite_failure_fails_closed(self):
+        self.assertEqual((await self.login("viewer1")).status, 200)
+        with patch.object(EncryptedDrafts, "touch_session",
+                          side_effect=sqlite3.OperationalError("synthetic unavailable")):
+            denied = await self.client.get(
+                self.url + "/draft", headers=self.headers("viewer1"))
+        self.assertEqual(denied.status, 503)
+        # A failed logout must not return a false positive with a cleared cookie.
+        with patch.object(EncryptedDrafts, "revoke_session",
+                          side_effect=sqlite3.OperationalError("synthetic unavailable")):
+            failed_logout = await self.client.delete(
+                self.url + "/session", headers=self.headers("viewer1", csrf=True))
+        self.assertEqual(failed_logout.status, 503)
+        still = await self.client.get(self.url + "/session", headers=self.headers("viewer1"))
+        self.assertEqual(still.status, 200)
 
     async def test_cross_host_authenticated_requests_fail(self):
         await self.login("viewer1")
