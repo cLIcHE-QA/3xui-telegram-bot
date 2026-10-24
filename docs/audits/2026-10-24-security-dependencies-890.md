@@ -1,0 +1,12 @@
+<!-- audit-schema: 1 -->
+- **Дата/время и часовой пояс:** 2026-10-24 02:35 UTC+03:00
+- **Окружение:** GitHub Actions pre-fix scanner и PyPI metadata; новый CI ожидается
+- **Цель:** устранить 28 HIGH/CRITICAL без снятия hash pin
+- **Версия и immutable tag/SHA:** `v5.0.0-rc.19` / `d738dd970f2215adc346a919c7ed182abaf454b1` (опубликовано до исправления)
+- **Scope:** Pillow 12.3.0 → 13.0.0 (27 находок); certifi 2026.7.22 → 2026.10.19 (1 находка); SHA PyPI CPython 3.12 Linux amd64/arm64 glibc+musl, macOS arm64/amd64, Windows amd64/arm64/win32 и исходный sdist; Python QR PNG/SVG regression tests
+- **Фактический результат:** PARTIAL — scoped supply-chain `audit` PASS (GitHub Actions run 40040835340: hashed install, filesystem/container Trivy, image/SBOM); required `test/title` и product/deployed compatibility PENDING
+- **Источник и evidence:** [audit run 40040835340 — PASS](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40040835340),  [#890](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/890), [Trivy](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40040198695), [Pillow PyPI](https://pypi.org/project/pillow/13.0.0/), [certifi PyPI](https://pypi.org/project/certifi/2026.10.19/)
+- **Ограничения и остаточные риски:** validated subset PyPI wheel hashes, а не полный pip-compile all-platform export; scanner scoped PASS; required Python test и production regression пока PENDING, никаких секретов/production действий
+- **Связанные Issues:** #890: keep_open; #887: keep_open (общий audit)
+- **Следующий шаг:** required test/title/audit; независимый CI read-back, устранить failures до merge; release/deploy и реальный acceptance отдельно
+- **Раздельные состояния:** merged=нет; published=rc.19 без security fix; deployed=rc.18.10 operator-reported; accepted=PENDING

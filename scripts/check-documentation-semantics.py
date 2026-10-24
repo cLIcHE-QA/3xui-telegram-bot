@@ -299,9 +299,13 @@ def current_release_claims_ok(root: Path) -> list[str]:
 
     def conflicts(text: str) -> bool:
         """Уже принятый scope не может быть одновременно неизвестным в current intro."""
-        if re.search(r"Deployed/Accepted\s+(?:UNKNOWN/)?PENDING", text, re.I):
-            return True
-        if reported and deployed == tag:
+        # Операторское свидетельство о deployed и scoped acceptance остаётся
+        # действительным, даже когда более новый tag уже Published, но ещё не Deployed.
+        # Утверждение, что одновременно Deployed/Accepted целиком PENDING,
+        # противоречит подтверждённому scoped scope на прежнем deployed tag.
+        if reported and (deployed == tag or accepted_scoped):
+            if re.search(r"Deployed/Accepted\s+(?:UNKNOWN/)?PENDING", text, re.I):
+                return True
             if re.search(r"(?:не Deployed/Accepted|deployment и acceptance не подтверждены|Точный Deployed tag/SHA (?:неизвестен|UNKNOWN))", text, re.I):
                 return True
         if accepted_scoped and re.search(r"(?:targeted\s+(?:HWID\s+)?acceptance|scoped\s+Happ\s+acceptance)\s+(?:UNKNOWN/)?PENDING", text, re.I):

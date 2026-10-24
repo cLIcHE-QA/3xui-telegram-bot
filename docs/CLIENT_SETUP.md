@@ -13,7 +13,7 @@
 - Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
 - Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
 
-## #473 — импорт подписки (кандидат rc.19, не Published)
+## #473 — импорт подписки (Published rc.19; deployment и приёмка PENDING)
 
 **Security review #882 (2026-10-23, pre-merge):** в каталоге import URI отклоняются URL с query-delimiter (включая пустой `?`), percent/fragment/userinfo/private IP и небезопасной схемой; `subTitle` валидируется как ограниченное Unicode-имя с отказом на control/bidi, читается только через loopback после owner/private guard, без redirect. Ошибки информационного upstream-запроса логируются по типу исключения, без bearer URL. Добавлены negative tests для forged callbacks, недоступного proxy и title injection. Итог offline CI и реальный post-deploy smoke независимы от самого review; выпуск до обязательных checks запрещён.
 
@@ -64,7 +64,7 @@
 
 
 
-## Моя подписка: кандидат #497, ещё не в Published rc.18.10
+## Моя подписка: #497 Published в rc.19; deployment и приёмка PENDING
 
 После отдельного выпуска на разрешённом pilot-аккаунте проверьте `/subscription` и `🌐 Моя подписка` в личном чате: статусы VPN/entitlement, план, срок, `CopyTextButton`, возврат из подключения, guarded покупку/продление и диагностику. Проверяйте без изменения доступа случаи «нет аккаунта», disabled/expired/provisioning/unknown, provider outage, нестыковку сроков и отсутствие подтверждённого числа локаций. «Привязки Master Inbounds» **не** означают число доступных серверов. Не переносите реальные URL, ID или ключи в лог/Issue.
 
