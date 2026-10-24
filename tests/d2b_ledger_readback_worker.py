@@ -14,13 +14,13 @@ from subscription_page_standalone_sqlite import StandaloneSQLiteLedger
 
 
 def main() -> None:
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         raise SystemExit(2)
     digest_hex = sys.argv[2]
     if len(digest_hex) != 64:
         raise SystemExit(2)
     digest = bytes.fromhex(digest_hex)
-    row = StandaloneSQLiteLedger(sys.argv[1]).pending(
+    row = StandaloneSQLiteLedger(sys.argv[1], https_origin=sys.argv[4]).pending(
         digest, current=float(sys.argv[3]),
     )
     print("PENDING" if row is not None else "ABSENT")
