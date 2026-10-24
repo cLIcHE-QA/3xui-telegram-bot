@@ -31,6 +31,7 @@ test("отдельная D1b страница закрыта без admin sessio
  await page.goto("/admin.html");
  await expect(page.getByRole("heading",{name:"Защищённый редактор"})).toBeVisible();
  await expect(page.getByLabel("Имя администратора")).toBeVisible();
+ await expect(page.getByLabel("Код подтверждения (MFA)")).toBeVisible();
  await expect(page.getByText("Сохранить черновик")).toHaveCount(0);
  await expect(page.getByText("Опубликовать (заблокировано)")).toHaveCount(0);
  expect(outbound).toEqual([]);
@@ -60,6 +61,7 @@ test("D1b админ редактор: локальный импорт, вали
  await expect(page.getByRole("heading",{name:"Защищённый редактор"})).toBeVisible();
  await page.getByLabel("Имя администратора").fill("editor1");
  await page.getByLabel("Пароль").fill("synthetic-password-only");
+ await page.getByLabel("Код подтверждения (MFA)").fill("123456");
  await page.getByRole("button",{name:"Войти"}).click();
  await expect(page.getByRole("heading",{name:"Редактор страницы подписки"})).toBeVisible();
  await expect(page.getByText("Черновик пока пуст")).toBeVisible();

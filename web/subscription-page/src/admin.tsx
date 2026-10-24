@@ -99,6 +99,7 @@ function App(){
  const [checking,setChecking]=useState(true);
  const [username,setUsername]=useState("");
  const [password,setPassword]=useState("");
+ const [otp,setOtp]=useState("");
  const [baseline,setBaseline]=useState<Config|null>(null);
  const [draft,setDraft]=useState<Config|null>(null);
  const [revision,setRevision]=useState(0);
@@ -177,9 +178,9 @@ function App(){
   event.preventDefault();setAlert("");setSuccess("");setBusy(true);
   try{
    const response=await fetch(API+"/session",{method:"POST",credentials:"same-origin",
-    headers:HEADER,body:JSON.stringify({username,password})});
+    headers:HEADER,body:JSON.stringify({username,password,otp})});
    if(!response.ok)throw new Error(response.status===429?"Слишком много попыток":"Неверные данные или доступ запрещён");
-   const auth=await response.json() as Session;setSession(auth);setPassword("");
+   const auth=await response.json() as Session;setSession(auth);setPassword("");setOtp("");
    await loadData();
   }catch(error){setAlert(messageOf(error));}
   finally{setBusy(false);}
@@ -245,6 +246,7 @@ function App(){
     <form onSubmit={e=>void logIn(e)}><Stack>
      <TextInput label="Имя администратора" value={username} onChange={e=>setUsername(e.currentTarget.value)} required autoComplete="username"/>
      <PasswordInput label="Пароль" value={password} onChange={e=>setPassword(e.currentTarget.value)} required autoComplete="current-password"/>
+     <TextInput label="Код подтверждения (MFA)" value={otp} onChange={e=>setOtp(e.currentTarget.value.replace(/[^0-9]/g,"").slice(0,6))} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" required/>
      <Button type="submit" loading={busy}>Войти</Button>
     </Stack></form>
     <Text c="dimmed" size="xs">API доступен только после отдельного HTTPS-развёртывания. В основной бот D1b не включён.</Text>
