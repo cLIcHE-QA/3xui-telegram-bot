@@ -32,6 +32,8 @@
 
 - D1b recovery/HTTPS rehearsal (#887, **только Draft PR #896**): отдельный hermetic subprocess-based disaster-recovery drill восстанавливает синтетические Fernet escrow/SQLite/roster после удаления исходного каталога и без старого ключа, подтверждает сохранение TOTP replay/proposals, отзыв cookies, новый login/CSRF+Host/Origin и fail-closed wrong/corrupt/replay restore. Добавлен **неактивный** Nginx HTTPS-конфиг с placeholder `admin.example.invalid`, loopback-only upstream, SNI/Host validation, CSP/no-store и per-IP login/API limits; статические контрактные и опциональные синтаксические `nginx -t` тесты. Реальный separate-host DR drill, TLS DNS/cert, custody, approval, rollout и acceptance **PENDING**. Никаких deploy, публичного listener или включения в `app_runtime`.
 
+- D1b HTTPS edge SVG paths (#887, только Draft PR #896): исправлен будущий `404` для 39 утверждённых self-hosted SVG и точного `/client-icons/incy.svg` в неактивном Nginx preview. Широкий `/client-icons/` и альтернативные файлы не открываются, а контрактный тест сверяет `staticSvgPaths.ts`, реальные файлы и узкие `location`. Настоящий TLS/VPS, acceptance, Merge, Release и Deployment PENDING.
+
 ## Неопубликованные изменения в main — D1a preview #887 (2026-10-24)
 
 - [PR #889](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/889) **Squash MERGED** в `main` `74038c37ddbc13d312727c5f1e5c247c8eb1d8ba`. Добавлен **изолированный offline React 19/TypeScript/Vite/Mantine предпросмотр** страницы подписки и инструкций, локальный JSON v1 импорт, UI с пятью языками и семью платформами, 39 оригинальных SVG из операторского набора и отдельная MIT-иконка INCY. Ссылки и действия в превью заблокированы; auth, API, реальная выдача подписок и deployment не добавлены.
