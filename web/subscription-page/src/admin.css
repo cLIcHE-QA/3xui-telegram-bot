@@ -47,3 +47,19 @@ body{margin:0;background:#060b11;color:#e9f5ff}
  filter:drop-shadow(0 0 1px #dceeff) drop-shadow(0 0 1px #061421)
 }
 @media(max-width:520px){.admin-svg-grid{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}.admin-preview-action{font-size:11px}}
+
+/* D1b 200%-text readable narrow layout: content must wrap rather than clip.
+   SVG backplates and original vector source data are left untouched. */
+@media(max-width:520px){
+ .admin-preview,.admin-editor{padding:12px!important;min-width:0}
+ .admin-preview .mantine-Title-root{
+  max-width:100%;min-width:0;font-size:clamp(1rem,5vw,1.5rem);
+  line-height:1.25;overflow-wrap:anywhere;white-space:normal
+ }
+ .admin-preview .admin-demo-card{padding:10px!important;min-width:0}
+ .admin-preview .mantine-Group-root{flex-wrap:wrap!important;min-width:0}
+ .admin-preview-step{flex-wrap:wrap!important;min-width:0}
+ .admin-preview-step .admin-preview-copy{flex:1 1 100%;min-width:0;max-width:100%}
+ .admin-preview-action{white-space:normal!important;flex-wrap:wrap!important;overflow-wrap:break-word}
+ .admin-svg-gallery summary{max-width:100%;overflow-wrap:anywhere}
+}
