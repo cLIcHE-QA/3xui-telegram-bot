@@ -238,6 +238,11 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
         # The operator knows only the independently held backup key and has
         # generated a fresh replacement key. No original key is passed in.
         self.recovery.backup(self.sealed, self.backup_key)
+        # Simulate a destroyed/disconnected original directory; only the
+        # independently sealed backup remains accessible to the method.
+        disconnected = self.root / "disconnected-source"
+        self.source.rename(disconnected)
+        self.assertFalse(self.source.exists())
         destination = self.root / "lost-key-recovery"
         result = OfflineD1bRecovery.recover_lost_key(
             self.sealed, self.backup_key, destination, self.new_key)
@@ -257,7 +262,9 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
             self.assertEqual(db.execute(
                 "SELECT COUNT(*) FROM draft_proposals").fetchone()[0], 1)
         # Original source and sealed backup remain available for rollback.
-        self.assertEqual(self.store.current(), (1, self.document))
+        self.assertEqual(
+            EncryptedDrafts(disconnected / "drafts.sqlite3", self.key).current(),
+            (1, self.document))
         self.assertFalse((self.root / "replacement-primary-key").exists())
 
     def test_recovery_wrong_backup_key_and_reused_primary_key_rejected(self):
