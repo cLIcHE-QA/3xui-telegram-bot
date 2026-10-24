@@ -100,7 +100,9 @@ class D1bHttpsEdgeTests(unittest.TestCase):
                 "pid " + str(root / "nginx.pid") + ";\n"
                 "error_log stderr notice;\n"
                 "events { worker_connections 16; }\n"
-                "http { include " + str(snippet) + "; }\n",
+                # A non-root CI runner must never touch /var/log/nginx;
+                # suppress ONLY synthetic parser-smoke access logging.
+                "http { access_log off; include " + str(snippet) + "; }\n",
                 encoding="utf-8")
             check = subprocess.run(
                 [shutil.which("nginx"), "-t", "-p", str(root) + "/",
