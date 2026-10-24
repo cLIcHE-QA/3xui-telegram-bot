@@ -197,6 +197,74 @@ class DraftStoreTests(unittest.TestCase):
                 "SELECT count(*) FROM admin_sessions WHERE token_hash='tamper-hash'"
             ).fetchone()[0], 0)
 
+    def test_account_binding_follows_verifier_mfa_and_role(self):
+        original = AdminAccount(
+            "owner1", password_verifier("synthetic-strong-password",
+                                        b"0123456789abcdef"), "owner", TEST_MFA_B32["owner1"])
+        same = AdminAccount(
+            "owner1", original.password_hash, "owner", original.totp_secret_b32)
+        digest = _account_binding(original, self.key)
+        self.assertEqual(digest, _account_binding(same, self.key))
+        self.assertEqual(len(digest), 64)
+        changes = [
+            AdminAccount("owner1", password_verifier("synthetic-new-password",
+                         b"0123456789abcdef"), "owner", original.totp_secret_b32),
+            AdminAccount("owner1", original.password_hash, "viewer", original.totp_secret_b32),
+            AdminAccount("owner1", original.password_hash, "owner", TEST_MFA_B32["editor1"]),
+        ]
+        for account in changes:
+            self.assertNotEqual(digest, _account_binding(account, self.key))
+        self.assertNotIn(original.password_hash, digest)
+        self.assertNotIn(original.totp_secret_b32, digest)
+
+    def test_stale_account_binding_evicts_cookie_before_idle_refresh(self):
+        self.assertTrue(self.issue(self.store, "owner1", 100, "old-cookie",
+                                   "encrypted-csrf", 120))
+        with sqlite3.connect(self.path) as db:
+            before = db.execute("SELECT last_seen_at FROM admin_sessions").fetchone()[0]
+        self.assertIsNone(self.store.touch_session("old-cookie", {"owner1": "b" * 64}))
+        with sqlite3.connect(self.path) as db:
+            self.assertEqual(db.execute(
+                "SELECT count(*) FROM admin_sessions WHERE token_hash='old-cookie'"
+            ).fetchone()[0], 0)
+        self.assertGreater(before, 0)
+        # Current credential binding no longer accepts the revoked token.
+        self.assertIsNone(self.touch(self.store, "old-cookie"))
+
+    def test_additive_session_schema_upgrade_drops_unbound_tokens(self):
+        from cryptography.fernet import Fernet
+        with sqlite3.connect(self.path) as db:
+            db.execute("DROP TABLE admin_sessions")
+            db.execute("""CREATE TABLE admin_sessions(
+                token_hash TEXT PRIMARY KEY, username TEXT NOT NULL,
+                csrf_ciphertext BLOB NOT NULL, expires_at REAL NOT NULL,
+                last_seen_at REAL NOT NULL)""")
+            db.execute("INSERT INTO admin_sessions VALUES(?,?,?,?,?)",
+                ("old-unbound-token", "owner1", Fernet(self.key).encrypt(b"old-csrf"),
+                 time.time() + 120, time.time()))
+        upgraded = EncryptedDrafts(self.path, self.key)
+        with sqlite3.connect(self.path) as db:
+            columns = {row[1] for row in db.execute("PRAGMA table_info(admin_sessions)")}
+            self.assertIn("account_binding", columns)
+            self.assertEqual(db.execute(
+                "SELECT count(*) FROM admin_sessions").fetchone()[0], 0)
+        self.assertIsNone(self.touch(upgraded, "old-unbound-token"))
+        # Reopen must not drop new sessions after the one-time schema upgrade.
+        self.assertTrue(self.issue(upgraded, "owner1", 200, "new-bound", "new-csrf", 120))
+        reopened = EncryptedDrafts(self.path, self.key)
+        self.assertEqual(self.touch(reopened, "new-bound")[1], "new-csrf")
+
+    def test_revoke_account_sessions_is_scoped_to_username(self):
+        self.assertTrue(self.issue(self.store, "owner1", 100, "owner-a", "csrf-a", 120))
+        self.assertTrue(self.issue(self.store, "owner1", 101, "owner-b", "csrf-b", 120))
+        self.assertTrue(self.issue(self.store, "editor1", 100, "editor-a", "csrf-c", 120))
+        replica = EncryptedDrafts(self.path, self.key)
+        self.assertEqual(replica.revoke_account_sessions("owner1"), 2)
+        self.assertIsNone(self.touch(self.store, "owner-a"))
+        self.assertIsNone(self.touch(self.store, "owner-b"))
+        self.assertIsNotNone(self.touch(self.store, "editor-a"))
+        self.assertEqual(replica.revoke_account_sessions("owner1"), 0)
+
     def test_optimistic_lock_and_proposal_do_not_publish(self):
         doc = fixture()
         self.store.save("alice", 0, doc)
@@ -497,6 +565,92 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(access.status, 401)
         old = await self.client.get(self.url + "/session", headers=self.headers("owner1"))
         self.assertEqual(old.status, 401)
+
+    async def test_password_change_rejects_cookie_and_revokes_across_workers(self):
+        self.assertEqual((await self.login("owner1")).status, 200)
+        rotated = create_editor_app(
+            accounts=[AdminAccount("owner1", password_verifier("new-strong-password"),
+                                   "owner", TEST_MFA_B32["owner1"])],
+            db_path=Path(self.dir.name) / "drafts.sqlite3",
+            encryption_key=self.key, https_origin="https://admin.example.test")
+        async with TestClient(TestServer(rotated)) as second:
+            denied = await second.get(self.url + "/session", headers=self.headers("owner1"))
+            self.assertEqual(denied.status, 401)
+            old_write = await second.post(self.url + "/proposals",
+                headers=self.headers("owner1", csrf=True, revision=0))
+            self.assertEqual(old_write.status, 401)
+        # Shared revoke becomes effective for every instance using this DB.
+        original = await self.client.get(self.url + "/session",
+                                          headers=self.headers("owner1"))
+        self.assertEqual(original.status, 401)
+
+    async def test_mfa_seed_change_rejects_cookie_across_workers(self):
+        self.assertEqual((await self.login("owner1")).status, 200)
+        changed_seed = base64.b32encode(b"new synthetic enrolled MFA seed").decode("ascii")
+        rotated = create_editor_app(
+            accounts=[AdminAccount("owner1", self.verifiers["owner1"],
+                                   "owner", changed_seed)],
+            db_path=Path(self.dir.name) / "drafts.sqlite3",
+            encryption_key=self.key, https_origin="https://admin.example.test")
+        async with TestClient(TestServer(rotated)) as second:
+            denied = await second.get(self.url + "/draft", headers=self.headers("owner1"))
+            self.assertEqual(denied.status, 401)
+        original = await self.client.get(self.url + "/draft",
+                                          headers=self.headers("owner1"))
+        self.assertEqual(original.status, 401)
+
+    async def test_self_revoke_all_sessions_requires_csrf(self):
+        self.assertEqual((await self.login("viewer1")).status, 200)
+        missing = await self.client.post(self.url + "/sessions/revoke",
+            json={}, headers=self.headers("viewer1"))
+        self.assertEqual(missing.status, 403)
+        malformed = await self.client.post(self.url + "/sessions/revoke",
+            json={"unexpected": True}, headers=self.headers("viewer1", csrf=True))
+        self.assertEqual(malformed.status, 400)
+        active = await self.client.get(self.url + "/session",
+            headers=self.headers("viewer1"))
+        self.assertEqual(active.status, 200)
+        revoked = await self.client.post(self.url + "/sessions/revoke",
+            json={}, headers=self.headers("viewer1", csrf=True))
+        self.assertEqual(revoked.status, 200)
+        self.assertGreaterEqual((await revoked.json())["count"], 1)
+        self.assertIn(COOKIE, revoked.cookies)
+        expired = await self.client.get(self.url + "/session",
+            headers=self.headers("viewer1"))
+        self.assertEqual(expired.status, 401)
+
+    async def test_owner_revoke_other_sessions_and_editor_denied(self):
+        self.assertEqual((await self.login("owner1")).status, 200)
+        self.assertEqual((await self.login("editor1")).status, 200)
+        forbidden = await self.client.post(self.url + "/sessions/revoke",
+            json={"username": "owner1"}, headers=self.headers("editor1", csrf=True))
+        self.assertEqual(forbidden.status, 403)
+        malformed = await self.client.post(self.url + "/sessions/revoke",
+            json={"username": 1}, headers=self.headers("owner1", csrf=True))
+        self.assertEqual(malformed.status, 400)
+        owner_still = await self.client.get(self.url + "/session",
+            headers=self.headers("owner1"))
+        self.assertEqual(owner_still.status, 200)
+        revoked = await self.client.post(self.url + "/sessions/revoke",
+            json={"username": "editor1"}, headers=self.headers("owner1", csrf=True))
+        self.assertEqual(revoked.status, 200)
+        self.assertEqual((await revoked.json())["count"], 1)
+        editor_denied = await self.client.get(self.url + "/session",
+            headers=self.headers("editor1"))
+        self.assertEqual(editor_denied.status, 401)
+        owner_active = await self.client.get(self.url + "/session",
+            headers=self.headers("owner1"))
+        self.assertEqual(owner_active.status, 200)
+
+    async def test_global_revoke_sqlite_error_fails_closed(self):
+        self.assertEqual((await self.login("owner1")).status, 200)
+        with patch.object(EncryptedDrafts, "revoke_account_sessions",
+                          side_effect=sqlite3.OperationalError("synthetic store failure")):
+            error = await self.client.post(self.url + "/sessions/revoke",
+                json={}, headers=self.headers("owner1", csrf=True))
+        self.assertEqual(error.status, 503)
+        self.assertEqual((await self.client.get(
+            self.url + "/session", headers=self.headers("owner1"))).status, 200)
 
     async def test_session_sqlite_failure_fails_closed(self):
         self.assertEqual((await self.login("viewer1")).status, 200)
