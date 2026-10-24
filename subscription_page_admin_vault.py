@@ -14,7 +14,7 @@ import re
 import secrets
 import stat
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
 
@@ -33,7 +33,7 @@ class PendingMFAEnrollment:
     """Ephemeral handoff; caller must confirm authenticator OTP before commit."""
     username: str
     expected_revision: int
-    secret_b32: str
+    secret_b32: str = field(repr=False)
 
 
 def _valid_accounts(accounts: list[AdminAccount]) -> list[AdminAccount]:
@@ -98,7 +98,11 @@ class EncryptedAdminRoster:
             self._check_file(os.fstat(fd))
             fcntl.flock(fd, fcntl.LOCK_EX)
             # A replaced lock path could let two writers acquire different locks.
-            if os.fstat(fd).st_ino != self.lock_path.lstat().st_ino:
+            held = os.fstat(fd)
+            pointed = self.lock_path.lstat()
+            if (not stat.S_ISREG(pointed.st_mode)
+                    or held.st_dev != pointed.st_dev
+                    or held.st_ino != pointed.st_ino):
                 raise ValueError("Offline roster lock changed")
             yield
         finally:
