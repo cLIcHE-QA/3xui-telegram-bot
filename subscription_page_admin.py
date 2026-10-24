@@ -78,7 +78,9 @@ def _password_matches(encoded: str, password: str) -> bool:
 
 def _totp_key(encoded: str) -> bytes:
     """Require unique >=160-bit RFC6238 secret for every admin account."""
-    if not isinstance(encoded, str) or not re.fullmatch(r"[A-Z2-7]{32,104}", encoded) or len(encoded) % 8:
+    # Standard RFC 4648 Base32 may include 1-6 trailing "=" padding bytes.
+    if (not isinstance(encoded, str) or len(encoded) % 8 or
+            not re.fullmatch(r"[A-Z2-7]{32,104}={0,6}", encoded)):
         raise ValueError("D1b administrator MFA seed missing or malformed")
     try:
         raw = base64.b32decode(encoded)
