@@ -33,5 +33,17 @@ body{margin:0;background:#060b11;color:#e9f5ff}
 .admin-svg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:8px;margin-top:12px}
 .admin-svg-cell{display:flex;align-items:center;flex-direction:column;justify-content:center;min-width:0;gap:9px;padding:10px 5px;border:1px solid #36516a;border-radius:9px;text-align:center}
 .admin-svg-cell .mantine-Text-root{max-width:100%;overflow-wrap:anywhere}
-.admin-svg-gallery-icon{width:32px;height:32px;object-fit:contain}
+/* Original monochrome SVGs may contain pure black or white strokes.
+   A split light/dark backplate preserves the original SVG bytes and keeps both visible. */
+.admin-svg-gallery-icon{
+ width:32px;height:32px;object-fit:contain;box-sizing:content-box;
+ padding:6px;border-radius:10px;border:1px solid #607d99;
+ background:linear-gradient(140deg,#e2ebf4 0 48%,#203c58 52% 100%);
+ filter:drop-shadow(0 0 1px #e6f3ff) drop-shadow(0 0 1px #061421)
+}
+.admin-svg-client,.admin-preview-step .admin-svg-icon,.admin-platforms .admin-svg-icon{
+ background:linear-gradient(140deg,#dbe7f1 0 48%,#1a3a56 52% 100%);
+ padding:4px;border:1px solid #607d99;border-radius:8px;box-sizing:content-box;
+ filter:drop-shadow(0 0 1px #dceeff) drop-shadow(0 0 1px #061421)
+}
 @media(max-width:520px){.admin-svg-grid{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}.admin-preview-action{font-size:11px}}

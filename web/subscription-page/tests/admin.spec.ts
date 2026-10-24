@@ -142,6 +142,8 @@ test("D1b preview matches approved self-hosted SVG catalog without executing imp
  await expect.poll(async()=>page.getByTestId("admin-library-svg").evaluateAll(
     nodes=>nodes.filter(node=>node instanceof HTMLImageElement && node.complete && node.naturalWidth>0).length
  )).toBe(40);
+ const backplate=await page.getByTestId("admin-library-svg").first().evaluate(node=>getComputedStyle(node).backgroundImage);
+ expect(backplate).toContain("linear-gradient");
  await page.screenshot({path:"test-results/d1b-svg-approved-library-desktop.png",fullPage:true});
  expect(network).toEqual([]);
 });
