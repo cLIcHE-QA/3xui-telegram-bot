@@ -1,5 +1,5 @@
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-24 07:57:46 UTC+03:00 (GitHub merged_at `2026-10-24T04:57:46Z`)
+- **Дата/время и часовой пояс:** 2026-10-24 07:57 UTC+03:00 (событие GitHub merged_at `2026-10-24T04:57:46Z`)
 - **Окружение:** GitHub API read-back, docs-only post-merge checkpoint; VPS/production не менялись
 - **Цель:** подтвердить squash merge security-fix и восстановить корректную строку Issue #890 в Roadmap до следующей feature-задачи
 - **Версия и immutable tag/SHA:** новый `main` merge SHA `0c123ef1f6a131952ad10862f4313c6c46ce175a`; текущий Published tag `v5.0.0-rc.19` неизменно указывает на `d738dd970f2215adc346a919c7ed182abaf454b1`
