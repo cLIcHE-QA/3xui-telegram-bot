@@ -111,10 +111,8 @@ class StandaloneTelegramApproval:
         self._prune(current)
         # A submitted code must reference a *current* browser challenge; do not
         # generate "approvable" prompts for arbitrary spoofed strings.
-        self.pilot._prune(current)
         challenge = match.group(1)
-        row = self.pilot.pending.get(challenge)
-        if row is None or row.approved_owner is not None:
+        if not self.pilot.challenge_pending(challenge, current):
             await message.answer("Запрос входа недоступен или истёк.")
             return
         if not await self.pilot._verified_owner(actor):
@@ -122,9 +120,7 @@ class StandaloneTelegramApproval:
             return
         # Revalidate challenge and freshness after the asynchronous owner read.
         current = self.pilot._clock()
-        self.pilot._prune(current)
-        row = self.pilot.pending.get(challenge)
-        if row is None or row.approved_owner is not None:
+        if not self.pilot.challenge_pending(challenge, current):
             await message.answer("Запрос входа недоступен или истёк.")
             return
         self._prune(current)
