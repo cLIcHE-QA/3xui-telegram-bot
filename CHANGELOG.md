@@ -20,6 +20,8 @@
 - UI D1b предпросмотра показывает те же 39 исходных локальных SVG + INCY (MIT), что D1a, включая платформы, клиентов, шаги и инертные кнопки; подозрительные ключи остаются fallback. Browser tests проверяют фактическую загрузку всех 40 иконок, контраст исходных светлых/тёмных SVG и адаптацию 320px/200% (включая длинные подписи переключателей). Исходные ассеты не переписаны.
 - Изолированный admin API усилен обязательным отдельным TOTP для каждого пользователя, replay и shared-seed denial, bounded/idle sessions, строгими Host/Origin/CSRF и owner-only encrypted SQLite. В production не интегрирован. Реальная публикация/rollback, TLS/MFA enrollment, key rotation, multi-node sessions, оригинальный JSON 1:1 и инструкции INCY/RabbitHole — PENDING. Issue #887 keep_open.
 
+- D1b security follow-up (#887): анти-replay TOTP переведён из памяти процесса в приватную SQLite-таблицу с атомарным `BEGIN IMMEDIATE`, отказом повторного шага между экземплярами с общей базой и fail-closed `503` при ошибке записи. Добавлены тесты устойчивости после пересоздания API; подтверждение нового head CI и эксплуатационная проверка распределённой инфраструктуры остаются PENDING. Это **не** release/deployment/acceptance.
+
 ## Неопубликованные изменения в main — D1a preview #887 (2026-10-24)
 
 - [PR #889](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/889) **Squash MERGED** в `main` `74038c37ddbc13d312727c5f1e5c247c8eb1d8ba`. Добавлен **изолированный offline React 19/TypeScript/Vite/Mantine предпросмотр** страницы подписки и инструкций, локальный JSON v1 импорт, UI с пятью языками и семью платформами, 39 оригинальных SVG из операторского набора и отдельная MIT-иконка INCY. Ссылки и действия в превью заблокированы; auth, API, реальная выдача подписок и deployment не добавлены.
