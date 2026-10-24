@@ -58,7 +58,7 @@ export function safeCustomerSummary(input: unknown): CustomerSummary {
   }
   const expiry = dto.expiryTime;
   const locations = dto.availableLocations;
-  if (expiry !== null && (!Number.isSafeInteger(expiry) || (expiry as number) < 0)) throw new MiniAppSessionError();
+  if (expiry !== null && (!Number.isSafeInteger(expiry) || (expiry as number) < 0 || (expiry as number) > 8_640_000_000_000_000)) throw new MiniAppSessionError();
   if (locations !== null && (!Number.isSafeInteger(locations) || (locations as number) < 0 || (locations as number) > 1000)) {
     throw new MiniAppSessionError();
   }
