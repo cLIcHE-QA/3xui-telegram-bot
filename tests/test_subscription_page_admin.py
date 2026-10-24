@@ -437,8 +437,8 @@ class AdminApiTests(unittest.IsolatedAsyncioTestCase):
                 return response.status
 
             self.assertEqual(await attempt(), 403)  # missing edge-assigned IP
-            for forged in ("198.51.100.7, 127.0.0.1", "not-an-ip", " 198.51.100.7",
-                           "198.51.100.7 "):
+            for forged in ("198.51.100.7, 127.0.0.1", "not-an-ip",
+                           "198.51.100.7/24", "2001:db8::g"):
                 self.assertEqual(await attempt(forged), 403)
             self.assertEqual(await attempt("198.51.100.7",
                              {"X-Forwarded-Proto": "http"}), 403)
