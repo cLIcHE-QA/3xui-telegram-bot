@@ -4,7 +4,7 @@ import {IconShieldCheck,IconLock,IconWifi,IconClock,IconDeviceMobile,IconDeviceD
 import { createRoot } from "react-dom/client";
 import { MantineProvider, Container, Title, Text, Card, Tabs, Stack, Group, Badge, Select, Button, Divider, Accordion, Alert } from "@mantine/core";
 import "@mantine/core/styles.css";
-import { parsePageConfig, summary } from "./model";
+import { parsePageConfig, instructionInventory, type Config } from "./model";
 import { SubscriptionPreview, previewScenarios, type PreviewScenario } from "./SubscriptionPreview";
 import { ClientChooser } from "./ClientChooser";
 import { SafeSvgIcon, parseLocalSvgLibrary } from "./SafeSvgIcon";
@@ -42,6 +42,13 @@ const stateLabels:Record<string,Record<string,string>>={
  fa:{scenarioLabel:"سناریوهای نمایشی",unknown:"بدون داده",active:"فعال · نمونه",expired:"منقضی · نمونه",pending:"در انتظار · نمونه",activeStatus:"فعال",expiredStatus:"منقضی شده",pendingStatus:"در انتظار تأیید",noData:"داده‌ای موجود نیست",daysRemaining:"۱۵ روز · نمونه",demo:"نمایشی",scenarioNote:"داده آزمایشی است، نه اشتراک شما",usage:"مصرف داده",usageUnavailable:"اطلاعات مصرف موجود نیست",previewOnly:"بدون اشتراک یا کلید واقعی",noClientsHint:"دستگاه دیگری انتخاب کنید یا تنظیمات محلی را وارد کنید. اتصال واقعی انجام نمی‌شود.",recommendedDemo:"پیشنهادی در پیکربندی · نمایشی",safeDemoApp:"انتخاب برنامه · نمایشی",getLink:"دریافت پیوند",subscriptionLead:"نمای کلی اشتراک",notAvailable:"داده‌ای موجود نیست",guideActionsLocked:"عملیات در نمایش آزمایشی غیرفعال است",guideHeader:"راهنمای اتصال",guideStepsLabel:"مراحل",guideForClient:"برنامه",guideEmptyTitle:"راهنمایی موجود نیست",guideEmptyText:"دستگاه دیگری را انتخاب کنید یا JSON محلی وارد کنید. پیوند واقعی در دسترس نیست.",guideFootnote:"پیش‌نمایش: پیوندهای اشتراک و نصب غیرفعال‌اند.",subscriptionLayoutLabel:"نمای اشتراک",guidesLayoutLabel:"نمای راهنما",layout_expanded:"باز",layout_collapsed:"جمع‌شده",layout_cards:"کارت‌ها",layout_hidden:"پنهان",layout_timeline:"خط زمانی",layout_minimal:"ساده",layout_accordion:"آکاردئون",layout_carousel:"گردونه",guideStepLabel:"مرحله",guideOf:"از",guidePrevious:"قبلی",guideNext:"بعدی",guideNavigation:"جابه‌جایی بین مراحل",planLabel:"طرح",planUnknown:"نامشخص",resetLabel:"بازنشانی ترافیک",resetUnknown:"داده‌ای موجود نیست"},
  fr:{scenarioLabel:"Scénarios de démonstration",unknown:"Sans données",active:"Active · exemple",expired:"Expirée · exemple",pending:"En attente · exemple",activeStatus:"Active",expiredStatus:"Expirée",pendingStatus:"En attente",noData:"Aucune donnée",daysRemaining:"15 jours · exemple",demo:"DÉMO",scenarioNote:"Données fictives, pas votre abonnement",usage:"Trafic utilisé",usageUnavailable:"Trafic indisponible",previewOnly:"Aucun abonnement ni clé réels",noClientsHint:"Choisissez un autre appareil ou importez une configuration locale. Aucune connexion réelle.",recommendedDemo:"Mise en avant · démo",safeDemoApp:"Sélection d'application · démo",getLink:"Obtenir le lien",subscriptionLead:"Aperçu de l’abonnement",notAvailable:"Aucune donnée",guideActionsLocked:"Actions désactivées en démo",guideHeader:"Guide de connexion",guideStepsLabel:"Étapes",guideForClient:"Application",guideEmptyTitle:"Aucune instruction disponible",guideEmptyText:"Choisissez un autre appareil ou importez un JSON local. Aucun lien réel.",guideFootnote:"Aperçu : liens et installation désactivés.",subscriptionLayoutLabel:"Affichage de l’abonnement",guidesLayoutLabel:"Affichage du guide",layout_expanded:"Développé",layout_collapsed:"Réduit",layout_cards:"Cartes",layout_hidden:"Masqué",layout_timeline:"Chronologie",layout_minimal:"Minimal",layout_accordion:"Accordéon",layout_carousel:"Carrousel",guideStepLabel:"Étape",guideOf:"sur",guidePrevious:"Précédent",guideNext:"Suivant",guideNavigation:"Navigation des étapes",planLabel:"Offre",planUnknown:"Non indiqué",resetLabel:"Réinitialisation du trafic",resetUnknown:"Aucune donnée"},
  zh:{scenarioLabel:"演示场景",unknown:"无数据",active:"有效 · 示例",expired:"过期 · 示例",pending:"等待 · 示例",activeStatus:"有效",expiredStatus:"已过期",pendingStatus:"等待确认",noData:"无数据",daysRemaining:"15 天 · 示例",demo:"演示",scenarioNote:"模拟数据，并非您的订阅",usage:"已用流量",usageUnavailable:"流量数据不可用",previewOnly:"不提供真实订阅或密钥",noClientsHint:"请选择其他设备或导入本地配置。不会建立真实连接。",recommendedDemo:"配置推荐 · 演示",safeDemoApp:"选择应用 · 演示",getLink:"获取链接",subscriptionLead:"订阅概览",notAvailable:"无数据",guideActionsLocked:"演示操作已禁用",guideHeader:"连接指南",guideStepsLabel:"步骤",guideForClient:"应用",guideEmptyTitle:"暂无安装说明",guideEmptyText:"选择其他设备或导入本地 JSON。不会提供真实密钥或链接。",guideFootnote:"预览模式：订阅链接和安装操作均已禁用。",subscriptionLayoutLabel:"订阅布局",guidesLayoutLabel:"指南布局",layout_expanded:"展开",layout_collapsed:"收起",layout_cards:"卡片",layout_hidden:"隐藏",layout_timeline:"时间线",layout_minimal:"简洁",layout_accordion:"折叠",layout_carousel:"轮播",guideStepLabel:"步骤",guideOf:"／",guidePrevious:"上一步",guideNext:"下一步",guideNavigation:"步骤导航",planLabel:"套餐",planUnknown:"未指定",resetLabel:"流量重置",resetUnknown:"无数据"}
+};
+const guideReportLabels:Record<string,Record<string,string>> = {
+ "ru": {"title":"Импортированы инструкции","platforms":"Платформ","apps":"Приложений","steps":"Шагов","buttons":"Кнопок","external":"Внешних","subscription":"Импорт подписки","copy":"Копирование","notice":"Только структурный предпросмотр. Все действия заблокированы до проверки ссылок, авторизации и тестов на устройствах."},
+ "en": {"title":"Imported setup guides","platforms":"Platforms","apps":"App entries","steps":"Steps","buttons":"Buttons","external":"External","subscription":"Subscription import","copy":"Copy","notice":"Structural preview only. All actions remain disabled pending URL review, authorization and device testing."},
+ "zh": {"title":"已导入的连接指南","platforms":"平台","apps":"应用条目","steps":"步骤","buttons":"按钮","external":"外部链接","subscription":"导入订阅","copy":"复制","notice":"仅供结构预览。在链接审核、授权和设备测试完成前，所有操作均被禁用。"},
+ "fa": {"title":"راهنمای اتصال واردشده","platforms":"پلتفرم‌ها","apps":"برنامه‌ها","steps":"مراحل","buttons":"دکمه‌ها","external":"پیوند خارجی","subscription":"ورود اشتراک","copy":"کپی","notice":"فقط پیش‌نمایش ساختار. همه اقدامات تا بررسی پیوندها، احراز هویت و آزمون دستگاه غیرفعال‌اند."},
+ "fr": {"title":"Guides importés","platforms":"Plateformes","apps":"Applications","steps":"Étapes","buttons":"Boutons","external":"Externes","subscription":"Import d’abonnement","copy":"Copie","notice":"Aperçu structurel seulement. Toutes les actions restent désactivées avant l’examen des liens, l’authentification et les tests sur appareils."},
 };
 const platformNames: Record<string,string> = {ios:"iOS",android:"Android",macos:"macOS",windows:"Windows",linux:"Linux",appleTV:"Apple TV",androidTV:"Android TV"};
 function languageText(v: Localized | undefined, lang:string) {return v?.[lang] ?? v?.ru ?? v?.en ?? "";}
@@ -86,6 +93,8 @@ function App() {
   const t=(x:string)=>stateLabels[lang]?.[x]??localesExtra[lang]?.[x]??ui[lang]?.[x]??ui.en[x]??x;
   const deviceIcon=(x:string)=>x==="ios"||x==="android"?<IconDeviceMobile size={21}/>:x==="macos"?<IconDeviceLaptop size={21}/>:x.toLowerCase().includes("tv")?<IconDeviceTv size={21}/>:<IconDeviceDesktop size={21}/>;
   const steps=selected?.blocks??[];
+  const importedInventory=imported?instructionInventory(data as Config):null;
+  const guideLabels=guideReportLabels[lang]??guideReportLabels.en;
   return <MantineProvider defaultColorScheme="dark" theme={{primaryColor:"blue"}}>
   <div className="portal-shell" dir={lang==="fa"?"rtl":"ltr"}><Container className="portal-container" size={1120}>
     <header className="portal-header">
@@ -107,7 +116,22 @@ function App() {
       </section>
       <section className="svg-assets-import"><label className="file-pick">SVG JSON<input aria-label="Импортировать SVG-библиотеку" type="file" accept=".json,application/json" onChange={e=>importSvgLibrary(e.target.files?.[0]||null)}/></label><Text size="xs" role="status">{iconMessage || "Дополнительная SVG-библиотека: локальный импорт, без внешних запросов"}</Text></section>
        <section className="bottom-panels"><div className="safe-panel"><span><IconShieldCheck size={26}/></span><div><Title order={4}>{t("safe")}</Title><Text c="dimmed" size="sm">{t("safeDesc")}</Text></div></div><div className="import-panel"><div><Text fw={800}><IconFileImport size={19}/> {t("import")}</Text><Text c="dimmed" size="xs">{t("preview")}</Text></div><label className="file-pick"><IconDownload size={16}/> JSON<input aria-label={t("import")} type="file" accept=".json,application/json" onChange={e=>openLocalFile(e.target.files?.[0]||null)}/></label></div></section>
-      {error&&<Alert mt="lg" color="red">{error}</Alert>}{imported&&<Text mt="md" c="blue">{t("import")}: {summary(data as any).blocks}</Text>}
+      {error&&<Alert mt="lg" color="red">{error}</Alert>}{importedInventory&&<section className="guide-import-report" data-testid="guide-import-report" aria-label={guideLabels.title}>
+        <Text fw={800} size="sm">{guideLabels.title}</Text>
+        <div className="guide-import-metrics" data-testid="guide-inventory-totals">
+          <span>{guideLabels.platforms}: {importedInventory.platforms.length}</span>
+          <span>{guideLabels.apps}: {importedInventory.appSlots}</span>
+          <span>{guideLabels.steps}: {importedInventory.blocks}</span>
+          <span>{guideLabels.buttons}: {importedInventory.buttons}</span>
+        </div>
+        <Text size="xs" c="dimmed">{guideLabels.external}: {importedInventory.byType.external} · {guideLabels.subscription}: {importedInventory.byType.subscriptionLink} · {guideLabels.copy}: {importedInventory.byType.copyButton}</Text>
+        <div role="list" className="guide-import-platforms">
+          {importedInventory.platforms.map(p=><div role="listitem" key={p.key} className="guide-import-platform" data-testid="guide-platform-coverage">
+            <strong>{platformNames[p.key]??p.key}</strong><span>{guideLabels.apps}: {p.appSlots} · {guideLabels.steps}: {p.blocks} · {guideLabels.buttons}: {p.buttons}</span>
+          </div>)}
+        </div>
+        <Text size="xs" c="dimmed">{guideLabels.notice}</Text>
+      </section>}
     </main><footer className="portal-footer"><span><img src="/brand/raccoon-wrench.svg" alt=""/> RACCOON VPN</span><Text size="xs">{t("footer")}</Text></footer>
   </Container></div></MantineProvider>;
 }

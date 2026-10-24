@@ -285,3 +285,12 @@ html[dir=rtl] .guide-carousel-controls svg{transform:scaleX(-1)}
   border:1px dashed #365471;border-radius:13px;background:#102538;}
 .svg-assets-import .mantine-Text-root{overflow-wrap:anywhere;color:#9cbdd3;}
 @media(max-width:500px){.svg-assets-import{align-items:stretch}.svg-assets-import .file-pick{width:max-content;max-width:100%}}
+
+/* D1a: privacy-safe coverage report for locally imported instruction bundles. */
+.guide-import-report{margin-top:18px;padding:20px;background:#0f2434;border:1px solid #2c5975;border-radius:15px;display:grid;gap:12px;min-width:0}
+.guide-import-metrics{display:flex;flex-wrap:wrap;gap:10px;color:#9bdbff;font-size:.875rem;font-weight:800}
+.guide-import-metrics span{padding:8px 10px;border:1px solid #2f617c;border-radius:9px}
+.guide-import-platforms{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:8px}
+.guide-import-platform{padding:11px;background:#152e40;border-radius:9px;display:grid;gap:5px;min-width:0}
+.guide-import-platform strong{color:#cdeaff;font-size:.875rem}
+.guide-import-platform span{color:#a2bcd1;font-size:.75rem;overflow-wrap:anywhere}

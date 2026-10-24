@@ -251,3 +251,43 @@ test("все 39 локальных SVG-кандидатов доступны б�
   expect(alternate.ok()).toBe(true);
   expect(external).toEqual([]);
 });
+
+
+test("локальные инструкции 5 языков / 7 платформ: кнопки и исходные URL остаются инертными",async({page})=>{
+ const external:string[]=[];page.on("request",r=>{if(new URL(r.url()).origin!=="http://127.0.0.1:4173")external.push(r.url());});
+ await page.goto("/");
+ const langs=["en","ru","zh","fa","fr"],platformIds=["ios","linux","macos","android","appleTV","windows","androidTV"];
+ const localized=(txt:string)=>Object.fromEntries(langs.map(l=>[l,txt+"-"+l]));
+ const config={
+  version:"1",locales:langs,uiConfig:{subscriptionInfoBlockType:"expanded",installationGuidesBlockType:"cards"},
+  baseSettings:{metaTitle:"Synthetic",metaDescription:"Synthetic",hideGetLinkButton:false,showConnectionKeys:false},
+  baseTranslations:{label:localized("Label")},brandingSettings:{title:"Synthetic",logoUrl:"",supportUrl:""},
+  svgLibrary:{},
+  platforms:Object.fromEntries(platformIds.map(p=>[p,{displayName:Object.fromEntries(langs.map(l=>[l,p])),svgIconKey:"",
+    apps:[{name:"Synthetic "+p,featured:false,svgIconKey:"",blocks:[
+      {title:localized("Install"),description:localized("Safe guide text"),svgIconKey:"",svgIconColor:"",
+       buttons:[{link:"javascript:alert('do not execute')",type:"external",text:localized("Untrusted link"),svgIconKey:""}]},
+      {title:localized("Import"),description:localized("Authorized session required"),svgIconKey:"",svgIconColor:"",
+       buttons:[{link:"client://import/{{SUBSCRIPTION_LINK}}",type:"subscriptionLink",text:localized("Import subscription"),svgIconKey:""}]}
+    ]}]
+  }]))
+ };
+ await page.getByLabel("Импортировать настройки").setInputFiles({name:"synthetic.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify(config))});
+ const report=page.getByTestId("guide-import-report");
+ await expect(report).toContainText("Платформ: 7");await expect(report).toContainText("Шагов: 14");
+ await expect(page.getByTestId("guide-platform-coverage")).toHaveCount(7);
+ await expect(page.getByTestId("guide-preview")).toContainText("Install-ru");
+ const dangerous=page.getByRole("button",{name:"Untrusted link-ru"});
+ await expect(dangerous).toBeDisabled();
+ await page.getByRole("tab",{name:"android-ru"}).click();
+ await expect(page.getByTestId("guide-preview")).toContainText("Install-ru");
+ const select=page.getByRole("combobox",{name:"Language"});await select.click();await page.getByRole("option",{name:"FA"}).click();
+ await expect(page.getByTestId("guide-preview")).toContainText("Install-fa");
+ await expect(page.locator("html")).toHaveAttribute("dir","rtl");
+ await expect(report).toContainText("پلتفرم‌ها");
+ await expect(page.getByRole("button",{name:"Untrusted link-fa"})).toBeDisabled();
+ const pageText=await report.textContent();
+ expect(pageText).not.toContain("javascript:");
+ expect(pageText).not.toContain("{{SUBSCRIPTION_LINK}}");
+ expect(external).toEqual([]);
+});

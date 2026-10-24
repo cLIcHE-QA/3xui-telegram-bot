@@ -37,3 +37,23 @@ export function parsePageConfig(raw:string):Config {
 }
 export const translate=(v:Localized|undefined,l:string)=>v?.[l]??v?.en??"";
 export function summary(d:Config){const apps=Object.values(d.platforms).flatMap(p=>p.apps),blocks=apps.flatMap(a=>a.blocks),buttons=blocks.flatMap(s=>s.buttons);return {languages:d.locales.length,platforms:Object.keys(d.platforms).length,apps:apps.length,uniqueClients:new Set(apps.map(a=>a.name)).size,blocks:blocks.length,buttons:buttons.length,icons:Object.keys(d.svgLibrary).length};}
+
+
+/** Read-only, privacy-safe instruction statistics; links, labels and SVG are never returned. */
+export function instructionInventory(config:Config) {
+ const byType:Record<Action["type"],number>={external:0,subscriptionLink:0,copyButton:0};
+ let appSlots=0,blocks=0,buttons=0;
+ const platforms=Object.entries(config.platforms).map(([key,platform])=>{
+  const clientCount=platform.apps.length;
+  let platformSteps=0,platformButtons=0;
+  for(const app of platform.apps){
+   for(const step of app.blocks){
+    platformSteps++;platformButtons+=step.buttons.length;
+    for(const action of step.buttons)byType[action.type]++;
+   }
+  }
+  appSlots+=clientCount;blocks+=platformSteps;buttons+=platformButtons;
+  return {key,appSlots:clientCount,blocks:platformSteps,buttons:platformButtons};
+ });
+ return {languages:config.locales.length,platforms,appSlots,blocks,buttons,byType};
+}
