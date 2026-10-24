@@ -37,6 +37,7 @@ class _Prompt:
     challenge: str
     issued_at: float
     chat_id: int
+    message_id: int | None = None
 
 
 class _Approval(Protocol):
@@ -148,7 +149,7 @@ class StandaloneTelegramApproval:
             InlineKeyboardButton(text="✖ Отмена", callback_data="d2bs:no:" + nonce),
         ]])
         try:
-            await message.answer(
+            sent = await message.answer(
                 "Подтверждение входа на собственную страницу подписки.\n"
                 f"Адрес: {self.pilot.https_origin}\n"
                 f"Код запроса: …{challenge[-4:]}\n\n"
@@ -156,6 +157,15 @@ class StandaloneTelegramApproval:
                 "запрос в своём браузере. Если код прислал кто-то другой, "
                 "не подтверждайте — нажмите «Отмена».",
                 reply_markup=buttons,
+            )
+            sent_id = getattr(sent, "message_id", None)
+            if type(sent_id) is not int or sent_id <= 0:
+                # Do not allow an unbound/unverifiable callback prompt.
+                self.prompts.pop(nonce, None)
+                return
+            self.prompts[nonce] = _Prompt(
+                owner=actor, challenge=challenge, issued_at=current,
+                chat_id=actor, message_id=sent_id,
             )
         except Exception:
             self.prompts.pop(nonce, None)
@@ -178,7 +188,8 @@ class StandaloneTelegramApproval:
         self._prune(now)
         nonce = match.group(2)
         prompt = self.prompts.get(nonce)
-        if prompt is None or prompt.owner != actor or prompt.chat_id != actor:
+        if (prompt is None or prompt.owner != actor or prompt.chat_id != actor
+                or prompt.message_id != getattr(msg, "message_id", None)):
             await callback.answer("Запрос больше недоступен.", show_alert=True)
             return
         # consume BEFORE awaiting bot/owner I/O, so a duplicate callback
