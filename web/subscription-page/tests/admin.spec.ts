@@ -80,6 +80,7 @@ test("D1b админ редактор: локальный импорт, вали
  expect(saves[0].headers["if-match"]).toBe('"rev-0"');
  expect(JSON.parse(saves[0].body).config.brandingSettings.title).toBe("Raccoon sample");
  await expect(page.getByRole("button",{name:"Опубликовать (заблокировано)"})).toBeDisabled();
+ await expect(page.getByRole("button",{name:"Завершить все сеансы"})).toBeVisible();
  await expect(page.getByRole("button",{name:"Предложить к проверке"})).toBeDisabled();
 });
 
