@@ -4,13 +4,13 @@
 
 ## Текущий контракт schema
 
-> **Published `v5.0.0-rc.19`:** schema v15, новых migrations нет. GitHub tag SHA `d738dd970f2215adc346a919c7ed182abaf454b1`; Deployed по отчёту оператора всё ещё `rc.18.10`, независимая аттестация PENDING.
+> **Published `v5.0.0-rc.19`:** схема SQLite v15, новых миграций нет. GitHub Release опубликован на SHA `d738dd970f2215adc346a919c7ed182abaf454b1`, deployment по-прежнему только `v5.0.0-rc.18.10` со слов оператора.
 
-**Схема SQLite v15 неизменна для Published `v5.0.0-rc.19`.** Новых миграций в релизе нет: исправления Happ/User-Agent, Windows/OS и HWID-карточек — только read-only представление. Текущий операторский deployment и адресные HWID 23/23 `PASS` фиксируются исключительно в [Roadmap](ROADMAP.md) и [датированном audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md); независимая VPS/SQLite `PRAGMA quick_check` аттестация остаётся PENDING. Само `DB=ok` не является доказательством `PRAGMA quick_check`.
+**Схема SQLite v15 неизменна для Published `v5.0.0-rc.19` и operator-reported Deployed `v5.0.0-rc.18.10`.** Новых миграций в релизе нет: исправления Happ/User-Agent, Windows/OS и HWID-карточек — только read-only представление. Текущий операторский deployment и адресные HWID 23/23 `PASS` фиксируются исключительно в [Roadmap](ROADMAP.md) и [датированном audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md); независимая VPS/SQLite `PRAGMA quick_check` аттестация остаётся PENDING. Само `DB=ok` не является доказательством `PRAGMA quick_check`.
 
 Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
 
-**История релизов** `rc.18.2`–`rc.18.9` и их прежних `PENDING` сохранена в [CHANGELOG](../CHANGELOG.md), [датированных audits](audits/) и [историческом Roadmap](roadmap/HISTORY_INDEX.md). Эти предыдущие snapshot-статусы не описывают текущий Published `rc.19`; Deployed `rc.18.10` operator-reported.
+**История релизов** `rc.18.2`–`rc.18.9` и их прежних `PENDING` сохранена в [CHANGELOG](../CHANGELOG.md), [датированных audits](audits/) и [историческом Roadmap](roadmap/HISTORY_INDEX.md). Эти предыдущие snapshot-статусы не описывают текущий GitHub Published `rc.19` и его раздельное operator-reported Deployed `rc.18.10`.
 
 - `v14 plan_audience_v5_0_0` добавляет независимую RUB/Stars видимость, локальные User Groups и `manual_entitlements`; один live/unknown journal запрещает конкурентную выдачу.
 - Миграции **forward-only**; pre-migration backup, `schema_migrations`, postcondition и `PRAGMA quick_check` обязательны по соответствующим правилам ниже. `requires_backup=True` для опасной миграции, без recovery copy её нельзя начинать. Старый код на более новой schema блокируется `DatabaseSchemaTooNewError`.
