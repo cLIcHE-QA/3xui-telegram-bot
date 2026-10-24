@@ -60,6 +60,9 @@ server {
         limit_req_status 429;
         limit_conn d1b_connection 5;
 
+        # Данные login/сессий не должны попадать в обычный access log.
+        # Запуск отдельного privacy-safe security audit — позже по approval.
+        access_log off;
         proxy_pass http://127.0.0.1:8817;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
