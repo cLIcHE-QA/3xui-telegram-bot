@@ -1,5 +1,5 @@
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-24 12:34 UTC+03:00 (GitHub squash merge 2026-10-24T09:34:32Z; завершение post-merge CI 2026-10-24T09:37:26Z)
+- **Дата/время и часовой пояс:** 2026-10-24 12:38 UTC+03:00 (GitHub squash merge 2026-10-24T09:34:32Z; завершение post-merge CI 2026-10-24T09:37:26Z)
 - **Окружение:** GitHub REST/connector read-back, docs-only D0, GitHub Actions pre/post merge; VPS, Telegram WebView и runtime не проверялись и не менялись
 - **Цель:** подтвердить разрешённый merge архитектуры #887, сохранить канонические решения по INCY/RabbitHole и разделить подготовленный D1a preview от настоящей приёмки
 - **Версия и immutable tag/SHA:** `main` docs merge SHA `3828a417bc0de6fe61f9df878cce043c15bfd343`; pre-merge head `9c2798154b2e165a988b41327b06410cb1204b5e`; Published `v5.0.0-rc.19` SHA `d738dd970f2215adc346a919c7ed182abaf454b1` (не содержит D0)
