@@ -54,6 +54,11 @@ jobs:
         env:
           VITE_D2A_PILOT_UI: 'true'
         run: npx playwright test --grep "D2a opt-in" --project desktop-chromium
+      - name: Проверить D2b standalone challenge в изолированном браузере
+        working-directory: web/subscription-page
+        env:
+          VITE_D2B_STANDALONE_PILOT_UI: 'true'
+        run: npx playwright test --grep "D2b opt-in" --project desktop-chromium
       - name: Сохранить browser evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
