@@ -228,7 +228,7 @@ class OfflineBackupAndRotationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.recovery.restore(self.sealed, self.backup_key, public / "restored")
         self.assertFalse((public / "restored").exists())
-        link = self.root / "db-link.sqlite3"
+        link = self.source / "db-link.sqlite3"
         link.symlink_to(self.db_path)
         with self.assertRaises(ValueError):
             OfflineD1bRecovery(self.source, self.key, db_name="db-link.sqlite3").backup(
