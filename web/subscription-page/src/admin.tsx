@@ -227,7 +227,7 @@ function App(){
   }catch(error){setAlert(messageOf(error));}
   finally{setBusy(false);}
  }
- if(checking)return <div className="admin-shell"><Text>Проверка отдельной админ-сессии…</Text></div>;
+ if(checking)return <MantineProvider defaultColorScheme="dark"><div className="admin-shell"><Text>Проверка отдельной админ-сессии…</Text></div></MantineProvider>;
  if(!session)return <MantineProvider defaultColorScheme="dark"><div className="admin-shell">
    <Container size={490}><Card className="admin-login" padding="xl">
     <Badge color="cyan">D1b · только администратор</Badge>
