@@ -59,6 +59,7 @@ def build_isolated_pilot(
     feature_flags: object,
     pilot_ids: frozenset[int],
     now: Callable[[], float] = time.time,
+    display_full_challenge: bool = False,
 ) -> IsolatedPilot:
     """Bind one private Telegram Router and one HTTP app to one SQLite ledger.
 
@@ -72,6 +73,8 @@ def build_isolated_pilot(
     """
     if explicitly_enabled is not True:
         raise ValueError("Standalone pilot must be explicitly enabled")
+    if type(display_full_challenge) is not bool:
+        raise ValueError("Explicit anti-phishing display mode required")
     if not isinstance(sqlite_path, str) or (
         not Path(sqlite_path).is_absolute()
         or Path(sqlite_path).name != _LEDGER_NAME
@@ -88,7 +91,9 @@ def build_isolated_pilot(
     if pilot.ledger is None:
         raise ValueError("Shared standalone ledger required")
     dispatcher = Dispatcher()
-    approval = StandaloneTelegramApproval(pilot)
+    approval = StandaloneTelegramApproval(
+        pilot, display_full_challenge=display_full_challenge,
+    )
     dispatcher.include_router(approval.router)
     # Do NOT call start_polling, register a production handler, or start HTTP.
     return IsolatedPilot(pilot=pilot, dispatcher=dispatcher, approval=approval)

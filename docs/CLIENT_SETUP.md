@@ -185,3 +185,8 @@ Operator-reported после обновления: 3x-ui показывает `W
 ## Адресная проверка Happ с 20-значным suffix (#827; PENDING)
 
 После отдельно разрешённых merge, release и deployment сверить точный deployed tag/SHA, затем на разрешённом Pixel 6 с Android 17 выполнить только read-only просмотр клиентской и административной HWID-карточек для `Happ/4.7.1/Android/17912108360521999608`. Ожидается `VPN-клиент: Happ` в Client Portal и распознавание `Happ` в admin diagnostic; исходная модель, ОС и timestamps неизменны. Убедиться, что клиентский список и detail не раскрывают сырой User-Agent, suffix либо fingerprint; запрещённые дополнительные хвосты продолжают давать `Не определён`. Проверить health и отдельно записать evidence (точный tag/SHA, время с TZ, источник, результат). Не выполнять DELETE/платежи, не расширять pilot. Пока smoke отсутствует: #827 OPEN/keep_open, scoped acceptance PENDING.
+
+
+## #887 D2d — отдельный staging Telegram Bot API + HTTPS ingress (не развёрнут)
+
+Для подготовки независимого синтетического staging клиента/Telegram Web login используйте профильный [runbook D2d](SUBPAGE_STAGING.md): отдельные BotFather token/allowlist/0700+0600 файлы, `getMe`/webhook identity verification, одно-процессный локальный SQLite, неизменённый production `app_runtime`, строгий TLS/SNI/Host/Origin, Nginx edge rate/429 и anti-phishing-сверка полного кода. Шаблоны `deploy/subpage-staging/**` default-off и содержат только `.invalid` origin, **это не команда по включению**. До отдельного security/deployment approval нет real Bot API, DNS/TLS, device smoke, CLI start, release или production mutations; #887 `keep_open`, G-11 `PARTIAL/NO-GO`.

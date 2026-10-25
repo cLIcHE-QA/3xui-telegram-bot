@@ -59,6 +59,12 @@ jobs:
         env:
           VITE_D2B_STANDALONE_PILOT_UI: 'true'
         run: npx playwright test --grep "D2b opt-in" --project desktop-chromium
+      - name: 'Проверить D2d staging UX: полный код и origin (только synthetic)'
+        working-directory: web/subscription-page
+        env:
+          VITE_D2B_STANDALONE_PILOT_UI: 'true'
+          VITE_D2D_STAGING_UI: 'true'
+        run: npx playwright test --grep "D2d staging opt-in" --project desktop-chromium
       - name: Сохранить browser evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
