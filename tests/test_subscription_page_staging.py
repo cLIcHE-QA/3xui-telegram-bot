@@ -150,6 +150,11 @@ class StagingConfigTests(unittest.IsolatedAsyncioTestCase):
         bot.get_webhook_info.return_value.url = "https://example.invalid/webhook"
         with self.assertRaises(ValueError):
             await verify_staging_bot(bot, config)
+        # Bot API exception details may include a request URL/token.
+        bot.get_me.side_effect = RuntimeError("synthetic-sensitive-Bot-API-URL")
+        with self.assertRaises(ValueError) as error:
+            await verify_staging_bot(bot, config)
+        self.assertNotIn("synthetic-sensitive", str(error.exception))
 
     async def test_staging_shows_whole_code_only_after_owner_private_guard(self):
         path = str(self.root / "standalone-pilot.sqlite3")
