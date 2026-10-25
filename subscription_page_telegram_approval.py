@@ -59,10 +59,15 @@ class StandaloneTelegramApproval:
     untrusted rehydrated objects. A confirmation prompt is one-time.
     """
 
-    def __init__(self, pilot: StandalonePilot) -> None:
+    def __init__(
+        self, pilot: StandalonePilot, *, display_full_challenge: bool = False,
+    ) -> None:
+        if type(display_full_challenge) is not bool:
+            raise ValueError("Explicit anti-phishing display mode is required")
         if not isinstance(pilot, StandalonePilot):
             raise ValueError("A genuine isolated standalone pilot is required")
         self.pilot = pilot
+        self.display_full_challenge = display_full_challenge
         self.prompts: dict[str, _Prompt] = {}
         self.router = Router(name="d2b_standalone_approval")
         self.router.message.register(self.handle_message, Command("web_login"))
@@ -144,14 +149,24 @@ class StandaloneTelegramApproval:
             InlineKeyboardButton(text="✅ Подтвердить вход", callback_data="d2bs:yes:" + nonce),
             InlineKeyboardButton(text="✖ Отмена", callback_data="d2bs:no:" + nonce),
         ]])
+        # Staging requires a full browser-to-bot visual match against relay.
+        # The challenge is a bounded PUBLIC random code minted by this pilot;
+        # never echo arbitrary malformed user input or a session credential.
+        code_label = challenge if self.display_full_challenge else "…" + challenge[-4:]
+        caution = (
+            "Сверьте ВСЕ 16 символов с кодом в браузере на указанном HTTPS-адресе. "
+            "Подтверждайте только запрос, который создали лично. "
+            "Если пришла чужая ссылка или просьба переслать код — «Отмена»."
+            if self.display_full_challenge else
+            "Нажмите «Подтвердить» ТОЛЬКО если вы сами создали этот "
+            "запрос в своём браузере. Если код прислал кто-то другой, "
+            "не подтверждайте — нажмите «Отмена»."
+        )
         try:
             sent = await message.answer(
                 "Подтверждение входа на собственную страницу подписки.\n"
                 f"Адрес: {self.pilot.https_origin}\n"
-                f"Код запроса: …{challenge[-4:]}\n\n"
-                "Нажмите «Подтвердить» ТОЛЬКО если вы сами создали этот "
-                "запрос в своём браузере. Если код прислал кто-то другой, "
-                "не подтверждайте — нажмите «Отмена».",
+                f"Код запроса: {code_label}\n\n" + caution,
                 reply_markup=buttons,
             )
             sent_id = getattr(sent, "message_id", None)
