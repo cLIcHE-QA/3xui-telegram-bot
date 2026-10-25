@@ -161,14 +161,19 @@ def read_staging_bot_token(cfg: StagingConfig) -> str:
 
 async def verify_staging_bot(bot: Bot, cfg: StagingConfig) -> None:
     """Read-only getMe, fail-closed before opening the local web listener."""
-    me = await bot.get_me()
-    if (getattr(me, "is_bot", None) is not True
-            or getattr(me, "id", None) != cfg.expected_bot_id
-            or getattr(me, "username", None) != cfg.expected_bot_username):
-        raise ValueError("Remote staging Bot API identity mismatch")
-    webhook = await bot.get_webhook_info()
-    if getattr(webhook, "url", None) != "":
-        raise ValueError("A separate staging bot must have no active webhook")
+    # Never expose a Bot API transport exception / request URL in logs:
+    # the request path may contain the staging Bot token.
+    try:
+        me = await bot.get_me()
+        if (getattr(me, "is_bot", None) is not True
+                or getattr(me, "id", None) != cfg.expected_bot_id
+                or getattr(me, "username", None) != cfg.expected_bot_username):
+            raise ValueError("Remote staging Bot API identity mismatch")
+        webhook = await bot.get_webhook_info()
+        if getattr(webhook, "url", None) != "":
+            raise ValueError("A separate staging bot must have no active webhook")
+    except Exception:
+        raise ValueError("Staging Bot API identity preflight denied") from None
 
 
 class _SyntheticFlags:
