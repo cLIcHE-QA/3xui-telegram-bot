@@ -95,8 +95,10 @@ class StagingConfig:
             if (type(value) is not str or not Path(value).is_absolute()
                     or ".." in Path(value).parts):
                 raise ValueError("Absolute private staging file paths are required")
-        if Path(ledger).name != "standalone-pilot.sqlite3" or token_file == ledger:
-            raise ValueError("Dedicated standalone SQLite file required")
+        if (Path(ledger).name != "standalone-pilot.sqlite3"
+                or Path(token_file).name != "staging-bot.token"
+                or Path(token_file).parent != Path(ledger).parent):
+            raise ValueError("Dedicated staging secret and SQLite directory required")
         return cls(
             enabled=obj["enabled"], edge_reviewed=obj["edge_reviewed"],
             https_origin=origin, bot_token_file=token_file,
@@ -136,6 +138,8 @@ def _read_private_file(path: str) -> bytes:
 
 
 def load_staging_config(path: str) -> StagingConfig:
+    if type(path) is not str or Path(path).name != "staging-config.json":
+        raise ValueError("Dedicated private staging-config.json is required")
     try:
         obj = json.loads(_read_private_file(path).decode("utf-8"))
     except (ValueError, UnicodeError, json.JSONDecodeError):
@@ -162,6 +166,9 @@ async def verify_staging_bot(bot: Bot, cfg: StagingConfig) -> None:
             or getattr(me, "id", None) != cfg.expected_bot_id
             or getattr(me, "username", None) != cfg.expected_bot_username):
         raise ValueError("Remote staging Bot API identity mismatch")
+    webhook = await bot.get_webhook_info()
+    if getattr(webhook, "url", None) != "":
+        raise ValueError("A separate staging bot must have no active webhook")
 
 
 class _SyntheticFlags:
@@ -208,6 +215,7 @@ async def run_approved_staging(
             customer_service=_SyntheticCustomer(cfg.pilot_ids),
             feature_flags=_SyntheticFlags(),
             pilot_ids=cfg.pilot_ids,
+            display_full_challenge=True,
         )
         listener = await start_loopback_api(
             bundle, explicitly_enabled=True, host="127.0.0.1",
