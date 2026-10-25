@@ -64,9 +64,11 @@ def _resolve_public_address(hostname: str) -> tuple[int, str]:
                 or getattr(address, "ipv4_mapped", None) is not None):
             raise ValueError("Non-public staging DNS address refused")
         addresses.add((family, str(address)))
-    if not addresses:
-        raise ValueError("Staging DNS address missing")
-    return sorted(addresses, key=lambda item: (item[0] != socket.AF_INET, item[1]))[0]
+    if len(addresses) != 1:
+        # Refuse partial evidence from dual-stack / load-balanced frontends:
+        # one successful probe must never attest to another untested IP.
+        raise ValueError("Dedicated staging DNS must resolve to one verified address")
+    return next(iter(addresses))
 
 
 def _tls_head(family: int, address: str, hostname: str, path: str,
