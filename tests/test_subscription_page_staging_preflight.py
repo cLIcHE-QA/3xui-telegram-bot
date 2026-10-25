@@ -146,7 +146,7 @@ class StagingEdgePreflightTests(unittest.TestCase):
 
     def test_positive_validation_never_masks_wrong_host_or_forbidden_paths(self):
         for mode in ("host_ok", "forbidden_ok", "certificate_drift",
-                     "redirect", "cookie", "bad_header", "weak_tls"):
+                     "redirect", "cookie", "bad_header", "weak_hsts", "weak_tls"):
             with self.subTest(mode=mode):
                 _, resolver, good = self.fake_network()
                 def bad(family, address, hostname, path, host_header):
@@ -163,6 +163,8 @@ class StagingEdgePreflightTests(unittest.TestCase):
                         return self.reply(**{"set-cookie": "bad=1"})
                     if mode == "bad_header" and path == "/":
                         return self.reply(**{"x-frame-options": "ALLOWALL"})
+                    if mode == "weak_hsts" and path == "/":
+                        return self.reply(**{"strict-transport-security": "max-age=0"})
                     if mode == "weak_tls" and path == "/":
                         return preflight.EdgeReply(200, self.reply().headers,
                                                    "TLSv1.0", self.TLS_FINGERPRINT)
