@@ -112,14 +112,9 @@ def _check_public_origin(cfg: StagingConfig, approved_origin: str) -> str:
     hostname = url.hostname
     if (url.scheme != "https" or not hostname
             or cfg.https_origin != "https://" + hostname
-            or not hostname.endswith(tuple()) if False else False):
-        # This branch is intentionally not used: canonical constraints below
-        # are checked without relying on a caller-constructed dataclass.
-        raise ValueError("Invalid staging HTTPS origin")
-    if (url.scheme != "https" or not hostname or cfg.https_origin != "https://" + hostname
-            or "." not in hostname or "staging" not in hostname.split(".")
-            and not any("staging" in label for label in hostname.split("."))
-            or hostname.endswith((".invalid", ".test", ".localhost", ".local"))
+            or "." not in hostname
+            or not any("staging" in label for label in hostname.split("."))
+            or hostname.endswith((".invalid", ".test", ".example", ".localhost", ".local"))
             or any(ord(char) > 127 for char in hostname)):
         raise ValueError("Real dedicated staging HTTPS origin required")
     return hostname
