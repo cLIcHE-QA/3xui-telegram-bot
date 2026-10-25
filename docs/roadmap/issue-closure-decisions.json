@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D2a #898 and D2b #900 squash merged into main; #900 exact-head pre-merge required test/title PASS (1465 Python, 3 skipped), 15 Node and 61 synthetic browser tests, supply-chain PASS. Only isolated/default-off offline scope accepted; no live Telegram/HTTPS/production acceptance.",
-      "evidence": "docs/audits/2026-10-25-887-d2b-postmerge-roadmap-checkpoint.md",
+      "accepted": "D2a #898, D2b #900 и D2c #902 объединены через squash merge. На точном head #902 required `test/title` PASS (1470 Python tests, 3 skipped), `frontend-model` PASS (15 Node, 61 synthetic Playwright). После merge push `test` attempt 1 FAIL на D1b/TOTP (200 вместо 401), attempt 2 PASS на том же SHA; `frontend-model` push PASS. Подтверждён только изолированный default-off offline scope, real Telegram/HTTPS/device acceptance PENDING.",
+      "evidence": "docs/audits/2026-10-25-887-d2c-postmerge-roadmap-checkpoint.md",
       "date": "2026-10-25",
-      "comment": "#887 keep_open: D2a and D2b offline code in main SHA 54e045e827b65b62e5a8a010fe3ef6582a2f0b54. Telegram private Router not registered, standalone listener/edge disabled; live verified Bot Update, anti-phishing UX, trusted TLS/SNI/edge rate, multi-bot/multi-host state, WebView/device, private JSON 1:1, D3 import/Copy/QR, rollout/recovery, full G-11 acceptance PENDING. Published rc.19 excludes D2b; deployed rc.18.10 operator-reported."
+      "comment": "#887 keep_open: D2c #902 MERGED в main SHA aafdc9871d8e7231a696b249085b11b6fd12ecc0; real private Telegram Bot API, антифишинговый/relay UX, безопасная staging-конфигурация и secrets, trusted HTTPS TLS/SNI/Host/Origin ingress, проверенные edge request/rate limits, WebView/device, multi-bot/multi-host shared state/recovery, D3 import/Copy/QR, private JSON 1:1 и G-11 остаются PENDING. Published rc.19 не содержит D2c, Deployed rc.18.10 только operator-reported. Post-merge push `test`: attempt 1 D1b/TOTP FAIL, attempt 2 PASS; причина начального FAIL PENDING."
     }
   ]
 }
