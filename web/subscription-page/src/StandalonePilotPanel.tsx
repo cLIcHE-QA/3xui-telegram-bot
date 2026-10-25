@@ -73,8 +73,24 @@ const labels: Record<string, Record<string, string>> = {
   },
 };
 
+const stagingCaution: Record<string, string> = {
+  ru: "Staging: сверяйте ВСЕ 16 символов кода с сообщением от проверенного staging-бота и HTTPS-адрес в адресной строке. Подтверждайте только запрос, который создали лично. Если код или домен не совпадает, нажмите «Отмена».",
+  en: "Staging: compare ALL 16 code characters with the verified staging bot and the HTTPS address bar. Approve only your own request; cancel any mismatch.",
+  fr: "Staging : comparez les 16 caractères du code avec le bot de test vérifié et l'adresse HTTPS. Refusez toute différence ou demande non initiée.",
+  zh: "测试环境：核对全部 16 位验证码及浏览器地址栏中的 HTTPS 域名。仅批准本人发起的请求，发现不一致立即取消。",
+  fa: "محیط آزمایشی: هر ۱۶ نویسهٔ کد و دامنهٔ HTTPS در نوار آدرس را با ربات آزمایشی معتبر مقایسه کنید. هر درخواست ناشناس را رد کنید.",
+};
+
+const stagingOriginLabel: Record<string, string> = {
+  ru: "Проверяйте адресную строку браузера:", en: "Verify the browser address bar:",
+  fr: "Vérifiez l'adresse dans le navigateur :", zh: "核对浏览器地址栏：",
+  fa: "نشانی مرورگر را بررسی کنید:",
+};
+
 export function StandalonePilotPanel({ language }: Props) {
   const t = labels[language] ?? labels.ru;
+  // This label is a build-only UX hint, never an authorization decision.
+  const stagingUi = import.meta.env.VITE_D2D_STAGING_UI === "true";
   const [phase, setPhase] = useState<Phase>("idle");
   const [challenge, setChallenge] = useState("");
   const [summary, setSummary] = useState<CustomerSummary | null>(null);
@@ -163,11 +179,14 @@ export function StandalonePilotPanel({ language }: Props) {
         <Badge color="gray">{t.pilot}</Badge>
       </Group>
       <Text size="sm">{t.description}</Text>
-      <Alert color="yellow" role="status">{t.caution}</Alert>
+      <Alert color="yellow" role="status">{stagingUi ? (stagingCaution[language] ?? stagingCaution.ru) : t.caution}</Alert>
       {phase === "pending" || (phase === "working" && challenge)
         ? <Stack gap="xs">
           <Text fw={700}>{t.code}:</Text>
           <Code data-testid="d2b-challenge">{challenge}</Code>
+          {stagingUi && <Text size="sm" data-testid="d2d-staging-origin">
+            {stagingOriginLabel[language] ?? stagingOriginLabel.ru} <Code>{window.location.origin}</Code>
+          </Text>}
           <Text size="sm">{t.waiting}</Text>
           <Group>
             <Button onClick={() => { void finish(); }} disabled={busy.current}>{t.confirm}</Button>
