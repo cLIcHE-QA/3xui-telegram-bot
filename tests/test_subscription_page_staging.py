@@ -1,10 +1,7 @@
 """#887 D2d: offline-only staging gates; NEVER call a real Bot API."""
 from __future__ import annotations
 
-import asyncio
 import json
-import os
-import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -48,17 +45,14 @@ class StagingConfigTests(unittest.IsolatedAsyncioTestCase):
         path.write_text(content, encoding="utf-8")
         path.chmod(0o600)
 
-    def test_default_off_has_no_external_or_runtime_activity(self):
+    async def test_default_off_has_no_external_or_runtime_activity(self):
         config = self.config()
         self.assertFalse(config.enabled)
         self.assertFalse(config.edge_reviewed)
         with patch("subscription_page_staging.read_staging_bot_token") as secret:
             with self.assertRaises(ValueError):
-                asyncio.run(self._off(config))
+                await run_approved_staging(config, explicitly_enabled=False)
             secret.assert_not_called()
-
-    async def _off(self, config):
-        await run_approved_staging(config, explicitly_enabled=False)
 
     async def test_default_off_and_unaudited_edge_never_read_bot_token(self):
         with patch("subscription_page_staging.read_staging_bot_token") as secret:
@@ -116,7 +110,9 @@ class StagingConfigTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             load_staging_config(str(self.conf_path))
         self.root.chmod(0o700)
-        copied = self.root / "staging-config-symlink.json"
+        shadow = self.root / "alias"
+        shadow.mkdir(mode=0o700)
+        copied = shadow / "staging-config.json"
         copied.symlink_to(self.conf_path)
         with self.assertRaises(ValueError):
             load_staging_config(str(copied))
