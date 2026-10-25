@@ -9,6 +9,7 @@ physical devices or grant deployment / production acceptance.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import hashlib
 import http.client
 import ipaddress
@@ -19,7 +20,12 @@ from dataclasses import dataclass
 from typing import Callable
 from urllib.parse import urlsplit
 
-from subscription_page_staging import StagingConfig, load_staging_config
+from aiogram import Bot
+
+from subscription_page_staging import (
+    StagingConfig, load_staging_config, read_staging_bot_token,
+    verify_staging_bot,
+)
 
 _TIMEOUT = 4.0
 _DENIED_PATHS = (
@@ -193,23 +199,70 @@ def probe_approved_public_edge(
     }
 
 
+
+async def check_approved_telegram_identity(
+    cfg: StagingConfig, *, reviewed_username: str,
+    explicitly_authorized: bool = False,
+    bot_factory: Callable[..., object] | None = None,
+) -> dict[str, object]:
+    """Read-only getMe/getWebhookInfo; never poll, send, setWebhook or mutate.
+
+    Requires a separate owner-private staging token file and exact, externally
+    reviewed staging bot username. No bot is initialized before these gates.
+    """
+    if (explicitly_authorized is not True or cfg.enabled is not False
+            or type(reviewed_username) is not str
+            or reviewed_username != cfg.expected_bot_username):
+        raise ValueError("Read-only Bot API identity review denied")
+    token = read_staging_bot_token(cfg)
+    factory = bot_factory if bot_factory is not None else Bot
+    async with factory(token=token) as bot:
+        await asyncio.wait_for(verify_staging_bot(bot, cfg), timeout=12)
+    return {
+        "status": "PARTIAL",
+        "scope": "read_only_staging_bot_identity",
+        "bot_identity_and_webhook": "PASS",
+        "bot_api_methods": ["getMe", "getWebhookInfo"],
+        "polling_or_mutations": "NONE",
+        "dns_tls_edge": "PENDING",
+        "edge_rate_limits": "PENDING",
+        "mobile_webview": "PENDING",
+        "overall_acceptance": "PENDING",
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="D2e staging edge preflight; default OFF")
     parser.add_argument("config_file", help="Private 0600 staging-config.json")
-    parser.add_argument("--probe-approved-public-edge", action="store_true")
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument("--probe-approved-public-edge", action="store_true")
+    actions.add_argument("--verify-approved-bot-identity", action="store_true")
     parser.add_argument("--reviewed-origin")
     parser.add_argument("--direct-tcp-confirmed", action="store_true")
+    parser.add_argument("--reviewed-bot-username")
+    parser.add_argument("--explicit-telegram-readonly", action="store_true")
     args = parser.parse_args(argv)
     try:
         cfg = load_staging_config(args.config_file)
         if args.probe_approved_public_edge:
+            if args.reviewed_bot_username is not None or args.explicit_telegram_readonly:
+                raise ValueError("Mixing Bot API and edge preflight denied")
             report = probe_approved_public_edge(
                 cfg, approved_origin=args.reviewed_origin,
                 direct_tcp_confirmed=args.direct_tcp_confirmed,
             )
-        else:
+        elif args.verify_approved_bot_identity:
             if args.reviewed_origin is not None or args.direct_tcp_confirmed:
-                raise ValueError("Live-only flags require explicit public edge probe")
+                raise ValueError("Mixing Bot API and edge preflight denied")
+            report = asyncio.run(check_approved_telegram_identity(
+                cfg, reviewed_username=args.reviewed_bot_username,
+                explicitly_authorized=args.explicit_telegram_readonly,
+            ))
+        else:
+            if (args.reviewed_origin is not None or args.direct_tcp_confirmed
+                    or args.reviewed_bot_username is not None
+                    or args.explicit_telegram_readonly):
+                raise ValueError("Network-only flags require one explicit preflight mode")
             report = {
                 "status": "PENDING", "scope": "offline_private_config_only",
                 "config_schema_and_file_permissions": "PASS",
