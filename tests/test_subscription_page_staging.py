@@ -184,7 +184,11 @@ class StagingConfigTests(unittest.IsolatedAsyncioTestCase):
                 )
             forged = message(actor=100_002)
             await bundle.approval.handle_message(forged)
-            forged.answer.assert_not_awaited()
+            # A foreign private actor may receive a generic denial message,
+            # but never the valid code or a confirmation prompt.
+            forged.answer.assert_awaited_once()
+            self.assertNotIn(code, forged.answer.await_args.args[0])
+            self.assertFalse(bundle.approval.prompts)
             relay = message(forwarded=True)
             await bundle.approval.handle_message(relay)
             relay.answer.assert_not_awaited()
