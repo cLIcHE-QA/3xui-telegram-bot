@@ -170,6 +170,9 @@ def probe_approved_public_edge(
     resolve = resolver if resolver is not None else _resolve_public_address
     head = request if request is not None else _tls_head
     family, address = resolve(hostname)
+    if (family not in (socket.AF_INET, socket.AF_INET6)
+            or not ipaddress.ip_address(address).is_global):
+        raise ValueError("Staging edge endpoint must be a public TCP address")
 
     def query(path: str, host_header: str = hostname) -> EdgeReply:
         value = head(family, address, hostname, path, host_header)
