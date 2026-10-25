@@ -1,0 +1,14 @@
+{
+  "mode": "isolated-staging",
+  "enabled": false,
+  "edge_reviewed": false,
+  "https_origin": "https://staging.example.invalid",
+  "bot_token_file": "/var/lib/subpage-staging-private/staging-bot.token",
+  "expected_bot_id": 900001,
+  "expected_bot_username": "StagingExampleBot",
+  "pilot_ids": [
+    100001
+  ],
+  "sqlite_path": "/var/lib/subpage-staging-private/standalone-pilot.sqlite3",
+  "loopback_port": 8827
+}
