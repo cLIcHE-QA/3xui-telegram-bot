@@ -1,6 +1,6 @@
 # #887 — изолированный staging Telegram + HTTPS (D2d, до deployment)
 
-**Статус:** только source/template/offline CI, **не** разрешение развернуть и не live acceptance. Каноническая [архитектура #887](WEB_SUBSCRIPTION_MINI_APP.md), [Roadmap](ROADMAP.md), [Client Setup](CLIENT_SETUP.md), [Git workflow](GIT_WORKFLOW.md). Реальный Bot API, VPS, DNS, сертификат и телефонные браузеры в этом PR не проверялись; G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+**Статус:** D2d source/template уже MERGED ([#904](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/904), Roadmap [#905](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/905)), **не deployed и не live accepted**. D2e — отдельный default-off preflight, ещё в feature PR. Каноническая [архитектура #887](WEB_SUBSCRIPTION_MINI_APP.md), [Roadmap](ROADMAP.md), [Client Setup](CLIENT_SETUP.md), [Git workflow](GIT_WORKFLOW.md). Реальный Bot API, VPS, DNS, сертификат и телефонные браузеры в этом PR не проверялись; G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 ## Границы и режим исполнения
 
@@ -37,4 +37,43 @@ Stand­alone браузер показывает весь 16-символьны�
 5. **Browser/device:** адресная строка и сравнение кода на физических iOS Safari + Telegram WebView и Android Chrome + Telegram WebView; проверить Secure/HttpOnly/SameSite Strict, login 202→200 только в исходном браузере, logout/revoke/TTL, чужую cookie/Host/Origin, реальные тайминги и честный отказ WebView. Playwright Chromium/WebKit — только synthetic browser model, не замена физическому устройству.
 6. **Postconditions/rollback:** read-only status с синтетическим DTO, отдельный health/monitoring, после остановки polling/loopback ingress должен быть закрыт, токен/сессии отозваны по отдельному плану, independent staging read-back и датированный audit с SHA/источником. **No production release, no deployment, no Issue completion** только по CI.
 
-**Границы acceptance:** Issue [#887](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/887) остаётся `OPEN / keep_open`; #885 и #890 независимы. Published `v5.0.0-rc.19` не включает D2d, Deployed `v5.0.0-rc.18.10` лишь operator-reported; целевой полный v5 G-11 `PARTIAL/NO-GO`. Для настоящей публикации ingress и любого запуска нового poller нужно отдельное явное согласование оператора после review DNS/TLS/secret/config и topology. **Merge этого PR тоже не разрешён автоматически.**
+**Границы acceptance:** Issue [#887](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/887) остаётся `OPEN / keep_open`; #885 и #890 независимы. Published `v5.0.0-rc.19` не включает D2d, Deployed `v5.0.0-rc.18.10` лишь operator-reported; целевой полный v5 G-11 `PARTIAL/NO-GO`. Для настоящей публикации ingress и любого запуска нового poller нужно отдельное явное согласование оператора после review DNS/TLS/secret/config и topology. **Merge новых PR, staging deployment и любые production mutations требуют отдельных явных разрешений.**
+
+
+## D2e — read-only preflight перед подключением реального staging (feature PR, 2026-10-25)
+
+Для #887 подготовлен **отдельный и по умолчанию полностью offline** инструмент `subscription_page_staging_preflight.py`. Он не запускает сервер, polling, webhook, команды, транзакции, запись в SQLite или выпуск сертификатов. Не меняет конфигурацию Nginx, DNS и токены. Его синтетические тесты не являются проверкой публичного staging или iOS/Android. До независимого CI/merge и operator security approval никакие реальные probes не запускались.
+
+**Режим без сети (только закрытый staging JSON):**
+
+```sh
+python subscription_page_staging_preflight.py /private/staging-config.json
+```
+
+Команда проверяет только JSON и права `0600` приватного файла в каталоге `0700`; **не читает токен**, не делает DNS/API/TLS запросы и печатает только обезличенный JSON `status=PENDING`, `requests_sent=0`. Отсутствие DNS/токена в этой фазе не является ошибкой, но не даёт права включать staging.
+
+**Опциональный read-only Bot API identity gate (строго по отдельному approved staging bot):** до выполнения проверить право владения ботом, отсутствие production token, согласованный `expected_bot_username` и изоляцию polling/webhook. Токен лежит только в приватном `staging-bot.token`, в аргументы/CI logs/GitHub не копируется. Пример команды с **условными значениями**, не исполнять до approval:
+
+```sh
+python subscription_page_staging_preflight.py /private/staging-config.json \
+  --verify-approved-bot-identity \
+  --reviewed-bot-username StagingExampleBot \
+  --explicit-telegram-readonly
+```
+
+Инструмент при `enabled=false` и совпадении имени читает только приватный staging token, проверяет **ровно `getMe` и `getWebhookInfo`** (с overall timeout) и закрывает клиент. `start_polling`, отправка сообщений, webhook mutations и вход пользователей отсутствуют. `getMe` mismatch или non-empty webhook → fail-closed `BLOCKED`, детали HTTP URL/токена в консоль не выводятся. Успех подтверждает лишь read-only identity, **не** разрешение открыть listener.
+
+**Опциональный public direct-TCP HTTPS edge gate:** только после отдельного review владения staging DNS, chain/SAN/SNI, отсутствия CDN/LB/proxy перед первым Nginx, проверенной отдельной конфигурации ingress и допустимости пяти безопасных HEAD запросов. Для чтения edge конфиг должен иметь `enabled=false` и подтверждённое `edge_reviewed=true`; `reviewed-origin` обязан побайтово совпадать с приватным `https_origin`. Пример синтаксиса после review (адрес заменить только на самостоятельно проверенный, принадлежащий оператору staging host):
+
+```sh
+python subscription_page_staging_preflight.py /private/staging-config.json \
+  --probe-approved-public-edge \
+  --reviewed-origin https://staging.owned-domain.example \
+  --direct-tcp-confirmed
+```
+
+`.example` в образце намеренно не является разрешённым live DNS. Инструмент fail-closed отклоняет зарезервированные/private/mixed DNS ответы, закрепляет один публичный IP (без повторного resolver на каждом запросе), делает только **5** HEAD: `/`, `/admin/`, `/compat/`, `/api/subpage/v1/auth/standalone/approve` и `/` с чужим Host. Использует системную доверенную CA, hostname/SNI verification, TLS 1.2+, `no-store`, `no-referrer`, HSTS, CSP/anti-framing; запрещает redirects/cookies на корне, случайно открытые маршруты и положительный ответ на чужой Host. Выводит **только status, количество запросов и SHA-256 публичного TLS-сертификата**, не печатает IP, private bot ID, path конфигурации и токен. Проверка не вносит изменений, но сетевой доступ к реальному staging **сам по себе требует отдельного одобрения и аудита**, даже если запросы read-only.
+
+**Чего preflight не доказывает:** реальную edge конфигурацию, корректные per-IP rate limits `5r/m` / `12r/m` / `5r/s`, а также `429` при burst, CDN/LB anti-spoof/topology, public DoS, Telegram private ownership/anti-relay, browser session binding, production compliance, физический Safari/Chrome/Telegram WebView, rollout/rollback, многопроцессный recovery, D3 import/Copy/QR. Для edge-rate нужен **отдельный** ограниченный сценарий на разрешённом staging с подтверждением Nginx/TCP topology и независимыми `429/413` evidence, без массовой нагрузки; для iOS/Android нужна физическая device matrix. Метки `PARTIAL` и `PENDING` в отчёте — обязательные. **Не использовать синтетический PASS как real staging/device PASS, не закрывать #887.**
+
+**Fail-closed при отсутствии operator evidence:** если нет подтверждённого staging DNS, cert, отдельного токена, разрешённой сетевой среды, direct-TCP topology и безопасного доступа, выполнять только offline JSON preflight и регрессию CI. Не пытаться получить секреты из production, читать Telegram переписку, обращаться к чужим доменам или запускать Bot polling из GitHub Actions. Следующий операторский gate должен отдельно подтвердить точную среду и разрешение на реальные read-only probe, а запуск ingress/Bot polling остаётся ещё одним самостоятельным решением.
