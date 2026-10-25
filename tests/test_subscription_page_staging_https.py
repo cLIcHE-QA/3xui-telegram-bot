@@ -35,8 +35,8 @@ def tls_request(port: int, method: str, path: str, *,
                 body: bytes = b"", extra: dict[str, str] | None = None,
                 ) -> tuple[int, dict[str, str], bytes]:
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ctx.verify_mode = ssl.CERT_NONE  # LOCAL SYNTHETIC TEST CERT ONLY.
     ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE  # LOCAL SYNTHETIC TEST CERT ONLY.
     headers = {
         "Host": host, "Origin": origin,
         "Content-Type": "application/json", "Content-Length": str(len(body)),
