@@ -139,8 +139,10 @@ def _validate_security_headers(reply: EdgeReply) -> None:
            for key, value in required.items()):
         raise ValueError("Missing staging no-store / anti-framing headers")
     hsts = reply.headers.get("strict-transport-security", "")
-    if not hsts.startswith("max-age=") or not hsts[8:].split(";")[0].isdigit():
-        raise ValueError("Staging HSTS missing")
+    if (not hsts.startswith("max-age=")
+            or not hsts[8:].split(";")[0].isdigit()
+            or int(hsts[8:].split(";")[0]) < 300):
+        raise ValueError("Staging HSTS missing or disabled")
     csp = reply.headers.get("content-security-policy", "")
     if "frame-ancestors 'none'" not in csp or "default-src 'none'" not in csp:
         raise ValueError("Staging CSP missing")
