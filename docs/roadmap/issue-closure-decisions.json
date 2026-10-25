@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D2a #898, D2b #900 и D2c #902 объединены через squash merge. На точном head #902 required `test/title` PASS (1470 Python tests, 3 skipped), `frontend-model` PASS (15 Node, 61 synthetic Playwright). После merge push `test` attempt 1 FAIL на D1b/TOTP (200 вместо 401), attempt 2 PASS на том же SHA; `frontend-model` push PASS. Подтверждён только изолированный default-off offline scope, real Telegram/HTTPS/device acceptance PENDING.",
-      "evidence": "docs/audits/2026-10-25-887-d2c-postmerge-roadmap-checkpoint.md",
+      "accepted": "D2a #898, D2b #900, D2c #902 и D2d #904 squash MERGED; exact-head #904 required test/title PASS (1483 Python, 3 skipped), frontend-model и supply-chain PASS. Post-merge push #904 на merge SHA: test/frontend/supply-chain PASS (GitHub jobs read-back). Независимый main read-back SHA 42afc79eccbbe0237fb5112abdd3d59abe46d998. D2d только отдельный default-off staging source/example + synthetic loopback Nginx/TLS/429, без real Bot API/HTTPS/mobile/deployment acceptance. Прежний D2c post-merge push test attempt 1 FAIL и attempt 2 PASS задокументированы отдельно.",
+      "evidence": "docs/audits/2026-10-25-887-d2d-postmerge-roadmap-checkpoint.md",
       "date": "2026-10-25",
-      "comment": "#887 keep_open: D2c #902 MERGED в main SHA aafdc9871d8e7231a696b249085b11b6fd12ecc0; real private Telegram Bot API, антифишинговый/relay UX, безопасная staging-конфигурация и secrets, trusted HTTPS TLS/SNI/Host/Origin ingress, проверенные edge request/rate limits, WebView/device, multi-bot/multi-host shared state/recovery, D3 import/Copy/QR, private JSON 1:1 и G-11 остаются PENDING. Published rc.19 не содержит D2c, Deployed rc.18.10 только operator-reported. Post-merge push `test`: attempt 1 D1b/TOTP FAIL, attempt 2 PASS; причина начального FAIL PENDING."
+      "comment": "#887 keep_open: D2d PR #904 MERGED 2026-10-25T16:30:54Z в main SHA 42afc79eccbbe0237fb5112abdd3d59abe46d998, pre-merge offline CI и post-merge push test/frontend/audit PASS; отдельные staging Bot API private Updates, operator secrets/DNS/TLS/SNI/Host/Origin, actual external trusted edge rate limits, anti-phishing/relay live UX и WebView/device cookie smoke НЕ аттестованы. Multi-bot/multi-host recovery, D3 import/Copy/QR, private JSON 1:1, G-11 PENDING. Published rc.19 не содержит D2d, Deployed rc.18.10 только operator-reported; public rollout BLOCKED."
     }
   ]
 }
