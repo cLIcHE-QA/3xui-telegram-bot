@@ -1,7 +1,7 @@
 # #887 — D3a/D3b offline post-merge checkpoint
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-25 UTC (точное время GitHub read-back отдельно не подтверждено)
+- **Дата/время и часовой пояс:** 2026-10-25 22:17 UTC (CI checkpoint)
 - **Окружение:** GitHub Actions CI, offline synthetic source-only
 - **Цель:** проверить scoped D3a capability policy и D3b default-off preview до merge
 - **Версия и immutable tag/SHA:** main после #912 `5f47b9f270b52213f386c81f3e533ce13511843e`; Published `v5.0.0-rc.19` без D3
@@ -12,3 +12,7 @@
 - **Связанные Issues:** #887 — **keep_open**: D3 real import и G-11 gates PENDING
 - **Следующий шаг:** D3c scoped capability allowlist и безопасная owner-bound выдача URL, только после Roadmap merged/read-back; live pilot отдельно
 - **Раздельные состояния:** merged=#911/#912; published=rc.19 без D3; deployed=rc.18.10 operator-reported; accepted=offline CI scoped PASS, D3 end-to-end PENDING
+
+## Issue closure decision
+
+- **#887: keep_open** — D3a/D3b только offline CI, реальная выдача URL/Copy/QR и device/WebView acceptance не пройдены; следующий шаг D3c и staging security/device smoke, затем новый Roadmap checkpoint.
