@@ -215,6 +215,14 @@ class D2dStagingTlsEdgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn(data["authorization"], (None, ""))
         self.assertEqual(headers.get("cache-control"), "no-store")
 
+    async def test_complete_has_independent_edge_budget(self):
+        statuses = []
+        for _ in range(7):
+            code, _, _ = await self.request(path=COMPLETE, body=b'{"challenge":"abcdefghijklmnop"}')
+            statuses.append(code)
+        self.assertEqual(statuses[0], 200)
+        self.assertIn(429, statuses[4:])
+
     async def test_rate_limits_real_nginx_429_and_second_tcp_peer(self):
         results = []
         for _ in range(8):
