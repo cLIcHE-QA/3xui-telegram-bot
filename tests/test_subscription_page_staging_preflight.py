@@ -4,7 +4,6 @@ from __future__ import annotations
 import io
 import json
 import socket
-import stat
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -110,14 +109,16 @@ class StagingEdgePreflightTests(unittest.TestCase):
         )
         for config_overrides, kwargs in cases:
             with self.subTest(config_overrides=config_overrides, kwargs=kwargs):
+                options = {
+                    "approved_origin": self.ORIGIN,
+                    "direct_tcp_confirmed": True,
+                }
+                options.update(kwargs)
                 with patch.object(preflight, "_resolve_public_address",
                                   side_effect=AssertionError("Unexpected DNS")):
                     with self.assertRaises(ValueError):
                         preflight.probe_approved_public_edge(
-                            self.config(**config_overrides),
-                            approved_origin=self.ORIGIN,
-                            direct_tcp_confirmed=True,
-                            **kwargs,
+                            self.config(**config_overrides), **options,
                         )
 
     def test_exactly_five_readonly_head_queries_on_pinned_address(self):
