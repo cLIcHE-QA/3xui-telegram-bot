@@ -193,7 +193,7 @@ class StagingEdgePreflightTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         preflight._resolve_public_address("staging.example.org")
 
-    def test_public_dns_is_resolved_once_and_prefers_ipv4(self):
+    def test_multi_address_dns_refused_and_single_ip_resolved_once(self):
         answers = [
             (socket.AF_INET6, socket.SOCK_STREAM, socket.IPPROTO_TCP, "",
              ("2606:4700:4700::1111", 443)),
@@ -201,6 +201,11 @@ class StagingEdgePreflightTests(unittest.TestCase):
              ("8.8.4.4", 443)),
         ]
         with patch.object(socket, "getaddrinfo", return_value=answers) as resolve:
+            with self.assertRaises(ValueError):
+                preflight._resolve_public_address("staging.example.org")
+            resolve.assert_called_once()
+        with patch.object(socket, "getaddrinfo",
+                          return_value=answers[1:]) as resolve:
             self.assertEqual(preflight._resolve_public_address(
                 "staging.example.org"), (socket.AF_INET, "8.8.4.4"))
             resolve.assert_called_once()
