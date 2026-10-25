@@ -1,6 +1,7 @@
 """#887 D2e: no real DNS, TLS, Bot API or staging device traffic in CI."""
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import socket
@@ -8,7 +9,8 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 import subscription_page_staging_preflight as preflight
 from subscription_page_staging import StagingConfig
@@ -223,4 +225,94 @@ class StagingEdgePreflightTests(unittest.TestCase):
                 with redirect_stdout(io.StringIO()) as output:
                     self.assertEqual(
                         preflight.main([str(self.config_file), *extra]), 2)
+                self.assertEqual(json.loads(output.getvalue())["status"], "BLOCKED")
+
+
+    def test_readonly_bot_identity_uses_only_get_me_and_webhook_info(self):
+        synthetic = "900001:" + "A" * 35
+        token_file = self.root / "staging-bot.token"
+        token_file.write_text(synthetic, encoding="ascii")
+        token_file.chmod(0o600)
+        counter = []
+
+        class FakeBot:
+            def __init__(self, *, token):
+                self.assertion_token = token
+
+            async def __aenter__(self):
+                counter.append(("open", self.assertion_token == synthetic))
+                return self
+
+            async def __aexit__(self, *_):
+                counter.append(("close", True))
+
+            async def get_me(self):
+                counter.append(("getMe", True))
+                return SimpleNamespace(
+                    id=900001, username="StagingExampleBot", is_bot=True)
+
+            async def get_webhook_info(self):
+                counter.append(("getWebhookInfo", True))
+                return SimpleNamespace(url="")
+
+        result = asyncio.run(preflight.check_approved_telegram_identity(
+            self.config(), reviewed_username="StagingExampleBot",
+            explicitly_authorized=True, bot_factory=FakeBot,
+        ))
+        self.assertEqual(result["bot_identity_and_webhook"], "PASS")
+        self.assertEqual(result["overall_acceptance"], "PENDING")
+        self.assertEqual(result["polling_or_mutations"], "NONE")
+        self.assertEqual(counter, [
+            ("open", True), ("getMe", True),
+            ("getWebhookInfo", True), ("close", True),
+        ])
+
+    def test_bot_preflight_bad_gates_never_read_token(self):
+        for cfg, reviewed_username, enabled in (
+            (self.config(), "StagingExampleBot", False),
+            (self.config(), "ProductionBot", True),
+            (self.config(enabled=True), "StagingExampleBot", True),
+        ):
+            with self.subTest(cfg_enabled=cfg.enabled,
+                              username=reviewed_username, gate=enabled):
+                with patch.object(preflight, "read_staging_bot_token",
+                                  side_effect=AssertionError("No token read")):
+                    with self.assertRaises(ValueError):
+                        asyncio.run(preflight.check_approved_telegram_identity(
+                            cfg, reviewed_username=reviewed_username,
+                            explicitly_authorized=enabled,
+                        ))
+
+    def test_cli_bot_preflight_without_private_token_is_generic_blocked(self):
+        args = [
+            str(self.config_file), "--verify-approved-bot-identity",
+            "--reviewed-bot-username", "StagingExampleBot",
+            "--explicit-telegram-readonly",
+        ]
+        with patch.object(preflight, "Bot",
+                          side_effect=AssertionError("No Bot init")):
+            with redirect_stdout(io.StringIO()) as output:
+                code = preflight.main(args)
+        self.assertEqual(code, 2)
+        self.assertEqual(json.loads(output.getvalue())["status"], "BLOCKED")
+        self.assertNotIn(str(self.root), output.getvalue())
+
+    def test_cli_rejects_mixed_edge_and_bot_flags(self):
+        combinations = [
+            ["--probe-approved-public-edge", "--direct-tcp-confirmed",
+             "--reviewed-origin", self.ORIGIN,
+             "--reviewed-bot-username", "StagingExampleBot"],
+            ["--verify-approved-bot-identity", "--explicit-telegram-readonly",
+             "--reviewed-bot-username", "StagingExampleBot",
+             "--reviewed-origin", self.ORIGIN],
+        ]
+        for flags in combinations:
+            with self.subTest(flags=flags):
+                with patch.object(preflight, "_resolve_public_address",
+                                  side_effect=AssertionError("No DNS")):
+                    with patch.object(preflight, "read_staging_bot_token",
+                                      side_effect=AssertionError("No token")):
+                        with redirect_stdout(io.StringIO()) as output:
+                            code = preflight.main([str(self.config_file), *flags])
+                self.assertEqual(code, 2)
                 self.assertEqual(json.loads(output.getvalue())["status"], "BLOCKED")
