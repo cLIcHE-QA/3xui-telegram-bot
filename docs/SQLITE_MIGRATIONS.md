@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep `v5.0.0-rc.20`:** bot schema v15 не меняется; новых миграций нет. Staging/import SQLite — отдельные изолированные default-off ledgers, не production bot database. Published пока rc.19; будущая установка после накопленных RC требует проверки forward-only migration/config/agent пути от фактически deployed tag по [Roadmap](ROADMAP.md) и [Release contract](RELEASES.md).
+
 > **Published `v5.0.0-rc.19`:** схема SQLite v15, новых миграций нет. GitHub Release опубликован на SHA `d738dd970f2215adc346a919c7ed182abaf454b1`, deployment по-прежнему только `v5.0.0-rc.18.10` со слов оператора.
 
 **Схема SQLite v15 неизменна для Published `v5.0.0-rc.19` и operator-reported Deployed `v5.0.0-rc.18.10`.** Новых миграций в релизе нет: исправления Happ/User-Agent, Windows/OS и HWID-карточек — только read-only представление. Текущий операторский deployment и адресные HWID 23/23 `PASS` фиксируются исключительно в [Roadmap](ROADMAP.md) и [датированном audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md); независимая VPS/SQLite `PRAGMA quick_check` аттестация остаётся PENDING. Само `DB=ok` не является доказательством `PRAGMA quick_check`.
