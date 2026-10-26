@@ -30,7 +30,7 @@ REVIEW = {
         "auditPath": "docs/audits/2026-10-26-887-d3h-fixture.md",
         "buildSha": SHA, "testedAt": "2026-10-26T18:00:00+00:00",
         "deviceModel": "Synthetic iPhone", "osVersion": "synthetic-26.0",
-        "clientBuild": VERSION, "browserVersion": "Synthetic Safari 1.0",
+        "clientVersion": VERSION, "clientBuild": "Synthetic app build 123", "browserVersion": "Synthetic Safari 1.0",
         "telegramVersion": "Synthetic Telegram 1.0",
         "native": {"copy": "PASS", "qr": "PASS"},
         "webview": {"copy": "PASS", "qr": "PASS"},
@@ -128,7 +128,7 @@ class D3hEvidenceTests(unittest.TestCase):
     def test_missing_bad_or_mismatched_physical_evidence_fails_closed(self):
         fields = {
             "buildSha": "short", "testedAt": "2026-10-26T12:00:00",
-            "clientBuild": "2.7.0", "deviceModel": "",
+            "clientVersion": "2.7.0", "deviceModel": "",
             "osVersion": None, "browserVersion": "", "telegramVersion": "",
             "auditPath": "../../private.txt",
         }
