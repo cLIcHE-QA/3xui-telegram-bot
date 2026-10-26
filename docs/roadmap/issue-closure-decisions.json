@@ -265,6 +265,14 @@
       "evidence": "docs/audits/2026-10-26-887-d3g-copy-qr-offline-postmerge-checkpoint.md",
       "date": "2026-10-26",
       "comment": "#887 keep_open: D3g исправил isolated/default-off Copy/QR permission bypass, web manual fallback без custom scheme, shipping real reviewed allowlist пуст, backend delivery_enabled=false, VITE_D3G_MANUAL_IMPORT_UI default false и pilotEnabled=false. Нет реальной URL/QR/Copy выдачи, production runtime или реальных iOS/Android/WebView devices. Далее reviewed client/version, trusted HTTPS/edge/ingress, single-/multi-host topology, staging device smoke и #885/PR #886 независимый HTTPS handoff. Published rc.19 без D3g; Deployed rc.18.10 только operator-reported, independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED."
+    },
+    {
+      "issue": 930,
+      "decision": "completed",
+      "accepted": "docs-only scoped PASS: PR #931 squash merged 859d076fb581c0777dc3525810ebe9af3737f4e0, required PR and main push CI SUCCESS; explicit operator permission for finite autonomous merge/RC pool",
+      "evidence": "docs/audits/2026-10-27-930-autonomous-authorization-closure.md",
+      "date": "2026-10-27",
+      "comment": "Собственный docs/process scope; post-closure Roadmap sync через отдельный checkpoint PR и main read-back. Нет нового runtime, deployment или production acceptance; G-11 PARTIAL/NO-GO."
     }
   ]
 }
