@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { requestManualImport, ManualImportUnavailable, type ManualImportInput } from "./manualImportClient.ts";
+import { requestManualImport, copyManualImportOnGesture, ManualImportUnavailable, type ManualImportInput } from "./manualImportClient.ts";
 
 const origin="https://subscription.example.invalid";
 const bearer=origin+"/sub/SYNTHETIC_SECRET";
@@ -107,4 +107,56 @@ test("malformed CSRF, proof and QR are rejected fail-closed",async()=>{
   const m=mockTransport(qr);
   await assert.rejects(()=>requestManualImport({...defaults,method:"qr"},m.transport),ManualImportUnavailable);
  }
+});
+
+
+test("D3i ClipboardItem write is enqueued inside the gesture before network",async()=>{
+ const m=mockTransport();
+ const steps:string[]=[];
+ let copied="";
+ await copyManualImportOnGesture(defaults,async(path,init)=>{
+   steps.push(path);
+   return m.transport(path,init);
+ },content=>{
+   // This callback is synchronous, emulating new ClipboardItem + clipboard.write.
+   steps.push("clipboard.write");
+   return content.then(async blob=>{copied=await blob.text();});
+ });
+ assert.equal(steps[0],"clipboard.write");
+ assert.equal(steps[1],"/api/subpage/v1/import/preflight/csrf");
+ assert.equal(copied,bearer);
+ assert.equal(m.requests.length,3);
+});
+
+test("D3i clipboard refusal before fetch or stale selection never exposes bearer",async()=>{
+ const m=mockTransport();
+ await assert.rejects(()=>copyManualImportOnGesture(defaults,m.transport,()=>{
+   throw new Error("sensitive clipboard error");
+ }),ManualImportUnavailable);
+ assert.equal(m.requests.length,0);
+
+ let used=false;
+ const stale=mockTransport();
+ await assert.rejects(()=>copyManualImportOnGesture(defaults,async(path,init)=>{
+   const result=await stale.transport(path,init);
+   if(path.endsWith("/deliver"))used=true;
+   return result;
+ },content=>content.then(()=>{ throw new Error("must not reach clipboard"); }),()=>!used),
+ ManualImportUnavailable);
+ assert.equal(stale.requests.length,3);
+
+ const invalid=mockTransport(response({subscriptionUrl:"https://evil.example.invalid/sub/PRIVATE"}));
+ let leaked=false;
+ await assert.rejects(()=>copyManualImportOnGesture(defaults,invalid.transport,
+   content=>content.then(()=>{leaked=true;})),ManualImportUnavailable);
+ assert.equal(leaked,false);
+});
+
+test("D3i clipboard rejection stays generic and never logs bearer",async()=>{
+ const m=mockTransport();
+ let wrote=false;
+ await assert.rejects(()=>copyManualImportOnGesture(defaults,m.transport,
+   content=>content.then(()=>{wrote=true; throw new Error("clipboard permission with SECRET");})),
+ ManualImportUnavailable);
+ assert.equal(wrote,true);
 });
