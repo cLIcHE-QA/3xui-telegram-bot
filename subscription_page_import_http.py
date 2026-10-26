@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import secrets
 import time
+import io
 from typing import Callable
 from urllib.parse import urlsplit
 
@@ -14,7 +15,7 @@ from subscription_page_standalone import SESSION_COOKIE as STANDALONE_COOKIE, St
 from subscription_page_import_preflight import check_import_eligibility
 from subscription_page_import_sqlite import ImportSQLiteLedger
 from subscription_page_import_issuer import (ReviewedImportClient,
-    owner_bound_subscription_url, reviewed_import_keys)
+    owner_bound_subscription_url, reviewed_import_methods)
 
 BASE = PATH + "/import/preflight"
 
@@ -49,7 +50,7 @@ def create_import_preflight_app(
 
     if type(delivery_enabled) is not bool:
         raise ValueError("Explicit URL delivery feature gate required")
-    approved_clients = reviewed_import_keys(reviewed_clients)
+    approved_clients = reviewed_import_methods(reviewed_clients)
     if delivery_enabled and (not enabled or not approved_clients or
                              not isinstance(subscription_origin, str) or
                              not subscription_origin.startswith("https://")):
@@ -222,12 +223,14 @@ def create_import_preflight_app(
             raise web.HTTPNotFound(text="Import unavailable")
         mode, cookie, owner = session(request, clock())
         guard_csrf(request, mode, cookie)
-        parsed = await body(request, frozenset({"proof", "platform", "clientId", "clientVersion"}))
+        parsed = await body(request, frozenset({"proof", "platform", "clientId", "clientVersion", "method"}))
         proof = parsed["proof"]
         client = (parsed["platform"], parsed["clientId"], parsed["clientVersion"])
+        method = parsed["method"]
         if (not isinstance(proof, str) or len(proof) != 43
                 or not all(c.isascii() and (c.isalnum() or c in "-_") for c in proof)
-                or any(not isinstance(value, str) for value in client)):
+                or any(not isinstance(value, str) for value in client)
+                or method not in ("copy", "qr")):
             raise web.HTTPBadRequest(text="Invalid request")
         current = clock()
         key = session_key(mode, cookie)
@@ -238,7 +241,10 @@ def create_import_preflight_app(
             if not ledger.consume(hashlib.sha256(proof.encode("ascii")).digest(),
                                   owner_key(owner), key, mode, current=current):
                 raise web.HTTPForbidden(text="Import unavailable")
-            if client not in approved_clients or not await eligible(owner):
+            permissions = approved_clients.get(client)
+            if (permissions is None or
+                    not (permissions[0] if method == "copy" else permissions[1])
+                    or not await eligible(owner)):
                 raise web.HTTPForbidden(text="Import unavailable")
             fresh = clock()
             if session(request, fresh) != (mode, cookie, owner):
@@ -262,6 +268,20 @@ def create_import_preflight_app(
             raise web.HTTPServiceUnavailable(text="Import unavailable") from None
         # A bearer credential only for a reviewed client and single authorized
         # request. Real HTTPS ingress/log-redaction/device smoke still PENDING.
+        if method == "qr":
+            # The QR contains the same bearer URL and MUST remain owner-gated.
+            # Encode only in memory; never write the payload to logs or disk.
+            try:
+                import qrcode
+                qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M,
+                                   box_size=5, border=4)
+                qr.add_data(url_value)
+                qr.make(fit=True)
+                output = io.BytesIO()
+                qr.make_image(fill_color="black", back_color="white").save(output, format="PNG")
+                return web.Response(body=output.getvalue(), content_type="image/png")
+            except Exception:
+                raise web.HTTPServiceUnavailable(text="Import unavailable") from None
         return web.json_response({"subscriptionUrl": url_value})
 
     app.router.add_get(BASE + "/csrf", csrf_route)

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test:model": "node --experimental-strip-types --test src/model.test.ts src/miniAppClient.test.ts src/standaloneClient.test.ts src/importPlanner.test.ts src/reviewedCapabilities.test.ts",
+    "test:model": "node --experimental-strip-types --test src/model.test.ts src/miniAppClient.test.ts src/standaloneClient.test.ts src/importPlanner.test.ts src/reviewedCapabilities.test.ts src/manualImportClient.test.ts",
     "test:browser": "playwright test"
   },
   "dependencies": {

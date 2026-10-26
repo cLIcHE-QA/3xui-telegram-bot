@@ -57,6 +57,20 @@ def reviewed_import_keys(
     return frozenset(seen)
 
 
+def reviewed_import_methods(
+    clients: tuple[ReviewedImportClient, ...],
+) -> dict[tuple[str, str, str], tuple[bool, bool]]:
+    """Validate all reviewed tuples and retain separate copy/QR permissions.
+
+    A tuple approved for QR is NOT automatically approved for Copy. This also
+    rejects conflicting duplicates and malformed evidence before any routes run.
+    The shipping list remains empty until client/version device evidence exists.
+    """
+    reviewed_import_keys(clients)
+    return {(c.platform, c.client_id, c.version): (c.allow_copy, c.allow_qr)
+            for c in clients}
+
+
 def validate_subscription_url(raw: object, *, expected_origin: str) -> str | None:
     """Return the exact HTTPS bearer string only on an explicitly reviewed origin.
 
