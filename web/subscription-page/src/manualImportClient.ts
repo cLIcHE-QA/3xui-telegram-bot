@@ -129,3 +129,49 @@ export async function requestManualImport(
     throw new ManualImportUnavailable();
   }
 }
+
+
+/**
+ * D3i: reserve ClipboardItem AS PART OF THE CLICK, before first await/fetch.
+ * Safari/WebView may lose user activation during csrf/issue/deliver.
+ * A pending ClipboardItem Blob resolves only after owner-bound delivery
+ * and rejects on auth failure or changed client selection.
+ * Caller synchronously calls navigator.clipboard.write inside enqueue.
+ * Unsupported browsers offer reviewed QR, never delayed writeText.
+ */
+export async function copyManualImportOnGesture(
+  request: Omit<ManualImportInput, "method">,
+  transport: FetchLike,
+  enqueue: (content: Promise<Blob>) => Promise<void>,
+  stillCurrent: () => boolean = () => true,
+): Promise<void> {
+  let accept!: (blob: Blob) => void;
+  let refuse!: (error: Error) => void;
+  const content = new Promise<Blob>((resolve, reject) => {
+    accept = resolve;
+    refuse = reject;
+  });
+  // Avoid unhandled rejections when clipboard.write rejects early.
+  void content.catch(() => {});
+  let writing: Promise<void>;
+  try {
+    writing = enqueue(content); // synchronous before ANY authorization await
+  } catch {
+    refuse(new ManualImportUnavailable());
+    throw new ManualImportUnavailable();
+  }
+  void writing.catch(() => {});
+  try {
+    const result = await requestManualImport(
+      {...request, method: "copy"}, transport,
+    );
+    if (!stillCurrent() || result.method !== "copy") {
+      throw new ManualImportUnavailable();
+    }
+    accept(new Blob([result.url], {type: "text/plain"}));
+    await writing;
+  } catch {
+    refuse(new ManualImportUnavailable());
+    throw new ManualImportUnavailable();
+  }
+}

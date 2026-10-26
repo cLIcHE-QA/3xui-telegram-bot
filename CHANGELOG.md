@@ -20,6 +20,12 @@
 - Roadmap разделяет необходимые до реализации продуктовые/внешние prerequisites и отложенные настройки/эксплуатационную приёмку. Первый новый RC учитывает накопленные #890 и изолированные части #887, далее одна самостоятельная релизная задача на RC. Старые будущие номера rc.20…rc.25 перепланированы; опубликованные теги не меняются.
 - Published, Deployed и Accepted независимы: непроверенные runtime Issues остаются OPEN/keep_open, текущий VPS не обновляется, G-11 PARTIAL/NO-GO и public rollout BLOCKED. Перед поздним deployment проверяются накопленные миграции, config/agent compatibility и необходимые промежуточные версии; реальные операции требуют отдельного разрешения.
 
+## Неопубликованные изменения #887 — совместимость D3h/D3i/D3j
+
+- PR #929 объединяет пересекающиеся исходники #927/#928: offline-реестр client/version evidence, изолированную synthetic staging factory и отдельный неустановленный Nginx template. Предыдущие результаты #473 остаются кандидатами; реальный reviewed allowlist пуст, выдача подписок и production wiring выключены.
+- Исправлена совместимость read-only GET CSRF с браузером при сохранении строгих Origin/CSRF для POST. Ручное копирование использует ClipboardItem в исходном пользовательском действии до HTTP-запросов; смена клиента и размонтирование блокируют показ устаревшего результата. QR остаётся отдельным разрешением с освобождением временного object URL.
+- Offline readiness всегда сообщает BLOCKED до независимой staging/device проверки; физические iOS/Android/Telegram WebView, TLS/edge и доставка подписки PENDING. Merge/release проверяются отдельно, deployment отложен по #930; #887 остаётся OPEN/keep_open.
+
 ## D2e — read-only staging preflight, ещё не объединён (2026-10-25)
 
 - Для #887 подготовлен default-off CLI `subscription_page_staging_preflight.py` с тремя независимыми режимами: offline-проверка закрытого staging JSON без сети/токена, отдельно разрешённые read-only Telegram Bot API `getMe`/`getWebhookInfo` identity checks без polling, и до пяти явно разрешённых `HEAD` к публичному staging HTTPS через system-CA/TLS/SNI с pinned DNS single-IP, запретом чужих Host и `/admin/`/`/compat/`/`/approve`, проверкой no-store/HSTS/CSP. В любой ошибке обезличенный `BLOCKED`; offline/test scope не равен live acceptance.

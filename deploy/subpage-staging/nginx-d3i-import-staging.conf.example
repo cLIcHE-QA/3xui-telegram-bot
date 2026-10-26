@@ -1,0 +1,206 @@
+# #887 D3i: OPTIONAL STAGING-ONLY IMPORT PREFLIGHT EXAMPLE; NEVER installed automatically.
+# Only same-host D2d standalone sessions; import backend on 127.0.0.1:8828.
+# /deliver is explicitly denied at the edge AND disabled in the backend.
+# Requires separate operator security review before any real TLS/edge deployment.
+# Replace staging.example.invalid, certificate paths, frontend root and port
+# ONLY in an independently approved staging host after operator security review.
+# Requires isolated hostname, verified TLS/SNI, separate staging bot/token,
+# single loopback Python API and NO untrusted CDN/LB/real_ip header override.
+# No webhook or production bot routing. DO NOT include in production Nginx.
+#
+# Use actual TCP peer for limits. Browser-controlled X-Forwarded-For,
+# X-Real-IP, Forwarded, X-Forwarded-Proto and Host must never be authoritative.
+map "$request_method:$uri" $d2d_start_key {
+    default "";
+    "POST:/api/subpage/v1/auth/standalone/start" $binary_remote_addr;
+}
+map "$request_method:$uri" $d2d_complete_key {
+    default "";
+    "POST:/api/subpage/v1/auth/standalone/complete" $binary_remote_addr;
+}
+limit_req_zone $d2d_start_key zone=d2d_start:10m rate=5r/m;
+limit_req_zone $d2d_complete_key zone=d2d_complete:10m rate=12r/m;
+limit_req_zone $binary_remote_addr zone=d2d_api:10m rate=5r/s;
+limit_conn_zone $binary_remote_addr zone=d2d_conn:10m;
+
+server {
+    # The operator must provide independent default HTTP/HTTPS reject vhosts.
+    listen 443 ssl http2;
+    server_name staging.example.invalid;
+    server_tokens off;
+    if ($host != "staging.example.invalid") { return 444; }
+    if ($ssl_server_name != "staging.example.invalid") { return 444; }
+
+    ssl_certificate /etc/subpage-staging/tls/fullchain.pem;
+    ssl_certificate_key /etc/subpage-staging/tls/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_tickets off;
+
+    # No request/challenge/cookie/credential into ordinary access logs.
+    access_log off;
+    autoindex off;
+    root /srv/subpage-staging/dist;
+    client_max_body_size 2k;
+    client_body_timeout 10s;
+    keepalive_timeout 15s;
+
+    add_header Strict-Transport-Security "max-age=300" always;
+    add_header Cache-Control "no-store" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Cross-Origin-Resource-Policy "same-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'" always;
+
+    location = / {
+        try_files /index.html =404;
+    }
+    location ^~ /assets/ {
+        try_files $uri =404;
+    }
+
+    # The browser may only access the 5 existing standalone pilot API routes.
+    # Backend also enforces exact Host/Origin, JSON, session, CSRF and TTL.
+    location = /api/subpage/v1/auth/standalone/start {
+        limit_req zone=d2d_api burst=10 nodelay;
+        limit_req zone=d2d_start burst=2 nodelay;
+        limit_req_status 429;
+        limit_conn d2d_conn 4;
+        limit_conn_status 429;
+        proxy_pass http://127.0.0.1:8827;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host staging.example.invalid;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host staging.example.invalid;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Forwarded "";
+        proxy_set_header Authorization "";
+        proxy_redirect off;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 15s;
+        proxy_send_timeout 15s;
+    }
+    location = /api/subpage/v1/auth/standalone/complete {
+        limit_req zone=d2d_api burst=10 nodelay;
+        limit_req zone=d2d_complete burst=3 nodelay;
+        limit_req_status 429;
+        limit_conn d2d_conn 4;
+        limit_conn_status 429;
+        proxy_pass http://127.0.0.1:8827;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host staging.example.invalid;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host staging.example.invalid;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Forwarded "";
+        proxy_set_header Authorization "";
+        proxy_redirect off;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 15s;
+        proxy_send_timeout 15s;
+    }
+    location ~ ^/api/subpage/v1/(auth/standalone/(cancel|logout)|standalone/me)$ {
+        limit_req zone=d2d_api burst=10 nodelay;
+        limit_req_status 429;
+        limit_conn d2d_conn 4;
+        limit_conn_status 429;
+        proxy_pass http://127.0.0.1:8827;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host staging.example.invalid;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host staging.example.invalid;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Forwarded "";
+        proxy_set_header Authorization "";
+        proxy_redirect off;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 15s;
+        proxy_send_timeout 15s;
+    }
+
+    # D3i preflight routes are isolated from D2d. Backend can only consume
+    # a server-verified shared standalone cookie; it has no MiniApp session.
+    # Exact routes and methods, no wildcard API or permissive CORS.
+    # Per-TCP-peer budget is shared with standalone auth via d2d_api zone.
+    location = /api/subpage/v1/import/preflight/csrf {
+        if ($request_method != GET) { return 405; }
+        limit_req zone=d2d_api burst=10 nodelay;
+        limit_req_status 429;
+        limit_conn d2d_conn 4;
+        limit_conn_status 429;
+        proxy_pass http://127.0.0.1:8828;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host staging.example.invalid;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host staging.example.invalid;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Forwarded "";
+        proxy_set_header Authorization "";
+        proxy_redirect off;
+        proxy_buffering off;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 15s;
+        proxy_send_timeout 15s;
+    }
+    location = /api/subpage/v1/import/preflight/issue {
+        if ($request_method != POST) { return 405; }
+        limit_req zone=d2d_api burst=10 nodelay;
+        limit_req_status 429;
+        limit_conn d2d_conn 4;
+        limit_conn_status 429;
+        proxy_pass http://127.0.0.1:8828;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host staging.example.invalid;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host staging.example.invalid;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Forwarded "";
+        proxy_set_header Authorization "";
+        proxy_redirect off;
+        proxy_buffering off;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 15s;
+        proxy_send_timeout 15s;
+    }
+    location = /api/subpage/v1/import/preflight/consume {
+        if ($request_method != POST) { return 405; }
+        limit_req zone=d2d_api burst=10 nodelay;
+        limit_req_status 429;
+        limit_conn d2d_conn 4;
+        limit_conn_status 429;
+        proxy_pass http://127.0.0.1:8828;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host staging.example.invalid;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host staging.example.invalid;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Forwarded "";
+        proxy_set_header Authorization "";
+        proxy_redirect off;
+        proxy_buffering off;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 15s;
+        proxy_send_timeout 15s;
+    }
+    # NO production/test subscription bearer even if backend is misconfigured.
+    location = /api/subpage/v1/import/preflight/deliver {
+        return 404;
+    }
+
+    location / {
+        return 404;
+    }
+}

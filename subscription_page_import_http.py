@@ -97,7 +97,11 @@ def create_import_preflight_app(
     def guard(request: web.Request, *, mutate: bool) -> None:
         if request.host != url.netloc or request.query_string:
             raise web.HTTPForbidden(text="Preflight denied")
-        if request.headers.get("Origin") != https_origin:
+        # Browsers normally omit Origin for a same-origin GET /csrf; do not
+        # require it on this read-only, session-bound, no-store endpoint.
+        # Every mutating POST still requires the exact trusted Origin AND CSRF.
+        origin = request.headers.get("Origin")
+        if (origin is not None and origin != https_origin) or (mutate and origin != https_origin):
             raise web.HTTPForbidden(text="Preflight denied")
         site = request.headers.get("Sec-Fetch-Site")
         if site is not None and site not in ("same-origin", "none"):
