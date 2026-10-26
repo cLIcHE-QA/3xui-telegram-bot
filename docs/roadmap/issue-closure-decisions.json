@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D2a #898, D2b #900, D2c #902 и D2d #904 squash MERGED; exact-head #904 required test/title PASS (1483 Python, 3 skipped), frontend-model и supply-chain PASS. Post-merge push #904 на merge SHA: test/frontend/supply-chain PASS (GitHub jobs read-back). Независимый main read-back SHA 42afc79eccbbe0237fb5112abdd3d59abe46d998. D2d только отдельный default-off staging source/example + synthetic loopback Nginx/TLS/429, без real Bot API/HTTPS/mobile/deployment acceptance. Прежний D2c post-merge push test attempt 1 FAIL и attempt 2 PASS задокументированы отдельно.",
-      "evidence": "docs/audits/2026-10-25-887-d2d-postmerge-roadmap-checkpoint.md",
-      "date": "2026-10-25",
-      "comment": "#887 keep_open: D2d PR #904 MERGED 2026-10-25T16:30:54Z в main SHA 42afc79eccbbe0237fb5112abdd3d59abe46d998, pre-merge offline CI и post-merge push test/frontend/audit PASS; отдельные staging Bot API private Updates, operator secrets/DNS/TLS/SNI/Host/Origin, actual external trusted edge rate limits, anti-phishing/relay live UX и WebView/device cookie smoke НЕ аттестованы. Multi-bot/multi-host recovery, D3 import/Copy/QR, private JSON 1:1, G-11 PENDING. Published rc.19 не содержит D2d, Deployed rc.18.10 только operator-reported; public rollout BLOCKED."
+      "accepted": "D2a–D2e offline scoped, D3a PR #911 и D3b PR #912 squash MERGED; exact-head required PR conventions/Python checks/Subscription Page D1a checks PASS для D3a/D3b. D3a — default-off policy planner, D3b — default-off inert UI preview, без owner-bound URL, Copy/QR/deeplink, client/version attestation или live device acceptance. Post-merge push CI для D3a/D3b не подтверждён отдельным evidence; ранее подтверждённый D2d post-merge push CI не переносится на D3.",
+      "evidence": "docs/audits/2026-10-25-887-d3-offline-postmerge-checkpoint.md",
+      "date": "2026-10-26",
+      "comment": "#887 keep_open: main SHA 6c7a8d8cc8ff9fd70a7b64214d83ae9ade10365c после Roadmap PR #913, D3a #911 squash 0188093380e82c6fce4cb05a6daacd1c0be21fa0, D3b #912 squash 5f47b9f270b52213f386c81f3e533ce13511843e. D2e staging pilot, reviewed client/version allowlist, owner-bound subscription issuance, real Copy/QR, targeted WebView/device smoke, multi-host recovery и G-11 PENDING/NO-GO. Published rc.19 без D3; Deployed rc.18.10 operator-reported, VPS read-back PENDING; public rollout BLOCKED. Следующий шаг: D3c scoped implementation и независимые проверки; не закрывать Issue по CI-only."
     }
   ]
 }
