@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D2a–D2e и D3a–D3d default-off/source-only. Последний D3d #919 exact-head Python checks PASS и PR conventions повторный PASS (первый checklist fail до CI), squash MERGED в main SHA 489c358992d41f2b5e3d669651712e2a4bb14796. Изолированные D2a/D2b session-bound one-time preflight proofs с TTL ≤60с, SHA256 digest, replay/concurrency/negative tests; без HTTP routes, URL выдачи, Copy/QR, real client attestation или device acceptance. Post-merge push CI PENDING.",
-      "evidence": "docs/audits/2026-10-26-887-d3d-session-proofs-postmerge-checkpoint.md",
+      "accepted": "D2a–D2e, D3a–D3d и D3e isolated default-off, CI scoped. PR #921 exact-head Python checks PASS (run 40362844327), PR conventions final PASS (run 40363417709), squash MERGED SHA fb69fba8ac6df15f35fb9d910b713362388a98d4; HTTP Origin/CSRF/session preflight + private single-host SQLite atomic grants, synthetic negative tests. Real URL/Copy/QR, live device/staging, TLS/edge и multi-host acceptance не проведены.",
+      "evidence": "docs/audits/2026-10-26-887-d3e-offline-postmerge-checkpoint.md",
       "date": "2026-10-26",
-      "comment": "#887 keep_open: D3d #919 завершил только default-off offline proof broker поверх существующих MiniAppSessions/StandalonePilot; owner берётся из текущего серверного session store, one-time proof привязан к session/mode/owner, но consume=true не открывает bearer URL. Остаток: trusted ingress/origin/CSRF/no-store, durable atomic multi-worker grants, owner-bound delivery, edge rate, vetted client versions, Copy/QR, WebView/iOS/Android staging, #885/PR #886 HTTPS handoff, multi-host recovery, G-11 PARTIAL/NO-GO. Published rc.19 без D3d; Deployed rc.18.10 только operator-reported, VPS read-back PENDING; public rollout BLOCKED."
+      "comment": "#887 keep_open: D3e source-only HTTP/SQLite preflight #921 MERGED main fb69fba8ac6df15f35fb9d910b713362388a98d4; default-off и нет production routes, subscription URL/Copy/QR, reviewed capability allowlist или staging proof. Следующий шаг: trusted HTTPS/edge/session security, отдельная owner-bound URL выдача и IDOR, replay, no-store, затем physical devices; #885/PR #886 отдельно. Postmerge push CI PENDING; Published rc.19 без D3e, Deployed rc.18.10 operator-reported, VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED."
     }
   ]
 }
