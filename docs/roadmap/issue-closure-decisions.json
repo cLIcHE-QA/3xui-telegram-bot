@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D2a–D2e, D3a–D3f isolated/default-off scoped CI; #923 D3f exact-head Python checks run 40366842025 PASS и final PR conventions run 40367411486 PASS; squash MERGED main 48f11acb955da4542b6d6fc1a1a72343dfe1834d. D3f code owner-scoped fresh CustomerPortalService.subscription_card active/active, one-use SQLite proof, strict approved origin and client/version tuple; synthetic HTTP/IDOR/replay/revocation negative tests. Real URL delivery shipping disabled, reviewed client allowlist empty; no live acceptance.",
-      "evidence": "docs/audits/2026-10-26-887-d3f-offline-postmerge-checkpoint.md",
+      "accepted": "D2a–D2e, D3a–D3g offline default-off source. D3g PR #925 exact-head Python checks #40373218751 (retry after external GitHub API reconciliation) PASS, Subscription Page D1a checks #40373220777 PASS, PR conventions final #40373866713 PASS; squash MERGED main e818625a7b12cbaeb6e192a3d035b8aee49e8208. Исправлено пропущенное разграничение allow_copy и allow_qr, in-memory PNG/ephemeral QR, synthetic backend/frontend tests; post-merge push CI PENDING. Реальная client/version attestation не доказана.",
+      "evidence": "docs/audits/2026-10-26-887-d3g-copy-qr-offline-postmerge-checkpoint.md",
       "date": "2026-10-26",
-      "comment": "#887 keep_open: D3f PR #923 merged source-only URL delivery design with explicit delivery_enabled=false and empty real reviewed clients; no production route or real bearer disclosure enabled. Required before acceptance: separately reviewed TLS/Host/SNI/origin/CSRF/edge/no-log policy, D2a cross-worker session and multi-host ledger model, physical iOS/Android/Telegram WebView, reviewed client/version Copy/QR, isolated staging, #885 HTTPS handoff and recovery. Post-merge push CI independently PENDING. Published rc.19, Deployed rc.18.10 only operator-reported, no VPS read-back. G-11 PARTIAL/NO-GO; public rollout BLOCKED."
+      "comment": "#887 keep_open: D3g исправил isolated/default-off Copy/QR permission bypass, web manual fallback без custom scheme, shipping real reviewed allowlist пуст, backend delivery_enabled=false, VITE_D3G_MANUAL_IMPORT_UI default false и pilotEnabled=false. Нет реальной URL/QR/Copy выдачи, production runtime или реальных iOS/Android/WebView devices. Далее reviewed client/version, trusted HTTPS/edge/ingress, single-/multi-host topology, staging device smoke и #885/PR #886 независимый HTTPS handoff. Published rc.19 без D3g; Deployed rc.18.10 только operator-reported, independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED."
     }
   ]
 }
