@@ -128,4 +128,3 @@ python subscription_page_import_attestations.py --offline-readiness
 Команда **без сети**: `python subscription_page_import_attestations.py --offline-readiness`. Ожидается `status=BLOCKED`, `staging_import_routes=TEMPLATE_ONLY_NO_RUNTIME`, `staging_delivery=DENIED`, `live_requests_sent=0`; код возврата 0 означает **только ожидаемый отказ**, 2 — source drift/недоступный contract. Negative tests изменяют копии source в temp и доказывают, что случайное включение UI/backend allowlist, изменение Origin/CSRF/Clipboard, relax `/deliver` или расширение ingress не маскируется под PASS. Source-only guard не может удостоверить реальное Nginx/TLS, cookie/session или browser runtime.
 
 Нельзя устанавливать staging template, начинать Telegram Bot API, включать URL/QR или повышать client/version без отдельной операторской авторизации и живого D3H-01…D3H-06 device evidence. #887 keep_open, G-11 PARTIAL/NO-GO; merge/Release/Deployed/Accepted не выполнены.
-
