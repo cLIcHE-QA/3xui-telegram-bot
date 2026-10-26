@@ -1,4 +1,4 @@
-import { planClientImport, type ImportCapability, type ImportPlan } from "./importPlanner";
+import { planClientImport, type ImportCapability, type ImportPlan } from "./importPlanner.ts";
 
 /**
  * D3c offline capability evidence boundary.
