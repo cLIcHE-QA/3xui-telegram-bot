@@ -74,6 +74,12 @@
 
 Датированные исходные отчёты об опубликованных/развёрнутых `rc.9`, `rc.10`, `rc.11`, `rc.16.1`, `rc.16.2`, `rc.16.4`, прошлых B5/C3 FAIL и scoped PASS сохранены без изменения в [immutable snapshot этого руководства](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/8d5b9ad1ce1fecf8f5f1808c786f3b2b3cf32f0b/docs/CLIENT_SETUP.md). Проверяемые источники: [rc.10 acceptance](audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md), [rc.11 deployment](audits/2026-10-15-v5-rc11-operator-deployment-checkpoint.md), [rc.16.1 deployment](audits/2026-10-17-v5-rc16-1-operator-deployment-checkpoint.md), [rc.16.4 smoke](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md) и [rc.16.5 acceptance](audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md). Старое `OPEN/PENDING` в этих источниках относится к моменту проверки, а не к текущему GitHub Issue.
 
+### #887 D3h — физическая аттестация Copy/QR (ещё PENDING)
+
+Для нового web/Mini App D3g **не переносить** исторические `operator-reported PASS` из #473 в `reviewed` без отдельного physical browser + Telegram WebView smoke **для точной версии на iOS и Android**. Матрица кандидатов, полный targeted checklist D3H-01…D3H-06 и критерии `allowCopy/allowQr` находятся в [WEB_SUBSCRIPTION_MINI_APP.md](WEB_SUBSCRIPTION_MINI_APP.md#d3h--подготовка-проверяемого-clientversion-allowlist-и-физический-copyqr-smoke-2026-10-26-887). Машиночитаемый offline реестр: `docs/assets/subpage-d3h-client-attestations.json`, `reviewed=[]`; он **не подключается** к серверной выдаче или frontend и сам по себе не разрешает запуск.
+
+До отдельного согласования изолированного staging, проверки TLS/edge/session topology, устройства, Clipboard/QR и privacy gates: `VITE_D3G_MANUAL_IMPORT_UI` default false, `pilotEnabled=false`, `REVIEWED_CLIENT_CAPABILITIES=[]`, backend `delivery_enabled=false`, `reviewed_clients=()`. Не включать `app_runtime`, не раскрывать bearer URLs, не расширять pilot и не запускать production smoke/Release/deploy. #887 OPEN/keep_open, G-11 PARTIAL/NO-GO.
+
 ## Плановая внешняя оплата
 
 Решение об индивидуальной hosted Platega ссылке из Telegram-бота, отдельных валюте/статистике и предохранителях для будущего PSP зафиксировано в [EXTERNAL_PAYMENT_LINKS.md](EXTERNAL_PAYMENT_LINKS.md). **На текущем пилоте внешняя кнопка НЕ работает и не одобрена к rollout**: merchant/KYC/согласование правил Telegram для цифровых услуг ещё PENDING. До отдельного выпуска остаётся Stars flow с существующими флагами.
