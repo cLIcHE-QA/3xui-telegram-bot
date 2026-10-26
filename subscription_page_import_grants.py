@@ -25,7 +25,7 @@ MAX_RATE_KEYS = 256
 RATE_WINDOW = 60
 MAX_ISSUES_PER_WINDOW = 4
 MAX_REDEEMS_PER_WINDOW = 8
-_PROOF = re.compile(r"[A-Za-z0-9_-]{40,96}\\Z")
+_PROOF = re.compile(r"[A-Za-z0-9_-]{40,96}")
 
 
 @dataclass(frozen=True)
