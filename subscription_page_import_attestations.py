@@ -250,7 +250,7 @@ def inspect_d3h_staging_readiness(*, root: Path) -> dict[str, object]:
 
     # D3i is a source-only factory with a separate, private single-host ledger
     # and synthetic service. No trusted reviewed clients or bearer routes.
-    if not all(token in isolated for token in (
+    if (not all(token in isolated for token in (
             'preflight_enabled: bool = False',
             'type(pilot.service) is not _SyntheticCustomer',
             'type(pilot.flags) is not _SyntheticFlags',
