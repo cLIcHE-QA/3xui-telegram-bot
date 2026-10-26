@@ -104,6 +104,8 @@ Scheduled audit read-only и не меняет repository settings.
 
 ## Roadmap и acceptance
 
+**Режим #930 (решение оператора 2026-10-27):** разработка/RC и эксплуатационная приёмка могут идти разными очередями по [Git workflow](GIT_WORKFLOW.md#разработка-rc-с-отложенной-эксплуатационной-приёмкой-930). Единственная очередь — [Roadmap](ROADMAP.md#очередь-разработки-и-участие-оператора-930); продуктовые prerequisites и операторские live шаги явно различаются. Published runtime Issue с непроверенным собственным acceptance остаётся OPEN/keep_open, а Deployed не повышается вслед за RC. Нельзя обходить prerequisites выключенным флагом, закрывать Issue по CI или откладывать синхронизацию main до будущего deployment. Пакетное merge/release-разрешение дано оператором 2026-10-27 для описанного пула; [датированный источник](audits/2026-10-27-930-autonomous-authorization-closure.md) фиксирует границы и исходный отказ approval review до явного ответа. Новые продуктовые решения и реальные операции этим разрешением не покрыты.
+
 Не каждый product-state transition можно надёжно вывести из списка изменённых файлов. Поэтому начало нового milestone, публикация release, production acceptance, closure/reopen finding/issue и изменение release/public-readiness state должны сопровождаться проверкой `docs/ROADMAP.md` и соответствующего audit/acceptance artifact.
 
 Roadmap меняется только по факту, а не авансом.
