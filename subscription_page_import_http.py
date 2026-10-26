@@ -13,6 +13,8 @@ from subscription_page_customer import COOKIE as MINI_COOKIE, MiniAppSessions, P
 from subscription_page_standalone import SESSION_COOKIE as STANDALONE_COOKIE, StandalonePilot
 from subscription_page_import_preflight import check_import_eligibility
 from subscription_page_import_sqlite import ImportSQLiteLedger
+from subscription_page_import_issuer import (ReviewedImportClient,
+    owner_bound_subscription_url, reviewed_import_keys)
 
 BASE = PATH + "/import/preflight"
 
@@ -23,6 +25,9 @@ def create_import_preflight_app(
     customer_service: object, feature_flags: object, pilot_ids: frozenset[int],
     enabled: bool = False, now: Callable[[], float] = time.time,
     csrf_secret: bytes,
+    delivery_enabled: bool = False,
+    subscription_origin: str | None = None,
+    reviewed_clients: tuple[ReviewedImportClient, ...] = (),
 ) -> web.Application:
     """Offline factory. Real TLS, edge throttling and multi-host remain unverified."""
     url = urlsplit(https_origin)
@@ -41,6 +46,14 @@ def create_import_preflight_app(
             or not callable(getattr(feature_flags, "snapshot", None))
             or not isinstance(csrf_secret, bytes) or len(csrf_secret) < 32):
         raise ValueError("Trusted isolated preflight configuration required")
+
+    if type(delivery_enabled) is not bool:
+        raise ValueError("Explicit URL delivery feature gate required")
+    approved_clients = reviewed_import_keys(reviewed_clients)
+    if delivery_enabled and (not enabled or not approved_clients or
+                             not isinstance(subscription_origin, str) or
+                             not subscription_origin.startswith("https://")):
+        raise ValueError("URL delivery requires separate reviewed gates")
 
     app = web.Application(client_max_size=1024)
 
@@ -198,7 +211,61 @@ def create_import_preflight_app(
             raise web.HTTPServiceUnavailable(text="Preflight unavailable") from None
         return web.json_response({"preflight": True})
 
+    async def deliver(request: web.Request) -> web.Response:
+        """Explicitly gated bearer disclosure; consumes proof before awaiting provider.
+
+        The browser can choose only a reviewed client tuple, never an owner,
+        subscription ID or provider URL. No URL is ever stored in SQLite.
+        """
+        guard(request, mutate=True)
+        if not enabled or not delivery_enabled:
+            raise web.HTTPNotFound(text="Import unavailable")
+        mode, cookie, owner = session(request, clock())
+        guard_csrf(request, mode, cookie)
+        parsed = await body(request, frozenset({"proof", "platform", "clientId", "clientVersion"}))
+        proof = parsed["proof"]
+        client = (parsed["platform"], parsed["clientId"], parsed["clientVersion"])
+        if (not isinstance(proof, str) or len(proof) != 43
+                or not all(c.isascii() and (c.isalnum() or c in "-_") for c in proof)
+                or any(not isinstance(value, str) for value in client)):
+            raise web.HTTPBadRequest(text="Invalid request")
+        current = clock()
+        key = session_key(mode, cookie)
+        try:
+            if not ledger.reserve(key, "consume", current=current):
+                raise web.HTTPTooManyRequests(text="Import limited")
+            # Burn valid one-time proof before any async authorization/URL reads.
+            if not ledger.consume(hashlib.sha256(proof.encode("ascii")).digest(),
+                                  owner_key(owner), key, mode, current=current):
+                raise web.HTTPForbidden(text="Import unavailable")
+            if client not in approved_clients or not await eligible(owner):
+                raise web.HTTPForbidden(text="Import unavailable")
+            fresh = clock()
+            if session(request, fresh) != (mode, cookie, owner):
+                raise web.HTTPUnauthorized(text="Authentication required")
+            # This service re-reads entitlement/provider state via subscription_card
+            # (not weak profile(read_access=False)). Do NOT log the resulting URL.
+            url_value = await owner_bound_subscription_url(
+                customer_service=customer_service,
+                authenticated_owner=owner,
+                expected_origin=subscription_origin,
+            )
+            final = clock()
+            if (url_value is None or
+                    session(request, final) != (mode, cookie, owner) or
+                    not await eligible(owner)):
+                raise web.HTTPForbidden(text="Import unavailable")
+            final_check = clock()
+            if session(request, final_check) != (mode, cookie, owner):
+                raise web.HTTPUnauthorized(text="Authentication required")
+        except ValueError:
+            raise web.HTTPServiceUnavailable(text="Import unavailable") from None
+        # A bearer credential only for a reviewed client and single authorized
+        # request. Real HTTPS ingress/log-redaction/device smoke still PENDING.
+        return web.json_response({"subscriptionUrl": url_value})
+
     app.router.add_get(BASE + "/csrf", csrf_route)
     app.router.add_post(BASE + "/issue", issue)
     app.router.add_post(BASE + "/consume", consume)
+    app.router.add_post(BASE + "/deliver", deliver)
     return app
