@@ -2,15 +2,17 @@
 from __future__ import annotations
 
 import copy
+import io
 import json
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from contextlib import redirect_stdout
 
 from subscription_page_import_attestations import (
-    MANIFEST_PATH, inspect_d3h_staging_readiness, load_reviewed_clients,
+    MANIFEST_PATH, _offline_main, inspect_d3h_staging_readiness, load_reviewed_clients,
     reviewed_clients_from_manifest,
 )
 
@@ -96,10 +98,12 @@ class D3hEvidenceTests(unittest.TestCase):
             "web/subscription-page/src/ManualImportPanel.tsx",
             "web/subscription-page/src/reviewedCapabilities.ts",
             "subscription_page_import_http.py",
+            "subscription_page_import_staging.py",
             "subscription_page_staging.py",
             "subscription_page_pilot_wiring.py",
             "app_runtime.py",
             "deploy/subpage-staging/nginx-d2d-staging.conf.example",
+            "deploy/subpage-staging/nginx-d3i-import-staging.conf.example",
         )
         for relative in contract_paths:
             destination = isolated / relative
@@ -112,16 +116,17 @@ class D3hEvidenceTests(unittest.TestCase):
         with patch("socket.socket", side_effect=AssertionError("network forbidden")):
             report = inspect_d3h_staging_readiness(root=project)
         self.assertEqual(report, {
-            "schema": 1, "scope": "D3h", "status": "BLOCKED",
+            "schema": 1, "scope": "D3j", "status": "BLOCKED",
             "candidate_count": 7, "reviewed_count": 0,
             "device_evidence": "PENDING",
-            "staging_import_routes": "NOT_WIRED",
-            "csrf_origin_compat": "REVIEW_REQUIRED",
-            "qr_blob_csp": "BLOCKED",
-            "clipboard_activation": "PHYSICAL_WEBVIEW_PENDING",
+            "staging_import_routes": "TEMPLATE_ONLY_NO_RUNTIME",
+            "csrf_origin_compat": "SOURCE_GUARDED_DEVICE_PENDING",
+            "qr_blob_csp": "TEMPLATE_ONLY_DEVICE_PENDING",
+            "clipboard_activation": "SOURCE_GUARDED_DEVICE_PENDING",
             "frontend_import": "OFF", "server_delivery": "OFF",
+            "staging_delivery": "DENIED",
             "live_requests_sent": 0,
-            "next_gate": "isolated_staging_review_and_physical_device_smoke",
+            "next_gate": "independent_staging_security_and_physical_device_review",
         })
         self.assertNotIn("subscriptionUrl", json.dumps(report))
 
@@ -139,43 +144,99 @@ class D3hEvidenceTests(unittest.TestCase):
                 "web/subscription-page/src/reviewedCapabilities.ts",
                 "Object.freeze([])", 'Object.freeze([{"platform":"ios"}])',
             ),
-            "backend-gate": (
+            "backend-delivery-gate": (
                 "subscription_page_import_http.py",
                 "delivery_enabled: bool = False", "delivery_enabled: bool = True",
             ),
-            "staging-wiring": (
+            "d2d-staging-wiring": (
                 "subscription_page_staging.py",
                 "#887 D2d:", "#887 D2d: subscription_page_import_http",
             ),
             "runtime-wiring": (
                 "app_runtime.py",
-                "import asyncio",
-                "import asyncio\n# subscription_page_import_attestations",
+                "import asyncio", "import asyncio\n# subscription_page_import_staging",
             ),
             "csrf-method": (
                 "web/subscription-page/src/manualImportClient.ts",
                 'method: "GET"', 'method: "POST"',
             ),
-            "csrf-origin": (
+            "csrf-origin-guard": (
                 "subscription_page_import_http.py",
-                'request.headers.get("Origin") != https_origin',
-                'request.headers.get("Origin") == https_origin',
+                'if (origin is not None and origin != https_origin) or (mutate and origin != https_origin):',
+                'if origin is not None and origin != https_origin:',
+            ),
+            "csrf-fetch-site": (
+                "subscription_page_import_http.py",
+                'site not in ("same-origin", "none")',
+                'site not in ("cross-site", "none")',
+            ),
+            "stale-copy-guard": (
+                "web/subscription-page/src/manualImportClient.ts",
+                'if (!stillCurrent() || result.method !== "copy")',
+                'if (result.method !== "copy")',
+            ),
+            "synchronous-clipboard-queue": (
+                "web/subscription-page/src/manualImportClient.ts",
+                "writing = enqueue(content);", "writing = Promise.resolve();",
             ),
             "clipboard-call": (
                 "web/subscription-page/src/ManualImportPanel.tsx",
-                "await navigator.clipboard.writeText", "void navigator.clipboard.writeText",
+                'navigator.clipboard.write([new ClipboardItem({"text/plain": content})])',
+                'navigator.clipboard.writeText("unsafe")',
             ),
             "qr-blob": (
                 "web/subscription-page/src/ManualImportPanel.tsx",
                 "URL.createObjectURL", "URL.createObjectUrl",
             ),
-            "ingress-csp": (
+            "staging-preflight-default": (
+                "subscription_page_import_staging.py",
+                'preflight_enabled: bool = False', 'preflight_enabled: bool = True',
+            ),
+            "staging-delivery-disabled": (
+                "subscription_page_import_staging.py",
+                'delivery_enabled=False, subscription_origin=None',
+                'delivery_enabled=True, subscription_origin=None',
+            ),
+            "staging-reviewed-list-empty": (
+                "subscription_page_import_staging.py",
+                "reviewed_clients=()", "reviewed_clients=load_reviewed_clients(root=Path.cwd())",
+            ),
+            "synthetic-boundary": (
+                "subscription_page_import_staging.py",
+                "type(pilot.service) is not _SyntheticCustomer",
+                "type(pilot.service) is _SyntheticCustomer",
+            ),
+            "isolated-loopback": (
+                "subscription_page_import_staging.py",
+                'host != _LOOPBACK', 'host == _LOOPBACK',
+            ),
+            "legacy-ingress-csp": (
                 "deploy/subpage-staging/nginx-d2d-staging.conf.example",
                 "img-src 'self' data:;", "img-src 'self' data: blob:;",
             ),
-            "ingress-route": (
+            "legacy-ingress-route": (
                 "deploy/subpage-staging/nginx-d2d-staging.conf.example",
-                "location / {", "location = /api/subpage/v1/import/preflight/deliver { return 200; }\n    location / {",
+                "location / {",
+                "location = /api/subpage/v1/import/preflight/deliver { return 200; }\n    location / {",
+            ),
+            "staging-ingress-csp": (
+                "deploy/subpage-staging/nginx-d3i-import-staging.conf.example",
+                "img-src 'self' data: blob:;", "img-src 'self' data:;",
+            ),
+            "staging-ingress-route": (
+                "deploy/subpage-staging/nginx-d3i-import-staging.conf.example",
+                "location = /api/subpage/v1/import/preflight/deliver {",
+                "location = /api/subpage/v1/import/preflight/private {",
+            ),
+            "staging-ingress-deliver": (
+                "deploy/subpage-staging/nginx-d3i-import-staging.conf.example",
+                "location = /api/subpage/v1/import/preflight/deliver {\n        return 404;",
+                "location = /api/subpage/v1/import/preflight/deliver {\n        return 200;",
+            ),
+            "staging-ingress-issue-method": (
+                "deploy/subpage-staging/nginx-d3i-import-staging.conf.example",
+                'if ($request_method != POST) { return 405; }',
+                'if ($request_method != GET) { return 405; }',
             ),
         }
         for name, (relative, old, new) in scenarios.items():
@@ -188,6 +249,25 @@ class D3hEvidenceTests(unittest.TestCase):
                 with patch("socket.socket", side_effect=AssertionError("network forbidden")):
                     with self.assertRaises(ValueError):
                         inspect_d3h_staging_readiness(root=project)
+
+    def test_d3j_offline_command_cannot_return_device_pass(self):
+        # CLI runs source inspection only; no network, Telegram or device.
+        output = io.StringIO()
+        with patch("sys.argv", ["subscription_page_import_attestations.py", "--offline-readiness"]):
+            with patch("socket.socket", side_effect=AssertionError("network forbidden")):
+                with redirect_stdout(output):
+                    self.assertEqual(_offline_main(), 0)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertEqual(report["live_requests_sent"], 0)
+        self.assertEqual(report["staging_delivery"], "DENIED")
+        self.assertNotIn("subscriptionUrl", output.getvalue())
+
+        output = io.StringIO()
+        with patch("sys.argv", ["subscription_page_import_attestations.py", "--origin=https://secret.invalid"]):
+            with redirect_stdout(output):
+                self.assertEqual(_offline_main(), 2)
+        self.assertNotIn("secret.invalid", output.getvalue())
 
     def test_d3h_readiness_missing_contract_or_bad_manifest_is_blocked(self):
         project = self.isolated_source_tree()
