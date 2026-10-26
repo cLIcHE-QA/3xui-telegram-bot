@@ -128,8 +128,12 @@ class StandalonePilot:
             return None
         return self._hash(token)
 
-    def _session(self, request: web.Request, current: float) -> int | None:
-        token = request.cookies.get(SESSION_COOKIE, "")
+    def session_owner_from_cookie(self, token: str, current: float) -> int | None:
+        """Resolve identity only from a previously issued, live server-side session.
+
+        For isolated server-side import preflight; the cookie is never an owner
+        identifier by itself and does not authorize subscription URL disclosure.
+        """
         if not isinstance(token, str) or not 40 <= len(token) <= 96:
             return None
         if self.ledger is not None:
@@ -138,6 +142,11 @@ class StandalonePilot:
         if row is None or current >= row[1]:
             return None
         return row[0]
+
+    def _session(self, request: web.Request, current: float) -> int | None:
+        return self.session_owner_from_cookie(
+            request.cookies.get(SESSION_COOKIE, ""), current,
+        )
 
     def challenge_pending(self, challenge: str, current: float) -> bool:
         """Only current, unapproved challenges may open a private prompt."""
