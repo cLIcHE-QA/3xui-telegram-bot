@@ -163,6 +163,38 @@ class ImportHttpTests(unittest.IsolatedAsyncioTestCase):
         ) as r:
             self.assertEqual(r.status, 400)
 
+    async def test_same_origin_get_without_origin_requires_owner_and_validates_fetch_site(self):
+        # Browsers normally omit Origin for same-origin GET. This is read-only:
+        # CSRF is bound to the already verified server-side cookie.
+        headers = self.headers()
+        headers.pop("Origin")
+        async with self.clients[0].get(BASE + "/csrf", headers=headers) as response:
+            self.assertEqual(response.status, 200)
+            self.assertEqual(response.headers["Cache-Control"], "no-store")
+            self.assertEqual(response.headers["Referrer-Policy"], "no-referrer")
+            token = (await response.json())["csrfToken"]
+        self.assertEqual(len(token), 64)
+
+        for altered in (
+            {**headers, "Origin": "null"},
+            {**headers, "Origin": "https://evil.example.invalid"},
+            {**headers, "Sec-Fetch-Site": "cross-site"},
+            {**headers, "Cookie": f"{MINI_COOKIE}=invalid"},
+        ):
+            async with self.clients[0].get(BASE + "/csrf", headers=altered) as response:
+                self.assertIn(response.status, (401, 403))
+                self.assertNotIn("csrfToken", await response.text())
+
+        for altered in (
+            {**headers, "X-CSRF-Token": token},
+            {**headers, "Origin": "https://evil.example.invalid", "X-CSRF-Token": token},
+            {**self.headers(), "X-CSRF-Token": "bad"},
+            {**self.headers(), "Sec-Fetch-Site": "cross-site", "X-CSRF-Token": token},
+        ):
+            async with self.clients[0].post(BASE + "/issue", json={}, headers=altered) as response:
+                self.assertEqual(response.status, 403)
+                self.assertNotIn("proof", await response.text())
+
     async def test_revocation_policy_veto_and_expiry(self):
         token = await self.csrf()
         async with await self.issue(token) as r:
