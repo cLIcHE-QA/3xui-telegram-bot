@@ -76,7 +76,7 @@
 
 ### #887 D3h — физическая аттестация Copy/QR (ещё PENDING)
 
-Для нового web/Mini App D3g **не переносить** исторические `operator-reported PASS` из #473 в `reviewed` без отдельного physical browser + Telegram WebView smoke **для точной версии на iOS и Android**. Матрица кандидатов, полный targeted checklist D3H-01…D3H-06 и критерии `allowCopy/allowQr` находятся в [WEB_SUBSCRIPTION_MINI_APP.md](WEB_SUBSCRIPTION_MINI_APP.md#d3h--подготовка-проверяемого-clientversion-allowlist-и-физический-copyqr-smoke-2026-10-26-887). Машиночитаемый offline реестр: `docs/assets/subpage-d3h-client-attestations.json`, `reviewed=[]`; он **не подключается** к серверной выдаче или frontend и сам по себе не разрешает запуск.
+Для нового web/Mini App D3g **не переносить** исторические `operator-reported PASS` из #473 в `reviewed` без отдельного physical browser + Telegram WebView smoke **для точной версии на iOS и Android**. Матрица кандидатов, полный targeted checklist D3H-01…D3H-06 и критерии `allowCopy/allowQr` находятся в [WEB_SUBSCRIPTION_MINI_APP.md](WEB_SUBSCRIPTION_MINI_APP.md). Машиночитаемый offline реестр: `docs/assets/subpage-d3h-client-attestations.json`, `reviewed=[]`; он **не подключается** к серверной выдаче или frontend и сам по себе не разрешает запуск.
 
 До отдельного согласования изолированного staging, проверки TLS/edge/session topology, устройства, Clipboard/QR и privacy gates: `VITE_D3G_MANUAL_IMPORT_UI` default false, `pilotEnabled=false`, `REVIEWED_CLIENT_CAPABILITIES=[]`, backend `delivery_enabled=false`, `reviewed_clients=()`. Не включать `app_runtime`, не раскрывать bearer URLs, не расширять pilot и не запускать production smoke/Release/deploy. #887 OPEN/keep_open, G-11 PARTIAL/NO-GO.
 
