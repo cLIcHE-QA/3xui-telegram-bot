@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Group, Stack, Text, Title } from "@mantine/core";
 import {
   requestManualImport, copyManualImportOnGesture, ManualImportUnavailable,
+  type ManualImportInput,
 } from "./manualImportClient";
 import { planReviewedImport, REVIEWED_CLIENT_CAPABILITIES } from "./reviewedCapabilities";
 
@@ -59,7 +60,7 @@ export function ManualImportPanel({
     const epoch = requestEpoch.current;
     clearQr();
     setPhase("working");
-    const input = {
+    const input: Omit<ManualImportInput, "method"> = {
       platform, clientId, clientVersion, context,
       enabled: pilotEnabled, expectedSubscriptionOrigin,
       reviewed: REVIEWED_CLIENT_CAPABILITIES,
