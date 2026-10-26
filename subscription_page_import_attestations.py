@@ -18,7 +18,7 @@ _CANDIDATE = _KEYS | {"priorIssue"}
 _REVIEWED = _KEYS | {"reviewIssue", "allowCopy", "allowQr", "evidence"}
 _PROOF = frozenset((
     "auditPath", "buildSha", "testedAt", "deviceModel", "osVersion",
-    "clientBuild", "browserVersion", "telegramVersion", "native",
+    "clientVersion", "clientBuild", "browserVersion", "telegramVersion", "native",
     "webview", "privacy",
 ))
 _VERSION = re.compile(r"[0-9]+(?:\.[0-9]+){1,3}(?:[-+][a-z0-9._-]+)?\Z")
@@ -68,7 +68,7 @@ def _evidence(evidence: object, *, root: Path, version: str,
                   "browserVersion", "telegramVersion"):
         if not _valid_string(evidence[field]):
             raise ValueError("Нет точной версии/физического устройства")
-    if evidence["clientBuild"] != version:
+    if evidence["clientVersion"] != version:
         raise ValueError("Версия в аттестации не совпадает")
     if not isinstance(evidence["buildSha"], str) or not _SHA.fullmatch(evidence["buildSha"]):
         raise ValueError("Нет immutable build SHA")
