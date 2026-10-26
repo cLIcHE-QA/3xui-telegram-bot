@@ -119,7 +119,10 @@ class SessionImportProofTests(unittest.IsolatedAsyncioTestCase):
         other = await self.issue(mode="standalone", cookie=STANDALONE_COOKIE)
         self.assertTrue(other.approved)
         self.assertFalse(await self.consume(other.proof, cookie=self.mini_other))
-        self.assertTrue(await self.consume(other.proof, mode="standalone",
+        self.assertFalse(await self.consume(other.proof, mode="standalone",
+                                            cookie=STANDALONE_COOKIE))
+        fresh = await self.issue(mode="standalone", cookie=STANDALONE_COOKIE)
+        self.assertTrue(await self.consume(fresh.proof, mode="standalone",
                                            cookie=STANDALONE_COOKIE))
 
     async def test_standalone_session_bound_and_revocation(self):
