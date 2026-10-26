@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D2a–D2e, D3a #911, D3b #912, D3c #915 и D3d owner eligibility preflight #917 source-only/default-off. PR #917 exact-head `PR conventions`/`Python checks` PASS; GitHub squash MERGED SHA 7c9c1bcf64e203f5f9803611eca0740833b0eedd. Synthetic negative owner/pilot/feature/profile tests; post-merge push CI #917 PENDING независимого подтверждения. Никаких browser auth/URL/Copy/QR и live acceptance.",
-      "evidence": "docs/audits/2026-10-26-887-d3d-owner-preflight-postmerge-checkpoint.md",
+      "accepted": "D2a–D2e и D3a–D3d default-off/source-only. Последний D3d #919 exact-head Python checks PASS и PR conventions повторный PASS (первый checklist fail до CI), squash MERGED в main SHA 489c358992d41f2b5e3d669651712e2a4bb14796. Изолированные D2a/D2b session-bound one-time preflight proofs с TTL ≤60с, SHA256 digest, replay/concurrency/negative tests; без HTTP routes, URL выдачи, Copy/QR, real client attestation или device acceptance. Post-merge push CI PENDING.",
+      "evidence": "docs/audits/2026-10-26-887-d3d-session-proofs-postmerge-checkpoint.md",
       "date": "2026-10-26",
-      "comment": "#887 keep_open: D3d preflight PR #917 MERGED в main 7c9c1bcf64e203f5f9803611eca0740833b0eedd, проверяет уже аутентифицированный owner ID как вход (но не интегрирован с D2a/D2b), default-off, без HTTP route и URL. Остаток: trusted session identity binding, one-time/replay/rate/no-store, server-side owner-bound subscription issuance, reviewed clients, реальные Copy/QR и physical devices, staging D2e, #885/PR #886 handoff, multi-host recovery; G-11 PARTIAL/NO-GO, #887 OPEN. Published rc.19 без D3d, Deployed rc.18.10 только operator-reported и без VPS read-back, rollout BLOCKED."
+      "comment": "#887 keep_open: D3d #919 завершил только default-off offline proof broker поверх существующих MiniAppSessions/StandalonePilot; owner берётся из текущего серверного session store, one-time proof привязан к session/mode/owner, но consume=true не открывает bearer URL. Остаток: trusted ingress/origin/CSRF/no-store, durable atomic multi-worker grants, owner-bound delivery, edge rate, vetted client versions, Copy/QR, WebView/iOS/Android staging, #885/PR #886 HTTPS handoff, multi-host recovery, G-11 PARTIAL/NO-GO. Published rc.19 без D3d; Deployed rc.18.10 только operator-reported, VPS read-back PENDING; public rollout BLOCKED."
     }
   ]
 }
