@@ -66,6 +66,23 @@ class D3hEvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             reviewed_clients_from_manifest(record, root=self.root)
 
+    def test_repository_shipping_defaults_remain_inert(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(load_reviewed_clients(root=root), ())
+        document = json.loads((root / MANIFEST_PATH).read_text(encoding="utf-8"))
+        self.assertEqual(document["reviewed"], [])
+        self.assertEqual(len(document["candidates"]), 7)
+        frontend = (root / "web/subscription-page/src/reviewedCapabilities.ts").read_text(encoding="utf-8")
+        screen = (root / "web/subscription-page/src/main.tsx").read_text(encoding="utf-8")
+        backend = (root / "subscription_page_import_http.py").read_text(encoding="utf-8")
+        runtime = (root / "app_runtime.py").read_text(encoding="utf-8")
+        self.assertIn("Object.freeze([])", frontend)
+        self.assertIn("pilotEnabled={false}", screen)
+        self.assertIn("clientVersion=\"\"", screen)
+        self.assertIn("delivery_enabled: bool = False", backend)
+        self.assertIn("reviewed_clients: tuple[ReviewedImportClient, ...] = ()", backend)
+        self.assertNotIn("subscription_page_import_attestations", runtime)
+
     def test_empty_shipping_reviewed_registry_does_not_promote_candidates(self):
         self.assertEqual(reviewed_clients_from_manifest(BASE, root=self.root), ())
         manifest = self.root / MANIFEST_PATH
