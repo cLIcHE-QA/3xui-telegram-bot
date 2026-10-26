@@ -142,3 +142,97 @@ def load_reviewed_clients(*, root: Path) -> tuple[ReviewedImportClient, ...]:
     except (OSError, UnicodeError, ValueError):
         raise ValueError("Реестр D3h недоступен") from None
     return reviewed_clients_from_manifest(data, root=root)
+
+# D3h: read-only source preflight. No network, Telegram, HTTP, QR or secrets.
+_STAGING_LOCATIONS = frozenset({
+    "= /",
+    "^~ /assets/",
+    "= /api/subpage/v1/auth/standalone/start",
+    "= /api/subpage/v1/auth/standalone/complete",
+    "~ ^/api/subpage/v1/(auth/standalone/(cancel|logout)|standalone/me)$",
+    "/",
+})
+
+
+def _read_contract(root: Path, relative: str) -> str:
+    try:
+        return (root / relative).read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        raise ValueError("D3h: недоступен source contract") from None
+
+
+def inspect_d3h_staging_readiness(*, root: Path) -> dict[str, object]:
+    """Fail-closed offline source readiness, not a physical device attestation.
+
+    No PASS is inferred from matching metadata; human verification is required.
+    On unexpected activation or ingress change: fail instead of running probes.
+    """
+    approved = load_reviewed_clients(root=root)
+    try:
+        manifest = json.loads(_read_contract(root, MANIFEST_PATH))
+    except (ValueError, TypeError):
+        raise ValueError("D3h: реестр недоступен") from None
+    frontend = _read_contract(root, "web/subscription-page/src/main.tsx")
+    reviewed = _read_contract(root, "web/subscription-page/src/reviewedCapabilities.ts")
+    issuer = _read_contract(root, "subscription_page_import_http.py")
+    staging = _read_contract(root, "subscription_page_staging.py")
+    wiring = _read_contract(root, "subscription_page_pilot_wiring.py")
+    runtime = _read_contract(root, "app_runtime.py")
+    ingress = _read_contract(root, "deploy/subpage-staging/nginx-d2d-staging.conf.example")
+
+    if (not all(s in frontend for s in (
+            'VITE_D3G_MANUAL_IMPORT_UI === "true"',
+            'clientVersion=""',
+            "pilotEnabled={false}",
+        )) or "Object.freeze([])" not in reviewed
+            or "delivery_enabled: bool = False" not in issuer
+            or "reviewed_clients: tuple[ReviewedImportClient, ...] = ()" not in issuer
+            or "subscription_page_import_http" in staging
+            or "create_import_preflight_app" in wiring
+            or "subscription_page_import_http" in runtime
+            or "subscription_page_import_attestations" in runtime):
+        raise ValueError("D3h: flags/wiring изменены без отдельного security review")
+
+    locations = re.findall(r"(?m)^\s*location\s+(.+?)\s*\{", ingress)
+    # Existing D2d edge offers only standalone auth, assets, and default 404.
+    # It cannot transport D3g /import/preflight/{csrf,issue,deliver}.
+    if (len(locations) != len(_STAGING_LOCATIONS)
+            or set(locations) != _STAGING_LOCATIONS
+            or not re.search(r"location /\s*\{\s*return 404;", ingress)):
+        raise ValueError("D3h: ingress изменён без отдельного security review")
+
+    return {
+        "schema": 1,
+        "scope": "D3h",
+        "status": "BLOCKED",
+        "candidate_count": len(manifest["candidates"]),
+        "reviewed_count": len(approved),
+        "device_evidence": "PENDING" if not approved else "INDEPENDENT_REVIEW_REQUIRED",
+        "staging_import_routes": "NOT_WIRED",
+        "frontend_import": "OFF",
+        "server_delivery": "OFF",
+        "live_requests_sent": 0,
+        "next_gate": "isolated_staging_review_and_physical_device_smoke",
+    }
+
+
+def _offline_main() -> int:
+    import sys
+    # No credentials, hostnames or private config paths may be passed to CLI.
+    if sys.argv[1:] != ["--offline-readiness"]:
+        print("Использование: python subscription_page_import_attestations.py --offline-readiness")
+        return 2
+    try:
+        report = inspect_d3h_staging_readiness(root=Path(__file__).resolve().parent)
+    except ValueError:
+        print(json.dumps({
+            "scope": "D3h", "status": "BLOCKED",
+            "reason": "repository_security_review_required",
+        }, sort_keys=True))
+        return 2
+    print(json.dumps(report, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_offline_main())
