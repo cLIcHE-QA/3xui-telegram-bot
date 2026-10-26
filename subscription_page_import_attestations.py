@@ -173,6 +173,8 @@ def inspect_d3h_staging_readiness(*, root: Path) -> dict[str, object]:
     except (ValueError, TypeError):
         raise ValueError("D3h: реестр недоступен") from None
     frontend = _read_contract(root, "web/subscription-page/src/main.tsx")
+    manual = _read_contract(root, "web/subscription-page/src/manualImportClient.ts")
+    panel = _read_contract(root, "web/subscription-page/src/ManualImportPanel.tsx")
     reviewed = _read_contract(root, "web/subscription-page/src/reviewedCapabilities.ts")
     issuer = _read_contract(root, "subscription_page_import_http.py")
     staging = _read_contract(root, "subscription_page_staging.py")
@@ -190,7 +192,14 @@ def inspect_d3h_staging_readiness(*, root: Path) -> dict[str, object]:
             or "subscription_page_import_http" in staging
             or "create_import_preflight_app" in wiring
             or "subscription_page_import_http" in runtime
-            or "subscription_page_import_attestations" in runtime):
+            or "subscription_page_import_attestations" in runtime
+            or 'method: "GET"' not in manual
+            or 'BASE + "/csrf"' not in manual
+            or 'referrerPolicy: "no-referrer"' not in manual
+            or 'request.headers.get("Origin") != https_origin' not in issuer
+            or "await requestManualImport" not in panel
+            or "await navigator.clipboard.writeText" not in panel
+            or "URL.createObjectURL" not in panel):
         raise ValueError("D3h: flags/wiring изменены без отдельного security review")
 
     locations = re.findall(r"(?m)^\s*location\s+(.+?)\s*\{", ingress)
@@ -198,7 +207,8 @@ def inspect_d3h_staging_readiness(*, root: Path) -> dict[str, object]:
     # It cannot transport D3g /import/preflight/{csrf,issue,deliver}.
     if (len(locations) != len(_STAGING_LOCATIONS)
             or set(locations) != _STAGING_LOCATIONS
-            or not re.search(r"location /\s*\{\s*return 404;", ingress)):
+            or not re.search(r"location /\s*\{\s*return 404;", ingress)
+            or "img-src 'self' data:;" not in ingress):
         raise ValueError("D3h: ingress изменён без отдельного security review")
 
     return {
@@ -209,6 +219,9 @@ def inspect_d3h_staging_readiness(*, root: Path) -> dict[str, object]:
         "reviewed_count": len(approved),
         "device_evidence": "PENDING" if not approved else "INDEPENDENT_REVIEW_REQUIRED",
         "staging_import_routes": "NOT_WIRED",
+        "csrf_origin_compat": "REVIEW_REQUIRED",
+        "qr_blob_csp": "BLOCKED",
+        "clipboard_activation": "PHYSICAL_WEBVIEW_PENDING",
         "frontend_import": "OFF",
         "server_delivery": "OFF",
         "live_requests_sent": 0,
