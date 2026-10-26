@@ -11,12 +11,15 @@ import { SafeSvgIcon, parseLocalSvgLibrary } from "./SafeSvgIcon";
 import { PreviewModePicker } from "./PreviewModePicker";
 import { ConnectionGuide } from "./ConnectionGuide";
 import { ImportCapabilityPreview } from "./ImportCapabilityPreview";
+import { ManualImportPanel } from "./ManualImportPanel";
 import "./style.css";
 import { MiniAppPilotPanel } from "./MiniAppPilotPanel";
 import { StandalonePilotPanel } from "./StandalonePilotPanel";
 
 // D2a cannot activate in the normal build; public preview remains synthetic.
 const ENABLE_D3B_IMPORT_PREVIEW = import.meta.env.VITE_D3B_IMPORT_PREVIEW === "true";
+// D3g is source-only; shipping capability allowlist is intentionally empty.
+const ENABLE_D3G_MANUAL_IMPORT_UI = import.meta.env.VITE_D3G_MANUAL_IMPORT_UI === "true";
 const ENABLE_D2A_PILOT_UI = import.meta.env.VITE_D2A_PILOT_UI === "true";
 // D2b has an independent, deliberately disabled standalone owner-proof flow.
 const ENABLE_D2B_STANDALONE_PILOT_UI = import.meta.env.VITE_D2B_STANDALONE_PILOT_UI === "true";
@@ -127,6 +130,10 @@ function App() {
           <div className="setup-segment guide-setup"><div className="setup-title"><span>03</span><strong>{t("steps")}</strong></div>
             <ConnectionGuide steps={steps} mode={view} lang={lang} t={t} clientName={selected?.name} svgLibrary={svgLibrary}/>
             {ENABLE_D3B_IMPORT_PREVIEW && <ImportCapabilityPreview platform={platform} client={selected?.name??""}/>}
+            {ENABLE_D3G_MANUAL_IMPORT_UI && <ManualImportPanel platform={platform}
+              clientId={selected?.name ?? ""} clientVersion=""
+              expectedSubscriptionOrigin={import.meta.env.VITE_D3G_SUBSCRIPTION_ORIGIN || ""}
+              telegramWebView={true} pilotEnabled={false}/>}
           </div></div>
       </section>
       <section className="svg-assets-import"><label className="file-pick">SVG JSON<input aria-label="Импортировать SVG-библиотеку" type="file" accept=".json,application/json" onChange={e=>importSvgLibrary(e.target.files?.[0]||null)}/></label><Text size="xs" role="status">{iconMessage || "Дополнительная SVG-библиотека: локальный импорт, без внешних запросов"}</Text></section>
