@@ -92,6 +92,8 @@ class D3hEvidenceTests(unittest.TestCase):
         contract_paths = (
             MANIFEST_PATH,
             "web/subscription-page/src/main.tsx",
+            "web/subscription-page/src/manualImportClient.ts",
+            "web/subscription-page/src/ManualImportPanel.tsx",
             "web/subscription-page/src/reviewedCapabilities.ts",
             "subscription_page_import_http.py",
             "subscription_page_staging.py",
@@ -114,6 +116,9 @@ class D3hEvidenceTests(unittest.TestCase):
             "candidate_count": 7, "reviewed_count": 0,
             "device_evidence": "PENDING",
             "staging_import_routes": "NOT_WIRED",
+            "csrf_origin_compat": "REVIEW_REQUIRED",
+            "qr_blob_csp": "BLOCKED",
+            "clipboard_activation": "PHYSICAL_WEBVIEW_PENDING",
             "frontend_import": "OFF", "server_delivery": "OFF",
             "live_requests_sent": 0,
             "next_gate": "isolated_staging_review_and_physical_device_smoke",
@@ -146,6 +151,27 @@ class D3hEvidenceTests(unittest.TestCase):
                 "app_runtime.py",
                 "import asyncio",
                 "import asyncio\n# subscription_page_import_attestations",
+            ),
+            "csrf-method": (
+                "web/subscription-page/src/manualImportClient.ts",
+                'method: "GET"', 'method: "POST"',
+            ),
+            "csrf-origin": (
+                "subscription_page_import_http.py",
+                'request.headers.get("Origin") != https_origin',
+                'request.headers.get("Origin") == https_origin',
+            ),
+            "clipboard-call": (
+                "web/subscription-page/src/ManualImportPanel.tsx",
+                "await navigator.clipboard.writeText", "void navigator.clipboard.writeText",
+            ),
+            "qr-blob": (
+                "web/subscription-page/src/ManualImportPanel.tsx",
+                "URL.createObjectURL", "URL.createObjectUrl",
+            ),
+            "ingress-csp": (
+                "deploy/subpage-staging/nginx-d2d-staging.conf.example",
+                "img-src 'self' data:;", "img-src 'self' data: blob:;",
             ),
             "ingress-route": (
                 "deploy/subpage-staging/nginx-d2d-staging.conf.example",
