@@ -123,7 +123,7 @@ class D3hEvidenceTests(unittest.TestCase):
     def test_unsupported_client_platform_version_and_duplicates_fail_closed(self):
         changes = (
             ("clientVersion", "2.6.5"), ("clientVersion", "../bad"),
-            ("clientVersion", None), ("platform", "android"),
+            ("clientVersion", None), ("platform", "macos"),
             ("platform", "windows"), ("clientId", "unknown"),
             ("reviewIssue", "#999"), ("allowCopy", "yes"),
         )
@@ -132,6 +132,12 @@ class D3hEvidenceTests(unittest.TestCase):
             record["reviewed"][0][field] = value
             with self.subTest(field=field, value=value):
                 self.rejects(record)
+        # Android/Incy — известный кандидат, но всё ещё только synthetic fixture.
+        record = self.with_review()
+        record["reviewed"][0]["platform"] = "android"
+        self.assertEqual(
+            reviewed_clients_from_manifest(record, root=self.root)[0].platform, "android",
+        )
         record = self.with_review()
         record["reviewed"] *= 2
         self.rejects(record)
