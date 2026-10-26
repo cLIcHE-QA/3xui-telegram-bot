@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D3a #911, D3b #912 и D3c #915 MERGED source-only/default-off; D3c exact-head PR conventions/Python checks/Subscription Page D1a checks PASS, пустой reviewed client allowlist, synthetic Node negative tests. D2a–D2e offline scoped; post-merge push CI D3c отдельно PENDING.",
-      "evidence": "docs/audits/2026-10-26-887-d3c-offline-postmerge-checkpoint.md",
+      "accepted": "D2a–D2e, D3a #911, D3b #912, D3c #915 и D3d owner eligibility preflight #917 source-only/default-off. PR #917 exact-head `PR conventions`/`Python checks` PASS; GitHub squash MERGED SHA 7c9c1bcf64e203f5f9803611eca0740833b0eedd. Synthetic negative owner/pilot/feature/profile tests; post-merge push CI #917 PENDING независимого подтверждения. Никаких browser auth/URL/Copy/QR и live acceptance.",
+      "evidence": "docs/audits/2026-10-26-887-d3d-owner-preflight-postmerge-checkpoint.md",
       "date": "2026-10-26",
-      "comment": "#887 keep_open: D3c #915 squash 4e830428661a4b35ba7ac161afe0b8ce0e631554, reviewed platform/client/version capability resolver без реальной attestation и URL. Server-side owner-bound delivery, Copy/QR, HTTPS handoff #885/#886, D2e staging, device/WebView smoke, multi-host recovery, G-11 PENDING/NO-GO. Published rc.19 без D3c; Deployed rc.18.10 operator-reported, VPS read-back PENDING; public rollout BLOCKED."
+      "comment": "#887 keep_open: D3d preflight PR #917 MERGED в main 7c9c1bcf64e203f5f9803611eca0740833b0eedd, проверяет уже аутентифицированный owner ID как вход (но не интегрирован с D2a/D2b), default-off, без HTTP route и URL. Остаток: trusted session identity binding, one-time/replay/rate/no-store, server-side owner-bound subscription issuance, reviewed clients, реальные Copy/QR и physical devices, staging D2e, #885/PR #886 handoff, multi-host recovery; G-11 PARTIAL/NO-GO, #887 OPEN. Published rc.19 без D3d, Deployed rc.18.10 только operator-reported и без VPS read-back, rollout BLOCKED."
     }
   ]
 }
