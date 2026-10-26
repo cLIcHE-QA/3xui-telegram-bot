@@ -1,7 +1,7 @@
 # #887 D3j — согласование D3h client-attestation и D3i isolated staging
 
 <!-- audit-schema: 1 -->
-- **Дата/время и часовой пояс:** 2026-10-26T23:10:48+03:00
+- **Дата/время и часовой пояс:** 2026-10-26 23:10 UTC+03:00
 - **Окружение:** GitHub source-only интеграционная ветка `feature/887-d3j-integration-gates`, изоляция D3h manifest/CLI и D3i synthetic staging, без реального VPS, TLS, Bot API и физических iOS/Android
 - **Цель:** гарантировать, что совместное включение исходных кодовых контрактов #927/#928 не ослабляет Origin/CSRF, Clipboard, reviewed allowlist, Nginx /deliver deny или default-off и не выдаёт ложный readiness PASS
 - **Версия и immutable tag/SHA:** исходный `main` SHA `04273fa5c126eb9f0c8a0877f3789f235664d596`; исходный D3h PR #927 head `2d1282988745a1e7efb662f260c53cd4810b1758`; исходный D3i PR #928 head `a191aa8785c2de47ab82e5ddbd2cbc7d016d1f9c`; Published tag `v5.0.0-rc.19` SHA `d738dd970f2215adc346a919c7ed182abaf454b1`; итоговый D3j head/CI — PENDING до GitHub read-back
