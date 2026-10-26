@@ -193,7 +193,7 @@ class ImportHttpTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(sorted([r.status for r in responses]), [200, 403])
         finally:
             for r in responses:
-                await r.release()
+                r.release()
         for _ in range(ISSUE_LIMIT - 1):
             async with await self.issue(token) as r:
                 self.assertEqual(r.status, 200)
