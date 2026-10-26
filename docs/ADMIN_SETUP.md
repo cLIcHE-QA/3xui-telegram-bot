@@ -8,7 +8,7 @@
 
 **Исторический checkpoint `rc.18.1` (не текущий статус):** оператор ранее сообщил deployed `rc.18` P0–P2/F1–F3 и scoped D1–D8/S1–S4 PASS, но независимый VPS/provider read-back отсутствует, X2 и destructive postcondition provenance PENDING. Новая версия `rc.18.1` опубликована и развернута по отчёту оператора; targeted UI A4/A5 operator-reported FAIL; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
-> **Действующая версия исходного кода:** `APP_VERSION=v5.0.0-rc.19`. GitHub Release опубликован; текущий установленный на VPS `rc.18.10` (operator-reported) отличается от Published. Данный docs-only PR не выполняет развёртывание.
+> **Версия исходного кода в release-prep:** `APP_VERSION=v5.0.0-rc.20`. Новый RC ещё не Published; фактическая публикация проверяется по [Roadmap](ROADMAP.md), Deployed остаётся `rc.18.10` operator-reported. Новых production действий по включению web-основы нет: staging factories, UI и URL delivery остаются default-off/без reviewed клиентов. Команды процедур для rc.20 применимы лишь после независимого tag/Release read-back и отдельного разрешения на установку. Этот PR не выполняет deployment.
 
 ## Перед началом: границы и безопасность
 
