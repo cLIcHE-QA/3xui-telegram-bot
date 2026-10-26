@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D2a–D2e offline scoped, D3a PR #911 и D3b PR #912 squash MERGED; exact-head required PR conventions/Python checks/Subscription Page D1a checks PASS для D3a/D3b. D3a — default-off policy planner, D3b — default-off inert UI preview, без owner-bound URL, Copy/QR/deeplink, client/version attestation или live device acceptance. Post-merge push CI для D3a/D3b не подтверждён отдельным evidence; ранее подтверждённый D2d post-merge push CI не переносится на D3.",
-      "evidence": "docs/audits/2026-10-25-887-d3-offline-postmerge-checkpoint.md",
+      "accepted": "D3a #911, D3b #912 и D3c #915 MERGED source-only/default-off; D3c exact-head PR conventions/Python checks/Subscription Page D1a checks PASS, пустой reviewed client allowlist, synthetic Node negative tests. D2a–D2e offline scoped; post-merge push CI D3c отдельно PENDING.",
+      "evidence": "docs/audits/2026-10-26-887-d3c-offline-postmerge-checkpoint.md",
       "date": "2026-10-26",
-      "comment": "#887 keep_open: main SHA 6c7a8d8cc8ff9fd70a7b64214d83ae9ade10365c после Roadmap PR #913, D3a #911 squash 0188093380e82c6fce4cb05a6daacd1c0be21fa0, D3b #912 squash 5f47b9f270b52213f386c81f3e533ce13511843e. D2e staging pilot, reviewed client/version allowlist, owner-bound subscription issuance, real Copy/QR, targeted WebView/device smoke, multi-host recovery и G-11 PENDING/NO-GO. Published rc.19 без D3; Deployed rc.18.10 operator-reported, VPS read-back PENDING; public rollout BLOCKED. Следующий шаг: D3c scoped implementation и независимые проверки; не закрывать Issue по CI-only."
+      "comment": "#887 keep_open: D3c #915 squash 4e830428661a4b35ba7ac161afe0b8ce0e631554, reviewed platform/client/version capability resolver без реальной attestation и URL. Server-side owner-bound delivery, Copy/QR, HTTPS handoff #885/#886, D2e staging, device/WebView smoke, multi-host recovery, G-11 PENDING/NO-GO. Published rc.19 без D3c; Deployed rc.18.10 operator-reported, VPS read-back PENDING; public rollout BLOCKED."
     }
   ]
 }
