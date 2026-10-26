@@ -14,7 +14,7 @@
 - **Следующий шаг:** провести этот publication/Roadmap checkpoint через required PR CI, squash merge и независимый main read-back, обновить Issue evidence; затем #885/PR #886 для отдельного rc.21. Операторские проверки отложены в конец пула #930.
 - **Раздельные состояния:** merged=#934 `929e9950a9d831ef72271f99b226a3315cfef709`; published=v5.0.0-rc.20, prerelease=true, draft=false, `2026-10-26T23:26:39Z`; deployed=v5.0.0-rc.18.10 `dae205ac82762723448f93827b981f89ae622231`, только operator-reported, independent VPS read-back PENDING; accepted=publication scoped PASS, runtime #887/#890 PENDING, общий G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
-## Expected → observed
+## Ожидаемое и полученное
 
 До merge target ref rc.20 отсутствовал (GitHub404). После штатного workflow `refs/tags/v5.0.0-rc.20` — commit `929e9950a9d831ef72271f99b226a3315cfef709`; это единственный squash commit merged PR с точным title `release: v5.0.0-rc.20` в main. `version.py` на этом SHA содержит `APP_VERSION = "5.0.0-rc.20"`. Release metadata: prerelease=true, draft=false; title/body после нормализации окончания строк и завершающего newline точно совпадают с canonical renderer из CHANGELOG для этого SHA. Tag/Release вручную не создавались.
 
@@ -24,7 +24,7 @@ Release-scope gate: **17/17** merged feat/fix/security PR после rc.19 уч�
 
 Свежий [supply-chain audit40418537797](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40418537797), job121906824788, SUCCESS на `97270d8e354e3615fa49f484a41c218badd3bfc6`: hash-pinned install/pip check, Trivy filesystem/container, actionable HIGH/CRITICAL gate, license reports и CycloneDX SBOM. После audited SHA requirements.lock/requirements.txt/npm lock/Docker/base-image не менялись, проверено Git diff. Версионные и документационные изменения не являются новой аттестацией production.
 
-## Closure audit
+## Проверка закрытия Issues
 
 **#887 keep_open:** опубликованы изолированные D1a/D1b/D2a–D2e/D3a–D3j исходники; полный private JSON1:1, реальные reviewed client/version, trusted staging TLS/edge/session topology и physical iOS/Android/Telegram WebView остаются PENDING. CI не доказывает весь продуктовый scope.
 
