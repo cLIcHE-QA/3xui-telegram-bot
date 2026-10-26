@@ -14,7 +14,7 @@ from subscription_page_customer import COOKIE as MINI_COOKIE, MiniAppSessions, V
 from subscription_page_standalone import SESSION_COOKIE as STANDALONE_COOKIE, StandalonePilot
 from subscription_page_import_http import BASE, create_import_preflight_app
 from subscription_page_import_issuer import (
-    ReviewedImportClient, owner_bound_subscription_url, reviewed_import_keys,
+    ReviewedImportClient, owner_bound_subscription_url, reviewed_import_keys, reviewed_import_methods,
     validate_subscription_url,
 )
 from subscription_page_import_sqlite import ImportSQLiteLedger
@@ -156,14 +156,15 @@ class D3fHttpTests(unittest.IsolatedAsyncioTestCase):
 
     async def deliver(self, token, proof, *, client=None, raw_cookie=None,
                       platform="ios", client_id="synthetic-client",
-                      version="1.0.0", extra=None):
+                      version="1.0.0", method="copy", extra=None):
         headers = self.headers(raw_cookie)
         headers["X-CSRF-Token"] = token
         if extra:
             headers.update(extra)
         return await (client or self.client).post(BASE + "/deliver",
             json={"proof": proof, "platform": platform,
-                  "clientId": client_id, "clientVersion": version},
+                  "clientId": client_id, "clientVersion": version,
+                  "method": method},
             headers=headers)
 
     async def test_default_off_and_empty_allowlist(self):
