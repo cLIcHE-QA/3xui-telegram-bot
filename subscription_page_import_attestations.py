@@ -143,8 +143,10 @@ def load_reviewed_clients(*, root: Path) -> tuple[ReviewedImportClient, ...]:
         raise ValueError("Реестр D3h недоступен") from None
     return reviewed_clients_from_manifest(data, root=root)
 
-# D3h: read-only source preflight. No network, Telegram, HTTP, QR or secrets.
-_STAGING_LOCATIONS = frozenset({
+# D3j: D3h + D3i offline integration check.
+# Every check reads only repository sources, never network, Bot API, URL or device.
+# The result is always BLOCKED until independent staging and physical acceptance.
+_D2D_LOCATIONS = frozenset({
     "= /",
     "^~ /assets/",
     "= /api/subpage/v1/auth/standalone/start",
@@ -152,86 +154,161 @@ _STAGING_LOCATIONS = frozenset({
     "~ ^/api/subpage/v1/(auth/standalone/(cancel|logout)|standalone/me)$",
     "/",
 })
+_D3I_LOCATIONS = _D2D_LOCATIONS | frozenset({
+    "= /api/subpage/v1/import/preflight/csrf",
+    "= /api/subpage/v1/import/preflight/issue",
+    "= /api/subpage/v1/import/preflight/consume",
+    "= /api/subpage/v1/import/preflight/deliver",
+})
 
 
 def _read_contract(root: Path, relative: str) -> str:
     try:
         return (root / relative).read_text(encoding="utf-8")
     except (OSError, UnicodeError):
-        raise ValueError("D3h: недоступен source contract") from None
+        raise ValueError("D3j: недоступен обязательный source contract") from None
+
+
+def _check_locations(ingress: str, expected: frozenset[str]) -> bool:
+    locations = re.findall(r"(?m)^\s*location\s+(.+?)\s*\{", ingress)
+    return (len(locations) == len(expected) and set(locations) == expected
+            and re.search(r"location /\s*\{\s*return 404;", ingress) is not None)
 
 
 def inspect_d3h_staging_readiness(*, root: Path) -> dict[str, object]:
-    """Fail-closed offline source readiness, not a physical device attestation.
+    """Offline-only D3j contract gate; never a staging or device PASS.
 
-    No PASS is inferred from matching metadata; human verification is required.
-    On unexpected activation or ingress change: fail instead of running probes.
+    Structural checks detect known safety regressions but cannot prove that
+    source, TLS ingress, client hardware, owners or manual evidence are genuine.
+    Even an approved-looking manifest does not activate any runtime allowlist.
     """
     approved = load_reviewed_clients(root=root)
     try:
         manifest = json.loads(_read_contract(root, MANIFEST_PATH))
     except (ValueError, TypeError):
-        raise ValueError("D3h: реестр недоступен") from None
+        raise ValueError("D3j: недоступен реестр кандидатов") from None
+
     frontend = _read_contract(root, "web/subscription-page/src/main.tsx")
     manual = _read_contract(root, "web/subscription-page/src/manualImportClient.ts")
     panel = _read_contract(root, "web/subscription-page/src/ManualImportPanel.tsx")
     reviewed = _read_contract(root, "web/subscription-page/src/reviewedCapabilities.ts")
     issuer = _read_contract(root, "subscription_page_import_http.py")
-    staging = _read_contract(root, "subscription_page_staging.py")
+    isolated = _read_contract(root, "subscription_page_import_staging.py")
+    standalone = _read_contract(root, "subscription_page_staging.py")
     wiring = _read_contract(root, "subscription_page_pilot_wiring.py")
     runtime = _read_contract(root, "app_runtime.py")
-    ingress = _read_contract(root, "deploy/subpage-staging/nginx-d2d-staging.conf.example")
+    d2d_edge = _read_contract(root, "deploy/subpage-staging/nginx-d2d-staging.conf.example")
+    d3i_edge = _read_contract(root, "deploy/subpage-staging/nginx-d3i-import-staging.conf.example")
 
-    if (not all(s in frontend for s in (
+    # Shipping frontend and runtime remain inactive, independently of manifest.
+    if (not all(token in frontend for token in (
             'VITE_D3G_MANUAL_IMPORT_UI === "true"',
-            'clientVersion=""',
-            "pilotEnabled={false}",
+            'clientVersion=""', "pilotEnabled={false}",
         )) or "Object.freeze([])" not in reviewed
             or "delivery_enabled: bool = False" not in issuer
             or "reviewed_clients: tuple[ReviewedImportClient, ...] = ()" not in issuer
-            or "subscription_page_import_http" in staging
+            or "subscription_page_import_http" in standalone
+            or "subscription_page_import_staging" in standalone
             or "create_import_preflight_app" in wiring
-            or "subscription_page_import_http" in runtime
-            or "subscription_page_import_attestations" in runtime
-            or 'method: "GET"' not in manual
-            or 'BASE + "/csrf"' not in manual
-            or 'referrerPolicy: "no-referrer"' not in manual
-            or 'request.headers.get("Origin") != https_origin' not in issuer
-            or "await requestManualImport" not in panel
-            or "await navigator.clipboard.writeText" not in panel
-            or "URL.createObjectURL" not in panel):
-        raise ValueError("D3h: flags/wiring изменены без отдельного security review")
+            or any(token in runtime for token in (
+                "subscription_page_import_http",
+                "subscription_page_import_attestations",
+                "subscription_page_import_staging",
+            ))):
+        raise ValueError("D3j: shipping default-off / runtime isolation нарушены")
 
-    locations = re.findall(r"(?m)^\s*location\s+(.+?)\s*\{", ingress)
-    # Existing D2d edge offers only standalone auth, assets, and default 404.
-    # It cannot transport D3g /import/preflight/{csrf,issue,deliver}.
-    if (len(locations) != len(_STAGING_LOCATIONS)
-            or set(locations) != _STAGING_LOCATIONS
-            or not re.search(r"location /\s*\{\s*return 404;", ingress)
-            or "img-src 'self' data:;" not in ingress):
-        raise ValueError("D3h: ingress изменён без отдельного security review")
+    # D3i browser fix: read-only GET may omit Origin, but explicit foreign
+    # Origin is denied; every mutating POST still requires exact Origin + CSRF.
+    if not all(token in issuer for token in (
+        'origin = request.headers.get("Origin")',
+        'if (origin is not None and origin != https_origin) or (mutate and origin != https_origin):',
+        'site not in ("same-origin", "none")',
+        'guard_csrf(request, mode, cookie)',
+        'if not enabled or not delivery_enabled:',
+    )):
+        raise ValueError("D3j: Origin/CSRF/delivery guard требует review")
+
+    # ClipboardItem is queued synchronously inside a trusted click and a
+    # Promise<Blob> is resolved only after successful owner-bound HTTP.
+    # No writeText after network, no custom scheme handoff in WebView.
+    if (not all(token in manual for token in (
+            'method: "GET"', 'BASE + "/csrf"',
+            'referrerPolicy: "no-referrer"',
+            'export async function copyManualImportOnGesture(',
+            'writing = enqueue(content);',
+            'const result = await requestManualImport(',
+            'if (!stillCurrent() || result.method !== "copy")',
+        )) or not all(token in panel for token in (
+            'await copyManualImportOnGesture(',
+            'navigator.clipboard.write([new ClipboardItem({"text/plain": content})])',
+            'requestEpoch.current',
+            'await requestManualImport(',
+            'URL.createObjectURL',
+            'URL.revokeObjectURL',
+        )) or 'navigator.clipboard.writeText' in panel):
+        raise ValueError("D3j: Clipboard/QR source safety требует review")
+
+    # D3i is a source-only factory with a separate, private single-host ledger
+    # and synthetic service. No trusted reviewed clients or bearer routes.
+    if not all(token in isolated for token in (
+            'preflight_enabled: bool = False',
+            'type(pilot.service) is not _SyntheticCustomer',
+            'type(pilot.flags) is not _SyntheticFlags',
+            'pilot.service.owners != pilot.pilot_ids',
+            'pilot.ledger is None',
+            'target.name != _LEDGER or target.parent != pilot.ledger.path.parent',
+            'enabled=preflight_enabled, now=pilot.now',
+            'delivery_enabled=False, subscription_origin=None',
+            'reviewed_clients=()',
+            '_LOOPBACK = "127.0.0.1"',
+            'host != _LOOPBACK',
+            'explicitly_enabled is not True',
+        )) or "load_reviewed_clients(" in isolated
+            or "reviewed_clients=approved" in isolated):
+        raise ValueError("D3j: staging synthetic/no-delivery boundary нарушена")
+
+    # Old D2d ingress stays unchanged: no import routes or blob QR CSP.
+    if (not _check_locations(d2d_edge, _D2D_LOCATIONS)
+            or "img-src 'self' data:;" not in d2d_edge):
+        raise ValueError("D3j: D2d ingress изменён без независимого review")
+
+    # New D3i ingress is TEMPLATE ONLY. Exact path/method allowlisting, no
+    # catch-all proxy; /deliver is denied on the edge even if misconfigured.
+    if (not _check_locations(d3i_edge, _D3I_LOCATIONS)
+            or "img-src 'self' data: blob:;" not in d3i_edge
+            or "access_log off;" not in d3i_edge
+            or "client_max_body_size 2k;" not in d3i_edge
+            or 'if ($ssl_server_name != "staging.example.invalid")' not in d3i_edge
+            or not re.search(
+                r"location = /api/subpage/v1/import/preflight/deliver\s*\{\s*return 404;\s*\}",
+                d3i_edge)
+            or d3i_edge.count('if ($request_method != GET) { return 405; }') != 1
+            or d3i_edge.count('if ($request_method != POST) { return 405; }') != 2
+            or d3i_edge.count("proxy_pass http://127.0.0.1:8828;") != 3):
+        raise ValueError("D3j: D3i ingress deny/allowlist требует review")
 
     return {
         "schema": 1,
-        "scope": "D3h",
+        "scope": "D3j",
         "status": "BLOCKED",
         "candidate_count": len(manifest["candidates"]),
         "reviewed_count": len(approved),
         "device_evidence": "PENDING" if not approved else "INDEPENDENT_REVIEW_REQUIRED",
-        "staging_import_routes": "NOT_WIRED",
-        "csrf_origin_compat": "REVIEW_REQUIRED",
-        "qr_blob_csp": "BLOCKED",
-        "clipboard_activation": "PHYSICAL_WEBVIEW_PENDING",
+        "staging_import_routes": "TEMPLATE_ONLY_NO_RUNTIME",
+        "csrf_origin_compat": "SOURCE_GUARDED_DEVICE_PENDING",
+        "qr_blob_csp": "TEMPLATE_ONLY_DEVICE_PENDING",
+        "clipboard_activation": "SOURCE_GUARDED_DEVICE_PENDING",
         "frontend_import": "OFF",
         "server_delivery": "OFF",
+        "staging_delivery": "DENIED",
         "live_requests_sent": 0,
-        "next_gate": "isolated_staging_review_and_physical_device_smoke",
+        "next_gate": "independent_staging_security_and_physical_device_review",
     }
 
 
 def _offline_main() -> int:
     import sys
-    # No credentials, hostnames or private config paths may be passed to CLI.
+    # Never accept hostnames, bearer tokens, device IDs or secret file paths.
     if sys.argv[1:] != ["--offline-readiness"]:
         print("Использование: python subscription_page_import_attestations.py --offline-readiness")
         return 2
@@ -239,7 +316,7 @@ def _offline_main() -> int:
         report = inspect_d3h_staging_readiness(root=Path(__file__).resolve().parent)
     except ValueError:
         print(json.dumps({
-            "scope": "D3h", "status": "BLOCKED",
+            "scope": "D3j", "status": "BLOCKED",
             "reason": "repository_security_review_required",
         }, sort_keys=True))
         return 2
