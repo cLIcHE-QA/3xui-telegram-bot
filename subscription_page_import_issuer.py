@@ -38,6 +38,7 @@ def reviewed_import_keys(
     seen: set[tuple[str, str, str]] = set()
     for client in clients:
         if (not isinstance(client, ReviewedImportClient)
+                or not isinstance(client.platform, str)
                 or client.platform not in PLATFORMS
                 or not isinstance(client.client_id, str)
                 or not _ID.fullmatch(client.client_id)
@@ -71,7 +72,8 @@ def validate_subscription_url(raw: object, *, expected_origin: str) -> str | Non
         return None
     if (not isinstance(raw, str) or not 12 <= len(raw) <= 2048
             or raw != raw.strip() or any(ord(c) < 0x21 or ord(c) == 0x7f for c in raw)
-            or "\\" in raw or "{" in raw or "}" in raw):
+            or "\\" in raw or "{" in raw or "}" in raw
+            or re.search(r"%(?:0[0-9a-f]|1[0-9a-f]|7f|5c)", raw, re.I)):
         return None
     try:
         parsed = urlsplit(raw)
