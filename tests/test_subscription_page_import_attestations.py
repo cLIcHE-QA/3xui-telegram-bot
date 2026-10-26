@@ -144,8 +144,8 @@ class D3hEvidenceTests(unittest.TestCase):
             ),
             "runtime-wiring": (
                 "app_runtime.py",
-                "from __future__ import annotations",
-                "from __future__ import annotations\n# subscription_page_import_attestations",
+                "import asyncio",
+                "import asyncio\n# subscription_page_import_attestations",
             ),
             "ingress-route": (
                 "deploy/subpage-staging/nginx-d2d-staging.conf.example",
