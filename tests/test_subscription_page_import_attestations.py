@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from subscription_page_import_attestations import (
-    MANIFEST_PATH, load_reviewed_clients, reviewed_clients_from_manifest,
+    MANIFEST_PATH, inspect_d3h_staging_readiness, load_reviewed_clients,
+    reviewed_clients_from_manifest,
 )
 
 SHA = "a" * 40
@@ -82,6 +85,93 @@ class D3hEvidenceTests(unittest.TestCase):
         self.assertIn("delivery_enabled: bool = False", backend)
         self.assertIn("reviewed_clients: tuple[ReviewedImportClient, ...] = ()", backend)
         self.assertNotIn("subscription_page_import_attestations", runtime)
+
+    def isolated_source_tree(self):
+        repository = Path(__file__).resolve().parents[1]
+        isolated = self.root / "readonly-contracts"
+        contract_paths = (
+            MANIFEST_PATH,
+            "web/subscription-page/src/main.tsx",
+            "web/subscription-page/src/reviewedCapabilities.ts",
+            "subscription_page_import_http.py",
+            "subscription_page_staging.py",
+            "subscription_page_pilot_wiring.py",
+            "app_runtime.py",
+            "deploy/subpage-staging/nginx-d2d-staging.conf.example",
+        )
+        for relative in contract_paths:
+            destination = isolated / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(repository / relative, destination)
+        return isolated
+
+    def test_d3h_staging_readiness_is_offline_and_explicitly_blocked(self):
+        project = self.isolated_source_tree()
+        with patch("socket.socket", side_effect=AssertionError("network forbidden")):
+            report = inspect_d3h_staging_readiness(root=project)
+        self.assertEqual(report, {
+            "schema": 1, "scope": "D3h", "status": "BLOCKED",
+            "candidate_count": 7, "reviewed_count": 0,
+            "device_evidence": "PENDING",
+            "staging_import_routes": "NOT_WIRED",
+            "frontend_import": "OFF", "server_delivery": "OFF",
+            "live_requests_sent": 0,
+            "next_gate": "isolated_staging_review_and_physical_device_smoke",
+        })
+        self.assertNotIn("subscriptionUrl", json.dumps(report))
+
+    def test_d3h_staging_drift_is_rejected_without_network(self):
+        scenarios = {
+            "frontend-gate": (
+                "web/subscription-page/src/main.tsx",
+                "pilotEnabled={false}", "pilotEnabled={true}",
+            ),
+            "client-version": (
+                "web/subscription-page/src/main.tsx",
+                'clientVersion=""', 'clientVersion="2.6.4"',
+            ),
+            "trusted-capabilities": (
+                "web/subscription-page/src/reviewedCapabilities.ts",
+                "Object.freeze([])", 'Object.freeze([{"platform":"ios"}])',
+            ),
+            "backend-gate": (
+                "subscription_page_import_http.py",
+                "delivery_enabled: bool = False", "delivery_enabled: bool = True",
+            ),
+            "staging-wiring": (
+                "subscription_page_staging.py",
+                "#887 D2d:", "#887 D2d: subscription_page_import_http",
+            ),
+            "runtime-wiring": (
+                "app_runtime.py",
+                "from __future__ import annotations",
+                "from __future__ import annotations\n# subscription_page_import_attestations",
+            ),
+            "ingress-route": (
+                "deploy/subpage-staging/nginx-d2d-staging.conf.example",
+                "location / {", "location = /api/subpage/v1/import/preflight/deliver { return 200; }\n    location / {",
+            ),
+        }
+        for name, (relative, old, new) in scenarios.items():
+            with self.subTest(name=name):
+                project = self.isolated_source_tree()
+                target = project / relative
+                original = target.read_text(encoding="utf-8")
+                self.assertIn(old, original)
+                target.write_text(original.replace(old, new, 1), encoding="utf-8")
+                with patch("socket.socket", side_effect=AssertionError("network forbidden")):
+                    with self.assertRaises(ValueError):
+                        inspect_d3h_staging_readiness(root=project)
+
+    def test_d3h_readiness_missing_contract_or_bad_manifest_is_blocked(self):
+        project = self.isolated_source_tree()
+        (project / "subscription_page_pilot_wiring.py").unlink()
+        with self.assertRaises(ValueError):
+            inspect_d3h_staging_readiness(root=project)
+        project = self.isolated_source_tree()
+        (project / MANIFEST_PATH).write_text("not-json", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            inspect_d3h_staging_readiness(root=project)
 
     def test_empty_shipping_reviewed_registry_does_not_promote_candidates(self):
         self.assertEqual(reviewed_clients_from_manifest(BASE, root=self.root), ())
