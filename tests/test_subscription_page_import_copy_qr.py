@@ -113,7 +113,7 @@ class D3gCopyQrTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(r.headers["Cache-Control"],"no-store")
             self.assertEqual(r.headers["Referrer-Policy"],"no-referrer")
             payload=await r.read()
-            self.assertTrue(payload.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
+            self.assertTrue(payload.startswith(b"\x89PNG\r\n\x1a\n"))
             self.assertNotIn(BEARER.encode(),payload)
             self.assertNotIn("PRIVATE_TOKEN",str(r.headers))
         async with await self.deliver(csrf,proof,client_id="qr-client",method="qr") as r:
