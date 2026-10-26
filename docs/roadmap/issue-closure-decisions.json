@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D2a–D2e, D3a–D3d и D3e isolated default-off, CI scoped. PR #921 exact-head Python checks PASS (run 40362844327), PR conventions final PASS (run 40363417709), squash MERGED SHA fb69fba8ac6df15f35fb9d910b713362388a98d4; HTTP Origin/CSRF/session preflight + private single-host SQLite atomic grants, synthetic negative tests. Real URL/Copy/QR, live device/staging, TLS/edge и multi-host acceptance не проведены.",
-      "evidence": "docs/audits/2026-10-26-887-d3e-offline-postmerge-checkpoint.md",
+      "accepted": "D2a–D2e, D3a–D3f isolated/default-off scoped CI; #923 D3f exact-head Python checks run 40366842025 PASS и final PR conventions run 40367411486 PASS; squash MERGED main 48f11acb955da4542b6d6fc1a1a72343dfe1834d. D3f code owner-scoped fresh CustomerPortalService.subscription_card active/active, one-use SQLite proof, strict approved origin and client/version tuple; synthetic HTTP/IDOR/replay/revocation negative tests. Real URL delivery shipping disabled, reviewed client allowlist empty; no live acceptance.",
+      "evidence": "docs/audits/2026-10-26-887-d3f-offline-postmerge-checkpoint.md",
       "date": "2026-10-26",
-      "comment": "#887 keep_open: D3e source-only HTTP/SQLite preflight #921 MERGED main fb69fba8ac6df15f35fb9d910b713362388a98d4; default-off и нет production routes, subscription URL/Copy/QR, reviewed capability allowlist или staging proof. Следующий шаг: trusted HTTPS/edge/session security, отдельная owner-bound URL выдача и IDOR, replay, no-store, затем physical devices; #885/PR #886 отдельно. Postmerge push CI PENDING; Published rc.19 без D3e, Deployed rc.18.10 operator-reported, VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED."
+      "comment": "#887 keep_open: D3f PR #923 merged source-only URL delivery design with explicit delivery_enabled=false and empty real reviewed clients; no production route or real bearer disclosure enabled. Required before acceptance: separately reviewed TLS/Host/SNI/origin/CSRF/edge/no-log policy, D2a cross-worker session and multi-host ledger model, physical iOS/Android/Telegram WebView, reviewed client/version Copy/QR, isolated staging, #885 HTTPS handoff and recovery. Post-merge push CI independently PENDING. Published rc.19, Deployed rc.18.10 only operator-reported, no VPS read-back. G-11 PARTIAL/NO-GO; public rollout BLOCKED."
     }
   ]
 }
