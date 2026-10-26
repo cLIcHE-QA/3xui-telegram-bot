@@ -130,6 +130,33 @@ class D3hEvidenceTests(unittest.TestCase):
         })
         self.assertNotIn("subscriptionUrl", json.dumps(report))
 
+    def test_synthetic_reviewed_metadata_never_changes_blocked_or_activates_urls(self):
+        # Valid-looking synthetic manifest is NOT a physical-device attestation.
+        # It must not change the source-only NO-GO conclusion, frontend or
+        # staging bearer disclosure. Independent human evidence is mandatory.
+        project = self.isolated_source_tree()
+        document = json.loads((project / MANIFEST_PATH).read_text(encoding="utf-8"))
+        document["reviewed"] = [copy.deepcopy(REVIEW)]
+        audit = project / REVIEW["evidence"]["auditPath"]
+        audit.parent.mkdir(parents=True, exist_ok=True)
+        audit.write_text(
+            "# Synthetic fixture — не физический PASS\\n"
+            "<!-- audit-schema: 1 -->\\n"
+            "#887\\n"
+            + SHA,
+            encoding="utf-8",
+        )
+        (project / MANIFEST_PATH).write_text(json.dumps(document), encoding="utf-8")
+        with patch("socket.socket", side_effect=AssertionError("network forbidden")):
+            report = inspect_d3h_staging_readiness(root=project)
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertEqual(report["reviewed_count"], 1)
+        self.assertEqual(report["device_evidence"], "INDEPENDENT_REVIEW_REQUIRED")
+        self.assertEqual(report["staging_delivery"], "DENIED")
+        self.assertEqual(report["frontend_import"], "OFF")
+        self.assertEqual(report["server_delivery"], "OFF")
+        self.assertEqual(report["live_requests_sent"], 0)
+
     def test_d3h_staging_drift_is_rejected_without_network(self):
         scenarios = {
             "frontend-gate": (
@@ -270,10 +297,18 @@ class D3hEvidenceTests(unittest.TestCase):
         self.assertNotIn("secret.invalid", output.getvalue())
 
     def test_d3h_readiness_missing_contract_or_bad_manifest_is_blocked(self):
-        project = self.isolated_source_tree()
-        (project / "subscription_page_pilot_wiring.py").unlink()
-        with self.assertRaises(ValueError):
-            inspect_d3h_staging_readiness(root=project)
+        for relative in (
+            "subscription_page_pilot_wiring.py",
+            "subscription_page_import_staging.py",
+            "deploy/subpage-staging/nginx-d3i-import-staging.conf.example",
+            "web/subscription-page/src/manualImportClient.ts",
+        ):
+            with self.subTest(relative=relative):
+                project = self.isolated_source_tree()
+                (project / relative).unlink()
+                with patch("socket.socket", side_effect=AssertionError("network forbidden")):
+                    with self.assertRaises(ValueError):
+                        inspect_d3h_staging_readiness(root=project)
         project = self.isolated_source_tree()
         (project / MANIFEST_PATH).write_text("not-json", encoding="utf-8")
         with self.assertRaises(ValueError):
