@@ -2,6 +2,8 @@
 
 A command listing is documentation, not an authorization decision. Neither
 the catalog nor its UI executes or registers command handlers.
+Customer history (#506) uses private owner callbacks from Profile and links
+to the existing /paysupport; it adds no slash command or alias to this catalog.
 """
 from __future__ import annotations
 

@@ -13,6 +13,14 @@
 - Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
 - Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
 
+## Собственная история Stars (#506)
+
+После будущего разрешённого обновления: `👤 Профиль → 📜 История заказов и платежей`. Дополнительных env, портов, прав или bot migrations нет. Действуют существующие Client Portal/allowlist/private-owner guards; флаг новых Stars-платежей не запрещает чтение уже имеющейся истории. Показываются только собственные XTR-заказы и реальные `telegram_stars` записи по 8 на страницу. RUB/manual/PSP остаются отдельно до #336.
+
+Заказ, платеж, операция возврата и локальный период доступа имеют разные статусы; отсутствие платежа не означает подтверждённого списания. При неизвестном исходе не оплачивать повторно, использовать `/paysupport`. Нет провайдерских запросов, повторного invoice/активации/возврата. Справка Terms не принимает согласие; при отсутствии проверенной публичной редакции показывает `не опубликована`. Удаление аккаунта закрывает доступ к оставшемуся журналу через этот UI; сроки хранения не меняются. Поля и навигация — [UI contract](UI_STYLE.md#клиентская-история-заказов-и-stars-платежей-506).
+
+Поздний targeted acceptance после отдельного deployment: собственные/чужие ID из двух пилотных аккаунтов; обе вкладки, страницы и Back; существующие missing/unknown/refunded записи без создания платежей; недоступный/удалённый аккаунт, support/Terms и отсутствие секретов в UI/callback. Использовать безопасные fixtures/evidence, не проводить новые Stars/refund/Telegram mutations ради этой проверки. До такого evidence #506 OPEN/keep_open.
+
 ## #473 — импорт подписки (Published rc.19; deployment и приёмка PENDING)
 
 **Security review #882 (2026-10-23, pre-merge):** в каталоге import URI отклоняются URL с query-delimiter (включая пустой `?`), percent/fragment/userinfo/private IP и небезопасной схемой; `subTitle` валидируется как ограниченное Unicode-имя с отказом на control/bidi, читается только через loopback после owner/private guard, без redirect. Ошибки информационного upstream-запроса логируются по типу исключения, без bearer URL. Добавлены negative tests для forged callbacks, недоступного proxy и title injection. Итог offline CI и реальный post-deploy smoke независимы от самого review; выпуск до обязательных checks запрещён.

@@ -8,6 +8,10 @@
 
 Первоначальные записи `rc.16.2` и `rc.16.4` о B5/C3 findings, scoped PASS, прошлом #705 OPEN и тогдашних `Published/Deployed/PENDING` сохранены в [immutable snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/b1f86cdf7c420b4e133c85578c8d42a006043e15/docs/V5_PRODUCTION_ACCEPTANCE.md) и [датированных аудитах](audits/). Это evidence на момент соответствующего release и не обновляет текущий Issue/release state. Targeted UI сценарии #740/#742–#745 ниже могут оставаться как шаблоны проверки, но не заменяют V5-A gates.
 
+## Собственная история #506 — отдельный отложенный targeted gate
+
+Source-only разработка по #930 не подтверждает deployment или live acceptance. После отдельного разрешённого обновления проверить read-only сценарии из [CLIENT_SETUP](CLIENT_SETUP.md#собственная-история-stars-506): private-owner и SQL IDOR для Order/Payment, XTR-only вкладки по 8 записей, возврат на исходную страницу, отдельные missing/unknown/refunded/Entitlement состояния, support/Terms без invoice/consent/refund/reconcile. Использовать существующие безопасные записи/fixtures; новые финансовые операции и Telegram sends в автономный scope не входят. Offline tests и required CI подтверждают только проверенный source scope; #506 keep_open до своего targeted outcome. Общие G-11 PARTIAL/NO-GO и public rollout BLOCKED сохраняются; прежние HWID PASS/waived burst не повторять.
+
 ## 0. Зафиксировать baseline
 
 Перед тестами запишите:

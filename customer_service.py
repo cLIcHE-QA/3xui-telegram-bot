@@ -8,6 +8,8 @@ import secrets
 import time
 from typing import Protocol
 
+import aiosqlite
+
 from checkout_service import CheckoutService, CheckoutSession
 from commerce import CommerceService
 from db import CommerceOrderRecord, Database, PlanRecord
@@ -15,6 +17,10 @@ from db import CommerceOrderRecord, Database, PlanRecord
 
 class CustomerProviderUnavailable(RuntimeError):
     """Customer-facing provider read failed without exposing provider details."""
+
+
+class CustomerHistoryUnavailable(RuntimeError):
+    """Local ledger could not be read; no provider fallback or repair."""
 
 
 class CustomerDeviceDeleteUnknown(RuntimeError):
@@ -179,6 +185,23 @@ class CustomerPortalService:
         # 3x-ui milliseconds and entitlement seconds may differ by rounding.
         # Zero (unlimited) versus a finite expiry is a genuine mismatch.
         return abs(int(left) - int(right)) > 2000
+
+    async def history_page(
+        self, telegram_id: int, *, kind: str = "orders", page: int = 0,
+    ) -> dict | None:
+        """Only local owner-scoped ledger reads; no checkout/provider/recovery."""
+        try:
+            return await self.db.customer_history_page(telegram_id, kind=kind, page=page)
+        except aiosqlite.Error:
+            raise CustomerHistoryUnavailable("History unavailable") from None
+
+    async def history_detail(
+        self, telegram_id: int, *, kind: str, entry_id: int,
+    ) -> dict | None:
+        try:
+            return await self.db.customer_history_detail(telegram_id, kind=kind, entry_id=entry_id)
+        except aiosqlite.Error:
+            raise CustomerHistoryUnavailable("History unavailable") from None
 
     async def profile(
         self, telegram_id: int, *, read_access: bool = True,
