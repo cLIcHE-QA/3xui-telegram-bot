@@ -25,4 +25,3 @@ Candidate count не означает eligibility/consent/reachability. Все �
 ## Собственный closure audit
 
 Первые шесть source-only acceptance групп #947 доказаны кодом/regressions/PR CI; седьмая требует immutable RC и publication/Roadmap/main checkpoint. Поэтому #947 остаётся OPEN/keep_open до собственного publication audit, без искусственного требования реальных отправок. Parent #874 остаётся OPEN независимо от завершения дочерней foundation. README/ADMIN_SETUP/SQLITE_MIGRATIONS/CLIENT_SETUP/V5 acceptance/SERVICE_CAMPAIGNS и living-docs rule/invariant обновлены; UI_STYLE reviewed N/A, экранов/slash/callbacks нет.
-
