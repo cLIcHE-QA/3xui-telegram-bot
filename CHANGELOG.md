@@ -14,6 +14,13 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## Unreleased — Source-only foundation сервисных кампаний
+
+- #947 / часть #874-A: внутренний API owned drafts, optimistic revisions и immutable frozen payload SHA-256; bounded list8 и private-candidate dry-run1000. Нет runtime/worker/UI/transport wiring, scheduled jobs, реальных сообщений или нового сетевого surface.
+- Additive schema v16 создаёт пустые campaign drafts/revisions/private-contact таблицы через штатный forward-only framework, с strict SQL/trigger/index postconditions. Unjournaled ledger не принимается, users/import не backfill в private contacts; existing data сохраняются, старый код v15 после upgrade останавливается. Текущий Published rc.23 по-прежнему schema v15 до нового RC.
+- Trusted private observation API требует actor=private chat.id, human actor и existing user; не создаёт user, не снимает blocked и не означает consent. User delete очищает proof. Все DTO/errors/счётчики не содержат recipient lists/сырых исключений; text repr скрыт, link/markup/control/credential-shaped payload отклоняется.
+- Dry-run применяет local User Groups/deny priority, не выдаёт eligibility или recipients: deliverable=0/unapproved для всех категорий, policy #501 не изобретена. Parent #874 и runtime/policy/pilot/deployment gates остаются OPEN/PENDING, G-11 PARTIAL/NO-GO/public rollout BLOCKED.
+
 ## v5.0.0-rc.23 — Актуальные команды без legacy-рекомендаций
 
 - #564 / PR #943: read-only справочник «Команды бота» показывает только active записи, основной путь клиента — `/start`; `/create` и `/inbounds` скрыты из текущих рекомендаций. Версия отображения каталога — v2; полный типизированный registry сохраняет legacy записи и fail-closed AST CI продолжает требовать все зарегистрированные handlers.

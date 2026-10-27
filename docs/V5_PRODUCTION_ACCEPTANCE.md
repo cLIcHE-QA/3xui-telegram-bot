@@ -16,6 +16,10 @@ Source-only разработка по #930 не подтверждает deploym
 
 После будущего отдельно разрешённого deployment проверить новую видимость справочника по [CLIENT_SETUP](CLIENT_SETUP.md#актуальные-команды-и-совместимость-564): active-only команды, основной `/start`, отсутствие legacy рекомендаций и Back. Четыре admin roles, 2 legacy slash/3 saved callbacks и portal/allowlist guards подтверждаются source/offline regression; старый N03 не повторять, production flags ради неизменённых paths не переключать. Типизированный каталог/AST CI проверяют и скрытые handlers. Telegram global command registry не изменялся и не считается очищенным; старый N03 не доказывает новый visibility outcome. Offline/CI не заменяют собственный operator-reported visibility outcome; #564 keep_open, deployment/live smoke отложены по #930. G-11 PARTIAL/NO-GO/public rollout BLOCKED, waived burst и прошлые HWID PASS не повторять.
 
+## Кампании #947 — source-only schema/API scope
+
+Foundation не подключена к runtime и не имеет sender/worker/UI. Собственные storage/migration/ownership/dry-run критерии проверяются offline/CI; реальные Telegram sends не требуются и не разрешаются ради этой части. Parent #874 сохраняет отдельные policy #501, UI/queue, permission/abuse/privacy, deployment и pilot delivery gates. Source schema v16 не приписывается Published rc.23/schema v15; будущая установка проверяет cumulative upgrade/recovery по [SQLITE_MIGRATIONS](SQLITE_MIGRATIONS.md). Source PASS не подтверждает runtime delivery/G-11, прежние scoped PASS/waived burst не повторять.
+
 ## 0. Зафиксировать baseline
 
 Перед тестами запишите:

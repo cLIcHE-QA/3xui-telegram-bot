@@ -13,6 +13,10 @@
 - Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
 - Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
 
+## Source-only foundation кампаний #947
+
+В текущем Client Portal нет нового экрана, observer или отправки кампаний. Source schema v16/API подготовлены отдельно от Published rc.23/schema v15; private-contact ledger пуст без доверенного внутреннего observation API и не backfill из users/импорта. Private proof не означает opt-in/consent/eligibility: dry-run возвращает только bounded candidates и всегда deliverable=0/unapproved. Policy #501 и родительский UI/queue/pilot #874 PENDING; [нормативный контракт](SERVICE_CAMPAIGNS.md). Новых client flags/slash-команд нет; существующие pilot/private/ownership guards не меняются.
+
 ## Актуальные команды и совместимость (#564)
 
 Published rc.23; deployment и собственный visibility outcome PENDING. Основной путь клиента — `/start`, дополнительные действующие команды — `/subscription` и `/paysupport`. В read-only справочнике `/admin → Система → 📚 Команды бота` показываются только active записи, прежние `/create` и `/inbounds` скрыты из рекомендаций. Полный типизированный каталог и AST CI сохраняют legacy handlers. Старые slash-вызовы и callbacks `create/inbounds/subscription` по-прежнему ведут в кабинет через portal/allowlist/rate-limit guards; они не создают доступ или оплату. Новых env/прав/setup действий нет; глобальное меню команд Telegram не меняется этим экраном.

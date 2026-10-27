@@ -81,6 +81,22 @@ def current_release_claim_errors(roadmap: str, docs: dict[str, str]) -> list[str
     return issues
 
 class LivingDocsSemanticTests(unittest.TestCase):
+    def test_campaign_foundation_keeps_provenance_separate_from_delivery_permission(self):
+        doc = (ROOT / "docs/SERVICE_CAMPAIGNS.md").read_text(encoding="utf-8")
+        for invariant in ("по умолчанию DENY", "deliverable=0", "policy_status=unapproved",
+                          "не означает reachable chat", "Нет backfill", "не снимает blocked",
+                          "immutable revision", "не создаёт job/recipient snapshot"):
+            self.assertIn(invariant, doc.replace("**", ""))
+        schema = (ROOT / "docs/SQLITE_MIGRATIONS.md").read_text(encoding="utf-8")
+        published = next(line for line in schema.splitlines() if line.startswith("**Published `"))
+        declared = re.search(r"schema v([0-9]+)", published)
+        self.assertIsNotNone(declared)
+        self.assertLessEqual(int(declared.group(1)), CURRENT_SCHEMA_VERSION)
+        contract = json.loads((ROOT / "docs/live-docs.json").read_text())
+        rule = next(rule for rule in contract["rules"] if rule["id"] == "service-campaign-foundation")
+        self.assertEqual(rule["mode"], "require_all")
+        self.assertIn("docs/SERVICE_CAMPAIGNS.md", rule["documents"])
+
     def test_legacy_visibility_does_not_shrink_authoritative_command_audit(self):
         ui = (ROOT / "docs/UI_STYLE.md").read_text(encoding="utf-8")
         catalog = ui.split("## 📚 Команды бота (#356)", 1)[1].split("\n## ", 1)[0]
