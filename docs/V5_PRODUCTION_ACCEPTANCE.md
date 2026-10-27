@@ -24,7 +24,7 @@ Foundation не подключена к runtime и не имеет sender/worker
 
 Acceptance этой части — isolated migration/state/ownership/schedule/fencing/unknown/retry/stop/privacy regressions, security review, required CI, immutable RC и publication/main checkpoint. Реальные sends/listeners/VPS операции не требуются и не разрешаются ради source части. Positive fake admission используется только с isolated transport; в текущем runtime настоящая policy отсутствует и delivery DENY_ALL, категории не становятся mandatory.
 
-Свой source PASS не заменяет policy #501, UI/observer/transport #949, privacy/abuse review, runtime authentication, поздний deployment и разрешённый pilot parent #874. Candidate schema17 не приписывается Published rc.24/schema16; будущий cumulative upgrade/recovery проверяется по SQL contract. Старые HWID PASS/waived burst не повторять, G-11 PARTIAL/NO-GO/public rollout BLOCKED.
+Свой source PASS не заменяет policy #501, UI/observer/transport #949, privacy/abuse review, runtime authentication, поздний deployment и разрешённый pilot parent #874. Source schema17 в main (#956) не приписывается Published rc.24/schema16; будущий cumulative upgrade/recovery проверяется по SQL contract. Старые HWID PASS/waived burst не повторять, G-11 PARTIAL/NO-GO/public rollout BLOCKED.
 
 ## 0. Зафиксировать baseline
 

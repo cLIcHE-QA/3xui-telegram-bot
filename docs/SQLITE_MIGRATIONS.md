@@ -4,13 +4,13 @@
 
 ## Текущий контракт schema
 
-**Source-кандидат #948, ещё не main/Published:** schema v17 `service_campaign_queue_v5_0_0`. Новые job/recipient/attempt/control и contact-generation объекты; source API/worker не подключены к runtime, policy DENY_ALL. Published rc.24 ниже сохраняет schema16.
+**Source #948 в main (#956), ещё не Published:** schema v17 `service_campaign_queue_v5_0_0`. Новые job/recipient/attempt/control и contact-generation объекты; source API/worker не подключены к runtime, policy DENY_ALL. Published rc.24 ниже сохраняет schema16.
 
 **Published `v5.0.0-rc.24`:** bot schema v16 `service_campaign_foundation_v5_0_0` (#947). Additive пустые drafts/revisions/private-contact таблицы; без backfill/observer/UI/worker/transport/sends. [Foundation contract](SERVICE_CAMPAIGNS.md), [publication read-back](audits/2026-10-27-rc24-publication-checkpoint.md). Immutable tag SHA `d7e224b48b23a315c389c290594c975dba2f9684`, GitHub Release 2026-10-27T13:49:49Z.
 
 **Схема SQLite v16 для Published `v5.0.0-rc.24`; operator-reported Deployed `v5.0.0-rc.18.10` остаётся на каталоге v15.** Deployment/migration16 на VPS не выполнялись; поздний cumulative upgrade/recovery проверяется отдельно. Старый rc.23/schema15 immutable и не изменён. Адресные HWID23/23 PASS относятся к deployed rc.18.10, independent VPS/SQLite `PRAGMA quick_check` PENDING; `DB=ok` не доказывает quick_check. [Roadmap](ROADMAP.md).
 
-Разрабатываемая source schema **v17** — отдельный кандидат; Published rc.24 содержит v16, фактический deployed schema16/17 не подтверждён.
+Текущая main source schema **v17** — не Published; Published rc.24 содержит v16, фактический deployed schema16/17 не подтверждён.
 
 Изолированные staging/import SQLite #887 остаются отдельными default-off ledgers; исходники не подтверждают их deployment и не заменяют bot migration framework.
 
