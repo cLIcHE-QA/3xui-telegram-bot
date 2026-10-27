@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep кандидат `v5.0.0-rc.22` (#506):** read-only history использует существующую bot schema v15 через owner-scoped SQLite mode=ro. Новых migrations/DDL/backfill/retention policy нет; текущий Published пока rc.21. Публикация и будущее применение tag — разные события.
+
 **Published `v5.0.0-rc.21`:** HTTPS handoff #885 не меняет bot schema v15 и не добавляет migrations. Tag/SHA подтверждены [publication read-back](audits/2026-10-27-rc21-publication-checkpoint.md); Deployed rc.18.10 operator-reported, cumulative upgrade/config/agent compatibility проверяются перед отдельно разрешённой поздней установкой.
 
 Изолированные staging/import SQLite #887 по-прежнему отдельные default-off ledgers, не production bot database. Их наличие в исходниках не подтверждает deployment и не изменяет bot migration catalog.

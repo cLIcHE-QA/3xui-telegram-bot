@@ -1,4 +1,7 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.21
+# Telegram-бот для 3x-ui v5.0.0-rc.22
+
+> **Release-prep `v5.0.0-rc.22` — кандидат, не Published:** один самостоятельный scope #506 / PR #939, собственная read-only история Stars. Implementation checkpoint #940 merged `4b25839b0ec16216b0683add25668d82bb8c77fd`, required CI и main read-back PASS. Текущий Published остаётся rc.21; новый tag/Release только после required release CI, health gate и штатного workflow. Deployment/targeted acceptance #506 отложены по #930; новых env/портов/migrations нет.
+
 
 > **Published `v5.0.0-rc.21`:** отдельный RC #885 — guarded HTTPS handoff с Copy/QR fallback. [Publication audit](docs/audits/2026-10-27-rc21-publication-checkpoint.md) подтверждает tag/SHA/notes/provenance; runtime device/import/refresh acceptance PENDING, Deployed остаётся rc.18.10 operator-reported. Web factories #887 остаются default-off.
 
