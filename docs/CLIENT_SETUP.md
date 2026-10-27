@@ -17,7 +17,7 @@
 
 В текущем Client Portal нет нового экрана, observer или отправки кампаний. Source schema v16/API входят в Published rc.24; private-contact ledger пуст без доверенного внутреннего observation API и не backfill из users/импорта. Private proof не означает opt-in/consent/eligibility: dry-run возвращает только bounded candidates и всегда deliverable=0/unapproved. Policy #501 и родительский UI/queue/pilot #874 PENDING; [нормативный контракт](SERVICE_CAMPAIGNS.md). Новых client flags/slash-команд нет; существующие pilot/private/ownership guards не меняются.
 
-## Source-кандидат очереди #948
+## Source-очередь #948 в main
 
 В Client Portal не появляются новые экраны или команды. Изолированные schedule/queue/worker исходники не подключены к runtime: конфигурация OFF, реальное category/recipient admission DENY_ALL. Candidate snapshot не означает consent/eligibility/reachability; fake policy/transport в тестах не подтверждают Telegram delivery. Поздние policy/privacy/UI/pilot gates принадлежат #874/#501; отдельный source-only RC не принимает весь эпик. [Контракт](SERVICE_CAMPAIGNS.md).
 

@@ -16,9 +16,9 @@ Published rc.24 содержит additive migration v16 (#947); предыдущ
 
 Перед будущим отдельно разрешённым deployment tag, содержащего v16, проверить cumulative upgrade от фактически deployed tag и сохранить проверенную pre-migration recovery copy по штатному backup flow. После v16 downgrade на rc.23/каталог v15 без совместимого restore блокируется. Не запускать migration отдельно ради разработки и не включать collection/send автоматически; parent #874, policy #501 и pilot approval остаются отдельно.
 
-## Source-кандидат очереди #948: без операционного включения
+## Source-очередь #948 в main: без операционного включения
 
-Разрабатываемая schema17 добавляет пустой queue/attempt/control ledger и generation только для существующих trusted private proofs v16. Текущий Published rc.24 содержит schema16; VPS не обновлён. Worker и transport не зарегистрированы в runtime, новых env/портов/credentials нет; реальное admission DENY_ALL. Не использовать test policy/transport как разрешение на коммуникацию — #501 и parent #874 сохраняют собственные policy/privacy/abuse/UI/pilot gates.
+Source schema17 в main через #956 добавляет пустой queue/attempt/control ledger и generation только для существующих trusted private proofs v16. Текущий Published rc.24 содержит schema16; VPS не обновлён. Worker и transport не зарегистрированы в runtime, новых env/портов/credentials нет; реальное admission DENY_ALL. Не использовать test policy/transport как разрешение на коммуникацию — #501 и parent #874 сохраняют собственные policy/privacy/abuse/UI/pilot gates.
 
 Образ проверяет доступность IANA timezone data под UID10001 при сборке, без нового package или смены привилегий. Отсутствие TZ data означает отказ, fallback к локальному TZ нет. Перед поздним отдельно разрешённым deployment RC с schema17 проверить cumulative путь от фактически deployed15 и recovery copy; старый код16 после upgrade блокируется. Публикация RC не применяет migration и не включает collection/send. [Канонический contract](SERVICE_CAMPAIGNS.md), [SQL migrations](SQLITE_MIGRATIONS.md).
 

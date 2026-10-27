@@ -16,7 +16,7 @@
 
 ## Unreleased — Изолированная очередь сервисных кампаний
 
-- #948 / часть #874-B: source-only API подготовки и подтверждения immutable candidate snapshot, owned controls, UTC/IANA расписание с отказом для DST gap/fold и прошедшего времени; один operation ID не создаёт второй fan-out.
+- #948 / PR #956 / часть #874-B: source-only API подготовки и подтверждения immutable candidate snapshot, owned controls, UTC/IANA расписание с отказом для DST gap/fold и прошедшего времени; один operation ID не создаёт второй fan-out.
 - Additive schema17: job/recipient/attempt ledger, singleton fenced lease и отдельный бюджет; private-contact generation запрещает восстановление старого snapshot после delete/recreate. В ledger не backfill из users/import; существующая schema16 не переписана. Никаких runtime observers/worker/Bot API wiring или реальных отправок.
 - Durable intent сохраняется до обращения к injected transport; unknown/lost response/lease loss/restart не replay. Ограниченные доказанно безопасные 429 retries, terminal unavailable и stop/cancel без обещания отката уже отправленного. Реальная policy DENY_ALL, нет вывода mandatory из category; позитивная test policy не является продуктовым решением #501.
 - Сборка image проверяет IANA timezone data под UID10001 без установки новых packages/credentials/портов. Поздний upgrade требует cumulative migration/recovery review; старый rc.24/schema16 после schema17 остановится. Родительский #874 и policy/UI/privacy/deployment/pilot gates PENDING, G-11 PARTIAL/NO-GO/public rollout BLOCKED.
