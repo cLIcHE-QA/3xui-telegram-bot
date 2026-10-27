@@ -51,6 +51,8 @@
 
 [Краткий Roadmap](docs/ROADMAP.md) — единственный актуальный источник product и acceptance statuses; [тематический архив старого Roadmap](docs/roadmap/HISTORY_INDEX.md) сохраняет исторические 5803 строки, включая FAIL/STOP, SHA и evidence. Новые проверки записываются в датированные `docs/audits/**`, а не в верхнюю сводку.
 
+Source #876 готовит настраиваемые 25 semantic client emoji slots через Owner-only редактор. По умолчанию Unicode: отдельные локальные veto/attestation текущего бота и DB enable, без вывода eligibility из RBAC/metadata. Admin UI, labels/callbacks, статусы и платёжные/provider boundaries прежние; новые сообщения не повторяются ради cosmetic fallback. Настройки/CAS/audit в существующем runtime_settings, schema17 прежняя. Реальные IDs/Telegram eligibility/pilot и deployment отложены; [контракт UI](docs/UI_STYLE.md#оформление-client-portal-876), [операторская настройка](docs/ADMIN_SETUP.md#оформление-client-portal-876), [late checklist](docs/CLIENT_SETUP.md#оформление-клиентских-значков-876).
+
 ## Тарифная модель — RUB, Stars и ручное назначение
 
 [Issue #705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) принят по operator-reported scoped acceptance от 2026-10-19 12:09 EEST: сверка Orders/Payments/Entitlements и собственные критерии подтверждены оператором. [Аудит и provenance](docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md), [решение о закрытии](docs/roadmap/issue-closure-decisions.json). Независимый VPS/data-plane read-back отсутствует; завершение #705 не означает общего v5 acceptance, разрешения public rollout или общего G-11 acceptance.

@@ -252,6 +252,8 @@ class Settings:
     host_control_targets: tuple[HostControlTarget, ...]
     master_name: str
     master_flag: str
+    client_custom_emoji_enabled: bool = False
+    client_custom_emoji_verified_bot_id: int = 0
 
 
 def load_settings() -> Settings:
@@ -319,6 +321,12 @@ def load_settings() -> Settings:
     client_payment_acceptance_enabled = env_bool(
         os.getenv("CLIENT_PAYMENT_ACCEPTANCE_ENABLED"), True
     )
+    client_custom_emoji_enabled = env_bool(os.getenv("CLIENT_CUSTOM_EMOJI_ENABLED"), False)
+    client_custom_emoji_verified_bot_id = _optional_positive_int(
+        os.getenv("CLIENT_CUSTOM_EMOJI_VERIFIED_BOT_ID"), "CLIENT_CUSTOM_EMOJI_VERIFIED_BOT_ID"
+    ) or 0
+    if client_custom_emoji_enabled and not client_custom_emoji_verified_bot_id:
+        raise RuntimeError("CLIENT_CUSTOM_EMOJI_ENABLED requires an operator-verified bot ID.")
     client_rate_limit_count = int(os.getenv("CLIENT_RATE_LIMIT_COUNT", "30"))
     client_rate_limit_window_seconds = int(
         os.getenv("CLIENT_RATE_LIMIT_WINDOW_SECONDS", "60")
@@ -440,6 +448,8 @@ def load_settings() -> Settings:
         payment_checkout_secret=payment_checkout_secret,
         client_portal_enabled=client_portal_enabled,
         client_payment_acceptance_enabled=client_payment_acceptance_enabled,
+        client_custom_emoji_enabled=client_custom_emoji_enabled,
+        client_custom_emoji_verified_bot_id=client_custom_emoji_verified_bot_id,
         client_rate_limit_count=client_rate_limit_count,
         client_rate_limit_window_seconds=client_rate_limit_window_seconds,
         allowed_telegram_ids=allowed_ids,

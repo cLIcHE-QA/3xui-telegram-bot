@@ -236,6 +236,16 @@
       "documents": [
         "docs/SERVICE_CAMPAIGNS.md"
       ]
+    },
+    {
+      "id": "client-portal-theme",
+      "mode": "require_all",
+      "triggers": [
+        "client_theme*.py"
+      ],
+      "documents": [
+        "docs/UI_STYLE.md"
+      ]
     }
   ],
   "repository_state": {

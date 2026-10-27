@@ -45,6 +45,8 @@ from system_admin import system_admin_router
 from storage_admin import storage_admin_router
 from client_access import client_access_router, configure_client_access, configure_client_feature_flags
 from client_flags import ClientFeatureFlags
+from client_theme import ClientThemeService, ClientThemeContext, ClientThemeRequests
+from client_theme_owner_ui import ClientThemeOwnerUI
 from admin_shell import admin_shell_router
 
 settings = load_settings()
@@ -267,6 +269,11 @@ async def main():
     )
 
     bot = Bot(settings.bot_token)
+    theme_service = ClientThemeService(db, settings)
+    theme_owner = ClientThemeOwnerUI(theme_service)
+    bot.session.middleware(ClientThemeRequests(theme_service))
+    client_access_router.message.middleware(ClientThemeContext(theme_service))
+    client_access_router.callback_query.middleware(ClientThemeContext(theme_service))
     await send_boot_restore_notice(bot)
     dp = Dispatcher()
     dp.callback_query.outer_middleware(AdminPanelSessionMiddleware())
@@ -293,6 +300,7 @@ async def main():
     dp.include_router(website_monitoring_router)
     dp.include_router(website_diagnostics_router)
     dp.include_router(disaster_recovery_router)
+    dp.include_router(theme_owner.router)
     dp.include_router(business_router)
     backup_task = (
         asyncio.create_task(automatic_backup_loop(bot))
