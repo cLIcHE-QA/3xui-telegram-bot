@@ -187,3 +187,8 @@ Owner подтверждает исторический `bot.update` unknown д�
 ## Исторический release-prep и ручные переходы
 
 Release-prep `rc.16.1` и план `rc.16.2` не вводили новые миграции и не подтверждали production acceptance. Подробный исторический scope и незавершённые тогда проверки доступны в неизменяемой версии документа выше. Для текущих операций применимы нормативные правила `manual_entitlements`, read-back, `unknown/no-replay` и запрещённого downgrade.
+
+
+## Source UI/adapters #949 без новой schema
+
+`campaign_owner_ui.py`/`campaign_telegram.py` используют existing owned drafts/frozen revisions/proofs/queue v16/v17; новой migration или backfill нет. Source nonce/FSM временные, restart отзывает confirmations; durable jobs/attempts и unknown/no-replay сохраняет framework17. Компоненты не зарегистрированы в runtime, никаких production DB/observation/send действий нет. Published/Deployed catalog остаётся указанным в верхнем current-state разделе; будущий integration/deployment требует #501/privacy/abuse prerequisites и cumulative recovery review по [SERVICE_CAMPAIGNS](SERVICE_CAMPAIGNS.md).

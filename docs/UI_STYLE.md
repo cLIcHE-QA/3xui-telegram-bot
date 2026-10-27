@@ -546,3 +546,12 @@ Read-only уточнение отображения зарегистрирова
 ## HWID scoped acceptance rc.18.10 (2026-10-22)
 
 После Published и operator-reported Deployed точного `v5.0.0-rc.18.10` (SHA `dae205ac82762723448f93827b981f89ae622231`) оператор подтвердил 23/23 scoped UI пунктов: `UA-01…07`, `MODEL-01…06`, `OS-01…03`, `UI-01…05`, `FINAL-01…02`. [Датированный acceptance audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md) — источник evidence и ограничений; текущий статус — [Roadmap](ROADMAP.md). Шесть HWID Issues completed по собственным read-only критериям; старые candidate/PENDING выше исторические. Нет независимой VPS аттестации, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+
+
+## Закрытый source UI сервисных сообщений #949
+
+`campaign_owner_ui.py` задаёт не зарегистрированный в dispatcher Owner-only router `admin:campaigns`. Глобальная кнопка и slash-команды не добавлены; рабочего раздела в runtime ещё нет. Зарезервированное Owner-only правило «Сервисные сообщения: управление» входит в существующий справочник прав, но не включает функцию. Будущий canonical parent — `Система`, source Back/Cancel сохраняет непосредственный экран входа, root — `⬅ Система`. Подробнее — [единственный contract](SERVICE_CAMPAIGNS.md).
+
+Opaque nonce привязан к текущему Owner/private chat/panel/видимой клавиатуре и mutation TTL90/navigation600, consume до mutation; максимум256 tokens/active views, FSM600. Старый callback/подменённый FSM/CAS conflict закрывают доступ. Local preview — plain text, ограничен3800 UTF16 units с явным фрагментом; media/CTA/test sends disabled. Estimate показывает кандидатов и deliverable0, не consent. Даты выводятся в MSK с исходным явным IANA/UTC, DST gap/fold отклоняются. Progress — только counts; unknown не означает failure. Pause/cancel двухшаговые, доступны при OFF, не обещают rollback отправленного.
+
+Source factory OFF и реальное DENY_ALL; callback не меняет delivery policy. Регистрация router/observer/transport BLOCKED до #501/privacy/abuse/allowlist review и отдельного integration PR; публикация source части не делает UI доступным на VPS и не доказывает delivery acceptance.

@@ -217,3 +217,8 @@ inconsistency разрешает закрыть V5-A-001…A-003 и перейт
 
 
 **Targeted Karing gate #827, GitHub Published rc.18.6 (tag SHA `46bc24530633d9958278ab56f624c8b8d274f845`; Deployed/Accepted PENDING):** fix [#849](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/849) MERGED `79c3700a5933707e21b0e564eab2276744762d0e`, offline `test`/`title` PASS. Фактические version/tag SHA running container, полная длина Karing UA из 3x-ui, client/admin parity и targeted health/read-only acceptance PENDING. Не возобновлять production DELETE, Stars/payments, provider mutations или public rollout; #827/#830/#833/#834/#838 keep_open, G-11 PARTIAL/NO-GO.
+
+
+## Source-компоненты #949 — runtime acceptance отложен
+
+Owner UI/observer/Bot API adapters существуют только как не зарегистрированные source компоненты: factory OFF/DENY_ALL, глобального входа/новых slash-команд или collection/send нет. Isolated fake Dispatcher/queue/HTTP-response tests проверяют source guards, one-shot/verified429/unknown и остановку, не реальные Telegram сообщения. Runtime registration BLOCKED до #501/privacy/abuse/allowlist review, затем отдельный integration PR и только отдельно разрешённые deployment/pilot по [полному late checklist](SERVICE_CAMPAIGNS.md#оставшийся-late-checklist). #949/#874 keep_open до собственного runtime scope; общая G-11 PARTIAL/NO-GO, public rollout BLOCKED, старые HWID PASS/waived burst не повторять.
