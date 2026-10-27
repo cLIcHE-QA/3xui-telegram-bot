@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep `v5.0.0-rc.25`, ещё не Published:** кандидат включает source schema17 (#948), без новых migrations сверх #956. Published rc.24/schema16 ниже остаётся фактическим release state; выпуск RC не применяет migration к VPS и не включает runtime/send. Перед будущим отдельно разрешённым upgrade требуется cumulative compatibility/recovery review от deployed schema15.
+
 **Source #948 в main (#956), ещё не Published:** schema v17 `service_campaign_queue_v5_0_0`. Новые job/recipient/attempt/control и contact-generation объекты; source API/worker не подключены к runtime, policy DENY_ALL. Published rc.24 ниже сохраняет schema16.
 
 **Published `v5.0.0-rc.24`:** bot schema v16 `service_campaign_foundation_v5_0_0` (#947). Additive пустые drafts/revisions/private-contact таблицы; без backfill/observer/UI/worker/transport/sends. [Foundation contract](SERVICE_CAMPAIGNS.md), [publication read-back](audits/2026-10-27-rc24-publication-checkpoint.md). Immutable tag SHA `d7e224b48b23a315c389c290594c975dba2f9684`, GitHub Release 2026-10-27T13:49:49Z.
