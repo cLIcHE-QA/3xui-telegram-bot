@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep `v5.0.0-rc.27`, ещё не Published:** #876 хранит theme JSON/CAS/audit в existing runtime_settings, #966 меняет только dependency floor/lock; bot schema v17 прежняя, без DDL/backfill. Фактический Published ниже остаётся rc.26; cumulative upgrade/recovery от operator-reported deployed15 и отдельные runtime gates не отменяются.
+
 **Published `v5.0.0-rc.26`:** source UI/adapters #949 не добавляют migrations или backfill. bot schema v17 прежняя; [publication read-back](audits/2026-10-27-rc26-publication-checkpoint.md). Runtime registration/collection/send выключены, поздний cumulative upgrade/recovery от deployed15 и отдельный integration/deployment gate не отменяются.
 
 **Schema17 впервые Published в `v5.0.0-rc.25`:** bot schema v17 `service_campaign_queue_v5_0_0` (#948), additive job/recipient/attempt/control и contact-generation объекты поверх foundation v16 (#947). Worker/transport не подключены к runtime, OFF/DENY_ALL. [Контракт](SERVICE_CAMPAIGNS.md), [исторический publication read-back RC25](audits/2026-10-27-rc25-publication-checkpoint.md). Immutable tag SHA `1c0854c9b416a2d0f2ccbe9083d62d88794307ed`, GitHub Release 2026-10-27T17:59:45Z.
