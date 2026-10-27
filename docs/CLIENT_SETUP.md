@@ -4,7 +4,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.19` SHA `d738dd970f2215adc346a919c7ed182abaf454b1`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.20` SHA `929e9950a9d831ef72271f99b226a3315cfef709`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
 
 ## Client Portal: тарифы и платежные ограничения
 
@@ -13,7 +13,7 @@
 - Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
 - Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
 
-## #473 — импорт подписки (кандидат rc.19, не Published)
+## #473 — импорт подписки (Published rc.19; deployment и приёмка PENDING)
 
 **Security review #882 (2026-10-23, pre-merge):** в каталоге import URI отклоняются URL с query-delimiter (включая пустой `?`), percent/fragment/userinfo/private IP и небезопасной схемой; `subTitle` валидируется как ограниченное Unicode-имя с отказом на control/bidi, читается только через loopback после owner/private guard, без redirect. Ошибки информационного upstream-запроса логируются по типу исключения, без bearer URL. Добавлены negative tests для forged callbacks, недоступного proxy и title injection. Итог offline CI и реальный post-deploy smoke независимы от самого review; выпуск до обязательных checks запрещён.
 
@@ -27,7 +27,7 @@
 
 
 
-В личном чате: «Моя подписка» → «Подключить устройство» → платформа → клиент. Кандидат #885: при корректном public HTTPS compatibility template и валидном import URI бот дополнительно показывает «🚀 Открыть в <клиент>». Это одноразовый link на локальную HTML handoff-страницу (`/compat/open/{ticket}`, TTL 90 секунд; память процесса, максимум 256 активных tickets). В Telegram URL нет bearer `sub_id`; на странице есть best-effort автоматическая попытка открытия custom URI и отдельная кнопка повтора, т. к. WebView может блокировать автоматический переход. Ссылку не пересылать: она временно открывает доступ к URI подписки. При истечении времени, перезапуске контейнера или повторном посещении нужен новый переход из Telegram. CopyTextButton и QR остаются fallback; полноценный one-tap в конкретных клиентах не подтверждён. Production deployment и device acceptance #885 PENDING. Incy и v2raytun получают кандидатный URI для ручного импорта через CopyTextButton или локальный QR. Для неподдержанных приложений/URL есть обычные HTTPS URL/QR. Telegram inline URL-button не поддерживает custom схемы, поэтому external redirect/shortener не используется.
+В личном чате: «Моя подписка» → «Подключить устройство» → платформа → клиент. Incy и v2raytun получают кандидатный URI для ручного импорта через CopyTextButton или локальный QR. Для неподдержанных приложений/URL есть обычные HTTPS URL/QR. Telegram inline URL-button не поддерживает custom схемы, поэтому external redirect/shortener не используется.
 
 | Приложение | Платформы в меню (candidate) | Название группы | Совместимость |
 | --- | --- | --- | --- |
@@ -64,7 +64,7 @@
 
 
 
-## Моя подписка: кандидат #497, ещё не в Published rc.18.10
+## Моя подписка: #497 Published в rc.19; deployment и приёмка PENDING
 
 После отдельного выпуска на разрешённом pilot-аккаунте проверьте `/subscription` и `🌐 Моя подписка` в личном чате: статусы VPN/entitlement, план, срок, `CopyTextButton`, возврат из подключения, guarded покупку/продление и диагностику. Проверяйте без изменения доступа случаи «нет аккаунта», disabled/expired/provisioning/unknown, provider outage, нестыковку сроков и отсутствие подтверждённого числа локаций. «Привязки Master Inbounds» **не** означают число доступных серверов. Не переносите реальные URL, ID или ключи в лог/Issue.
 
@@ -73,6 +73,12 @@
 ## Исторические release и acceptance checkpoints (не текущий статус)
 
 Датированные исходные отчёты об опубликованных/развёрнутых `rc.9`, `rc.10`, `rc.11`, `rc.16.1`, `rc.16.2`, `rc.16.4`, прошлых B5/C3 FAIL и scoped PASS сохранены без изменения в [immutable snapshot этого руководства](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/8d5b9ad1ce1fecf8f5f1808c786f3b2b3cf32f0b/docs/CLIENT_SETUP.md). Проверяемые источники: [rc.10 acceptance](audits/2026-10-15-v5-rc10-targeted-postdeploy-acceptance.md), [rc.11 deployment](audits/2026-10-15-v5-rc11-operator-deployment-checkpoint.md), [rc.16.1 deployment](audits/2026-10-17-v5-rc16-1-operator-deployment-checkpoint.md), [rc.16.4 smoke](audits/2026-10-18-v5-rc16-4-operator-targeted-smoke.md) и [rc.16.5 acceptance](audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md). Старое `OPEN/PENDING` в этих источниках относится к моменту проверки, а не к текущему GitHub Issue.
+
+### #887 D3h — физическая аттестация Copy/QR (ещё PENDING)
+
+Для нового web/Mini App D3g **не переносить** исторические `operator-reported PASS` из #473 в `reviewed` без отдельного physical browser + Telegram WebView smoke **для точной версии на iOS и Android**. Матрица кандидатов, полный targeted checklist D3H-01…D3H-06 и критерии `allowCopy/allowQr` находятся в [WEB_SUBSCRIPTION_MINI_APP.md](WEB_SUBSCRIPTION_MINI_APP.md). Машиночитаемый offline реестр: `docs/assets/subpage-d3h-client-attestations.json`, `reviewed=[]`; он **не подключается** к серверной выдаче или frontend и сам по себе не разрешает запуск.
+
+До отдельного согласования изолированного staging, проверки TLS/edge/session topology, устройства, Clipboard/QR и privacy gates: `VITE_D3G_MANUAL_IMPORT_UI` default false, `pilotEnabled=false`, `REVIEWED_CLIENT_CAPABILITIES=[]`, backend `delivery_enabled=false`, `reviewed_clients=()`. Не включать `app_runtime`, не раскрывать bearer URLs, не расширять pilot и не запускать production smoke/Release/deploy. #887 OPEN/keep_open, G-11 PARTIAL/NO-GO.
 
 ## Плановая внешняя оплата
 
@@ -185,3 +191,8 @@ Operator-reported после обновления: 3x-ui показывает `W
 ## Адресная проверка Happ с 20-значным suffix (#827; PENDING)
 
 После отдельно разрешённых merge, release и deployment сверить точный deployed tag/SHA, затем на разрешённом Pixel 6 с Android 17 выполнить только read-only просмотр клиентской и административной HWID-карточек для `Happ/4.7.1/Android/17912108360521999608`. Ожидается `VPN-клиент: Happ` в Client Portal и распознавание `Happ` в admin diagnostic; исходная модель, ОС и timestamps неизменны. Убедиться, что клиентский список и detail не раскрывают сырой User-Agent, suffix либо fingerprint; запрещённые дополнительные хвосты продолжают давать `Не определён`. Проверить health и отдельно записать evidence (точный tag/SHA, время с TZ, источник, результат). Не выполнять DELETE/платежи, не расширять pilot. Пока smoke отсутствует: #827 OPEN/keep_open, scoped acceptance PENDING.
+
+
+## #887 D2d — отдельный staging Telegram Bot API + HTTPS ingress (не развёрнут)
+
+Для подготовки независимого синтетического staging клиента/Telegram Web login используйте профильный [runbook D2d](SUBPAGE_STAGING.md): отдельные BotFather token/allowlist/0700+0600 файлы, `getMe`/webhook identity verification, одно-процессный локальный SQLite, неизменённый production `app_runtime`, строгий TLS/SNI/Host/Origin, Nginx edge rate/429 и anti-phishing-сверка полного кода. Шаблоны `deploy/subpage-staging/**` default-off и содержат только `.invalid` origin, **это не команда по включению**. До отдельного security/deployment approval нет real Bot API, DNS/TLS, device smoke, CLI start, release или production mutations; #887 `keep_open`, G-11 `PARTIAL/NO-GO`.

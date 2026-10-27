@@ -1,0 +1,78 @@
+name: Subscription Page D1a checks
+on:
+  pull_request:
+    paths:
+      - 'web/subscription-page/**'
+      - 'subscription_page_config.py'
+      - 'tests/test_subscription_page_config.py'
+      - '.github/workflows/subscription-page-d1a.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'web/subscription-page/**'
+      - 'subscription_page_config.py'
+      - 'tests/test_subscription_page_config.py'
+permissions:
+  contents: read
+jobs:
+  frontend-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Установить зависимости строго по committed lockfile
+        working-directory: web/subscription-page
+        run: |
+          test -f package-lock.json
+          npm ci --ignore-scripts --no-audit --no-fund
+          sha256sum package-lock.json
+      - name: Сохранить проверенный committed npm lockfile
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: d1a-npm-lock
+          path: web/subscription-page/package-lock.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Проверить модель импорта и frontend build
+        working-directory: web/subscription-page
+        run: |
+          npm run test:model
+          npm run build
+      - name: Установить Chromium и WebKit для browser smoke
+        working-directory: web/subscription-page
+        run: npx playwright install --with-deps chromium webkit
+      - name: Проверить desktop/mobile и WebKit-like browser smoke
+        working-directory: web/subscription-page
+        run: npm run test:browser
+      - name: Проверить D2a opt-in Mini App в изолированном браузере
+        working-directory: web/subscription-page
+        env:
+          VITE_D2A_PILOT_UI: 'true'
+        run: npx playwright test --grep "D2a opt-in" --project desktop-chromium
+      - name: Проверить D2b standalone challenge в изолированном браузере
+        working-directory: web/subscription-page
+        env:
+          VITE_D2B_STANDALONE_PILOT_UI: 'true'
+        run: npx playwright test --grep "D2b opt-in" --project desktop-chromium
+      - name: 'Проверить D2d staging UX: полный код и origin (только synthetic)'
+        working-directory: web/subscription-page
+        env:
+          VITE_D2B_STANDALONE_PILOT_UI: 'true'
+          VITE_D2D_STAGING_UI: 'true'
+        run: npx playwright test --grep "D2d staging opt-in" --project desktop-chromium
+      - name: Сохранить browser evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: d1a-browser-smoke
+          path: web/subscription-page/test-results/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Check no user configuration committed
+        run: |
+          ! git ls-files | grep -E '(^|/)(subpage-[0-9a-f-]+\.json|\.env$|node_modules/)'

@@ -1,0 +1,98 @@
+:root{color-scheme:dark;color:#e9f5ff;background:#060b11}
+body{margin:0;background:#060b11;color:#e9f5ff}
+.admin-shell{min-height:100vh;padding:16px 0 54px;background:radial-gradient(ellipse at 10% -15%,#183e5c99,transparent 60%),#060b11}
+.admin-header{padding:15px 0 22px;border-bottom:1px solid #294055}
+.admin-header h1{font-size:clamp(24px,3vw,34px);margin:10px 0}
+.admin-login{margin-top:clamp(25px,8vh,100px);border:1px solid #2b4b63!important;background:#111e2c!important}
+.admin-login form{margin-top:24px}
+.admin-login h2{margin:15px 0}
+.admin-toolbar{padding:14px 16px;border:1px solid #294055;border-radius:14px;background:#112131;gap:16px}
+.admin-file{position:relative;display:inline-flex;align-items:center;justify-content:center;padding:9px 14px;min-height:37px;cursor:pointer;border-radius:8px;color:#e8f3fd;border:1px solid #3b6989;background:#183751;font-size:14px}
+.admin-file:focus-within{outline:2px solid #38bdf8;outline-offset:2px}
+.admin-file input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.admin-file:has(input:disabled){opacity:.5;cursor:not-allowed}
+.admin-panels{display:grid!important;grid-template-columns:minmax(0,1.07fr) minmax(0,.93fr);gap:16px!important}
+.admin-editor,.admin-preview{min-width:0;border:1px solid #2b4b63!important;background:linear-gradient(130deg,#102337,#101a27)!important}
+.admin-editor .mantine-Tabs-list{flex-wrap:wrap;gap:4px}
+.admin-editor .mantine-Tabs-tab{min-height:42px}
+.admin-demo-card{border:1px solid #27465e;background:#0e202f;overflow-wrap:anywhere}
+.admin-editor input,.admin-editor textarea{max-width:100%}
+@media(max-width:860px){.admin-panels{grid-template-columns:minmax(0,1fr)}.admin-toolbar{align-items:stretch!important}.admin-toolbar>.mantine-Group-root{justify-content:flex-start}}
+@media(max-width:520px){.admin-shell{padding:5px 0 38px}.admin-header{padding:10px 0 16px}.admin-header .mantine-Group-root{align-items:flex-start}.admin-toolbar{padding:11px}.admin-toolbar .mantine-Group-root{width:100%}.admin-toolbar .mantine-Select-root{width:100%}.admin-toolbar .mantine-Button-root{min-height:43px}.admin-editor .mantine-Tabs-tab{font-size:12px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* D1b: the exact same self-hosted SVG catalog as the D1a client page. */
+.admin-svg-icon{width:20px;height:20px;flex-shrink:0;object-fit:contain}
+.admin-svg-client{width:40px;height:40px;flex-shrink:0;object-fit:contain;border-radius:8px}
+.admin-svg-missing{display:inline-flex;align-items:center;justify-content:center;color:#aebdc9;border:1px dashed #65809c;border-radius:7px}
+.admin-preview-copy{min-width:0;flex:1;overflow-wrap:anywhere}
+.admin-preview-step{padding:7px 0;border-top:1px solid #25445a}
+.admin-preview-action{display:inline-flex;align-items:center;gap:5px;max-width:100%;margin:5px 5px 0 0;padding:5px 9px;border-radius:7px;border:1px solid #345169;color:#b7c8d3;font-size:12px;user-select:none;cursor:not-allowed;overflow-wrap:anywhere}
+.admin-svg-gallery{margin-top:18px;border:1px solid #2b4b63;border-radius:10px;padding:12px;background:#102031}
+.admin-svg-gallery summary{cursor:pointer;font-weight:650;line-height:1.5}
+.admin-svg-gallery summary:focus-visible{outline:2px solid #38bdf8;outline-offset:4px}
+.admin-svg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:8px;margin-top:12px}
+.admin-svg-cell{display:flex;align-items:center;flex-direction:column;justify-content:center;min-width:0;gap:9px;padding:10px 5px;border:1px solid #36516a;border-radius:9px;text-align:center}
+.admin-svg-cell .mantine-Text-root{max-width:100%;overflow-wrap:anywhere}
+/* Original monochrome SVGs may contain pure black or white strokes.
+   A split light/dark backplate preserves the original SVG bytes and keeps both visible. */
+.admin-svg-gallery-icon{
+ width:32px;height:32px;object-fit:contain;box-sizing:content-box;
+ padding:6px;border-radius:10px;border:1px solid #607d99;
+ background:linear-gradient(140deg,#e2ebf4 0 48%,#203c58 52% 100%);
+ filter:drop-shadow(0 0 1px #e6f3ff) drop-shadow(0 0 1px #061421)
+}
+.admin-svg-client,.admin-preview-step .admin-svg-icon,.admin-platforms .admin-svg-icon{
+ background:linear-gradient(140deg,#dbe7f1 0 48%,#1a3a56 52% 100%);
+ padding:4px;border:1px solid #607d99;border-radius:8px;box-sizing:content-box;
+ filter:drop-shadow(0 0 1px #dceeff) drop-shadow(0 0 1px #061421)
+}
+@media(max-width:520px){.admin-svg-grid{grid-template-columns:repeat(auto-fill,minmax(74px,1fr))}.admin-preview-action{font-size:11px}}
+
+/* D1b 200%-text readable narrow layout: content must wrap rather than clip.
+   SVG backplates and original vector source data are left untouched. */
+@media(max-width:520px){
+ .admin-preview,.admin-editor{padding:12px!important;min-width:0}
+ .admin-preview .mantine-Title-root{
+  max-width:100%;min-width:0;font-size:clamp(1rem,5vw,1.5rem);
+  line-height:1.25;overflow-wrap:anywhere;white-space:normal
+ }
+ .admin-preview .admin-demo-card{padding:10px!important;min-width:0}
+ .admin-preview .mantine-Group-root{flex-wrap:wrap!important;min-width:0}
+ .admin-preview-step{flex-wrap:wrap!important;min-width:0}
+ .admin-preview-step .admin-preview-copy{flex:1 1 100%;min-width:0;max-width:100%}
+ .admin-preview-action{white-space:normal!important;flex-wrap:wrap!important;overflow-wrap:break-word}
+ .admin-svg-gallery summary{max-width:100%;overflow-wrap:anywhere}
+}
+
+/* Mobile switches put their long captions BELOW the track, not in a
+   shrinking inline slot that clips localized text at 320px/200%. */
+@media(max-width:520px){
+ .admin-editor .mantine-Switch-body{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0;max-width:100%}
+ .admin-editor .mantine-Switch-labelWrapper{min-width:0;max-width:100%}
+ .admin-editor .mantine-Switch-label{white-space:normal!important;overflow-wrap:break-word;line-height:1.4}
+}
+
+/* Multi-line status badges at 200% text scaling, without clipped text. */
+.admin-preview-status{height:auto!important;max-width:100%;min-height:28px;white-space:normal!important;line-height:1.35;padding-block:5px}
+.admin-preview-status .mantine-Badge-label{white-space:normal!important;overflow-wrap:break-word;line-height:1.35;max-width:100%}
+
+/* D1b account/session controls: 320px viewport at 200% text must reflow.
+   Never clip a security action or force horizontal scrolling. */
+@media(max-width:520px){
+ .admin-header>.mantine-Group-root{
+  flex-direction:column;align-items:stretch!important;min-width:0;max-width:100%;
+ }
+ .admin-header>.mantine-Group-root>div{
+  min-width:0;max-width:100%;overflow-wrap:anywhere
+ }
+ .admin-header>.mantine-Group-root>.mantine-Group-root{
+  width:100%;min-width:0;max-width:100%;justify-content:flex-start;flex-wrap:wrap!important
+ }
+ .admin-header .mantine-Button-root{
+  flex:1 1 130px;min-width:0;max-width:100%;height:auto;min-height:44px;
+  padding-block:10px;white-space:normal!important
+ }
+ .admin-header .mantine-Button-label{
+  white-space:normal!important;overflow-wrap:anywhere;text-align:center;line-height:1.3
+ }
+}

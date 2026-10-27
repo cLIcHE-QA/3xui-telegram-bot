@@ -159,6 +159,16 @@ Workflow `.github/workflows/release.yml` запускается только п�
 
 Текст commit subject и GitHub suffix вида `(#N)` на определение release commit не влияют: automation опирается на историю `version.py` и `APP_VERSION`, а не на формулировку commit message.
 
+## Последовательные RC без deployment каждого релиза (#930)
+
+По решению оператора 2026-10-27 разработка и публикация RC допускаются с отложенным deployment/live acceptance. Процесс и границы пакетного разрешения: [GIT_WORKFLOW](GIT_WORKFLOW.md#разработка-rc-с-отложенной-эксплуатационной-приёмкой-930); актуальный пул и операторские зависимости: [Roadmap](ROADMAP.md#очередь-разработки-и-участие-оператора-930). Оператор 2026-10-27 явно разрешил merge и публикацию RC по этому пулу; [источник разрешения](audits/2026-10-27-930-autonomous-authorization-closure.md). Для каждого входящего в него merge/RC повторный запрос не нужен; обязательные проверки сохраняются.
+
+Первый RC после `rc.19` перечисляет уже накопленные #890 и изолированные части #887; после начального объединённого выпуска — одна самостоятельная релизная задача на RC. Номер назначается отдельным release-prep, весь фактический scope проходит `check-release-scope.py`. Наличие default-off кода не означает готовность всей функции или выполнение её pre-implementation gates. Не публиковать stable `v5.0.0` до полного acceptance.
+
+Required CI, security/dependency checks, GitHub health gate, provenance, неизменяемость tag и Release read-back обязательны для каждого RC. Publication checkpoint должен попасть в `main` до следующей значимой задачи; `Deployed` остаётся последним фактически подтверждённым состоянием. Непроверенные runtime Issues остаются `OPEN / keep_open` и `🟠 Опубликовано; acceptance отложен`; scoped docs-only closure оценивается независимо.
+
+Будущая установка выбранного итогового RC отдельно проверяет **весь** путь от реально deployed tag: cumulative migrations, config/agent/provider compatibility, необходимые промежуточные версии и ограничение downgrade после forward-only schema changes. Только после доказанной совместимости можно пропустить установку промежуточных RC. Deployment, live smoke, real billing/refund, Telegram sends и другие production mutations требуют отдельного разрешения. Отложенные проверки сохраняются в канонических Issue/Roadmap/audits и не превращаются в PASS или waiver.
+
 ## Fail-closed правила
 
 Workflow должен остановиться, а не угадывать, если:

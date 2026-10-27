@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "issue": "#887",
+  "candidates": [
+    {
+      "platform": "ios",
+      "clientId": "incy",
+      "clientVersion": "2.6.4",
+      "priorIssue": "#473"
+    },
+    {
+      "platform": "android",
+      "clientId": "incy",
+      "clientVersion": "2.6.4",
+      "priorIssue": "#473"
+    },
+    {
+      "platform": "ios",
+      "clientId": "v2raytun",
+      "clientVersion": "2.4.7",
+      "priorIssue": "#473"
+    },
+    {
+      "platform": "android",
+      "clientId": "v2raytun",
+      "clientVersion": "2.4.7",
+      "priorIssue": "#473"
+    },
+    {
+      "platform": "ios",
+      "clientId": "happ",
+      "clientVersion": null,
+      "priorIssue": "#473"
+    },
+    {
+      "platform": "android",
+      "clientId": "happ",
+      "clientVersion": null,
+      "priorIssue": "#473"
+    },
+    {
+      "platform": "ios",
+      "clientId": "shadowrocket",
+      "clientVersion": null,
+      "priorIssue": "#473"
+    }
+  ],
+  "reviewed": []
+}

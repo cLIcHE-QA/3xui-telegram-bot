@@ -1,0 +1,12 @@
+<!-- audit-schema: 1 -->
+- **Дата/время и часовой пояс:** 2026-10-24 02:43 UTC+03:00
+- **Окружение:** GitHub read-only / docs-only PR, production не затронут
+- **Цель:** синхронизировать published state rc.19 и активные OPEN Issues без утверждения deployment/acceptance
+- **Версия и immutable tag/SHA:** `v5.0.0-rc.19` / `d738dd970f2215adc346a919c7ed182abaf454b1`
+- **Scope:** GitHub Release опубликован 2026-10-23T13:55:49Z и immutable `refs/tags/v5.0.0-rc.19` указывает на SHA `d738dd970f2215adc346a919c7ed182abaf454b1`; main SHA тот же. GitHub OPEN Issue-set: 38 штук, включая новые #885/#887/#890; Roadmap/README/CHANGELOG current-state. Исторические release notes и аудит HWID не переписывались
+- **Фактический результат:** PARTIAL — GitHub release/tag source `PASS`; status docs update proposed in PR, required CI и merge/read-back `PENDING`; deployed/acceptance по новому tag `PENDING`
+- **Источник и evidence:** [Release rc.19](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.19), [tag ref](https://github.com/cLIcHE-QA/3xui-telegram-bot/tree/v5.0.0-rc.19), [Roadmap](../ROADMAP.md), [Issue #473](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/473), [Issue #497](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/497), [Issue #885](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/885), [Issue #887](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/887), [Issue #890](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/890), [Draft PR #891](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/891)
+- **Ограничения и остаточные риски:** `v5.0.0-rc.18.10` Deployed только operator-reported, SHA `dae205ac82762723448f93827b981f89ae622231`, independent VPS attestation PENDING. HWID 23/23 — scoped PASS для deployed rc.18.10, не подтверждение rc.19. PR #891 security `audit` PASS, но `test/title` ещё красные, и status drift мешает gate. Не выполнялись production mutations
+- **Связанные Issues:** #473 (keep_open), #497 (keep_open), #885 (keep_open), #887 (keep_open), #890 (keep_open)
+- **Следующий шаг:** required `test/title` и independent main read-back после отдельно разрешённого merge docs-only PR; затем перезапустить security PR #891 CI, не смешивать D1a с production
+- **Раздельные состояния:** merged=нет (этот docs checkpoint открыт); published=`v5.0.0-rc.19` (GitHub, immutable tag); deployed=`v5.0.0-rc.18.10` (operator-reported); accepted=только старый HWID 23/23 scoped operator-reported PASS, полный v5 G-11 PARTIAL/NO-GO
