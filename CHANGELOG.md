@@ -14,6 +14,13 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## Unreleased — Закрытые source-компоненты сервисных сообщений
+
+- #949 / часть #874-C: private Owner-only source router/controller для owned черновиков, CAS-редактирования, локального preview, bounded оценки, планирования/прогресса и двухшаговой остановки. Opaque подтверждения привязаны к actor/chat/message, текущей клавиатуре и TTL; callbacks не содержат получателей, текста или ссылок. Новый глобальный пункт меню и slash-команды не регистрируются.
+- Source factory редактора по умолчанию OFF и всегда создаёт delivery с policy=None/DENY_ALL; даже включённый локальный редактор не утверждает #501 и не запускает доставку. Trusted private-update adapter требует отдельного server-side admission и существующего пользователя, не берёт identity из imports/admin create. Реальный observer/dispatcher/client guards не подключены.
+- Bounded one-shot адаптер существующего Bot API: plain text, no links/markup/paid broadcasts, строгий receipt того же bot/private chat. Только узкий CampaignAwareSession с проверенным HTTP429/JSON rejection даёт safe retry; обычный SDK RetryAfter, включая retry_after в 5xx, остаётся unknown/no-replay. Noncooperative timeout/cancellation не считается доказанным отказом.
+- Schema17 остаётся прежней; новых env/credentials/портов нет. Source/fake integration tests не доказывают реальный Telegram outcome. Runtime registration BLOCKED до #501/privacy/abuse/allowlist review, затем нужен отдельный integration PR и разрешённый deployment/pilot. #949/#874 остаются OPEN, G-11 PARTIAL/NO-GO/public rollout BLOCKED.
+
 ## v5.0.0-rc.25 — Изолированная очередь сервисных кампаний
 
 - #948 / PR #956 / часть #874-B: source-only API подготовки и подтверждения immutable candidate snapshot, owned controls, UTC/IANA расписание с отказом для DST gap/fold и прошедшего времени; один operation ID не создаёт второй fan-out.

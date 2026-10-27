@@ -224,3 +224,8 @@ Operator-reported после обновления: 3x-ui показывает `W
 ## #887 D2d — отдельный staging Telegram Bot API + HTTPS ingress (не развёрнут)
 
 Для подготовки независимого синтетического staging клиента/Telegram Web login используйте профильный [runbook D2d](SUBPAGE_STAGING.md): отдельные BotFather token/allowlist/0700+0600 файлы, `getMe`/webhook identity verification, одно-процессный локальный SQLite, неизменённый production `app_runtime`, строгий TLS/SNI/Host/Origin, Nginx edge rate/429 и anti-phishing-сверка полного кода. Шаблоны `deploy/subpage-staging/**` default-off и содержат только `.invalid` origin, **это не команда по включению**. До отдельного security/deployment approval нет real Bot API, DNS/TLS, device smoke, CLI start, release или production mutations; #887 `keep_open`, G-11 `PARTIAL/NO-GO`.
+
+
+## Source UI/adapters кампаний #949 — не включены в пилот
+
+Новых клиентских кнопок/команд, наблюдений или сообщений нет: source Owner router/observer/Bot API transport не зарегистрированы в runtime. Factory OFF/DENY_ALL, локальный редактор не утверждает #501. Неподтверждённые media/CTA/test sends disabled; private proof не consent. [Канонический contract и late checklist](SERVICE_CAMPAIGNS.md) требуют category/recipient/privacy/abuse/allowlist prerequisites, отдельный integration PR и только потом разрешённые deployment/pilot. #949/#874 сохраняют собственный runtime acceptance; предыдущие scoped PASS не повторять.

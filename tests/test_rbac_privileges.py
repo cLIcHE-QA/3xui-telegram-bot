@@ -127,6 +127,7 @@ class RBACPrivilegesTests(unittest.TestCase):
             "bot_updates.py",
             "website_monitoring_admin.py",
             "website_diagnostics_admin.py",
+            "campaign_owner_ui.py",
         )
         declared = declared_route_specs()
         missing: list[str] = []

@@ -79,6 +79,7 @@ PRIVILEGES: tuple[Privilege, ...] = (
     Privilege("settings.view", "Настройки: просмотр", "read_only"),
     Privilege("settings.manage", "Настройки: изменения", "admin"),
     Privilege("settings.client_flags", "Клиентский портал и Stars: управление", "owner"),
+    Privilege("campaigns.manage", "Сервисные сообщения: управление", "owner"),
     Privilege("monitoring.view", "Мониторинг/Журналы/Аудит/Задания: просмотр", "read_only"),
     Privilege("website_monitoring.view", "Мониторинг сайтов: просмотр", "read_only"),
     Privilege("website_monitoring.manage", "Мониторинг сайтов: подписки и ручные проверки", "support"),
@@ -107,7 +108,8 @@ def _rules(permission_id: str, kind: str, *values: str) -> list[CallbackRule]:
 
 
 CALLBACK_RULES: tuple[CallbackRule, ...] = tuple(
-    _rules(
+    _rules("campaigns.manage", "regex", r"^admin:campaigns(?::[a-f0-9]{16})?$")
+    + _rules(
         "dashboard.view",
         "exact",
         "admin:home", "admin:dashboard", "admin:attention", "admin:stats",

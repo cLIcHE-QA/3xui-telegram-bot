@@ -88,3 +88,40 @@ Pause/cancel запрещают новые intents. Уже in-flight попыт�
 ### Собственный acceptance и дальнейшие зависимости
 
 Собственный #948 scope — offline schedule/migration/state/ownership/fencing/retry/stop/privacy regressions, trust-boundary review, required CI, immutable RC и publication/main checkpoint. Реальные сообщения/listeners/боты/VPS здесь не нужны и не разрешаются. Parent #874 остаётся OPEN до #949/policy #501/privacy/abuse/allowlists/deployment/pilot. `app_runtime` не получает fake policy или transport, G-11/public rollout этим источником не принимаются.
+
+
+## Закрытые source-компоненты Owner UI и Telegram adapters #949
+
+`campaign_owner_ui.py` и `campaign_telegram.py` — source-only библиотечные компоненты, не runtime registration. Они не включены в `app_runtime`, dispatcher, client guards или глобальное меню. Импорт/конструктор не запускают polling, listeners, worker, observation, HTTP или отправку. Нет новых env/credentials/портов; публикация source RC не разрешает подключение.
+
+`create_campaign_owner_ui(db, settings, enabled=False)` всегда создаёт `CampaignDelivery(enabled=False, policy=None)`. Boolean редактора не является delivery approval: UI не принимает policy/role/allowlist из callback или FSM и не содержит переключателя отправки. Настоящее runtime registration BLOCKED до #501/privacy/abuse/allowlist review; затем отдельный integration PR, required checks и разрешённый deployment/pilot. Это точный оставшийся gate #949, не fake policy и не завершение parent #874.
+
+### Приватная source-навигация и ввод
+
+Source router `admin:campaigns` — только текущий Owner в своём private chat. Зарезервированное Owner-only правило `campaigns.manage` отображается в существующем справочнике прав после установки кода, но само не регистрирует runtime handler. Permission повторно проверяется сервером; группы/боты/чужой private context, forwarded/sender_chat/via_bot и callbacks от human panel отклоняются. Существующий Client Portal и его guards не меняются. В живом меню новая кнопка пока отсутствует; будущий parent — `Система`.
+
+Все actions кроме безопасного root используют случайный opaque nonce: привязка actor/chat/message, текущая видимая клавиатура, mutation confirmation TTL90 (navigation600) и consume до первого mutation await. Максимум256 live tokens, capacity fail closed с фиксированным выходом в Систему; restart отзывает confirmations. FSM живёт до600 секунд, input требует тот же active panel и актуального Owner; чужой/старый/сменившийся раздел не продолжает форму. Callback не содержит текста, recipient IDs, URL или авторизации.
+
+Черновик проходит закрытую category → тема → текст → include groups → exclude groups → явное сохранение. Ввод групп — максимум50 существующих stable group IDs, не Telegram IDs; `-` означает пустой include (все proven candidates) либо пустой exclude. Это локальная сегментация, не право отправки. Edit использует expected revision/CAS; stale review не перезаписывает новый текст. Cancel возвращает в непосредственный экран входа, сохранение — в owned карточку.
+
+Local preview — plain text (`parse_mode=None`), без media/CTA/URL actions; вывод ограничен3800 UTF16 units с явным «показан фрагмент». Полный текст остаётся owned draft. Тестовой отправки нет. Черновик с большим количеством emoji можно сохранить для правки, но планирование/adapter требуют максимум4096 UTF16 units для темы + двух переводов строки + тела. Синтаксический фильтр не заменяет смысловую проверку содержания/секретов Owner.
+
+Планирование принимает точные `YYYY-MM-DDTHH:MM IANA`/UTC через прежний parser, показывает MSK и исходный TZ, требует отдельного revision-bound подтверждения. Категория/Owner/private proofs перепроверяются; отсутствующая policy блокирует до snapshot. Server operation UUID сохраняется на один intent; повтор confirmation не создаёт второй fan-out. Progress показывает aggregate counts, не адресатов/body. Pause/cancel двухшаговые и доступны при выключенном редакторе; уже отправленное не откатывается, in-flight может остаться unknown. Resume/автоматический retry через UI не добавлены.
+
+### Trusted private-update adapter
+
+`CampaignPrivateObserver` по умолчанию OFF, authorize_update=None/DENY_ALL. Будущий trusted caller обязан передать только уже аутентифицированный, разрешённый feature/pilot/rate/privacy контуром `Message`. Actor берётся из `from_user`, private chat должен принадлежать ему; bot/forward/sender_chat/via_bot отклоняются. Adapter не принимает отдельные recipient IDs, imports или admin-created identity. Store только обновляет minimal v16 proof существующего user; blocked не снимается, нового пользователя/согласия нет.
+
+Admission ограничен3 секундами и одной task, в том числе при некооперативной отмене; пропущенное наблюдение не ломает client jobs. DB/policy ошибки возвращают False без raw message/error. Сам adapter нигде не установлен; observer/provenance fixtures не доказывают реальные private контакты или consent.
+
+### One-shot Bot API и доказанный HTTP429
+
+`CampaignBotTransport` использует переданный существующий bot, не загружает и не создаёт tokens/другие platform credentials. Отсутствующий trusted authorize_envelope означает DENY_ALL. Будущий authorizer должен повторно проверить immutable intent/proof/policy, не получать chat IDs из UI payload. Один вызов — ровно один фиксированный sendMessage, без redirects/retries/paid broadcasts/markup/CTA/alternate business/thread targets. Plain text и link-preview OFF, protect_content ON. Recipient — только положительный private chat; success требует strict positive message ID, тот же private chat и отправителя того же bot.
+
+SDK `TelegramRetryAfter` сам по себе не доказывает HTTP429: pinned aiogram проверяет retry_after до HTTP status и может поднять его для5xx. Поэтому только `_CampaignSendMessage` через source `CampaignAwareSession.check_response` с фактическим HTTP429, raw JSON ok=false/error_code429 и exact int retry_after1…3600 получает внутренний verified rejection. Adapter принимает его только для того же request object и привязывает typed result к исходному private chat. Обычные bot methods сохраняют прежнюю SDK semantics; session не устанавливается и shared bot не перенастраивается этим кодом. При стандартной session обычный RetryAfter консервативно остаётся unknown, не safe retry. Future runtime review обязан исключить внешние autoretry middleware и отдельно подтвердить composition/session provenance.
+
+Доказанный403/строгое HTTP400 chat-not-found того же request object — terminal unavailable; только точное подтверждение bot-blocked помечает private proof blocked; иные4xx/5xx/network/decode/невалидный reply неизвестны. Adapter ограничивает одну transport task/8 секунд и после unknown/timeout/cancellation закрывает новые calls; late reply не меняет исход. Не кооперативная task не ждётся бесконечно и не даёт запустить fan-out. Worker #948 сохраняет свой durable intent/fencing/10-second boundary и bounded3 verified429 intents, adapter не повторяет запрос сам. Raw SDK/HTTP/body/errors не логируются и не выходят в UI.
+
+### Оставшийся late checklist
+
+Source/fake PASS не является runtime acceptance. В конце #930: утвердить #501 category/recipient/defaults и privacy/abuse/retention, определить разрешённый bounded pilot и allowlist; после этого отдельный reviewed integration PR подключает router/наблюдение/проверенный transport без ослабления guards, подтверждает disable/stop/recovery и session/no-retry provenance. Только затем оператор отдельно разрешает deployment и полный минимальный targeted pilot checklist: Owner/private/stale/stop, достоверный private proof, agreed category admission, receipt/unknown/no-replay/rate budget и финальный health. Реальные identities/sends/Telegram eligibility не запрашиваются сейчас. Старые HWID PASS/waived burst не повторять, Published/Deployed/Accepted различаются.

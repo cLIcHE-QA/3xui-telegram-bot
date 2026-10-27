@@ -62,3 +62,10 @@ Source schema17 в main через #956 добавляет пустой queue/at
 ## Исторические checkpoints (не текущий status)
 
 Все датированные отчёты `rc.6`, `rc.9`, `rc.16.1`, `rc.16.2`, #705/#752 и прошлые `OPEN/PENDING` сохранены в [immutable snapshot исходного Admin Setup](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md) и [датированных аудитах](audits/). Исторические факты не являются текущей приёмкой: проверяйте [Roadmap](ROADMAP.md).
+
+
+## Source-компоненты #949: подключения ещё нет
+
+Owner UI/private observer/one-shot Bot API adapters описаны в [SERVICE_CAMPAIGNS](SERVICE_CAMPAIGNS.md). Они не подключены к app_runtime/dispatcher/client guards/menu; новых env/портов/credentials нет, schema17 прежняя. Source factory всегда policy=None/DENY_ALL, редактор OFF; включение boolean редактора не даёт прав на sends/collection. Не устанавливать fake policy, не регистрировать router и не заменять shared bot session ради проверки.
+
+Runtime integration BLOCKED до решения #501/category/recipient/defaults и permission-abuse/privacy/retention/allowlist review. После них нужен отдельный reviewed integration PR с no-retry session provenance, stop/disable/recovery checks, затем отдельно разрешённые deployment/pilot. В current autonomous scope только source/fake tests; реальные Telegram identities/доступы/команды VPS сейчас не требуются. Cumulative migrations/recovery от deployed15 остаются отдельным поздним gate.

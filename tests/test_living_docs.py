@@ -81,6 +81,17 @@ def current_release_claim_errors(roadmap: str, docs: dict[str, str]) -> list[str
     return issues
 
 class LivingDocsSemanticTests(unittest.TestCase):
+    def test_campaign_ui_source_does_not_approve_runtime_or_transport_policy(self):
+        doc = (ROOT / "docs/SERVICE_CAMPAIGNS.md").read_text(encoding="utf-8")
+        for invariant in ("не runtime registration", "enabled=False, policy=None", "TTL90", "FSM живёт до600",
+                          "SDK `TelegramRetryAfter` сам по себе не доказывает HTTP429",
+                          "session не устанавливается", "runtime registration BLOCKED"):
+            self.assertIn(invariant, doc)
+        setup = (ROOT / "docs/ADMIN_SETUP.md").read_text(encoding="utf-8")
+        self.assertIn("Runtime integration BLOCKED", setup)
+        style = (ROOT / "docs/UI_STYLE.md").read_text(encoding="utf-8")
+        self.assertIn("Глобальная кнопка и slash-команды не добавлены", style)
+
     def test_campaign_queue_keeps_admission_unknown_and_runtime_boundaries_explicit(self):
         doc = (ROOT / "docs/SERVICE_CAMPAIGNS.md").read_text(encoding="utf-8").replace("**", "")
         for invariant in ("реальное admission DENY_ALL", "не классифицируется как mandatory",
