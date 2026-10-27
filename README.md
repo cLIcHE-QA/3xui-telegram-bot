@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.24
+# Telegram-бот для 3x-ui v5.0.0-rc.25
+
+> **Release-prep `v5.0.0-rc.25`, ещё не Published:** самостоятельная source-only очередь #948 (часть #874), implementation #956 и checkpoint #957 в main. Additive schema17, UTC/IANA schedule, immutable snapshot и fenced intent/unknown/recovery проверены offline/CI; worker/transport не подключены к runtime, OFF/DENY_ALL. Published ниже остаётся rc.24/schema16; deployment/live sends не выполняются.
 
 
 > **Published `v5.0.0-rc.24`:** самостоятельная source-only foundation #947 (часть #874): schema16, owned drafts/frozen revisions/private-candidate dry-run; runtime UI/worker/transport отсутствуют, delivery0/unapproved. [Publication audit](docs/audits/2026-10-27-rc24-publication-checkpoint.md) подтверждает immutable tag/notes/provenance. Deployed rc.18.10 operator-reported, parent #874/policy501/live gates PENDING.
