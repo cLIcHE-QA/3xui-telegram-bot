@@ -311,16 +311,16 @@
       "decision": "keep_open",
       "date": "2026-10-27",
       "accepted": "Source #947 and immutable RC24 publication scoped PASS; no runtime delivery assertion",
-      "evidence": "docs/audits/2026-10-27-rc24-publication-checkpoint.md",
-      "comment": "Parent #874 only first part published; #948/#949/policy/UI/queue/deployment/pilot PENDING. All category delivery0/unapproved; G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "evidence": "docs/audits/2026-10-27-947-source-closure-checkpoint.md",
+      "comment": "Foundation child947 completed only its own source-only acceptance in RC24; parent874 keep_open for948/949/policy501/UI/queue/deployment/pilot; delivery0/unapproved, G-11 PARTIAL/NO-GO."
     },
     {
       "issue": 947,
-      "decision": "keep_open",
+      "decision": "completed",
       "date": "2026-10-27",
-      "accepted": "Source #947 and immutable RC24 publication scoped PASS; no runtime delivery assertion",
-      "evidence": "docs/audits/2026-10-27-rc24-publication-checkpoint.md",
-      "comment": "#947 own publication checkpoint main read-back/closure audit PENDING; no real sends required. All category delivery0/unapproved; G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "7/7 own source-only schema/API/regression/security/docs/immutable RC24/publication/main acceptance PASS; no runtime delivery assertion",
+      "evidence": "docs/audits/2026-10-27-947-source-closure-checkpoint.md",
+      "comment": "GitHub CLOSED/completed 2026-10-27T14:04:48Z after independent publication checkpoint #954 main read-back. Own scope explicitly excludes real sends/deployment. Parent #874 remains OPEN; policy501/queue/UI/runtime/pilot PENDING, G-11 PARTIAL/NO-GO."
     },
     {
       "issue": 948,
