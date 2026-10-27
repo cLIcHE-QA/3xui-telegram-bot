@@ -310,17 +310,17 @@
       "issue": 874,
       "decision": "keep_open",
       "date": "2026-10-27",
-      "accepted": "Source implementation #947/#951 scoped PASS: migration16/drafts/private candidate API, local1616/16 skips and PR CI1616/3 skips; not Published, no runtime delivery",
-      "evidence": "docs/audits/2026-10-27-947-campaign-foundation-postmerge-checkpoint.md",
-      "comment": "Parent #874 partial foundation only; #948/#949/policy501/UI/queue/deployment/pilot gates PENDING. All category delivery unapproved/0, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "Source #947 and immutable RC24 publication scoped PASS; no runtime delivery assertion",
+      "evidence": "docs/audits/2026-10-27-rc24-publication-checkpoint.md",
+      "comment": "Parent #874 only first part published; #948/#949/policy/UI/queue/deployment/pilot PENDING. All category delivery0/unapproved; G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     },
     {
       "issue": 947,
       "decision": "keep_open",
       "date": "2026-10-27",
-      "accepted": "Source implementation #947/#951 scoped PASS: migration16/drafts/private candidate API, local1616/16 skips and PR CI1616/3 skips; not Published, no runtime delivery",
-      "evidence": "docs/audits/2026-10-27-947-campaign-foundation-postmerge-checkpoint.md",
-      "comment": "#947 own immutable RC24/publication/main closure checkpoint PENDING; no live sends required by own source-only criteria. All category delivery unapproved/0, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "Source #947 and immutable RC24 publication scoped PASS; no runtime delivery assertion",
+      "evidence": "docs/audits/2026-10-27-rc24-publication-checkpoint.md",
+      "comment": "#947 own publication checkpoint main read-back/closure audit PENDING; no real sends required. All category delivery0/unapproved; G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     },
     {
       "issue": 948,
