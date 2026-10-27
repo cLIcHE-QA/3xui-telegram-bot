@@ -588,6 +588,7 @@ class Database:
 
     async def delete(self, telegram_id: int):
         async with aiosqlite.connect(self.path) as db:
+            await db.execute("DELETE FROM service_campaign_contacts WHERE telegram_id = ?", (telegram_id,))
             await db.execute(
                 "DELETE FROM user_group_members WHERE telegram_id = ?",
                 (int(telegram_id),),

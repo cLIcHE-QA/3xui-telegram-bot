@@ -17,7 +17,8 @@
     "docs/UI_STYLE.md",
     "docs/V5_PRODUCTION_ACCEPTANCE.md",
     "docs/CLIENT_SETUP.md",
-    "docs/LEGAL_PORTAL_PLACEMENT.md"
+    "docs/LEGAL_PORTAL_PLACEMENT.md",
+    "docs/SERVICE_CAMPAIGNS.md"
   ],
   "rules": [
     {
@@ -223,6 +224,17 @@
       ],
       "documents": [
         "docs/LEGAL_PORTAL_PLACEMENT.md"
+      ]
+    },
+    {
+      "id": "service-campaign-foundation",
+      "mode": "require_all",
+      "triggers": [
+        "service_campaigns.py",
+        "campaign_*.py"
+      ],
+      "documents": [
+        "docs/SERVICE_CAMPAIGNS.md"
       ]
     }
   ],

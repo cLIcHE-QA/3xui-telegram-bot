@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Source кандидат, ещё не Published:** schema **v16** `service_campaign_foundation_v5_0_0` (#947). Additive пустые drafts/revisions/private-contact таблицы; никаких observers/worker/UI/transport wiring, backfill, sends или смены policy. Published rc.23 ниже по-прежнему содержит v15; main и опубликованный tag не равны. [Foundation contract](SERVICE_CAMPAIGNS.md).
+
 
 
 **Published `v5.0.0-rc.23`:** active-only справка/legacy compatibility #564 не меняют bot schema v15. Новых migrations/DDL/backfill/retention policy нет. Tag/SHA подтверждены [publication read-back](audits/2026-10-27-rc23-publication-checkpoint.md); Deployed rc.18.10 operator-reported, cumulative upgrade/config/agent compatibility проверяются перед отдельно разрешённой поздней установкой.
@@ -14,7 +16,7 @@
 
 **Схема SQLite v15 неизменна для Published `v5.0.0-rc.23` и operator-reported Deployed `v5.0.0-rc.18.10`.** Новых миграций в rc.23 нет: видимость справки не меняет production bot migration framework. Текущий операторский deployment и адресные HWID 23/23 `PASS` фиксируются исключительно в [Roadmap](ROADMAP.md) и [датированном audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md); независимая VPS/SQLite `PRAGMA quick_check` аттестация остаётся PENDING. Само `DB=ok` не является доказательством `PRAGMA quick_check`.
 
-Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
+Предыдущая additive schema **v15** `plan_hwid_limit_v5_0_0` сохраняется в текущем каталоге; `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
 
 **История релизов** `rc.18.2`–`rc.18.9` и их прежних `PENDING` сохранена в [CHANGELOG](../CHANGELOG.md), [датированных audits](audits/) и [историческом Roadmap](roadmap/HISTORY_INDEX.md). Эти предыдущие snapshot-статусы не описывают текущий GitHub Published `rc.23` и его раздельное operator-reported Deployed `rc.18.10`.
 
@@ -78,6 +80,8 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 
 14. `v14 plan_audience_v5_0_0` — независимый флаг наличия RUB-цены, правила видимости локальных User Groups и таблица `manual_entitlements` со статусами `in_flight/active/unknown/failed/superseded`. Старые планы мигрируют без удаления валют/истории и без автоматических назначений. Уникальный partial index запрещает вторую live/unknown выдачу одному пользователю.
+
+16. `v16 service_campaign_foundation_v5_0_0` — additive пустые таблицы `service_campaign_drafts`, `service_campaign_revisions`, `service_campaign_contacts` с owner/revision/foreign-key checks, immutable frozen triggers и bounded DAO. Существующие users/plans/payments не переписываются и не считаются private-contact evidence. `requires_backup=False`: нет destructive/data rewrite; failure откатывает DDL и journal блокирует replay. Строгие SQL postconditions включают constraints/indexes/triggers; unjournaled объекты с этими именами отклоняются. Второй штатный startup идемпотентен по journal; DAO сам schema не создаёт/не чинит. После применения v16 код с каталогом до v15 отказывается работать, downgrade требует совместимой pre-migration recovery copy.
 
 Commerce write contract поверх schema v6: authenticated `payment.confirmed` применяется одной SQLite transaction (`BEGIN IMMEDIATE`). В одной commit boundary фиксируются `commerce_payments.status=confirmed`, `commerce_orders.status=paid`, exactly-one `entitlements` row и `payment_webhook_events.processing_status=applied`. Исключение до commit откатывает весь набор изменений; повтор того же provider event с тем же payload безопасно возвращает уже применённый результат, а повтор event id с другим payload fail-closed.
 

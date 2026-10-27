@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import sqlite3
 import time
 from dataclasses import dataclass
@@ -401,7 +402,10 @@ async def _validate_current_schema(
     include_bot_update_acknowledgments: bool = False,
     include_plan_audience: bool = False,
     include_plan_hwid: bool = False,
+    include_campaign_foundation: bool = False,
 ) -> None:
+    if include_campaign_foundation:
+        await _validate_campaign_foundation(db)
     skipped_tables: set[str] = set()
     if not include_user_groups:
         skipped_tables.update({"user_groups", "user_group_members"})
@@ -1123,6 +1127,78 @@ async def _migration_0015_plan_hwid_limit_v5_0_0(db: aiosqlite.Connection) -> No
     )
 
 
+_CAMPAIGN_SCHEMA = {
+    "service_campaign_drafts": """CREATE TABLE service_campaign_drafts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner_id INTEGER NOT NULL CHECK(typeof(owner_id) = 'integer' AND owner_id > 0),
+        revision INTEGER NOT NULL CHECK(typeof(revision) = 'integer' AND revision > 0),
+        payload_json TEXT NOT NULL CHECK(typeof(payload_json) = 'text' AND length(payload_json) <= 16384),
+        created_at INTEGER NOT NULL CHECK(typeof(created_at) = 'integer' AND created_at > 0),
+        updated_at INTEGER NOT NULL CHECK(typeof(updated_at) = 'integer' AND updated_at >= created_at)
+    )""",
+    "service_campaign_revisions": """CREATE TABLE service_campaign_revisions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        draft_id INTEGER NOT NULL REFERENCES service_campaign_drafts(id),
+        owner_id INTEGER NOT NULL CHECK(typeof(owner_id) = 'integer' AND owner_id > 0),
+        revision INTEGER NOT NULL CHECK(typeof(revision) = 'integer' AND revision > 0),
+        payload_json TEXT NOT NULL CHECK(typeof(payload_json) = 'text' AND length(payload_json) <= 16384),
+        payload_sha256 TEXT NOT NULL CHECK(length(payload_sha256) = 64 AND payload_sha256 NOT GLOB '*[^0-9a-f]*'),
+        created_at INTEGER NOT NULL CHECK(typeof(created_at) = 'integer' AND created_at > 0)
+    )""",
+    "service_campaign_contacts": """CREATE TABLE service_campaign_contacts (
+        telegram_id INTEGER PRIMARY KEY REFERENCES users(telegram_id) ON DELETE CASCADE CHECK(telegram_id > 0),
+        first_seen_at INTEGER NOT NULL CHECK(typeof(first_seen_at) = 'integer' AND first_seen_at > 0),
+        last_seen_at INTEGER NOT NULL CHECK(typeof(last_seen_at) = 'integer' AND last_seen_at >= first_seen_at),
+        source TEXT NOT NULL CHECK(source = 'private_update'),
+        blocked_at INTEGER NOT NULL DEFAULT 0 CHECK(typeof(blocked_at) = 'integer' AND blocked_at >= 0)
+    )""",
+    "idx_service_campaign_drafts_owner": """CREATE INDEX idx_service_campaign_drafts_owner
+        ON service_campaign_drafts(owner_id, updated_at DESC, id DESC)""",
+    "idx_service_campaign_revisions_identity": """CREATE UNIQUE INDEX idx_service_campaign_revisions_identity
+        ON service_campaign_revisions(draft_id, revision)""",
+    "idx_service_campaign_contacts_available": """CREATE INDEX idx_service_campaign_contacts_available
+        ON service_campaign_contacts(blocked_at, telegram_id)""",
+    "service_campaign_draft_identity": """CREATE TRIGGER service_campaign_draft_identity
+        BEFORE UPDATE OF id,owner_id,created_at ON service_campaign_drafts
+        WHEN NEW.id != OLD.id OR NEW.owner_id != OLD.owner_id OR NEW.created_at != OLD.created_at
+        BEGIN SELECT RAISE(ABORT, 'Campaign identity is immutable'); END""",
+    "service_campaign_revision_owner": """CREATE TRIGGER service_campaign_revision_owner
+        BEFORE INSERT ON service_campaign_revisions WHEN NOT EXISTS (
+            SELECT 1 FROM service_campaign_drafts
+            WHERE id = NEW.draft_id AND owner_id = NEW.owner_id AND revision = NEW.revision
+        ) BEGIN SELECT RAISE(ABORT, 'Invalid campaign revision owner'); END""",
+    "service_campaign_revision_no_update": """CREATE TRIGGER service_campaign_revision_no_update
+        BEFORE UPDATE ON service_campaign_revisions
+        BEGIN SELECT RAISE(ABORT, 'Campaign revision is immutable'); END""",
+    "service_campaign_revision_no_delete": """CREATE TRIGGER service_campaign_revision_no_delete
+        BEFORE DELETE ON service_campaign_revisions
+        BEGIN SELECT RAISE(ABORT, 'Campaign revision is immutable'); END""",
+}
+
+
+async def _validate_campaign_foundation(db: aiosqlite.Connection) -> None:
+    # Include constraints, ownership/immutability triggers and index definitions,
+    # not merely object names. Never adopt an unjournaled contact ledger.
+    for name, expected in _CAMPAIGN_SCHEMA.items():
+        cur = await db.execute("SELECT sql FROM sqlite_master WHERE name = ?", (name,))
+        row = await cur.fetchone()
+        if not row or re.sub(r"\s+", "", row[0] or "") != re.sub(r"\s+", "", expected):
+            raise DatabaseMigrationError(f"Campaign schema mismatch: {name}")
+
+
+async def _migration_0016_service_campaign_foundation(db: aiosqlite.Connection) -> None:
+    for name in _CAMPAIGN_SCHEMA:
+        cur = await db.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (name,))
+        if await cur.fetchone():
+            raise DatabaseMigrationError("Unjournaled campaign schema object")
+    for sql in _CAMPAIGN_SCHEMA.values():
+        await db.execute(sql)
+    await _validate_current_schema(
+        db, include_bot_update_acknowledgments=True, include_plan_audience=True,
+        include_plan_hwid=True, include_campaign_foundation=True,
+    )
+
+
 MIGRATIONS: tuple[MigrationStep, ...] = (
     MigrationStep(
         version=1,
@@ -1207,6 +1283,8 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
     ),
     MigrationStep(version=15, name="plan_hwid_limit_v5_0_0",
                   apply=_migration_0015_plan_hwid_limit_v5_0_0, requires_backup=False),
+    MigrationStep(version=16, name="service_campaign_foundation_v5_0_0",
+                  apply=_migration_0016_service_campaign_foundation, requires_backup=False),
 )
 
 CURRENT_SCHEMA_VERSION = MIGRATIONS[-1].version
@@ -1402,7 +1480,7 @@ async def run_migrations(
         if steps == MIGRATIONS:
             await _validate_current_schema(
                 db, include_bot_update_acknowledgments=True, include_plan_audience=True,
-                include_plan_hwid=True,
+                include_plan_hwid=True, include_campaign_foundation=True,
             )
         await _quick_check(db)
         return current_version

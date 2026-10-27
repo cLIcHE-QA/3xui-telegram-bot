@@ -51,7 +51,7 @@
 
 [Issue #705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) принят по operator-reported scoped acceptance от 2026-10-19 12:09 EEST: сверка Orders/Payments/Entitlements и собственные критерии подтверждены оператором. [Аудит и provenance](docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md), [решение о закрытии](docs/roadmap/issue-closure-decisions.json). Независимый VPS/data-plane read-back отсутствует; завершение #705 не означает общего v5 acceptance, разрешения public rollout или общего G-11 acceptance.
 
-[PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) реализовал независимые RUB и Stars/XTR, правила видимости локальных User Groups и ручную бессрочную выдачу с durable read-back. Первоначальная SQLite schema v14 — исторический этап; **текущая schema v15** ([контракт миграций](docs/SQLITE_MIGRATIONS.md)). RUB-PSP относится к отдельному [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336); в Telegram цифровые покупки используют только Stars/XTR.
+[PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) реализовал независимые RUB и Stars/XTR, правила видимости локальных User Groups и ручную бессрочную выдачу с durable read-back. Первоначальная SQLite schema v14 — исторический этап; **Published rc.23 использует schema v15**, source-кандидат #947 добавляет v16 ([контракт миграций](docs/SQLITE_MIGRATIONS.md)). RUB-PSP относится к отдельному [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336); в Telegram цифровые покупки используют только Stars/XTR.
 
 ## План внешних платежей
 
@@ -201,6 +201,8 @@ domain routers
 `bot.py` сохраняется как стабильный executable path, в том числе для `restore_bootstrap.py`, но не владеет domain handlers или lifecycle implementation.
 
 Клиентская история #506 открывается из профиля через `client_access.py` и чистые read-only представления `client_history_ui.py`. `CustomerPortalService` читает owner-scoped безопасную SQL-проекцию в `db.py`: XTR Orders и реальные Telegram Stars Payments по 8 записей, отдельные Entitlement/refund статусы. Схема/retention не меняются; нет checkout/provider/reconcile вызовов. [Контракт UI](docs/UI_STYLE.md#клиентская-история-заказов-и-stars-платежей-506), [поздняя приёмка](docs/CLIENT_SETUP.md#собственная-история-stars-506). Published rc.22; deployment и собственный targeted acceptance PENDING, #506 keep_open.
+
+Source-only foundation сервисных кампаний #947: `service_campaigns.py`/`campaign_store.py` дают owned drafts/frozen revisions и bounded private-candidate dry-run в source schema v16 (кандидат, не Published); текущий Published rc.23 остаётся schema v15. Runtime/Telegram UI/worker/transport не подключены, delivery всех категорий unapproved/0; private-contact ledger не backfill из users. [Контракт кампаний](docs/SERVICE_CAMPAIGNS.md), [миграции](docs/SQLITE_MIGRATIONS.md). Parent #874 и policy #501 сохраняют собственные gates.
 
 Client Portal развивается поверх отдельного commerce lifecycle. Для цифровой подписки внутри Telegram customer purchase использует native Telegram Stars (`XTR`): тариф имеет отдельную `stars_price`, pre-checkout проверяет ownership/amount, а `successful_payment` атомарно фиксирует Payment → Order → Entitlement. Fiat `price_minor/currency` остаётся отдельным catalog field и не конвертируется в Stars автоматически. Customer-facing handlers проходят через `CustomerPortalService`; `client_access.py` не импортирует `XUIClient`, `Database` или `CommerceService`. Текущий 3x-ui-specific read adapter изолирован в `customer_provider_xui.py`, поэтому будущий provider не требует provider-name branching в Telegram handlers. Тестовые v4 user actions `/create` и `/inbounds` больше не являются mutation-entrypoint: старые команды/кнопки только перенаправляют в личный кабинет. В pilot-режиме доступ к `/start` всё ещё ограничен существующим allowlist/admin boundary; публичный signup откроется только после отдельного abuse/rate-limit и ownership-аудита. Выбор тарифа создаёт или переиспользует локальный Stars order и отправляет native Telegram invoice; 3x-ui access меняется только после `successful_payment` и последующего durable entitlement provisioning. Production launch остаётся закрыт до Stars acceptance/refund/support hardening и controlled canary.
 
@@ -436,6 +438,7 @@ git diff --check
 | Release/tag/deployment contract | [docs/RELEASES.md](docs/RELEASES.md) |
 | Git/PR/issue conventions | [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) |
 | Living docs / drift contract | [docs/LIVING_DOCS.md](docs/LIVING_DOCS.md) |
+| Source contract сервисных кампаний | [docs/SERVICE_CAMPAIGNS.md](docs/SERVICE_CAMPAIGNS.md) |
 | Product roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
 | Client Portal v5: настройка только контролируемого пилота | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
 | v5 Client Portal controlled canary и acceptance | [docs/V5_PRODUCTION_ACCEPTANCE.md](docs/V5_PRODUCTION_ACCEPTANCE.md) |

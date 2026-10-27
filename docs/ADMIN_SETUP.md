@@ -10,6 +10,12 @@
 
 > **Версия исходного кода:** `APP_VERSION=v5.0.0-rc.23`, Published prerelease по [Roadmap](ROADMAP.md) и [publication read-back](audits/2026-10-27-rc23-publication-checkpoint.md). Deployed rc.18.10 operator-reported. Видимость справки #564 не меняет schema v15/setup/env/порты/global Telegram registry; собственный visibility outcome PENDING. Позднее применение tag только по отдельному deployment-разрешению.
 
+## Source-only кампании #947: source schema v16
+
+Кандидат #947 содержит additive migration v16, ещё не входящую в Published rc.23/schema v15. Она создаёт пустые draft/revision/private-contact таблицы, без backfill, runtime observation, worker, UI, transport или отправок; новых env/портов/credentials нет. [Контракт](SERVICE_CAMPAIGNS.md), [SQL migration rules](SQLITE_MIGRATIONS.md). Наличие Telegram ID в старой users/import БД не разрешает рассылку и не доказывает private chat/consent.
+
+Перед будущим отдельно разрешённым deployment tag, содержащего v16, проверить cumulative upgrade от фактически deployed tag и сохранить проверенную pre-migration recovery copy по штатному backup flow. После v16 downgrade на rc.23/каталог v15 без совместимого restore блокируется. Не запускать migration отдельно ради разработки и не включать collection/send автоматически; parent #874, policy #501 и pilot approval остаются отдельно.
+
 ## Перед началом: границы и безопасность
 
 **HTTPS handoff #885 (Published rc.21):** использует тот же compatibility proxy и `/compat/` ingress, без нового порта/mount/env. Перед будущим разрешённым deployment проверь, что `/compat/open/` покрыт существующим `access_log off`/sanitized policy, proxy/CDN не кэширует no-store HTML и не удаляет hash-based CSP/no-referrer. Ticket — одноразовый 90-секундный bearer-like URL из private-owner карточки; общий in-memory предел 256, только тот же процесс бота/proxy, без multi-worker/multi-host guarantees. Copy/QR — fallback. Это не инструкция включить новый listener или проводить live smoke сейчас; #885 Published в rc.21; собственный deployment/device acceptance PENDING.

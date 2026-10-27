@@ -23,6 +23,7 @@ Living documents описывают текущее состояние проек
 - `docs/ADMIN_SETUP.md` — текущая установка и operator setup;
 - `docs/V5_PRODUCTION_ACCEPTANCE.md` — контролируемый v5 canary и обязательный production acceptance;
 - `docs/CLIENT_SETUP.md` — настройки и безопасный rollback пилотного Client Portal; public launch до полного acceptance запрещён;
+- `docs/SERVICE_CAMPAIGNS.md` — единственный source contract сервисных drafts/observations/candidate projection и будущих queue/transport границ; не отдельный статусный реестр и не approval на sends;
 - operational runbooks и schema/API/UI contracts, перечисленные в `docs/live-docs.json`.
 
 `docs/roadmap/HISTORY_INDEX.md` и `docs/audits/roadmap-history/**` — тематический исторический архив исходных 5803 строк Roadmap с точной проверкой Git blob. Это не второй living-state реестр; текущие gate и OPEN Issue statuses поддерживаются только в `docs/ROADMAP.md`. После закрытия Issue его подробный outcome остаётся в GitHub Issue/PR/CI и датированном audit; completed entries не накапливаются в living Roadmap, кроме одного краткого опционального агрегата актуального этапа. Новые подробные checks пишутся в датированные `docs/audits/**`; `scripts/check-roadmap-structure.py` проверяет архив/limiting и запускается через semantic living-doc tests.
