@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep кандидат `v5.0.0-rc.23` (#564):** active-only справка/legacy compatibility не меняют bot schema v15. Новых migrations/DDL/backfill/retention policy нет; текущий Published пока rc.22. Публикация и будущее применение tag — разные события.
+
 
 **Published `v5.0.0-rc.22`:** read-only история #506 использует существующую bot schema v15 через owner-scoped SQLite mode=ro. Новых migrations/DDL/backfill/retention policy нет. Tag/SHA подтверждены [publication read-back](audits/2026-10-27-rc22-publication-checkpoint.md); Deployed rc.18.10 operator-reported, cumulative upgrade/config/agent compatibility проверяются перед отдельно разрешённой поздней установкой.
 

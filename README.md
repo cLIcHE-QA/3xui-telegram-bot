@@ -1,4 +1,7 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.22
+# Telegram-бот для 3x-ui v5.0.0-rc.23
+
+> **Release-prep `v5.0.0-rc.23` — кандидат, не Published:** один самостоятельный scope #564 / PR #943, active-only справка с сохранением typed legacy registry/AST и guarded redirects. Implementation checkpoint #944 merged `90d3d09d016cc3bb8d64568512428f4c89655be9`, required CI и main read-back PASS. Текущий Published остаётся rc.22; новый tag/Release только после required release CI, health gate и штатного workflow. Deployment/новый visibility outcome #564 отложены по #930; новых env/портов/migrations нет.
+
 
 > **Published `v5.0.0-rc.22`:** отдельный RC #506 — собственная read-only история XTR Orders/Stars Payments. [Publication audit](docs/audits/2026-10-27-rc22-publication-checkpoint.md) подтверждает tag/SHA/notes/provenance; runtime UI/ownership acceptance PENDING, Deployed остаётся rc.18.10 operator-reported. Web factories #887 default-off.
 
