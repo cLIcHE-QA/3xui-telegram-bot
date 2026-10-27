@@ -4,7 +4,7 @@
 
 ## Текущий контракт schema
 
-**Source кандидат, ещё не Published:** schema **v16** `service_campaign_foundation_v5_0_0` (#947). Additive пустые drafts/revisions/private-contact таблицы; никаких observers/worker/UI/transport wiring, backfill, sends или смены policy. Published rc.23 ниже по-прежнему содержит v15; main и опубликованный tag не равны. [Foundation contract](SERVICE_CAMPAIGNS.md).
+**Release-prep кандидат `v5.0.0-rc.24`, ещё не Published:** schema **v16** `service_campaign_foundation_v5_0_0` (#947). Additive пустые drafts/revisions/private-contact таблицы; никаких observers/worker/UI/transport wiring, backfill, sends или смены policy. Published rc.23 ниже по-прежнему содержит v15; main и опубликованный tag не равны. [Foundation contract](SERVICE_CAMPAIGNS.md).
 
 
 

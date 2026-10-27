@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.23
+# Telegram-бот для 3x-ui v5.0.0-rc.24
+
+> **Release-prep `v5.0.0-rc.24` — кандидат, не Published:** самостоятельная source-only часть #947 / PR #951 эпика #874: schema16, owned drafts/frozen revisions, trusted private-contact API и bounded aggregate candidate dry-run; delivery0/unapproved, runtime UI/worker/transport отсутствуют. Implementation checkpoint #952 merged `de0541fed555f290144bcc0075b1651d15e6c7cb`, required CI/main read-back PASS. Текущий Published rc.23/schema15, Deployed rc.18.10 operator-reported; новый tag только после required release CI/health gate/workflow.
 
 > **Published `v5.0.0-rc.23`:** отдельный RC #564 — active-only справка с сохранением полного typed legacy registry/AST и guarded redirects. [Publication audit](docs/audits/2026-10-27-rc23-publication-checkpoint.md) подтверждает tag/SHA/notes/provenance; новая visibility/runtime приёмка PENDING, Deployed rc.18.10 operator-reported. Global Telegram command menu не менялся, Web factories #887 default-off.
 
