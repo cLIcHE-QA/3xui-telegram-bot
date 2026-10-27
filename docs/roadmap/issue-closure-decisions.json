@@ -310,9 +310,9 @@
       "issue": 874,
       "decision": "keep_open",
       "date": "2026-10-27",
-      "accepted": "Source-only #949/#961 Owner UI/private observer/one-shot Bot/session boundaries scoped PASS: local1708/16 skips, targeted83, PR CI1708/3 skips, fresh main supply-chain/image PASS; не runtime acceptance",
-      "evidence": "docs/audits/2026-10-27-949-owner-source-postmerge-checkpoint.md",
-      "comment": "#949 source main baa79b895394a955824ae69ac676082e65b0af6a, RC26/checkpoints PENDING. Runtime registration отсутствует/BLOCKED до #501/privacy/abuse/allowlist, затем отдельный integration PR/deployment/pilot. Factory OFF/DENY_ALL; #949/#874 OPEN, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "Source #949/#961 + immutable RC26 publication scoped PASS: source/required CI1708/3 skips, fresh image audit, tag/notes/version/unique release PR read-back; не runtime acceptance",
+      "evidence": "docs/audits/2026-10-27-rc26-publication-checkpoint.md",
+      "comment": "RC26 Published 2026-10-27T19:37:10Z b2f7503387fc7bd8465e783c898a0697ec87c541. #949/#874 OPEN/keep_open: runtime registration отсутствует/BLOCKED до #501/privacy/abuse/allowlist, затем отдельный integration PR/deployment/pilot. Factory OFF/DENY_ALL; source publication не закрывает собственный runtime scope. G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     },
     {
       "issue": 947,
@@ -334,9 +334,9 @@
       "issue": 949,
       "decision": "keep_open",
       "date": "2026-10-27",
-      "accepted": "Source-only #949/#961 Owner UI/private observer/one-shot Bot/session boundaries scoped PASS: local1708/16 skips, targeted83, PR CI1708/3 skips, fresh main supply-chain/image PASS; не runtime acceptance",
-      "evidence": "docs/audits/2026-10-27-949-owner-source-postmerge-checkpoint.md",
-      "comment": "#949 source main baa79b895394a955824ae69ac676082e65b0af6a, RC26/checkpoints PENDING. Runtime registration отсутствует/BLOCKED до #501/privacy/abuse/allowlist, затем отдельный integration PR/deployment/pilot. Factory OFF/DENY_ALL; #949/#874 OPEN, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "Source #949/#961 + immutable RC26 publication scoped PASS: source/required CI1708/3 skips, fresh image audit, tag/notes/version/unique release PR read-back; не runtime acceptance",
+      "evidence": "docs/audits/2026-10-27-rc26-publication-checkpoint.md",
+      "comment": "RC26 Published 2026-10-27T19:37:10Z b2f7503387fc7bd8465e783c898a0697ec87c541. #949/#874 OPEN/keep_open: runtime registration отсутствует/BLOCKED до #501/privacy/abuse/allowlist, затем отдельный integration PR/deployment/pilot. Factory OFF/DENY_ALL; source publication не закрывает собственный runtime scope. G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     },
     {
       "issue": 876,

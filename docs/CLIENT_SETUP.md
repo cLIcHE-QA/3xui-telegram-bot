@@ -4,7 +4,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.25` SHA `1c0854c9b416a2d0f2ccbe9083d62d88794307ed`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.26` SHA `b2f7503387fc7bd8465e783c898a0697ec87c541`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
 
 ## Client Portal: тарифы и платежные ограничения
 
@@ -228,4 +228,4 @@ Operator-reported после обновления: 3x-ui показывает `W
 
 ## Source UI/adapters кампаний #949 — не включены в пилот
 
-Новых клиентских кнопок/команд, наблюдений или сообщений нет: source Owner router/observer/Bot API transport не зарегистрированы в runtime. Factory OFF/DENY_ALL, локальный редактор не утверждает #501. Неподтверждённые media/CTA/test sends disabled; private proof не consent. [Канонический contract и late checklist](SERVICE_CAMPAIGNS.md) требуют category/recipient/privacy/abuse/allowlist prerequisites, отдельный integration PR и только потом разрешённые deployment/pilot. #949/#874 сохраняют собственный runtime acceptance; предыдущие scoped PASS не повторять.
+Source #949 Published в RC26; [publication audit](audits/2026-10-27-rc26-publication-checkpoint.md). Новых клиентских кнопок/команд, наблюдений или сообщений нет: source Owner router/observer/Bot API transport не зарегистрированы в runtime. Factory OFF/DENY_ALL, локальный редактор не утверждает #501. Неподтверждённые media/CTA/test sends disabled; private proof не consent. [Канонический contract и late checklist](SERVICE_CAMPAIGNS.md) требуют category/recipient/privacy/abuse/allowlist prerequisites, отдельный integration PR и только потом разрешённые deployment/pilot. #949/#874 сохраняют собственный runtime acceptance; предыдущие scoped PASS не повторять.
