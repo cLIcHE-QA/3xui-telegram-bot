@@ -342,17 +342,17 @@
       "issue": 876,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Default-off Client Portal theme source #965 scoped PASS: local1739/16 skips, targeted80, required PR1739/3; Owner/CAS/context/typed UTF16/no-resend source review, не Telegram acceptance",
-      "evidence": "docs/audits/2026-10-28-876-client-theme-postmerge-checkpoint.md",
-      "comment": "Source main 976fc28422ff7cc4db1e8541132a5218f4f095cc; fresh security/image40588425118 FAIL: dnspython2.8.0/CVE-2026-114605 HIGH, prerequisite #966. RC27 BLOCKED до исправления/повторного audit. Реальные eligibility/IDs/deployment/targeted rendering/fallback PENDING; #876 OPEN/keep_open, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "Default-off Client Portal theme source #965 и обязательный dependency prerequisite #966/#968 scoped PASS: full1741/16 local/3 CI skips, current main image PASS; source не Telegram acceptance",
+      "evidence": "docs/audits/2026-10-28-966-dnspython-security-postmerge-checkpoint.md",
+      "comment": "Theme source main, security prerequisite dnspython2.9.0 resolved по fresh source/image gate. RC27/publication ещё PENDING; реальные bot eligibility/IDs/deployment/targeted rendering/fallback/disable отложены. #876 OPEN/keep_open, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     },
     {
       "issue": 966,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Fresh source/image scanner finding подтверждён: actionable HIGH CVE-2026-114605/dnspython2.8.0, security gate FAIL; remediation/acceptance PENDING",
-      "evidence": "docs/audits/2026-10-28-876-client-theme-postmerge-checkpoint.md",
-      "comment": "Обязательный security prerequisite текущего незавершённого пакета #876/RC27, не новая feature. Нужны минимальный floor/hashed lock2.9.x, offline/required CI, fresh audit и immutable publication proof. Без waiver или production операций; source/build scope не attestation deployed."
+      "accepted": "Source/build security revalidation scoped PASS: generated dnspython2.9.0/official hashes/clean install+pip check, DNS22, local full1741/16 skips, required PR1741/3 и fresh main image audit PASS; не deployed acceptance",
+      "evidence": "docs/audits/2026-10-28-966-dnspython-security-postmerge-checkpoint.md",
+      "comment": "Source #968 main 90d016b141a6c64208d0a150025966120903c425. Прежний FAIL40588425118 сохранён, CVE waiver не добавлялась. RC27/publication checkpoint PENDING; затем отдельно разрешённый deployment и собственный read-only installed package/image tag/SHA/DNS API/health outcome. #966 OPEN/keep_open согласно own acceptance6; source/image PASS не устраняет доказанно риск на VPS."
     }
   ]
 }
