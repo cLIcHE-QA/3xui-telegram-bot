@@ -81,6 +81,29 @@ def current_release_claim_errors(roadmap: str, docs: dict[str, str]) -> list[str
     return issues
 
 class LivingDocsSemanticTests(unittest.TestCase):
+    def test_client_decoration_docs_keep_operator_veto_and_storage_boundary(self):
+        from client_theme import SLOTS, SETTING_KEY
+        from config import Settings
+        fields = Settings.__dataclass_fields__
+        self.assertIs(fields["client_custom_emoji_enabled"].default, False)
+        self.assertEqual(fields["client_custom_emoji_verified_bot_id"].default, 0)
+        env = (ROOT / ".env.example").read_text()
+        self.assertIn("CLIENT_CUSTOM_EMOJI_ENABLED=false", env)
+        self.assertIn("CLIENT_CUSTOM_EMOJI_VERIFIED_BOT_ID=\n", env)
+        ui = (ROOT / "docs/UI_STYLE.md").read_text()
+        self.assertIn(f"содержит {len(SLOTS)} фиксированных", ui)
+        for value in ("Owner-only", "UTF-16", "same-request", "Unicode", "runtime_settings"):
+            self.assertIn(value, ui)
+        admin = (ROOT / "docs/ADMIN_SETUP.md").read_text()
+        self.assertIn(SETTING_KEY, admin)
+        for variable in ("CLIENT_CUSTOM_EMOJI_ENABLED", "CLIENT_CUSTOM_EMOJI_VERIFIED_BOT_ID"):
+            self.assertIn(variable, admin)
+        self.assertIn("eligibility", (ROOT / "docs/CLIENT_SETUP.md").read_text())
+        contract = json.loads((ROOT / "docs/live-docs.json").read_text())
+        rule = next(rule for rule in contract["rules"] if rule["id"] == "client-portal-theme")
+        self.assertEqual(rule["mode"], "require_all")
+        self.assertIn("docs/UI_STYLE.md", rule["documents"])
+
     def test_campaign_ui_source_does_not_approve_runtime_or_transport_policy(self):
         doc = (ROOT / "docs/SERVICE_CAMPAIGNS.md").read_text(encoding="utf-8")
         for invariant in ("не runtime registration", "enabled=False, policy=None", "TTL90", "FSM живёт до600",

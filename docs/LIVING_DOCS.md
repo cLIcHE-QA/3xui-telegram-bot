@@ -76,6 +76,8 @@ Living Docs: database-schema — изменений не требуется
 
 Diff-trigger не заменяет проверку содержания. `tests/test_living_docs.py` всегда проверяет current-state invariants:
 
+Client Portal theme source `client_theme*.py` требует синхронного обновления нормативного `docs/UI_STYLE.md` через require_all `client-portal-theme`. Изменённые operator actions/локальные veto дополнительно отражаются в ADMIN_SETUP/CLIENT_SETUP; existing-storage contract — в SQLITE_MIGRATIONS, без объявления новой schema. Общий semantic test сверяет default-off config/example, количество semantic slots и ссылки на eligibility/storage boundary; не подтверждает реальное право Telegram или deployment.
+
 - `version.py` согласован с README/Admin Setup/CHANGELOG;
 - текущая единственная строка `**Published:**` в README и Roadmap имеет одинаковые **значения** `Deployed` (version, 40-char SHA, provenance) и `Accepted` (scoped outcome и PENDING), без чтения исторических checkpoints; отсутствие поля/расхождение — FAIL в обязательном `test`. Roadmap — канонический источник, README — краткая проекция; CI не удостоверяет реальное VPS deployment, даже при совпадении operator-reported текста;
 - текущая SQLite schema version отражена в `docs/SQLITE_MIGRATIONS.md`;

@@ -1669,6 +1669,8 @@ async def client_switches_view(call: CallbackQuery):
                 text=f"{'👤 Портал' if flag == 'portal' else '⭐ Новые Stars'}: {'отключить' if new == 'off' else 'разрешить'}",
                 callback_data=f"admin:settings:client:{flag}:ask:{new}:{snapshot.revision(flag)}",
             )])
+    if role == "owner":
+        rows.append([InlineKeyboardButton(text="🎨 Оформление клиента", callback_data="admin:client-theme")])
     rows += [
         [InlineKeyboardButton(text="🔄 Обновить", callback_data="admin:settings:client")],
         [InlineKeyboardButton(text="⬅ Настройки", callback_data="admin:settings")],

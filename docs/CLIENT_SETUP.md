@@ -120,6 +120,20 @@ Ticket сам кратковременно даёт доступ к подпис
 - Клиентский контур и административный `/admin` имеют отдельные authorization boundaries; включение Client Portal не предоставляет административные права.
 - Не публикуйте реальные Telegram ID, subscription URLs, provider payment references, ключи и содержимое приватных БД в Issues, PR или audit evidence.
 
+## Оформление клиентских значков (#876)
+
+Исходники `client_theme.py` и `client_theme_owner_ui.py` готовят независимую default-off тему Client Portal; source/CI/RC не подтверждают Telegram capability или deployment. Существующие pilot/allowlist/ownership/rate/payment gates действуют раньше бизнес-операций; оформление не меняет callbacks, русский текст, private URL/CopyText payload, платежи или device ownership. В административных экранах custom emoji не используются. [UI contract и fallback](UI_STYLE.md#оформление-client-portal-876), [операторские настройки](ADMIN_SETUP.md#оформление-client-portal-876).
+
+**Единый оставшийся targeted checklist после отдельно разрешённых deployment/eligibility/pilot:**
+
+1. Сверить Published/deployed exact tag/SHA, cumulative schema/config/recovery и независимый health; это не повтор прежних HWID23/23 или waived burst.
+2. Проверить фактические права **этого бота** по текущему Bot API: реальный BotFather owner Premium/подтверждённое Fragment-условие, поле SDK, актуальные Telegram desktop/mobile clients. Metadata emoji не доказывает entitlement. До evidence оба локальных veto и DB enable остаются OFF.
+3. На разрешённом Owner/test identity выбрать проверенные реальные IDs для одного кнопочного и одного текстового слота, metadata → Unicode preview → отдельный вымышленный client sample → confirm; перезапуск сохраняет настройки. Не использовать subscription URL, реальные user IDs/платёжные записи в sample.
+4. Адресно проверить меню, профиль/подписку/трафик/устройства, подключение/import/key/QR и Back/Next: выбранный значок, канонические labels/route/copy payload, UTF-16/длинный текст, Unicode при пустом/неизвестном/недоступном capability. QR/photo/invoice методы не трансформируются. Не запускать DELETE, invoice/payment/refund или новые provider mutations ради оформления.
+5. Проверить Owner-only edit/reset/disable, stale/forged/replayed callbacks/FSM, смену роли/панели и restart; обычная админка/status/permission/error UI сохраняет Unicode. API rejection/unknown не создаёт повторный send/private payload, circuit переводит следующий переход в Unicode. Не провоцировать network failure реальной финансовой операции.
+6. Подтвердить disable/reset к прежнему виду, health и сохранить dated scoped evidence; #876 keep_open до собственного outcome. G-11 PARTIAL/NO-GO/public rollout BLOCKED, предыдущие scoped PASS не повторять.
+
+
 ## Переменные пилота и доступ
 
 На Master в локальной приватной `.env` (без публикации значений):

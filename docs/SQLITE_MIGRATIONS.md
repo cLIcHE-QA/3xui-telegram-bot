@@ -26,6 +26,10 @@
 
 Исходная release-by-release таблица `v4.24`–`rc.16.6`, прежние отметки «ещё не Deployed/Accepted», release-prep `rc.16.1` и кандидат `rc.16.2` сохранены в [immutable snapshot этого документа](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/8d5b9ad1ce1fecf8f5f1808c786f3b2b3cf32f0b/docs/SQLITE_MIGRATIONS.md), а публикации и приёмка — в [CHANGELOG](../CHANGELOG.md) и [Roadmap](ROADMAP.md). Это исторические утверждения, не фактический текущий deployment.
 
+## Оформление Client Portal #876 — без новой migration
+
+Тема использует существующую `runtime_settings` v1: единственная строка `client_theme:v1`, bounded JSON version1/revision/enabled/icons. Атомарная `BEGIN IMMEDIATE` транзакция проверяет текущую Owner role, CAS revision, изменяет только этот ключ и добавляет audit; ошибка audit откатывает настройку. Unknown JSON/schema/дубликаты fail closed, автоматического ремонта/сброса нет. Restart сохраняет принятую тему, новая переменная veto не меняет schema17. Новых DDL/backfill/изменений subscriptions/entitlements/HWID/users нет; отдельные cumulative migration/recovery gates прежние. [Нормативный UI/storage contract](UI_STYLE.md#оформление-client-portal-876).
+
 ## Источник истины
 
 Схема бота управляется каталогом `MIGRATIONS` в `db_migrations.py`.

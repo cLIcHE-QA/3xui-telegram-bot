@@ -6,6 +6,7 @@ Customer history (#506) uses private owner callbacks from Profile and links
 to the existing /paysupport; it adds no slash command or alias to this catalog.
 Owner UI #949 использует только admin:campaigns callbacks и FSM, без новой
 slash-команды. Его закрытые routes проверяет Owner-only privilege catalog.
+Оформление #876 также использует только Owner callbacks/FSM, без новых slash-команд.
 """
 from __future__ import annotations
 
