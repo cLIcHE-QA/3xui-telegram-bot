@@ -1,6 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.20
+# Telegram-бот для 3x-ui v5.0.0-rc.21
 
-> **Published `v5.0.0-rc.20`:** начальный объединённый RC содержит изолированные исходники #887 и security fix #890. [Publication checkpoint](docs/audits/2026-10-27-rc20-publication-checkpoint.md) подтверждает tag/SHA/notes; web factories default-off, reviewed allowlists пусты. Deployment/live acceptance отложены по [#930](docs/ROADMAP.md#очередь-разработки-и-участие-оператора-930).
+> **Release-prep `v5.0.0-rc.21`:** подготовлен отдельный RC задачи #885 — guarded HTTPS handoff с сохранением Copy/QR. Новый tag/Release ещё PENDING; фактический Published rc.20 и последний operator-reported Deployed rc.18.10 указаны отдельно ниже. Device/import/refresh acceptance отложен по #930; web factories #887 остаются default-off.
 
 > **Текущий релиз:** [опубликована версия `v5.0.0-rc.20`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.20), неизменяемый тег указывает на коммит `929e9950a9d831ef72271f99b226a3315cfef709` (2026-10-26T23:26:39Z). **На сервере**, по отчёту оператора, установлена только версия `v5.0.0-rc.18.10`, коммит `dae205ac82762723448f93827b981f89ae622231`. Приёмка задач #473/#497/#887/#890 после развёртывания ещё не проведена; G-11 остаётся PARTIAL/NO-GO, публичный запуск запрещён.
 

@@ -8,7 +8,7 @@
 
 **Исторический checkpoint `rc.18.1` (не текущий статус):** оператор ранее сообщил deployed `rc.18` P0–P2/F1–F3 и scoped D1–D8/S1–S4 PASS, но независимый VPS/provider read-back отсутствует, X2 и destructive postcondition provenance PENDING. Новая версия `rc.18.1` опубликована и развернута по отчёту оператора; targeted UI A4/A5 operator-reported FAIL; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
-> **Версия исходного кода:** `APP_VERSION=v5.0.0-rc.20`, Published prerelease по [Roadmap](ROADMAP.md) и [независимому publication read-back](audits/2026-10-27-rc20-publication-checkpoint.md). Deployed остаётся `rc.18.10` operator-reported. Новых production действий по включению web-основы нет: staging factories, UI и URL delivery остаются default-off/без reviewed клиентов. Будущая установка требует отдельного deployment-разрешения и проверки накопленного upgrade path; этот checkpoint не выполняет deployment.
+> **Версия исходного кода в release-prep:** `APP_VERSION=v5.0.0-rc.21`. Новый RC ещё не Published; фактические tag/SHA проверяются по [Roadmap](ROADMAP.md), Deployed остаётся rc.18.10 operator-reported. Handoff #885 использует существующий compatibility proxy, без нового порта/env; no-log/no-store/CSP и будущий device outcome требуют отдельной проверки. Примеры rc.21 применимы только после tag/Release read-back и отдельного deployment-разрешения. Этот PR не выполняет deployment.
 
 ## Перед началом: границы и безопасность
 

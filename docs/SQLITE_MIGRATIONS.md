@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep `v5.0.0-rc.21`:** HTTPS handoff #885 не меняет bot schema v15 и не добавляет migrations. Published остаётся rc.20 до независимого tag/Release read-back, Deployed rc.18.10 operator-reported; cumulative upgrade/config/agent compatibility проверяются перед отдельно разрешённой поздней установкой.
+
 **Published `v5.0.0-rc.20`:** bot schema v15 не меняется; новых миграций нет. Staging/import SQLite — отдельные изолированные default-off ledgers, не production bot database. Будущая установка после накопленных RC требует проверки forward-only migration/config/agent пути от фактически deployed tag по [Roadmap](ROADMAP.md) и [Release contract](RELEASES.md).
 
 > **Published `v5.0.0-rc.20`:** схема SQLite v15, новых миграций нет. GitHub Release опубликован на SHA `929e9950a9d831ef72271f99b226a3315cfef709`, deployment по-прежнему только `v5.0.0-rc.18.10` со слов оператора.
