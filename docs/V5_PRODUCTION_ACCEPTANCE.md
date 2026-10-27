@@ -12,6 +12,10 @@
 
 Source-only разработка по #930 не подтверждает deployment или live acceptance. После отдельного разрешённого обновления проверить read-only сценарии из [CLIENT_SETUP](CLIENT_SETUP.md#собственная-история-stars-506): private-owner и SQL IDOR для Order/Payment, XTR-only вкладки по 8 записей, возврат на исходную страницу, отдельные missing/unknown/refunded/Entitlement состояния, support/Terms без invoice/consent/refund/reconcile. Использовать существующие безопасные записи/fixtures; новые финансовые операции и Telegram sends в автономный scope не входят. Offline tests и required CI подтверждают только проверенный source scope; #506 keep_open до своего targeted outcome. Общие G-11 PARTIAL/NO-GO и public rollout BLOCKED сохраняются; прежние HWID PASS/waived burst не повторять.
 
+## Видимость legacy-команд #564 — отдельный отложенный targeted gate
+
+После будущего отдельно разрешённого deployment проверить scoped UI/guard сценарии [CLIENT_SETUP](CLIENT_SETUP.md#актуальные-команды-и-совместимость-564): active-only справочник и основной `/start`, Back/все четыре admin roles; 2 legacy slash и 3 сохранённых callback redirects в пилоте, Portal OFF/outside allowlist без mutations. Типизированный каталог/AST CI проверяют и скрытые handlers. Telegram global command registry не изменялся и не считается очищенным; старый N03 не доказывает новый visibility outcome. Offline/CI не заменяют собственный operator-reported runtime outcome; #564 keep_open, deployment/live smoke отложены по #930. G-11 PARTIAL/NO-GO/public rollout BLOCKED, waived burst и прошлые HWID PASS не повторять.
+
 ## 0. Зафиксировать baseline
 
 Перед тестами запишите:

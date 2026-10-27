@@ -81,6 +81,16 @@ def current_release_claim_errors(roadmap: str, docs: dict[str, str]) -> list[str
     return issues
 
 class LivingDocsSemanticTests(unittest.TestCase):
+    def test_legacy_visibility_does_not_shrink_authoritative_command_audit(self):
+        ui = (ROOT / "docs/UI_STYLE.md").read_text(encoding="utf-8")
+        catalog = ui.split("## 📚 Команды бота (#356)", 1)[1].split("\n## ", 1)[0]
+        for invariant in ("status=active", "все** зарегистрированные handlers", "включая скрытые",
+                          "non-mutating redirects", "Основной клиентский вход — `/start`",
+                          "не меняет Telegram global bot command list"):
+            self.assertIn(invariant, catalog)
+        client = (ROOT / "docs/CLIENT_SETUP.md").read_text(encoding="utf-8")
+        self.assertIn("новый visibility/runtime outcome PENDING, #564 keep_open", client)
+
     def test_customer_history_documents_keep_money_and_access_boundaries(self):
         ui = (ROOT / "docs/UI_STYLE.md").read_text(encoding="utf-8")
         history = ui.split("## Клиентская история заказов и Stars-платежей (#506)", 1)[1].split("\n## ", 1)[0]

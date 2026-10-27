@@ -1450,6 +1450,6 @@ async def legacy_client_command(message: Message):
     if not await guard_message(message):
         return
     await message.answer(
-        "Старый тестовый сценарий отключён. Используйте личный кабинет:",
+        "Старый тестовый сценарий отключён. Используйте /start — личный кабинет:",
         reply_markup=portal_menu(),
     )
