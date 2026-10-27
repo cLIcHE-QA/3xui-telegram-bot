@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from version import APP_VERSION
 
-CATALOG_REVISION = 1
+CATALOG_REVISION = 2
 
 
 @dataclass(frozen=True)
@@ -49,7 +49,9 @@ def validate_catalog() -> None:
 
 
 def commands_help_text() -> str:
+    """Active UI projection; the complete registry still audits legacy routes."""
     validate_catalog()
+    active_commands = tuple(item for item in COMMANDS if item.status == "active")
     lines = [
         "📚 Команды бота",
         f"Каталог: v{CATALOG_REVISION} · Бот: v{APP_VERSION}",
@@ -59,17 +61,17 @@ def commands_help_text() -> str:
         "",
         "🔐 Административные команды:",
     ]
-    for item in COMMANDS:
+    for item in active_commands:
         if item.audience == "admin":
             lines.append(f"/{item.name} — {item.description} · {item.minimum_role}+ · личный чат")
     lines += ["", "👤 Клиентские команды:"]
-    for item in COMMANDS:
+    for item in active_commands:
         if item.audience != "client":
             continue
-        suffix = " · устаревшая" if item.status == "legacy" else ""
-        lines.append(f"/{item.name} — {item.description}{suffix}")
+        lines.append(f"/{item.name} — {item.description}")
     lines += [
         "",
+        "Основной вход клиента: /start. Устаревшие переходы сохранены только для совместимости.",
         "Клиентские команды: CLIENT_PORTAL_ENABLED и pilot allowlist.",
         "Команды не регистрируются в Telegram глобально этим экраном.",
     ]
