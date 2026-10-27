@@ -301,10 +301,10 @@
     {
       "issue": 564,
       "decision": "keep_open",
-      "accepted": "Merged #943 c738701a606ab92b4a4e94ae3f3053b52d8fbb82; active-only help with full legacy AST registry, offline14/full1596 and required final-head CI1596/3 skipped PASS; Published rc.22 without #564",
-      "evidence": "docs/audits/2026-10-27-564-legacy-visibility-postmerge-checkpoint.md",
+      "accepted": "Published v5.0.0-rc.23 immutable 110bfc4ce9131a366be7ca3503e22ee6349c7372; release-scope1/1, required CI/main/publish/tag/notes/provenance PASS; active-only help/full legacy AST registry offline scope PASS, own visibility outcome PENDING",
+      "evidence": "docs/audits/2026-10-27-rc23-publication-checkpoint.md",
       "date": "2026-10-27",
-      "comment": "keep_open: собственный поздний deployment и operator-reported новой UI visibility/Back outcome PENDING по #930. Не повторять старый N03/unchanged guards; global Telegram registry не менялся. RC23 пока план, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "comment": "keep_open: отдельно разрешённый поздний deployment и operator-reported новой видимости справки/Back outcome PENDING по #930. Старый N03/unchanged guards/roles не повторять; global Telegram registry не менялся. Deployed rc.18.10 operator-reported, next #874/rc.24 after publication checkpoint main; G-11 PARTIAL/NO-GO."
     }
   ]
 }

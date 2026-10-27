@@ -4,7 +4,7 @@
 
 **Исторический provenance:** исходные полные инструкции до реструктуризации (включая датированные rc/checkpoint, findings и deprecated paths) сохранены побайтово в [immutable Admin Setup snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md). Датированные проверки — в [аудитах](audits/) и [CHANGELOG](../CHANGELOG.md). Отдельный [исторический сценарий проверки доставки Telegram QA](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот) не является этапом production setup.
 
-> **Published rc.22:** tag/SHA подтверждены [publication checkpoint](audits/2026-10-27-rc22-publication-checkpoint.md). Версионные примеры ниже соответствуют APP_VERSION кандидата rc.23; применять только после публикации tag и отдельного deployment-разрешения и проверки накопленной совместимости от фактически deployed tag. Новых портов/env/migrations нет; история #506 только читает журнал, собственный runtime acceptance PENDING.
+> **Published rc.23:** tag/SHA подтверждены [publication checkpoint](audits/2026-10-27-rc23-publication-checkpoint.md). Версионные примеры ниже соответствуют APP_VERSION; применять только после отдельного deployment-разрешения и cumulative compatibility review от фактически deployed tag. Новых портов/env/migrations нет; каталог #564 сохраняет legacy handlers/guards, собственный visibility outcome PENDING.
 
 ## 0. Что понадобится
 
