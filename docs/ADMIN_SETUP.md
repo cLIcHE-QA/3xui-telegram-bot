@@ -34,6 +34,8 @@ Owner-only вход: `/admin → Система → Настройки → Кл�
 
 ## Перед началом: границы и безопасность
 
+**DNS dependency floor:** source требует `dnspython>=2.9,<3` через hashed lock2.9.0 для публичного upstream CVE-2026-114605; Python3.12/base image и штатный install/rebuild flow прежние. Дополнительных packages вне lock, credentials/env/портов/schema не требуется. [Supply-chain contract](SUPPLY_CHAIN.md#минимальный-dns-dependency-floor). После будущего отдельно разрешённого deployment собственный #966 требует read-only installed package/image tag/SHA и безопасный DNS/API compatibility/health outcome; не проводить DNS load/DoS или новые production mutations. Source/image scan PASS не является VPS attestation, #966 остаётся OPEN до своего targeted outcome.
+
 **HTTPS handoff #885 (Published rc.21):** использует тот же compatibility proxy и `/compat/` ingress, без нового порта/mount/env. Перед будущим разрешённым deployment проверь, что `/compat/open/` покрыт существующим `access_log off`/sanitized policy, proxy/CDN не кэширует no-store HTML и не удаляет hash-based CSP/no-referrer. Ticket — одноразовый 90-секундный bearer-like URL из private-owner карточки; общий in-memory предел 256, только тот же процесс бота/proxy, без multi-worker/multi-host guarantees. Copy/QR — fallback. Это не инструкция включить новый listener или проводить live smoke сейчас; #885 Published в rc.21; собственный deployment/device acceptance PENDING.
 
 - Не хранить реальные secrets, enrollment, backup, private IDs или hostnames в Git, PR, Telegram и shared logs; Owner credentials, node-sync, direct-admin, Host Control, Deploy Agent — **разные** privilege domains. Telegram-бот не получает Docker socket, SSH/general shell или произвольный systemd executor.
