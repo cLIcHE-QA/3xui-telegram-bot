@@ -16,12 +16,12 @@
 
 ## Сопоставление собственных критериев
 
-1. Migration16: empty ledgers/no-backfill/v15 upgrade/data preservation/idempotency/rollback/failed journal/strict SQL objects — isolated migration regressions PASS.
-2. Trusted private observation API: actor/private-chat/human/existing user, no create/consent, no runtime assembly — negative/source tests PASS, synthetic fixtures не production proof.
-3. Owned drafts/CAS/concurrency/pagination8/immutable revisions, closed service category/plain text/shape validation; no media/CTA — regressions/security contract PASS. Service purpose/secret review не подменяется semantic detector; сейчас нет sends.
-4. Unique local contacts/user JOIN/groups deny/missing fail closed, bounded SQL aggregate1000/no recipient projection — tests PASS.
-5. Candidate не eligibility/consent, all-category0/unapproved; recipients/jobs/sends и mandatory inference отсутствуют — tests/source PASS.
-6. Targeted19, full1616/16 environment skips и CI1616/3 skips, review trust boundaries/absence transport/runtime — PASS.
-7. Docs/living invariant, required test/title, immutable RC24 и publication #954/main read-back — PASS. Собственный scope явно не требует реального deployment/sends; дополнительный live gate ради closure не придуман.
+1. Миграция16 создаёт пустые таблицы без backfill; переход v15→16 сохраняет данные. Проверены идемпотентность, rollback, блокировка failed journal и строгие SQL postconditions — PASS.
+2. Внутренний API наблюдений принимает только доверенные actor/private-chat/human/existing-user данные; не создаёт пользователя и не означает consent. Отрицательные тесты и отсутствие runtime assembly подтверждены — PASS; synthetic fixtures не являются production evidence.
+3. Черновики ограничены владельцем: проверены CAS, конкурентное редактирование, pagination8 и неизменяемые ревизии. Закрытый набор сервисных категорий, размеры plain text и опасные shapes проверены; media/CTA отсутствуют — PASS. Проверка содержания/секретов остаётся обязанностью оператора, отправок здесь нет.
+4. Кандидаты уникальны и берутся только из локальных контактов с JOIN существующих users; группы применяют deny priority, отсутствие группы закрывает доступ. SQL aggregate ограничен1000, список адресатов не выдаётся — PASS.
+5. Число кандидатов не является eligibility/consent; все категории имеют delivery0/unapproved. Recipients/jobs/sends и вывод обязательности из категории отсутствуют — PASS.
+6. Проверки targeted19 и full1616 прошли: 16 пропусков из-за локального окружения, 3 в CI. Границы доверия проверены отдельно; transport/runtime assembly отсутствуют — PASS.
+7. Документация и living invariant обновлены; required test/title, immutable RC24 и publication checkpoint #954 независимо проверены в main — PASS. Собственный scope явно не требует реального deployment/sends; дополнительный live gate ради закрытия не придуман.
 
-Closure изменил только собственное состояние #947. Его строка удаляется из активного реестра после подтверждённого GitHub CLOSED; исторические audits/notes неизменны. Parent #874 остаётся открытым и получает собственные будущие checkpoints.
+Закрытие изменило только собственное состояние #947. Его строка удаляется из активного реестра после подтверждённого GitHub CLOSED; исторические audits/notes неизменны. Родительский #874 остаётся открытым и получает собственные будущие checkpoints.
