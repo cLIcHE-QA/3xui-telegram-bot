@@ -305,6 +305,46 @@
       "evidence": "docs/audits/2026-10-27-rc23-publication-checkpoint.md",
       "date": "2026-10-27",
       "comment": "keep_open: отдельно разрешённый поздний deployment и operator-reported новой видимости справки/Back outcome PENDING по #930. Старый N03/unchanged guards/roles не повторять; global Telegram registry не менялся. Deployed rc.18.10 operator-reported, next #874/rc.24 after publication checkpoint main; G-11 PARTIAL/NO-GO."
+    },
+    {
+      "issue": 874,
+      "decision": "keep_open",
+      "date": "2026-10-27",
+      "accepted": "Planning/discovery scoped PASS: #874 XL decomposed before implementation into #947/#948/#949; own implementation/CI/publication/runtime acceptance PENDING",
+      "evidence": "docs/audits/2026-10-27-874-source-decomposition-checkpoint.md",
+      "comment": "Не runtime acceptance. Parent #874 остаётся открытым при выпуске частей; policy #501/allowlists/pilot sends отложены, category delivery DENY_ALL. #876 source scope без расширения, будущий target rc.27 после трёх частей. G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+    },
+    {
+      "issue": 947,
+      "decision": "keep_open",
+      "date": "2026-10-27",
+      "accepted": "Planning/discovery scoped PASS: #874 XL decomposed before implementation into #947/#948/#949; own implementation/CI/publication/runtime acceptance PENDING",
+      "evidence": "docs/audits/2026-10-27-874-source-decomposition-checkpoint.md",
+      "comment": "Не runtime acceptance. Parent #874 остаётся открытым при выпуске частей; policy #501/allowlists/pilot sends отложены, category delivery DENY_ALL. #876 source scope без расширения, будущий target rc.27 после трёх частей. G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+    },
+    {
+      "issue": 948,
+      "decision": "keep_open",
+      "date": "2026-10-27",
+      "accepted": "Planning/discovery scoped PASS: #874 XL decomposed before implementation into #947/#948/#949; own implementation/CI/publication/runtime acceptance PENDING",
+      "evidence": "docs/audits/2026-10-27-874-source-decomposition-checkpoint.md",
+      "comment": "Не runtime acceptance. Parent #874 остаётся открытым при выпуске частей; policy #501/allowlists/pilot sends отложены, category delivery DENY_ALL. #876 source scope без расширения, будущий target rc.27 после трёх частей. G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+    },
+    {
+      "issue": 949,
+      "decision": "keep_open",
+      "date": "2026-10-27",
+      "accepted": "Planning/discovery scoped PASS: #874 XL decomposed before implementation into #947/#948/#949; own implementation/CI/publication/runtime acceptance PENDING",
+      "evidence": "docs/audits/2026-10-27-874-source-decomposition-checkpoint.md",
+      "comment": "Не runtime acceptance. Parent #874 остаётся открытым при выпуске частей; policy #501/allowlists/pilot sends отложены, category delivery DENY_ALL. #876 source scope без расширения, будущий target rc.27 после трёх частей. G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+    },
+    {
+      "issue": 876,
+      "decision": "keep_open",
+      "date": "2026-10-27",
+      "accepted": "Planning/discovery scoped PASS: #874 XL decomposed before implementation into #947/#948/#949; own implementation/CI/publication/runtime acceptance PENDING",
+      "evidence": "docs/audits/2026-10-27-874-source-decomposition-checkpoint.md",
+      "comment": "Не runtime acceptance. Parent #874 остаётся открытым при выпуске частей; policy #501/allowlists/pilot sends отложены, category delivery DENY_ALL. #876 source scope без расширения, будущий target rc.27 после трёх частей. G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     }
   ]
 }
