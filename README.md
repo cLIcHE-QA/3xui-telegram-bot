@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.25
+# Telegram-бот для 3x-ui v5.0.0-rc.26
+
+> **Release-prep `v5.0.0-rc.26`, ещё не Published:** source-only часть #949 — закрытые Owner UI/private observer/one-shot Bot/session компоненты из #961, implementation checkpoint #962 в main. Runtime не зарегистрирован, factory OFF/DENY_ALL; bool редактора не approval. Schema17 прежняя, Published ниже пока rc.25. #949/#874 остаются OPEN до #501/privacy/abuse/allowlist и отдельного integration PR/deployment/pilot.
 
 > **Published `v5.0.0-rc.25`:** самостоятельная source-only очередь #948 (часть #874): additive schema17, UTC/IANA schedule, immutable candidate snapshot и fenced intent/unknown/recovery. [Publication audit](docs/audits/2026-10-27-rc25-publication-checkpoint.md) подтверждает tag/notes/provenance. Runtime OFF/DENY_ALL, worker/transport не подключены; Deployed rc.18.10 operator-reported, parent #874/policy501/live gates PENDING.
 

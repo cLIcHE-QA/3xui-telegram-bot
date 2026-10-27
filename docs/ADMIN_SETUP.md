@@ -8,7 +8,7 @@
 
 **Исторический checkpoint `rc.18.1` (не текущий статус):** оператор ранее сообщил deployed `rc.18` P0–P2/F1–F3 и scoped D1–D8/S1–S4 PASS, но независимый VPS/provider read-back отсутствует, X2 и destructive postcondition provenance PENDING. Новая версия `rc.18.1` опубликована и развернута по отчёту оператора; targeted UI A4/A5 operator-reported FAIL; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
-> **Версия исходного кода:** `APP_VERSION=v5.0.0-rc.25`, Published prerelease по [Roadmap](ROADMAP.md) и [publication audit](audits/2026-10-27-rc25-publication-checkpoint.md). Source-only очередь #948/schema17 без runtime observation/UI/worker/transport wiring или отправок; новых env/портов/credentials нет, OFF/DENY_ALL. Deployed rc.18.10 operator-reported; cumulative upgrade/recovery от фактически deployed15 и отдельное разрешение перед установкой обязательны.
+> **Версия исходного кода:** `APP_VERSION=v5.0.0-rc.26`, release-prep candidate, ещё не Published. Source #949 Owner UI/observer/Bot adapters не зарегистрированы в runtime, factory OFF/DENY_ALL; schema17 прежняя, новых env/портов/credentials нет. Published остаётся rc.25/schema17, Deployed rc.18.10 operator-reported. Runtime integration BLOCKED до #501/privacy/abuse/allowlist review и отдельного PR; поздние cumulative upgrade/recovery и deployment требуют отдельного разрешения. [Roadmap](ROADMAP.md).
 
 ## Source-only кампании #947: source schema v16
 
