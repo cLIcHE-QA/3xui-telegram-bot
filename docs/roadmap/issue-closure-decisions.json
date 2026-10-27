@@ -261,10 +261,10 @@
     {
       "issue": 887,
       "decision": "keep_open",
-      "accepted": "D1a/D1b, D2a–D2e и D3a–D3j isolated default-off source; PR #929 squash MERGED 97270d8e354e3615fa49f484a41c218badd3bfc6, exact-head required Python1557/3 skipped и frontend Node33/browser57+2+2+1 SUCCESS, main read-back PASS; post-merge Python40417682192 и frontend40417682373 SUCCESS на squash SHA",
-      "evidence": "docs/audits/2026-10-27-887-d3j-postmerge-checkpoint.md",
+      "accepted": "Published v5.0.0-rc.20 immutable 929e9950a9d831ef72271f99b226a3315cfef709; release-scope17/17, required CI/main/publish/notes/provenance PASS; source-only D1/D2/D3, real device/product acceptance PENDING",
+      "evidence": "docs/audits/2026-10-27-rc20-publication-checkpoint.md",
       "date": "2026-10-27",
-      "comment": "keep_open: reviewed client/version0, URL deliveryOFF, staging/device/private JSON 1:1 и full v5 acceptance PENDING; #927/#928 superseded/CLOSED без удаления refs. После обязательного docs/main checkpoint — разрешённый rc.20 release-prep #930, без deployment; G-11 PARTIAL/NO-GO, public rollout BLOCKED."
+      "comment": "keep_open: private JSON1:1, real reviewed client/version0, staging/device/full product acceptance PENDING. DeliveryOFF, no VPS; next autonomous task #885 after publication checkpoint main. G-11 PARTIAL/NO-GO, public rollout BLOCKED."
     },
     {
       "issue": 930,
@@ -273,6 +273,14 @@
       "evidence": "docs/audits/2026-10-27-930-autonomous-authorization-closure.md",
       "date": "2026-10-27",
       "comment": "Собственный docs/process scope; post-closure Roadmap sync через отдельный checkpoint PR и main read-back. Нет нового runtime, deployment или production acceptance; G-11 PARTIAL/NO-GO."
+    },
+    {
+      "issue": 890,
+      "decision": "keep_open",
+      "accepted": "Published patched Pillow13.0.0/certifi2026.10.19 in rc.20 immutable 929e9950a9d831ef72271f99b226a3315cfef709; hash-pinned QR/CI and fresh Trivy filesystem/container gate PASS",
+      "evidence": "docs/audits/2026-10-27-rc20-publication-checkpoint.md",
+      "date": "2026-10-27",
+      "comment": "Собственный post-merge checkpoint Issue сохраняет deployment и targeted production QR/device/API compatibility/health PENDING; отложены по #930. CI не доказывает runtime acceptance, Deployed rc.18.10 operator-reported."
     }
   ]
 }
