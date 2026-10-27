@@ -293,10 +293,10 @@
     {
       "issue": 506,
       "decision": "keep_open",
-      "accepted": "Merged #939 fae6cee587e10c22c5f6a055b4a7dd0e63413c77; own XTR history offline16/full1586 and required PR CI1586/3 skipped PASS; Published rc.21 without #506",
-      "evidence": "docs/audits/2026-10-27-506-history-postmerge-checkpoint.md",
+      "accepted": "Published v5.0.0-rc.22 immutable d7739ed8e71444b310e7dbc5bde83f7706dfdb83; release-scope1/1, required CI/main/publish/tag/notes/provenance PASS; owner history source/offline scope PASS, live deployment/UI ownership PENDING",
+      "evidence": "docs/audits/2026-10-27-rc22-publication-checkpoint.md",
       "date": "2026-10-27",
-      "comment": "keep_open: собственный поздний deployment и targeted read-only UI/ownership outcome PENDING по #930. RC22 ещё план, public rollout BLOCKED, G-11 PARTIAL/NO-GO."
+      "comment": "keep_open по собственному scope: отдельно разрешённый поздний deployment и read-only targeted runtime UI/ownership outcome отложены по #930. Deployed rc.18.10 operator-reported, independent VPS read-back PENDING; next autonomous #564/rc.23 after publication checkpoint main, G-11 PARTIAL/NO-GO."
     }
   ]
 }
