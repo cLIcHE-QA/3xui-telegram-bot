@@ -81,6 +81,16 @@ def current_release_claim_errors(roadmap: str, docs: dict[str, str]) -> list[str
     return issues
 
 class LivingDocsSemanticTests(unittest.TestCase):
+    def test_customer_history_documents_keep_money_and_access_boundaries(self):
+        ui = (ROOT / "docs/UI_STYLE.md").read_text(encoding="utf-8")
+        history = ui.split("## Клиентская история заказов и Stars-платежей (#506)", 1)[1].split("\n## ", 1)[0]
+        for invariant in ("8 записей", "Order не доказывает списание", "Retention policy не меняется",
+                          "get_published_terms()", "не опубликована", "private chat", "RUB/manual/future PSP"):
+            self.assertIn(invariant, history)
+        client = (ROOT / "docs/CLIENT_SETUP.md").read_text(encoding="utf-8")
+        self.assertIn("До такого evidence #506 OPEN/keep_open", client)
+        self.assertIn("сроки хранения не меняются", client)
+
     def setUp(self) -> None:
         self.contract = json.loads(
             (ROOT / "docs" / "live-docs.json").read_text(encoding="utf-8")

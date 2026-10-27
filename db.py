@@ -1615,6 +1615,85 @@ class Database:
             row = await cur.fetchone()
             return int(row[0] if row else 0)
 
+    @staticmethod
+    def _customer_history_query(kind: str) -> tuple[str, str, str]:
+        """Explicit public projection; never SELECT * or provider references (#506)."""
+        if kind not in {"orders", "payments"}:
+            raise ValueError("invalid customer history kind")
+        common = """
+            co.id AS order_id, co.status AS order_status, co.paid_at,
+            p.name AS plan_name, e.status AS entitlement_status,
+            e.starts_at, e.expires_at, cp.id AS payment_id,
+            cp.status AS payment_status, cp.amount_minor AS payment_amount_minor,
+            cp.confirmed_at, sr.status AS refund_status
+        """
+        joins = """
+            JOIN users u ON u.telegram_id = co.telegram_id
+            LEFT JOIN plans p ON p.id = co.plan_id
+            LEFT JOIN entitlements e ON e.order_id = co.id
+                AND e.telegram_id = co.telegram_id
+            LEFT JOIN stars_refund_operations sr ON sr.payment_id = cp.id
+                AND sr.telegram_id = co.telegram_id
+        """
+        if kind == "orders":
+            fields = "co.id, co.amount_minor, co.currency, co.status, co.created_at, " + common
+            source = """
+                FROM commerce_orders co
+                LEFT JOIN commerce_payments cp ON cp.id = (
+                    SELECT last.id FROM commerce_payments last
+                    WHERE last.order_id = co.id AND last.provider = 'telegram_stars'
+                        AND last.currency = 'XTR'
+                    ORDER BY last.created_at DESC, last.id DESC LIMIT 1
+                )
+            """ + joins
+            condition = "co.telegram_id = ? AND co.currency = 'XTR'"
+        else:
+            fields = "cp.id, cp.amount_minor, cp.currency, cp.status, cp.created_at, " + common
+            source = "FROM commerce_payments cp JOIN commerce_orders co ON co.id = cp.order_id " + joins
+            condition = """co.telegram_id = ? AND co.currency = 'XTR'
+                AND cp.provider = 'telegram_stars' AND cp.currency = 'XTR'"""
+        return fields, source, condition
+
+    async def customer_history_page(
+        self, telegram_id: int, *, kind: str = "orders", page: int = 0,
+    ) -> dict | None:
+        fields, source, condition = self._customer_history_query(kind)
+        # A read-only snapshot cannot create a database, repair a journal or
+        # race count against page contents. Deleted accounts expose no history.
+        uri = Path(self.path).resolve().as_uri() + "?mode=ro"
+        async with aiosqlite.connect(uri, uri=True) as conn:
+            conn.row_factory = aiosqlite.Row
+            await conn.execute("BEGIN")
+            cur = await conn.execute("SELECT 1 FROM users WHERE telegram_id = ?", (int(telegram_id),))
+            if await cur.fetchone() is None:
+                return None
+            cur = await conn.execute(f"SELECT COUNT(*) {source} WHERE {condition}", (int(telegram_id),))
+            total = int((await cur.fetchone())[0])
+            page = min(max(0, int(page)), max(0, (total - 1) // 8))
+            alias = "co" if kind == "orders" else "cp"
+            cur = await conn.execute(
+                f"SELECT {fields} {source} WHERE {condition} "
+                f"ORDER BY {alias}.created_at DESC, {alias}.id DESC LIMIT 8 OFFSET ?",
+                (int(telegram_id), page * 8),
+            )
+            return {"kind": kind, "page": page, "total": total,
+                    "items": tuple(dict(row) for row in await cur.fetchall())}
+
+    async def customer_history_detail(
+        self, telegram_id: int, *, kind: str, entry_id: int,
+    ) -> dict | None:
+        fields, source, condition = self._customer_history_query(kind)
+        alias = "co" if kind == "orders" else "cp"
+        uri = Path(self.path).resolve().as_uri() + "?mode=ro"
+        async with aiosqlite.connect(uri, uri=True) as conn:
+            conn.row_factory = aiosqlite.Row
+            cur = await conn.execute(
+                f"SELECT {fields} {source} WHERE {condition} AND {alias}.id = ?",
+                (int(telegram_id), int(entry_id)),
+            )
+            row = await cur.fetchone()
+            return dict(row) if row else None
+
     async def list_user_stars_payments(
         self, telegram_id: int, *, limit: int = 8, offset: int = 0,
     ) -> list[dict]:

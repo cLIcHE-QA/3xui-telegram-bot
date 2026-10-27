@@ -22,6 +22,7 @@ from client_flags import ClientFeatureFlags
 from client_deep_links import IMPORT_CLIENTS, TITLE_IMPORT_CLIENTS, import_uri
 from client_import_title import fetch_import_title
 from client_import_handoff import issue_handoff
+from client_history_ui import history_route, history_list_view, history_detail_view, history_help_view
 from client_rate_limit import SlidingWindowRateLimiter
 from customer_service import (
     CustomerDeviceDeletePrompt,
@@ -29,6 +30,7 @@ from customer_service import (
     CustomerDeviceInventory,
     CustomerSubscriptionCard,
     CustomerPortalService,
+    CustomerHistoryUnavailable,
     CustomerProviderUnavailable,
 )
 from ui_time import format_timestamp
@@ -405,7 +407,42 @@ async def profile_cb(call: CallbackQuery):
                 if profile.expiry_drift else ""
             )
         )
-    await render_callback(call, text, reply_markup=back_menu())
+    await render_callback(call, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📜 История заказов и платежей", callback_data="client:history")],
+        [InlineKeyboardButton(text="⬅ Личный кабинет", callback_data="client:home")],
+    ]))
+    await call.answer()
+
+
+@client_access_router.callback_query(F.data.startswith("client:history"))
+async def history_cb(call: CallbackQuery):
+    if not await guard_callback(call):
+        return
+    if not _private_subscription_chat(getattr(getattr(call, "message", None), "chat", None), call.from_user.id):
+        await call.answer("История доступна только в личном чате с ботом.", show_alert=True)
+        return
+    route = history_route(call.data or "")
+    if route is None:
+        await call.answer("Некорректная ссылка истории. Откройте её из профиля.", show_alert=True)
+        return
+    action, kind, page, entry_id = route
+    try:
+        if action == "list":
+            snapshot = await _service().history_page(call.from_user.id, kind=kind, page=page)
+            if snapshot is None:
+                view = ("📜 История\n\nАккаунт недоступен.", back_menu())
+            else:
+                view = history_list_view(snapshot)
+        elif action in {"order", "payment"}:
+            item = await _service().history_detail(
+                call.from_user.id, kind="orders" if action == "order" else "payments", entry_id=entry_id,
+            )
+            view = history_detail_view(item, action, kind, page)
+        else:
+            view = history_help_view(action, kind, page)
+    except CustomerHistoryUnavailable:
+        view = ("📜 История\n\nЖурнал временно недоступен. Попробуйте позже или используйте /paysupport.", back_menu())
+    await render_callback(call, view[0], reply_markup=view[1])
     await call.answer()
 
 
