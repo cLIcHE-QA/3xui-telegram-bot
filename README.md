@@ -1,16 +1,16 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.26
 
-> **Release-prep `v5.0.0-rc.26`, ещё не Published:** source-only часть #949 — закрытые Owner UI/private observer/one-shot Bot/session компоненты из #961, implementation checkpoint #962 в main. Runtime не зарегистрирован, factory OFF/DENY_ALL; bool редактора не approval. Schema17 прежняя, Published ниже пока rc.25. #949/#874 остаются OPEN до #501/privacy/abuse/allowlist и отдельного integration PR/deployment/pilot.
+> **Published `v5.0.0-rc.26`:** source-only часть #949 — закрытые Owner UI/private observer/one-shot Bot/session компоненты из #961, implementation checkpoint #962 и release #963 в main. [Publication audit](docs/audits/2026-10-27-rc26-publication-checkpoint.md) подтверждает tag/notes/provenance. Runtime не зарегистрирован, factory OFF/DENY_ALL; schema17 прежняя. #949/#874 OPEN до #501/privacy/abuse/allowlist и отдельного integration PR/deployment/pilot.
 
-> **Published `v5.0.0-rc.25`:** самостоятельная source-only очередь #948 (часть #874): additive schema17, UTC/IANA schedule, immutable candidate snapshot и fenced intent/unknown/recovery. [Publication audit](docs/audits/2026-10-27-rc25-publication-checkpoint.md) подтверждает tag/notes/provenance. Runtime OFF/DENY_ALL, worker/transport не подключены; Deployed rc.18.10 operator-reported, parent #874/policy501/live gates PENDING.
-
-
+> **Очередь #948, впервые Published в `v5.0.0-rc.25`:** самостоятельная source-only очередь #948 (часть #874): additive schema17, UTC/IANA schedule, immutable candidate snapshot и fenced intent/unknown/recovery. [Publication audit](docs/audits/2026-10-27-rc25-publication-checkpoint.md) подтверждает tag/notes/provenance. Runtime OFF/DENY_ALL, worker/transport не подключены; Deployed rc.18.10 operator-reported, parent #874/policy501/live gates PENDING.
 
 
 
 
 
-> **Текущий релиз:** [опубликована версия `v5.0.0-rc.25`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.25), неизменяемый тег указывает на коммит `1c0854c9b416a2d0f2ccbe9083d62d88794307ed` (2026-10-27T17:59:45Z). **На сервере**, по отчёту оператора, установлена только версия `v5.0.0-rc.18.10`, коммит `dae205ac82762723448f93827b981f89ae622231`. Приёмка задач #473/#497/#506/#564/#885/#887/#890 после развёртывания ещё не проведена; G-11 остаётся PARTIAL/NO-GO, публичный запуск запрещён.
+
+
+> **Текущий релиз:** [опубликована версия `v5.0.0-rc.26`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.26), неизменяемый тег указывает на коммит `b2f7503387fc7bd8465e783c898a0697ec87c541` (2026-10-27T19:37:10Z). **На сервере**, по отчёту оператора, установлена только версия `v5.0.0-rc.18.10`, коммит `dae205ac82762723448f93827b981f89ae622231`. Приёмка задач #473/#497/#506/#564/#885/#887/#890 после развёртывания ещё не проведена; G-11 остаётся PARTIAL/NO-GO, публичный запуск запрещён.
 
 
 **Последний подтверждённый Published до rc.19: `v5.0.0-rc.18.10` (2026-10-22T13:27:26Z):** [PR #864](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/864) и [PR #865](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/865) MERGED, SHA `dae205ac82762723448f93827b981f89ae622231`; Deployed operator-reported, HWID 23/23 targeted scoped PASS ([audit](docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)), G-11 PARTIAL/NO-GO, public rollout BLOCKED.
@@ -25,13 +25,13 @@
 
 **GitHub Published `v5.0.0-rc.18.6`:** [release](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.18.6) tag SHA `46bc24530633d9958278ab56f624c8b8d274f845`, 2026-10-21T22:10:48Z. [PR #849](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/849) обеспечивает строго ограниченный Karing 160-character fallback и admin-only диагностику длины/парсера; текущая версия опубликована через [PR #850](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/850). Никакой новой SQLite migration, моделей/ОС или identity change; deployed/live acceptance PENDING, public rollout BLOCKED.
 
-**Актуальный GitHub Published:** `v5.0.0-rc.25`, SHA `1c0854c9b416a2d0f2ccbe9083d62d88794307ed`; Deployed только `v5.0.0-rc.18.10` operator-reported, HWID 23/23 scoped PASS **на rc.18.10**, full v5 G-11 PARTIAL/NO-GO.
+**Актуальный GitHub Published:** `v5.0.0-rc.26`, SHA `b2f7503387fc7bd8465e783c898a0697ec87c541`; Deployed только `v5.0.0-rc.18.10` operator-reported, HWID 23/23 scoped PASS **на rc.18.10**, full v5 G-11 PARTIAL/NO-GO.
 
 **Исторический operator-reported checkpoint (2026-10-21 21:28 EEST; до rc.18.10):** бот успешно обновлён по сообщению оператора, но точный работающий tag/SHA и независимая VPS-проверка отсутствуют. Наблюдение `Throne/Android/2.0.3` на прежнем runtime давало «Не определён»; универсальный патч `Client/Platform/Version` уже merged в `main` через PR #846 и теперь Published в `rc.18.5`, но не Deployed/Accepted и не включён в Published `rc.18.4`. Последний идентифицированный operator-reported Deployed — `rc.18.3` (2026-10-21 13:34 EEST).
 
 **Предыдущий контролируемый пилот (исторический rc.18.2):** `v5.0.0-rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST, 15/15 targeted HWID UI `[x]` (scoped operator-reported), H1–H8 operator-reported PASS; #472 owner-accepted, независимый DELETE provenance PENDING; прежний `rc.18.1` A4/A5 FAIL — исторический. #814/#816/#820/#471 CLOSED/completed; #472 CLOSED/completed (operator-accepted), G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
-**Published:** immutable [`v5.0.0-rc.25`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.25), tag SHA `1c0854c9b416a2d0f2ccbe9083d62d88794307ed`, GitHub Release 2026-10-27T17:59:45Z (GitHub tag/release read-back, проверено). **Deployed:** operator-reported `v5.0.0-rc.18.10`, SHA `dae205ac82762723448f93827b981f89ae622231` (2026-10-22 18:12 UTC+03:00); health OK; independent VPS read-back PENDING. **Accepted:** targeted HWID 23/23 operator-reported scoped PASS (2026-10-22 21:21 UTC+03:00), six Issues completed; independent VPS/provider read-back PENDING, full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
+**Published:** immutable [`v5.0.0-rc.26`](https://github.com/cLIcHE-QA/3xui-telegram-bot/releases/tag/v5.0.0-rc.26), tag SHA `b2f7503387fc7bd8465e783c898a0697ec87c541`, GitHub Release 2026-10-27T19:37:10Z (GitHub tag/release read-back, проверено). **Deployed:** operator-reported `v5.0.0-rc.18.10`, SHA `dae205ac82762723448f93827b981f89ae622231` (2026-10-22 18:12 UTC+03:00); health OK; independent VPS read-back PENDING. **Accepted:** targeted HWID 23/23 operator-reported scoped PASS (2026-10-22 21:21 UTC+03:00), six Issues completed; independent VPS/provider read-back PENDING, full v5 NOT PASS, G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
 **Реализовано и опубликовано в `rc.18.2`, operator-reported Deployed:** [PR #821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED, SHA `aff7bde8ec2521fa11f14362c00502737e2b04e5`, [test PASS](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39472430277), [title PASS](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/39472796183): карточка показывает безопасное имя VPN-клиента (`Happ`, `Incy`, `Shadowrocket` или «Не определён»), учитывает реальную macOS у iPad-приложения и возвращает к списку; admin HWID-список по **8**, клиентский по **5** устройств на страницу. `rc.18.2` Published/Deployed operator-reported; targeted UI 15/15 и H1–H10 operator-reported PASS; все пять HWID Issues CLOSED/completed, независимая X2/X1/X3 provenance PENDING; [post-merge audit](docs/audits/2026-10-20-hwid-ui-819-821-postmerge-checkpoint.md).
 
@@ -55,7 +55,7 @@
 
 [Issue #705](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/705) принят по operator-reported scoped acceptance от 2026-10-19 12:09 EEST: сверка Orders/Payments/Entitlements и собственные критерии подтверждены оператором. [Аудит и provenance](docs/audits/2026-10-19-v5-rc16-5-operator-targeted-acceptance.md), [решение о закрытии](docs/roadmap/issue-closure-decisions.json). Независимый VPS/data-plane read-back отсутствует; завершение #705 не означает общего v5 acceptance, разрешения public rollout или общего G-11 acceptance.
 
-[PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) реализовал независимые RUB и Stars/XTR, правила видимости локальных User Groups и ручную бессрочную выдачу с durable read-back. Первоначальная SQLite schema v14 — исторический этап; **Published rc.25 использует schema v17**, foundation #947 и очередь #948 добавлены без runtime wiring ([контракт миграций](docs/SQLITE_MIGRATIONS.md)). RUB-PSP относится к отдельному [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336); в Telegram цифровые покупки используют только Stars/XTR.
+[PR #710](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/710) реализовал независимые RUB и Stars/XTR, правила видимости локальных User Groups и ручную бессрочную выдачу с durable read-back. Первоначальная SQLite schema v14 — исторический этап; **Published rc.26 использует schema v17**, foundation #947 и очередь #948 добавлены без runtime wiring ([контракт миграций](docs/SQLITE_MIGRATIONS.md)). RUB-PSP относится к отдельному [Issue #336](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/336); в Telegram цифровые покупки используют только Stars/XTR.
 
 ## План внешних платежей
 

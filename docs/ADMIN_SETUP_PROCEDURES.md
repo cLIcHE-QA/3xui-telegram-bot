@@ -4,7 +4,7 @@
 
 **Исторический provenance:** исходные полные инструкции до реструктуризации (включая датированные rc/checkpoint, findings и deprecated paths) сохранены побайтово в [immutable Admin Setup snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md). Датированные проверки — в [аудитах](audits/) и [CHANGELOG](../CHANGELOG.md). Отдельный [исторический сценарий проверки доставки Telegram QA](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот) не является этапом production setup.
 
-> **Release-prep rc.26, ещё не Published:** версионные примеры ниже соответствуют candidate APP_VERSION rc.26; применять только после подтверждённой публикации tag и отдельного deployment-разрешения/cumulative compatibility/recovery review от фактически deployed tag. Текущий Published rc.25/schema17 подтверждён [publication checkpoint](audits/2026-10-27-rc25-publication-checkpoint.md). Source UI/adapters #949 не зарегистрированы, factory OFF/DENY_ALL; schema/env/порты прежние. Runtime integration требует #501/privacy/abuse/allowlist и отдельного PR, не одного callback/boolean.
+> **Published rc.26:** версионные примеры соответствуют опубликованному tag/schema17; [publication checkpoint](audits/2026-10-27-rc26-publication-checkpoint.md) подтверждает release. Применять только после отдельного deployment-разрешения/cumulative compatibility/recovery review от фактически deployed tag. Source UI/adapters #949 не зарегистрированы, factory OFF/DENY_ALL; schema/env/порты прежние. Runtime integration требует #501/privacy/abuse/allowlist и отдельного PR, не одного callback/boolean.
 
 ## 0. Что понадобится
 
