@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep `v5.0.0-rc.26`, ещё не Published:** source UI/adapters #949 не добавляют migrations или backfill. Candidate содержит прежнюю schema17; Published rc.25 ниже остаётся фактическим release state. Runtime registration/collection/send выключены, поздний cumulative upgrade/recovery от deployed15 и отдельный integration/deployment gate не отменяются.
+
 **Published `v5.0.0-rc.25`:** bot schema v17 `service_campaign_queue_v5_0_0` (#948), additive job/recipient/attempt/control и contact-generation объекты поверх foundation v16 (#947). Worker/transport не подключены к runtime, OFF/DENY_ALL. [Контракт](SERVICE_CAMPAIGNS.md), [publication read-back](audits/2026-10-27-rc25-publication-checkpoint.md). Immutable tag SHA `1c0854c9b416a2d0f2ccbe9083d62d88794307ed`, GitHub Release 2026-10-27T17:59:45Z.
 
 **Схема SQLite v17 для Published `v5.0.0-rc.25`; operator-reported Deployed `v5.0.0-rc.18.10` остаётся на каталоге v15.** Deployment/migration16/17 на VPS не выполнялись; поздний cumulative upgrade/recovery проверяется отдельно. Старый rc.24/schema16 immutable и не изменён. Адресные HWID23/23 PASS относятся к deployed rc.18.10, independent VPS/SQLite `PRAGMA quick_check` PENDING; `DB=ok` не доказывает quick_check. [Roadmap](ROADMAP.md).
