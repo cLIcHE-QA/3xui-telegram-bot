@@ -297,6 +297,14 @@
       "evidence": "docs/audits/2026-10-27-rc22-publication-checkpoint.md",
       "date": "2026-10-27",
       "comment": "keep_open по собственному scope: отдельно разрешённый поздний deployment и read-only targeted runtime UI/ownership outcome отложены по #930. Deployed rc.18.10 operator-reported, independent VPS read-back PENDING; next autonomous #564/rc.23 after publication checkpoint main, G-11 PARTIAL/NO-GO."
+    },
+    {
+      "issue": 564,
+      "decision": "keep_open",
+      "accepted": "Merged #943 c738701a606ab92b4a4e94ae3f3053b52d8fbb82; active-only help with full legacy AST registry, offline14/full1596 and required final-head CI1596/3 skipped PASS; Published rc.22 without #564",
+      "evidence": "docs/audits/2026-10-27-564-legacy-visibility-postmerge-checkpoint.md",
+      "date": "2026-10-27",
+      "comment": "keep_open: собственный поздний deployment и operator-reported новой UI visibility/Back outcome PENDING по #930. Не повторять старый N03/unchanged guards; global Telegram registry не менялся. RC23 пока план, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     }
   ]
 }
