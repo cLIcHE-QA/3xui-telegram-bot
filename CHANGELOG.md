@@ -16,7 +16,7 @@
 
 ## Unreleased
 
-- #876: Owner-only редактор 25 semantic Client Portal emoji slots, bounded entity/metadata/draft/preview/confirm/reset, CAS/audit в существующем runtime_settings без новой schema. Сохраняются канонические labels/callbacks/Unicode и обычная админка; custom icon field и типизированные UTF-16 entities не принимают произвольный HTML/recipient/URL input.
+- #876 / PR #965: Owner-only редактор 25 semantic Client Portal emoji slots, bounded entity/metadata/draft/preview/confirm/reset, CAS/audit в существующем runtime_settings без новой schema. Сохраняются канонические labels/callbacks/Unicode и обычная админка; custom icon field и типизированные UTF-16 entities не принимают произвольный HTML/recipient/URL input.
 - Default-off local veto + операторская attestation текущего bot ID и DB enable; metadata/роль Owner не доказывают Telegram entitlement. Client-only контекст, одна Unicode send с необязательным cosmetic edit; proven HTTP400 допускает только Unicode edit того же panel, unknown не replay и не попадает в admin edit→send fallback. Реальные IDs/eligibility/deployment/pilot отложены, #876 keep_open; G-11 PARTIAL/NO-GO/public rollout BLOCKED.
 
 ## v5.0.0-rc.26 — Подготовка закрытых сервисных сообщений

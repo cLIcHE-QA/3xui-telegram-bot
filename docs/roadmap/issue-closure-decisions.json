@@ -341,10 +341,18 @@
     {
       "issue": 876,
       "decision": "keep_open",
-      "date": "2026-10-27",
-      "accepted": "Planning/discovery scoped PASS: #874 XL decomposed before implementation into #947/#948/#949; own implementation/CI/publication/runtime acceptance PENDING",
-      "evidence": "docs/audits/2026-10-27-874-source-decomposition-checkpoint.md",
-      "comment": "Не runtime acceptance. Parent #874 остаётся открытым при выпуске частей; policy #501/allowlists/pilot sends отложены, category delivery DENY_ALL. #876 source scope без расширения, будущий target rc.27 после трёх частей. G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "date": "2026-10-28",
+      "accepted": "Default-off Client Portal theme source #965 scoped PASS: local1739/16 skips, targeted80, required PR1739/3; Owner/CAS/context/typed UTF16/no-resend source review, не Telegram acceptance",
+      "evidence": "docs/audits/2026-10-28-876-client-theme-postmerge-checkpoint.md",
+      "comment": "Source main 976fc28422ff7cc4db1e8541132a5218f4f095cc; fresh security/image40588425118 FAIL: dnspython2.8.0/CVE-2026-114605 HIGH, prerequisite #966. RC27 BLOCKED до исправления/повторного audit. Реальные eligibility/IDs/deployment/targeted rendering/fallback PENDING; #876 OPEN/keep_open, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+    },
+    {
+      "issue": 966,
+      "decision": "keep_open",
+      "date": "2026-10-28",
+      "accepted": "Fresh source/image scanner finding подтверждён: actionable HIGH CVE-2026-114605/dnspython2.8.0, security gate FAIL; remediation/acceptance PENDING",
+      "evidence": "docs/audits/2026-10-28-876-client-theme-postmerge-checkpoint.md",
+      "comment": "Обязательный security prerequisite текущего незавершённого пакета #876/RC27, не новая feature. Нужны минимальный floor/hashed lock2.9.x, offline/required CI, fresh audit и immutable publication proof. Без waiver или production операций; source/build scope не attestation deployed."
     }
   ]
 }
