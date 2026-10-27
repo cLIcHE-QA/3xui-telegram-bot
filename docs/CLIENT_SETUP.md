@@ -4,7 +4,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.20` SHA `929e9950a9d831ef72271f99b226a3315cfef709`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.21` SHA `35c1a11676bd7fedc1bf386e4f153a3ba454f6e8`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
 
 ## Client Portal: тарифы и платежные ограничения
 
@@ -40,7 +40,7 @@
 | OneXray | iOS, Android, Windows, macOS, Linux | `#<encoded subTitle>` | candidate; версии и импорт PENDING |
 | Throne | Android, Windows, macOS, Linux | Base64(`URL#subTitle`) | candidate; версии и импорт PENDING |
 
-### #885 — HTTPS handoff (не входит в Published rc.20)
+### #885 — HTTPS handoff (Published rc.21; deployment/acceptance PENDING)
 
 При корректном `COMPAT_SUBSCRIPTION_URL_TEMPLATE=https://<public-host>/compat/{sub_id}` private-owner карточка клиента дополнительно предлагает «🚀 Открыть в <клиент>». Существующие pilot/feature/rate/private guards остаются; HTTPS кнопка содержит только случайный одноразовый ticket. На странице — попытка открыть приложение и отдельная явная кнопка, если автоматический переход заблокирован браузером. Это не обещание успешного импорта или VPN-соединения; CopyTextButton/локальный QR и Back сохраняются. При отключённом/невалидном template или неподдержанном URI кнопки и инструкции нажать её нет.
 

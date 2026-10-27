@@ -4,7 +4,7 @@
 
 **Исторический provenance:** исходные полные инструкции до реструктуризации (включая датированные rc/checkpoint, findings и deprecated paths) сохранены побайтово в [immutable Admin Setup snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md). Датированные проверки — в [аудитах](audits/) и [CHANGELOG](../CHANGELOG.md). Отдельный [исторический сценарий проверки доставки Telegram QA](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот) не является этапом production setup.
 
-> **Release-prep rc.21:** версионные примеры ниже соответствуют исходному APP_VERSION, новый tag/Release ещё PENDING. Не выполнять checkout/install по будущему тегу: сначала сверить Published в [Roadmap](ROADMAP.md), затем получить отдельное deployment-разрешение и проверить накопленный upgrade path. Handoff не требует новых портов/env, но ticket URL нельзя логировать или кэшировать; device acceptance отдельно.
+> **Published rc.21:** tag/SHA подтверждены [publication checkpoint](audits/2026-10-27-rc21-publication-checkpoint.md). Версионные примеры ниже соответствуют APP_VERSION; применять только после отдельного deployment-разрешения и проверки накопленной совместимости от фактически deployed tag. Новых портов/env нет; ticket URL нельзя логировать/кэшировать, реальный device acceptance остаётся PENDING.
 
 ## 0. Что понадобится
 

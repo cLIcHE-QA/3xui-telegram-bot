@@ -285,10 +285,10 @@
     {
       "issue": 885,
       "decision": "keep_open",
-      "accepted": "PR #886 squash MERGED b10fe96faa78f55b78116da7de426f9863c59a83; fresh exact-head required Python1569/3 skipped + title PASS, local targeted29/full1569 PASS; independent main read-back PASS, post-merge main Python40459613878 и fresh supply-chain40459701390 SUCCESS на squash SHA",
-      "evidence": "docs/audits/2026-10-27-885-handoff-postmerge-checkpoint.md",
+      "accepted": "Published v5.0.0-rc.21 immutable 35c1a11676bd7fedc1bf386e4f153a3ba454f6e8; release-scope1/1, required CI/main/publish/tag/notes/provenance PASS; exact owner HTTPS handoff source, live device/deployment acceptance PENDING",
+      "evidence": "docs/audits/2026-10-27-rc21-publication-checkpoint.md",
       "date": "2026-10-27",
-      "comment": "keep_open: after mandatory Roadmap/main checkpoint rc.21 release-prep; deployment and physical Telegram/client import/refresh own acceptance deferred by #930. No VPS/live operations; Published rc.20 excludes #885, G-11 PARTIAL/NO-GO."
+      "comment": "keep_open по собственным acceptance criteria: отдельно разрешённые deployment и targeted physical Telegram/client import/refresh/expiry postconditions отложены по #930. Deployed rc.18.10 operator-reported, independent VPS read-back PENDING; next autonomous #506 after publication checkpoint main, G-11 PARTIAL/NO-GO."
     }
   ]
 }
