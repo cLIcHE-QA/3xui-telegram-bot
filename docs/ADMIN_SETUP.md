@@ -12,6 +12,8 @@
 
 ## Перед началом: границы и безопасность
 
+**Готовящийся HTTPS handoff #885:** использует тот же compatibility proxy и `/compat/` ingress, без нового порта/mount/env. Перед будущим разрешённым deployment проверь, что `/compat/open/` покрыт существующим `access_log off`/sanitized policy, proxy/CDN не кэширует no-store HTML и не удаляет hash-based CSP/no-referrer. Ticket — одноразовый 90-секундный bearer-like URL из private-owner карточки; общий in-memory предел 256, только тот же процесс бота/proxy, без multi-worker/multi-host guarantees. Copy/QR — fallback. Это не инструкция включить новый listener или проводить live smoke сейчас; #885 не входит в Published rc.20.
+
 - Не хранить реальные secrets, enrollment, backup, private IDs или hostnames в Git, PR, Telegram и shared logs; Owner credentials, node-sync, direct-admin, Host Control, Deploy Agent — **разные** privilege domains. Telegram-бот не получает Docker socket, SSH/general shell или произвольный systemd executor.
 - Только проверенный HTTPS/TLS, ограниченные IP/port/firewall правила. Cloudflare WARP **не prerequisite**; его подключение требует отдельного изменения.
 - До любого обновления нужен совместимый backup; миграции SQLite forward-only, `running/failed/unknown` и непрочитанный postcondition означают **STOP**, без автоматического replay. Не удалять journal и не обходить mismatch.

@@ -620,24 +620,31 @@ class SubscriptionProxy:
 
     async def handoff(self, request: web.Request) -> web.Response:
         """One-time browser handoff; never fetches provider or follows redirects."""
-        ticket = consume_handoff(request.match_info.get("ticket", ""))
+        headers = {
+            "Cache-Control": "no-store, private",
+            "Referrer-Policy": "no-referrer",
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "DENY",
+            "Cross-Origin-Resource-Policy": "same-origin",
+            "Content-Security-Policy": (
+                f"default-src 'none'; script-src 'sha256-{SCRIPT_HASH}'; "
+                "style-src 'unsafe-inline'; "
+                "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+            ),
+        }
+        if request.method != "GET":
+            raise web.HTTPMethodNotAllowed(request.method, ["GET"], headers=headers)
+        token = request.match_info.get("ticket", "")
+        if request.query_string or request.raw_path != "/compat/open/" + token:
+            raise web.HTTPNotFound(headers=headers)
+        ticket = consume_handoff(token)
         if ticket is None:
-            raise web.HTTPNotFound()
+            raise web.HTTPNotFound(headers=headers)
         client, uri = ticket
         return web.Response(
             text=handoff_html(client, uri),
             content_type="text/html", charset="utf-8",
-            headers={
-                "Cache-Control": "no-store, private",
-                "Referrer-Policy": "no-referrer",
-                "X-Content-Type-Options": "nosniff",
-                "X-Frame-Options": "DENY",
-                "Content-Security-Policy": (
-                    f"default-src 'none'; script-src 'sha256-{SCRIPT_HASH}'; "
-                    "style-src 'unsafe-inline'; "
-                    "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
-                ),
-            },
+            headers=headers,
         )
 
     async def asset(self, request: web.Request) -> web.Response:
@@ -692,7 +699,7 @@ class SubscriptionProxy:
             )
         # Register assets before /compat/{sub_id}.
         app.router.add_get("/compat/assets/{tail:.*}", self.asset)
-        app.router.add_get("/compat/open/{ticket}", self.handoff)
+        app.router.add_get("/compat/open/{ticket}", self.handoff, allow_head=False)
         app.router.add_get("/compat/{sub_id}", self.subscription)
         # /compat/{sub_id} carries a bearer-like subscription credential in the URI.
         # Never let aiohttp's raw access logger persist that path.

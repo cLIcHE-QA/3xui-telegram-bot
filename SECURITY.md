@@ -108,6 +108,8 @@ Admin Control Plane работает только в личном чате оп�
 - upstream redirects обрабатываются вручную: HWID/device headers сохраняются только на same-origin hop, при первом cross-origin hop удаляются и не восстанавливаются дальше по chain; HTTPS downgrade отклоняется;
 - если действующий `sub_id` попал в raw logs/chat/issue, его следует ротировать как скомпрометированный credential.
 
+HTTPS handoff #885 использует отдельный `/compat/open/{ticket}`: случайный ticket сам является кратковременным bearer-like credential, хотя не содержит `sub_id` или raw import URI. Не пересылать и не логировать ticket URL; существующий `access_log off`/sanitized boundary для всего `/compat/` распространяется и на этот путь. Ticket создаётся только после private-owner portal guards и точной проверки `import_uri()` для той же owner URL/платформы/клиента/title, действует 90 секунд, хранится в bounded process-local памяти и выдаёт HTML только на один GET. HEAD/POST/query не раскрывают и не потребляют payload. После restart или в другом процессе ticket недоступен; это не shared multi-host transport. Ответы handoff имеют no-store/no-referrer и hash-based CSP, не делают provider fetch/HTTP redirect/third-party requests. Получивший ticket может использовать его первым: HTTP-страница не является новой Telegram owner-аутентификацией. Production/device acceptance и разрешение rollout проверяются отдельно.
+
 ## Host Control Agent
 
 Host-control в v4.10.0 не является каналом доступа к VPS. Security boundary:

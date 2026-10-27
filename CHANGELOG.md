@@ -14,6 +14,12 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## Неопубликованные изменения #885 — HTTPS handoff к VPN-клиенту
+
+- PR #886: private-owner карточка совместимого приложения получает «🚀 Открыть в <клиент>» через same-origin HTTPS `/compat/open/{ticket}`. В Telegram URL только случайный ticket с TTL 90 секунд и общим пределом 256; raw subscription URL/URI остаётся в памяти и одноразовом no-store HTML без внешних redirectors или provider fetch.
+- Ticket выдаётся только для точного результата существующего `import_uri()` по owner URL, платформе, клиенту и безопасному title. HEAD/POST, query и неверные/истёкшие tickets не выдают URI; HEAD и ошибочные запросы не списывают действующий ticket. Copy/QR и Back сохраняются, отсутствующий/невалидный compatibility template не показывает недоступную кнопку или инструкцию нажать её.
+- CSP разрешает только фиксированный auto-open script по hash, остаётся явная ручная кнопка. Telegram/WebView может блокировать custom scheme: device import/refresh, deployment и собственный acceptance #885 PENDING по #930. Schema/provider mutations не меняются.
+
 ## v5.0.0-rc.20 — Изолированная web-основа и безопасность зависимостей
 
 - #890 / PR #891: обновлены hash-pinned Pillow 13.0.0 и certifi 2026.10.19 после dependency audit. Это изменение Python-окружения; целевые compatibility/health проверки после deployment остаются PENDING.

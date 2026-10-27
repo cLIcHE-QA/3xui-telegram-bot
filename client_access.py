@@ -1292,21 +1292,27 @@ async def onboarding_platform_cb(call: CallbackQuery):
     app_name = IMPORT_CLIENTS[app].name if app in IMPORT_CLIENTS else "Другой клиент"
     handoff_url = (
         issue_handoff(
-            url, client=app, uri=uri,
+            url, client=app, platform=platform, uri=uri, title=import_title,
             public_template=settings.compat_subscription_url_template,
         )
         if uri is not None and url is not None
         and settings.compat_subscription_url_template else None
     )
-    hint = (
-        "Формат URI описан разработчиком приложения; работа на вашей версии "
-        "требует проверки. Нажмите «Открыть в приложении»; "
-        "если переход не сработал, скопируйте ссылку или сканируйте QR "
-        "в выбранном VPN-клиенте. Telegram не открывает custom URI через URL-кнопку."
-        if uri is not None else
-        "Для выбранного приложения, URL или версии безопасный URI не сформирован. "
-        "Используйте обычный URL/QR и ручной импорт в приложении."
-    )
+    if uri is not None:
+        action_hint = (
+            f"Нажмите «Открыть в {app_name}». "
+            if handoff_url is not None else ""
+        )
+        hint = (
+            "Формат URI описан разработчиком приложения; работа на вашей версии "
+            "требует проверки. " + action_hint
+            + "Можно скопировать ссылку или сканировать QR в выбранном VPN-клиенте."
+        )
+    else:
+        hint = (
+            "Для выбранного приложения, URL или версии безопасный URI не сформирован. "
+            "Используйте обычный URL/QR и ручной импорт в приложении."
+        )
     if url is None:
         hint = "Ссылка подписки не подтверждена; импорт и QR недоступны."
     await render_callback(
