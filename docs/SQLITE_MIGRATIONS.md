@@ -4,19 +4,18 @@
 
 ## Текущий контракт schema
 
-**Release-prep кандидат `v5.0.0-rc.22` (#506):** read-only history использует существующую bot schema v15 через owner-scoped SQLite mode=ro. Новых migrations/DDL/backfill/retention policy нет; текущий Published пока rc.21. Публикация и будущее применение tag — разные события.
 
-**Published `v5.0.0-rc.21`:** HTTPS handoff #885 не меняет bot schema v15 и не добавляет migrations. Tag/SHA подтверждены [publication read-back](audits/2026-10-27-rc21-publication-checkpoint.md); Deployed rc.18.10 operator-reported, cumulative upgrade/config/agent compatibility проверяются перед отдельно разрешённой поздней установкой.
+**Published `v5.0.0-rc.22`:** read-only история #506 использует существующую bot schema v15 через owner-scoped SQLite mode=ro. Новых migrations/DDL/backfill/retention policy нет. Tag/SHA подтверждены [publication read-back](audits/2026-10-27-rc22-publication-checkpoint.md); Deployed rc.18.10 operator-reported, cumulative upgrade/config/agent compatibility проверяются перед отдельно разрешённой поздней установкой.
 
 Изолированные staging/import SQLite #887 по-прежнему отдельные default-off ledgers, не production bot database. Их наличие в исходниках не подтверждает deployment и не изменяет bot migration catalog.
 
-> **Published `v5.0.0-rc.21`:** схема SQLite v15, новых миграций нет. GitHub Release опубликован на SHA `35c1a11676bd7fedc1bf386e4f153a3ba454f6e8`, deployment по-прежнему только `v5.0.0-rc.18.10` со слов оператора.
+> **Published `v5.0.0-rc.22`:** схема SQLite v15, новых миграций нет. GitHub Release опубликован на SHA `d7739ed8e71444b310e7dbc5bde83f7706dfdb83`, deployment по-прежнему только `v5.0.0-rc.18.10` со слов оператора.
 
-**Схема SQLite v15 неизменна для Published `v5.0.0-rc.21` и operator-reported Deployed `v5.0.0-rc.18.10`.** Новых миграций в rc.21 нет: HTTPS handoff не меняет production bot migration framework. Текущий операторский deployment и адресные HWID 23/23 `PASS` фиксируются исключительно в [Roadmap](ROADMAP.md) и [датированном audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md); независимая VPS/SQLite `PRAGMA quick_check` аттестация остаётся PENDING. Само `DB=ok` не является доказательством `PRAGMA quick_check`.
+**Схема SQLite v15 неизменна для Published `v5.0.0-rc.22` и operator-reported Deployed `v5.0.0-rc.18.10`.** Новых миграций в rc.22 нет: read-only история не меняет production bot migration framework. Текущий операторский deployment и адресные HWID 23/23 `PASS` фиксируются исключительно в [Roadmap](ROADMAP.md) и [датированном audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md); независимая VPS/SQLite `PRAGMA quick_check` аттестация остаётся PENDING. Само `DB=ok` не является доказательством `PRAGMA quick_check`.
 
 Текущий каталог содержит additive schema **v15** `plan_hwid_limit_v5_0_0`, `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
 
-**История релизов** `rc.18.2`–`rc.18.9` и их прежних `PENDING` сохранена в [CHANGELOG](../CHANGELOG.md), [датированных audits](audits/) и [историческом Roadmap](roadmap/HISTORY_INDEX.md). Эти предыдущие snapshot-статусы не описывают текущий GitHub Published `rc.21` и его раздельное operator-reported Deployed `rc.18.10`.
+**История релизов** `rc.18.2`–`rc.18.9` и их прежних `PENDING` сохранена в [CHANGELOG](../CHANGELOG.md), [датированных audits](audits/) и [историческом Roadmap](roadmap/HISTORY_INDEX.md). Эти предыдущие snapshot-статусы не описывают текущий GitHub Published `rc.22` и его раздельное operator-reported Deployed `rc.18.10`.
 
 - `v14 plan_audience_v5_0_0` добавляет независимую RUB/Stars видимость, локальные User Groups и `manual_entitlements`; один live/unknown journal запрещает конкурентную выдачу.
 - Миграции **forward-only**; pre-migration backup, `schema_migrations`, postcondition и `PRAGMA quick_check` обязательны по соответствующим правилам ниже. `requires_backup=True` для опасной миграции, без recovery copy её нельзя начинать. Старый код на более новой schema блокируется `DatabaseSchemaTooNewError`.

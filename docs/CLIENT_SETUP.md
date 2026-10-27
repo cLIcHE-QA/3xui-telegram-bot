@@ -4,7 +4,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.21` SHA `35c1a11676bd7fedc1bf386e4f153a3ba454f6e8`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.22` SHA `d7739ed8e71444b310e7dbc5bde83f7706dfdb83`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
 
 ## Client Portal: тарифы и платежные ограничения
 
@@ -15,7 +15,7 @@
 
 ## Собственная история Stars (#506)
 
-После будущего разрешённого обновления: `👤 Профиль → 📜 История заказов и платежей`. Дополнительных env, портов, прав или bot migrations нет. Действуют существующие Client Portal/allowlist/private-owner guards; флаг новых Stars-платежей не запрещает чтение уже имеющейся истории. Показываются только собственные XTR-заказы и реальные `telegram_stars` записи по 8 на страницу. RUB/manual/PSP остаются отдельно до #336.
+Published rc.22; deployment и собственный acceptance PENDING. После будущего разрешённого обновления: `👤 Профиль → 📜 История заказов и платежей`. Дополнительных env, портов, прав или bot migrations нет. Действуют существующие Client Portal/allowlist/private-owner guards; флаг новых Stars-платежей не запрещает чтение уже имеющейся истории. Показываются только собственные XTR-заказы и реальные `telegram_stars` записи по 8 на страницу. RUB/manual/PSP остаются отдельно до #336.
 
 Заказ, платеж, операция возврата и локальный период доступа имеют разные статусы; отсутствие платежа не означает подтверждённого списания. При неизвестном исходе не оплачивать повторно, использовать `/paysupport`. Нет провайдерских запросов, повторного invoice/активации/возврата. Справка Terms не принимает согласие; при отсутствии проверенной публичной редакции показывает `не опубликована`. Удаление аккаунта закрывает доступ к оставшемуся журналу через этот UI; сроки хранения не меняются. Поля и навигация — [UI contract](UI_STYLE.md#клиентская-история-заказов-и-stars-платежей-506).
 
