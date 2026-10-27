@@ -14,7 +14,7 @@ Source-only разработка по #930 не подтверждает deploym
 
 ## Видимость legacy-команд #564 — отдельный отложенный targeted gate
 
-После будущего отдельно разрешённого deployment проверить scoped UI/guard сценарии [CLIENT_SETUP](CLIENT_SETUP.md#актуальные-команды-и-совместимость-564): active-only справочник и основной `/start`, Back/все четыре admin roles; 2 legacy slash и 3 сохранённых callback redirects в пилоте, Portal OFF/outside allowlist без mutations. Типизированный каталог/AST CI проверяют и скрытые handlers. Telegram global command registry не изменялся и не считается очищенным; старый N03 не доказывает новый visibility outcome. Offline/CI не заменяют собственный operator-reported runtime outcome; #564 keep_open, deployment/live smoke отложены по #930. G-11 PARTIAL/NO-GO/public rollout BLOCKED, waived burst и прошлые HWID PASS не повторять.
+После будущего отдельно разрешённого deployment проверить новую видимость справочника по [CLIENT_SETUP](CLIENT_SETUP.md#актуальные-команды-и-совместимость-564): active-only команды, основной `/start`, отсутствие legacy рекомендаций и Back. Четыре admin roles, 2 legacy slash/3 saved callbacks и portal/allowlist guards подтверждаются source/offline regression; старый N03 не повторять, production flags ради неизменённых paths не переключать. Типизированный каталог/AST CI проверяют и скрытые handlers. Telegram global command registry не изменялся и не считается очищенным; старый N03 не доказывает новый visibility outcome. Offline/CI не заменяют собственный operator-reported visibility outcome; #564 keep_open, deployment/live smoke отложены по #930. G-11 PARTIAL/NO-GO/public rollout BLOCKED, waived burst и прошлые HWID PASS не повторять.
 
 ## 0. Зафиксировать baseline
 
