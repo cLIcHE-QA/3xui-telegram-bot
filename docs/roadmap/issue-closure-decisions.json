@@ -311,8 +311,8 @@
       "decision": "keep_open",
       "date": "2026-10-27",
       "accepted": "Source #948/schema17 и immutable RC25 publication scoped PASS: regression/security, local1659/16 skips, PR/main CI1659/3 skips, supply-chain/image, tag/version/notes/unique release provenance; не runtime acceptance",
-      "evidence": "docs/audits/2026-10-27-rc25-publication-checkpoint.md",
-      "comment": "#947 source child CLOSED в RC24; #948 Published в RC25, own closure PENDING; #949/policy501/privacy/abuse/UI/deployment/pilot PENDING. Runtime OFF, actual admission DENY_ALL; G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "evidence": "docs/audits/2026-10-27-948-source-closure-checkpoint.md",
+      "comment": "#947/RC24 и #948/RC25 source children CLOSED по собственным критериям; #949/policy501/privacy/abuse/UI/deployment/pilot PENDING. Runtime OFF, actual admission DENY_ALL; G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     },
     {
       "issue": 947,
@@ -324,11 +324,11 @@
     },
     {
       "issue": 948,
-      "decision": "keep_open",
+      "decision": "completed",
       "date": "2026-10-27",
-      "accepted": "Source #948/schema17 и immutable RC25 publication scoped PASS: regression/security, local1659/16 skips, PR/main CI1659/3 skips, supply-chain/image, tag/version/notes/unique release provenance; не runtime acceptance",
-      "evidence": "docs/audits/2026-10-27-rc25-publication-checkpoint.md",
-      "comment": "#948 own publication checkpoint CI/main read-back и source-only closure PENDING; реальные sends не требуются по собственному scope. Runtime OFF, actual admission DENY_ALL; G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "7/7 собственных source-only schema17/API/worker/unknown/retry/stop/privacy/regression/security/docs/immutable RC25/publication/main критериев PASS; не runtime delivery assertion",
+      "evidence": "docs/audits/2026-10-27-948-source-closure-checkpoint.md",
+      "comment": "GitHub CLOSED/completed 2026-10-27T18:11:39Z после publication checkpoint #959 main e7d256a7ef054acbf51c1d898b44128207bd7d6d и независимого read-back. Свой scope прямо исключает реальные sends/listeners/deployment. Parent #874 OPEN; #949/policy501/privacy/abuse/UI/runtime/pilot PENDING, G-11 PARTIAL/NO-GO."
     },
     {
       "issue": 949,

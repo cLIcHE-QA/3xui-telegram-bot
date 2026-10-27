@@ -1,0 +1,27 @@
+# #948 — собственный source-only closure checkpoint
+
+<!-- audit-schema: 1 -->
+- **Дата/время и часовой пояс:** 2026-10-27 21:12 UTC+03:00
+- **Окружение:** GitHub / CI / offline source evidence; без VPS/Telegram/provider операций
+- **Цель:** сопоставить 7 собственных acceptance групп #948 с evidence после Published RC25 и merge publication checkpoint; синхронизировать фактический CLOSED с active Roadmap.
+- **Версия и immutable tag/SHA:** Published v5.0.0-rc.25 `1c0854c9b416a2d0f2ccbe9083d62d88794307ed`; publication checkpoint #959 main `e7d256a7ef054acbf51c1d898b44128207bd7d6d`, implementation #956 `9ac41354167a3b12a35149ebcfb396fe4065cceb`.
+- **Scope:** исключительно свой source-only schedule/schema/queue/injected-worker/offline/CI/publication contract; parent #874 runtime/pilot acceptance не завершается.
+- **Фактический результат:** PASS
+- **Источник и evidence:** [own closure review](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/948#issuecomment-6449952535), [implementation audit](2026-10-27-948-campaign-queue-postmerge-checkpoint.md), [publication audit](2026-10-27-rc25-publication-checkpoint.md). #959 required Python40556457132/job122373702462 (1659 tests/3 skipped) и title40557304213/job122376685447 SUCCESS; merged 2026-10-27T18:10:02Z. Независимые GitHub main/Roadmap/registry/tag read-back PASS; [Issue #948](https://github.com/cLIcHE-QA/3xui-telegram-bot/issues/948) CLOSED/completed 2026-10-27T18:11:39Z и все 7 исходных чекбоксов отмечены после evidence; parent #874 независимо OPEN.
+- **Ограничения и остаточные риски:** source worker/transport не зарегистрированы в runtime, real admission OFF/DENY_ALL; fake policy не consent. #949/policy501/privacy/abuse/allowlists/deployment/pilot PENDING у parent. Свой source completion не доказывает Telegram delivery или применение schema17 на VPS. Автоматический main push40557405766 после #959 ещё PENDING на момент этого audit; его read-only GitHub reconciliation step SUCCESS до Issue close, остальные результаты не выданы за PASS. Обязательный PR CI и publication/main read-back уже доказаны для собственного scope.
+- **Связанные Issues:** #948, #874
+- **Решение по Issues:** #948: completed, #874: keep_open
+- **Следующий шаг:** required CI/squash этого docs-only closure checkpoint, independent main read-back и финальная Issue/Roadmap сверка; проверить оставшийся push main40557405766. Затем следующий согласованный #949/rc.26, без реальных sends. Нового release/runtime scope у этого checkpoint нет.
+- **Раздельные состояния:** merged=#956/#957/#958/#959; published=RC25/schema17; deployed=rc.18.10 `dae205ac82762723448f93827b981f89ae622231` operator-reported, independent VPS read-back PENDING; accepted=#948 own source-only scoped PASS/CLOSED, parent/runtime PENDING, G-11 PARTIAL/NO-GO/public rollout BLOCKED.
+
+## Собственные критерии и границы доверия
+
+1. Штатная forward-only migration17 и durable state/identity/snapshot, operation UUID idempotency и singleton fenced lease — PASS. Шесть migration tests проверяют сохранение данных v16→17/идемпотентность/quick_check, rollback и failed journal/no replay, unjournaled/tampered SQL, missing control/proof-generation без auto repair. Immutable SQL guards не дают пропускать confirmation/intent или менять terminal history.
+2. Явное UTC/IANA расписание, DST gap/fold/past/invalid и clock regression fail closed — PASS. Snapshot ограничен1000, целиком откатывается при overflow/SQL budget; private proof JOIN существующего user и generation не переживает delete/recreate. Groups/exclude, block и policy перепроверяются перед dispatch.
+3. Source-only worker/injected isolated transport, без runtime/polling/Bot API wiring, default OFF/DENY_ALL — PASS. Positive fake policy только для fixtures, не consent/продуктовое решение #501. Отсутствующая policy не создаёт queue job; category не означает mandatory.
+4. Durable intent перед transport, aggregate progress без PII/body, lost commit/response/timeout/network/lease/restart unknown/no-replay, double confirmation без второго fan-out — PASS. Поздний reply не перезаписывает unknown; собственник и fence проверяются повторно.
+5. Отдельный budget2s, lease30s/transport10s, максимум3 доказанно безопасных429 intents с bounded retry_after/backoff; terminal403/unavailable и неизвестные/mismatched/5xx outcomes — PASS. Pause/cancel/close/in-flight races прекращают новые intents без обещания отката уже отправленного.
+6. Isolated regression: 8 schedule + 28 delivery + 6 migration tests; large bounded population, concurrent workers, recovery/dedup, неизвестный исход,429/403, stop/privacy/SQL/clock guards — PASS. Final full1659/local16 environment skips и CI3 skips; targeted release/docs98 PASS. Security review выполнен по реальным границам Owner/private proof/policy/injected transport/durable intent, зелёные tests не считаются доказательством реальной доставки.
+7. Canonical docs/living invariant, required feature/release/publication CI, supply-chain/image/TZ guard, immutable RC25 и merged publication checkpoint #959/independent main read-back — PASS. Все release/provenance evidence сохранены в publication audit. Собственный Issue прямо исключает реальные sends/listeners/deployment; дополнительный live gate ради закрытия не придуман.
+
+Закрытие затрагивает только собственный #948 scope. Его строка удаляется из active Roadmap после независимого CLOSED read-back; historical audits и Published tags не меняются. Parent #874 сохраняет собственную незавершённую приёмку.
