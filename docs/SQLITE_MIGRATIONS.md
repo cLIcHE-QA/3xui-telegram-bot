@@ -4,11 +4,13 @@
 
 ## Текущий контракт schema
 
+**Source-кандидат #948, ещё не main/Published:** schema v17 `service_campaign_queue_v5_0_0`. Новые job/recipient/attempt/control и contact-generation объекты; source API/worker не подключены к runtime, policy DENY_ALL. Published rc.24 ниже сохраняет schema16.
+
 **Published `v5.0.0-rc.24`:** bot schema v16 `service_campaign_foundation_v5_0_0` (#947). Additive пустые drafts/revisions/private-contact таблицы; без backfill/observer/UI/worker/transport/sends. [Foundation contract](SERVICE_CAMPAIGNS.md), [publication read-back](audits/2026-10-27-rc24-publication-checkpoint.md). Immutable tag SHA `d7e224b48b23a315c389c290594c975dba2f9684`, GitHub Release 2026-10-27T13:49:49Z.
 
 **Схема SQLite v16 для Published `v5.0.0-rc.24`; operator-reported Deployed `v5.0.0-rc.18.10` остаётся на каталоге v15.** Deployment/migration16 на VPS не выполнялись; поздний cumulative upgrade/recovery проверяется отдельно. Старый rc.23/schema15 immutable и не изменён. Адресные HWID23/23 PASS относятся к deployed rc.18.10, independent VPS/SQLite `PRAGMA quick_check` PENDING; `DB=ok` не доказывает quick_check. [Roadmap](ROADMAP.md).
 
-Текущая source schema **v16** совпадает с Published rc.24; фактический deployed schema16 не подтверждён.
+Разрабатываемая source schema **v17** — отдельный кандидат; Published rc.24 содержит v16, фактический deployed schema16/17 не подтверждён.
 
 Изолированные staging/import SQLite #887 остаются отдельными default-off ledgers; исходники не подтверждают их deployment и не заменяют bot migration framework.
 
@@ -77,7 +79,12 @@ Legacy DB без `schema_migrations` не считается ошибкой: mig
 
 14. `v14 plan_audience_v5_0_0` — независимый флаг наличия RUB-цены, правила видимости локальных User Groups и таблица `manual_entitlements` со статусами `in_flight/active/unknown/failed/superseded`. Старые планы мигрируют без удаления валют/истории и без автоматических назначений. Уникальный partial index запрещает вторую live/unknown выдачу одному пользователю.
 
+15. `v15 plan_hwid_limit_v5_0_0` — additive nullable `plans.hwid_limit` для независимого HWID; legacy NULL сохраняет индивидуальный лимит. Смысл поля приведён в текущем контракте выше и в разделе тарифного каталога ниже.
+
 16. `v16 service_campaign_foundation_v5_0_0` — additive пустые таблицы `service_campaign_drafts`, `service_campaign_revisions`, `service_campaign_contacts` с owner/revision/foreign-key checks, immutable frozen triggers и bounded DAO. Существующие users/plans/payments не переписываются и не считаются private-contact evidence. `requires_backup=False`: нет destructive/data rewrite; failure откатывает DDL и journal блокирует replay. Строгие SQL postconditions включают constraints/indexes/triggers; unjournaled объекты с этими именами отклоняются. Второй штатный startup идемпотентен по journal; DAO сам schema не создаёт/не чинит. После применения v16 код с каталогом до v15 отказывается работать, downgrade требует совместимой pre-migration recovery copy.
+
+17. `v17 service_campaign_queue_v5_0_0` — additive source-only job/recipient/attempt/control ledger, индексы и SQL guards переходов/immutable identity/terminal outcomes. Existing v16 private proofs получают отдельную generation; users/import не становятся private candidates. Новые observations создают generation, delete удаляет её даже при FK=OFF в старом DB helper; повторное создание не восстанавливает старый snapshot. Один control row/fenced lease, лимиты и счётчики не запускают transport. `requires_backup=False`: существующие user/payment/entitlement данные не переписываются. Failed DDL откатывается и failed journal запрещает replay; unjournaled объекты, потерянный control/generation и изменённые SQL guards fail closed без автоматического repair. После v17 каталог16 отказывается работать, downgrade требует совместимой recovery copy.
+
 
 Commerce write contract поверх schema v6: authenticated `payment.confirmed` применяется одной SQLite transaction (`BEGIN IMMEDIATE`). В одной commit boundary фиксируются `commerce_payments.status=confirmed`, `commerce_orders.status=paid`, exactly-one `entitlements` row и `payment_webhook_events.processing_status=applied`. Исключение до commit откатывает весь набор изменений; повтор того же provider event с тем же payload безопасно возвращает уже применённый результат, а повтор event id с другим payload fail-closed.
 

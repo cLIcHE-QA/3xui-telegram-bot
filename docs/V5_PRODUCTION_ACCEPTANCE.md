@@ -20,6 +20,12 @@ Source-only разработка по #930 не подтверждает deploym
 
 Foundation не подключена к runtime и не имеет sender/worker/UI. Собственные storage/migration/ownership/dry-run критерии проверяются offline/CI; реальные Telegram sends не требуются и не разрешаются ради этой части. Parent #874 сохраняет отдельные policy #501, UI/queue, permission/abuse/privacy, deployment и pilot delivery gates. Published rc.24 содержит source schema v16; предыдущий rc.23/schema15 immutable; будущая установка проверяет cumulative upgrade/recovery по [SQLITE_MIGRATIONS](SQLITE_MIGRATIONS.md). Source PASS не подтверждает runtime delivery/G-11, прежние scoped PASS/waived burst не повторять.
 
+## Очередь #948 — собственный source-only scope
+
+Acceptance этой части — isolated migration/state/ownership/schedule/fencing/unknown/retry/stop/privacy regressions, security review, required CI, immutable RC и publication/main checkpoint. Реальные sends/listeners/VPS операции не требуются и не разрешаются ради source части. Positive fake admission используется только с isolated transport; в текущем runtime настоящая policy отсутствует и delivery DENY_ALL, категории не становятся mandatory.
+
+Свой source PASS не заменяет policy #501, UI/observer/transport #949, privacy/abuse review, runtime authentication, поздний deployment и разрешённый pilot parent #874. Candidate schema17 не приписывается Published rc.24/schema16; будущий cumulative upgrade/recovery проверяется по SQL contract. Старые HWID PASS/waived burst не повторять, G-11 PARTIAL/NO-GO/public rollout BLOCKED.
+
 ## 0. Зафиксировать baseline
 
 Перед тестами запишите:

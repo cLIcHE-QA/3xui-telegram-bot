@@ -20,4 +20,7 @@ RUN set -eux; \
     chmod -R u=rwX,go=rX /app
 
 USER 10001:10001
+# The source-only campaign scheduler requires explicit IANA timezone data.
+# Verify the pinned base image as the runtime UID; no network or new packages.
+RUN python -c 'from zoneinfo import ZoneInfo; ZoneInfo("UTC"); ZoneInfo("Europe/London")'
 ENTRYPOINT ["python", "restore_bootstrap.py"]

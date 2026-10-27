@@ -230,7 +230,7 @@
       "id": "service-campaign-foundation",
       "mode": "require_all",
       "triggers": [
-        "service_campaigns.py",
+        "service_campaign*.py",
         "campaign_*.py"
       ],
       "documents": [

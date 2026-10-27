@@ -81,6 +81,18 @@ def current_release_claim_errors(roadmap: str, docs: dict[str, str]) -> list[str
     return issues
 
 class LivingDocsSemanticTests(unittest.TestCase):
+    def test_campaign_queue_keeps_admission_unknown_and_runtime_boundaries_explicit(self):
+        doc = (ROOT / "docs/SERVICE_CAMPAIGNS.md").read_text(encoding="utf-8").replace("**", "")
+        for invariant in ("реальное admission DENY_ALL", "не классифицируется как mandatory",
+                          "Импорт/конструктор не создаёт tasks/listeners", "unknown/no-replay",
+                          "не повторяется автоматически", "private-contact generation",
+                          "DST gap/fold", "close", "не откатывает отправленное"):
+            self.assertIn(invariant, doc)
+        contract = json.loads((ROOT / "docs/live-docs.json").read_text())
+        rule = next(rule for rule in contract["rules"] if rule["id"] == "service-campaign-foundation")
+        self.assertIn("service_campaign*.py", rule["triggers"])
+        self.assertEqual(rule["mode"], "require_all")
+
     def test_campaign_foundation_keeps_provenance_separate_from_delivery_permission(self):
         doc = (ROOT / "docs/SERVICE_CAMPAIGNS.md").read_text(encoding="utf-8")
         for invariant in ("по умолчанию DENY", "deliverable=0", "policy_status=unapproved",
