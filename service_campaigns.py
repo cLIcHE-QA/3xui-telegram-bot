@@ -25,7 +25,8 @@ CATEGORIES = frozenset({"technical", "service", "tariff"})
 MAX_GROUPS = 50
 _FIELDS = frozenset({"category", "subject", "body", "include_groups", "exclude_groups"})
 _UNSAFE_TEXT = re.compile(
-    r"[<>`]|\[[^\]]*\]\(|[a-z][a-z0-9+.-]*://|www\.|t\.me/|"
+    r"[<>`]|\[[^\]]*\]\(|[a-z][a-z0-9+.-]*://|(?:https?|tg|mailto|ftp|file):|www\.|t\.me/|"
+    r"(?:[^\W_][\w-]*\.)+[^\W\d_]{2,63}\b|"
     r"\b(?:\d{1,3}\.){3}\d{1,3}\b|[a-z0-9_-]{40,}|"
     r"\b\d{5,15}:[a-z0-9_-]{15,}|"
     r"(?:bearer\s+|(?:bot[_ -]?token|api[_ -]?token|password|passwd|secret|subscription[_ -]?url)\s*[:=])|"

@@ -219,7 +219,8 @@ class CampaignFoundation947Tests(unittest.IsolatedAsyncioTestCase):
 
     async def test_control_markup_urls_and_credential_shapes_never_enter_storage(self):
         for body in ("<b>Новость</b>", "[текст](https://example.invalid)", "https://example.invalid/private",
-                     "happ://private", "www.example.invalid", "t.me/example", "адрес 192.0.2.1",
+                     "happ://private", "www.example.invalid", "t.me/example", "example.invalid/path",
+                     "пример.рф", "mailto:test@example.invalid", "tg:resolve", "адрес 192.0.2.1",
                      "BOT_TOKEN=offline", "Bearer opaque", "A" * 40, "новость\u202e", "новость\x00"):
             with self.subTest(body=body), self.assertRaises(CampaignInvalid) as error:
                 await self.draft(body=body)
