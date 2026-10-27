@@ -1,6 +1,6 @@
 # Supply-chain baseline
 
-Этот документ задаёт канонический reproducible dependency/container/Actions contract для final v4 audit.
+Этот документ задаёт канонический reproducible dependency/container/Actions contract проекта; source/build evidence не подтверждает deployment или runtime acceptance.
 
 ## Immutable runtime inputs
 
@@ -46,6 +46,16 @@ Workflow `.github/workflows/supply-chain-audit.yml` скачивает exact rel
 HIGH/CRITICAL vulnerability findings блокируют audit job. License inventory сохраняется как evidence, но окончательная third-party compatibility disposition зависит от решения по project license в A-009/#242.
 
 ## Обновление Python dependencies
+
+### Минимальный DNS dependency floor
+
+`dnspython>=2.9,<3`, exact lock `2.9.0`: исправленная upstream версия для публичного [CVE-2026-114605 / GHSA-45c3-73f7-pv4m](https://github.com/rthalley/dnspython/security/advisories/GHSA-45c3-73f7-pv4m). Untrusted DNS wire data относится к отдельному parsing trust boundary; успешный mock DNS/HTTP test не отменяет actionable scanner finding. Python>=3.11 поддерживается в уже закреплённом runtime3.12, менять base image/другие pins ради этого обновления не нужно.
+
+Для этого floor lock сгенерирован canonical pip-tools7.6.1 в чистом CPython3.12; изменён только dnspython block, оба SHA-256 universal wheel/sdist сверены с official PyPI metadata, `--require-hashes` install и `pip check` в отдельном чистом runtime обязательны. Не возвращать vulnerable pin и не скрывать finding CVE waiver. Исторический source/image FAIL40588425118 сохраняется в dated audit; release gate снимается только новым audit PASS на исправленном source SHA, с review licenses/SBOM.
+
+В #966 source/build PASS отделён от собственного отложенного runtime outcome: после отдельно разрешённого deployment read-only installed package/image tag/SHA и безопасный DNS/API compatibility/health; exploit/DoS load и новые опасные mutations не нужны. До этого #966 OPEN/keep_open, старые опубликованные tags не меняются. Наличие патча в lock не доказывает применённое обновление на VPS.
+
+### Каноническая процедура
 
 Обновление выполняется отдельным PR.
 

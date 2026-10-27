@@ -16,6 +16,8 @@
 
 ## Unreleased
 
+- #966 — обязательный security prerequisite текущего пакета #876: dnspython2.8.0 → 2.9.0 для публичного CVE-2026-114605 (excessive DNS decompression CPU). Direct floor>=2.9,<3 и hashed lock сгенерированы pip-tools7.6.1; оба official PyPI wheel/sdist SHA-256 проверены, другие pins и base image прежние. Новых env/портов/DDL нет. Source/build проверки не доказывают установленную версию на VPS; #966 keep_open до отдельно разрешённого deployment и собственного read-only DNS/package/health outcome.
+
 - #876 / PR #965: Owner-only редактор 25 semantic Client Portal emoji slots, bounded entity/metadata/draft/preview/confirm/reset, CAS/audit в существующем runtime_settings без новой schema. Сохраняются канонические labels/callbacks/Unicode и обычная админка; custom icon field и типизированные UTF-16 entities не принимают произвольный HTML/recipient/URL input.
 - Default-off local veto + операторская attestation текущего bot ID и DB enable; metadata/роль Owner не доказывают Telegram entitlement. Client-only контекст, одна Unicode send с необязательным cosmetic edit; proven HTTP400 допускает только Unicode edit того же panel, unknown не replay и не попадает в admin edit→send fallback. Реальные IDs/eligibility/deployment/pilot отложены, #876 keep_open; G-11 PARTIAL/NO-GO/public rollout BLOCKED.
 

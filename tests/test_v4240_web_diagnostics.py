@@ -12,6 +12,7 @@ from website_diagnostics import (
     detect_cms,
     format_url_list,
     normalize_domain,
+    dns_summary,
     pagespeed_summary,
     qr_png,
     seo_summary,
@@ -49,6 +50,38 @@ def response(url: str, *, status: int = 200, body: bytes = b"", headers=None, re
 
 
 class WebsiteDiagnosticsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_dns_summary_uses_current_library_answer_api_without_network(self):
+        import dns.message
+        import dns.rrset
+        import dns.resolver
+        from types import SimpleNamespace
+        calls = []
+        class Resolver:
+            def __init__(self, *, configure):
+                if configure is not True:
+                    raise AssertionError("Resolver configuration contract changed")
+                self.lifetime, self.timeout = None, None
+            def resolve(self, domain, kind, *, raise_on_no_answer):
+                calls.append((domain, kind, raise_on_no_answer, self.lifetime, self.timeout))
+                if kind == "AAAA":
+                    raise dns.resolver.NXDOMAIN()
+                if kind == "CNAME":
+                    raise dns.resolver.LifetimeTimeout(timeout=2.5, errors=[])
+                if kind not in {"A", "TXT"}:
+                    return SimpleNamespace(rrset=None)
+                query = dns.message.make_query(domain, kind)
+                response = dns.message.make_response(query)
+                response.answer.append(dns.rrset.from_text(domain + ".", 60, "IN", kind,
+                                                          "192.0.2.1" if kind == "A" else '"synthetic"'))
+                response = dns.message.from_wire(response.to_wire())
+                return dns.resolver.Answer(query.question[0].name, query.question[0].rdtype,
+                                           query.question[0].rdclass, response)
+        with patch("website_diagnostics.dns.resolver.Resolver", Resolver):
+            records = await dns_summary("fixture.example.invalid")
+        self.assertEqual(records, (DnsRecord("A", "192.0.2.1"), DnsRecord("TXT", '"synthetic"')))
+        self.assertEqual([row[1] for row in calls], ["A", "AAAA", "CNAME", "MX", "NS", "TXT"])
+        self.assertTrue(all(row[0] == "fixture.example.invalid" and row[2:] == (False, 5.0, 2.5) for row in calls))
+
     def test_normalize_domain_is_idna_and_rejects_local(self):
         self.assertEqual(normalize_domain("https://Example.COM/path"), "example.com")
         self.assertEqual(normalize_domain("пример.рф"), "xn--e1afmkfd.xn--p1ai")
