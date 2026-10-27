@@ -310,9 +310,9 @@
       "issue": 874,
       "decision": "keep_open",
       "date": "2026-10-27",
-      "accepted": "Source #948/schema17 и immutable RC25 publication scoped PASS: regression/security, local1659/16 skips, PR/main CI1659/3 skips, supply-chain/image, tag/version/notes/unique release provenance; не runtime acceptance",
-      "evidence": "docs/audits/2026-10-27-948-source-closure-checkpoint.md",
-      "comment": "#947/RC24 и #948/RC25 source children CLOSED по собственным критериям; #949/policy501/privacy/abuse/UI/deployment/pilot PENDING. Runtime OFF, actual admission DENY_ALL; G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "Source-only #949/#961 Owner UI/private observer/one-shot Bot/session boundaries scoped PASS: local1708/16 skips, targeted83, PR CI1708/3 skips, fresh main supply-chain/image PASS; не runtime acceptance",
+      "evidence": "docs/audits/2026-10-27-949-owner-source-postmerge-checkpoint.md",
+      "comment": "#949 source main baa79b895394a955824ae69ac676082e65b0af6a, RC26/checkpoints PENDING. Runtime registration отсутствует/BLOCKED до #501/privacy/abuse/allowlist, затем отдельный integration PR/deployment/pilot. Factory OFF/DENY_ALL; #949/#874 OPEN, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     },
     {
       "issue": 947,
@@ -334,9 +334,9 @@
       "issue": 949,
       "decision": "keep_open",
       "date": "2026-10-27",
-      "accepted": "Planning/discovery scoped PASS: #874 XL decomposed before implementation into #947/#948/#949; own implementation/CI/publication/runtime acceptance PENDING",
-      "evidence": "docs/audits/2026-10-27-874-source-decomposition-checkpoint.md",
-      "comment": "Не runtime acceptance. Parent #874 остаётся открытым при выпуске частей; policy #501/allowlists/pilot sends отложены, category delivery DENY_ALL. #876 source scope без расширения, будущий target rc.27 после трёх частей. G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "Source-only #949/#961 Owner UI/private observer/one-shot Bot/session boundaries scoped PASS: local1708/16 skips, targeted83, PR CI1708/3 skips, fresh main supply-chain/image PASS; не runtime acceptance",
+      "evidence": "docs/audits/2026-10-27-949-owner-source-postmerge-checkpoint.md",
+      "comment": "#949 source main baa79b895394a955824ae69ac676082e65b0af6a, RC26/checkpoints PENDING. Runtime registration отсутствует/BLOCKED до #501/privacy/abuse/allowlist, затем отдельный integration PR/deployment/pilot. Factory OFF/DENY_ALL; #949/#874 OPEN, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     },
     {
       "issue": 876,
