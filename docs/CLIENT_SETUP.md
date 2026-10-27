@@ -17,6 +17,10 @@
 
 В текущем Client Portal нет нового экрана, observer или отправки кампаний. Source schema v16/API входят в Published rc.24; private-contact ledger пуст без доверенного внутреннего observation API и не backfill из users/импорта. Private proof не означает opt-in/consent/eligibility: dry-run возвращает только bounded candidates и всегда deliverable=0/unapproved. Policy #501 и родительский UI/queue/pilot #874 PENDING; [нормативный контракт](SERVICE_CAMPAIGNS.md). Новых client flags/slash-команд нет; существующие pilot/private/ownership guards не меняются.
 
+## Source-кандидат очереди #948
+
+В Client Portal не появляются новые экраны или команды. Изолированные schedule/queue/worker исходники не подключены к runtime: конфигурация OFF, реальное category/recipient admission DENY_ALL. Candidate snapshot не означает consent/eligibility/reachability; fake policy/transport в тестах не подтверждают Telegram delivery. Поздние policy/privacy/UI/pilot gates принадлежат #874/#501; отдельный source-only RC не принимает весь эпик. [Контракт](SERVICE_CAMPAIGNS.md).
+
 ## Актуальные команды и совместимость (#564)
 
 Published rc.23; deployment и собственный visibility outcome PENDING. Основной путь клиента — `/start`, дополнительные действующие команды — `/subscription` и `/paysupport`. В read-only справочнике `/admin → Система → 📚 Команды бота` показываются только active записи, прежние `/create` и `/inbounds` скрыты из рекомендаций. Полный типизированный каталог и AST CI сохраняют legacy handlers. Старые slash-вызовы и callbacks `create/inbounds/subscription` по-прежнему ведут в кабинет через portal/allowlist/rate-limit guards; они не создают доступ или оплату. Новых env/прав/setup действий нет; глобальное меню команд Telegram не меняется этим экраном.

@@ -4,7 +4,7 @@
 
 ## Foundation #947
 
-`service_campaigns.py` — внутренний source-only API; `campaign_store.py` — persistence в существующей bot SQLite через штатный migration framework. Нет runtime assembly, Telegram/HTTP endpoint, UI, worker, scheduler, transport, listeners или новых env. Импорт/конструктор не запускают работу и не создают БД. Подключение к runtime и действительные private observations относятся к последующей части #949; delivery state machine — к #948.
+`service_campaigns.py` — внутренний source-only API; `campaign_store.py` — persistence в существующей bot SQLite через штатный migration framework. Сам foundation API не содержит runtime assembly, Telegram/HTTP endpoint, UI, worker, scheduler, transport, listeners или новых env. Импорт/конструктор не запускают работу и не создают БД. Подключение к runtime и действительные private observations относятся к последующей части #949; delivery state machine — к #948.
 
 Draft API по умолчанию **DENY**: доверенный адаптер обязан передать асинхронный `authorize_owner(actor)` с актуальным server-side решением Owner. Только точный `True` разрешает операцию; отсутствие callback, неизвестное решение и ошибка авторизации не дают доступа. Role strings/actor из callback payload не являются доказательством полномочий. Каждый owned read/edit/freeze/dry-run повторно ограничен `owner_id` в SQL. Админский `/admin`/client RBAC не меняются этой foundation; здесь нет входного сетевого маршрута, который обходит существующую авторизацию.
 
@@ -39,3 +39,52 @@ Read-only snapshot считает уникальных кандидатов из
 Additive schema v16: `service_campaign_drafts`, `service_campaign_revisions`, `service_campaign_contacts`, индексы и triggers. [SQLITE_MIGRATIONS](SQLITE_MIGRATIONS.md) — единственный migration contract. Строгая проверка SQL definitions/constraints/indexes/triggers; unjournaled объекты не принимаются за trusted ledger. DAO открывает только существующий rw/ro DB и требует актуальный successful migration journal. Failed/unsupported schema не чинится этим API.
 
 Следующие части не вправе автоматически replay interrupted sends: timeout/lost response/lease loss остаются unknown. Runtime OFF и category admission DENY_ALL сохраняются до настоящих prerequisites; optional #501, media/CTA allowlists, abuse/privacy review, pilot identities/sends и deployment требуют собственных проверок и отдельного разрешения. UI/transport source mocks не доказывают Telegram delivery. Этот foundation не меняет public rollout или G-11.
+
+
+## Изолированная очередь #948
+
+`CampaignDelivery` и `CampaignWorker` из `service_campaign_delivery.py` — отдельный source-only слой; persistence находится в `campaign_queue_store.py`, статическая additive schema — в `campaign_queue_schema.py`, расписание — в `campaign_schedule.py`. Импорт/конструктор не создаёт tasks/listeners, не открывает БД и не запускает scheduler. В `app_runtime` ничего не зарегистрировано; Bot API adapter, env flags и реальные credentials отсутствуют. Публикация части не принимает весь #874.
+
+### Реальное admission и тестовые границы
+
+По умолчанию конфигурация OFF и реальное admission DENY_ALL. Отсутствующая policy не разрешает даже создание queue job/snapshot; отсутствие transport не запускает worker. Trusted server-side `CampaignPolicy` обязан отдельно подтвердить category и recipient; только точный True разрешает действие, неизвестный ответ/ошибка не дают прав. Категория не классифицируется как mandatory. Реальная policy #501 здесь не реализована, defaults/consent не выдуманы.
+
+Положительная fake policy используется **только в isolated tests с fake transport**. Это не согласие клиента, операторское approval, продуктовая policy или способ включить рассылку. Python injection point предназначен для будущего проверенного server-side adapter, не для role strings/JSON/callback payload или кнопки Owner «разрешить сейчас». До настоящих #501/privacy/abuse prerequisites runtime wiring запрещено. Прикладной код не должен устанавливать test policy в production.
+
+Owned prepare/get/list/confirm/pause/cancel/resume используют текущий Owner authorizer и owner_id в SQL. Worker повторно проверяет текущего Owner и category/recipient admission перед обращением к transport. Policy/RBAC ожидание ограничено 3 секундами; errors обезличены. Чтение/остановка существующей owned job доступны авторизованному Owner и при выключенном delivery, чтобы OFF не мешал безопасной остановке.
+
+### UTC/IANA расписание
+
+Вход — точная строка `YYYY-MM-DDTHH:MM` без offset/секунд плюс явный IANA key с `/` либо UTC. Нет host-local TZ, fallback UTC или угадывания сокращений. DST gap/fold, неизвестный key, отсутствие timezone data, прошедшее/равное now время и срок далее 366 дней отклоняются. Fold не выбирается автоматически: оператор должен задать однозначное время. Сборка pinned image проверяет UTC и IANA data под UID10001 без новых packages/privileges; policy/runtime от этого не включаются.
+
+Принятый UTC instant фиксируется и не переинтерпретируется после обновления TZ data. Проверка часов обновляется после получения SQLite write transaction, чтобы ожидание lock не сделало прошлое расписание «будущим». Prepare и confirm не принимают уже наступивший срок. Первый старт позже ready_at более чем на 60 секунд переводит job в paused; массового catch-up после простоя нет. Подтверждённый своевременный запуск и ограниченные safe 429 retries — отдельные состояния, не повтор исходной confirmation.
+
+Resume — отдельное явное owned действие с **новым будущим** временем через тот же parser. Исходные due_at/timezone/local_time неизменяемы; ready_at показывает следующее UTC время. Пока intent/lease не завершён, resume блокируется. Unknown recipients не возвращаются в pending. Обратный ход относительно clock_seen закрывает доступ без новых попыток.
+
+### Snapshot, identity и хранение
+
+Prepare требует owned frozen revision и подтверждённый category admission. SQL snapshot включает только unique existing users JOIN trusted private contacts, unblocked и подходящие local User Groups с exclude priority. Сохраняется bounded набор **кандидатов**, не утверждение eligibility/consent/reachability; персональный admission проверяется перед dispatch. Пустой набор либо более 1000 кандидатов откатывает всю transaction, без частичного fan-out. SQL VM ограничен прогресс-бюджетом 10 млн операций/5 секунд; превышение прерывает запрос и откатывает transaction без частичного snapshot. Это не deadline disk commit: при неопределённом commit сохраняется outcome unknown. Fingerprint считается ограниченными batches100; публичный результат содержит только aggregate counts и immutable identities, без ID list/body/owner ID.
+
+В schema17 отдельная private-contact generation создаётся для verified v16 proofs, никогда из users/import. Новый trusted observation создаёт generation, повтор сохраняет её. Удаление contact удаляет generation даже при FK=OFF в старом DB helper; recreate с тем же ID и timestamp получает другую generation. Snapshot привязан к прежней generation и не может приобрести права нового proof. Удалённый/blocked user, изменившаяся membership или отсутствующая группа не обходятся fallback «все».
+
+Job содержит immutable revision/payload SHA, operation UUID4, исходное расписание и sealed snapshot SHA. Одинаковый owner+operation с тем же spec возвращает существующую job; другой spec конфликтует. Повтор confirm того же snapshot не создаёт recipients/attempts заново. Будущий UI обязан сохранять один operation ID на один intent; новый UUID не является механизмом retry неизвестной доставки.
+
+Пределы: 100 jobs на owner, 1000 candidates/job, page8. История identity/snapshot/attempts не удаляется автоматически; terminal outcomes неизменяемы. Retention/privacy и реальный сбор данных требуют отдельного review до runtime activation. SQL guards запрещают прямой переход draft→running, запись sent без intent, смену frozen identity и возврат terminal recipient/attempt в работу. Framework проверяет все SQL definitions/indexes/triggers, control singleton и целостность generation; missing/unjournaled state не чинится DAO.
+
+### Fenced worker и результаты
+
+Один private singleton lease разрешает максимум один campaign worker в БД; token не выходит в DTO. Lease 30 секунд обновляется только с правильным token до истечения. Expired/lost lease или restart с durable intent переводит его в unknown, job в paused; interrupted intent **не повторяется автоматически**. Внутрипроцессный lock дополнительно сериализует tick одного объекта. Один явный tick обращается к transport максимум один раз, отдельный campaign budget допускает не чаще одного dispatch за 2 секунды и не занимает общий client/admin limiter.
+
+Durable intent фиксируется **до** вызова transport. Lost commit result — CampaignOutcomeUnknown, не безопасный failure; автоматического retry нет. Подтверждение требует точного chat ID и положительного message ID. Mismatch/невалидный reply, timeout/network exception и неопределённый 5xx outcome — unknown/no-replay, job paused, экземпляр worker останавливает новые dispatch. Поздний ответ не перезаписывает unknown. Нет обещания exactly-once sendMessage.
+
+Только trusted typed подтверждение «не принято» 429 допускает retry_after 1…3600 секунд, local backoff и максимум **3 durable intents** на recipient. Это включает доказанные not_sent preflight reservations; resume не обнуляет счётчик. Третий safe 429 завершает recipient как failed/retry_exhausted. Неизвестный/невалидный retry_after не становится safe retry. Подтверждённый unavailable/403 — terminal unavailable; blocked proof не снимается новым observation. Иные HTTP/body ошибки нельзя классифицировать по сырому тексту как safe failure.
+
+До обращения повторно проверяются current proof/groups/admission/fence. Доказанный отказ до вызова transport фиксируется not_sent: персональный deny/недоступность кандидата — skipped, глобальный policy/stop — pending в paused job, cancel — terminal cancelled. Эти записи не утверждают доставку. Положительный fake acknowledgment доказывает только обработку isolated ответа в тесте, не Telegram delivery.
+
+Transport ожидание ограничено 10 секундами. Cancellation не гарантирует прекращения внешней операции: некооперативная task может завершиться позднее, результат остаётся unknown; исключение извлекается без логирования payload. Такой worker не начинает новые dispatch. close ждёт текущий bounded tick, приостанавливает остаток и возвращает False, пока некооперативная task ещё pending; True не отменяет прежний unknown outcome.
+
+Pause/cancel запрещают новые intents. Уже in-flight попытка может подтвердиться либо стать unknown; cancel не откатывает отправленное. Pending recipients при cancel становятся cancelled, при pause сохраняются для явного future resume. После owner stop/lease loss нет автоматического replay. Перезапуск worker не является разрешением повторить unknown.
+
+### Собственный acceptance и дальнейшие зависимости
+
+Собственный #948 scope — offline schedule/migration/state/ownership/fencing/retry/stop/privacy regressions, trust-boundary review, required CI, immutable RC и publication/main checkpoint. Реальные сообщения/listeners/боты/VPS здесь не нужны и не разрешаются. Parent #874 остаётся OPEN до #949/policy #501/privacy/abuse/allowlists/deployment/pilot. `app_runtime` не получает fake policy или transport, G-11/public rollout этим источником не принимаются.

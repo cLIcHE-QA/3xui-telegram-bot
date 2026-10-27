@@ -15,7 +15,7 @@ from campaign_store import CampaignConflict, CampaignLimit, CampaignNotFound, Ca
 from db import Database, UserRecord
 from db_migrations import (
     DatabaseMigrationBlockedError, DatabaseMigrationError, DatabaseSchemaTooNewError,
-    MIGRATIONS, MigrationStep, current_schema_version, run_migrations,
+    CURRENT_SCHEMA_VERSION, MIGRATIONS, MigrationStep, current_schema_version, run_migrations,
 )
 from service_campaigns import CampaignDenied, CampaignInvalid, ServiceCampaigns
 
@@ -248,7 +248,7 @@ class CampaignFoundation947Tests(unittest.IsolatedAsyncioTestCase):
         with sqlite3.connect(self.path) as conn:
             conn.row_factory = sqlite3.Row
             row = dict(conn.execute("SELECT * FROM schema_migrations WHERE version=16").fetchone())
-            row.update(version=17, name="future_fixture", status="failed")
+            row.update(version=CURRENT_SCHEMA_VERSION + 1, name="future_fixture", status="failed")
             conn.execute(f"INSERT INTO schema_migrations({','.join(row)}) VALUES ({','.join('?' for _ in row)})", tuple(row.values()))
         with self.assertRaises(CampaignUnavailable):
             await self.api.list_drafts(10)
@@ -278,7 +278,8 @@ class CampaignMigration947Tests(unittest.IsolatedAsyncioTestCase):
             denied = ServiceCampaigns(db, authorize_owner=AsyncMock(return_value=True))
             with self.assertRaises(CampaignUnavailable):
                 await denied.list_drafts(10)
-            await db.init(); await db.init()
+            await run_migrations(path, migrations=MIGRATIONS[:16])
+            await run_migrations(path, migrations=MIGRATIONS[:16])
             self.assertEqual(await current_schema_version(path), 16)
             self.assertEqual((await db.get(1001)).expiry_time, 12345)
             with sqlite3.connect(path) as conn:

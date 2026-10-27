@@ -122,3 +122,5 @@ Roadmap меняется только по факту, а не авансом.
 3. waiver используется только после фактического review;
 4. current-state документы не содержат заведомо устаревших pending/private/version/status утверждений;
 5. historical evidence сохраняет audit trail.
+
+Контракт сервисных кампаний также покрывает source-only очередь #948: `service_campaign*.py` и `campaign_*.py` требуют актуализации `docs/SERVICE_CAMPAIGNS.md`; tests/fixture policy не заменяют реальное category/recipient admission и не дают разрешения runtime-отправок.

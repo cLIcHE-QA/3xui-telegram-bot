@@ -403,7 +403,12 @@ async def _validate_current_schema(
     include_plan_audience: bool = False,
     include_plan_hwid: bool = False,
     include_campaign_foundation: bool = False,
+    include_campaign_queue: bool = False,
 ) -> None:
+    if include_campaign_queue:
+        from campaign_queue_schema import queue_schema_valid
+        if not await queue_schema_valid(db):
+            raise DatabaseMigrationError("Campaign delivery schema mismatch")
     if include_campaign_foundation:
         await _validate_campaign_foundation(db)
     skipped_tables: set[str] = set()
@@ -1199,6 +1204,15 @@ async def _migration_0016_service_campaign_foundation(db: aiosqlite.Connection) 
     )
 
 
+async def _migration_0017_service_campaign_queue(db: aiosqlite.Connection) -> None:
+    from campaign_queue_schema import create_queue_schema
+    await create_queue_schema(db)
+    await _validate_current_schema(
+        db, include_bot_update_acknowledgments=True, include_plan_audience=True,
+        include_plan_hwid=True, include_campaign_foundation=True, include_campaign_queue=True,
+    )
+
+
 MIGRATIONS: tuple[MigrationStep, ...] = (
     MigrationStep(
         version=1,
@@ -1285,6 +1299,8 @@ MIGRATIONS: tuple[MigrationStep, ...] = (
                   apply=_migration_0015_plan_hwid_limit_v5_0_0, requires_backup=False),
     MigrationStep(version=16, name="service_campaign_foundation_v5_0_0",
                   apply=_migration_0016_service_campaign_foundation, requires_backup=False),
+    MigrationStep(version=17, name="service_campaign_queue_v5_0_0",
+                  apply=_migration_0017_service_campaign_queue, requires_backup=False),
 )
 
 CURRENT_SCHEMA_VERSION = MIGRATIONS[-1].version
@@ -1480,7 +1496,7 @@ async def run_migrations(
         if steps == MIGRATIONS:
             await _validate_current_schema(
                 db, include_bot_update_acknowledgments=True, include_plan_audience=True,
-                include_plan_hwid=True, include_campaign_foundation=True,
+                include_plan_hwid=True, include_campaign_foundation=True, include_campaign_queue=True,
             )
         await _quick_check(db)
         return current_version
