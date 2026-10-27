@@ -264,6 +264,8 @@ Streisand не передаёт совместимый `X-HWID` в raw subscript
 
 ## Subscription Compatibility Proxy
 
+**Готовящийся #885 / PR #886:** private-owner Telegram карточка может выдать короткоживущий same-origin HTTPS handoff к существующему `import_uri()` через `client_import_handoff.py`. Opaque ticket — одноразовый bearer-like URL (90 секунд, process-local limit 256), raw URI не помещается в Telegram URL. Copy/QR сохраняются; новые provider mutations и порты отсутствуют. Это изменение не входит в Published rc.20; реальные device/import/refresh и deployment PENDING. [Контракт клиента](docs/CLIENT_SETUP.md), [security](SECURITY.md#subscription-credentials-и-access-logs).
+
 
 Проект сохраняет встроенный compatibility proxy для подписок, управляемых ботом.
 

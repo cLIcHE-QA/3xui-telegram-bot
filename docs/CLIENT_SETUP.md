@@ -40,6 +40,12 @@
 | OneXray | iOS, Android, Windows, macOS, Linux | `#<encoded subTitle>` | candidate; версии и импорт PENDING |
 | Throne | Android, Windows, macOS, Linux | Base64(`URL#subTitle`) | candidate; версии и импорт PENDING |
 
+### #885 — HTTPS handoff (не входит в Published rc.20)
+
+При корректном `COMPAT_SUBSCRIPTION_URL_TEMPLATE=https://<public-host>/compat/{sub_id}` private-owner карточка клиента дополнительно предлагает «🚀 Открыть в <клиент>». Существующие pilot/feature/rate/private guards остаются; HTTPS кнопка содержит только случайный одноразовый ticket. На странице — попытка открыть приложение и отдельная явная кнопка, если автоматический переход заблокирован браузером. Это не обещание успешного импорта или VPN-соединения; CopyTextButton/локальный QR и Back сохраняются. При отключённом/невалидном template или неподдержанном URI кнопки и инструкции нажать её нет.
+
+Ticket сам кратковременно даёт доступ к подписке: не пересылать, не публиковать и не логировать. TTL 90 секунд, максимум 256 активных tickets; одна успешная GET выдача, HEAD/POST/query не списывают payload. Restart/другой процесс теряют ticket — вернуться в свою карточку для нового действия. Страница не обращается к 3x-ui, не использует внешние redirectors и не сохраняет URI в браузерном storage. Перед будущим включением на production сверить no-log/no-store/HTTPS по [Admin Setup](ADMIN_SETUP.md) и [security boundary](../SECURITY.md). Отдельные targeted Telegram iOS/Android/desktop → handoff → client import/refresh/expiry ограничения ещё PENDING; #885 keep_open, проверки отложены по #930.
+
 ### Полная матрица меню «Подключить устройство» — пять платформ
 
 | ОС | Кандидаты client-specific import URI | Резерв |

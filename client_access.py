@@ -21,6 +21,7 @@ from config import load_settings
 from client_flags import ClientFeatureFlags
 from client_deep_links import IMPORT_CLIENTS, TITLE_IMPORT_CLIENTS, import_uri
 from client_import_title import fetch_import_title
+from client_import_handoff import issue_handoff
 from client_rate_limit import SlidingWindowRateLimiter
 from customer_service import (
     CustomerDeviceDeletePrompt,
@@ -1143,10 +1144,15 @@ async def onboarding_cb(call: CallbackQuery):
 
 def _import_app_menu(
     *, platform: str, app: str, prefix: str,
-    url: str | None, uri: str | None,
+    url: str | None, uri: str | None, handoff_url: str | None = None,
 ) -> InlineKeyboardMarkup:
     """Bearer values only in Telegram private-chat copy action, never callback."""
     rows: list[list[InlineKeyboardButton]] = []
+    if handoff_url is not None:
+        rows.append([InlineKeyboardButton(
+            text=f"🚀 Открыть в {IMPORT_CLIENTS[app].name}",
+            url=handoff_url,
+        )])
     if uri is not None:
         rows.append([InlineKeyboardButton(
             text="📋 Скопировать ссылку импорта",
@@ -1284,14 +1290,29 @@ async def onboarding_platform_cb(call: CallbackQuery):
         return
 
     app_name = IMPORT_CLIENTS[app].name if app in IMPORT_CLIENTS else "Другой клиент"
-    hint = (
-        "Формат URI описан разработчиком приложения; работа на вашей версии "
-        "требует проверки. Скопируйте ссылку импорта или сканируйте QR "
-        "в выбранном VPN-клиенте. Telegram не открывает custom URI через URL-кнопку."
-        if uri is not None else
-        "Для выбранного приложения, URL или версии безопасный URI не сформирован. "
-        "Используйте обычный URL/QR и ручной импорт в приложении."
+    handoff_url = (
+        issue_handoff(
+            url, client=app, platform=platform, uri=uri, title=import_title,
+            public_template=settings.compat_subscription_url_template,
+        )
+        if uri is not None and url is not None
+        and settings.compat_subscription_url_template else None
     )
+    if uri is not None:
+        action_hint = (
+            f"Нажмите «Открыть в {app_name}». "
+            if handoff_url is not None else ""
+        )
+        hint = (
+            "Формат URI описан разработчиком приложения; работа на вашей версии "
+            "требует проверки. " + action_hint
+            + "Можно скопировать ссылку или сканировать QR в выбранном VPN-клиенте."
+        )
+    else:
+        hint = (
+            "Для выбранного приложения, URL или версии безопасный URI не сформирован. "
+            "Используйте обычный URL/QR и ручной импорт в приложении."
+        )
     if url is None:
         hint = "Ссылка подписки не подтверждена; импорт и QR недоступны."
     await render_callback(
@@ -1301,6 +1322,7 @@ async def onboarding_platform_cb(call: CallbackQuery):
         "и не изменяет подписку, HWID или оплату.",
         reply_markup=_import_app_menu(
             platform=platform, app=app, prefix=prefix, url=url, uri=uri,
+            handoff_url=handoff_url,
         ),
     )
     await call.answer()

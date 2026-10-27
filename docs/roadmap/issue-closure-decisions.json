@@ -281,6 +281,14 @@
       "evidence": "docs/audits/2026-10-27-rc20-publication-checkpoint.md",
       "date": "2026-10-27",
       "comment": "Собственный post-merge checkpoint Issue сохраняет deployment и targeted production QR/device/API compatibility/health PENDING; отложены по #930. CI не доказывает runtime acceptance, Deployed rc.18.10 operator-reported."
+    },
+    {
+      "issue": 885,
+      "decision": "keep_open",
+      "accepted": "Pre-merge targeted offline29/29 PASS after current-main integration; exact payload/HEAD/owner/fallback hardening, fresh full suite/PR CI PENDING; no main implementation or publication claimed",
+      "evidence": "docs/audits/2026-10-27-885-handoff-premerge-review.md",
+      "date": "2026-10-27",
+      "comment": "#885 keep_open: required CI/merge/release-prep rc.21 follow; deployment and physical Telegram/client import/refresh own acceptance deferred by #930. No new production operations, G-11 PARTIAL/NO-GO."
     }
   ]
 }

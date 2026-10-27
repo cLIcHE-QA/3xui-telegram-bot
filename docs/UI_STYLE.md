@@ -23,11 +23,11 @@
 
 ОС → клиент: Happ и Shadowrocket доступны на macOS (Apple); Shadowrocket не предлагается на Android. V2Box/Karing используют безопасный динамический `subTitle` в `name`, OneXray — в fragment, Throne — в Base64 payload; при отсутствии валидного title для обязательного `name` применяется URL/QR fallback. Отображение не утверждает live PASS неподтверждённых версий.
 
-После выбора платформы показывается выбор клиента и ручной fallback. Custom import URI только через private-owner CopyTextButton или локальный QR; токен не попадает в callback_data, URL-кнопку Telegram, логи, redirect или внешний QR API. Unsupported client/URL/length -> ручной HTTPS URL/QR и честная инструкция без обещания VPN-соединения. Матрица и проверка версий — docs/CLIENT_SETUP.md; админка не меняется.
+После выбора платформы показывается выбор клиента и ручной fallback. Для точного проверенного `import_uri()` того же owner URL/платформы/клиента/title и корректного same-origin HTTPS `COMPAT_SUBSCRIPTION_URL_TEMPLATE` дополнительно показывается «🚀 Открыть в <клиент>» через `/compat/open/{ticket}`. Ticket TTL 90 секунд и общий bounded limit 256; это самостоятельный кратковременный bearer-like credential, не пересылать и не логировать. Raw subscription URL/`sub_id` и custom import URI не попадают в Telegram URL/callback_data, HTTP redirect или внешние QR/trackers. Страница делает best-effort auto-open и сохраняет явную кнопку; бесшовный запуск из WebView не гарантирован. При недоступном handoff нет кнопки и инструкции нажать её, CopyTextButton/QR и parent/Back сохраняются. HEAD/POST/query не потребляют ticket; истёкший/повторный GET отказывает с no-store/no-referrer. Unsupported client/platform/URL/length сохраняют ручной HTTPS URL/QR и честную инструкцию без обещания VPN-соединения; матрица версий в docs/CLIENT_SETUP.md, админка не меняется.
 
 
 
-## Моя подписка — read-only карточка (#497, кандидат rc.19)
+## Моя подписка — read-only карточка (#497, Published rc.19; acceptance отложен)
 
 `/subscription` и `🌐 Моя подписка` используют единый owner-scoped снимок `CustomerPortalService.subscription_card()`. Карточка отдельно показывает состояние VPN (`active/disabled/expired/suspended/provisioning/unknown`), entitlement-период, ограниченное название тарифа, подтверждённый срок и активацию. Ошибка провайдера, expiry drift или недостаток фактов не превращаются в `active`; неподтверждённый срок обозначается явно.
 
@@ -35,7 +35,7 @@
 
 Bearer-like URL и `📋 Скопировать ссылку` (`CopyTextButton`) доступны только в `private` при `chat.id == from_user.id` и действующих pilot/feature/rate gates. Callback не принимает внешний owner ID. Повреждённые URL не получают кнопку копирования. Действия: `📱 Подключить устройство` с контекстным возвратом, `💳 Купить / продлить` через существующий guarded Stars flow (только если enabled), `🛠 Проверить состояние` и `⬅ Личный кабинет`. Кнопку reconcile не добавлять до #498; deep-links — отдельный #473. Просмотр не меняет identity, entitlement, provider или платежи.
 
-Кандидат rc.19 не включён в текущий Published/Deployed rc.18.10; merge, release, smoke и acceptance подтверждаются отдельно.
+#497 опубликован начиная с rc.19; текущие Published/Deployed/Accepted проверяются по Roadmap. Deployment и собственный targeted acceptance остаются PENDING; общий v5 G-11 PARTIAL/NO-GO.
 
 ## Отображение версии ОС и типа устройства (#814/#816, rc.18.1)
 
