@@ -4,7 +4,7 @@
 
 Руководство для оператора ограниченного клиентского пилота: включение и выключение клиентского контура, безопасный read-only smoke, Stars pre-checkout и rollback. Настройка Master/3x-ui, резервного копирования и секретов — в [ADMIN_SETUP.md](ADMIN_SETUP.md); полная приёмка — в [V5_PRODUCTION_ACCEPTANCE.md](V5_PRODUCTION_ACCEPTANCE.md). Это **нормативные инструкции**, а не история релизов.
 
-**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.24` SHA `d7e224b48b23a315c389c290594c975dba2f9684`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
+**CONTROLLED PILOT ONLY / PUBLIC LAUNCH BLOCKED.** **Текущий статус контролируемого пилота:** [Roadmap](ROADMAP.md) — Published `v5.0.0-rc.25` SHA `1c0854c9b416a2d0f2ccbe9083d62d88794307ed`; Deployed operator-reported `v5.0.0-rc.18.10` exact SHA, HWID 23/23 operator-reported targeted scoped PASS, #827/#830/#833/#834/#838/#854 completed ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)). Independent VPS read-back PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Ранние rc.18.2 15/15/H1–H8 PASS не повторялись.
 
 ## Client Portal: тарифы и платежные ограничения
 
@@ -15,11 +15,11 @@
 
 ## Source-only foundation кампаний #947
 
-В текущем Client Portal нет нового экрана, observer или отправки кампаний. Source schema v16/API входят в Published rc.24; private-contact ledger пуст без доверенного внутреннего observation API и не backfill из users/импорта. Private proof не означает opt-in/consent/eligibility: dry-run возвращает только bounded candidates и всегда deliverable=0/unapproved. Policy #501 и родительский UI/queue/pilot #874 PENDING; [нормативный контракт](SERVICE_CAMPAIGNS.md). Новых client flags/slash-команд нет; существующие pilot/private/ownership guards не меняются.
+В текущем Client Portal нет нового экрана, observer или отправки кампаний. Foundation schema v16/API впервые опубликованы в rc.24 и сохранены в rc.25/schema17; private-contact ledger пуст без доверенного внутреннего observation API и не backfill из users/импорта. Private proof не означает opt-in/consent/eligibility: dry-run возвращает только bounded candidates и всегда deliverable=0/unapproved. Policy #501 и родительский UI/integration/pilot #874 PENDING; [нормативный контракт](SERVICE_CAMPAIGNS.md). Новых client flags/slash-команд нет; существующие pilot/private/ownership guards не меняются.
 
-## Source-очередь #948 в main
+## Source-очередь #948 — Published rc.25
 
-В Client Portal не появляются новые экраны или команды. Изолированные schedule/queue/worker исходники не подключены к runtime: конфигурация OFF, реальное category/recipient admission DENY_ALL. Candidate snapshot не означает consent/eligibility/reachability; fake policy/transport в тестах не подтверждают Telegram delivery. Поздние policy/privacy/UI/pilot gates принадлежат #874/#501; отдельный source-only RC не принимает весь эпик. [Контракт](SERVICE_CAMPAIGNS.md).
+Published rc.25/schema17 включает source-only очередь. В Client Portal не появляются новые экраны или команды. Изолированные schedule/queue/worker исходники не подключены к runtime: конфигурация OFF, реальное category/recipient admission DENY_ALL. Candidate snapshot не означает consent/eligibility/reachability; fake policy/transport в тестах не подтверждают Telegram delivery. Поздние policy/privacy/UI/pilot gates принадлежат #874/#501; отдельный source-only RC не принимает весь эпик. [Контракт](SERVICE_CAMPAIGNS.md).
 
 ## Актуальные команды и совместимость (#564)
 
