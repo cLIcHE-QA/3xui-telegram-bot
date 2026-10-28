@@ -238,6 +238,8 @@ CI проверяет route/method, Bearer auth, request/response contract и so
 
 Подробнее: **[3x-ui OpenAPI compatibility contract](docs/3XUI_OPENAPI_CONTRACT.md)**.
 
+Для разработки API budget #482 доступен [полностью offline baseline](scripts/benchmark-panel-reads.py): synthetic get/traffic/list и same/unique-owner чтения без подключения к панели, URL/token/env/DB input. [Методика и ограничения](docs/3XUI_OPENAPI_CONTRACT.md#offline-baseline-чтений-482972) отделяют bot JSON/driver metrics от реальной мощности 3x-ui/Xray; результат не разрешает live load.
+
 ### User / Audience Groups
 
 V4.22 добавляет отдельные `Группы пользователей` для сегментации будущего Client Portal:

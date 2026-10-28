@@ -107,3 +107,18 @@ python -m unittest tests.test_v417_openapi_contract -v
 ~~~
 
 Успешный checker печатает pinned version, количество покрытых endpoints и upstream blob SHA.
+
+
+## Offline baseline чтений (#482/#972)
+
+`scripts/benchmark-panel-reads.py` измеряет существующие `XUIClient.get_client/traffic/clients_list` и `XuiCustomerProvider.traffic` с заменой только HTTP transport. Fixture соответствует потребляемой bot shape, а не обещает исчерпывающую модель upstream. CLI не принимает адрес/токен/config/DB и не импортирует app_runtime; только фиксированные synthetic identities `example.invalid`. В измеряемом scope конструктор socket, DNS и real aiohttp connector запрещены, любые незнакомые method/route/header/TLS варианты завершают case ошибкой. Нет live mode, listeners, mutations или автоматического polling.
+
+```bash
+python3 scripts/benchmark-panel-reads.py > /tmp/panel-read-baseline.json
+```
+
+Запускать из штатного CPython3.12 environment с hashed dependencies. Поддерживаемые environments измерения — Linux/macOS (`resource.ru_maxrss`); новых dependencies/env/credentials/операторского setup нет. Фикстуры сериализуются до timed phase, для каждого case отдельный subprocess; ошибка/timeout не печатает неполный report. Параметры: до3 уникальных `--clients` (1…10000), до5 `--scenario` из фиксированного списка, `--requests`1…256, `--concurrency`1…32 и не больше числа операций, `--delay-ms`0…20. Дополнительно list work ограничен320000 records/case, worker timeout60s, максимальная матрица15 cases. Raw report содержит timestamp/Python/OS/architecture/logical CPU, Git head/dirty flag и SHA-256 измеряемых файлов.
+
+`operations_per_second`, API calls/sec и p50/p95 — execution в синтетическом driver с включённым tracemalloc, без ожидания в driver backlog; synthetic delay не является измеренной network latency. `driver_initial_backlog` — размер начального остатка после выделения driver workers, не production admission queue. `peak_transport_active`/calls/session counts наблюдаются fake transport; runtime queue NOT_INSTRUMENTED. Timed heap исключает заранее созданные fixtures; process peak RSS включает imports/fixtures/весь worker и нормализован в bytes (macOS bytes/Linux KiB). Не сравнивать эти разные memory scopes и не выводить safe production defaults из fake RPS. Текущий baseline, границы измерений и source hashes сохраняются в [датированном audit](audits/2026-10-28-972-panel-read-baseline.md).
+
+Baseline не добавляет общий read admission, приоритет critical reads, pooling, TTL cache/singleflight или limiter cleanup. Эти самостоятельные scopes #482 проектируются после чтения измерений. Все paid/entitlement/quota/provisioning/post-mutation reads должны оставаться authoritative; текущая утилита их не исполняет и не меняет TLS/Bearer/no-blind-retry/mutation semantics. Реальная capacity/health и собственный deployment scope #482 отложены; Telegram burst/CPU Xray не измеряются.

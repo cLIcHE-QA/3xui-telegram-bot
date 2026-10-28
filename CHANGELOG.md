@@ -14,6 +14,10 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## Unreleased
+
+- #972 / часть #482-A: воспроизводимый полностью offline baseline текущих XUIClient get/traffic/list и same/unique owner traffic. Ограниченные synthetic fixtures/driver, отдельный process на case, реальные call/JSON/latency/CPU/heap/RSS метрики и source hashes; fake transport с запретом sockets/DNS, без live mode/config/DB. Runtime/auth/TLS/mutations/cache/session lifecycle не меняются; это стоимость разбора в боте, не throughput панели/Xray или production SLA. Остальные budget/cache/lifecycle/limiter/runtime gates #482 отдельно.
+
 ## v5.0.0-rc.27 — Настраиваемые значки клиентского портала
 
 - #966 / PR #968 — обязательный security prerequisite текущего пакета #876: dnspython2.8.0 → 2.9.0 для публичного CVE-2026-114605 (excessive DNS decompression CPU). Direct floor>=2.9,<3 и hashed lock сгенерированы pip-tools7.6.1; оба official PyPI wheel/sdist SHA-256 проверены, другие pins и base image прежние. Новых env/портов/DDL нет. Source/build проверки не доказывают установленную версию на VPS; #966 keep_open до отдельно разрешённого deployment и собственного read-only DNS/package/health outcome.
