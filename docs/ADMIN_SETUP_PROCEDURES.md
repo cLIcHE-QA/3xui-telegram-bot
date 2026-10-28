@@ -4,7 +4,7 @@
 
 **Исторический provenance:** исходные полные инструкции до реструктуризации (включая датированные rc/checkpoint, findings и deprecated paths) сохранены побайтово в [immutable Admin Setup snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md). Датированные проверки — в [аудитах](audits/) и [CHANGELOG](../CHANGELOG.md). Отдельный [исторический сценарий проверки доставки Telegram QA](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот) не является этапом production setup.
 
-> **Published rc.27:** версионные примеры ниже соответствуют immutable `bd271d583386c13c628899b7e42f550eabe7d6e6`; [publication checkpoint](audits/2026-10-28-rc27-publication-checkpoint.md) подтверждает tag/notes/provenance. Применять только после отдельного deployment-разрешения/cumulative compatibility/recovery review от operator-reported rc.18.10/schema15. #876 theme veto OFF/DB disabled, #966 source dnspython2.9.0/fresh release image gate PASS; schema17 прежняя. Реальные eligibility/IDs/client rendering и installed DNS/package/health отложены; source #949 не зарегистрирован.
+> **Release-prep rc.28, ещё не Published:** версионные примеры ниже соответствуют candidate APP_VERSION rc.28; применять только после actual Published tag и отдельного deployment-разрешения/cumulative compatibility/recovery review. Фактический Published RC27/schema17 подтверждён [publication checkpoint](audits/2026-10-28-rc27-publication-checkpoint.md). #972 — offline development tool, runtime/deps/schema17/operator steps прежние; #876 veto/DB OFF, #949 не зарегистрирован. Deployed18.10 только operator-reported, остальные operator/runtime gates отложены.
 
 ## 0. Что понадобится
 
@@ -70,7 +70,7 @@ Client-side routing profiles Happ/Incy настраиваются отдельн
 
 Не переходи к bot onboarding, пока Master и node panel URL не открываются с verified TLS.
 
-Для bot release `v5.0.0-rc.27` исходный native API contract pinned к 3x-ui `v3.10.2`; **Pinned supported 3x-ui для текущего `main`: `v3.10.2`**. Сверяйте этот контракт с [3x-ui OpenAPI](3XUI_OPENAPI_CONTRACT.md) и [current manifest](../contracts/3xui/contract.json), а реальную версию каждой панели Master/direct node — отдельно при preflight. Совпадение контрактного API не доказывает rollout, VPS upgrade, совместимость Xray data plane или acceptance. Для upstream upgrade требуются самостоятельные backup, TLS/CA, systemd, routing, staging и targeted verification; source старой длинной rc.9–rc.16 сводки сохранён в immutable snapshot выше.
+Для bot release `v5.0.0-rc.28` исходный native API contract pinned к 3x-ui `v3.10.2`; **Pinned supported 3x-ui для текущего `main`: `v3.10.2`**. Сверяйте этот контракт с [3x-ui OpenAPI](3XUI_OPENAPI_CONTRACT.md) и [current manifest](../contracts/3xui/contract.json), а реальную версию каждой панели Master/direct node — отдельно при preflight. Совпадение контрактного API не доказывает rollout, VPS upgrade, совместимость Xray data plane или acceptance. Для upstream upgrade требуются самостоятельные backup, TLS/CA, systemd, routing, staging и targeted verification; source старой длинной rc.9–rc.16 сводки сохранён в immutable snapshot выше.
 
 ## 2. Базовая подготовка Master VPS
 
@@ -108,7 +108,7 @@ cd 3xui-telegram-bot
 git fetch --tags --prune
 # Только после отдельного разрешённого merge release-prep,
 # появления immutable published tag и проверки его SHA:
-git checkout --detach v5.0.0-rc.27
+git checkout --detach v5.0.0-rc.28
 ~~~
 
 Проверка release:
@@ -123,7 +123,7 @@ PY
 Ожидается **только после публикации и отдельного разрешённого deployment**:
 
 ~~~text
-5.0.0-rc.27
+5.0.0-rc.28
 ~~~
 
 ## 4. Создай local admin venv
@@ -605,15 +605,15 @@ SSH port: SSH_PORT
 cd /opt/3xui-bot/3xui-telegram-bot
 
 bash scripts/build-host-control-bundle.sh \
-  /root/3xui-host-control-bundle-v5.0.0-rc.27.tar.gz
+  /root/3xui-host-control-bundle-v5.0.0-rc.28.tar.gz
 ~~~
 
 Передай только secret-free bundle и checksum:
 
 ~~~bash
 scp -P SSH_PORT \
-  /root/3xui-host-control-bundle-v5.0.0-rc.27.tar.gz \
-  /root/3xui-host-control-bundle-v5.0.0-rc.27.tar.gz.sha256 \
+  /root/3xui-host-control-bundle-v5.0.0-rc.28.tar.gz \
+  /root/3xui-host-control-bundle-v5.0.0-rc.28.tar.gz.sha256 \
   root@NODE_PUBLIC_IP:/root/
 ~~~
 
@@ -623,7 +623,7 @@ scp -P SSH_PORT \
 
 ~~~bash
 cd /root
-sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.27.tar.gz.sha256
+sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.28.tar.gz.sha256
 ~~~
 
 Распакуй:
@@ -632,7 +632,7 @@ sha256sum -c 3xui-host-control-bundle-v5.0.0-rc.27.tar.gz.sha256
 rm -rf /root/3xui-host-control-install
 mkdir -p /root/3xui-host-control-install
 
-tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.27.tar.gz \
+tar -xzf /root/3xui-host-control-bundle-v5.0.0-rc.28.tar.gz \
   -C /root/3xui-host-control-install
 ~~~
 
@@ -1073,10 +1073,10 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Критерии:
 
 ~~~text
-Git tag: v5.0.0-rc.27
+Git tag: v5.0.0-rc.28
 Container: running
 RestartCount=0
-Bot version: 5.0.0-rc.27
+Bot version: 5.0.0-rc.28
 Health: ok
 DB: ok
 3x-ui connectivity: ok

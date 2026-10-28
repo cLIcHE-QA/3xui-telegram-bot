@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.27
+# Telegram-бот для 3x-ui v5.0.0-rc.28
+
+> **Release-prep `v5.0.0-rc.28`, ещё не Published:** одна самостоятельная source-tool задача #972 (#482-A), offline baseline чтений panel API из #973. [Source checkpoint #974](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/974) main `057cbc1adcc84b0938a9e884683fdaaece9bcb46`/independent read-back PASS, source1751 tests/fresh image PASS. Реальная panel/Xray capacity не измерялась, bot runtime/deps/schema17 прежние. #972 ждёт own publication/closure, parent482 OPEN до остальных budget/cache/lifecycle/limiter/runtime scopes. Фактический Published ниже RC27; Deployed18.10 только operator-reported.
 
 > **Published `v5.0.0-rc.27`:** выбранная задача #876 — default-off Owner редактор 25 значков Client Portal (#965), обязательный security prerequisite #966/#968 — dnspython2.9.0. [Publication audit](docs/audits/2026-10-28-rc27-publication-checkpoint.md) подтверждает immutable tag/notes/provenance и fresh release image gate. Schema17 прежняя, theme local veto/DB enable OFF. #876/#966 OPEN/keep_open: реальные emoji eligibility/IDs/deployment/rendering и read-only deployed DNS/package/health PENDING; Deployed rc.18.10 только operator-reported.
 
