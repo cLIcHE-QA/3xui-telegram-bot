@@ -4,7 +4,7 @@
 
 **Исторический provenance:** исходные полные инструкции до реструктуризации (включая датированные rc/checkpoint, findings и deprecated paths) сохранены побайтово в [immutable Admin Setup snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md). Датированные проверки — в [аудитах](audits/) и [CHANGELOG](../CHANGELOG.md). Отдельный [исторический сценарий проверки доставки Telegram QA](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот) не является этапом production setup.
 
-> **Release-prep rc.29, ещё не Published:** версионные примеры ниже соответствуют candidate APP_VERSION rc.29; применять только после actual Published tag и отдельного deployment-разрешения/cumulative compatibility/recovery review. Фактический Published RC28/schema17 подтверждён [publication checkpoint](audits/2026-10-28-rc28-publication-checkpoint.md); его development-tool import defect #977 исправлен в source main, но ещё не Published. Operator setup/schema17/deps прежние; #876 veto/DB OFF, #949 не зарегистрирован. Deployed18.10 operator-reported, остальные runtime gates отложены.
+> **Текущий Published rc.29:** версионные примеры соответствуют APP_VERSION rc.29, immutable tag `4422c8b5f1ff8d8a36343f9ef29becd213caab47`; [publication checkpoint](audits/2026-10-28-rc29-publication-checkpoint.md). Применять только после отдельного deployment-разрешения/cumulative compatibility/recovery review. Import repair #977 не меняет operator setup/schema17/deps; #876 veto/DB OFF, #949 не зарегистрирован. Deployed18.10 operator-reported, остальные runtime gates отложены.
 
 ## 0. Что понадобится
 
