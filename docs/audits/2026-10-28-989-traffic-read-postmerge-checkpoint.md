@@ -1,0 +1,39 @@
+# #989 — source merge и повторная проверка main
+
+<!-- audit-schema: 1 -->
+- **Дата/время и часовой пояс:** 2026-10-28 21:33 UTC+03:00
+- **Окружение:** GitHub required CI/main; изолированный source image build; synthetic/loopback unit fixtures, без production операций
+- **Цель:** подтвердить source990 в main и собственные regression/security/image/Issue evidence перед отдельным RC31.
+- **Версия и immutable tag/SHA:** source main `309ee64bf56a653995d9600b4d3c1c5c5fa05b5d` (PR990 squash); target v5.0.0-rc.31 план/tag N/A — ещё не Published. Actual immutable RC30 `7aa3514194675ae119a2e774e03da150025326b9` без989.
+- **Scope:** source merge/read-back/PR CI/raw source identity/fresh image/security и корректировка фактического Roadmap после merge; source990 main CI FAIL из-за metadata drift, новый checkpoint/main должен его устранить. Это не release publication, deployment или реальный installed/read outcome.
+- **Фактический результат:** PARTIAL
+- **Источник и evidence:** [Source990](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/990) MERGED 2026-10-28T18:29:32Z, exact tested head `8dad3b40a29b0a603090d60f726984e49a4f3778`; [required Python40744601028](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40744601028)/job123014930304 SUCCESS1782/3 за205.796s, [final title40745451867](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40745451867)/job123017895846 SUCCESS/actual CLEAN. [Main40745618678](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40745618678)/job123018486972 FAIL на read-only Roadmap reconciliation: planned989 при уже MERGED990, full tests в этом run не запускались; [publisher40745684867](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40745684867) SKIPPED. Gate не ослабляется: этот docs-only checkpoint ставит фактический 🟡 main state; его required CI/descendant main/publisher обязаны PASS. Independent source/main/5 raw hashes/Issue/tag read-back 2026-10-28T18:29:50.414758+00:00 + отдельный connector main PASS.
+- **Ограничения и остаточные риски:** source990 main reconciliation FAIL, издатель SKIPPED; собственные required CI/merge/descendant main full suite/idempotent publisher/independent read-back этого source checkpoint PENDING; затем отдельный RC31/release-scope/health/fresh release image/immutable publication/Issue audit. R989-01 installed tag/SHA/health/существующий owner traffic read PENDING до разрешённого deployment, live failure/load не создавать. Parent482 остальные scopes и #984 runtime PENDING; G-11 PARTIAL/NO-GO/public rollout BLOCKED.
+- **Связанные Issues:** #989, #482
+- **Решение по Issues:** #989: keep_open, #482: keep_open
+- **Следующий шаг:** required CI/squash/independent main read-back этого checkpoint; отдельный release-prep RC31 с обязательными gates, затем publication/own Issue checkpoint; новые реальные операции не требуются.
+- **Раздельные состояния:** merged=source990 `309ee64bf56a653995d9600b4d3c1c5c5fa05b5d`; published=RC30 без989; deployed=rc.18.10 `dae205ac82762723448f93827b981f89ae622231` operator-reported/schema15, independent VPS PENDING; accepted=source PR/regression/image scoped PASS; source990 main reconciliation FAIL, own checkpoint/RC31/runtime989 и parent482 PENDING, G-11 PARTIAL/NO-GO/public rollout BLOCKED.
+
+## Regression и substantive review
+
+[Исходный source review](2026-10-28-989-traffic-read-source-review.md) сохраняет pre-fix11 FAIL2/34 за1.590s, post-fix11 PASS1.341s/targeted94 PASS3.567s/full1782/16 PASS102.172s. Initial sandbox bind failures и ошибочное Python --help invocation не переписаны; normal isolated loopback fixture дал PASS без ослабления source/tests/gates. Metadata96 PASS1.625s/compileall/OpenAPI55/language/living/semantics/governance/diff и independent reconciliation Published30/ref81/assert42/active42 PASS до source merge.
+
+Только traffic adapter меняет error boundary: native transport/timeout/OS и malformed mapping/numeric ошибки дают постоянный безопасный domain error from None, cancellation и неожиданный programming RuntimeError сохраняются. Нет retry/fallback/false zero на failure; successful aliases/нули/DTO совместимы. Реальный XUI/fake Session test подтверждает1/2 GET и закрытие всех sessions/admission; existing private/profile/no-profile/Back/devices unknown-limit/mutation no-replay coverage PASS. Остальные adapter definitions AST-identical, XUI/version/admission/provisioning/customer_service/client_access/lock/schema byte-identical к предыдущему main1fd. Source review не удаляет Python exception context из памяти и не объявляет general cache/pooling/limiter готовыми.
+
+## Provenance и fresh source image
+
+Новые actual [matrix15](2026-10-28-989-traffic-read-matrix.json)/[concurrency32x2](2026-10-28-989-traffic-read-concurrency32.json) измерены на committed3835/clean5 hashes; только adapter SHA-2561946daed529dff1bb2ab0167e7fd7e9917c08a2339243c35b544460451474b4c изменился. Deterministic cases/calls/bytes/session/closed/backlog/peak/owners совпали с984; fake timings/RSS не panel capacity. Независимые connector Git blobs до merge и API raw SHA-256 на actual main309ee64b совпали для всех5 файлов.
+
+Source990 main fail не является доказательством code failure: immutable implementation tree сохранил planned row до фактического squash, затем независимый checker обнаружил уже MERGED990. Публикации31 не было, старый tag30 не двигался. Исправляется только factual Roadmap/registry/docs в штатном PR с теми же required gates; старый40745618678 FAIL не перезапускается ради ложного green и остаётся в history.
+
+Fresh source [Supply-chain40745662736](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40745662736) SUCCESS на exact source SHA. Artifact12841557023, digest `sha256:5a21f541430d7f394e8c09631041520d034f6d388021e73002a2da27b573d844`, независимо скачан и проверен; metadata.source_sha/lock `7ff99d772ca5807a23df68d8442707627e1f87a160813a7b7dcb448eab78633d`/base identity, SBOM dnspython2.9.0/ISC, Python/image actionable HIGH-CRITICAL0 и отсутствие CVE-2026-114605 подтверждены. Scanner/threshold/ignore-unfixed policy/deps не менялись. Исторические966 FAIL/972/977/984 raw и audits сохранены; release31 позже проверяется отдельно.
+
+## Issue audit и текущие границы
+
+GitHub #989/#482/#984 OPEN, #972/#977 CLOSED при read-back. Собственные989 criteria1…4 offline выполнены; criterion5 source PR/image/read-back проверены, но source990 main CI FAIL на metadata drift; собственный source checkpoint/descendant main должен дать PASS. Criterion6 RC31/publication/Issue/main checkpoint и criterion7 R989-01 installed/read не завершены. Решение keep_open; source merge не completed. Parent482 pooling/lifecycle/cache/другие critical contexts/admin full-list/limiter/runtime и #984 R984-01…03 отдельно. Next scope не начинается до required checkpoints.
+
+APP_VERSION30 и actual Published30/tag/versioned CHANGELOG section прежние; новый fix990 из main не приписан старому immutable RC30. Deployed18.10 operator-reported/independent VPS PENDING; public rollout BLOCKED. Изменений операторского setup/schema/ports/credentials нет, реальные Bot sends/payments/provider/host/VPS actions не выполнялись.
+
+Собственный metadata96 clean tracked snapshot PASS1.648s; source runtime5 hashes unchanged. Required checkpoint CI/descendant main/publisher/read-back ещё PENDING. Первоначальный source main40745618678 FAIL и publisher40745684867 SKIPPED сохраняются как отдельный проверенный outcome, не превращаются в PASS по локальным tests.
+
+Тот же неизменный scripts/check-roadmap-github.py на фактическом source checkpoint даёт PASS: Published30/referenced81/status_assertions42/active42. Это проверка исправленного candidate 🟡989/MERGED990, а не переименование старого failed main run. Source5 hashes/checker/gates byte-identical; собственный required CI/descendant main outcome ещё PENDING.

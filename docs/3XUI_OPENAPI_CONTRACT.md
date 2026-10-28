@@ -132,6 +132,8 @@ python3 scripts/benchmark-panel-reads.py > /tmp/panel-read-baseline.json
 
 ## Отказ клиентского чтения трафика (#989)
 
+Source [#990](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/990) MERGED `309ee64bf56a653995d9600b4d3c1c5c5fa05b5d`; [source/main checkpoint](audits/2026-10-28-989-traffic-read-postmerge-checkpoint.md). Target RC31 — план, actual Published30 fix989 не содержит; installed/read R989-01 PENDING.
+
 `XuiCustomerProvider.traffic()` сохраняет два существующих адресных reads: `get_client(email)` и `traffic(email)`. Native `aiohttp.ClientError`, timeout, `OSError`, некорректная mapping shape и ожидаемая ошибка преобразования counters (TypeError/ValueError/OverflowError) дают постоянный обезличенный `CustomerProviderUnavailable`. Raw response/endpoint/owner/error message не включается в сообщение или обычный formatted traceback. Cancellation не перехватывается; неожиданный programming RuntimeError не скрывается общим `except Exception`.
 
 Сначала проверяются object/client mappings, затем traffic mapping и прежние int conversions. Nested/direct client records, `up/down` и `uplink/downlink`, действительные нули и прежние missing-counter defaults совместимы; native failure или повреждённый ответ не превращаются в успешный нулевой DTO. Новых reads/retries/fallback/cache нет. Devices inventory уже имеет transport normalization и сохраняет независимый unknown limit; mutation/no-replay, auth/TLS/admission и authoritative postconditions не меняются.
