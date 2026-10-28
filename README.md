@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.26
+# Telegram-бот для 3x-ui v5.0.0-rc.27
+
+> **Release-prep `v5.0.0-rc.27`, ещё не Published:** выбранная задача #876 — default-off Client Portal emoji slots/Owner редактор из #965; обязательный security prerequisite #966/#968 — generated dnspython2.9.0/hashed install/fresh image gate PASS. [Source/security checkpoint #969](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/969) main `5e1ceb7dae1368208d26fe0cb4dd84dbf1815260`. Schema17 прежняя, theme local veto/DB enable OFF; реальные emoji eligibility/IDs/deployment/rendering и read-only deployed DNS/package outcome PENDING, #876/#966 OPEN/keep_open. Actual Published ниже пока rc.26; rc.18.10 Deployed только operator-reported.
 
 > **Published `v5.0.0-rc.26`:** source-only часть #949 — закрытые Owner UI/private observer/one-shot Bot/session компоненты из #961, implementation checkpoint #962 и release #963 в main. [Publication audit](docs/audits/2026-10-27-rc26-publication-checkpoint.md) подтверждает tag/notes/provenance. Runtime не зарегистрирован, factory OFF/DENY_ALL; schema17 прежняя. #949/#874 OPEN до #501/privacy/abuse/allowlist и отдельного integration PR/deployment/pilot.
 
