@@ -353,6 +353,22 @@
       "accepted": "Generated dnspython2.9.0/official hashes/clean install/DNS22/full1741/fresh release SHA image/artifact/immutable RC27 publication scoped PASS; не installed/deployed acceptance",
       "evidence": "docs/audits/2026-10-28-rc27-publication-checkpoint.md",
       "comment": "RC27 bd271d583386c13c628899b7e42f550eabe7d6e6, Supply-chain40643125997 SUCCESS/actionable HIGH/CRITICAL0. Прежний FAIL40588425118 сохранён, CVE waiver не добавлялась. Собственный acceptance6: отдельно разрешённый deployment и read-only installed package/image tag/SHA/DNS API/health outcome PENDING. #966 OPEN/keep_open, source/image PASS не устраняет доказанно риск на VPS."
+    },
+    {
+      "issue": 482,
+      "decision": "keep_open",
+      "date": "2026-10-28",
+      "accepted": "Scoped offline baseline measurement PASS на source branch, не runtime/global API budget acceptance",
+      "evidence": "docs/audits/2026-10-28-972-panel-read-baseline.md",
+      "comment": "Child #972 first baseline; отдельные read admission/lifecycle/cache/authoritative/error/limiter/runtime scopes PENDING, full parent acceptance не закрыт."
+    },
+    {
+      "issue": 972,
+      "decision": "keep_open",
+      "date": "2026-10-28",
+      "accepted": "Scoped offline baseline measurement PASS на source branch, не runtime/global API budget acceptance",
+      "evidence": "docs/audits/2026-10-28-972-panel-read-baseline.md",
+      "comment": "Source tool/targeted regressions и actual offline metrics подтверждены; full/required CI/merge/main/source checkpoint/immutable RC/publication PENDING. Собственный scope source-only, VPS/live smoke не требуется; parent #482 OPEN."
     }
   ]
 }
