@@ -377,6 +377,14 @@
       "accepted": "Все собственные6 source-only criteria PASS: actual no-config/DTO/worker/CLI/metrics/guarded regressions/full+required1754/security/immutable RC29/publication checkpoint982/main read-back; API CLOSED/completed independently verified",
       "evidence": "docs/audits/2026-10-28-977-import-repair-closure.md",
       "comment": "Отдельный own audit и API CLOSED read-back; VPS/live smoke N/A по собственному source/tool scope. Historical RC28 FAIL сохранён; parent482 admission/priority/pooling/cache/errors/limiter/runtime OPEN. Closure docs main sync обязателен до следующего пакета."
+    },
+    {
+      "issue": 984,
+      "decision": "keep_open",
+      "date": "2026-10-28",
+      "accepted": "Development source984 targeted52/full1771/16/actual17 cases/security scoped PASS; required/source-main/RC/runtime PENDING",
+      "evidence": "docs/audits/2026-10-28-984-read-admission-source-review.md",
+      "comment": "Самостоятельный child482: shared bounded read admission/critical priority; runtime own acceptance после separately authorized deployment, не completed по CI. Parent482 pooling/cache/limiter/остальные scopes OPEN."
     }
   ]
 }

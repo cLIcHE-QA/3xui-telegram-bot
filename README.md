@@ -244,6 +244,8 @@ CI проверяет route/method, Bearer auth, request/response contract и so
 
 Для API budget #482 сохранён [source baseline](scripts/benchmark-panel-reads.py) synthetic get/traffic/list и same/unique-owner чтений без подключения к панели. Использовать исправленный RC29: import defect RC28 сохраняется исторически. [Методика и ограничения](docs/3XUI_OPENAPI_CONTRACT.md#offline-baseline-чтений-482972) отделяют bot JSON/driver metrics от реальной мощности 3x-ui/Xray; результат не разрешает live load.
 
+Самостоятельный source scope #984 в разработке: shared per-loop/target read admission8/ordinary6/queue32/wait1s, reserved authoritative provisioning priority и fail-closed unavailable/unknown без replay. Включены common XUI reads/read-only POST, version GET и binary getDb; mutations/pooling/cache/другие privilege domains отдельно. Ветка не означает Merged/Published/Deployed; actual stage — [Roadmap](docs/ROADMAP.md), [API contract](docs/3XUI_OPENAPI_CONTRACT.md#ограничение-panel-reads-984-часть-482). Caps не server capacity, operator/live acceptance отложен.
+
 Source fix #977/#979 MERGED `8d22c2166a9f7f417b68c80e98e9339ca7c4fe1d`, Published RC29 `4422c8b5f1ff8d8a36343f9ef29becd213caab47`: TYPE_CHECKING изолирует annotation-only checkout/commerce/DB/config graph, DTO/errors и actual provider paths прежние. Strict guard/worker/CLI/release17/corrected hashes/required1754/image/immutable publication и checkpoint982/main read-back PASS; [own977 closure](docs/audits/2026-10-28-977-import-repair-closure.md), #972/#977 completed по source-only scope. Parent482/runtime остаётся OPEN, старый RC28 FAIL сохранён.
 
 ### User / Audience Groups

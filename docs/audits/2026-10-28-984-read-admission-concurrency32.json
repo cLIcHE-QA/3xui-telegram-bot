@@ -1,0 +1,88 @@
+{
+  "cases": [
+    {
+      "api_calls_per_second": 1796.0857795877296,
+      "calls": 128,
+      "calls_by_route": {
+        "get": 64,
+        "traffic": 64
+      },
+      "closed_sessions": 128,
+      "cpu_seconds": 0.024231000000000003,
+      "distinct_addressed_owners": 1,
+      "driver_concurrency": 32,
+      "driver_initial_backlog": 32,
+      "fixture_clients": 1000,
+      "fixture_json_bytes": 358024,
+      "operation_p50_ms": 31.067625153809786,
+      "operation_p95_ms": 34.938500029966235,
+      "operations": 64,
+      "operations_per_second": 898.0428897938648,
+      "peak_driver_active": 32,
+      "peak_transport_active": 6,
+      "process_peak_rss_bytes": 42516480,
+      "response_json_bytes": 13504,
+      "scenario": "traffic_same",
+      "sessions": 128,
+      "synthetic_delay_ms_per_request": 2,
+      "timed_python_heap_peak_bytes": 617805,
+      "wall_seconds": 0.07126608397811651
+    },
+    {
+      "api_calls_per_second": 1806.6156783979297,
+      "calls": 128,
+      "calls_by_route": {
+        "get": 64,
+        "traffic": 64
+      },
+      "closed_sessions": 128,
+      "cpu_seconds": 0.02391199999999999,
+      "distinct_addressed_owners": 64,
+      "driver_concurrency": 32,
+      "driver_initial_backlog": 32,
+      "fixture_clients": 1000,
+      "fixture_json_bytes": 358024,
+      "operation_p50_ms": 30.85549990646541,
+      "operation_p95_ms": 34.97679205611348,
+      "operations": 64,
+      "operations_per_second": 903.3078391989649,
+      "peak_driver_active": 32,
+      "peak_transport_active": 6,
+      "process_peak_rss_bytes": 42516480,
+      "response_json_bytes": 13504,
+      "scenario": "traffic_unique",
+      "sessions": 128,
+      "synthetic_delay_ms_per_request": 2,
+      "timed_python_heap_peak_bytes": 618099,
+      "wall_seconds": 0.07085070805624127
+    }
+  ],
+  "limits": {
+    "heap": "timed Python allocations, fixtures excluded",
+    "latency": "operation execution, excludes driver waiting; tracing enabled",
+    "network_tls_xray": "not_measured",
+    "production_capacity": "not_measured",
+    "rss": "fresh worker process lifetime peak, imports and fixtures included",
+    "runtime_admission_queue": "not_instrumented"
+  },
+  "measured_at_utc": "2026-10-28T13:03:39.100952+00:00",
+  "provenance": {
+    "architecture": "arm64",
+    "file_sha256": {
+      "customer_provider_xui.py": "b1c906a35a61222f5e9c7e1213a80fdabf00027f4b1f6115eb055c9c9273cbcf",
+      "customer_service.py": "ae9dbe78c368900ab77c8646dbaf6c4628422d989647afaf86cb0aaf4eb8735b",
+      "panel_read_budget.py": "90ef608ca5ebb05e3342846fdc55d5bf3def53a58092580199fc7b1419f907e5",
+      "scripts/benchmark-panel-reads.py": "839ba3c52fc2e4860b7793428618e6f68aa828bbd279c9450622aa578a6fcb1f",
+      "xui.py": "6047f76e37303a81a8bfd7d8eb2f87703319898f2a369971c5a5bdcea1d6a173"
+    },
+    "git_head": "68c4c2d07b1c2d12ef0345a9ed9a78e614b82f64",
+    "implementation": "CPython",
+    "logical_cpus": 8,
+    "measured_files_dirty": false,
+    "os": "Darwin",
+    "os_release": "25.6.0",
+    "python": "3.12.10"
+  },
+  "schema": 1,
+  "scope": "offline_fake_transport_bot_json_only"
+}

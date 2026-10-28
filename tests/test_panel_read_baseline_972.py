@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import redirect_stderr, redirect_stdout
 import asyncio
+import hashlib
 import importlib.util
 import io
 import json
@@ -173,7 +174,9 @@ class BaselineCLITests(unittest.TestCase):
         self.assertEqual(len(report["provenance"]["git_head"]), 40)
         self.assertEqual(set(report["provenance"]["file_sha256"]),
                          {"xui.py", "customer_provider_xui.py", "customer_service.py",
-                          "scripts/benchmark-panel-reads.py"})
+                          "panel_read_budget.py", "scripts/benchmark-panel-reads.py"})
+        for filename, digest in report["provenance"]["file_sha256"].items():
+            self.assertEqual(digest, hashlib.sha256((ROOT / filename).read_bytes()).hexdigest())
         for result in report["cases"]:
             self.assertEqual(result["calls"], 4 if result["scenario"] == "traffic_same" else 2)
             self.assertEqual(result["sessions"], result["closed_sessions"])

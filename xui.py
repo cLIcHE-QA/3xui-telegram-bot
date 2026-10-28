@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -7,6 +8,7 @@ import re
 import json
 import aiohttp
 from version_api import VersionAPIMixin
+from panel_read_budget import PanelReadUnavailable, panel_read_slot
 
 DEFAULT_HWID_LIMIT = 5
 
@@ -15,6 +17,10 @@ SCOPED_FLOW_REQUIRED_CLIENT_FIELDS = frozenset(("email", "uuid", "subId", "passw
 
 class XUIError(RuntimeError):
     pass
+
+
+class XUIReadUnavailable(XUIError):
+    """Read admission failed before HTTP; not a legacy endpoint failure."""
 
 
 class XUIMutationError(XUIError):
@@ -94,6 +100,14 @@ class XUIClient(VersionAPIMixin):
             return json.dumps(item, ensure_ascii=False, separators=(",", ":"))
         return str(item)
 
+    @asynccontextmanager
+    async def _panel_read_slot(self):
+        try:
+            async with panel_read_slot(self.base_url):
+                yield
+        except PanelReadUnavailable as exc:
+            raise XUIReadUnavailable(str(exc)) from None
+
     async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
         headers = kwargs.pop("headers", {})
         headers["Authorization"] = f"Bearer {self.token}"
@@ -102,23 +116,24 @@ class XUIClient(VersionAPIMixin):
             headers["Content-Type"] = "application/json"
 
         timeout = aiohttp.ClientTimeout(total=20)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.request(
-                method, f"{self.base_url}{path}",
-                headers=headers,
-                ssl=None if self.verify_tls else False,
-                **kwargs
-            ) as resp:
-                text = await resp.text()
-                try:
-                    data = await resp.json(content_type=None)
-                except Exception:
-                    raise XUIError(f"3x-ui returned HTTP {resp.status}: {text[:500]}")
-                if resp.status >= 400:
-                    raise XUIError(f"3x-ui HTTP {resp.status}: {data}")
-                if isinstance(data, dict) and data.get("success") is False:
-                    raise XUIError(data.get("msg") or str(data))
-                return data
+        async with self._panel_read_slot():
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.request(
+                    method, f"{self.base_url}{path}",
+                    headers=headers,
+                    ssl=None if self.verify_tls else False,
+                    **kwargs
+                ) as resp:
+                    text = await resp.text()
+                    try:
+                        data = await resp.json(content_type=None)
+                    except Exception:
+                        raise XUIError(f"3x-ui returned HTTP {resp.status}: {text[:500]}")
+                    if resp.status >= 400:
+                        raise XUIError(f"3x-ui HTTP {resp.status}: {data}")
+                    if isinstance(data, dict) and data.get("success") is False:
+                        raise XUIError(data.get("msg") or str(data))
+                    return data
 
     async def _mutation_request(
         self,
@@ -238,6 +253,8 @@ class XUIClient(VersionAPIMixin):
         target_id = int(node_id)
         try:
             nodes = await self.nodes_list()
+        except XUIReadUnavailable:
+            raise
         except XUIError:
             nodes = []
 
@@ -412,23 +429,24 @@ class XUIClient(VersionAPIMixin):
             "Accept": "application/octet-stream",
         }
         timeout = aiohttp.ClientTimeout(total=60)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(
-                f"{self.base_url}/panel/api/server/getDb",
-                headers=headers,
-                ssl=None if self.verify_tls else False,
-                allow_redirects=True,
-            ) as resp:
-                body = await resp.read()
-                if resp.status >= 400:
-                    detail = body[:500].decode("utf-8", errors="replace")
-                    raise XUIError(f"3x-ui DB backup HTTP {resp.status}: {detail}")
-                disposition = resp.headers.get("Content-Disposition", "")
-                match = re.search(r'filename\*?=(?:UTF-8\'\')?["\']?([^"\';]+)', disposition, re.I)
-                filename = Path(match.group(1)).name if match else "x-ui.db"
-                if not filename or filename in {".", ".."}:
-                    filename = "x-ui.db"
-                return body, filename
+        async with self._panel_read_slot():
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(
+                    f"{self.base_url}/panel/api/server/getDb",
+                    headers=headers,
+                    ssl=None if self.verify_tls else False,
+                    allow_redirects=True,
+                ) as resp:
+                    body = await resp.read()
+                    if resp.status >= 400:
+                        detail = body[:500].decode("utf-8", errors="replace")
+                        raise XUIError(f"3x-ui DB backup HTTP {resp.status}: {detail}")
+                    disposition = resp.headers.get("Content-Disposition", "")
+                    match = re.search(r'filename\*?=(?:UTF-8\'\')?["\']?([^"\';]+)', disposition, re.I)
+                    filename = Path(match.group(1)).name if match else "x-ui.db"
+                    if not filename or filename in {".", ".."}:
+                        filename = "x-ui.db"
+                    return body, filename
 
     async def inbound_options(self) -> list[InboundOption]:
         try:
@@ -436,6 +454,8 @@ class XUIClient(VersionAPIMixin):
             obj = data.get("obj") or []
             if obj:
                 return [self._parse_option(x) for x in obj]
+        except XUIReadUnavailable:
+            raise
         except XUIError:
             pass
         data = await self._request("GET", "/panel/api/inbounds/list")

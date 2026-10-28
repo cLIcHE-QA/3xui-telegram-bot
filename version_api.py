@@ -6,11 +6,13 @@ No mutation is retried, including on a timeout or a lost HTTP response.
 """
 from __future__ import annotations
 
+from contextlib import nullcontext
 import json
 import re
 from typing import Any
 
 import aiohttp
+from panel_read_budget import PanelReadUnavailable, panel_read_slot
 
 _TAG = re.compile(r"v?\d+(?:\.\d+){1,3}(?:-[A-Za-z0-9][A-Za-z0-9.-]*)?", re.ASCII)
 
@@ -51,41 +53,45 @@ class VersionAPIMixin:
         operation = path.rsplit("/", 1)[-1]
         mutation = method != "GET"
         try:
-            async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=timeout)
-            ) as session:
-                async with session.request(
-                    method, self.base_url + path,
-                    headers={"Authorization": f"Bearer {self.token}", "Accept": "application/json"},
-                    data=form, ssl=None if self.verify_tls else False,
-                    allow_redirects=False,
-                ) as response:
-                    if response.status >= 500:
-                        raise VersionAPIError(
-                            f"3x-ui {operation}: HTTP {response.status}; inspect panel logs.",
-                            uncertain=mutation, status=response.status,
-                        )
-                    if response.status != 200:
-                        raise VersionAPIError(
-                            f"3x-ui {operation}: HTTP {response.status}; check API access.",
-                            status=response.status,
-                        )
-                    # Do not reflect server bodies, URLs or credentials into Telegram/audit.
-                    raw = await response.read()
-                    if len(raw) > 2 * 1024 * 1024:
-                        raise VersionAPIError("Oversized API response.", uncertain=mutation)
-                    try:
-                        payload = json.loads(raw)
-                    except (ValueError, UnicodeError) as exc:
-                        raise VersionAPIError("Invalid API response.", uncertain=mutation) from exc
-                    if not isinstance(payload, dict) or payload.get("success") is not True:
-                        rejected = isinstance(payload, dict) and payload.get("success") is False
-                        raise VersionAPIError(
-                            f"3x-ui {operation}: operation rejected; inspect panel logs."
-                            if rejected else "API did not confirm the operation.",
-                            uncertain=mutation and not rejected,
-                        )
-                    return payload
+            admission = panel_read_slot(self.base_url) if method == "GET" else nullcontext()
+            async with admission:
+                async with aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=timeout)
+                ) as session:
+                    async with session.request(
+                        method, self.base_url + path,
+                        headers={"Authorization": f"Bearer {self.token}", "Accept": "application/json"},
+                        data=form, ssl=None if self.verify_tls else False,
+                        allow_redirects=False,
+                    ) as response:
+                        if response.status >= 500:
+                            raise VersionAPIError(
+                                f"3x-ui {operation}: HTTP {response.status}; inspect panel logs.",
+                                uncertain=mutation, status=response.status,
+                            )
+                        if response.status != 200:
+                            raise VersionAPIError(
+                                f"3x-ui {operation}: HTTP {response.status}; check API access.",
+                                status=response.status,
+                            )
+                        # Do not reflect server bodies, URLs or credentials into Telegram/audit.
+                        raw = await response.read()
+                        if len(raw) > 2 * 1024 * 1024:
+                            raise VersionAPIError("Oversized API response.", uncertain=mutation)
+                        try:
+                            payload = json.loads(raw)
+                        except (ValueError, UnicodeError) as exc:
+                            raise VersionAPIError("Invalid API response.", uncertain=mutation) from exc
+                        if not isinstance(payload, dict) or payload.get("success") is not True:
+                            rejected = isinstance(payload, dict) and payload.get("success") is False
+                            raise VersionAPIError(
+                                f"3x-ui {operation}: operation rejected; inspect panel logs."
+                                if rejected else "API did not confirm the operation.",
+                                uncertain=mutation and not rejected,
+                            )
+                        return payload
+        except PanelReadUnavailable as exc:
+            raise VersionAPIError(str(exc), uncertain=False) from None
         except (aiohttp.ClientError, TimeoutError) as exc:
             raise VersionAPIError(
                 f"3x-ui {operation}: connection unavailable ({type(exc).__name__}).",

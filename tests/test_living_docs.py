@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import re
 import unittest
@@ -142,6 +143,20 @@ class LivingDocsSemanticTests(unittest.TestCase):
         rule = next(rule for rule in contract["rules"] if rule["id"] == "service-campaign-foundation")
         self.assertEqual(rule["mode"], "require_all")
         self.assertIn("docs/SERVICE_CAMPAIGNS.md", rule["documents"])
+
+    def test_panel_read_admission_caps_match_documented_contract(self):
+        tree = ast.parse((ROOT / "panel_read_budget.py").read_text(encoding="utf-8"))
+        limits = {
+            node.targets[0].id: ast.literal_eval(node.value)
+            for node in tree.body
+            if isinstance(node, ast.Assign) and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and (node.targets[0].id.startswith("MAX_") or node.targets[0].id == "WAIT_SECONDS")
+        }
+        document = (ROOT / "docs/3XUI_OPENAPI_CONTRACT.md").read_text(encoding="utf-8")
+        self.assertTrue(limits)
+        for name, value in limits.items():
+            self.assertIn(f"| `{name}` | {value} |", document)
 
     def test_legacy_visibility_does_not_shrink_authoritative_command_audit(self):
         ui = (ROOT / "docs/UI_STYLE.md").read_text(encoding="utf-8")

@@ -244,7 +244,7 @@ async def measure(case: Case) -> dict:
 
 
 def provenance() -> dict:
-    files = ["xui.py", "customer_provider_xui.py", "customer_service.py",
+    files = ["xui.py", "customer_provider_xui.py", "customer_service.py", "panel_read_budget.py",
              "scripts/benchmark-panel-reads.py"]
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
                             capture_output=True, text=True, check=True).stdout.strip()
