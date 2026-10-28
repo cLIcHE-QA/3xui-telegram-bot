@@ -4,23 +4,23 @@
 
 ## Текущий контракт schema
 
-**Release-prep `v5.0.0-rc.28`, ещё не Published:** source-tool #972 не использует DB и не меняет bot schema v17/DDL/backfill. Фактический Published ниже RC27; cumulative upgrade/recovery от operator-reported deployed15 и самостоятельные runtime gates прежние.
+**Published `v5.0.0-rc.28`:** source-tool #972 не использует DB и не меняет bot schema v17/DDL/backfill. [Publication read-back](audits/2026-10-28-rc28-publication-checkpoint.md); cumulative upgrade/recovery от operator-reported deployed15 и самостоятельные runtime gates прежние.
 
-**Published `v5.0.0-rc.27`:** #876 хранит theme JSON/CAS/audit в existing runtime_settings, #966 меняет только dependency floor/lock; bot schema v17 прежняя, без DDL/backfill. [Publication read-back](audits/2026-10-28-rc27-publication-checkpoint.md); cumulative upgrade/recovery от operator-reported deployed15 и отдельные runtime gates не отменяются.
+**Оформление впервые Published в `v5.0.0-rc.27`:** #876 использует existing runtime_settings, #966 меняет только dependency floor/lock; bot schema v17 прежняя, без DDL/backfill. [Исторический publication read-back](audits/2026-10-28-rc27-publication-checkpoint.md).
 
 **Source #949 впервые Published в `v5.0.0-rc.26`:** UI/adapters не добавляют migrations или backfill, schema17 прежняя; [исторический publication read-back](audits/2026-10-27-rc26-publication-checkpoint.md). Runtime registration/collection/send выключены, поздний integration/deployment gate не отменён.
 
 **Schema17 впервые Published в `v5.0.0-rc.25`:** bot schema v17 `service_campaign_queue_v5_0_0` (#948), additive job/recipient/attempt/control и contact-generation объекты поверх foundation v16 (#947). Worker/transport не подключены к runtime, OFF/DENY_ALL. [Контракт](SERVICE_CAMPAIGNS.md), [исторический publication read-back RC25](audits/2026-10-27-rc25-publication-checkpoint.md). Immutable tag SHA `1c0854c9b416a2d0f2ccbe9083d62d88794307ed`, GitHub Release 2026-10-27T17:59:45Z.
 
-**Схема SQLite v17 для Published `v5.0.0-rc.27`; operator-reported Deployed `v5.0.0-rc.18.10` остаётся на каталоге v15.** Deployment/migration16/17 на VPS не выполнялись; поздний cumulative upgrade/recovery проверяется отдельно. Старый rc.24/schema16 immutable и не изменён. Адресные HWID23/23 PASS относятся к deployed rc.18.10, independent VPS/SQLite `PRAGMA quick_check` PENDING; `DB=ok` не доказывает quick_check. [Roadmap](ROADMAP.md).
+**Схема SQLite v17 для Published `v5.0.0-rc.28`; operator-reported Deployed `v5.0.0-rc.18.10` остаётся на каталоге v15.** Deployment/migration16/17 на VPS не выполнялись; поздний cumulative upgrade/recovery проверяется отдельно. Старый rc.24/schema16 immutable и не изменён. Адресные HWID23/23 PASS относятся к deployed rc.18.10, independent VPS/SQLite `PRAGMA quick_check` PENDING; `DB=ok` не доказывает quick_check. [Roadmap](ROADMAP.md).
 
-Текущая main source schema **v17** включена в Published rc.27; фактический deployed schema16/17 не подтверждён.
+Текущая main source schema **v17** включена в Published rc.28; фактический deployed schema16/17 не подтверждён.
 
 Изолированные staging/import SQLite #887 остаются отдельными default-off ledgers; исходники не подтверждают их deployment и не заменяют bot migration framework.
 
 Предыдущая additive schema **v15** `plan_hwid_limit_v5_0_0` сохраняется в текущем каталоге; `plans.hwid_limit INTEGER NULL DEFAULT NULL` (0…1000). Для legacy `NULL` означает «сохранить индивидуальный HWID», **не** «без ограничения» и **не** `0`.
 
-**История релизов** `rc.18.2`–`rc.18.9` и их прежних `PENDING` сохранена в [CHANGELOG](../CHANGELOG.md), [датированных audits](audits/) и [историческом Roadmap](roadmap/HISTORY_INDEX.md). Эти предыдущие snapshot-статусы не описывают текущий GitHub Published `rc.27` и его раздельное operator-reported Deployed `rc.18.10`.
+**История релизов** `rc.18.2`–`rc.18.9` и их прежних `PENDING` сохранена в [CHANGELOG](../CHANGELOG.md), [датированных audits](audits/) и [историческом Roadmap](roadmap/HISTORY_INDEX.md). Эти предыдущие snapshot-статусы не описывают текущий GitHub Published `rc.28` и его раздельное operator-reported Deployed `rc.18.10`.
 
 - `v14 plan_audience_v5_0_0` добавляет независимую RUB/Stars видимость, локальные User Groups и `manual_entitlements`; один live/unknown journal запрещает конкурентную выдачу.
 - Миграции **forward-only**; pre-migration backup, `schema_migrations`, postcondition и `PRAGMA quick_check` обязательны по соответствующим правилам ниже. `requires_backup=True` для опасной миграции, без recovery copy её нельзя начинать. Старый код на более новой schema блокируется `DatabaseSchemaTooNewError`.
