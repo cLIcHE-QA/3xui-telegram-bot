@@ -358,9 +358,9 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Children972/977 completed по собственному baseline/import source scope; не полноценный API budget/runtime outcome",
-      "evidence": "docs/audits/2026-10-28-977-import-repair-closure.md",
-      "comment": "Parent OPEN: admission/critical priority/pooling/lifecycle/presentation cache/singleflight/authoritative/errors/limiter/runtime outcomes. После child closure docs main sync следующий child определить Issue-first; #498 не включается по fake baseline."
+      "accepted": "Baseline972/import977 completed, child984 admission/priority source985 main/required1771/fresh image scoped PASS; не полный API budget/runtime",
+      "evidence": "docs/audits/2026-10-28-984-read-admission-postmerge-checkpoint.md",
+      "comment": "Parent OPEN: child984 checkpoint/RC/runtime, другие authoritative caller contexts, pooling/lifecycle/presentation cache/singleflight/общие errors/limiter/runtime outcomes. #498 не включается по fake baseline или одному admission source."
     },
     {
       "issue": 972,
@@ -382,9 +382,9 @@
       "issue": 984,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Development source984 targeted52/full1771/16/actual17 cases/security scoped PASS; required/source-main/RC/runtime PENDING",
-      "evidence": "docs/audits/2026-10-28-984-read-admission-source-review.md",
-      "comment": "Самостоятельный child482: shared bounded read admission/critical priority; runtime own acceptance после separately authorized deployment, не completed по CI. Parent482 pooling/cache/limiter/остальные scopes OPEN."
+      "accepted": "Source985 main7325/targeted52/local1771/16/required1771/3/actual17 cases/5 measured hashes/fresh source image scoped PASS; source checkpoint/RC30/runtime PENDING",
+      "evidence": "docs/audits/2026-10-28-984-read-admission-postmerge-checkpoint.md",
+      "comment": "Source не Published в actual29; source checkpoint/main sync, отдельный RC30/publication и собственные installed/read R984-01…03 после отдельно разрешённого deployment. Parent482 остальные scopes OPEN."
     }
   ]
 }

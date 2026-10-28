@@ -16,7 +16,7 @@
 
 ## Unreleased
 
-- #984 — ограниченный shared read admission общего XUI panel API: active8/ordinary6/critical reserve2, queue32/wait1s/targets64 на loop; common reads/read-only POST/version GET/getDb без обхода через новый XUIClient/token/TLS. Cancellation/timeout/ошибки освобождают permit, idle tracebacks не занимают registry slots. Доверенные provisioning initial/post-mutation reads получают priority; недоказанный postcondition unknown/no replay. Auth/TLS/routes/transport timeouts/mutation one-shot/schema/deps прежние; pooling/cache/прочие domains отдельно. Caps — инженерная защита, не production SLA; deployment/собственный runtime acceptance PENDING.
+- #984 / PR #985 — ограниченный shared read admission общего XUI panel API: active8/ordinary6/critical reserve2, queue32/wait1s/targets64 на loop; common reads/read-only POST/version GET/getDb без обхода через новый XUIClient/token/TLS. Cancellation/timeout/ошибки освобождают permit, idle tracebacks не занимают registry slots. Доверенные provisioning initial/post-mutation reads получают priority; недоказанный postcondition unknown/no replay. Auth/TLS/routes/transport timeouts/mutation one-shot/schema/deps прежние; pooling/cache/прочие domains отдельно. Caps — инженерная защита, не production SLA; deployment/собственный runtime acceptance PENDING.
 
 ## v5.0.0-rc.29 — Изоляция импорта инструментов чтения panel API
 
