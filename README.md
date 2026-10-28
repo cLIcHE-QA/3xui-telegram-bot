@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.28
+# Telegram-бот для 3x-ui v5.0.0-rc.29
+
+> **Release-prep `v5.0.0-rc.29`, ещё не Published:** один минимальный follow-up bug #977/#979 — TYPE_CHECKING isolation CustomerPortalService imports для source-tool #972. [Source checkpoint #980](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/980) main `d26088610e84ac74dd171c7f3888d2ec09642015`/independent read-back PASS; guarded fresh import/DTO aliases/worker/CLI/local+required1754/fresh image PASS. Runtime domain definitions/schema17/deps/operator setup прежние. Actual Published ниже остаётся RC28 с import defect; новый fix RC29/publication/own977+972 closure PENDING, parent482 OPEN. Deployed18.10 только operator-reported.
 
 > **Published `v5.0.0-rc.28`:** #972 (#482-A) — development baseline чтений panel API из #973. [Publication audit](docs/audits/2026-10-28-rc28-publication-checkpoint.md) подтверждает immutable tag/notes/CI/image. Дополнительный собственный [import gate](docs/audits/2026-10-28-972-import-isolation-finding.md) выявил **FAIL**: transitive config import, поэтому #972 OPEN, принятие source-tool отложено до минимального fix #977/нового RC. До исправления не использовать tool как config-independent. Реальная panel/Xray capacity не измерялась, bot runtime/deps/schema17 прежние; parent482 OPEN до остальных budget/runtime scopes. Deployed18.10 только operator-reported.
 

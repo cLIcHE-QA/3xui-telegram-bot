@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep `v5.0.0-rc.29`, ещё не Published:** #977 меняет только исполнение annotation-only imports; bot schema v17/DDL/backfill/data/dependencies прежние. Фактический Published ниже RC28, late cumulative upgrade/recovery от deployed15 и собственные runtime gates не менялись.
+
 **Published `v5.0.0-rc.28`:** source-tool #972 не использует DB и не меняет bot schema v17/DDL/backfill. [Publication read-back](audits/2026-10-28-rc28-publication-checkpoint.md); cumulative upgrade/recovery от operator-reported deployed15 и самостоятельные runtime gates прежние.
 
 **Оформление впервые Published в `v5.0.0-rc.27`:** #876 использует existing runtime_settings, #966 меняет только dependency floor/lock; bot schema v17 прежняя, без DDL/backfill. [Исторический publication read-back](audits/2026-10-28-rc27-publication-checkpoint.md).
