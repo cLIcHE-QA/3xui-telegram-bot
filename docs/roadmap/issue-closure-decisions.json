@@ -342,17 +342,17 @@
       "issue": 876,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Default-off Client Portal theme source #965 и обязательный dependency prerequisite #966/#968 scoped PASS: full1741/16 local/3 CI skips, current main image PASS; source не Telegram acceptance",
-      "evidence": "docs/audits/2026-10-28-966-dnspython-security-postmerge-checkpoint.md",
-      "comment": "Theme source main, security prerequisite dnspython2.9.0 resolved по fresh source/image gate. RC27/publication ещё PENDING; реальные bot eligibility/IDs/deployment/targeted rendering/fallback/disable отложены. #876 OPEN/keep_open, G-11 PARTIAL/NO-GO/public rollout BLOCKED."
+      "accepted": "Default-off Client Portal theme/source и обязательный dnspython prerequisite #966: source/CI1741/3/fresh release image/immutable RC27 tag/notes/provenance scoped PASS; не Telegram/runtime acceptance",
+      "evidence": "docs/audits/2026-10-28-rc27-publication-checkpoint.md",
+      "comment": "RC27 Published 2026-10-28T06:24:22Z bd271d583386c13c628899b7e42f550eabe7d6e6, release #970. Реальные bot eligibility/IDs/deployment/targeted rendering/admin isolation/fallback/disable PENDING, theme local veto/DB OFF. #876 OPEN/keep_open; G-11 PARTIAL/NO-GO/public rollout BLOCKED."
     },
     {
       "issue": 966,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Source/build security revalidation scoped PASS: generated dnspython2.9.0/official hashes/clean install+pip check, DNS22, local full1741/16 skips, required PR1741/3 и fresh main image audit PASS; не deployed acceptance",
-      "evidence": "docs/audits/2026-10-28-966-dnspython-security-postmerge-checkpoint.md",
-      "comment": "Source #968 main 90d016b141a6c64208d0a150025966120903c425. Прежний FAIL40588425118 сохранён, CVE waiver не добавлялась. RC27/publication checkpoint PENDING; затем отдельно разрешённый deployment и собственный read-only installed package/image tag/SHA/DNS API/health outcome. #966 OPEN/keep_open согласно own acceptance6; source/image PASS не устраняет доказанно риск на VPS."
+      "accepted": "Generated dnspython2.9.0/official hashes/clean install/DNS22/full1741/fresh release SHA image/artifact/immutable RC27 publication scoped PASS; не installed/deployed acceptance",
+      "evidence": "docs/audits/2026-10-28-rc27-publication-checkpoint.md",
+      "comment": "RC27 bd271d583386c13c628899b7e42f550eabe7d6e6, Supply-chain40643125997 SUCCESS/actionable HIGH/CRITICAL0. Прежний FAIL40588425118 сохранён, CVE waiver не добавлялась. Собственный acceptance6: отдельно разрешённый deployment и read-only installed package/image tag/SHA/DNS API/health outcome PENDING. #966 OPEN/keep_open, source/image PASS не устраняет доказанно риск на VPS."
     }
   ]
 }
