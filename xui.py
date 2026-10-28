@@ -19,6 +19,10 @@ class XUIError(RuntimeError):
     pass
 
 
+class XUIReadUnavailable(XUIError):
+    """Read admission failed before HTTP; not a legacy endpoint failure."""
+
+
 class XUIMutationError(XUIError):
     """State-changing 3x-ui request with explicit outcome certainty."""
 
@@ -102,7 +106,7 @@ class XUIClient(VersionAPIMixin):
             async with panel_read_slot(self.base_url):
                 yield
         except PanelReadUnavailable as exc:
-            raise XUIError(str(exc)) from None
+            raise XUIReadUnavailable(str(exc)) from None
 
     async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
         headers = kwargs.pop("headers", {})
@@ -249,6 +253,8 @@ class XUIClient(VersionAPIMixin):
         target_id = int(node_id)
         try:
             nodes = await self.nodes_list()
+        except XUIReadUnavailable:
+            raise
         except XUIError:
             nodes = []
 
@@ -448,6 +454,8 @@ class XUIClient(VersionAPIMixin):
             obj = data.get("obj") or []
             if obj:
                 return [self._parse_option(x) for x in obj]
+        except XUIReadUnavailable:
+            raise
         except XUIError:
             pass
         data = await self._request("GET", "/panel/api/inbounds/list")

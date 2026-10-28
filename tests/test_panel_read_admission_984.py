@@ -6,7 +6,8 @@ import gc
 import json
 import unittest
 import weakref
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 import aiohttp
 
@@ -14,7 +15,7 @@ import panel_read_budget as admission
 from customer_provider_xui import XuiCustomerProvider
 from customer_service import CustomerProviderUnavailable
 from version_api import VersionAPIError
-from xui import XUIClient, XUIError, XUIMutationError
+from xui import XUIClient, XUIError, XUIReadUnavailable
 
 
 async def settle(predicate):
@@ -287,6 +288,19 @@ class _Transport:
 
 
 class ReadFamilyTests(unittest.IsolatedAsyncioTestCase):
+    async def test_admission_denial_does_not_trigger_legacy_read_fallbacks(self):
+        for operation in ("inbound_options", "node_get_enriched"):
+            client = XUIClient("https://panel.example.invalid", "synthetic")
+            client._request = AsyncMock(side_effect=XUIReadUnavailable("synthetic admission denial"))
+            with self.assertRaises(XUIReadUnavailable):
+                await getattr(client, operation)(*([1] if operation == "node_get_enriched" else []))
+            self.assertEqual(client._request.await_count, 1)
+        from provisioning import ProvisioningEngine
+        xui = SimpleNamespace(nodes_list=AsyncMock(side_effect=XUIReadUnavailable("synthetic admission denial")))
+        with self.assertRaises(XUIReadUnavailable):
+            await ProvisioningEngine(None, xui, None)._node_map()
+        self.assertEqual(xui.nodes_list.await_count, 1)
+
     async def test_all_read_families_share_instances_tokens_tls_and_critical_reserve(self):
         transport = _Transport()
         client = XUIClient("https://panel.example.invalid", "synthetic-a")

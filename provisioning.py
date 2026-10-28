@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from panel_read_budget import critical_panel_reads
 from config import Settings
 from db import Database, PlanRecord, ServerGroupRecord, UserRecord
-from xui import InboundOption, NodeInfo, XUIClient, XUIError, XUIMutationError
+from xui import InboundOption, NodeInfo, XUIClient, XUIError, XUIReadUnavailable, XUIMutationError
 
 
 class ProvisioningError(RuntimeError):
@@ -96,6 +96,8 @@ class ProvisioningEngine:
         try:
             nodes = await self.xui.nodes_list()
             return {int(n.id): n for n in nodes}, None
+        except XUIReadUnavailable:
+            raise
         except XUIError as exc:
             return {}, str(exc)
 
