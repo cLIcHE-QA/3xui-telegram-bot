@@ -1076,7 +1076,7 @@ cd /opt/3xui-bot/3xui-telegram-bot
 Git tag: v5.0.0-rc.30
 Container: running
 RestartCount=0
-Bot version: 5.0.0-rc.29
+Bot version: 5.0.0-rc.30
 Health: ok
 DB: ok
 3x-ui connectivity: ok
