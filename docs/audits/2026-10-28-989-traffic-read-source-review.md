@@ -51,3 +51,5 @@ Governance первоначально отклонил лишнюю пустую
 ## Финальные source metadata gates
 
 Existing96 metadata/release/version/governance regressions PASS1.625s после canonical docs/raw/registry updates. Independent GitHub reconciliation actual Published30/referenced81/status_assertions42/active42 PASS; source hashes5 и byte-identical versioned CHANGELOG sections перепроверены. Язык/living impact/semantics нового audit/governance/diff PASS; required CI этого implementation PR, source merge/main/image/checkpoint и RC31/runtime ещё PENDING.
+
+Implementation [PR #990](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/990) OPEN: создан после source checks, Issue/Roadmap/Unreleased теперь связаны с фактическим PR. До собственного required CI/final title/CLEAN/source squash не утверждается MERGED.

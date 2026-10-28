@@ -16,7 +16,7 @@
 
 ## Unreleased
 
-- #989 — клиентский traffic read даёт существующий обезличенный временный отказ при native transport/timeout/OS, malformed mappings и ошибках числовых counters на любом из двух адресных reads. Raw cause подавлен в обычном traceback; cancellation, успешные aliases/нули, private-owner/Back и mutation/no-replay прежние. Никаких retry/fallback/cache/schema/deps/env/ports; installed/read acceptance отдельно.
+- #989 / PR #990 — клиентский traffic read даёт существующий обезличенный временный отказ при native transport/timeout/OS, malformed mappings и ошибках числовых counters на любом из двух адресных reads. Raw cause подавлен в обычном traceback; cancellation, успешные aliases/нули, private-owner/Back и mutation/no-replay прежние. Никаких retry/fallback/cache/schema/deps/env/ports; installed/read acceptance отдельно.
 
 ## v5.0.0-rc.30 — Ограничение параллельных чтений panel API
 
