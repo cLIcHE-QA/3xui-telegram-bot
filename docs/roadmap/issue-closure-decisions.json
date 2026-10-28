@@ -358,17 +358,17 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Source #973 main/actual offline baseline17 cases/targeted10/local1751/16/required1751/3 scoped PASS; runtime files unchanged, не capacity или global API budget acceptance",
-      "evidence": "docs/audits/2026-10-28-972-panel-baseline-postmerge-checkpoint.md",
-      "comment": "Child972 baseline merged; собственные read admission/lifecycle/cache/authoritative/error/limiter/runtime scopes PENDING, parent acceptance не закрыт."
+      "accepted": "Baseline source/offline17 cases/required1751/fresh release SHA image/immutable RC28 tag/notes/provenance scoped PASS; не parent global budget/runtime acceptance",
+      "evidence": "docs/audits/2026-10-28-rc28-publication-checkpoint.md",
+      "comment": "Source-tool child972 Published 2026-10-28T07:25:15Z fad1fe6641f8fe190bd810ff51e04d91062c7ac7. Остальные parent read admission/critical priority/lifecycle/cache/authoritative/errors/limiter/runtime scopes PENDING, parent OPEN."
     },
     {
       "issue": 972,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Source #973 main/actual offline baseline17 cases/targeted10/local1751/16/required1751/3 scoped PASS; runtime files unchanged, не capacity или global API budget acceptance",
-      "evidence": "docs/audits/2026-10-28-972-panel-baseline-postmerge-checkpoint.md",
-      "comment": "Squash 5564bf1cf52f6666e0dc74860b086e35fd2f3ec6 main. Immutable RC28/publication/own closure checkpoint PENDING; source-only tool не требует VPS/live smoke, parent482 OPEN. Следующий scope после штатного source и publication/main checkpoints."
+      "accepted": "Baseline source/offline17 cases/required1751/fresh release SHA image/immutable RC28 tag/notes/provenance scoped PASS; не parent global budget/runtime acceptance",
+      "evidence": "docs/audits/2026-10-28-rc28-publication-checkpoint.md",
+      "comment": "RC28 Published 2026-10-28T07:25:15Z fad1fe6641f8fe190bd810ff51e04d91062c7ac7. Собственный publication checkpoint/required CI/main read-back и последующий completed/read-back/active-row removal PENDING. Source-tool scope не требует VPS/live smoke, parent482 OPEN."
     }
   ]
 }
