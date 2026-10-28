@@ -132,7 +132,7 @@ python3 scripts/benchmark-panel-reads.py > /tmp/panel-read-baseline.json
 
 ## Отказ клиентского чтения трафика (#989)
 
-Source [#990](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/990) MERGED `309ee64bf56a653995d9600b4d3c1c5c5fa05b5d`; [source/main checkpoint](audits/2026-10-28-989-traffic-read-postmerge-checkpoint.md). Target RC31 — план, actual Published30 fix989 не содержит; installed/read R989-01 PENDING.
+Source [#990](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/990) MERGED `309ee64bf56a653995d9600b4d3c1c5c5fa05b5d`; [source/main checkpoint](audits/2026-10-28-989-traffic-read-postmerge-checkpoint.md). Target RC31 — план, actual Published30 fix989 не содержит; installed/read R989-01 PENDING. Source checkpoint991/main `5da950ac7389aeda58b34205688986f318bff7be` и [revalidation](audits/2026-10-28-989-source-main-revalidation.md) подтверждают descendant main/reconciliation/publisher/read-back PASS; старый990 main metadata FAIL сохранён исторически.
 
 `XuiCustomerProvider.traffic()` сохраняет два существующих адресных reads: `get_client(email)` и `traffic(email)`. Native `aiohttp.ClientError`, timeout, `OSError`, некорректная mapping shape и ожидаемая ошибка преобразования counters (TypeError/ValueError/OverflowError) дают постоянный обезличенный `CustomerProviderUnavailable`. Raw response/endpoint/owner/error message не включается в сообщение или обычный formatted traceback. Cancellation не перехватывается; неожиданный programming RuntimeError не скрывается общим `except Exception`.
 

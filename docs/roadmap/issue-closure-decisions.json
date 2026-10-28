@@ -390,9 +390,9 @@
       "issue": 989,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Source990 main309ee64/targeted94/full1782/16/required1782/3/image/raw17/5 hashes scoped PASS; source main Roadmap drift FAIL, checkpoint/RC31/runtime PENDING",
-      "evidence": "docs/audits/2026-10-28-989-traffic-read-postmerge-checkpoint.md",
-      "comment": "keep_open: собственный source checkpoint/required CI/main read-back, отдельный RC31/publication; R989-01 installed/read после отдельного deployment. Parent482/984 runtime OPEN; source PASS не completed."
+      "accepted": "Source990/checkpoint991/required+descendant main1782/3/reconciliation/idempotent publisher/raw17/source5 hashes/image scoped PASS; RC31/runtime PENDING",
+      "evidence": "docs/audits/2026-10-28-989-source-main-revalidation.md",
+      "comment": "Source main drift из990 устранён factual checkpoint991; старый FAIL сохранён. keep_open до RC31/publication/main checkpoints и R989-01 installed/read после отдельного deployment. Parent482/984 runtime OPEN."
     }
   ]
 }

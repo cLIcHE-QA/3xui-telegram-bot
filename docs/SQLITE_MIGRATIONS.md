@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep `v5.0.0-rc.31`, ещё не Published:** #989 меняет только read adapter error boundary; bot schema v17/DDL/backfill/data/deps прежние. [Source/main revalidation](audits/2026-10-28-989-source-main-revalidation.md); actual Published30 и operator-reported deployed15 отдельно, cumulative upgrade/recovery и собственные runtime gates не отменены.
+
 **Published `v5.0.0-rc.30`:** #984 использует process-local read admission/Future state; bot schema v17/DDL/backfill/data/deps прежние. [Publication read-back](audits/2026-10-28-rc30-publication-checkpoint.md); поздний cumulative upgrade/recovery от deployed15 и собственные runtime gates отдельно.
 
 **Import repair впервые Published в `v5.0.0-rc.29`:** #977 меняет только исполнение annotation-only imports; bot schema v17/DDL/backfill/data/dependencies прежние. [Publication read-back](audits/2026-10-28-rc29-publication-checkpoint.md); cumulative upgrade/recovery от deployed15 и собственные runtime gates отдельно.
