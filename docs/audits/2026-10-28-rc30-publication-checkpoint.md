@@ -45,3 +45,5 @@ Parent #482 также OPEN/keep_open: общий набор pooling/shutdown/pr
 ## Проверки этого publication checkpoint
 
 Существующие96 metadata/release/version/governance regressions PASS1.814s в новом clean tracked checkout с пустым synthetic .env; compileall/OpenAPI55/diff/semantics/governance PASS. Runtime/tests/deps/schema не менялись, новых behavioral tests N/A. Ошибка SyntaxWarning invalid escape в прежнем device_model_resolver.py не стала ошибкой compileall; этот исходник не затронут. ZIP fresh image artifact независимо скачан через connector и его фактический SHA-256 совпал с GitHub digest cbbdae6f66153d43b6e192d173cc77dca27567f866df66123a46a1b715b35937. Собственные required CI/финальный checklist/title/merge/independent main read-back ещё PENDING до фактического outcome.
+
+Независимый scripts/check-roadmap-github.py на новом checkpoint: PASS — actual Published30, referenced80/status_assertions41/active41; GitHub OPEN984/482 и CLOSED972/977 согласованы с registry. Language/Living Docs impact reviewed; semantic checker с явным base7aa/head проверил новый audit (1 new file), governance и diff PASS. Проверки не являются VPS attestation.
