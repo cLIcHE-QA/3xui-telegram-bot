@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.29
+# Telegram-бот для 3x-ui v5.0.0-rc.30
+
+> **Release-prep `v5.0.0-rc.30`, ещё не Published:** одна задача #984/#985 — shared read admission/critical authoritative priority. Source985 main `7325b170e6851415e34fe40094924bcf1f5ca534`, [source checkpoint986](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/986) main `41d7baffa4e85e0ca10ddc0ddc8df42570f9e729`/independent read-back PASS; required1771/source image/raw17/5 hashes PASS. Metadata candidate не повышает Published/Deployed: actual Published29 ниже без984, Deployed18.10 operator-reported; Main checkpoint986 Python40698506561/idempotent publisher40699242327 SUCCESS; publication/runtime984 и parent482 remaining отдельно. Schema17/deps/env/ports прежние.
 
 > **Published `v5.0.0-rc.29`:** import repair #977/#979 source-tool #972, immutable `4422c8b5f1ff8d8a36343f9ef29becd213caab47` (2026-10-28T12:05:14Z), release #981. [Own972 closure](docs/audits/2026-10-28-972-source-tool-closure.md)/[own977 closure](docs/audits/2026-10-28-977-import-repair-closure.md): все собственные source-only criteria PASS, оба CLOSED/completed после publication checkpoint #982/main read-back. Старый RC28 import defect и finding FAIL сохранены исторически. Domain definitions/schema17/deps/operator setup прежние; parent482 budget/runtime OPEN, Deployed18.10 только operator-reported.
 

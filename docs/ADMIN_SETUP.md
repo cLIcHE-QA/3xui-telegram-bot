@@ -8,7 +8,7 @@
 
 **Исторический checkpoint `rc.18.1` (не текущий статус):** оператор ранее сообщил deployed `rc.18` P0–P2/F1–F3 и scoped D1–D8/S1–S4 PASS, но независимый VPS/provider read-back отсутствует, X2 и destructive postcondition provenance PENDING. Новая версия `rc.18.1` опубликована и развернута по отчёту оператора; targeted UI A4/A5 operator-reported FAIL; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
-> **Версия исходного кода:** `APP_VERSION=v5.0.0-rc.29`; source984/#985 main `7325b170e6851415e34fe40094924bcf1f5ca534` ещё не включён в actual Published29. [Source checkpoint](audits/2026-10-28-984-read-admission-postmerge-checkpoint.md), source tests1771/fresh image PASS; отдельный RC30/publication/runtime outcome PENDING. Schema17/deps/env/ports/credentials прежние, #876 veto/DB OFF, #949 не зарегистрирован/OFF/DENY_ALL. Deployed18.10 operator-reported, [Roadmap](ROADMAP.md).
+> **Версия исходного кода:** `APP_VERSION=v5.0.0-rc.30`, release-prep candidate, ещё не Published. Source984/#985 и checkpoint986 main `41d7baffa4e85e0ca10ddc0ddc8df42570f9e729`/required1771/source image/independent read-back PASS; actual Published29 не включает984. Main checkpoint986 Python40698506561/idempotent publisher40699242327 SUCCESS; RC30 publication и installed/read R984-01…03 PENDING до собственных outcomes. Schema17/deps/env/ports/credentials прежние, #876 veto/DB OFF, #949 не зарегистрирован/OFF/DENY_ALL. Deployed18.10 operator-reported, [Roadmap](ROADMAP.md).
 
 ## Source-only кампании #947: source schema v16
 
