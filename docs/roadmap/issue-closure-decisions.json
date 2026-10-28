@@ -358,25 +358,25 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Historical source metrics/CI/immutable RC28 publication scoped PASS; дополнительная own import isolation FAIL, не source-tool/full parent acceptance",
-      "evidence": "docs/audits/2026-10-28-972-import-isolation-finding.md",
-      "comment": "Child972 не закрыт из-за criterion1 FAIL; fix977/новый RC/revalidation прежде остальных parent read admission/lifecycle/cache/authoritative/errors/limiter/runtime scopes."
+      "accepted": "Source fix979 main/strict deny-import+DTO aliases+worker+CLI/17 cases/local1754/16/required1754/3 scoped PASS; не Published fix или parent runtime acceptance",
+      "evidence": "docs/audits/2026-10-28-977-import-fix-postmerge-checkpoint.md",
+      "comment": "Partial baseline и guarded import fix source main; fix publication/own children closure прежде остальных read admission/lifecycle/cache/errors/limiter/runtime scopes. Parent OPEN."
     },
     {
       "issue": 972,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Historical source metrics/CI/immutable RC28 publication scoped PASS; дополнительная own import isolation FAIL, не source-tool/full parent acceptance",
-      "evidence": "docs/audits/2026-10-28-972-import-isolation-finding.md",
-      "comment": "Publication checkpoint976 main/read-back подтверждён, но fresh import closure audit обнаружил config через type-only service graph. Собственный criterion1 FAIL, keep_open до fix977/нового immutable RC/negative import gate/own closure. Критерии не ослаблены, RC28 notes/tag не переписываются."
+      "accepted": "Source fix979 main/strict deny-import+DTO aliases+worker+CLI/17 cases/local1754/16/required1754/3 scoped PASS; не Published fix или parent runtime acceptance",
+      "evidence": "docs/audits/2026-10-28-977-import-fix-postmerge-checkpoint.md",
+      "comment": "Guarded fix source979 PASS, Published28 criterion1 FAIL до нового RC29. Own criteria/closure972 после fix publication, критерии не ослаблены."
     },
     {
       "issue": 977,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Source branch TYPE_CHECKING repair/deny-import+alias+worker+CLI regression/17 offline cases scoped PASS; full/required/merge/fix publication PENDING",
-      "evidence": "docs/audits/2026-10-28-977-import-boundary-revalidation.md",
-      "comment": "Pre-fix3 failures сохранены, post-fix targeted17 PASS; DTO/error identities и все domain definitions/constants сохранены. Published28 всё ещё import-defective, новый source hash не маскируется старым baseline. Own source/main/image/RC29/publication/closure977/972 PENDING, parent482 OPEN."
+      "accepted": "Source fix979 main/strict deny-import+DTO aliases+worker+CLI/17 cases/local1754/16/required1754/3 scoped PASS; не Published fix или parent runtime acceptance",
+      "evidence": "docs/audits/2026-10-28-977-import-fix-postmerge-checkpoint.md",
+      "comment": "Fix source 8d22c2166a9f7f417b68c80e98e9339ca7c4fe1d main; новый immutable RC29/publication/own977/972 closure PENDING. Старый Published28 остаётся defective, findingFAIL не переписывается."
     }
   ]
 }

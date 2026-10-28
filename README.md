@@ -242,7 +242,7 @@ CI проверяет route/method, Bearer auth, request/response contract и so
 
 Для API budget #482 сохранён [source baseline](scripts/benchmark-panel-reads.py) synthetic get/traffic/list и same/unique-owner чтений без подключения к панели. В RC28 дополнительный import gate выявил #977: до исправления не использовать tool как config-independent. [Методика и ограничения](docs/3XUI_OPENAPI_CONTRACT.md#offline-baseline-чтений-482972) отделяют bot JSON/driver metrics от реальной мощности 3x-ui/Xray; результат не разрешает live load.
 
-Source fix #977 использует TYPE_CHECKING для отложенных annotations CustomerPortalService: DTO/error classes остаются в customer_service, настоящий provider не подменяется и не загружает annotation-only checkout/commerce/DB/config graph. Исправленный source пока в implementation branch, required CI/merge/new immutable RC PENDING; текущий Published RC28 import gate остаётся FAIL.
+Source fix #977/#979 MERGED в main `8d22c2166a9f7f417b68c80e98e9339ca7c4fe1d` и использует TYPE_CHECKING для отложенных annotations CustomerPortalService: DTO/error classes остаются в customer_service, настоящий provider не подменяется и не загружает annotation-only checkout/commerce/DB/config graph. Исправленный source/required CI1754 и deny-import/alias/worker/CLI gates PASS; [source checkpoint](docs/audits/2026-10-28-977-import-fix-postmerge-checkpoint.md), новый immutable RC29/publication/own closure PENDING. Текущий Published RC28 import gate остаётся FAIL.
 
 ### User / Audience Groups
 
