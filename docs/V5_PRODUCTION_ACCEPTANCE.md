@@ -4,6 +4,10 @@
 
 **Действующий нормативный план приёмки**, не доказательство public rollout. [Roadmap](ROADMAP.md): Published `v5.0.0-rc.30` SHA `7aa3514194675ae119a2e774e03da150025326b9`, Deployed `v5.0.0-rc.18.10` exact SHA `dae205ac82762723448f93827b981f89ae622231` operator-reported, HWID 23/23 targeted scoped PASS ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)), #827/#830/#833/#834/#838/#854 completed; independent VPS read-back PENDING. Полные V5-A-001…003 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. Не повторять старые HWID H1–H8 и не проводить новые DELETE/Stars/refund/restore/burst.
 
+## Client traffic #989 — самостоятельный installed/read gate
+
+Ожидаемые native transport/malformed response/counter failures переводятся в существующий безопасный unavailable UI; offline tests проверяют error/cancel/no-retry и cleanup. После отдельного deployment собственный R989-01 — [Client Setup](CLIENT_SETUP.md#отказ-чтения-клиентского-трафика-989): installed release/SHA/health и существующий owner traffic read/Back. Не создавать live failure/load/новые payments/provider writes ради проверки. До installed/read outcome #989 keep_open, parent482/G-11 отдельно; previous HWID PASS/waived burst не повторять.
+
 ## Read admission #984 — самостоятельный отложенный gate
 
 Source/CI bounds active8/ordinary6/queue32/wait1s/targets64, reserved critical priority и cancellation/no-replay не доказывают реальную panel capacity или deployment. Поздние собственные R984-01…03 — [Client Setup](CLIENT_SETUP.md#ограниченные-чтения-panel-api-984): installed release/health, естественные read-only client/admin outcomes и только уже имеющийся authoritative postcondition. Отсутствующий естественный mutation outcome остаётся PENDING; не создавать его и не повторять Stars/DELETE/provisioning ради проверки. Saturation/races остаются offline, новое production load/burst не нужно. #984 keep_open до собственного installed/read acceptance; parent482 pooling/cache/limiter/другие runtime scopes и G-11 не закрыты.

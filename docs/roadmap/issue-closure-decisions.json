@@ -385,6 +385,14 @@
       "accepted": "RC30 source/main/required1771/3/offline17/5 hashes/fresh image/immutable publication scoped PASS; own runtime PENDING",
       "evidence": "docs/audits/2026-10-28-rc30-publication-checkpoint.md",
       "comment": "#984 собственные installed/read R984-01…03 после разрешённого deployment; caps/races offline не panel capacity. Publication checkpoint/main sync обязателен; natural authoritative outcome не создавать mutation."
+    },
+    {
+      "issue": 989,
+      "decision": "keep_open",
+      "date": "2026-10-28",
+      "accepted": "Source3835 pre-fix FAIL/post-fix11/targeted94/full1782/16/AST boundaries/raw17/5 measured hashes offline PASS; required/main/RC31/runtime PENDING",
+      "evidence": "docs/audits/2026-10-28-989-traffic-read-source-review.md",
+      "comment": "Source not merged/published; next required CI/source-main checkpoint, separate RC31/publication/main read-back and own R989-01 installed/read outcome after explicit deployment. Parent482/984 runtime OPEN."
     }
   ]
 }
