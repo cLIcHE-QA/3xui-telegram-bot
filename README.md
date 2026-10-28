@@ -242,6 +242,8 @@ CI проверяет route/method, Bearer auth, request/response contract и so
 
 Для API budget #482 сохранён [source baseline](scripts/benchmark-panel-reads.py) synthetic get/traffic/list и same/unique-owner чтений без подключения к панели. В RC28 дополнительный import gate выявил #977: до исправления не использовать tool как config-independent. [Методика и ограничения](docs/3XUI_OPENAPI_CONTRACT.md#offline-baseline-чтений-482972) отделяют bot JSON/driver metrics от реальной мощности 3x-ui/Xray; результат не разрешает live load.
 
+Source fix #977 использует TYPE_CHECKING для отложенных annotations CustomerPortalService: DTO/error classes остаются в customer_service, настоящий provider не подменяется и не загружает annotation-only checkout/commerce/DB/config graph. Исправленный source пока в implementation branch, required CI/merge/new immutable RC PENDING; текущий Published RC28 import gate остаётся FAIL.
+
 ### User / Audience Groups
 
 V4.22 добавляет отдельные `Группы пользователей` для сегментации будущего Client Portal:
