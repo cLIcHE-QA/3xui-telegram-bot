@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep `v5.0.0-rc.28`, ещё не Published:** source-tool #972 не использует DB и не меняет bot schema v17/DDL/backfill. Фактический Published ниже RC27; cumulative upgrade/recovery от operator-reported deployed15 и самостоятельные runtime gates прежние.
+
 **Published `v5.0.0-rc.27`:** #876 хранит theme JSON/CAS/audit в existing runtime_settings, #966 меняет только dependency floor/lock; bot schema v17 прежняя, без DDL/backfill. [Publication read-back](audits/2026-10-28-rc27-publication-checkpoint.md); cumulative upgrade/recovery от operator-reported deployed15 и отдельные runtime gates не отменяются.
 
 **Source #949 впервые Published в `v5.0.0-rc.26`:** UI/adapters не добавляют migrations или backfill, schema17 прежняя; [исторический publication read-back](audits/2026-10-27-rc26-publication-checkpoint.md). Runtime registration/collection/send выключены, поздний integration/deployment gate не отменён.
