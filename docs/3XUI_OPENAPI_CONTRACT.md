@@ -111,6 +111,8 @@ python -m unittest tests.test_v417_openapi_contract -v
 
 ## Offline baseline чтений (#482/#972)
 
+Свежие измерения после #984 дополнительно включают SHA-256 `panel_read_budget.py`: actual read path теперь проходит admission ниже. Driver backlog и transport peak остаются разными метриками; execution latency включает admission wait внутри операции. Исторические raw972/977 отражают прежний source без этого budget и не переписываются. Реальная production queue/latency/capacity по offline fixture не аттестована.
+
 **Текущий RC29: import isolation принята по собственному source-only scope.** #977/#979 Published `4422c8b5f1ff8d8a36343f9ef29becd213caab47`; TYPE_CHECKING изолирует annotation-only checkout/commerce/DB/config graph при сохранённых DTO/errors и actual provider paths. Fresh strict guard/worker/CLI/release17/raw hashes/required1754/image/immutable publication и checkpoint982/main read-back PASS. [Own972 closure](audits/2026-10-28-972-source-tool-closure.md)/[own977 closure](audits/2026-10-28-977-import-repair-closure.md), оба CLOSED/completed; parent482 остальные budget/runtime scopes OPEN. Исторический [RC28 import FAIL](audits/2026-10-28-972-import-isolation-finding.md), исходные metrics/audits/tag неизменны; RC28 tool не считать config-independent.
 
 
@@ -124,4 +126,22 @@ python3 scripts/benchmark-panel-reads.py > /tmp/panel-read-baseline.json
 
 `operations_per_second`, API calls/sec и p50/p95 — execution в синтетическом driver с включённым tracemalloc, без ожидания в driver backlog; synthetic delay не является измеренной network latency. `driver_initial_backlog` — размер начального остатка после выделения driver workers, не production admission queue. `peak_transport_active`/calls/session counts наблюдаются fake transport; runtime queue NOT_INSTRUMENTED. Timed heap исключает заранее созданные fixtures; process peak RSS включает imports/fixtures/весь worker и нормализован в bytes (macOS bytes/Linux KiB). Не сравнивать эти разные memory scopes и не выводить safe production defaults из fake RPS. Текущий baseline, границы измерений и source hashes сохраняются в [датированном audit](audits/2026-10-28-972-panel-read-baseline.md).
 
-Baseline не добавляет общий read admission, приоритет critical reads, pooling, TTL cache/singleflight или limiter cleanup. Эти самостоятельные scopes #482 проектируются после чтения измерений. Все paid/entitlement/quota/provisioning/post-mutation reads должны оставаться authoritative; текущая утилита их не исполняет и не меняет TLS/Bearer/no-blind-retry/mutation semantics. Реальная capacity/health и собственный deployment scope #482 отложены; Telegram burst/CPU Xray не измеряются.
+Сам baseline не добавляет общий admission/critical priority, pooling, TTL cache/singleflight или limiter cleanup. Admission выделен в самостоятельный #984; остальные scopes #482 остаются отдельно. Все paid/entitlement/quota/provisioning/post-mutation reads authoritative; утилита их не исполняет и не меняет TLS/Bearer/no-blind-retry/mutation semantics. Реальная capacity/health и собственный deployment scope #482 отложены; Telegram burst/CPU Xray не измеряются.
+
+## Ограничение panel reads (#984, часть #482)
+
+Фактические Merged/Published/Deployed/Accepted — только в [Roadmap](ROADMAP.md). `panel_read_budget.py` не импортирует config/app_runtime и не создаёт tasks/network/listeners/sessions. В поддерживаемом single-loop bot runtime все XUIClient instances одного canonical configured endpoint делят budget: максимум8 active, ordinary максимум6, общая очередь32 и admission wait1s. Два свободных места зарезервированы для critical reads, critical могут занять все8; critical FIFO раньше ordinary FIFO. Постоянная critical нагрузка может дать ordinary timeout; это temporary unavailable, не stale success. HTTP timeout20s и binary60s отдельно, очередь не увеличивает transport deadline. Caps — инженерная защита, не измеренная безопасная мощность панели; несколько processes/loops не образуют distributed общий лимит.
+
+| Source limit | Значение |
+| --- | --- |
+| `MAX_ACTIVE` | 8 |
+| `MAX_NORMAL_ACTIVE` | 6 |
+| `MAX_WAITERS` | 32 |
+| `WAIT_SECONDS` | 1.0 |
+| `MAX_TARGETS` | 64 |
+
+Canonical key нормализует scheme/host/IDNA/IP/default port/base path и не разделяется по token/TLS/userinfo/query/fragment. Это только объединение admission counters, не URL validation, authorization, credential/session/response cache или fallback между privilege domains. Реестр ограничен64 занятыми/ожидающими targets на loop; idle leases снимаются даже при сохранённом exception traceback, weak references не удерживают завершённые loops. Диагностика содержит только aggregate counters, без endpoint/owner/token/payload.
+
+Общий `_request` включает существующие GET/read-only POST diagnostics; version GET и binary getDb тоже берут permit до ClientSession. Очередь полна/timeout/registry cap дают sanitized `XUIError` либо definitive read `VersionAPIError` без HTTP/retry. Cancellation остаётся CancelledError; grant/cancel race возвращает permit один раз. Session close/JSON/transport errors также освобождают lease. `_mutation_request` и version mutations не используют read budget; прежние one-shot/redirect/uncertainty contracts сохраняются. Direct Admin/Host/Fleet/proxy остаются отдельными контурами; этот budget не заявляет охват их transport.
+
+Critical context выставляет сервер вокруг `ProvisioningEngine` initial/uncertain/final authoritative get_client, только для текущего asyncio Task. Входные email/Telegram/HTTP данные не выбирают priority, child/background tasks её не наследуют. Priority не даёт права mutation, stale cache не применяется. Начальный отказ прекращает sync до writes; недоказанный final/uncertain readback после mutation остаётся `ProvisioningUnknown`/mutation_not_retried, без replay. Pooling, TTL cache/singleflight, общие traffic transport errors, limiter cleanup и остальные parent482 outcomes — отдельные scopes.

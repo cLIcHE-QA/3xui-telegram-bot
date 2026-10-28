@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import time
+
+import aiohttp
 from dataclasses import dataclass, field
 
+from panel_read_budget import critical_panel_reads
 from config import Settings
 from db import Database, PlanRecord, ServerGroupRecord, UserRecord
 from xui import InboundOption, NodeInfo, XUIClient, XUIError, XUIMutationError
@@ -221,10 +225,14 @@ class ProvisioningEngine:
             source = "legacy-all-managed"
         return await self.resolve_group(group_id, plan=plan, source=source)
 
+    async def _authoritative_client(self, email: str) -> dict[str, object]:
+        with critical_panel_reads():
+            return await self.xui.get_client(email)
+
     async def _mutation_readback(self, email: str, exc: XUIMutationError, *, operation: str) -> dict[str, object]:
         try:
-            return await self.xui.get_client(email)
-        except XUIError as read_exc:
+            return await self._authoritative_client(email)
+        except (XUIError, aiohttp.ClientError, asyncio.TimeoutError, OSError) as read_exc:
             raise ProvisioningUnknown(
                 f"{operation}: outcome=unknown; mutation_not_retried=true; "
                 f"readback=unavailable:{type(read_exc).__name__}"
@@ -321,7 +329,7 @@ class ProvisioningEngine:
         else:
             policy = await self.policy_for_user(telegram_id)
 
-        obj = await self.xui.get_client(rec.email)
+        obj = await self._authoritative_client(rec.email)
         current = self._client_ids(obj)
         desired = set(policy.desired_inbound_ids)
         actionable = set(policy.actionable_inbound_ids)
@@ -417,7 +425,12 @@ class ProvisioningEngine:
                         "flow: outcome=unknown; mutation_not_retried=true; readback=mismatch"
                     ) from exc
 
-        updated = await self.xui.get_client(rec.email)
+        try:
+            updated = await self._authoritative_client(rec.email)
+        except (XUIError, aiohttp.ClientError, asyncio.TimeoutError, OSError):
+            raise ProvisioningUnknown(
+                "provisioning: outcome=unknown; mutation_not_retried=true; readback=unavailable"
+            ) from None
         updated_ids = self._client_ids(updated)
         updated_client = self._client_payload(updated)
         if expected_limits and not self._limits_match(updated_client, expected_limits):
