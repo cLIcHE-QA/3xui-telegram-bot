@@ -358,25 +358,25 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "RC29 source/import/targeted17/raw hashes/required1754/image/immutable publication scoped PASS; own closure/main checkpoint ещё PENDING",
-      "evidence": "docs/audits/2026-10-28-rc29-publication-checkpoint.md",
-      "comment": "Parent482 остальные read admission/critical priority/session pooling/cache/authoritative/error/limiter/runtime scopes OPEN; child own closure/main sync прежде следующего scope."
+      "accepted": "Children972/977 completed по собственному baseline/import source scope; не полноценный API budget/runtime outcome",
+      "evidence": "docs/audits/2026-10-28-977-import-repair-closure.md",
+      "comment": "Parent OPEN: admission/critical priority/pooling/lifecycle/presentation cache/singleflight/authoritative/errors/limiter/runtime outcomes. После child closure docs main sync следующий child определить Issue-first; #498 не включается по fake baseline."
     },
     {
       "issue": 972,
-      "decision": "keep_open",
+      "decision": "completed",
       "date": "2026-10-28",
-      "accepted": "RC29 source/import/targeted17/raw hashes/required1754/image/immutable publication scoped PASS; own closure/main checkpoint ещё PENDING",
-      "evidence": "docs/audits/2026-10-28-rc29-publication-checkpoint.md",
-      "comment": "После required publication checkpoint/merge/main read-back проверить все собственные criteria; затем completed/API CLOSED и отдельный removal PR. VPS/live smoke N/A по собственному source-tool scope, historical RC28 FAIL сохранён."
+      "accepted": "Все собственные6 source-only criteria PASS: actual no-config/DTO/worker/CLI/metrics/guarded regressions/full+required1754/security/immutable RC29/publication checkpoint982/main read-back; API CLOSED/completed independently verified",
+      "evidence": "docs/audits/2026-10-28-972-source-tool-closure.md",
+      "comment": "Отдельный own audit и API CLOSED read-back; VPS/live smoke N/A по собственному source/tool scope. Historical RC28 FAIL сохранён; parent482 admission/priority/pooling/cache/errors/limiter/runtime OPEN. Closure docs main sync обязателен до следующего пакета."
     },
     {
       "issue": 977,
-      "decision": "keep_open",
+      "decision": "completed",
       "date": "2026-10-28",
-      "accepted": "RC29 source/import/targeted17/raw hashes/required1754/image/immutable publication scoped PASS; own closure/main checkpoint ещё PENDING",
-      "evidence": "docs/audits/2026-10-28-rc29-publication-checkpoint.md",
-      "comment": "После required publication checkpoint/merge/main read-back проверить все собственные criteria; затем completed/API CLOSED и отдельный removal PR. VPS/live smoke N/A по собственному source-tool scope, historical RC28 FAIL сохранён."
+      "accepted": "Все собственные6 source-only criteria PASS: actual no-config/DTO/worker/CLI/metrics/guarded regressions/full+required1754/security/immutable RC29/publication checkpoint982/main read-back; API CLOSED/completed independently verified",
+      "evidence": "docs/audits/2026-10-28-977-import-repair-closure.md",
+      "comment": "Отдельный own audit и API CLOSED read-back; VPS/live smoke N/A по собственному source/tool scope. Historical RC28 FAIL сохранён; parent482 admission/priority/pooling/cache/errors/limiter/runtime OPEN. Closure docs main sync обязателен до следующего пакета."
     }
   ]
 }
