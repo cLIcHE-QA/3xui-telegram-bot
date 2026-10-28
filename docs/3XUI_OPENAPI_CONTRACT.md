@@ -113,6 +113,8 @@ python -m unittest tests.test_v417_openapi_contract -v
 
 Свежие измерения после #984 дополнительно включают SHA-256 `panel_read_budget.py`: actual read path теперь проходит admission ниже. Driver backlog и transport peak остаются разными метриками; execution latency включает admission wait внутри операции. Исторические raw972/977 отражают прежний source без этого budget и не переписываются. Реальная production queue/latency/capacity по offline fixture не аттестована.
 
+Новая source989 [matrix15](audits/2026-10-28-989-traffic-read-matrix.json)/[driver32x2](audits/2026-10-28-989-traffic-read-concurrency32.json) фиксирует изменившийся adapter SHA-256 и тот же deterministic call/session/byte/peak/owner contract. Source review — [989](audits/2026-10-28-989-traffic-read-source-review.md); historical984/972/977 raw неизменны, timing/CPU/RSS не panel capacity и не доказательство runtime deployment.
+
 **Начиная с RC29: import isolation принята по собственному source-only scope.** #977/#979 Published `4422c8b5f1ff8d8a36343f9ef29becd213caab47`; TYPE_CHECKING изолирует annotation-only checkout/commerce/DB/config graph при сохранённых DTO/errors и actual provider paths. Fresh strict guard/worker/CLI/release17/raw hashes/required1754/image/immutable publication и checkpoint982/main read-back PASS. [Own972 closure](audits/2026-10-28-972-source-tool-closure.md)/[own977 closure](audits/2026-10-28-977-import-repair-closure.md), оба CLOSED/completed; parent482 остальные budget/runtime scopes OPEN. Исторический [RC28 import FAIL](audits/2026-10-28-972-import-isolation-finding.md), исходные metrics/audits/tag неизменны; RC28 tool не считать config-independent.
 
 
@@ -127,6 +129,14 @@ python3 scripts/benchmark-panel-reads.py > /tmp/panel-read-baseline.json
 `operations_per_second`, API calls/sec и p50/p95 — execution в синтетическом driver с включённым tracemalloc, без ожидания в driver backlog; synthetic delay не является измеренной network latency. `driver_initial_backlog` — размер начального остатка после выделения driver workers, не production admission queue. `peak_transport_active`/calls/session counts наблюдаются fake transport; runtime queue NOT_INSTRUMENTED. Timed heap исключает заранее созданные fixtures; process peak RSS включает imports/fixtures/весь worker и нормализован в bytes (macOS bytes/Linux KiB). Не сравнивать эти разные memory scopes и не выводить safe production defaults из fake RPS. Текущий baseline, границы измерений и source hashes сохраняются в [датированном audit](audits/2026-10-28-972-panel-read-baseline.md).
 
 Сам baseline не добавляет общий admission/critical priority, pooling, TTL cache/singleflight или limiter cleanup. Admission выделен в самостоятельный #984; остальные scopes #482 остаются отдельно. Все paid/entitlement/quota/provisioning/post-mutation reads authoritative; утилита их не исполняет и не меняет TLS/Bearer/no-blind-retry/mutation semantics. Реальная capacity/health и собственный deployment scope #482 отложены; Telegram burst/CPU Xray не измеряются.
+
+## Отказ клиентского чтения трафика (#989)
+
+`XuiCustomerProvider.traffic()` сохраняет два существующих адресных reads: `get_client(email)` и `traffic(email)`. Native `aiohttp.ClientError`, timeout, `OSError`, некорректная mapping shape и ожидаемая ошибка преобразования counters (TypeError/ValueError/OverflowError) дают постоянный обезличенный `CustomerProviderUnavailable`. Raw response/endpoint/owner/error message не включается в сообщение или обычный formatted traceback. Cancellation не перехватывается; неожиданный programming RuntimeError не скрывается общим `except Exception`.
+
+Сначала проверяются object/client mappings, затем traffic mapping и прежние int conversions. Nested/direct client records, `up/down` и `uplink/downlink`, действительные нули и прежние missing-counter defaults совместимы; native failure или повреждённый ответ не превращаются в успешный нулевой DTO. Новых reads/retries/fallback/cache нет. Devices inventory уже имеет transport normalization и сохраняет независимый unknown limit; mutation/no-replay, auth/TLS/admission и authoritative postconditions не меняются.
+
+Existing server-owned CustomerPortalService profile/private/allowlist/SQL ownership и UI temporary-unavailable/Back сохраняются. Error paths и session/admission cleanup проверяются offline; [поздний installed/read outcome](CLIENT_SETUP.md#отказ-чтения-клиентского-трафика-989) требует отдельного deployment. Source/release state — [Roadmap](ROADMAP.md), no live failure/load или искусственной недоступности ради проверки.
 
 ## Ограничение panel reads (#984, часть #482)
 

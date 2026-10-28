@@ -13,6 +13,12 @@
 - Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
 - Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
 
+## Отказ чтения клиентского трафика (#989)
+
+Профиль/владелец/private/allowlist и прежний traffic экран не меняются. При native transport/timeout/OS либо повреждённых данных любого из двух provider reads используется существующий временный отказ с Back; неизвестные counters не выдаются как успешный нулевой расход. Успешные counters/aliases и настоящие нули совместимы. Ошибки/отмена/cleanup/no-retry проверяются synthetic regression, новых provider mutations или клиентских флагов нет.
+
+После отдельного разрешённого deployment собственный R989-01: exact installed release/SHA и базовая health, безопасный private-owner traffic read по уже существующему профилю, прежние counters/Back. Если естественный failure уже наблюдается — проверить существующий unavailable panel и отсутствие сырых данных/ложного нуля; не отключать сеть/панель и не создавать load/новые платежи ради failure. До installed/read outcome #989 OPEN/keep_open; parent482 и G-11 отдельно, старые HWID PASS/waived burst не повторять. [API contract](3XUI_OPENAPI_CONTRACT.md#отказ-клиентского-чтения-трафика-989).
+
 ## Ограниченные чтения panel API (#984)
 
 Source admission не включает новый клиентский флаг, экран, оплату или reconcile. Собственные traffic/profile reads сохраняют private-owner/allowlist guards; при временной недоступности panel read budget нет stale traffic/access success или обхода авторизации. Технический cap shared XUI reads — [API contract](3XUI_OPENAPI_CONTRACT.md#ограничение-panel-reads-984-часть-482), operator diagnosis — [Admin Setup](ADMIN_SETUP.md#временный-отказ-чтения-panel-api-984).
