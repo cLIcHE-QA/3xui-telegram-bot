@@ -16,7 +16,7 @@
 
 ## v5.0.0-rc.29 — Изоляция импорта инструментов чтения panel API
 
-- #977 / PR #979 — import repair offline baseline #972: annotation-only checkout/commerce/DB dependencies CustomerPortalService перенесены под TYPE_CHECKING при существующих future annotations. Fresh subprocess guard запрещает config/app_runtime/provisioning/checkout/commerce/DB/dotenv imports до module execution; actual worker/CLI и прежние DTO/error aliases проверены без app configuration. Доменные definitions/constants, provider paths/auth/TLS/mutations/schema/deps прежние; новые baseline snapshots сохраняют изменившийся source hash, старые RC28 notes/audits неизменны. Текущий Published RC28 остаётся с дефектом до нового immutable fix RC.
+- #977 / PR #979 — import repair offline baseline #972: annotation-only checkout/commerce/DB dependencies CustomerPortalService перенесены под TYPE_CHECKING при существующих future annotations. Fresh subprocess guard запрещает config/app_runtime/provisioning/checkout/commerce/DB/dotenv imports до module execution; actual worker/CLI и прежние DTO/error aliases проверены без app configuration. Доменные definitions/constants, provider paths/auth/TLS/mutations/schema/deps прежние; новые baseline snapshots сохраняют изменившийся source hash, старые RC28 notes/audits неизменны. Прежний immutable RC28 сохраняет import defect; исправление поставляется новым RC без изменения старого tag.
 
 ## v5.0.0-rc.28 — Измерение стоимости чтений panel API
 
