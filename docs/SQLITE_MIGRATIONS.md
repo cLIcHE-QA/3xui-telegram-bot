@@ -4,6 +4,8 @@
 
 ## Текущий контракт schema
 
+**Release-prep `v5.0.0-rc.30`, ещё не Published:** #984 использует только process-local read admission/Future state; bot schema v17/DDL/backfill/data/deps прежние. Actual Published29 ниже и operator-reported deployed15 отдельно; поздний cumulative upgrade/recovery и собственные runtime gates не отменены.
+
 **Published `v5.0.0-rc.29`:** #977 меняет только исполнение annotation-only imports; bot schema v17/DDL/backfill/data/dependencies прежние. [Publication read-back](audits/2026-10-28-rc29-publication-checkpoint.md); cumulative upgrade/recovery от deployed15 и собственные runtime gates отдельно.
 
 **Source-tool впервые Published в `v5.0.0-rc.28`:** source-tool #972 не использует DB и не меняет bot schema v17/DDL/backfill. [Publication read-back](audits/2026-10-28-rc28-publication-checkpoint.md); cumulative upgrade/recovery от operator-reported deployed15 и самостоятельные runtime gates прежние.
