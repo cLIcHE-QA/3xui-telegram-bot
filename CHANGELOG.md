@@ -16,7 +16,7 @@
 
 ## Unreleased
 
-- #972 / часть #482-A: воспроизводимый полностью offline baseline текущих XUIClient get/traffic/list и same/unique owner traffic. Ограниченные synthetic fixtures/driver, отдельный process на case, реальные call/JSON/latency/CPU/heap/RSS метрики и source hashes; fake transport с запретом sockets/DNS, без live mode/config/DB. Runtime/auth/TLS/mutations/cache/session lifecycle не меняются; это стоимость разбора в боте, не throughput панели/Xray или production SLA. Остальные budget/cache/lifecycle/limiter/runtime gates #482 отдельно.
+- #972 / PR #973 / часть #482-A: воспроизводимый полностью offline baseline текущих XUIClient get/traffic/list и same/unique owner traffic. Ограниченные synthetic fixtures/driver, отдельный process на case, реальные call/JSON/latency/CPU/heap/RSS метрики и source hashes; fake transport с запретом sockets/DNS, без live mode/config/DB. Runtime/auth/TLS/mutations/cache/session lifecycle не меняются; это стоимость разбора в боте, не throughput панели/Xray или production SLA. Остальные budget/cache/lifecycle/limiter/runtime gates #482 отдельно.
 
 ## v5.0.0-rc.27 — Настраиваемые значки клиентского портала
 

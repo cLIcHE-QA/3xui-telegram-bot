@@ -358,17 +358,17 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Scoped offline baseline measurement PASS на source branch, не runtime/global API budget acceptance",
-      "evidence": "docs/audits/2026-10-28-972-panel-read-baseline.md",
-      "comment": "Child #972 first baseline; отдельные read admission/lifecycle/cache/authoritative/error/limiter/runtime scopes PENDING, full parent acceptance не закрыт."
+      "accepted": "Source #973 main/actual offline baseline17 cases/targeted10/local1751/16/required1751/3 scoped PASS; runtime files unchanged, не capacity или global API budget acceptance",
+      "evidence": "docs/audits/2026-10-28-972-panel-baseline-postmerge-checkpoint.md",
+      "comment": "Child972 baseline merged; собственные read admission/lifecycle/cache/authoritative/error/limiter/runtime scopes PENDING, parent acceptance не закрыт."
     },
     {
       "issue": 972,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Scoped offline baseline measurement PASS на source branch, не runtime/global API budget acceptance",
-      "evidence": "docs/audits/2026-10-28-972-panel-read-baseline.md",
-      "comment": "Source tool/targeted regressions и actual offline metrics подтверждены; full/required CI/merge/main/source checkpoint/immutable RC/publication PENDING. Собственный scope source-only, VPS/live smoke не требуется; parent #482 OPEN."
+      "accepted": "Source #973 main/actual offline baseline17 cases/targeted10/local1751/16/required1751/3 scoped PASS; runtime files unchanged, не capacity или global API budget acceptance",
+      "evidence": "docs/audits/2026-10-28-972-panel-baseline-postmerge-checkpoint.md",
+      "comment": "Squash 5564bf1cf52f6666e0dc74860b086e35fd2f3ec6 main. Immutable RC28/publication/own closure checkpoint PENDING; source-only tool не требует VPS/live smoke, parent482 OPEN. Следующий scope после штатного source и publication/main checkpoints."
     }
   ]
 }
