@@ -1,6 +1,6 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.28
 
-> **Published `v5.0.0-rc.28`:** #972 (#482-A) — полностью offline development baseline чтений panel API из #973. [Publication audit](docs/audits/2026-10-28-rc28-publication-checkpoint.md) подтверждает immutable tag/notes/provenance/fresh release image. Реальная panel/Xray capacity не измерялась, bot runtime/deps/schema17 прежние. Собственный #972 source-tool closure ждёт publication checkpoint/main read-back; parent482 OPEN до остальных admission/cache/lifecycle/limiter/runtime scopes. Deployed18.10 только operator-reported.
+> **Published `v5.0.0-rc.28`:** #972 (#482-A) — development baseline чтений panel API из #973. [Publication audit](docs/audits/2026-10-28-rc28-publication-checkpoint.md) подтверждает immutable tag/notes/CI/image. Дополнительный собственный [import gate](docs/audits/2026-10-28-972-import-isolation-finding.md) выявил **FAIL**: transitive config import, поэтому #972 OPEN, принятие source-tool отложено до минимального fix #977/нового RC. До исправления не использовать tool как config-independent. Реальная panel/Xray capacity не измерялась, bot runtime/deps/schema17 прежние; parent482 OPEN до остальных budget/runtime scopes. Deployed18.10 только operator-reported.
 
 > **Оформление впервые Published в `v5.0.0-rc.27`:** #876 — default-off Owner редактор 25 значков Client Portal, обязательный #966 — dnspython2.9.0; [исторический publication audit](docs/audits/2026-10-28-rc27-publication-checkpoint.md). Theme veto/DB OFF, #876/#966 OPEN/keep_open до собственных emoji eligibility/IDs/deployment/rendering и read-only deployed DNS/package/health gates.
 
@@ -240,7 +240,7 @@ CI проверяет route/method, Bearer auth, request/response contract и so
 
 Подробнее: **[3x-ui OpenAPI compatibility contract](docs/3XUI_OPENAPI_CONTRACT.md)**.
 
-Для разработки API budget #482 доступен [полностью offline baseline](scripts/benchmark-panel-reads.py): synthetic get/traffic/list и same/unique-owner чтения без подключения к панели, URL/token/env/DB input. [Методика и ограничения](docs/3XUI_OPENAPI_CONTRACT.md#offline-baseline-чтений-482972) отделяют bot JSON/driver metrics от реальной мощности 3x-ui/Xray; результат не разрешает live load.
+Для API budget #482 сохранён [source baseline](scripts/benchmark-panel-reads.py) synthetic get/traffic/list и same/unique-owner чтений без подключения к панели. В RC28 дополнительный import gate выявил #977: до исправления не использовать tool как config-independent. [Методика и ограничения](docs/3XUI_OPENAPI_CONTRACT.md#offline-baseline-чтений-482972) отделяют bot JSON/driver metrics от реальной мощности 3x-ui/Xray; результат не разрешает live load.
 
 ### User / Audience Groups
 

@@ -358,17 +358,25 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Baseline source/offline17 cases/required1751/fresh release SHA image/immutable RC28 tag/notes/provenance scoped PASS; не parent global budget/runtime acceptance",
-      "evidence": "docs/audits/2026-10-28-rc28-publication-checkpoint.md",
-      "comment": "Source-tool child972 Published 2026-10-28T07:25:15Z fad1fe6641f8fe190bd810ff51e04d91062c7ac7. Остальные parent read admission/critical priority/lifecycle/cache/authoritative/errors/limiter/runtime scopes PENDING, parent OPEN."
+      "accepted": "Historical source metrics/CI/immutable RC28 publication scoped PASS; дополнительная own import isolation FAIL, не source-tool/full parent acceptance",
+      "evidence": "docs/audits/2026-10-28-972-import-isolation-finding.md",
+      "comment": "Child972 не закрыт из-за criterion1 FAIL; fix977/новый RC/revalidation прежде остальных parent read admission/lifecycle/cache/authoritative/errors/limiter/runtime scopes."
     },
     {
       "issue": 972,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Baseline source/offline17 cases/required1751/fresh release SHA image/immutable RC28 tag/notes/provenance scoped PASS; не parent global budget/runtime acceptance",
-      "evidence": "docs/audits/2026-10-28-rc28-publication-checkpoint.md",
-      "comment": "RC28 Published 2026-10-28T07:25:15Z fad1fe6641f8fe190bd810ff51e04d91062c7ac7. Собственный publication checkpoint/required CI/main read-back и последующий completed/read-back/active-row removal PENDING. Source-tool scope не требует VPS/live smoke, parent482 OPEN."
+      "accepted": "Historical source metrics/CI/immutable RC28 publication scoped PASS; дополнительная own import isolation FAIL, не source-tool/full parent acceptance",
+      "evidence": "docs/audits/2026-10-28-972-import-isolation-finding.md",
+      "comment": "Publication checkpoint976 main/read-back подтверждён, но fresh import closure audit обнаружил config через type-only service graph. Собственный criterion1 FAIL, keep_open до fix977/нового immutable RC/negative import gate/own closure. Критерии не ослаблены, RC28 notes/tag не переписываются."
+    },
+    {
+      "issue": 977,
+      "decision": "keep_open",
+      "date": "2026-10-28",
+      "accepted": "Import boundary defect подтверждён guarded FAIL; исправление/own source acceptance PENDING",
+      "evidence": "docs/audits/2026-10-28-972-import-isolation-finding.md",
+      "comment": "Issue-first follow-up к972, type-only dependencies должны перестать исполняться runtime без подмены provider/config или изменения DTO/error identity. Finding checkpoint before code, target RC29 план; production операции не требуются."
     }
   ]
 }
