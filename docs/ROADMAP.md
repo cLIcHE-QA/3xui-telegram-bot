@@ -68,7 +68,7 @@
 | Целевой RC | Задачи | Зависимости перед включением |
 | --- | --- | --- |
 
-| **Следующий RC — после декомпозиции** | #482 — очередной bounded read admission/lifecycle scope | Сначала RC29 publication checkpoint/own977+972 closure/main sync; затем отдельный Issue/acceptance, без вывода safe production capacity из fake RPS |
+| **v5.0.0-rc.30 (план)** | #482 — очередной bounded read admission/lifecycle scope | Сначала RC29 publication checkpoint/own977+972 closure/main sync; затем отдельный Issue/acceptance и подтверждение номера в release-prep, без вывода safe production capacity из fake RPS |
 
 **Смысл версий:** это переупорядоченный план #930 от 2026-10-27 с отдельным пакетным разрешением оператора на описанный пул, не обещание сроков. Ранее назначенные будущие rc.20…rc.25 заменены этим планом; опубликованные версии не меняются. После уже опубликованного начального объединённого rc.20 одна самостоятельная релизная задача соответствует одному RC; эпики декомпозируются до реализации. Номер подтверждается release-prep после фактического scope review. `rc.29` Published, Deployed остаётся `rc.18.10` operator-reported; G-11 PARTIAL/NO-GO, public rollout BLOCKED.
 
