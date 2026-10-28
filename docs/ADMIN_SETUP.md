@@ -8,7 +8,7 @@
 
 **Исторический checkpoint `rc.18.1` (не текущий статус):** оператор ранее сообщил deployed `rc.18` P0–P2/F1–F3 и scoped D1–D8/S1–S4 PASS, но независимый VPS/provider read-back отсутствует, X2 и destructive postcondition provenance PENDING. Новая версия `rc.18.1` опубликована и развернута по отчёту оператора; targeted UI A4/A5 operator-reported FAIL; реальный DELETE требует отдельного разрешения. Targeted U8/S/R 20/20 operator-reported scoped PASS на `rc.17`, #760/#470 CLOSED/completed, #437/#707 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. [Client Setup](CLIENT_SETUP.md), [release contract](RELEASES.md).
 
-> **Версия исходного кода:** `APP_VERSION=v5.0.0-rc.30`, Published; [publication audit](audits/2026-10-28-rc30-publication-checkpoint.md). Read bounds/critical reserve/required1771/3/fresh image scoped PASS; #984 keep_open до R984-01…03. #876 veto/DB OFF, #949 не зарегистрирован/OFF/DENY_ALL; новых operator actions нет. Deployed18.10 operator-reported, реальные runtime gates отдельно. [Roadmap](ROADMAP.md).
+> **Версия исходного кода:** `APP_VERSION=v5.0.0-rc.30`; это значение версии Published30, но новый source989/#990 в main `309ee64bf56a653995d9600b4d3c1c5c5fa05b5d` в immutable tag30 отсутствует. [Source/main checkpoint](audits/2026-10-28-989-traffic-read-postmerge-checkpoint.md) подтверждает regression/required1782/3/fresh image; source main CI FAIL из-за planned→merged Roadmap drift, этот checkpoint синхронизирует факт. Отдельный RC31 и R989-01 PENDING. Schema17/deps/env/ports/setup прежние, #876 veto/DB OFF, #949 не зарегистрирован/OFF/DENY_ALL. Deployed18.10 operator-reported; [Roadmap](ROADMAP.md).
 
 ## Source-only кампании #947: source schema v16
 
