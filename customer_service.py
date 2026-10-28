@@ -6,13 +6,14 @@ import hmac
 import re
 import secrets
 import time
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import aiosqlite
 
-from checkout_service import CheckoutService, CheckoutSession
-from commerce import CommerceService
-from db import CommerceOrderRecord, Database, PlanRecord
+if TYPE_CHECKING:
+    from checkout_service import CheckoutService, CheckoutSession
+    from commerce import CommerceService
+    from db import CommerceOrderRecord, Database, PlanRecord
 
 
 class CustomerProviderUnavailable(RuntimeError):
