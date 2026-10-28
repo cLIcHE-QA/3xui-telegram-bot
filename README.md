@@ -1,6 +1,6 @@
 # Telegram-бот для 3x-ui v5.0.0-rc.29
 
-> **Published `v5.0.0-rc.29`:** минимальный import repair #977/#979 source-tool #972, immutable tag `4422c8b5f1ff8d8a36343f9ef29becd213caab47` (2026-10-28T12:05:14Z), release #981. [Publication audit](docs/audits/2026-10-28-rc29-publication-checkpoint.md): required1754/strict fresh import/DTO aliases/worker/CLI/raw hashes/fresh image/notes/provenance scoped PASS. Старый RC28 import defect и finding FAIL сохранены исторически; собственные977/972 closure после main read-back этого checkpoint. Runtime domain definitions/schema17/deps/operator setup прежние, parent482 OPEN; Deployed18.10 только operator-reported.
+> **Published `v5.0.0-rc.29`:** import repair #977/#979 source-tool #972, immutable `4422c8b5f1ff8d8a36343f9ef29becd213caab47` (2026-10-28T12:05:14Z), release #981. [Own972 closure](docs/audits/2026-10-28-972-source-tool-closure.md)/[own977 closure](docs/audits/2026-10-28-977-import-repair-closure.md): все собственные source-only criteria PASS, оба CLOSED/completed после publication checkpoint #982/main read-back. Старый RC28 import defect и finding FAIL сохранены исторически. Domain definitions/schema17/deps/operator setup прежние; parent482 budget/runtime OPEN, Deployed18.10 только operator-reported.
 
 > **Первый baseline Published в `v5.0.0-rc.28`:** #972 (#482-A) — offline стоимость чтений panel API из #973. [Исторический publication audit](docs/audits/2026-10-28-rc28-publication-checkpoint.md) и [последующий import FAIL](docs/audits/2026-10-28-972-import-isolation-finding.md) неизменны; использовать исправленный RC29. Реальная panel/Xray capacity не измерялась, parent482 OPEN до остальных budget/runtime scopes.
 
@@ -244,7 +244,7 @@ CI проверяет route/method, Bearer auth, request/response contract и so
 
 Для API budget #482 сохранён [source baseline](scripts/benchmark-panel-reads.py) synthetic get/traffic/list и same/unique-owner чтений без подключения к панели. Использовать исправленный RC29: import defect RC28 сохраняется исторически. [Методика и ограничения](docs/3XUI_OPENAPI_CONTRACT.md#offline-baseline-чтений-482972) отделяют bot JSON/driver metrics от реальной мощности 3x-ui/Xray; результат не разрешает live load.
 
-Source fix #977/#979 MERGED `8d22c2166a9f7f417b68c80e98e9339ca7c4fe1d` и Published RC29 `4422c8b5f1ff8d8a36343f9ef29becd213caab47`: TYPE_CHECKING изолирует annotation-only checkout/commerce/DB/config graph. DTO/error classes остаются в customer_service, настоящий provider не подменяется. Guard/alias/worker/CLI и corrected raw hashes проверены на release SHA; [publication checkpoint](docs/audits/2026-10-28-rc29-publication-checkpoint.md), own977/972 closure после main read-back. Старый RC28 import gate остаётся историческим FAIL.
+Source fix #977/#979 MERGED `8d22c2166a9f7f417b68c80e98e9339ca7c4fe1d`, Published RC29 `4422c8b5f1ff8d8a36343f9ef29becd213caab47`: TYPE_CHECKING изолирует annotation-only checkout/commerce/DB/config graph, DTO/errors и actual provider paths прежние. Strict guard/worker/CLI/release17/corrected hashes/required1754/image/immutable publication и checkpoint982/main read-back PASS; [own977 closure](docs/audits/2026-10-28-977-import-repair-closure.md), #972/#977 completed по source-only scope. Parent482/runtime остаётся OPEN, старый RC28 FAIL сохранён.
 
 ### User / Audience Groups
 
