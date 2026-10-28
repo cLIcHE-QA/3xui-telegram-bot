@@ -4,7 +4,7 @@
 
 **Исторический provenance:** исходные полные инструкции до реструктуризации (включая датированные rc/checkpoint, findings и deprecated paths) сохранены побайтово в [immutable Admin Setup snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md). Датированные проверки — в [аудитах](audits/) и [CHANGELOG](../CHANGELOG.md). Отдельный [исторический сценарий проверки доставки Telegram QA](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот) не является этапом production setup.
 
-> **Release-prep rc.30, ещё не Published:** версионные примеры ниже соответствуют candidate APP_VERSION rc.30; применять только после actual Published tag и отдельного deployment-разрешения/cumulative compatibility/recovery review. Actual Published29 по [publication checkpoint](audits/2026-10-28-rc29-publication-checkpoint.md) не включает source984; schema17/deps/operator credentials/env/ports прежние. Deployed18.10 operator-reported, runtime984 и прочие gates отложены.
+> **Текущий Published rc.30:** версионные примеры соответствуют APP_VERSION rc.30; [publication checkpoint](audits/2026-10-28-rc30-publication-checkpoint.md) подтверждает immutable `7aa3514194675ae119a2e774e03da150025326b9`. Применять только после отдельного deployment-разрешения/cumulative compatibility/recovery review. Read admission984 не меняет schema17/deps/operator credentials/env/ports; Deployed18.10 operator-reported, R984-01…03 и прочие runtime gates отложены.
 
 ## 0. Что понадобится
 
