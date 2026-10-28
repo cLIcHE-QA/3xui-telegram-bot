@@ -382,8 +382,8 @@
       "issue": 984,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Issue-first scope/acceptance создан до реализации; development source/targeted49 предварительно PASS, full/required/main/RC/runtime PENDING",
-      "evidence": "docs/ROADMAP.md",
+      "accepted": "Development source984 targeted52/full1771/16/actual17 cases/security scoped PASS; required/source-main/RC/runtime PENDING",
+      "evidence": "docs/audits/2026-10-28-984-read-admission-source-review.md",
       "comment": "Самостоятельный child482: shared bounded read admission/critical priority; runtime own acceptance после separately authorized deployment, не completed по CI. Parent482 pooling/cache/limiter/остальные scopes OPEN."
     }
   ]

@@ -140,6 +140,8 @@ python3 scripts/benchmark-panel-reads.py > /tmp/panel-read-baseline.json
 | `WAIT_SECONDS` | 1.0 |
 | `MAX_TARGETS` | 64 |
 
+Wait deadline обслуживается event loop и проверяется до grant. Синхронная CPU-пауза процесса не preemptится этим механизмом; 1s не является wall-clock SLA для заблокированного loop или всей цепочки UI/API calls.
+
 Canonical key нормализует scheme/host/IDNA/IP/default port/base path и не разделяется по token/TLS/userinfo/query/fragment. Это только объединение admission counters, не URL validation, authorization, credential/session/response cache или fallback между privilege domains. Реестр ограничен64 занятыми/ожидающими targets на loop; idle leases снимаются даже при сохранённом exception traceback, weak references не удерживают завершённые loops. Диагностика содержит только aggregate counters, без endpoint/owner/token/payload.
 
 Общий `_request` включает существующие GET/read-only POST diagnostics; version GET и binary getDb тоже берут permit до ClientSession. Очередь полна/timeout/registry cap дают sanitized `XUIReadUnavailable` (подкласс XUIError) либо definitive read `VersionAPIError` без HTTP/retry. Внутренние legacy options→list/node-list→detail fallbacks не запускаются на admission denial; provisioning preflight не превращает такой отказ в пустую node map. Cancellation остаётся CancelledError; grant/cancel race возвращает permit один раз. Session close/JSON/transport errors также освобождают lease. `_mutation_request` и version mutations не используют read budget; прежние one-shot/redirect/uncertainty contracts сохраняются. Direct Admin/Host/Fleet/proxy остаются отдельными контурами; этот budget не заявляет охват их transport.
