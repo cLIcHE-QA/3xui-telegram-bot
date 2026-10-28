@@ -358,9 +358,9 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Baseline972/import977 completed, child984 admission/priority source985 main/required1771/fresh image scoped PASS; не полный API budget/runtime",
-      "evidence": "docs/audits/2026-10-28-984-read-admission-postmerge-checkpoint.md",
-      "comment": "Parent OPEN: child984 checkpoint/RC/runtime, другие authoritative caller contexts, pooling/lifecycle/presentation cache/singleflight/общие errors/limiter/runtime outcomes. #498 не включается по fake baseline или одному admission source."
+      "accepted": "RC30 source/main/required1771/3/offline17/5 hashes/fresh image/immutable publication scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-28-rc30-publication-checkpoint.md",
+      "comment": "Parent482 pooling/lifecycle/presentation-only cache/другие authoritative contexts/общие transport errors/limiter/runtime остаются; children972/977 CLOSED,984 OPEN. Следующий Issue-first scope после publication checkpoint/main read-back."
     },
     {
       "issue": 972,
@@ -382,9 +382,9 @@
       "issue": 984,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Source985 main7325/targeted52/local1771/16/required1771/3/actual17 cases/5 measured hashes/fresh source image scoped PASS; source checkpoint/RC30/runtime PENDING",
-      "evidence": "docs/audits/2026-10-28-984-read-admission-postmerge-checkpoint.md",
-      "comment": "Source не Published в actual29; source checkpoint/main sync, отдельный RC30/publication и собственные installed/read R984-01…03 после отдельно разрешённого deployment. Parent482 остальные scopes OPEN."
+      "accepted": "RC30 source/main/required1771/3/offline17/5 hashes/fresh image/immutable publication scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-28-rc30-publication-checkpoint.md",
+      "comment": "#984 собственные installed/read R984-01…03 после разрешённого deployment; caps/races offline не panel capacity. Publication checkpoint/main sync обязателен; natural authoritative outcome не создавать mutation."
     }
   ]
 }
