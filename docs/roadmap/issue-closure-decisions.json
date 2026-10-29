@@ -358,9 +358,9 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-29",
-      "accepted": "RC31 source/required+main1782/3/fresh image/immutable publication993/main read-back/own Issue audit scoped PASS; own runtime PENDING",
-      "evidence": "docs/audits/2026-10-29-989-publication-main-checkpoint.md",
-      "comment": "Parent482 pooling/lifecycle/cache/другие authoritative contexts/admin full-list/limiter/runtime отдельно;984/989 Published и keep_open по собственным installed/read outcomes. Следующий самостоятельный scope Issue-first."
+      "accepted": "RC32 source/required+main1796/3/official health/fresh release image/SBOM/source2/source5/immutable publication scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-rc32-publication-checkpoint.md",
+      "comment": "Parent482 pooling/lifecycle/cache/другие authoritative contexts/admin full-list/runtime отдельно;995 Published32/989 Published31/984 Published30 keep_open по собственным outcomes. Publication/main checkpoint перед следующим Issue-first scope."
     },
     {
       "issue": 972,
@@ -398,9 +398,9 @@
       "issue": 995,
       "decision": "keep_open",
       "date": "2026-10-29",
-      "accepted": "Source996/checkpoint997/required+main1796/3/publisher/source2/protected13/OPEN43/independent main read-back/own audit scoped PASS; candidate RC32/runtime PENDING",
-      "evidence": "docs/audits/2026-10-29-995-source-main-revalidation.md",
-      "comment": "Own995 criteria1…5 выполнены; keep_open до отдельного RC32/release/publication/main/own audit и R995-01. Parent482 другие scopes отдельно, no live pressure/reset."
+      "accepted": "RC32 source/required+main1796/3/official health/fresh release image/SBOM/source2/source5/immutable publication scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-rc32-publication-checkpoint.md",
+      "comment": "995 R995-01 installed/read после отдельного deployment; publication/main checkpoint и own audit перед следующим scope, live pressure/reset не создавать."
     }
   ]
 }
