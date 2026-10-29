@@ -4,6 +4,10 @@
 
 **Действующий нормативный план приёмки**, не доказательство public rollout. [Roadmap](ROADMAP.md): Published `v5.0.0-rc.31` SHA `e74aabf827e5683c3528f9bd49e701a1ac17812c`, Deployed `v5.0.0-rc.18.10` exact SHA `dae205ac82762723448f93827b981f89ae622231` operator-reported, HWID 23/23 targeted scoped PASS ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)), #827/#830/#833/#834/#838/#854 completed; independent VPS read-back PENDING. Полные V5-A-001…003 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. Не повторять старые HWID H1–H8 и не проводить новые DELETE/Stars/refund/restore/burst.
 
+## Client limiter #995 — собственный installed/read gate
+
+Source candidate memory bound не означает runtime PASS. R995-01 после отдельно разрешённого deployment: exact installed tag/SHA/health и безопасный existing-owner read с прежними portal/allowlist/private-owner guards; можно совместить с R989-01 при явном результате обоих scopes. Capacity4096, per-user sliding window, expiry/churn и Owner-only target reset/replay доказываются offline; не создавать live pressure/Telegram burst/новые IDs или реальный reset ради приёмки. До outcome #995 OPEN/keep_open, parent482 остальные scopes и общий G-11 отдельно. [Client Setup](CLIENT_SETUP.md#память-клиентского-rate-limiter-995).
+
 ## Client traffic #989 — самостоятельный installed/read gate
 
 Ожидаемые native transport/malformed response/counter failures переводятся в существующий безопасный unavailable UI; offline tests проверяют error/cancel/no-retry и cleanup. После отдельного deployment собственный R989-01 — [Client Setup](CLIENT_SETUP.md#отказ-чтения-клиентского-трафика-989): installed release/SHA/health и существующий owner traffic read/Back. Не создавать live failure/load/новые payments/provider writes ради проверки. До installed/read outcome #989 keep_open, parent482/G-11 отдельно; previous HWID PASS/waived burst не повторять.

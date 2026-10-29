@@ -393,6 +393,14 @@
       "accepted": "RC31 source/required+main1782/3/fresh image/immutable publication993/main read-back/own Issue audit scoped PASS; own runtime PENDING",
       "evidence": "docs/audits/2026-10-29-989-publication-main-checkpoint.md",
       "comment": "989 criteria1…6 выполнены; keep_open только R989-01 installed/read после отдельного deployment, live failure/load не создавать."
+    },
+    {
+      "issue": 995,
+      "decision": "keep_open",
+      "date": "2026-10-29",
+      "accepted": "Pre-fix14 FAIL3/12; targeted39/full1796/16/compileall/OpenAPI55 scoped PASS; required CI/main/release/runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-995-client-limiter-source-review.md",
+      "comment": "Source candidate ещё не main/Published; R995-01 installed/read после отдельного deployment, live pressure/reset не создавать. Parent482 остальные scopes отдельно."
     }
   ]
 }

@@ -13,6 +13,14 @@
 - Ручная бессрочная выдача живёт в отдельном журнале `manual_entitlements`, а не в `Order → Payment`. Только доказанный provider read-back переводит её в `active`; `in_flight/unknown` закрывают новые операции и требуют ручной read-only сверки без автоматического replay. Никаких нулевых Stars invoices, RUB заказов или выдач через непрозрачный fallback.
 - Разрешённые пилотные identity, Terms, private-chat/client authorization, Stars флаги и RBAC применяются на entrypoint, invoice и pre-checkout. Ошибка БД или неопределённость entitlement **не** открывает платёж. Уже доставленный `successful_payment` обрабатывается идемпотентно даже при отключении *новых* платежей.
 
+## Память клиентского rate limiter (#995)
+
+Source candidate, ещё не main/Published. Прежние `CLIENT_RATE_LIMIT_COUNT`/`CLIENT_RATE_LIMIT_WINDOW_SECONDS` и default30 запросов/60s сохранены. Retained map одного процесса ограничен4096 ключами и `limit` событиями на ключ; это инженерные bounds, не измерение RAM/throughput/SLA. Полностью истёкшие окна всех неактивных IDs удаляются при следующем allow/has_bucket; отдельного timer/worker нет. При простое bounded state может оставаться до следующего обращения. Обычный active lookup не перебирает весь active key space; expired prefix обрабатывается один раз.
+
+Когда map заполнен, новый ID получает существующее «Слишком много запросов. Попробуйте немного позже.» без allocation. Живое чужое окно не вытесняется и не сбрасывается; у существующего ID остаётся неиспользованный собственный budget. Отказы и проверка состояния не продлевают lifetime; expiry точно на границе освобождает слот. Owner-only подтверждённый сброс клиентской сессии затрагивает только выбранный bucket и сохраняет RBAC/nonce/replay protection. Portal/allowlist/private-owner и financial lifecycle не меняются; cap не даёт обхода guard. Разные процессы имеют независимое состояние: multi-instance требует отдельного review.
+
+Новых env/schema/deps/портов/ручного enable нет. После отдельно разрешённого deployment R995-01: installed tag/SHA/health и обычное безопасное existing-owner чтение через прежние guards. Можно совместить с R989-01 на одном итоговом RC при явном evidence обоих scopes; не повторять уже доказанный PASS. Pressure/churn/expiry/Owner reset доказаны offline: не создавать Telegram burst/новые IDs/реальный reset/provider mutations ради приёмки. До outcome #995 OPEN/keep_open; parent482 остальные scopes отдельно.
+
 ## Отказ чтения клиентского трафика (#989)
 
 Профиль/владелец/private/allowlist и прежний traffic экран не меняются. При native transport/timeout/OS либо повреждённых данных любого из двух provider reads используется существующий временный отказ с Back; неизвестные counters не выдаются как успешный нулевой расход. Успешные counters/aliases и настоящие нули совместимы. Ошибки/отмена/cleanup/no-retry проверяются synthetic regression, новых provider mutations или клиентских флагов нет.
