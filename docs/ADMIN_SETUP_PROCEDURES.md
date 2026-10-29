@@ -4,7 +4,7 @@
 
 **Исторический provenance:** исходные полные инструкции до реструктуризации (включая датированные rc/checkpoint, findings и deprecated paths) сохранены побайтово в [immutable Admin Setup snapshot](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md). Датированные проверки — в [аудитах](audits/) и [CHANGELOG](../CHANGELOG.md). Отдельный [исторический сценарий проверки доставки Telegram QA](https://github.com/cLIcHE-QA/3xui-telegram-bot/blob/1a5a85d1cf154979473464b0305a1fc4acf75a40/docs/ADMIN_SETUP.md#изолированная-проверка-доставки-telegram-352-только-qa-бот) не является этапом production setup.
 
-> **Release-prep rc.31, ещё не Published:** версионные примеры ниже соответствуют candidate APP_VERSION rc.31; применять только после actual Published tag и отдельного deployment-разрешения/cumulative compatibility/recovery review. Actual Published30 по [Roadmap](ROADMAP.md) fix989 не содержит; [source/main revalidation](audits/2026-10-28-989-source-main-revalidation.md) scoped PASS. Schema17/deps/operator credentials/env/ports прежние, Deployed18.10 operator-reported, R989-01 и прочие runtime gates отложены.
+> **Текущий Published rc.31:** версионные примеры соответствуют APP_VERSION rc.31; [publication checkpoint](audits/2026-10-28-rc31-publication-checkpoint.md) подтверждает immutable `e74aabf827e5683c3528f9bd49e701a1ac17812c`. Применять только после отдельного deployment-разрешения/cumulative compatibility/recovery review. Traffic error boundary989 не меняет schema17/deps/credentials/env/ports; Deployed18.10 operator-reported, R989-01 и остальные runtime gates отложены.
 
 ## 0. Что понадобится
 

@@ -358,9 +358,9 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "RC30 source/main/required1771/3/offline17/5 hashes/fresh image/immutable publication scoped PASS; own runtime PENDING",
-      "evidence": "docs/audits/2026-10-28-rc30-publication-checkpoint.md",
-      "comment": "Parent482 pooling/lifecycle/presentation-only cache/другие authoritative contexts/общие transport errors/limiter/runtime остаются; children972/977 CLOSED,984 OPEN. Следующий Issue-first scope после publication checkpoint/main read-back."
+      "accepted": "RC31 source/required+main1782/3/reconciliation/source17/5 hashes/fresh release image/immutable publication scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-28-rc31-publication-checkpoint.md",
+      "comment": "Parent482 pooling/lifecycle/cache/другие critical contexts/admin full-list/limiter/runtime отдельно; child989 Published31,984 Published30, оба keep_open по собственным installed/read outcomes. Следующий Issue-first scope после publication checkpoint/main sync."
     },
     {
       "issue": 972,
@@ -390,9 +390,9 @@
       "issue": 989,
       "decision": "keep_open",
       "date": "2026-10-28",
-      "accepted": "Source990/checkpoint991/required+descendant main1782/3/reconciliation/idempotent publisher/raw17/source5 hashes/image scoped PASS; RC31/runtime PENDING",
-      "evidence": "docs/audits/2026-10-28-989-source-main-revalidation.md",
-      "comment": "Source main drift из990 устранён factual checkpoint991; старый FAIL сохранён. keep_open до RC31/publication/main checkpoints и R989-01 installed/read после отдельного deployment. Parent482/984 runtime OPEN."
+      "accepted": "RC31 source/required+main1782/3/reconciliation/source17/5 hashes/fresh release image/immutable publication scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-28-rc31-publication-checkpoint.md",
+      "comment": "989 R989-01 installed/read после отдельного deployment; publication checkpoint/own audit/main read-back обязателен. Live failure/load не создавать."
     }
   ]
 }
