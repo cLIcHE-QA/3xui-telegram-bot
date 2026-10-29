@@ -10,7 +10,7 @@
 
 ## Клиентский rate limiter: память (#995)
 
-Source candidate сохраняет тексты, callbacks, команды и навигацию. Map процесса ограничен4096 ключами; полностью истёкшие окна удаляются при следующем обращении. Новый ID при заполнении получает прежний «Слишком много запросов. Попробуйте немного позже.», без сброса/вытеснения чужого живого окна. У существующего ID сохраняется собственный остаток sliding-window budget, отказы не продлевают окно. Portal/allowlist/private-owner и Owner-only session reset boundary прежние; сама capacity не расширяет доступ. Настройки, process-local границы и поздний installed/read outcome — [CLIENT_SETUP](CLIENT_SETUP.md#память-клиентского-rate-limiter-995). Реальные sends/pressure/reset не требуются для offline proof.
+Source #996 в main, ещё не Published, сохраняет тексты, callbacks, команды и навигацию. Map процесса ограничен4096 ключами; полностью истёкшие окна удаляются при следующем обращении. Новый ID при заполнении получает прежний «Слишком много запросов. Попробуйте немного позже.», без сброса/вытеснения чужого живого окна. У существующего ID сохраняется собственный остаток sliding-window budget, отказы не продлевают окно. Portal/allowlist/private-owner и Owner-only session reset boundary прежние; сама capacity не расширяет доступ. Настройки, process-local границы и поздний installed/read outcome — [CLIENT_SETUP](CLIENT_SETUP.md#память-клиентского-rate-limiter-995). Реальные sends/pressure/reset не требуются для offline proof.
 
 ## Оформление Client Portal (#876)
 

@@ -6,7 +6,7 @@
 
 ## Client limiter #995 — собственный installed/read gate
 
-Source candidate memory bound не означает runtime PASS. R995-01 после отдельно разрешённого deployment: exact installed tag/SHA/health и безопасный existing-owner read с прежними portal/allowlist/private-owner guards; можно совместить с R989-01 при явном результате обоих scopes. Capacity4096, per-user sliding window, expiry/churn и Owner-only target reset/replay доказываются offline; не создавать live pressure/Telegram burst/новые IDs или реальный reset ради приёмки. До outcome #995 OPEN/keep_open, parent482 остальные scopes и общий G-11 отдельно. [Client Setup](CLIENT_SETUP.md#память-клиентского-rate-limiter-995).
+Source #996 main `26302b7385a1f887274fc244c4ab1fda8707e1f1` memory bound не означает Published или runtime PASS. R995-01 после отдельно разрешённого deployment: exact installed tag/SHA/health и безопасный existing-owner read с прежними portal/allowlist/private-owner guards; можно совместить с R989-01 при явном результате обоих scopes. Capacity4096, per-user sliding window, expiry/churn и Owner-only target reset/replay доказываются offline; не создавать live pressure/Telegram burst/новые IDs или реальный reset ради приёмки. До outcome #995 OPEN/keep_open, parent482 остальные scopes и общий G-11 отдельно. [Client Setup](CLIENT_SETUP.md#память-клиентского-rate-limiter-995).
 
 ## Client traffic #989 — самостоятельный installed/read gate
 
