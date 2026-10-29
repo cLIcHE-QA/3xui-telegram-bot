@@ -406,9 +406,9 @@
       "issue": 1001,
       "decision": "keep_open",
       "date": "2026-10-29",
-      "accepted": "Local pre-fix3 FAIL/targeted74/full1822/16/metadata97/compileall/OpenAPI55/matrix17 with6 source hashes scoped PASS; required/main/release/runtime PENDING",
-      "evidence": "docs/audits/2026-10-29-1001-scoped-traffic-connection-source-review.md",
-      "comment": "Scoped connector только одного traffic operation; общий pool/shutdown/cache/critical contexts/admin full-list parent482 отдельно. Runtime R482E-01 после отдельного deployment, без live pressure/mutations."
+      "accepted": "Source1002 merged/required+main1823/3/publisher/final title/independent main21/source6/protected12/OPEN44 scoped PASS; docs checkpoint/release/runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-1001-scoped-traffic-postmerge-checkpoint.md",
+      "comment": "Own criteria1…4 выполнены;5 source/main docs checkpoint и6 отдельный RC/publication,7 R482E-01 PENDING. Общий pool/shutdown/cache/critical contexts/admin full-list parent482 отдельно."
     }
   ]
 }
