@@ -34,6 +34,10 @@ Owner-only вход: `/admin → Система → Настройки → Кл�
 
 ## Перед началом: границы и безопасность
 
+### Соединение одного traffic read (#1001)
+
+Кандидат source #1001, не Published32: новых operator actions/env/schema/deps/ports/credentials нет. Scope64/2 и current-task/client binding ограничивают только connector двух свежих GET одного customer traffic read; все Session/cookies/headers отдельные. При временном отказе прежний unavailable/Back, no mutation retry. Долговечный общий pool/shutdown и cache — отдельные scopes482, новый worker/listener не появляется. [Нормативные границы](3XUI_OPENAPI_CONTRACT.md#соединение-одного-customer-traffic-read-1001-часть-482) и [поздний R482E-01](CLIENT_SETUP.md#соединение-одного-чтения-трафика-1001); не создавать нагрузку/ошибки/reset ради приёмки.
+
 ### Память клиентского rate limiter (#995)
 
 Впервые Published в RC32, source #996: default4096 retained keys на процесс, максимум `limit` событий на ключ; истёкшие окна удаляются при следующем обращении. Новых operator actions/env/миграций/credentials/портов нет, существующие count/window/default30/60s прежние. Заполнение map даёт тот же отказ «Слишком много запросов. Попробуйте немного позже.», а не сброс живого чужого окна. Owner-only target reset сохраняет подтверждение и scope; не выполнять реальный reset/Telegram burst ради доказательства, pressure/expiry проверены offline. Это process-local bound, не capacity/SLA или multi-instance защита; [contract и поздний installed/read](CLIENT_SETUP.md#память-клиентского-rate-limiter-995). Actual Published32 содержит995; [publication checkpoint](audits/2026-10-29-rc32-publication-checkpoint.md).

@@ -158,6 +158,23 @@ class LivingDocsSemanticTests(unittest.TestCase):
         for name, value in limits.items():
             self.assertIn(f"| `{name}` | {value} |", document)
 
+    def test_scoped_read_lifetime_caps_match_documented_contract(self):
+        tree = ast.parse((ROOT / "panel_read_scope.py").read_text(encoding="utf-8"))
+        limits = {node.targets[0].id: ast.literal_eval(node.value)
+                  for node in tree.body if isinstance(node, ast.Assign)
+                  and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)
+                  and node.targets[0].id.startswith("MAX_")}
+        document = (ROOT / "docs/3XUI_OPENAPI_CONTRACT.md").read_text(encoding="utf-8")
+        self.assertTrue(limits)
+        for name, value in limits.items():
+            self.assertIn(f"| `{name}` | {value} |", document)
+        contract = json.loads((ROOT / "docs/live-docs.json").read_text())
+        rule = next(item for item in contract["rules"] if item["id"] == "3xui-client-api")
+        self.assertIn("panel_read_scope.py", rule["triggers"])
+        for invariant in ("connector_owner=False", "current asyncio Task", "ClientSession",
+                          "после admission", "не physical connection/RPS/RAM/SLA"):
+            self.assertIn(invariant, document)
+
     def test_legacy_visibility_does_not_shrink_authoritative_command_audit(self):
         ui = (ROOT / "docs/UI_STYLE.md").read_text(encoding="utf-8")
         catalog = ui.split("## 📚 Команды бота (#356)", 1)[1].split("\n## ", 1)[0]
@@ -266,7 +283,7 @@ class LivingDocsSemanticTests(unittest.TestCase):
         self.assertEqual(set(rules["3xui-openapi-contract"]["triggers"]), {"contracts/3xui/contract.json", "contracts/3xui/**/openapi.json"})
         self.assertEqual(rules["3xui-openapi-contract"]["documents"], ["docs/3XUI_OPENAPI_CONTRACT.md"])
         self.assertEqual(rules["3xui-client-api"]["mode"], "review")
-        self.assertEqual(set(rules["3xui-client-api"]["triggers"]), {"xui.py", "version_api.py"})
+        self.assertEqual(set(rules["3xui-client-api"]["triggers"]), {"xui.py", "version_api.py", "panel_read_scope.py"})
 
     def test_public_security_reporting_is_current(self):
         security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")

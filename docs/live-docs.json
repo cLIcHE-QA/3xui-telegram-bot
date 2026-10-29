@@ -130,7 +130,8 @@
       "mode": "review",
       "triggers": [
         "xui.py",
-        "version_api.py"
+        "version_api.py",
+        "panel_read_scope.py"
       ],
       "documents": [
         "docs/3XUI_OPENAPI_CONTRACT.md"
