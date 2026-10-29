@@ -1,0 +1,89 @@
+{
+  "cases": [
+    {
+      "api_calls_per_second": 3111.8188209393084,
+      "calls": 64,
+      "calls_by_route": {
+        "get": 32,
+        "traffic": 32
+      },
+      "closed_sessions": 64,
+      "cpu_seconds": 0.016134999999999997,
+      "distinct_addressed_owners": 1,
+      "driver_concurrency": 32,
+      "driver_initial_backlog": 0,
+      "fixture_clients": 1000,
+      "fixture_json_bytes": 358024,
+      "operation_p50_ms": 11.52000017464161,
+      "operation_p95_ms": 13.339166063815355,
+      "operations": 32,
+      "operations_per_second": 1555.9094104696542,
+      "peak_driver_active": 32,
+      "peak_transport_active": 6,
+      "process_peak_rss_bytes": 42024960,
+      "response_json_bytes": 6752,
+      "scenario": "traffic_same",
+      "sessions": 64,
+      "synthetic_delay_ms_per_request": 1,
+      "timed_python_heap_peak_bytes": 674034,
+      "wall_seconds": 0.020566750084981322
+    },
+    {
+      "api_calls_per_second": 3065.158474226357,
+      "calls": 64,
+      "calls_by_route": {
+        "get": 32,
+        "traffic": 32
+      },
+      "closed_sessions": 64,
+      "cpu_seconds": 0.016618000000000008,
+      "distinct_addressed_owners": 32,
+      "driver_concurrency": 32,
+      "driver_initial_backlog": 0,
+      "fixture_clients": 1000,
+      "fixture_json_bytes": 358024,
+      "operation_p50_ms": 11.777583044022322,
+      "operation_p95_ms": 13.635457959026098,
+      "operations": 32,
+      "operations_per_second": 1532.5792371131786,
+      "peak_driver_active": 32,
+      "peak_transport_active": 6,
+      "process_peak_rss_bytes": 42106880,
+      "response_json_bytes": 6752,
+      "scenario": "traffic_unique",
+      "sessions": 64,
+      "synthetic_delay_ms_per_request": 1,
+      "timed_python_heap_peak_bytes": 686738,
+      "wall_seconds": 0.020879833959043026
+    }
+  ],
+  "limits": {
+    "heap": "timed Python allocations, fixtures excluded",
+    "latency": "operation execution, excludes driver waiting; tracing enabled",
+    "network_tls_xray": "not_measured",
+    "production_capacity": "not_measured",
+    "rss": "fresh worker process lifetime peak, imports and fixtures included",
+    "runtime_admission_queue": "not_instrumented"
+  },
+  "measured_at_utc": "2026-10-29T13:31:32.943900+00:00",
+  "provenance": {
+    "architecture": "arm64",
+    "file_sha256": {
+      "customer_provider_xui.py": "94581036ce12971993ff4bb552dc2ec781273eaa8b3923e547ed8c0ebf103ac2",
+      "customer_service.py": "ae9dbe78c368900ab77c8646dbaf6c4628422d989647afaf86cb0aaf4eb8735b",
+      "panel_read_budget.py": "90ef608ca5ebb05e3342846fdc55d5bf3def53a58092580199fc7b1419f907e5",
+      "panel_read_scope.py": "ac6f86df436046d266c1f784d41492e54f6e16bea425f72d1b977474fcbcbbc6",
+      "scripts/benchmark-panel-reads.py": "32996bc8a6facfa5ae08466cb070b136143559eb840560e96f24bf02e26661d4",
+      "xui.py": "68c7bc63e68cc2fe52d7c3592f03ede77623167a07c183d05ee43d4048a392f8"
+    },
+    "git_head": "d2e327bc0436f965334125239e0c082e3492449b",
+    "implementation": "CPython",
+    "logical_cpus": 8,
+    "measured_files_dirty": false,
+    "os": "Darwin",
+    "os_release": "25.6.0",
+    "python": "3.12.10"
+  },
+  "schema": 1,
+  "scope": "offline_fake_transport_bot_json_only"
+}

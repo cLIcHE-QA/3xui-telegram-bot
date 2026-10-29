@@ -401,6 +401,14 @@
       "accepted": "RC32 source/release/publication999/main1796/3/publisher/independent read-back/own Issue audit scoped PASS; own runtime PENDING",
       "evidence": "docs/audits/2026-10-29-995-publication-main-checkpoint.md",
       "comment": "Own995 criteria1…6 выполнены, только R995-01 installed/read PENDING; parent482 pooling/lifecycle/cache/critical contexts/admin full-list и #984/#989 runtime отдельно. Следующий source scope Issue-first после docs queue sync, no live pressure/reset."
+    },
+    {
+      "issue": 1001,
+      "decision": "keep_open",
+      "date": "2026-10-29",
+      "accepted": "Local pre-fix3 FAIL/targeted74/full1822/16/metadata97/compileall/OpenAPI55/matrix17 with6 source hashes scoped PASS; required/main/release/runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-1001-scoped-traffic-connection-source-review.md",
+      "comment": "Scoped connector только одного traffic operation; общий pool/shutdown/cache/critical contexts/admin full-list parent482 отдельно. Runtime R482E-01 после отдельного deployment, без live pressure/mutations."
     }
   ]
 }

@@ -59,7 +59,7 @@ Concept lifecycle — `docs/roadmap/concept-registry.json`; оригинальн
 
 Waiver означает, что документ фактически просмотрен и изменение не требуется. Он не заменяет обновление документа, если contract/setup/current state реально изменился.
 
-Для API 3x-ui действует отдельная граница: изменение `contracts/3xui/contract.json` или vendored `contracts/3xui/**/openapi.json` требует синхронного обновления `docs/3XUI_OPENAPI_CONTRACT.md` (`require_all`, waiver запрещён). Изменения `xui.py` / `version_api.py` требуют фактической проверки влияния на документ или точного waiver `Living Docs: 3xui-client-api — изменений не требуется`. Постоянный semantic invariant сверяет количество endpoints в manifest с документом, даже если PR diff не затрагивает manifest.
+Для API 3x-ui действует отдельная граница: изменение `contracts/3xui/contract.json` или vendored `contracts/3xui/**/openapi.json` требует синхронного обновления `docs/3XUI_OPENAPI_CONTRACT.md` (`require_all`, waiver запрещён). Изменения `xui.py` / `version_api.py` / `panel_read_scope.py` требуют фактической проверки влияния на документ или точного waiver `Living Docs: 3xui-client-api — изменений не требуется`. Постоянный semantic invariant сверяет количество endpoints в manifest с документом, даже если PR diff не затрагивает manifest.
 
 Примеры waiver:
 

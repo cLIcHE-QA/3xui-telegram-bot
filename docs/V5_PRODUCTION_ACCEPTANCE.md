@@ -4,6 +4,10 @@
 
 **Действующий нормативный план приёмки**, не доказательство public rollout. [Roadmap](ROADMAP.md): Published `v5.0.0-rc.32` SHA `317b8a4661cd100acfe50386a85ba4a66b541dbb`, Deployed `v5.0.0-rc.18.10` exact SHA `dae205ac82762723448f93827b981f89ae622231` operator-reported, HWID 23/23 targeted scoped PASS ([audit](audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md)), #827/#830/#833/#834/#838/#854 completed; independent VPS read-back PENDING. Полные V5-A-001…003 и G-11 PARTIAL/NO-GO, public rollout BLOCKED. Не повторять старые HWID H1–H8 и не проводить новые DELETE/Stars/refund/restore/burst.
 
+## Scoped traffic transport #1001 — собственный installed/read gate
+
+Source candidate #1001 не равен Published/Deployed. R482E-01 после отдельного deployment — [Client Setup](CLIENT_SETUP.md#соединение-одного-чтения-трафика-1001): installed tag/SHA/health и обычный existing-owner private traffic read/counters/Back/allowlist. Допускается общий безопасный read с R989-01/R995-01 при явном outcome каждого scope. TLS/cookie/connection/cancel/error/cap/binding regressions остаются offline; не делать real network failure/packet capture/live load/новые IDs/reset ради приёмки. #1001/parent482 keep_open до собственных outcomes; общий G-11 и public rollout — по канонической сводке выше.
+
 ## Client limiter #995 — собственный installed/read gate
 
 Memory bound995 впервые Published RC32 `317b8a4661cd100acfe50386a85ba4a66b541dbb`, source #996; публикация не означает runtime PASS. [Publication checkpoint](audits/2026-10-29-rc32-publication-checkpoint.md). R995-01 после отдельно разрешённого deployment: exact installed tag/SHA/health и безопасный existing-owner read с прежними portal/allowlist/private-owner guards; можно совместить с R989-01 при явном результате обоих scopes. Capacity4096, per-user sliding window, expiry/churn и Owner-only target reset/replay доказываются offline; не создавать live pressure/Telegram burst/новые IDs или реальный reset ради приёмки. До outcome #995 OPEN/keep_open, parent482 остальные scopes и общий G-11 отдельно. [Client Setup](CLIENT_SETUP.md#память-клиентского-rate-limiter-995).
