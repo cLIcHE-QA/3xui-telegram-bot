@@ -398,9 +398,9 @@
       "issue": 995,
       "decision": "keep_open",
       "date": "2026-10-29",
-      "accepted": "Source996 main26302b7/required+main1796/3/final title/CLEAN/publisher/independent source11/protected13/2 hashes scoped PASS; docs checkpoint/RC/runtime PENDING",
-      "evidence": "docs/audits/2026-10-29-995-client-limiter-postmerge-checkpoint.md",
-      "comment": "Keep_open: отдельный RC/publication/own audit после source/main docs checkpoint/read-back; R995-01 после отдельного deployment, live pressure/reset не создавать. Parent482 прочие scopes отдельно."
+      "accepted": "Source996/checkpoint997/required+main1796/3/publisher/source2/protected13/OPEN43/independent main read-back/own audit scoped PASS; candidate RC32/runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-995-source-main-revalidation.md",
+      "comment": "Own995 criteria1…5 выполнены; keep_open до отдельного RC32/release/publication/main/own audit и R995-01. Parent482 другие scopes отдельно, no live pressure/reset."
     }
   ]
 }

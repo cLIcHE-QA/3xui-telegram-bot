@@ -1,4 +1,6 @@
-# Telegram-бот для 3x-ui v5.0.0-rc.31
+# Telegram-бот для 3x-ui v5.0.0-rc.32
+
+> **Release-prep `v5.0.0-rc.32`, ещё не Published:** одна самостоятельная задача #995/#996 — bounded память клиентского rate limiter:4096 retained keys, idle expiry cleanup, no live-window eviction. Source996/main26302b7 и checkpoint997/main `03525851650a694a749750ed6be768286cf8fdaf`/required+main1796/3/publisher/independent read-back/own Issue audit scoped PASS; [revalidation](docs/audits/2026-10-29-995-source-main-revalidation.md). Actual Published31 ниже не содержит995; own release CI/scope/official health/fresh image/immutable32/publication и R995-01 PENDING. Schema17/deps/env/ports прежние, Deployed18.10 operator-reported.
 
 > **Published `v5.0.0-rc.31`:** #989/#990 — безопасный отказ client traffic read. Immutable `e74aabf827e5683c3528f9bd49e701a1ac17812c` (2026-10-28T19:09:56Z), release #992; [publication checkpoint](docs/audits/2026-10-28-rc31-publication-checkpoint.md): source/required/main1782/3, actual17/5 measured hashes, fresh release image/tag/version/canonical notes scoped PASS. #989 keep_open до R989-01 installed/read; parent482 и #984 runtime отдельно. Schema17/deps/env/ports прежние, Deployed18.10 только operator-reported.
 
