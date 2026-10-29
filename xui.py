@@ -9,6 +9,7 @@ import json
 import aiohttp
 from version_api import VersionAPIMixin
 from panel_read_budget import PanelReadUnavailable, panel_read_slot
+from panel_read_scope import PanelReadScopeUnavailable, scoped_session_kwargs
 
 DEFAULT_HWID_LIMIT = 5
 
@@ -109,19 +110,24 @@ class XUIClient(VersionAPIMixin):
             raise XUIReadUnavailable(str(exc)) from None
 
     async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
+        binding = (base_url, token, verify_tls) = (self.base_url, self.token, self.verify_tls)
         headers = kwargs.pop("headers", {})
-        headers["Authorization"] = f"Bearer {self.token}"
+        headers["Authorization"] = f"Bearer {token}"
         headers["Accept"] = "application/json"
         if "json" in kwargs:
             headers["Content-Type"] = "application/json"
 
         timeout = aiohttp.ClientTimeout(total=20)
         async with self._panel_read_slot():
-            async with aiohttp.ClientSession(timeout=timeout) as session:
+            try:
+                session_options = scoped_session_kwargs(self, binding, method)
+            except PanelReadScopeUnavailable as exc:
+                raise XUIReadUnavailable(str(exc)) from None
+            async with aiohttp.ClientSession(timeout=timeout, **session_options) as session:
                 async with session.request(
-                    method, f"{self.base_url}{path}",
+                    method, f"{base_url}{path}",
                     headers=headers,
-                    ssl=None if self.verify_tls else False,
+                    ssl=None if verify_tls else False,
                     **kwargs
                 ) as resp:
                     text = await resp.text()

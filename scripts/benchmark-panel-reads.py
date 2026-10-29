@@ -90,9 +90,16 @@ class OfflineTransport:
                 clients.append({**client, "traffic": traffic})
         self.bodies[BASE + "/panel/api/clients/list"] = ("list", payload(clients))
 
-    def session(self, *, timeout: aiohttp.ClientTimeout):
+    def session(self, *, timeout: aiohttp.ClientTimeout, connector=None, connector_owner=True):
         if not isinstance(timeout, aiohttp.ClientTimeout) or timeout.total != 20:
             raise ValueError("unreviewed offline session contract")
+        if connector is not None:
+            if (not isinstance(connector, aiohttp.TCPConnector) or connector_owner is not False
+                    or connector.closed or connector.limit != 1 or connector.limit_per_host != 1
+                    or connector.use_dns_cache):
+                raise ValueError("unreviewed offline scoped connector contract")
+        elif connector_owner is not True:
+            raise ValueError("unreviewed offline connector ownership")
         transport = self
 
         class Session:
@@ -244,7 +251,7 @@ async def measure(case: Case) -> dict:
 
 
 def provenance() -> dict:
-    files = ["xui.py", "customer_provider_xui.py", "customer_service.py", "panel_read_budget.py",
+    files = ["xui.py", "customer_provider_xui.py", "customer_service.py", "panel_read_budget.py", "panel_read_scope.py",
              "scripts/benchmark-panel-reads.py"]
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
                             capture_output=True, text=True, check=True).stdout.strip()

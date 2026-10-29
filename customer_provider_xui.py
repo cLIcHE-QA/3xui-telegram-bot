@@ -14,6 +14,7 @@ from customer_service import (
     CustomerTraffic,
 )
 from xui import XUIClient, XUIError, XUIMutationError
+from panel_read_scope import PanelReadScopeUnavailable, scoped_panel_reads
 from device_presentation import device_emoji, recognized_vpn_app
 from device_model_resolver import display_device_model
 
@@ -93,21 +94,23 @@ class XuiCustomerProvider:
 
     async def traffic(self, email: str) -> CustomerTraffic:
         try:
-            obj = await self.xui.get_client(email)
-            if not isinstance(obj, dict):
-                raise CustomerProviderUnavailable("customer provider unavailable")
-            client = obj.get("client", obj)
-            if not isinstance(client, dict):
-                raise CustomerProviderUnavailable("customer provider unavailable")
-            traffic = await self.xui.traffic(email)
-            if not isinstance(traffic, dict):
-                raise CustomerProviderUnavailable("customer provider unavailable")
-            return CustomerTraffic(
-                up=int(traffic.get("up") or traffic.get("uplink") or 0),
-                down=int(traffic.get("down") or traffic.get("downlink") or 0),
-                total=int(client.get("totalGB") or 0),
-            )
-        except (XUIError, aiohttp.ClientError, asyncio.TimeoutError, OSError, TypeError, ValueError, OverflowError):
+            async with scoped_panel_reads(self.xui):
+                obj = await self.xui.get_client(email)
+                if not isinstance(obj, dict):
+                    raise CustomerProviderUnavailable("customer provider unavailable")
+                client = obj.get("client", obj)
+                if not isinstance(client, dict):
+                    raise CustomerProviderUnavailable("customer provider unavailable")
+                traffic = await self.xui.traffic(email)
+                if not isinstance(traffic, dict):
+                    raise CustomerProviderUnavailable("customer provider unavailable")
+                return CustomerTraffic(
+                    up=int(traffic.get("up") or traffic.get("uplink") or 0),
+                    down=int(traffic.get("down") or traffic.get("downlink") or 0),
+                    total=int(client.get("totalGB") or 0),
+                )
+        except (XUIError, PanelReadScopeUnavailable, aiohttp.ClientError, asyncio.TimeoutError,
+                OSError, TypeError, ValueError, OverflowError):
             raise CustomerProviderUnavailable("customer provider unavailable") from None
 
 
