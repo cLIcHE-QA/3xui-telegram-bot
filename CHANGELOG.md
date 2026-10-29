@@ -14,6 +14,10 @@
 
 > **Актуализация статуса, 2026-10-20:** `v5.0.0-rc.18.1` уже Published (immutable tag `7b3cd54e41246212c6313b815e571d180e5a4475`) и Deployed **по отчёту оператора**; targeted A4/A5 — **FAIL**, полный acceptance PENDING. Формулировки секции релиза ниже отражают исторический release-prep checkpoint и сохраняются без переписывания опубликованных release notes. Следующий HWID fix [#821](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/821) MERGED в `main` (`aff7bde8ec2521fa11f14362c00502737e2b04e5`), и теперь Published в `v5.0.0-rc.18.2` (immutable tag SHA `20205a56887cbdf644f604febdd9eb9ac717b914`), при этом новый `rc.18.2` Deployed operator-reported 2026-10-20 22:20 EEST и targeted HWID 15/15 `[x]` reported 22:25 EEST и H1–H8 operator-reported PASS 22:48 EEST; #814/#816/#820/#471 CLOSED/completed, #472 CLOSED/completed (operator-accepted); full v5 NOT PASS. Текущий статус — [Roadmap](docs/ROADMAP.md).
 
+## Unreleased
+
+- #995 — bounded process-local клиентский rate limiter:4096 retained keys, global idle-window cleanup по обращению, отказ нового ID без allocation/вытеснения живого окна; per-user sliding window/default30/60s и Owner-only target reset прежние. Новых env/schema/deps/портов нет; свой installed/read outcome отложен, cap не capacity/SLA и не distributed guarantee.
+
 ## v5.0.0-rc.31 — Безопасный отказ чтения клиентского трафика
 
 - #989 / PR #990 — клиентский traffic read даёт существующий обезличенный временный отказ при native transport/timeout/OS, malformed mappings и ошибках числовых counters на любом из двух адресных reads. Raw cause подавлен в обычном traceback; cancellation, успешные aliases/нули, private-owner/Back и mutation/no-replay прежние. Никаких retry/fallback/cache/schema/deps/env/ports; installed/read acceptance отдельно.
