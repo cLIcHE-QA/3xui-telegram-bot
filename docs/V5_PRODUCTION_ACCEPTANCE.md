@@ -6,7 +6,7 @@
 
 ## Scoped traffic transport #1001 — собственный installed/read gate
 
-Source candidate #1001 не равен Published/Deployed. R482E-01 после отдельного deployment — [Client Setup](CLIENT_SETUP.md#соединение-одного-чтения-трафика-1001): installed tag/SHA/health и обычный existing-owner private traffic read/counters/Back/allowlist. Допускается общий безопасный read с R989-01/R995-01 при явном outcome каждого scope. TLS/cookie/connection/cancel/error/cap/binding regressions остаются offline; не делать real network failure/packet capture/live load/новые IDs/reset ради приёмки. #1001/parent482 keep_open до собственных outcomes, G-11 PARTIAL/NO-GO отдельно.
+Source candidate #1001 не равен Published/Deployed. R482E-01 после отдельного deployment — [Client Setup](CLIENT_SETUP.md#соединение-одного-чтения-трафика-1001): installed tag/SHA/health и обычный existing-owner private traffic read/counters/Back/allowlist. Допускается общий безопасный read с R989-01/R995-01 при явном outcome каждого scope. TLS/cookie/connection/cancel/error/cap/binding regressions остаются offline; не делать real network failure/packet capture/live load/новые IDs/reset ради приёмки. #1001/parent482 keep_open до собственных outcomes; общий G-11 и public rollout — по канонической сводке выше.
 
 ## Client limiter #995 — собственный installed/read gate
 
