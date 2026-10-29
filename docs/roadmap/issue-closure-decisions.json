@@ -358,9 +358,9 @@
       "issue": 482,
       "decision": "keep_open",
       "date": "2026-10-29",
-      "accepted": "RC32 source/required+main1796/3/official health/fresh release image/SBOM/source2/source5/immutable publication scoped PASS; own runtime PENDING",
-      "evidence": "docs/audits/2026-10-29-rc32-publication-checkpoint.md",
-      "comment": "Parent482 pooling/lifecycle/cache/другие authoritative contexts/admin full-list/runtime отдельно;995 Published32/989 Published31/984 Published30 keep_open по собственным outcomes. Publication/main checkpoint перед следующим Issue-first scope."
+      "accepted": "RC32 source/release/publication999/main1796/3/publisher/independent read-back/own Issue audit scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-995-publication-main-checkpoint.md",
+      "comment": "Own995 criteria1…6 выполнены, только R995-01 installed/read PENDING; parent482 pooling/lifecycle/cache/critical contexts/admin full-list и #984/#989 runtime отдельно. Следующий source scope Issue-first после docs queue sync, no live pressure/reset."
     },
     {
       "issue": 972,
@@ -398,9 +398,9 @@
       "issue": 995,
       "decision": "keep_open",
       "date": "2026-10-29",
-      "accepted": "RC32 source/required+main1796/3/official health/fresh release image/SBOM/source2/source5/immutable publication scoped PASS; own runtime PENDING",
-      "evidence": "docs/audits/2026-10-29-rc32-publication-checkpoint.md",
-      "comment": "995 R995-01 installed/read после отдельного deployment; publication/main checkpoint и own audit перед следующим scope, live pressure/reset не создавать."
+      "accepted": "RC32 source/release/publication999/main1796/3/publisher/independent read-back/own Issue audit scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-995-publication-main-checkpoint.md",
+      "comment": "Own995 criteria1…6 выполнены, только R995-01 installed/read PENDING; parent482 pooling/lifecycle/cache/critical contexts/admin full-list и #984/#989 runtime отдельно. Следующий source scope Issue-first после docs queue sync, no live pressure/reset."
     }
   ]
 }
