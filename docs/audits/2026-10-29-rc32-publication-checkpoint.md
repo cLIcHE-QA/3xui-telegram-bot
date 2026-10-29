@@ -1,0 +1,48 @@
+# RC32 — публикация ограниченной памяти клиентского limiter #995 / часть #482
+
+<!-- audit-schema: 1 -->
+- **Дата/время и часовой пояс:** 2026-10-29 11:58 UTC+03:00
+- **Окружение:** GitHub required CI/main/publisher, fresh isolated image/SBOM/security и read-only Release/ref/source APIs; production операций нет
+- **Цель:** подтвердить immutable RC одной задачи995 и сохранить собственный отложенный installed/read outcome, не закрывая parent482.
+- **Версия и immutable tag/SHA:** v5.0.0-rc.32 `317b8a4661cd100acfe50386a85ba4a66b541dbb`, Published 2026-10-29T08:46:10Z, Release ID427628631, prerelease=true/draft=false; release998 tested head2928a3c52053411b98fac4c7ba036522d98b3b05.
+- **Scope:** source/regression/security/required release CI/scope/official health/автоматическая публикация/immutable ref/version/notes/unique PR/source2/source5/fresh exact-release image. Не deployment/live pressure/reset или full v5 acceptance.
+- **Фактический результат:** PASS
+- **Источник и evidence:** [Release998](https://github.com/cLIcHE-QA/3xui-telegram-bot/pull/998) MERGED 2026-10-29T08:40:56Z; [required40842079551](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40842079551)/job123340594054 SUCCESS1796/3 за212.492s, release-scope PASS1/1 significant PR996 since immutable31/e74, exclusions нет. Final title40843786975/job123346254356 SUCCESS/actual REST clean. Main40843900170/job123346620832 SUCCESS1796/3 за215.916s; publisher40844496897 SUCCESS. Independent immutable publication read-back 2026-10-29T08:53:18.904302+00:00 PASS: ref/version/canonical notes/unique998/flags/source2/source5 и unchanged31/30/29.
+- **Ограничения и остаточные риски:** этот docs publication checkpoint требует собственные required CI/merge/own main/read-back/own Issue audit. R995-01 installed/read PENDING после отдельного deployment; parent482 pooling/lifecycle/cache/critical contexts/admin full-list и #984/#989 runtime отдельно. Deployed18.10 operator-reported/independent VPS PENDING; G-11 PARTIAL/NO-GO/public rollout BLOCKED.
+- **Связанные Issues:** #995, #482
+- **Решение по Issues:** #995: keep_open, #482: keep_open
+- **Следующий шаг:** required CI/merge/main/read-back publication checkpoint и own995 audit keep_open; затем следующий самостоятельный Issue-first scope482. R995-01 в завершающем операторском блоке930.
+- **Раздельные состояния:** merged=source996/checkpoint997/release998; published=RC32 `317b8a4661cd100acfe50386a85ba4a66b541dbb`; deployed=rc.18.10 `dae205ac82762723448f93827b981f89ae622231` operator-reported/schema15; accepted=source/CI/image/immutable publication scoped PASS, own runtime/parent482 PENDING, full v5 NOT PASS.
+
+## Release path и immutable evidence
+
+[Source review](2026-10-29-995-client-limiter-source-review.md), [postmerge checkpoint](2026-10-29-995-client-limiter-postmerge-checkpoint.md) и [revalidation](2026-10-29-995-source-main-revalidation.md) сохраняют pre-fix14 FAIL3/errors12, targeted39/full1796/16 и source/main1796/3 PASS; original fixture/doc failures и старый PARTIAL не переписаны. Source/main checkpoint997 main03525851650a694a749750ed6be768286cf8fdaf/required+main1796/3/publisher/independent read-back/own audit завершён до отдельного release-prep. Code cap4096/limit events/no active eviction и Owner guards доказываются offline, не RAM bytes/capacity/SLA/distributed quota.
+
+Official [GitHub Status summary](https://www.githubstatus.com/api/v2/summary.json) и [unresolved incidents](https://www.githubstatus.com/api/v2/incidents/unresolved.json) проверены непосредственно перед expected-head squash 2026-10-29T08:40:46Z: Actions/Git Operations/API Requests/Pull Requests operational, unresolved0. Page updated_at07:30:07Z — отдельное поле API, не время проверки. Final required test/title SUCCESS/REST clean и отсутствие32 ref подтверждены перед merge. Один local readback request получил proxy tunnel503; это не CI failure, результат затем прочитан через GitHub connector. TLS/proxy/required checks не отключались, approval review не обходился.
+
+Actual release32 ref type=commit/SHA, raw APP_VERSION32, canonical renderer title/body, unique merged release-prep998 и prerelease flags проверены независимо. Исторические31/e74,30/7aa3514,29/4422c8b unchanged. Source2 SHA-256: {"client_rate_limit.py": "e5df175e7ba93661b49559649dea830e374e9af7d98e284f5d0929a84beaf206", "tests/test_client_rate_limit_memory_995.py": "fb5008fa9da2ac984d7beb79066c9e9667cb7e529285fc19920324cff0aa3eb8"}; historical5 panel-read hashes прежние. Нового runtime/dependency/schema/config surface при release-prep не добавлено; versioned release notes неизменны при этом checkpoint.
+
+## Fresh exact-release image/SBOM/security
+
+[Supply-chain40843971852](https://github.com/cLIcHE-QA/3xui-telegram-bot/actions/runs/40843971852)/job123346861353 SUCCESS на exact release SHA317b8a4. Artifact12883463521 ZIP171877 bytes, ZIP SHA-256 `sha256:5391cab5f38926b91cf3db4525d6aff09d4aabf00929e6d84bb37c4bc2fdffde` проверен независимо; paths/symlinks/размер архива проверены перед распаковкой. Metadata.source_sha/lock `7ff99d772ca5807a23df68d8442707627e1f87a160813a7b7dcb448eab78633d`/base `python:3.12-slim@sha256:05cda9777409a9c3ffddd94a4c476b79f0769a0b4857f0c7ed9226b6800b0d6f` совпали, Trivy0.75.0 и SBOM dnspython2.9.0/ISC подтверждены. Python vulnerabilities0, container173, actionable HIGH/CRITICAL0 под неизменной ignore-unfixed policy; CVE-2026-114605 отсутствует в обоих reports. Это digest evidence ZIP artifact, не утверждение production image OCI digest или deployed source. Проверка 2026-10-29T08:48:33.211872+00:00; никакой VPS/staging image не запускался.
+
+## Собственный acceptance и остаток
+
+Own995 criteria1…5 выполнены; criterion6 immutable release состоялся, но финальные publication checkpoint/own audit/main read-back ещё PENDING. Criterion7/R995-01 exact installed tag/SHA/health и ordinary existing-owner read не доказан. Можно совместить этот поздний read с R989-01 на одном итоговом RC при явном outcome обоих scopes; не создавать live pressure/Telegram burst/новые IDs/Owner reset. #995 OPEN/keep_open, parent482 прочие scopes и #984/#989 runtime отдельно. No real polling/listeners, Telegram sends, payments/refunds, provider/host/production DB writes/ref deletion/secrets/public rollout.
+
+## Продолжение checkpoint 2026-10-29 15:00 UTC+03:00
+
+**ROADMAP SYNC: PENDING.** Этот новый audit и publication projections пока локальные, без commit/PR/merge. Read-only GitHub API при продолжении подтвердил main `317b8a4661cd100acfe50386a85ba4a66b541dbb` и Release427628631/RC32, published_at2026-10-29T08:46:10Z, prerelease=true/draft=false. Это ограниченная повторная сверка main/Release; полная новая Issue/registry reconciliation не объявляется PASS.
+
+Первый metadata run 2026-10-29T08:59:25.460801Z: 96 tests/FAIL1 за1.795s. `test_live_roadmap` выявил оставшийся RC32 в таблице будущих кандидатов, хотя RC32 уже Published. В локальной проекции план следующего самостоятельного scope482 перенесён на предварительный RC33, зависимость исправлена на незавершённый RC32 publication checkpoint/own995 audit. Версия32, опубликованные release notes и historical audits не менялись. Повтор 2026-10-29T12:00:13.528045Z: metadata96 PASS за1.734s в новом isolated tracked fixture. Исходные FAIL log/proof сохранены локально; обязательный GitHub CI этого publication checkpoint ещё не запускался.
+
+**Блокер независимой сверки:** после первого metadata run escalated запуск `scripts/check-roadmap-github.py` не был выполнен: automatic approval review вернул `Your workspace is out of credits` и сообщил, что review не удалось завершить. Это ошибка проверки разрешений, не доказательство небезопасности команды; фактический баланс независимо не проверялся. Ранее разрешённые merge/RC остаются разрешёнными, но этот технический отказ не обходится сменой tool/sandbox/connector. При продолжении выполнены только разрешённая read-only ориентация и независимые локальные исправления документационного draft. Новая полная GitHub reconciliation, commit/push/PR/CI/main sync и следующий значимый scope BLOCKED до восстановления review либо указания оператора. Automation и незавершённый пул сохраняются.
+
+
+## Возобновление 2026-10-29 15:32 UTC+03:00
+
+Оператор явно написал «запускайся». Повтор той же read-only сверки пропущен automatic approval review; исходный credits review failure сохранён выше, не объявляется доказательством фактического баланса. Первый исполненный запуск вернул UNKNOWN/PENDING/URLError. DefaultVerifyPaths системного Python3.14 показал отсутствующий default CA bundle; повтор на существующем locked Python3.12 с системным `/etc/ssl/cert.pem` сохранил проверку TLS, без certificate bypass. GitHub token использован из существующей аутентификации только в environment дочернего процесса, без записи в repository/logs.
+
+Полная штатная `scripts/check-roadmap-github.py --repository cLIcHE-QA/3xui-telegram-bot` 2026-10-29T12:31:22.375710Z: PASS, Published `v5.0.0-rc.32`, referenced_issues82/status_assertions43/active_issues43, no production assertion. Approval review в этом запуске не обойдён. Прежний технический блокер снят только после исполненного PASS; publication PR/required CI/merge/own main/read-back/own Issue audit по-прежнему самостоятельные незавершённые шаги.
+
+Локальная проверка возобновлённого draft 2026-10-29T12:32:07.969393Z: metadata96 PASS за1.992s, isolated compileall/OpenAPI55 PASS; semantics/governance/living и language PR review PASS, git diff --check PASS. Исходные runtime/test bytes/version32/schema17/lock и все versioned release notes совпадают с immutable317. Это локальные проверки документации; собственный required CI и main checkpoint не подменяются ими.
