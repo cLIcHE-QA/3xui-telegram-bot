@@ -357,10 +357,10 @@
     {
       "issue": 482,
       "decision": "keep_open",
-      "date": "2026-10-28",
-      "accepted": "RC31 source/required+main1782/3/reconciliation/source17/5 hashes/fresh release image/immutable publication scoped PASS; own runtime PENDING",
-      "evidence": "docs/audits/2026-10-28-rc31-publication-checkpoint.md",
-      "comment": "Parent482 pooling/lifecycle/cache/другие critical contexts/admin full-list/limiter/runtime отдельно; child989 Published31,984 Published30, оба keep_open по собственным installed/read outcomes. Следующий Issue-first scope после publication checkpoint/main sync."
+      "date": "2026-10-29",
+      "accepted": "RC31 source/required+main1782/3/fresh image/immutable publication993/main read-back/own Issue audit scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-989-publication-main-checkpoint.md",
+      "comment": "Parent482 pooling/lifecycle/cache/другие authoritative contexts/admin full-list/limiter/runtime отдельно;984/989 Published и keep_open по собственным installed/read outcomes. Следующий самостоятельный scope Issue-first."
     },
     {
       "issue": 972,
@@ -389,10 +389,10 @@
     {
       "issue": 989,
       "decision": "keep_open",
-      "date": "2026-10-28",
-      "accepted": "RC31 source/required+main1782/3/reconciliation/source17/5 hashes/fresh release image/immutable publication scoped PASS; own runtime PENDING",
-      "evidence": "docs/audits/2026-10-28-rc31-publication-checkpoint.md",
-      "comment": "989 R989-01 installed/read после отдельного deployment; publication checkpoint/own audit/main read-back обязателен. Live failure/load не создавать."
+      "date": "2026-10-29",
+      "accepted": "RC31 source/required+main1782/3/fresh image/immutable publication993/main read-back/own Issue audit scoped PASS; own runtime PENDING",
+      "evidence": "docs/audits/2026-10-29-989-publication-main-checkpoint.md",
+      "comment": "989 criteria1…6 выполнены; keep_open только R989-01 installed/read после отдельного deployment, live failure/load не создавать."
     }
   ]
 }
