@@ -36,7 +36,7 @@ Owner-only вход: `/admin → Система → Настройки → Кл�
 
 ### Соединение одного traffic read (#1001)
 
-Кандидат source #1001, не Published32: новых operator actions/env/schema/deps/ports/credentials нет. Scope64/2 и current-task/client binding ограничивают только connector двух свежих GET одного customer traffic read; все Session/cookies/headers отдельные. При временном отказе прежний unavailable/Back, no mutation retry. Долговечный общий pool/shutdown и cache — отдельные scopes482, новый worker/listener не появляется. [Нормативные границы](3XUI_OPENAPI_CONTRACT.md#соединение-одного-customer-traffic-read-1001-часть-482) и [поздний R482E-01](CLIENT_SETUP.md#соединение-одного-чтения-трафика-1001); не создавать нагрузку/ошибки/reset ради приёмки.
+Source #1001 в main через PR #1002 `6d06c66989bde90d425e4985777b441142697646`, не Published32: новых operator actions/env/schema/deps/ports/credentials нет. Scope64/2 и current-task/client binding ограничивают только connector двух свежих GET одного customer traffic read; все Session/cookies/headers отдельные. При временном отказе прежний unavailable/Back, no mutation retry. Долговечный общий pool/shutdown и cache — отдельные scopes482, новый worker/listener не появляется. [Нормативные границы](3XUI_OPENAPI_CONTRACT.md#соединение-одного-customer-traffic-read-1001-часть-482) и [поздний R482E-01](CLIENT_SETUP.md#соединение-одного-чтения-трафика-1001); не создавать нагрузку/ошибки/reset ради приёмки.
 
 ### Память клиентского rate limiter (#995)
 

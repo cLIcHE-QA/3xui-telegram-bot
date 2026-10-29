@@ -1,6 +1,6 @@
 # Журнал изменений
 
-> **Текущий checkpoint 2026-10-29:** GitHub Published `v5.0.0-rc.32`, immutable `317b8a4661cd100acfe50386a85ba4a66b541dbb` (2026-10-29T08:46:10Z), prerelease. #995/#996 bounded limiter memory: source/release998/publication999 main `891c2f53de5e799af36cd50111a7bbdd0bbfe28b`, required+own main1796/3/publisher/independent read-back/own Issue audit scoped PASS; [финальная сверка](docs/audits/2026-10-29-995-publication-main-checkpoint.md). Own995 criteria1…6 выполнены, только R995-01 installed/read PENDING; #482 другие source/runtime scopes и #989/#984 runtime отдельно. Deployed18.10 `dae205ac82762723448f93827b981f89ae622231` operator-reported/independent VPS PENDING; G-11 PARTIAL/NO-GO/public rollout BLOCKED. [Roadmap](docs/ROADMAP.md).
+> **Текущий checkpoint 2026-10-29:** source #1001 / PR #1002 MERGED `6d06c66989bde90d425e4985777b441142697646`, required1823/3/latest title/CLEAN и independent actual main21/source6/protected12/OPEN44 read-back scoped PASS; [source/main checkpoint](docs/audits/2026-10-29-1001-scoped-traffic-postmerge-checkpoint.md). Own main40889472726 SUCCESS1823/3 и idempotent publisher40890345862 SUCCESS; этот docs source checkpoint PENDING; release-prep/новый RC после их завершения. GitHub Published `v5.0.0-rc.32` immutable `317b8a4661cd100acfe50386a85ba4a66b541dbb` (2026-10-29T08:46:10Z) не содержит1001; #995 только R995-01, #989/#984 runtime отдельно. Deployed18.10 operator-reported/independent VPS PENDING; G-11 PARTIAL/NO-GO/public rollout BLOCKED. [Roadmap](docs/ROADMAP.md).
 
 > **Предыдущий checkpoint 2026-10-22 21:21 UTC+03:00:** GitHub Published `v5.0.0-rc.18.10` (immutable SHA `dae205ac82762723448f93827b981f89ae622231`), Deployed с точным SHA **operator-reported**; targeted HWID UI 23/23 operator-reported scoped PASS. #827/#830/#833/#834/#838/#854 CLOSED/completed по собственным критериям, [датированный audit](docs/audits/2026-10-22-v5-rc18-10-operator-targeted-hwid-acceptance.md), [Roadmap](docs/ROADMAP.md). Independent VPS/provider attestation PENDING; G-11 PARTIAL/NO-GO, public rollout BLOCKED. Дата operator report: 2026-10-22T18:21:19Z.
 
@@ -16,7 +16,7 @@
 
 ## Unreleased
 
-- #1001 — scoped reuse TCP connector только для двух адресных GET одного customer traffic read. Отдельные fresh ClientSession/cookies, прежние auth/TLS/20s timeout/admission и DTO;64 live scopes на loop/2 GET checkouts, owner/current-task/binding isolation и закрытие на success/error/cancel. Нет общего persistent pool/cache/новых env/schema/deps/портов; остальные reads и mutations one-shot прежние, installed/read outcome отложен.
+- #1001 / PR #1002 — scoped reuse TCP connector только для двух адресных GET одного customer traffic read. Отдельные fresh ClientSession/cookies, прежние auth/TLS/20s timeout/admission и DTO;64 live scopes на loop/2 GET checkouts, owner/current-task/binding isolation и закрытие на success/error/cancel. Нет общего persistent pool/cache/новых env/schema/deps/портов; остальные reads и mutations one-shot прежние, installed/read outcome отложен.
 
 ## v5.0.0-rc.32 — Ограничение памяти клиентского rate limiter
 
