@@ -16,7 +16,7 @@
 
 ## Unreleased
 
-- #995 — bounded process-local клиентский rate limiter:4096 retained keys, global idle-window cleanup по обращению, отказ нового ID без allocation/вытеснения живого окна; per-user sliding window/default30/60s и Owner-only target reset прежние. Новых env/schema/deps/портов нет; свой installed/read outcome отложен, cap не capacity/SLA и не distributed guarantee.
+- #995 / PR #996 — bounded process-local клиентский rate limiter:4096 retained keys, global idle-window cleanup по обращению, отказ нового ID без allocation/вытеснения живого окна; per-user sliding window/default30/60s и Owner-only target reset прежние. Новых env/schema/deps/портов нет; свой installed/read outcome отложен, cap не capacity/SLA и не distributed guarantee.
 
 ## v5.0.0-rc.31 — Безопасный отказ чтения клиентского трафика
 

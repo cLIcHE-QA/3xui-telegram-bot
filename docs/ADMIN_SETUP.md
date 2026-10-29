@@ -36,7 +36,7 @@ Owner-only вход: `/admin → Система → Настройки → Кл�
 
 ### Память клиентского rate limiter (#995)
 
-Source candidate: default4096 retained keys на процесс, максимум `limit` событий на ключ; истёкшие окна удаляются при следующем обращении. Новых operator actions/env/миграций/credentials/портов нет, существующие count/window/default30/60s прежние. Заполнение map даёт тот же отказ «Слишком много запросов. Попробуйте немного позже.», а не сброс живого чужого окна. Owner-only target reset сохраняет подтверждение и scope; не выполнять реальный reset/Telegram burst ради доказательства, pressure/expiry проверены offline. Это process-local bound, не capacity/SLA или multi-instance защита; [contract и поздний installed/read](CLIENT_SETUP.md#память-клиентского-rate-limiter-995). Actual Published31 не содержит ещё не merged candidate.
+Source #996 в main, ещё не Published: default4096 retained keys на процесс, максимум `limit` событий на ключ; истёкшие окна удаляются при следующем обращении. Новых operator actions/env/миграций/credentials/портов нет, существующие count/window/default30/60s прежние. Заполнение map даёт тот же отказ «Слишком много запросов. Попробуйте немного позже.», а не сброс живого чужого окна. Owner-only target reset сохраняет подтверждение и scope; не выполнять реальный reset/Telegram burst ради доказательства, pressure/expiry проверены offline. Это process-local bound, не capacity/SLA или multi-instance защита; [contract и поздний installed/read](CLIENT_SETUP.md#память-клиентского-rate-limiter-995). Actual Published31 не содержит эти source changes; [postmerge checkpoint](audits/2026-10-29-995-client-limiter-postmerge-checkpoint.md).
 
 ### Временный отказ чтения panel API (#984)
 
